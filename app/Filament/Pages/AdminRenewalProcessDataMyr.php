@@ -1025,35 +1025,6 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
 
                                 return $renewal;
                             }),
-                    ]),
-
-                    Stack::make([
-                        TextColumn::make('total_amount')
-                            ->label('Amount')
-                            ->alignRight()
-                            ->formatStateUsing(function ($state, $record) {
-                                $reseller = RenewalDataMyr::getResellerForCompany($record->f_company_id);
-
-                                if ($reseller && $reseller->f_rate) {
-                                    // With reseller: reverse calculate to get base amount before 8% SST and reseller commission
-                                    $amountDue = $state;  // Final amount after commission
-                                    $sstRate = 0.08;     // 8%
-                                    $commissionRate = $reseller->f_rate / 100;     // 30%
-
-                                    // Subtotal formula
-                                    $subTotal = $amountDue / ((1 + $sstRate) - $commissionRate);
-
-                                    $calculatedAmount = $subTotal - ($subTotal * $commissionRate);
-
-                                    return number_format($calculatedAmount, 2);
-                                } else {
-                                    // No reseller: only deduct 8%
-                                    $calculatedAmount = ($state * 100) / (100 + 8);
-
-                                    return number_format($calculatedAmount, 2);
-                                }
-                            }),
-
                         TextColumn::make('f_company_id')
                             ->alignLeft()
                             ->label('Mapping Status')
@@ -1086,6 +1057,35 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
                                     default => 'warning'
                                 };
                             }),
+                    ]),
+
+                    Stack::make([
+                        TextColumn::make('total_amount')
+                            ->label('Amount')
+                            ->alignRight()
+                            ->formatStateUsing(function ($state, $record) {
+                                $reseller = RenewalDataMyr::getResellerForCompany($record->f_company_id);
+
+                                if ($reseller && $reseller->f_rate) {
+                                    // With reseller: reverse calculate to get base amount before 8% SST and reseller commission
+                                    $amountDue = $state;  // Final amount after commission
+                                    $sstRate = 0.08;     // 8%
+                                    $commissionRate = $reseller->f_rate / 100;     // 30%
+
+                                    // Subtotal formula
+                                    $subTotal = $amountDue / ((1 + $sstRate) - $commissionRate);
+
+                                    $calculatedAmount = $subTotal - ($subTotal * $commissionRate);
+
+                                    return number_format($calculatedAmount, 2);
+                                } else {
+                                    // No reseller: only deduct 8%
+                                    $calculatedAmount = ($state * 100) / (100 + 8);
+
+                                    return number_format($calculatedAmount, 2);
+                                }
+                            }),
+
                         // ->icon(function ($state, $record) {
                         //     $renewal = Renewal::where('f_company_id', $record->f_company_id)->first();
 

@@ -7,18 +7,7 @@ use App\Enums\LeadCategoriesEnum;
 use App\Enums\LeadStageEnum;
 use App\Enums\LeadStatusEnum;
 use App\Filament\Actions\LeadActions;
-use Filament\Forms;
-use Filament\Tables;
-use Filament\Tables\Table;
-use Filament\Resources\Resource;
-use Filament\Tables\Columns\TextColumn;
-use Filament\Notifications\Notification;
-use Illuminate\Database\Eloquent\Builder;
 use App\Filament\Resources\LeadResource\Pages;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
-use App\Models\Lead;
-use Filament\Forms\Components\Tabs\Tab;
-use Filament\Support\Enums\FontWeight;
 use App\Filament\Resources\LeadResource\RelationManagers\ActivityLogRelationManager;
 use App\Filament\Resources\LeadResource\RelationManagers\DemoAppointmentRelationManager;
 use App\Filament\Resources\LeadResource\RelationManagers\HardwareHandoverRelationManager;
@@ -33,12 +22,12 @@ use App\Filament\Resources\LeadResource\RelationManagers\SHTableRelationManager;
 use App\Filament\Resources\LeadResource\RelationManagers\SoftwareHandoverRelationManager;
 use App\Filament\Resources\LeadResource\RelationManagers\SubsidiaryRelationManager;
 use App\Filament\Resources\LeadResource\Tabs\AppointmentTabs;
-use App\Filament\Resources\LeadResource\Tabs\ARFollowUpTabs;
 use App\Filament\Resources\LeadResource\Tabs\ARDetailsTabs;
+use App\Filament\Resources\LeadResource\Tabs\ARFollowUpTabs;
 use App\Filament\Resources\LeadResource\Tabs\ARLicenseTabs;
-use App\Filament\Resources\LeadResource\Tabs\ARQuotationTabs;
-use App\Filament\Resources\LeadResource\Tabs\ARProformaInvoiceTabs;
 use App\Filament\Resources\LeadResource\Tabs\ARNotesTabs;
+use App\Filament\Resources\LeadResource\Tabs\ARProformaInvoiceTabs;
+use App\Filament\Resources\LeadResource\Tabs\ARQuotationTabs;
 use App\Filament\Resources\LeadResource\Tabs\CommercialItemTabs;
 use App\Filament\Resources\LeadResource\Tabs\CompanyTabs;
 use App\Filament\Resources\LeadResource\Tabs\DataFileTabs;
@@ -61,34 +50,44 @@ use App\Filament\Resources\LeadResource\Tabs\RepairAppointmentTabs;
 use App\Filament\Resources\LeadResource\Tabs\SoftwareHandoverTabs;
 use App\Filament\Resources\LeadResource\Tabs\SystemTabs;
 use App\Filament\Resources\LeadResource\Tabs\TicketingTabs;
+use App\Models\Lead;
 use Carbon\Carbon;
-use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\Grid;
-use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Form;
 use Filament\Forms\Components\Tabs;
-use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\Tabs\Tab;
 use Filament\Forms\Components\TextInput;
-use Filament\Tables\Filters\SelectFilter;
+use Filament\Forms\Form;
+use Filament\Notifications\Notification;
+use Filament\Resources\Resource;
+use Filament\Support\Enums\FontWeight;
+use Filament\Tables;
+use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Enums\FiltersLayout;
 use Filament\Tables\Filters\Filter;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Facades\DB;
 use Malzariey\FilamentDaterangepickerFilter\Fields\DateRangePicker;
 
 class LeadResource extends Resource
 {
     protected static ?string $model = Lead::class;
+
     protected static ?string $label = 'leads';
+
     protected static ?string $navigationIcon = 'heroicon-o-briefcase';
+
     public $modules;
 
     public static function canAccess(): bool
     {
         $user = auth()->user();
 
-        if (!$user || !($user instanceof \App\Models\User)) {
+        if (! $user || ! ($user instanceof \App\Models\User)) {
             return false;
         }
 
@@ -114,35 +113,35 @@ class LeadResource extends Resource
             // Default tabs based on user role
             $user = auth()->user();
 
-            if (!$user) {
+            if (! $user) {
                 $activeTabs = ['lead', 'company'];
             } elseif ($user->role_id === 1) { // Lead Owner
                 if ($user->additional_role === 1) {
                     $activeTabs = [
-                        'company', 'quotation', 'repair_appointment'
+                        'company', 'quotation', 'repair_appointment',
                     ];
                 } else {
                     $activeTabs = ['lead', 'company', 'prospect_pic_details', 'system', 'refer_earn', 'appointment',
-                    'prospect_follow_up', 'commercial_items', 'handover_details'];
+                        'prospect_follow_up', 'commercial_items', 'handover_details'];
                 }
             } elseif ($user->role_id === 2) { // Salesperson
                 $activeTabs = ['lead', 'company', 'system', 'refer_earn', 'appointment',
                     'prospect_follow_up', 'commercial_items', 'handover_details'];
             } elseif ($user->role_id === 4) { // Implementer
-                $activeTabs = ['company', 'implementer_handover','implementer_pic_details',
+                $activeTabs = ['company', 'implementer_handover', 'implementer_pic_details',
                     'implementer_notes', 'implementer_appointment', 'implementer_follow_up',
                     'data_file', 'implementer_service_form', 'ticketing'];
             } elseif ($user->role_id === 5) { // Implementer
-                $activeTabs = ['company', 'implementer_handover','implementer_pic_details',
+                $activeTabs = ['company', 'implementer_handover', 'implementer_pic_details',
                     'implementer_notes', 'implementer_appointment', 'implementer_follow_up',
-                    'data_file', 'implementer_service_form','other_form', 'ticketing'];
+                    'data_file', 'implementer_service_form', 'other_form', 'ticketing'];
             } elseif ($user->role_id === 9) { // Technician
                 $activeTabs = ['company', 'quotation', 'repair_appointment'];
             } else { // Manager (role_id = 3) or others
                 $activeTabs = [
                     'lead', 'company', 'prospect_pic_details', 'system', 'refer_earn', 'appointment',
                     'prospect_follow_up', 'quotation', 'proforma_invoice', 'invoice',
-                    'debtor_follow_up', 'commercial_items', 'handover_details'
+                    'debtor_follow_up', 'commercial_items', 'handover_details',
                 ];
             }
         }
@@ -233,7 +232,7 @@ class LeadResource extends Resource
                 ->schema(ARQuotationTabs::getSchema());
         }
         if (in_array('ar_proforma_invoice', $activeTabs)) {
-            $tabs[] = Tabs\Tab::make('Renewal Proforma Invoice')
+            $tabs[] = Tabs\Tab::make('Renewal PI')
                 ->schema(ARProformaInvoiceTabs::getSchema());
         }
         if (in_array('ar_follow_up', $activeTabs)) {
@@ -315,7 +314,8 @@ class LeadResource extends Resource
             ->paginated([10, 25, 50])
             ->modifyQueryUsing(function ($query) {
                 $query->orderByRaw("FIELD(categories, 'New', 'Active', 'Inactive')")
-                        ->orderBy('created_at', 'desc');
+                    ->orderBy('created_at', 'desc');
+
                 return $query;
             })
             ->filters([
@@ -323,7 +323,7 @@ class LeadResource extends Resource
                 SelectFilter::make('lead_owner')
                     ->label('')
                     ->multiple()
-                    ->options(function() {
+                    ->options(function () {
                         // Create base options array with 'None' option
                         $options = [
                             'none' => 'None',
@@ -423,7 +423,7 @@ class LeadResource extends Resource
                         }
                     }),
 
-                //Filter for Created At
+                // Filter for Created At
                 Filter::make('created_at')
                     ->form([
                         DateRangePicker::make('date_range')
@@ -431,7 +431,7 @@ class LeadResource extends Resource
                             ->placeholder('Select date range'),
                     ])
                     ->query(function (\Illuminate\Database\Eloquent\Builder $query, array $data) {
-                        if (!empty($data['date_range'])) {
+                        if (! empty($data['date_range'])) {
                             // Parse the date range from the "start - end" format
                             [$start, $end] = explode(' - ', $data['date_range']);
 
@@ -444,13 +444,14 @@ class LeadResource extends Resource
                         }
                     })
                     ->indicateUsing(function (array $data) {
-                        if (!empty($data['date_range'])) {
+                        if (! empty($data['date_range'])) {
                             // Parse the date range for display
                             [$start, $end] = explode(' - ', $data['date_range']);
 
-                            return 'From: ' . Carbon::createFromFormat('d/m/Y', $start)->format('j M Y') .
-                                ' To: ' . Carbon::createFromFormat('d/m/Y', $end)->format('j M Y');
+                            return 'From: '.Carbon::createFromFormat('d/m/Y', $start)->format('j M Y').
+                                ' To: '.Carbon::createFromFormat('d/m/Y', $end)->format('j M Y');
                         }
+
                         return null;
                     }),
                 // Filter for Categories
@@ -489,7 +490,6 @@ class LeadResource extends Resource
                     ->placeholder('Select Stage')
                     ->hidden(fn ($livewire) => in_array($livewire->activeTab, ['all', 'transfer', 'demo', 'follow_up', 'inactive'])),
 
-
                 // Filter for Lead Status
                 SelectFilter::make('lead_status')
                     ->label('')
@@ -517,6 +517,7 @@ class LeadResource extends Resource
                                 'Demo Cancelled' => 'DEMO CANCELLED',
                             ];
                         }
+
                         return $defaultOptions;
                     })
                     ->placeholder('Select Lead Status')
@@ -529,15 +530,15 @@ class LeadResource extends Resource
                             ->placeholder('Enter company name'),
                     ])
                     ->query(function (\Illuminate\Database\Eloquent\Builder $query, array $data) {
-                        if (!empty($data['company_name'])) {
+                        if (! empty($data['company_name'])) {
                             $query->whereHas('companyDetail', function ($query) use ($data) {
-                                $query->where('company_name', 'like', '%' . $data['company_name'] . '%');
+                                $query->where('company_name', 'like', '%'.$data['company_name'].'%');
                             });
                         }
                     })
                     ->indicateUsing(function (array $data) {
                         return isset($data['company_name'])
-                            ? 'Company Name: ' . $data['company_name']
+                            ? 'Company Name: '.$data['company_name']
                             : null;
                     }),
 
@@ -552,7 +553,7 @@ class LeadResource extends Resource
                     ->multiple() // Enables multi-selection
                     ->placeholder('Select Company Size')
                     ->query(function (\Illuminate\Database\Eloquent\Builder $query, array $data) {
-                        if (!empty($data['values'])) { // 'values' stores multiple selections
+                        if (! empty($data['values'])) { // 'values' stores multiple selections
                             $sizeMap = [
                                 'Small' => '1-24',
                                 'Medium' => '25-99',
@@ -571,8 +572,8 @@ class LeadResource extends Resource
                         }
                     })
                     ->indicateUsing(function (array $data) {
-                        return !empty($data['values'])
-                            ? 'Company Size: ' . implode(', ', $data['values'])
+                        return ! empty($data['values'])
+                            ? 'Company Size: '.implode(', ', $data['values'])
                             : null;
                     }),
                 Filter::make('id')
@@ -583,13 +584,13 @@ class LeadResource extends Resource
                             ->placeholder('Enter Lead ID'),
                     ])
                     ->query(function (Builder $query, array $data) {
-                        if (!empty($data['id'])) {
+                        if (! empty($data['id'])) {
                             $query->where('id', $data['id']);
                         }
                     })
                     ->indicateUsing(function (array $data) {
                         return isset($data['id']) && $data['id'] !== null
-                            ? 'ID: ' . $data['id']
+                            ? 'ID: '.$data['id']
                             : null;
                     }),
 
@@ -629,7 +630,7 @@ class LeadResource extends Resource
                             }
                         });
                     }),
-                    
+
                 SelectFilter::make('state')
                     ->label('')
                     ->multiple()
@@ -668,30 +669,21 @@ class LeadResource extends Resource
                         // Add 'None' option at the top
                         $options = ['Not applicable' => 'None'];
                         foreach ($malaysiaStates as $state) {
-                            
-                            if($state === 'Kuala Lumpur')
-                            {
-                                $options['Wilayah persekutuan kuala lumpur'] = $state;
-                            }
-                            else if($state === 'Labuan')
-                            {
-                                $options['Wilayah persekutuan labuan'] = $state;
-                            }
-                            else if($state === 'Putrajaya')
-                            {
-                                $options['Wilayah persekutuan putrajaya'] = $state;
-                            }
-                            else if($state === 'Negeri Sembilan')
-                            {
-                                $options['Negeri sembilan'] = $state;
-                            }
 
-                            else 
-                            {
+                            if ($state === 'Kuala Lumpur') {
+                                $options['Wilayah persekutuan kuala lumpur'] = $state;
+                            } elseif ($state === 'Labuan') {
+                                $options['Wilayah persekutuan labuan'] = $state;
+                            } elseif ($state === 'Putrajaya') {
+                                $options['Wilayah persekutuan putrajaya'] = $state;
+                            } elseif ($state === 'Negeri Sembilan') {
+                                $options['Negeri sembilan'] = $state;
+                            } else {
                                 $options[$state] = $state;
                             }
-                            
+
                         }
+
                         return $options;
                     })
                     ->placeholder('Select State')
@@ -716,7 +708,7 @@ class LeadResource extends Resource
                         });
                     })
                     ->hidden(fn ($livewire) => in_array($livewire->activeTab, ['demo'])),
-                    
+
                 Filter::make('deal_amount')
                     ->form([
                         Grid::make(3)
@@ -762,7 +754,7 @@ class LeadResource extends Resource
                             }),
                             'between' => $query->whereBetween('deal_amount', [
                                 $data['min_amount'],
-                                $data['max_amount'] ?? $data['min_amount']
+                                $data['max_amount'] ?? $data['min_amount'],
                             ]),
                             default => $query,
                         };
@@ -773,21 +765,20 @@ class LeadResource extends Resource
                         }
 
                         return match ($data['type']) {
-                            'above' => 'Deal amount ≥ RM ' . number_format($data['min_amount'], 2),
-                            'below' => 'Deal amount ≤ RM ' . number_format($data['min_amount'], 2),
-                            'between' => 'Deal amount between RM ' . number_format($data['min_amount'], 2) .
-                                        ' and RM ' . number_format($data['max_amount'] ?? $data['min_amount'], 2),
+                            'above' => 'Deal amount ≥ RM '.number_format($data['min_amount'], 2),
+                            'below' => 'Deal amount ≤ RM '.number_format($data['min_amount'], 2),
+                            'between' => 'Deal amount between RM '.number_format($data['min_amount'], 2).
+                                        ' and RM '.number_format($data['max_amount'] ?? $data['min_amount'], 2),
                             default => null,
                         };
                     })
                     ->hidden(fn ($livewire) => $livewire->activeTab === 'demo'),
-                    
+
                 // Generate Filter for State
-                
 
             ], layout: FiltersLayout::AboveContent)
             ->filtersFormColumns(6)
-                ->columns([
+            ->columns([
                 TextColumn::make('id')
                     ->label('ID')
                     ->rowIndex(),
@@ -809,29 +800,29 @@ class LeadResource extends Resource
                     //     // dd(request()->query('activeTab')); // Debug the value of activeTab
                     //     return request()->query('activeTab') === 'all';
                     // })
-                    ->extraAttributes(fn($state) => [
+                    ->extraAttributes(fn ($state) => [
                         'style' => optional(LeadCategoriesEnum::tryFrom($state))->getColor()
-                            ? "background-color: " . LeadCategoriesEnum::tryFrom($state)->getColor() . "; border-radius: 25px; width: 60%; height: 27px;"
+                            ? 'background-color: '.LeadCategoriesEnum::tryFrom($state)->getColor().'; border-radius: 25px; width: 60%; height: 27px;'
                             : '',  // Fallback if the state is invalid or null
                     ])
                     ->hidden(fn ($livewire) => in_array($livewire->activeTab, ['transfer', 'active', 'demo', 'follow_up', 'inactive'])),
                 TextColumn::make('stage')
                     ->label('STAGE')
                     ->alignCenter()
-                    ->extraAttributes(fn($state) => [
+                    ->extraAttributes(fn ($state) => [
                         'style' => optional(LeadStageEnum::tryFrom($state))->getColor()
-                            ? "background-color: " . LeadStageEnum::tryFrom($state)->getColor() . "; border-radius: 25px; width: 90%; height: 27px;"
+                            ? 'background-color: '.LeadStageEnum::tryFrom($state)->getColor().'; border-radius: 25px; width: 90%; height: 27px;'
                             : '',  // Fallback if the state is invalid or null
                     ])
                     ->hidden(fn ($livewire) => in_array($livewire->activeTab, ['all', 'transfer', 'demo', 'follow_up', 'inactive'])),
                 TextColumn::make('lead_status')
                     ->label('LEAD STATUS')
                     ->alignCenter()
-                    ->extraAttributes(fn($state) => [
+                    ->extraAttributes(fn ($state) => [
                         'style' => optional(LeadStatusEnum::tryFrom($state))->getColor()
-                            ? "background-color: " . LeadStatusEnum::tryFrom($state)->getColor() . ";" .
-                              "border-radius: 25px; width: 90%; height: 27px;" .
-                              (in_array($state, ['Hot', 'Warm', 'Cold', 'RFQ-Transfer']) ? "color: white;" : "") // Change text color to white for specific statuses
+                            ? 'background-color: '.LeadStatusEnum::tryFrom($state)->getColor().';'.
+                              'border-radius: 25px; width: 90%; height: 27px;'.
+                              (in_array($state, ['Hot', 'Warm', 'Cold', 'RFQ-Transfer']) ? 'color: white;' : '') // Change text color to white for specific statuses
                             : '',  // Fallback if the state is invalid or null
                     ])
                     ->hidden(fn ($livewire) => in_array($livewire->activeTab, ['all', 'active'])),
@@ -842,33 +833,30 @@ class LeadResource extends Resource
                     ->getStateUsing(fn (Lead $record) => $record->companyDetail?->company_name ?? '-'),
                 TextColumn::make('from_lead_created')
                     ->label('FROM LEAD CREATED')
-                    ->getStateUsing(fn (Lead $record) =>
-                        $record->created_at
-                            ? Carbon::parse($record->created_at)->diffInDays(Carbon::now()) . ' days'
+                    ->getStateUsing(fn (Lead $record) => $record->created_at
+                            ? Carbon::parse($record->created_at)->diffInDays(Carbon::now()).' days'
                             : 'N/A'
                     )
-                    ->extraAttributes(fn($state) => [
+                    ->extraAttributes(fn ($state) => [
                         'style' => optional(LeadStageEnum::tryFrom($state))->getColor()
-                            ? "background-color: " . LeadStageEnum::tryFrom($state)->getColor() . "; border-radius: 25px; width: 70%;"
+                            ? 'background-color: '.LeadStageEnum::tryFrom($state)->getColor().'; border-radius: 25px; width: 70%;'
                             : '', // Fallback if the state is invalid or null
                     ])
                     ->hidden(fn ($livewire) => in_array($livewire->activeTab, ['all', 'transfer', 'demo', 'active', 'inactive'])),
                 TextColumn::make('appointment_date')
                     ->label('APPOINTMENT DATE')
-                    ->getStateUsing(fn (Lead $record) =>
-                        $record->demoAppointment->first()
+                    ->getStateUsing(fn (Lead $record) => $record->demoAppointment->first()
                             ? sprintf(
                                 '%s, %s',
                                 Carbon::parse($record->demoAppointment->first()->date)->format('d M Y'),
                                 Carbon::parse($record->demoAppointment->first()->start_time)->format('h:i A'),
-                                )
+                            )
                             : '-'
                     )
                     ->hidden(fn ($livewire) => in_array($livewire->activeTab, ['all', 'active', 'transfer', 'follow_up', 'inactive'])),
                 TextColumn::make('day_taken_to_close_deal')
                     ->label('IN-ACTIVE DAYS')
-                    ->getStateUsing(fn (Lead $record) =>
-                        $record->lead_status === 'Closed'
+                    ->getStateUsing(fn (Lead $record) => $record->lead_status === 'Closed'
                         ? sprintf(
                             '%s days',
                             Carbon::parse($record->created_at)->diffInDays(Carbon::parse($record->updated_at))
@@ -877,17 +865,16 @@ class LeadResource extends Resource
                     ->hidden(fn ($livewire) => in_array($livewire->activeTab, ['all', 'active', 'transfer', 'follow_up', 'demo'])),
                 TextColumn::make('from_new_demo')
                     ->label('FROM NEW DEMO')
-                    ->getStateUsing(fn (Lead $record) =>
-                        ($days = $record->calculateDaysFromNewDemo()) !== '-'
-                            ? $days . ' days'
+                    ->getStateUsing(fn (Lead $record) => ($days = $record->calculateDaysFromNewDemo()) !== '-'
+                            ? $days.' days'
                             : $days
                     )
-                    ->extraAttributes(fn($state) => [
+                    ->extraAttributes(fn ($state) => [
                         'style' => optional(LeadStageEnum::tryFrom($state))->getColor()
-                            ? "background-color: " . LeadStageEnum::tryFrom($state)->getColor() . "; border-radius: 25px; width: 70%;"
+                            ? 'background-color: '.LeadStageEnum::tryFrom($state)->getColor().'; border-radius: 25px; width: 70%;'
                             : '',  // Fallback if the state is invalid or null
                     ])
-                    ->hidden(fn ($livewire) => in_array($livewire->activeTab, ['all','transfer', 'demo', 'active', 'inactive'])),
+                    ->hidden(fn ($livewire) => in_array($livewire->activeTab, ['all', 'transfer', 'demo', 'active', 'inactive'])),
                 TextColumn::make('company_size_label')
                     ->label('COMPANY SIZE'),
                 TextColumn::make('company_size')
@@ -898,345 +885,339 @@ class LeadResource extends Resource
             // ->defaultSort('categories', 'New')
             ->defaultSort(function (Builder $query): Builder {
                 return $query
-                ->orderBy('categories', 'asc') // Sort 'New -> Active -> Inactive' first
-                ->orderBy('updated_at', 'desc');
-                })
+                    ->orderBy('categories', 'asc') // Sort 'New -> Active -> Inactive' first
+                    ->orderBy('updated_at', 'desc');
+            })
             ->bulkActions([
-                \Filament\Tables\Actions\BulkAction::make('changeLeadOwner')
-                    ->label('Change Lead Owner')
-                    ->icon('heroicon-o-user-circle')
-                    ->visible(fn () => auth()->user()?->role_id === 3)
-                    ->form([
-                        \Filament\Forms\Components\Select::make('lead_owner')
-                            ->label('New Lead Owner')
-                            ->options(
-                                \App\Models\User::where('role_id', 1)->pluck('name', 'name')->toArray()
-                            )
-                            ->searchable()
-                            ->required(),
-                    ])
-                    ->action(function (\Illuminate\Support\Collection $records, array $data) {
-                        foreach ($records as $lead) {
-                            $lead->update([
-                                'lead_owner' => $data['lead_owner'],
+            \Filament\Tables\Actions\BulkAction::make('changeLeadOwner')
+                ->label('Change Lead Owner')
+                ->icon('heroicon-o-user-circle')
+                ->visible(fn () => auth()->user()?->role_id === 3)
+                ->form([
+                    \Filament\Forms\Components\Select::make('lead_owner')
+                        ->label('New Lead Owner')
+                        ->options(
+                            \App\Models\User::where('role_id', 1)->pluck('name', 'name')->toArray()
+                        )
+                        ->searchable()
+                        ->required(),
+                ])
+                ->action(function (\Illuminate\Support\Collection $records, array $data) {
+                    foreach ($records as $lead) {
+                        $lead->update([
+                            'lead_owner' => $data['lead_owner'],
+                        ]);
+
+                        // Update latest activity log description
+                        $latestActivityLog = \App\Models\ActivityLog::where('subject_id', $lead->id)
+                            ->orderByDesc('created_at')
+                            ->first();
+
+                        if ($latestActivityLog) {
+                            $latestActivityLog->update([
+                                'description' => 'Lead Owner changed by Manager',
                             ]);
-
-                            // Update latest activity log description
-                            $latestActivityLog = \App\Models\ActivityLog::where('subject_id', $lead->id)
-                                ->orderByDesc('created_at')
-                                ->first();
-
-                            if ($latestActivityLog) {
-                                $latestActivityLog->update([
-                                    'description' => 'Lead Owner changed by Manager',
-                                ]);
-                            }
-
-                            // Optional: Create new activity log entry
-                            activity()
-                                ->causedBy(auth()->user())
-                                ->performedOn($lead)
-                                ->log('Bulk lead owner changed to: ' . $data['lead_owner']);
                         }
 
-                        \Filament\Notifications\Notification::make()
-                            ->title('Lead Owner Updated')
-                            ->success()
-                            ->body(count($records) . ' leads updated with new Lead Owner.')
-                            ->send();
-                    }),
+                        // Optional: Create new activity log entry
+                        activity()
+                            ->causedBy(auth()->user())
+                            ->performedOn($lead)
+                            ->log('Bulk lead owner changed to: '.$data['lead_owner']);
+                    }
 
-                \Filament\Tables\Actions\BulkAction::make('changeSalesperson')
-                    ->label('Change Salesperson')
-                    ->icon('heroicon-o-user-group')
-                    ->visible(fn () => auth()->user()?->role_id === 3)
-                    ->form([
-                        \Filament\Forms\Components\Select::make('salesperson')
-                            ->label('New Salesperson')
-                            ->options(
-                                \App\Models\User::where('role_id', 2)->pluck('name', 'id')->toArray()
-                            )
-                            ->searchable()
-                            ->required(),
-                    ])
-                    ->action(function (\Illuminate\Support\Collection $records, array $data) {
-                        $salespersonId = $data['salesperson'];
-                        $salespersonName = \App\Models\User::find($salespersonId)?->name ?? 'Unknown';
+                    \Filament\Notifications\Notification::make()
+                        ->title('Lead Owner Updated')
+                        ->success()
+                        ->body(count($records).' leads updated with new Lead Owner.')
+                        ->send();
+                }),
 
-                        foreach ($records as $lead) {
-                            // Store old salesperson for logging
-                            $oldSalespersonId = $lead->salesperson;
-                            $oldSalespersonName = \App\Models\User::find($oldSalespersonId)?->name ?? 'None';
+            \Filament\Tables\Actions\BulkAction::make('changeSalesperson')
+                ->label('Change Salesperson')
+                ->icon('heroicon-o-user-group')
+                ->visible(fn () => auth()->user()?->role_id === 3)
+                ->form([
+                    \Filament\Forms\Components\Select::make('salesperson')
+                        ->label('New Salesperson')
+                        ->options(
+                            \App\Models\User::where('role_id', 2)->pluck('name', 'id')->toArray()
+                        )
+                        ->searchable()
+                        ->required(),
+                ])
+                ->action(function (\Illuminate\Support\Collection $records, array $data) {
+                    $salespersonId = $data['salesperson'];
+                    $salespersonName = \App\Models\User::find($salespersonId)?->name ?? 'Unknown';
 
-                            // Update the salesperson and assigned date
-                            $lead->update([
-                                'salesperson' => $salespersonId,
-                                'salesperson_assigned_date' => now(),
-                            ]);
+                    foreach ($records as $lead) {
+                        // Store old salesperson for logging
+                        $oldSalespersonId = $lead->salesperson;
+                        $oldSalespersonName = \App\Models\User::find($oldSalespersonId)?->name ?? 'None';
 
-                            // Optional: Create activity log entry
-                            activity()
-                                ->causedBy(auth()->user())
-                                ->performedOn($lead)
-                                ->log('Bulk changed salesperson from ' . $oldSalespersonName . ' to ' . $salespersonName);
-                        }
+                        // Update the salesperson and assigned date
+                        $lead->update([
+                            'salesperson' => $salespersonId,
+                            'salesperson_assigned_date' => now(),
+                        ]);
 
-                        \Filament\Notifications\Notification::make()
-                            ->title('Salesperson Updated')
-                            ->success()
-                            ->body(count($records) . ' leads updated with new Salesperson: ' . $salespersonName)
-                            ->send();
-                    }),
+                        // Optional: Create activity log entry
+                        activity()
+                            ->causedBy(auth()->user())
+                            ->performedOn($lead)
+                            ->log('Bulk changed salesperson from '.$oldSalespersonName.' to '.$salespersonName);
+                    }
 
-                \Filament\Tables\Actions\BulkAction::make('changeLeadSource')
-                    ->label('Change Lead Source')
-                    ->icon('heroicon-o-tag')
-                    ->visible(fn () => auth()->user()?->role_id === 3)
-                    ->form([
-                        \Filament\Forms\Components\Select::make('lead_code')
-                            ->label('New Lead Source')
-                            ->options(function () {
-                                // Get all unique lead_code values from the database
-                                $leadCodes = \App\Models\Lead::select('lead_code')
-                                    ->distinct()
-                                    ->whereNotNull('lead_code')
-                                    ->pluck('lead_code')
-                                    ->toArray();
+                    \Filament\Notifications\Notification::make()
+                        ->title('Salesperson Updated')
+                        ->success()
+                        ->body(count($records).' leads updated with new Salesperson: '.$salespersonName)
+                        ->send();
+                }),
 
-                                // Create options from the unique codes
-                                return array_combine($leadCodes, $leadCodes);
-                            })
-                            ->searchable()
-                            ->required(),
-                    ])
-                    ->action(function (\Illuminate\Support\Collection $records, array $data) {
-                        $newLeadCode = $data['lead_code'];
+            \Filament\Tables\Actions\BulkAction::make('changeLeadSource')
+                ->label('Change Lead Source')
+                ->icon('heroicon-o-tag')
+                ->visible(fn () => auth()->user()?->role_id === 3)
+                ->form([
+                    \Filament\Forms\Components\Select::make('lead_code')
+                        ->label('New Lead Source')
+                        ->options(function () {
+                            // Get all unique lead_code values from the database
+                            $leadCodes = \App\Models\Lead::select('lead_code')
+                                ->distinct()
+                                ->whereNotNull('lead_code')
+                                ->pluck('lead_code')
+                                ->toArray();
 
-                        foreach ($records as $lead) {
-                            $oldLeadCode = $lead->lead_code ?? 'None';
+                            // Create options from the unique codes
+                            return array_combine($leadCodes, $leadCodes);
+                        })
+                        ->searchable()
+                        ->required(),
+                ])
+                ->action(function (\Illuminate\Support\Collection $records, array $data) {
+                    $newLeadCode = $data['lead_code'];
 
-                            $lead->update([
-                                'lead_code' => $newLeadCode,
-                            ]);
+                    foreach ($records as $lead) {
+                        $oldLeadCode = $lead->lead_code ?? 'None';
 
-                            // Optional: Create activity log entry
-                            activity()
-                                ->causedBy(auth()->user())
-                                ->performedOn($lead)
-                                ->log('Bulk changed lead source from "' . $oldLeadCode . '" to "' . $newLeadCode . '"');
-                        }
+                        $lead->update([
+                            'lead_code' => $newLeadCode,
+                        ]);
 
-                        \Filament\Notifications\Notification::make()
-                            ->title('Lead Source Updated')
-                            ->success()
-                            ->body(count($records) . ' leads updated with new Lead Source: ' . $newLeadCode)
-                            ->send();
-                    }),
+                        // Optional: Create activity log entry
+                        activity()
+                            ->causedBy(auth()->user())
+                            ->performedOn($lead)
+                            ->log('Bulk changed lead source from "'.$oldLeadCode.'" to "'.$newLeadCode.'"');
+                    }
+
+                    \Filament\Notifications\Notification::make()
+                        ->title('Lead Source Updated')
+                        ->success()
+                        ->body(count($records).' leads updated with new Lead Source: '.$newLeadCode)
+                        ->send();
+                }),
             ])
             ->actions([
                 Tables\Actions\ActionGroup::make([
-                    LeadActions::getTimeSinceCreationAction(),
-                    LeadActions::getAssignToMeAction(),
-                    LeadActions::getViewAction(),
-                    LeadActions::getAddDemoAction()
-                        ->visible(fn (Lead $record) =>
-                            $record->categories === 'Active'
-                            && !is_null($record->lead_owner)
-                            && is_null($record->salesperson)
-                        ),
-                    LeadActions::getAddRFQ()
-                        ->visible(fn (Lead $record) =>
-                            $record->categories === 'Active'
-                            && !is_null($record->lead_owner)
-                            && is_null($record->salesperson)
-                        ),
+                LeadActions::getTimeSinceCreationAction(),
+                LeadActions::getAssignToMeAction(),
+                LeadActions::getViewAction(),
+                LeadActions::getAddDemoAction()
+                    ->visible(fn (Lead $record) => $record->categories === 'Active'
+                        && ! is_null($record->lead_owner)
+                        && is_null($record->salesperson)
+                    ),
+                LeadActions::getAddRFQ()
+                    ->visible(fn (Lead $record) => $record->categories === 'Active'
+                        && ! is_null($record->lead_owner)
+                        && is_null($record->salesperson)
+                    ),
 
-                    LeadActions::getAddFollowUp()
-                        ->visible(fn (Lead $record) =>
-                            $record->categories === 'Active'
-                            && !is_null($record->lead_owner)
-                        ),
+                LeadActions::getAddFollowUp()
+                    ->visible(fn (Lead $record) => $record->categories === 'Active'
+                        && ! is_null($record->lead_owner)
+                    ),
 
-                    LeadActions::getAddAutomation()
-                        ->visible(fn (Lead $record) =>
-                            $record->categories === 'Active'
-                            && !is_null($record->lead_owner)
-                            && is_null($record->salesperson)
-                        ),
+                LeadActions::getAddAutomation()
+                    ->visible(fn (Lead $record) => $record->categories === 'Active'
+                        && ! is_null($record->lead_owner)
+                        && is_null($record->salesperson)
+                    ),
 
-                    LeadActions::getArchiveAction()
-                        ->visible(fn (Lead $record) =>
-                            $record->categories === 'Active'
-                            && !is_null($record->lead_owner)
-                        ),
-                    LeadActions::getChangeLeadOwnerAction(),
+                LeadActions::getArchiveAction()
+                    ->visible(fn (Lead $record) => $record->categories === 'Active'
+                        && ! is_null($record->lead_owner)
+                    ),
+                LeadActions::getChangeLeadOwnerAction(),
 
-                    LeadActions::getRequestChangeLeadOwnerAction(),
+                LeadActions::getRequestChangeLeadOwnerAction(),
 
-                    LeadActions::getViewReferralDetailsAction(),
+                LeadActions::getViewReferralDetailsAction(),
 
-                    Tables\Actions\Action::make('handoverMapping')
-                        ->label(__('Handover Mapping'))
-                        ->visible(fn (Lead $lead) =>
-                            in_array(auth()->user()->role_id, [4, 5, 3])
-                        )
-                        ->modalHeading('Map Lead to Software Handover')
-                        ->color('danger')
-                        ->icon('heroicon-o-link')
-                        ->form([
-                            Placeholder::make('')
-                                ->content(__('Update the company name, mark this lead as Closed, and link to a software handover.')),
+                Tables\Actions\Action::make('handoverMapping')
+                    ->label(__('Handover Mapping'))
+                    ->visible(fn (Lead $lead) => in_array(auth()->user()->role_id, [4, 5, 3])
+                    )
+                    ->modalHeading('Map Lead to Software Handover')
+                    ->color('danger')
+                    ->icon('heroicon-o-link')
+                    ->form([
+                        Placeholder::make('')
+                            ->content(__('Update the company name, mark this lead as Closed, and link to a software handover.')),
 
-                            TextInput::make('company_name')
-                                ->label('Company Name')
-                                ->required()
-                                ->default(fn (Lead $record) => $record->companyDetail?->company_name ?? '')
-                                ->reactive()
-                                ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()']),
+                        TextInput::make('company_name')
+                            ->label('Company Name')
+                            ->required()
+                            ->default(fn (Lead $record) => $record->companyDetail?->company_name ?? '')
+                            ->reactive()
+                            ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()']),
 
-                            Select::make('status')
-                                ->label('INACTIVE STATUS')
-                                ->options(function () {
-                                    // Create base options array
-                                    $options = [
-                                        'Closed' => 'Closed',
-                                    ];
+                        Select::make('status')
+                            ->label('INACTIVE STATUS')
+                            ->options(function () {
+                                // Create base options array
+                                $options = [
+                                    'Closed' => 'Closed',
+                                ];
 
-                                    return $options;
-                                })
-                                ->default('Closed')
-                                ->required()
-                                ->reactive(),
+                                return $options;
+                            })
+                            ->default('Closed')
+                            ->required()
+                            ->reactive(),
 
-                            Select::make('software_handover_id')
-                                ->label('Link Software Handover')
-                                ->options(function (callable $get, $livewire) {
-                                    $companyName = $get('company_name');
+                        Select::make('software_handover_id')
+                            ->label('Link Software Handover')
+                            ->options(function (callable $get, $livewire) {
+                                $companyName = $get('company_name');
 
-                                    if (!$companyName) {
-                                        return [];
-                                    }
-
-                                    // Find orphaned software handovers with matching company name
-                                    return \App\Models\SoftwareHandover::whereNull('lead_id')
-                                        ->where('company_name', 'LIKE', "%{$companyName}%")
-                                        ->get()
-                                        ->mapWithKeys(function ($handover) {
-                                            $date = $handover->created_at->format('d M Y');
-                                            $implementer = $handover->implementer ?? 'Unknown';
-                                            return [$handover->id => "#{$handover->id} - {$handover->company_name} ({$implementer} - {$date})"];
-                                        })
-                                        ->toArray();
-                                })
-                                ->searchable()
-                                ->placeholder('Select handover to link')
-                                ->live(),
-                        ])
-                        ->action(function (Lead $record, array $data) {
-                            $lead = $record;
-
-                            // First, update the company name in the company details
-                            if ($lead->companyDetail) {
-                                $lead->companyDetail->update([
-                                    'company_name' => $data['company_name'],
-                                ]);
-                            }
-
-                            // Update the lead status to Closed
-                            $updateData = [
-                                'categories' => 'Inactive',
-                                'lead_status' => 'Closed',
-                                'stage' => null,
-                            ];
-
-                            $lead->update($updateData);
-
-                            // Link to software handover if selected
-                            if (!empty($data['software_handover_id'])) {
-                                $handoverId = $data['software_handover_id'];
-                                $handover = \App\Models\SoftwareHandover::find($handoverId);
-
-                                if ($handover) {
-                                    // Update the software handover with the lead_id
-                                    $handover->update([
-                                        'lead_id' => $lead->id
-                                    ]);
-
-                                    // Log this action
-                                    activity()
-                                        ->causedBy(auth()->user())
-                                        ->performedOn($lead)
-                                        ->log('Software handover #' . $handoverId . ' linked to this lead');
+                                if (! $companyName) {
+                                    return [];
                                 }
-                            }
 
-                            // Log activity
-                            $latestActivityLog = \App\Models\ActivityLog::where('subject_id', $lead->id)
-                                ->orderByDesc('created_at')
-                                ->first();
+                                // Find orphaned software handovers with matching company name
+                                return \App\Models\SoftwareHandover::whereNull('lead_id')
+                                    ->where('company_name', 'LIKE', "%{$companyName}%")
+                                    ->get()
+                                    ->mapWithKeys(function ($handover) {
+                                        $date = $handover->created_at->format('d M Y');
+                                        $implementer = $handover->implementer ?? 'Unknown';
 
-                            if ($latestActivityLog) {
-                                $latestActivityLog->update([
-                                    'description' => 'Company name updated to ' . $data['company_name'] . ' and linked to software handover',
-                                ]);
-                            }
+                                        return [$handover->id => "#{$handover->id} - {$handover->company_name} ({$implementer} - {$date})"];
+                                    })
+                                    ->toArray();
+                            })
+                            ->searchable()
+                            ->placeholder('Select handover to link')
+                            ->live(),
+                    ])
+                    ->action(function (Lead $record, array $data) {
+                        $lead = $record;
 
-                            \Filament\Notifications\Notification::make()
-                                ->title('Handover Mapping Complete')
-                                ->success()
-                                ->body('You have successfully updated the company name and linked the software handover.')
-                                ->send();
-                        }),
-
-                    Tables\Actions\Action::make('resetLead')
-                        ->label(__('Reset Lead'))
-                        ->color('danger')
-                        ->icon('heroicon-o-shield-exclamation')
-                        ->visible(fn (Lead $record) =>
-                            auth()->user()->role_id === 3 && $record->id === 7581
-                        )
-                        ->action(function (Lead $record) {
-                            // Reset the specific lead record
-                            $record->update([
-                                'categories' => 'New',
-                                'stage' => 'New',
-                                'lead_status' => 'None',
-                                'lead_owner' => null,
-                                'remark' => null,
-                                'follow_up_date' => null,
-                                'salesperson' => null,
-                                'salesperson_assigned_date' => null,
-                                'demo_appointment' => null,
-                                'rfq_followup_at' => null,
-                                'follow_up_counter' => 0,
-                                'follow_up_needed' => 0,
-                                'follow_up_count' => 0,
-                                'call_attempt' => 0,
-                                'done_call' => 0
+                        // First, update the company name in the company details
+                        if ($lead->companyDetail) {
+                            $lead->companyDetail->update([
+                                'company_name' => $data['company_name'],
                             ]);
+                        }
 
-                            // Delete all related data
-                            DB::table('appointments')->where('lead_id', $record->id)->delete();
-                            DB::table('system_questions')->where('lead_id', $record->id)->delete();
-                            DB::table('bank_details')->where('lead_id', $record->id)->delete();
-                            DB::table('activity_logs')->where('subject_id', $record->id)->delete();
-                            DB::table('quotations')->where('lead_id', $record->id)->delete();
+                        // Update the lead status to Closed
+                        $updateData = [
+                            'categories' => 'Inactive',
+                            'lead_status' => 'Closed',
+                            'stage' => null,
+                        ];
 
-                            // Send a notification after resetting the lead
-                            Notification::make()
-                                ->title('Lead Reset Successfully')
-                                ->success()
-                                ->send();
-                        }),
+                        $lead->update($updateData);
+
+                        // Link to software handover if selected
+                        if (! empty($data['software_handover_id'])) {
+                            $handoverId = $data['software_handover_id'];
+                            $handover = \App\Models\SoftwareHandover::find($handoverId);
+
+                            if ($handover) {
+                                // Update the software handover with the lead_id
+                                $handover->update([
+                                    'lead_id' => $lead->id,
+                                ]);
+
+                                // Log this action
+                                activity()
+                                    ->causedBy(auth()->user())
+                                    ->performedOn($lead)
+                                    ->log('Software handover #'.$handoverId.' linked to this lead');
+                            }
+                        }
+
+                        // Log activity
+                        $latestActivityLog = \App\Models\ActivityLog::where('subject_id', $lead->id)
+                            ->orderByDesc('created_at')
+                            ->first();
+
+                        if ($latestActivityLog) {
+                            $latestActivityLog->update([
+                                'description' => 'Company name updated to '.$data['company_name'].' and linked to software handover',
+                            ]);
+                        }
+
+                        \Filament\Notifications\Notification::make()
+                            ->title('Handover Mapping Complete')
+                            ->success()
+                            ->body('You have successfully updated the company name and linked the software handover.')
+                            ->send();
+                    }),
+
+                Tables\Actions\Action::make('resetLead')
+                    ->label(__('Reset Lead'))
+                    ->color('danger')
+                    ->icon('heroicon-o-shield-exclamation')
+                    ->visible(fn (Lead $record) => auth()->user()->role_id === 3 && $record->id === 7581
+                    )
+                    ->action(function (Lead $record) {
+                        // Reset the specific lead record
+                        $record->update([
+                            'categories' => 'New',
+                            'stage' => 'New',
+                            'lead_status' => 'None',
+                            'lead_owner' => null,
+                            'remark' => null,
+                            'follow_up_date' => null,
+                            'salesperson' => null,
+                            'salesperson_assigned_date' => null,
+                            'demo_appointment' => null,
+                            'rfq_followup_at' => null,
+                            'follow_up_counter' => 0,
+                            'follow_up_needed' => 0,
+                            'follow_up_count' => 0,
+                            'call_attempt' => 0,
+                            'done_call' => 0,
+                        ]);
+
+                        // Delete all related data
+                        DB::table('appointments')->where('lead_id', $record->id)->delete();
+                        DB::table('system_questions')->where('lead_id', $record->id)->delete();
+                        DB::table('bank_details')->where('lead_id', $record->id)->delete();
+                        DB::table('activity_logs')->where('subject_id', $record->id)->delete();
+                        DB::table('quotations')->where('lead_id', $record->id)->delete();
+
+                        // Send a notification after resetting the lead
+                        Notification::make()
+                            ->title('Lead Reset Successfully')
+                            ->success()
+                            ->send();
+                    }),
                 ])
                 ->button(),
                 // ->visible(fn () => in_array(auth()->user()->role_id, [1, 3])),
                 Tables\Actions\ViewAction::make()
-                    ->url(fn ($record) => route('filament.admin.resources.leads.view', [
-                        'record' => Encryptor::encrypt($record->id),
+                ->url(fn ($record) => route('filament.admin.resources.leads.view', [
+                    'record' => Encryptor::encrypt($record->id),
                     ]))
-                    ->label('') // Remove the label
-                    ->extraAttributes(['class' => 'hidden']),
+                ->label('') // Remove the label
+                ->extraAttributes(['class' => 'hidden']),
             ])
             ->modifyQueryUsing(function (Builder $query) {
                 // Get the current user and their role
@@ -1248,7 +1229,7 @@ class LeadResource extends Resource
                 // Check if the user is an admin (role_id = 1)
                 if ($roleId === 2) {
                     $query->where('salesperson', $userId)
-                          ->whereIn('categories', ['Inactive', 'Active', 'New']); // Add more statuses if needed
+                        ->whereIn('categories', ['Inactive', 'Active', 'New']); // Add more statuses if needed
                 }
 
                 // elseif ($roleId === 1) {
@@ -1296,7 +1277,7 @@ class LeadResource extends Resource
             // Role 2: Filter by salesperson or inactive category
             $query->where(function ($query) use ($user) {
                 $query->where('salesperson', $user->id)
-                      ->orWhere('categories', 'Inactive');
+                    ->orWhere('categories', 'Inactive');
             });
         }
 
@@ -1320,8 +1301,6 @@ class LeadResource extends Resource
                 SoftDeletingScope::class,
             ]);
     }
-
-
 
     // public static function canCreate(): bool
     // {

@@ -201,7 +201,7 @@ class ArFollowUpToday extends Component implements HasForms, HasTable
             ->actions([
                 ActionGroup::make([
                     Action::make('view')
-                        ->label('View')
+                        ->label('View  Leads')
                         ->icon('heroicon-o-eye')
                         ->color('secondary')
                         ->url(function (Renewal $record) {

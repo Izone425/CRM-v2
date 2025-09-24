@@ -2,35 +2,29 @@
 
 namespace App\Filament\Resources\LeadResource\Tabs;
 
-use App\Models\ActivityLog;
-use App\Models\Lead;
-use App\Models\LeadSource;
 use App\Models\AdminRenewalLogs;
-use App\Models\SoftwareHandover;
-use App\Models\Renewal;
 use App\Models\EmailTemplate;
+use App\Models\Lead;
+use App\Models\Renewal;
 use Carbon\Carbon;
 use Filament\Forms\Components\Actions\Action;
+use Filament\Forms\Components\Card;
+use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Fieldset;
 use Filament\Forms\Components\Grid;
+use Filament\Forms\Components\Hidden;
+use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\View;
-use Filament\Forms\Components\Actions;
-use Filament\Forms\Components\Tabs;
-use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Card;
-use Filament\Forms\Components\RichEditor;
-use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Toggle;
-use Filament\Forms\Components\Fieldset;
-use Filament\Forms\Components\Hidden;
+use Filament\Forms\Components\View;
 use Filament\Notifications\Notification;
+use Illuminate\Mail\Message;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
-use Illuminate\Mail\Message;
-use Illuminate\Support\Facades\DB;
 
 class ARFollowUpTabs
 {
@@ -60,13 +54,13 @@ class ARFollowUpTabs
         return [
             Grid::make(1)
                 ->schema([
-                    Section::make('Admin Renewal Follow Up')
+                    Section::make('Renewal Follow Up')
                         ->icon('heroicon-o-clipboard-document-check')
                         ->description(function ($record) {
                             // Get renewal record for this lead
                             $renewal = Renewal::where('lead_id', $record->id)->first();
 
-                            if (!$renewal || !$renewal->f_company_id) {
+                            if (! $renewal || ! $renewal->f_company_id) {
                                 return null;
                             }
 
@@ -83,7 +77,7 @@ class ARFollowUpTabs
                                 // Format the message with color coding based on urgency
                                 if ($daysUntilExpiry < 0) {
                                     $urgency = '🔴 EXPIRED';
-                                    $message = "License expired " . abs($daysUntilExpiry) . " days ago";
+                                    $message = 'License expired '.abs($daysUntilExpiry).' days ago';
                                 } elseif ($daysUntilExpiry <= 7) {
                                     $urgency = '🟠 URGENT';
                                     $message = "License expires in {$daysUntilExpiry} days";
@@ -95,7 +89,7 @@ class ARFollowUpTabs
                                     $message = "License expires in {$daysUntilExpiry} days";
                                 }
 
-                                return new \Illuminate\Support\HtmlString("<span>{$urgency} Earliest <span style='color: red; font-weight: bold;'>License Expiry: {$expiryDate->format('d M Y')} ({$message})</span></span>");
+                                return new \Illuminate\Support\HtmlString("<span><span style='color: red; font-weight: bold;'>License Expiry: {$expiryDate->format('d M Y')} ({$message})</span></span>");
                             }
 
                             return null;
@@ -115,12 +109,13 @@ class ARFollowUpTabs
                                         ->schema([
                                             DatePicker::make('follow_up_date')
                                                 ->label('Next Follow-up Date')
-                                                ->default(function() {
+                                                ->default(function () {
                                                     $today = now();
                                                     $daysUntilNextTuesday = (9 - $today->dayOfWeek) % 7; // 2 is Tuesday, but we add 7 to ensure positive
                                                     if ($daysUntilNextTuesday === 0) {
                                                         $daysUntilNextTuesday = 7; // If today is Tuesday, we want next Tuesday
                                                     }
+
                                                     return $today->addDays($daysUntilNextTuesday);
                                                 })
                                                 ->minDate(now()->subDay())
@@ -133,7 +128,7 @@ class ARFollowUpTabs
                                                     // Get renewal record for this lead
                                                     $renewal = Renewal::where('lead_id', $record->id)->first();
 
-                                                    if (!$renewal || !$renewal->f_company_id) {
+                                                    if (! $renewal || ! $renewal->f_company_id) {
                                                         return 'Not Available';
                                                     }
 
@@ -151,7 +146,7 @@ class ARFollowUpTabs
                                                 })
                                                 ->dehydrated(false) // Don't include this field in form submission
                                                 ->extraInputAttributes([
-                                                    'style' => 'font-weight: 600; color: #374151;'
+                                                    'style' => 'font-weight: 600; color: #374151;',
                                                 ]),
 
                                             Toggle::make('send_email')
@@ -170,7 +165,7 @@ class ARFollowUpTabs
                                                 ->options([
                                                     'instant' => 'Instant',
                                                     'scheduled' => 'Next Follow Up Date at 8am',
-                                                    'both' => 'Both'
+                                                    'both' => 'Both',
                                                 ])
                                                 ->visible(fn ($get) => $get('send_email'))
                                                 ->required(),
@@ -180,7 +175,7 @@ class ARFollowUpTabs
                                         ->schema([
                                             TextInput::make('required_attendees')
                                                 ->label('Required Attendees')
-                                                ->default(function (Lead $record = null) {
+                                                ->default(function (?Lead $record = null) {
                                                     // Initialize emails array to store all collected emails
                                                     $emails = [];
 
@@ -188,12 +183,12 @@ class ARFollowUpTabs
                                                         $emails[] = $record->email;
 
                                                         // 1. Get email from companyDetail->email (primary company email)
-                                                        if ($record->companyDetail && !empty($record->companyDetail->email)) {
+                                                        if ($record->companyDetail && ! empty($record->companyDetail->email)) {
                                                             $emails[] = $record->companyDetail->email;
                                                         }
 
                                                         // 2. Get emails from company_detail->additional_pic
-                                                        if ($record->companyDetail && !empty($record->companyDetail->additional_pic)) {
+                                                        if ($record->companyDetail && ! empty($record->companyDetail->additional_pic)) {
                                                             try {
                                                                 $additionalPics = json_decode($record->companyDetail->additional_pic, true);
 
@@ -201,7 +196,7 @@ class ARFollowUpTabs
                                                                     foreach ($additionalPics as $pic) {
                                                                         // Only include contacts with "Available" status
                                                                         if (
-                                                                            !empty($pic['email']) &&
+                                                                            ! empty($pic['email']) &&
                                                                             isset($pic['status']) &&
                                                                             $pic['status'] === 'Available'
                                                                         ) {
@@ -210,14 +205,15 @@ class ARFollowUpTabs
                                                                     }
                                                                 }
                                                             } catch (\Exception $e) {
-                                                                \Illuminate\Support\Facades\Log::error('Error parsing additional_pic JSON: ' . $e->getMessage());
+                                                                \Illuminate\Support\Facades\Log::error('Error parsing additional_pic JSON: '.$e->getMessage());
                                                             }
                                                         }
                                                     }
 
                                                     // Remove duplicates and return as semicolon-separated string
                                                     $uniqueEmails = array_unique($emails);
-                                                    return !empty($uniqueEmails) ? implode(';', $uniqueEmails) : null;
+
+                                                    return ! empty($uniqueEmails) ? implode(';', $uniqueEmails) : null;
                                                 })
                                                 ->helperText('Separate each email with a semicolon (e.g., email1;email2;email3).'),
 
@@ -320,10 +316,10 @@ class ARFollowUpTabs
                                             'undo',
                                         ])
                                         ->extraInputAttributes(['style' => 'text-transform: uppercase'])
-                                        ->afterStateHydrated(fn($state) => Str::upper($state))
-                                        ->afterStateUpdated(fn($state) => Str::upper($state))
+                                        ->afterStateHydrated(fn ($state) => Str::upper($state))
+                                        ->afterStateUpdated(fn ($state) => Str::upper($state))
                                         ->placeholder('Add your follow-up details here...')
-                                        ->required()
+                                        ->required(),
                                 ])
                                 ->modalHeading('Add New Follow-up')
                                 ->action(function (Lead $record, array $data) {
@@ -343,7 +339,7 @@ class ARFollowUpTabs
                                     ]);
 
                                     // Create description for the follow-up
-                                    $followUpDescription = 'Admin Renewal Follow Up By ' . auth()->user()->name;
+                                    $followUpDescription = 'Admin Renewal Follow Up By '.auth()->user()->name;
 
                                     // Create a new admin_renewal_logs entry with reference to Renewal
                                     $adminRenewalLog = AdminRenewalLogs::create([
@@ -361,20 +357,20 @@ class ARFollowUpTabs
                                             // Get recipient emails
                                             $recipientStr = $data['required_attendees'] ?? '';
 
-                                            if (!empty($recipientStr)) {
+                                            if (! empty($recipientStr)) {
                                                 // Get email template content
                                                 $subject = $data['email_subject'];
                                                 $content = $data['email_content'];
 
                                                 // Add signature to email content if provided
-                                                if (isset($data['admin_name']) && !empty($data['admin_name'])) {
-                                                    $signature = "Regards,<br>";
+                                                if (isset($data['admin_name']) && ! empty($data['admin_name'])) {
+                                                    $signature = 'Regards,<br>';
                                                     $signature .= "{$data['admin_name']}<br>";
                                                     $signature .= "{$data['admin_designation']}<br>";
                                                     $signature .= "{$data['admin_company']}<br>";
                                                     $signature .= "Phone: {$data['admin_phone']}<br>";
 
-                                                    if (!empty($data['admin_email'])) {
+                                                    if (! empty($data['admin_email'])) {
                                                         $signature .= "Email: {$data['admin_email']}<br>";
                                                     }
 
@@ -401,7 +397,7 @@ class ARFollowUpTabs
                                                     }
                                                 }
 
-                                                if (!empty($validRecipients)) {
+                                                if (! empty($validRecipients)) {
                                                     // Get authenticated user's email for sender and BCC
                                                     $authUser = auth()->user();
                                                     $senderEmail = $data['admin_email'] ?? $authUser->email;
@@ -431,7 +427,7 @@ class ARFollowUpTabs
                                                         self::sendEmail($emailData);
 
                                                         Notification::make()
-                                                            ->title('Email sent immediately to ' . count($validRecipients) . ' recipient(s)')
+                                                            ->title('Email sent immediately to '.count($validRecipients).' recipient(s)')
                                                             ->success()
                                                             ->send();
                                                     }
@@ -450,14 +446,14 @@ class ARFollowUpTabs
                                                         ]);
 
                                                         Notification::make()
-                                                            ->title('Email scheduled for ' . date('d M Y \a\t 8:00 AM', strtotime($scheduledDate)))
+                                                            ->title('Email scheduled for '.date('d M Y \a\t 8:00 AM', strtotime($scheduledDate)))
                                                             ->success()
                                                             ->send();
                                                     }
                                                 }
                                             }
                                         } catch (\Exception $e) {
-                                            Log::error('Error sending follow-up email: ' . $e->getMessage());
+                                            Log::error('Error sending follow-up email: '.$e->getMessage());
                                             Notification::make()
                                                 ->title('Error sending email')
                                                 ->body($e->getMessage())
@@ -473,7 +469,7 @@ class ARFollowUpTabs
                                 })
                                 ->mutateFormDataUsing(function (array $data, Lead $record): array {
                                     // Load contact emails for the lead
-                                    if (!isset($data['email_recipients'])) {
+                                    if (! isset($data['email_recipients'])) {
                                         $data['email_recipients'] = [];
                                     }
 
@@ -494,9 +490,6 @@ class ARFollowUpTabs
 
     /**
      * Send email using the provided data with CC to admin renewal and salesperson
-     *
-     * @param array $emailData
-     * @return void
      */
     private static function sendEmail(array $emailData): void
     {
@@ -504,16 +497,18 @@ class ARFollowUpTabs
             // Get the admin renewal log record
             $adminRenewalLog = AdminRenewalLogs::find($emailData['admin_renewal_log_id']);
 
-            if (!$adminRenewalLog) {
+            if (! $adminRenewalLog) {
                 Log::error("Admin renewal log not found for ID: {$emailData['admin_renewal_log_id']}");
+
                 return;
             }
 
             // Find the renewal record using subject_id from admin renewal log
             $renewal = Renewal::find($adminRenewalLog->subject_id);
 
-            if (!$renewal) {
+            if (! $renewal) {
                 Log::error("Renewal not found for subject_id: {$adminRenewalLog->subject_id}");
+
                 return;
             }
 
@@ -538,7 +533,7 @@ class ARFollowUpTabs
                 $salesperson = \App\Models\User::find($lead->salesperson);
                 if ($salesperson && $salesperson->email &&
                     $salesperson->email !== $emailData['sender_email'] &&
-                    !in_array($salesperson->email, $ccRecipients)) {
+                    ! in_array($salesperson->email, $ccRecipients)) {
                     $ccRecipients[] = $salesperson->email;
                     Log::info("Added salesperson to CC: {$salesperson->name} <{$salesperson->email}>");
                 } else {
@@ -553,7 +548,7 @@ class ARFollowUpTabs
                     ->from($emailData['sender_email'], $emailData['sender_name']);
 
                 // Add CC recipients if we have any
-                if (!empty($ccRecipients)) {
+                if (! empty($ccRecipients)) {
                     $message->cc($ccRecipients);
                 }
 
@@ -567,12 +562,12 @@ class ARFollowUpTabs
                 'cc' => $ccRecipients,
                 'subject' => $emailData['subject'],
                 'admin_renewal_log_id' => $emailData['admin_renewal_log_id'],
-                'template' => $emailData['template_name'] ?? 'Unknown'
+                'template' => $emailData['template_name'] ?? 'Unknown',
             ]);
         } catch (\Exception $e) {
-            Log::error('Error in sendEmail method: ' . $e->getMessage(), [
+            Log::error('Error in sendEmail method: '.$e->getMessage(), [
                 'trace' => $e->getTraceAsString(),
-                'data' => $emailData
+                'data' => $emailData,
             ]);
         }
     }
@@ -599,7 +594,8 @@ class ARFollowUpTabs
 
             return $earliestExpiry;
         } catch (\Exception $e) {
-            Log::error("Error fetching earliest expiry date for company {$companyId}: " . $e->getMessage());
+            Log::error("Error fetching earliest expiry date for company {$companyId}: ".$e->getMessage());
+
             return null;
         }
     }
