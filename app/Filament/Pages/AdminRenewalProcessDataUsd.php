@@ -1,10 +1,10 @@
 <?php
+
 namespace App\Filament\Pages;
 
 use App\Models\ActivityLog;
 use App\Models\CompanyDetail;
 use App\Models\Lead;
-use App\Models\LeadSource;
 use App\Models\Renewal;
 use Carbon\Carbon;
 use Filament\Forms\Components\Grid;
@@ -14,19 +14,19 @@ use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Tables\Actions\Action;
 use Filament\Tables\Actions\ActionGroup;
+use Filament\Tables\Columns\Layout\Panel;
+use Filament\Tables\Columns\Layout\Split;
+use Filament\Tables\Columns\Layout\Stack;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
+use Filament\Tables\Filters\Filter;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Filament\Tables\Columns\Layout\Stack;
-use Filament\Tables\Columns\Layout\Panel;
-use Filament\Tables\Columns\Layout\Split;
-use Filament\Tables\Filters\Filter;
-use Filament\Tables\Filters\SelectFilter;
 use Illuminate\Support\HtmlString;
 use Malzariey\FilamentDaterangepickerFilter\Fields\DateRangePicker;
 use Ysfkaya\FilamentPhoneInput\Forms\PhoneInput;
@@ -35,8 +35,11 @@ use Ysfkaya\FilamentPhoneInput\Forms\PhoneInput;
 class RenewalDataUsd extends Model
 {
     protected $connection = 'frontenddb';
+
     protected $table = 'crm_expiring_license';
+
     protected $primaryKey = 'f_company_id';
+
     public $timestamps = false;
 
     // Define excluded products in one place
@@ -52,15 +55,17 @@ class RenewalDataUsd extends Model
     public function getKey()
     {
         $key = $this->getAttribute($this->getKeyName());
-        return $key !== null ? (string) $key : 'record-' . uniqid();
+
+        return $key !== null ? (string) $key : 'record-'.uniqid();
     }
 
     // Helper method to apply product exclusions to query
     public static function applyProductExclusions($query)
     {
         foreach (self::$excludedProducts as $excludedProduct) {
-            $query->where('f_name', 'NOT LIKE', '%' . $excludedProduct . '%');
+            $query->where('f_name', 'NOT LIKE', '%'.$excludedProduct.'%');
         }
+
         return $query;
     }
 
@@ -73,7 +78,8 @@ class RenewalDataUsd extends Model
                 ->where('f_id', $companyId)
                 ->first();
         } catch (\Exception $e) {
-            Log::error("Error fetching reseller for company $companyId: " . $e->getMessage());
+            Log::error("Error fetching reseller for company $companyId: ".$e->getMessage());
+
             return null;
         }
     }
@@ -84,7 +90,7 @@ class RenewalDataUsd extends Model
         try {
             $today = Carbon::now()->format('Y-m-d');
 
-            if (!$startDate || !$endDate) {
+            if (! $startDate || ! $endDate) {
                 $startDate = $today;
                 $endDate = Carbon::now()->addDays(60)->format('Y-m-d');
             }
@@ -99,7 +105,7 @@ class RenewalDataUsd extends Model
                     DB::raw('MIN(f_expiry_date) AS invoice_earliest_expiry'),
                     DB::raw('MAX(f_expiry_date) AS invoice_latest_expiry'),
                     DB::raw('ANY_VALUE(f_company_name) AS f_company_name'),
-                    DB::raw('ANY_VALUE(f_company_id) AS f_company_id')
+                    DB::raw('ANY_VALUE(f_company_id) AS f_company_id'),
                 ])
                 ->where('f_company_id', $companyId)
                 ->where('f_expiry_date', '>=', $startDate)
@@ -108,15 +114,16 @@ class RenewalDataUsd extends Model
 
             // Apply product exclusions
             foreach (self::$excludedProducts as $excludedProduct) {
-                $query->where('f_name', 'NOT LIKE', '%' . $excludedProduct . '%');
+                $query->where('f_name', 'NOT LIKE', '%'.$excludedProduct.'%');
             }
 
             return $query->groupBy('f_invoice_no', 'f_currency')
-                        ->having(DB::raw('COUNT(*)'), '>', 0)
-                        ->orderBy('f_invoice_no', 'ASC')
-                        ->get(); // Remove ->toArray() to keep as objects
+                ->having(DB::raw('COUNT(*)'), '>', 0)
+                ->orderBy('f_invoice_no', 'ASC')
+                ->get(); // Remove ->toArray() to keep as objects
         } catch (\Exception $e) {
-            Log::error("Error fetching invoices for company $companyId: " . $e->getMessage());
+            Log::error("Error fetching invoices for company $companyId: ".$e->getMessage());
+
             return collect(); // Return empty collection instead of empty array
         }
     }
@@ -126,7 +133,7 @@ class RenewalDataUsd extends Model
         try {
             $today = Carbon::now()->format('Y-m-d');
 
-            if (!$startDate || !$endDate) {
+            if (! $startDate || ! $endDate) {
                 $startDate = $today;
                 $endDate = Carbon::now()->addDays(60)->format('Y-m-d');
             }
@@ -136,7 +143,7 @@ class RenewalDataUsd extends Model
                     'f_currency', 'f_id', 'f_company_name', 'f_company_id',
                     'f_name', 'f_invoice_no', 'f_total_amount', 'f_unit',
                     'f_start_date', 'f_expiry_date', 'Created', 'payer',
-                    'payer_id', 'f_created_time'
+                    'payer_id', 'f_created_time',
                 ])
                 ->where('f_company_id', $companyId)
                 ->where('f_invoice_no', $invoiceNo)
@@ -146,13 +153,14 @@ class RenewalDataUsd extends Model
 
             // Apply product exclusions
             foreach (self::$excludedProducts as $excludedProduct) {
-                $query->where('f_name', 'NOT LIKE', '%' . $excludedProduct . '%');
+                $query->where('f_name', 'NOT LIKE', '%'.$excludedProduct.'%');
             }
 
             return $query->orderBy('f_expiry_date', 'ASC')
-                        ->get(); // Remove ->toArray() to keep as objects
+                ->get(); // Remove ->toArray() to keep as objects
         } catch (\Exception $e) {
-            Log::error("Error fetching products for company $companyId and invoice $invoiceNo: " . $e->getMessage());
+            Log::error("Error fetching products for company $companyId and invoice $invoiceNo: ".$e->getMessage());
+
             return collect(); // Return empty collection instead of empty array
         }
     }
@@ -163,18 +171,27 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
     use InteractsWithTable;
 
     protected static ?string $navigationIcon = 'heroicon-o-document-text';
+
     protected static ?string $title = 'Renewal Process Data (USD)';
+
     protected static ?string $navigationLabel = 'Renewal Process Data (USD)';
+
     protected static ?string $navigationGroup = 'Administration';
+
     protected static ?int $navigationSort = 51;
 
     protected static string $view = 'filament.pages.admin-renewal-process-data-usd';
 
     public $completedRenewalStats;
+
     public $renewalForecastStats;
+
     public $newStats;
+
     public $pendingConfirmationStats;
+
     public $pendingPaymentStats;
+
     public $shouldRefreshStats = false;
 
     public function mount(): void
@@ -245,7 +262,7 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
     protected function loadData($startDate = null, $endDate = null): void
     {
         // Get current filters (if any) or use defaults
-        if (!$startDate || !$endDate) {
+        if (! $startDate || ! $endDate) {
             $today = Carbon::now()->format('Y-m-d');
             $next60Days = Carbon::now()->addDays(60)->format('Y-m-d');
             $startDate = $today;
@@ -285,7 +302,7 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
             }
 
             // Use provided dates or defaults
-            if (!$startDate || !$endDate) {
+            if (! $startDate || ! $endDate) {
                 $startDate = Carbon::now()->format('Y-m-d');
                 $endDate = Carbon::now()->addDays(60)->format('Y-m-d');
             }
@@ -294,7 +311,7 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                 ->select([
                     'f_company_id',
                     'f_invoice_no',
-                    DB::raw('MAX(f_total_amount) as invoice_amount') // Use MAX instead of SUM for same invoice
+                    DB::raw('MAX(f_total_amount) as invoice_amount'), // Use MAX instead of SUM for same invoice
                 ])
                 ->whereIn('f_company_id', $newRenewalCompanyIds)
                 ->where('f_expiry_date', '>=', $startDate)
@@ -312,7 +329,7 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                 return [
                     'f_company_id' => $companyInvoices->first()->f_company_id,
                     'total_invoices' => $companyInvoices->count(),
-                    'raw_total_amount' => $companyInvoices->sum('invoice_amount')
+                    'raw_total_amount' => $companyInvoices->sum('invoice_amount'),
                 ];
             });
 
@@ -339,11 +356,12 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
             return [
                 'total_companies' => $totalCompanies,
                 'total_invoices' => $totalInvoices,
-                'total_amount' => $totalAmount
+                'total_amount' => $totalAmount,
             ];
 
         } catch (\Exception $e) {
-            Log::error("Error fetching new renewal stats: " . $e->getMessage());
+            Log::error('Error fetching new renewal stats: '.$e->getMessage());
+
             return ['total_companies' => 0, 'total_invoices' => 0, 'total_amount' => 0];
         }
     }
@@ -360,7 +378,7 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                 return ['total_companies' => 0, 'total_invoices' => 0, 'total_amount' => 0];
             }
 
-            if (!$startDate || !$endDate) {
+            if (! $startDate || ! $endDate) {
                 $startDate = Carbon::now()->format('Y-m-d');
                 $endDate = Carbon::now()->addDays(60)->format('Y-m-d');
             }
@@ -369,7 +387,7 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                 ->select([
                     'f_company_id',
                     'f_invoice_no',
-                    DB::raw('MAX(f_total_amount) as invoice_amount')
+                    DB::raw('MAX(f_total_amount) as invoice_amount'),
                 ])
                 ->whereIn('f_company_id', $pendingConfirmationCompanyIds)
                 ->where('f_expiry_date', '>=', $startDate)
@@ -385,7 +403,7 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                 return [
                     'f_company_id' => $companyInvoices->first()->f_company_id,
                     'total_invoices' => $companyInvoices->count(),
-                    'raw_total_amount' => $companyInvoices->sum('invoice_amount')
+                    'raw_total_amount' => $companyInvoices->sum('invoice_amount'),
                 ];
             });
 
@@ -412,11 +430,12 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
             return [
                 'total_companies' => $totalCompanies,
                 'total_invoices' => $totalInvoices,
-                'total_amount' => $totalAmount
+                'total_amount' => $totalAmount,
             ];
 
         } catch (\Exception $e) {
-            Log::error("Error fetching pending confirmation stats: " . $e->getMessage());
+            Log::error('Error fetching pending confirmation stats: '.$e->getMessage());
+
             return ['total_companies' => 0, 'total_invoices' => 0, 'total_amount' => 0];
         }
     }
@@ -432,7 +451,7 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                 return ['total_companies' => 0, 'total_invoices' => 0, 'total_amount' => 0];
             }
 
-            if (!$startDate || !$endDate) {
+            if (! $startDate || ! $endDate) {
                 $startDate = Carbon::now()->format('Y-m-d');
                 $endDate = Carbon::now()->addDays(60)->format('Y-m-d');
             }
@@ -441,7 +460,7 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                 ->select([
                     'f_company_id',
                     'f_invoice_no',
-                    DB::raw('MAX(f_total_amount) as invoice_amount')
+                    DB::raw('MAX(f_total_amount) as invoice_amount'),
                 ])
                 ->whereIn('f_company_id', $pendingPaymentCompanyIds)
                 ->where('f_expiry_date', '>=', $startDate)
@@ -457,7 +476,7 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                 return [
                     'f_company_id' => $companyInvoices->first()->f_company_id,
                     'total_invoices' => $companyInvoices->count(),
-                    'raw_total_amount' => $companyInvoices->sum('invoice_amount')
+                    'raw_total_amount' => $companyInvoices->sum('invoice_amount'),
                 ];
             });
 
@@ -484,11 +503,12 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
             return [
                 'total_companies' => $totalCompanies,
                 'total_invoices' => $totalInvoices,
-                'total_amount' => $totalAmount
+                'total_amount' => $totalAmount,
             ];
 
         } catch (\Exception $e) {
-            Log::error("Error fetching pending payment stats: " . $e->getMessage());
+            Log::error('Error fetching pending payment stats: '.$e->getMessage());
+
             return ['total_companies' => 0, 'total_invoices' => 0, 'total_amount' => 0];
         }
     }
@@ -504,7 +524,7 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                 return ['total_companies' => 0, 'total_invoices' => 0, 'total_amount' => 0];
             }
 
-            if (!$startDate || !$endDate) {
+            if (! $startDate || ! $endDate) {
                 $startDate = Carbon::now()->format('Y-m-d');
                 $endDate = Carbon::now()->addDays(60)->format('Y-m-d');
             }
@@ -513,7 +533,7 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                 ->select([
                     'f_company_id',
                     'f_invoice_no',
-                    DB::raw('MAX(f_total_amount) as invoice_amount')
+                    DB::raw('MAX(f_total_amount) as invoice_amount'),
                 ])
                 ->whereIn('f_company_id', $completedRenewalCompanyIds)
                 ->where('f_expiry_date', '>=', $startDate)
@@ -529,7 +549,7 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                 return [
                     'f_company_id' => $companyInvoices->first()->f_company_id,
                     'total_invoices' => $companyInvoices->count(),
-                    'raw_total_amount' => $companyInvoices->sum('invoice_amount')
+                    'raw_total_amount' => $companyInvoices->sum('invoice_amount'),
                 ];
             });
 
@@ -556,11 +576,12 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
             return [
                 'total_companies' => $totalCompanies,
                 'total_invoices' => $totalInvoices,
-                'total_amount' => $totalAmount
+                'total_amount' => $totalAmount,
             ];
 
         } catch (\Exception $e) {
-            Log::error("Error fetching completed renewal stats: " . $e->getMessage());
+            Log::error('Error fetching completed renewal stats: '.$e->getMessage());
+
             return ['total_companies' => 0, 'total_invoices' => 0, 'total_amount' => 0];
         }
     }
@@ -569,7 +590,7 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
     {
         try {
             // Create an instance to access the methods
-            $instance = new self();
+            $instance = new self;
 
             // Get stats from existing methods
             $newStats = $instance->getNewStats($startDate, $endDate);
@@ -580,10 +601,11 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
             return [
                 'total_companies' => $newStats['total_companies'] + $pendingConfirmationStats['total_companies'] + $pendingPaymentStats['total_companies'],
                 'total_invoices' => $newStats['total_invoices'] + $pendingConfirmationStats['total_invoices'] + $pendingPaymentStats['total_invoices'],
-                'total_amount' => $newStats['total_amount'] + $pendingConfirmationStats['total_amount'] + $pendingPaymentStats['total_amount']
+                'total_amount' => $newStats['total_amount'] + $pendingConfirmationStats['total_amount'] + $pendingPaymentStats['total_amount'],
             ];
         } catch (\Exception $e) {
-            Log::error("Error fetching renewal forecast stats: " . $e->getMessage());
+            Log::error('Error fetching renewal forecast stats: '.$e->getMessage());
+
             return ['total_companies' => 0, 'total_invoices' => 0, 'total_amount' => 0];
         }
     }
@@ -609,12 +631,12 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                     ->pluck('f_company_id')
                     ->toArray();
 
-                if (!empty($terminatedCompanyIds)) {
+                if (! empty($terminatedCompanyIds)) {
                     $baseQuery->whereNotIn('f_company_id', $terminatedCompanyIds);
                 }
 
                 // Apply aggregation - GROUP BY invoice to avoid duplicate amounts
-                $baseQuery->selectRaw("
+                $baseQuery->selectRaw('
                     f_company_id,
                     ANY_VALUE(f_company_name) AS f_company_name,
                     ANY_VALUE(f_currency) AS f_currency,
@@ -624,9 +646,9 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                     COUNT(DISTINCT f_invoice_no) AS total_invoices,
                     MIN(f_expiry_date) AS earliest_expiry,
                     ANY_VALUE(f_created_time) AS f_created_time
-                ")
-                ->groupBy('f_company_id')
-                ->havingRaw('COUNT(*) > 0');
+                ')
+                    ->groupBy('f_company_id')
+                    ->havingRaw('COUNT(*) > 0');
 
                 return $baseQuery;
             })
@@ -650,7 +672,7 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                             ->toArray();
                     })
                     ->query(function (Builder $query, array $data) {
-                        if (!empty($data['values'])) {
+                        if (! empty($data['values'])) {
                             $subQuery = RenewalDataUsd::query()
                                 ->select('f_company_id')
                                 ->whereIn('f_name', $data['values'])
@@ -675,11 +697,11 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                         'other_division' => 'Other Division',
                     ])
                     ->query(function (Builder $query, array $data) {
-                        if (!empty($data['value'])) {
+                        if (! empty($data['value'])) {
                             $mapping = $this->getProductGroupMapping();
                             $selectedProducts = $mapping[$data['value']] ?? [];
 
-                            if (!empty($selectedProducts)) {
+                            if (! empty($selectedProducts)) {
                                 // Get company IDs that have products in the selected group
                                 $subQuery = RenewalDataUsd::query()
                                     ->select('f_company_id')
@@ -687,7 +709,7 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                                     ->where('f_currency', '=', 'USD')
                                     ->where(function ($q) use ($selectedProducts) {
                                         foreach ($selectedProducts as $product) {
-                                            $q->orWhere('f_name', 'LIKE', '%' . $product . '%');
+                                            $q->orWhere('f_name', 'LIKE', '%'.$product.'%');
                                         }
                                     });
 
@@ -710,7 +732,8 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                             ->default(function () {
                                 $today = Carbon::now()->format('d/m/Y');
                                 $next60Days = Carbon::now()->addDays(60)->format('d/m/Y');
-                                return $today . ' - ' . $next60Days;
+
+                                return $today.' - '.$next60Days;
                             }),
                     ])
                     ->query(function (Builder $query, array $data) {
@@ -731,7 +754,7 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
 
                                 $query->whereBetween('f_expiry_date', [$startDate, $endDate]);
                             } catch (\Exception $e) {
-                                Log::error("Date filter error: " . $e->getMessage());
+                                Log::error('Date filter error: '.$e->getMessage());
                                 $today = Carbon::now()->format('Y-m-d');
                                 $next60Days = Carbon::now()->addDays(60)->format('Y-m-d');
                                 $query->whereBetween('f_expiry_date', [$today, $next60Days]);
@@ -739,17 +762,19 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                         }
                     })
                     ->indicateUsing(function (array $data) {
-                        if (!empty($data['date_range'])) {
+                        if (! empty($data['date_range'])) {
                             [$start, $end] = explode(' - ', $data['date_range']);
-                            return 'Expiry: ' .
-                                Carbon::createFromFormat('d/m/Y', trim($start))->format('j M Y') .
-                                ' → ' .
+
+                            return 'Expiry: '.
+                                Carbon::createFromFormat('d/m/Y', trim($start))->format('j M Y').
+                                ' → '.
                                 Carbon::createFromFormat('d/m/Y', trim($end))->format('j M Y');
                         }
-                        return 'Expiry: ' .
-                            Carbon::now()->format('j M Y') .
-                            ' → ' .
-                            Carbon::now()->addDays(60)->format('j M Y') .
+
+                        return 'Expiry: '.
+                            Carbon::now()->format('j M Y').
+                            ' → '.
+                            Carbon::now()->addDays(60)->format('j M Y').
                             ' (Default 60 days)';
                     }),
                 SelectFilter::make('renewal_progress')
@@ -762,13 +787,13 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                         'completed_renewal' => 'Completed Renewal',
                     ])
                     ->query(function (Builder $query, array $data) {
-                        if (!empty($data['values'])) {
+                        if (! empty($data['values'])) {
                             // Get company IDs with the selected renewal progress
                             $companyIds = Renewal::whereIn('renewal_progress', $data['values'])
                                 ->pluck('f_company_id')
                                 ->toArray();
 
-                            if (!empty($companyIds)) {
+                            if (! empty($companyIds)) {
                                 $query->whereIn('f_company_id', $companyIds);
                             } else {
                                 // If no companies found with this progress, return empty result
@@ -787,7 +812,7 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                         'onhold_mapping' => 'OnHold Mapping',
                     ])
                     ->query(function (Builder $query, array $data) {
-                        if (!empty($data['values'])) {
+                        if (! empty($data['values'])) {
                             if (in_array('pending_mapping', $data['values'])) {
                                 // For pending mapping, include companies that either:
                                 // 1. Don't have a renewal record, OR
@@ -797,7 +822,7 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                                     ->pluck('f_company_id')
                                     ->toArray();
 
-                                if (!empty($renewalCompanyIds)) {
+                                if (! empty($renewalCompanyIds)) {
                                     $query->whereNotIn('f_company_id', $renewalCompanyIds);
                                 }
                             } else {
@@ -805,8 +830,8 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                                 $companyIds = Renewal::whereIn('mapping_status', $data['values'])
                                     ->pluck('f_company_id')
                                     ->toArray();
-      
-                                    $query->whereIn('f_company_id', $companyIds);    
+
+                                $query->whereIn('f_company_id', $companyIds);
                             }
                         }
                     })
@@ -829,7 +854,7 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                         return ['unassigned' => 'Unassigned'] + $adminRenewals;
                     })
                     ->query(function (Builder $query, array $data) {
-                        if (!empty($data['value'])) {
+                        if (! empty($data['value'])) {
                             if ($data['value'] === 'unassigned') {
                                 // For unassigned, include companies that either:
                                 // 1. Don't have a renewal record, OR
@@ -838,7 +863,7 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                                     ->pluck('f_company_id')
                                     ->toArray();
 
-                                if (!empty($assignedCompanyIds)) {
+                                if (! empty($assignedCompanyIds)) {
                                     $query->whereNotIn('f_company_id', $assignedCompanyIds);
                                 }
                             } else {
@@ -847,7 +872,7 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                                     ->pluck('f_company_id')
                                     ->toArray();
 
-                                if (!empty($companyIds)) {
+                                if (! empty($companyIds)) {
                                     $query->whereIn('f_company_id', $companyIds);
                                 } else {
                                     // If no companies found with this admin, return empty result
@@ -865,7 +890,7 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                         'without_reseller' => 'Without Reseller',
                     ])
                     ->query(function (Builder $query, array $data) {
-                        if (!empty($data['value'])) {
+                        if (! empty($data['value'])) {
                             if ($data['value'] === 'with_reseller') {
                                 // Get company IDs that have resellers
                                 $resellerCompanyIds = DB::connection('frontenddb')
@@ -873,7 +898,7 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                                     ->pluck('f_id')
                                     ->toArray();
 
-                                if (!empty($resellerCompanyIds)) {
+                                if (! empty($resellerCompanyIds)) {
                                     $query->whereIn('f_company_id', $resellerCompanyIds);
                                 } else {
                                     // If no resellers found, return empty result
@@ -886,7 +911,7 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                                     ->pluck('f_id')
                                     ->toArray();
 
-                                if (!empty($resellerCompanyIds)) {
+                                if (! empty($resellerCompanyIds)) {
                                     $query->whereNotIn('f_company_id', $resellerCompanyIds);
                                 }
                                 // If no resellers exist at all, all companies are without resellers (no additional filter needed)
@@ -912,6 +937,91 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                     ]),
 
                     Stack::make([
+                        TextColumn::make('earliest_expiry')
+                            ->alignCenter()
+                            ->label('Expiry Date')
+                            ->date('d M Y')
+                            ->color(function ($state) {
+                                $today = Carbon::now();
+                                $expiryDate = Carbon::parse($state);
+
+                                // Color coding based on how close to expiry
+                                if ($expiryDate->isToday()) {
+                                    return 'danger'; // Expires today
+                                } elseif ($expiryDate->diffInDays($today) <= 7) {
+                                    return 'warning'; // Expires within a week
+                                } elseif ($expiryDate->diffInDays($today) <= 30) {
+                                    return 'info'; // Expires within a month
+                                }
+
+                                return 'gray'; // More than a month
+                            }),
+
+                        // TextColumn::make('total_units')
+                        //     ->label('Units')
+                        //     ->numeric()
+                        //     ->prefix('Total: ')
+                        //     ->color('gray')
+                        //     ->size('sm'),
+                    ]),
+
+                    Stack::make([
+                        TextColumn::make('f_company_id')
+                            ->label('Renewal Progress')
+                            ->formatStateUsing(function ($state) {
+                                $renewal = Renewal::where('f_company_id', $state)->first();
+
+                                if (! $renewal || ! $renewal->renewal_progress) {
+                                    return '';
+                                }
+
+                                return match ($renewal->renewal_progress) {
+                                    'new' => 'New',
+                                    'pending_confirmation' => 'Pending Confirmation',
+                                    'pending_payment' => 'Pending Payment',
+                                    'completed_renewal' => 'Completed Renewal',
+                                    default => ucfirst(str_replace('_', ' ', $renewal->renewal_progress))
+                                };
+                            })
+                            ->badge()
+                            ->color(function ($state, $record) {
+                                $renewal = Renewal::where('f_company_id', $record->f_company_id)->first();
+
+                                if (! $renewal || ! $renewal->renewal_progress) {
+                                    return 'gray';
+                                }
+
+                                return match ($renewal->renewal_progress) {
+                                    'new' => 'info',                    // Blue
+                                    'pending_confirmation' => 'warning', // Yellow
+                                    'pending_payment' => 'danger',      // Red
+                                    'completed_renewal' => 'success',           // Green
+                                    default => 'gray'
+                                };
+                            })
+                            // ->icon(function ($state, $record) {
+                            //     $renewal = Renewal::where('f_company_id', $record->f_company_id)->first();
+
+                            //     if (! $renewal || ! $renewal->renewal_progress) {
+                            //         return null;
+                            //     }
+
+                            //     return match ($renewal->renewal_progress) {
+                            //         'new' => 'heroicon-o-star',
+                            //         'pending_confirmation' => 'heroicon-o-clock',
+                            //         'pending_payment' => 'heroicon-o-credit-card',
+                            //         'completed_renewal' => 'heroicon-o-check-circle',
+                            //         default => 'heroicon-o-question-mark-circle'
+                            //     };
+                            // })
+                            ->visible(function ($state, $record) {
+                                $renewal = Renewal::where('f_company_id', $record->f_company_id)->first();
+
+                                return $renewal;
+                            }),
+                    ]),
+
+                    Stack::make([
                         TextColumn::make('total_amount')
                             ->label('Amount')
                             ->alignRight()
@@ -924,26 +1034,25 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                                     // // Subtract the reseller commission
                                     // $finalAmount = $calculatedAmount - ($calculatedAmount * $reseller->f_rate / 100);
                                     $finalAmount = $state; // Amount is already calculated in the query
+
                                     return number_format($finalAmount, 2);
                                 } else {
                                     // No reseller: only deduct 8%
                                     $calculatedAmount = $state;
+
                                     return number_format($calculatedAmount, 2);
                                 }
                             }),
-                    ]),
-
-                    Stack::make([
                         TextColumn::make('f_company_id')
                             ->label('Mapping Status')
                             ->formatStateUsing(function ($state) {
                                 $renewal = Renewal::where('f_company_id', $state)->first();
 
-                                if (!$renewal) {
+                                if (! $renewal) {
                                     return 'Pending Mapping';
                                 }
 
-                                return match($renewal->mapping_status) {
+                                return match ($renewal->mapping_status) {
                                     'pending_mapping' => 'Pending Mapping',
                                     'completed_mapping' => 'Completed Mapping',
                                     'onhold_mapping' => 'OnHold Mapping',
@@ -954,118 +1063,67 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                             ->color(function ($state, $record) {
                                 $renewal = Renewal::where('f_company_id', $record->f_company_id)->first();
 
-                                if (!$renewal) {
+                                if (! $renewal) {
                                     return 'warning'; // Yellow for pending
                                 }
 
-                                return match($renewal->mapping_status) {
+                                return match ($renewal->mapping_status) {
                                     'pending_mapping' => 'warning',    // Yellow
                                     'completed_mapping' => 'success',  // Green
                                     'onhold_mapping' => 'danger',      // Red
                                     default => 'warning'
                                 };
-                            })
-                            ->icon(function ($state, $record) {
-                                $renewal = Renewal::where('f_company_id', $record->f_company_id)->first();
-
-                                if (!$renewal) {
-                                    return 'heroicon-o-clock';
-                                }
-
-                                return match($renewal->mapping_status) {
-                                    'pending_mapping' => 'heroicon-o-clock',
-                                    'completed_mapping' => 'heroicon-o-check-circle',
-                                    'onhold_mapping' => 'heroicon-o-pause-circle',
-                                    default => 'heroicon-o-clock'
-                                };
                             }),
+                        // ->icon(function ($state, $record) {
+                        //     $renewal = Renewal::where('f_company_id', $record->f_company_id)->first();
 
-                        Stack::make([
-                            TextColumn::make('f_company_id')
-                                ->label('Renewal Progress')
-                                ->formatStateUsing(function ($state) {
-                                    $renewal = Renewal::where('f_company_id', $state)->first();
+                        //     if (! $renewal) {
+                        //         return 'heroicon-o-clock';
+                        //     }
 
-                                    if (!$renewal || !$renewal->renewal_progress) {
-                                        return '';
-                                    }
-
-                                    return match($renewal->renewal_progress) {
-                                        'new' => 'New',
-                                        'pending_confirmation' => 'Pending Confirmation',
-                                        'pending_payment' => 'Pending Payment',
-                                        'completed_renewal' => 'Completed Renewal',
-                                        default => ucfirst(str_replace('_', ' ', $renewal->renewal_progress))
-                                    };
-                                })
-                                ->badge()
-                                ->color(function ($state, $record) {
-                                    $renewal = Renewal::where('f_company_id', $record->f_company_id)->first();
-
-                                    if (!$renewal || !$renewal->renewal_progress) {
-                                        return 'gray';
-                                    }
-
-                                    return match($renewal->renewal_progress) {
-                                        'new' => 'info',                    // Blue
-                                        'pending_confirmation' => 'warning', // Yellow
-                                        'pending_payment' => 'danger',      // Red
-                                        'completed_renewal' => 'success',           // Green
-                                        default => 'gray'
-                                    };
-                                })
-                                ->icon(function ($state, $record) {
-                                    $renewal = Renewal::where('f_company_id', $record->f_company_id)->first();
-
-                                    if (!$renewal || !$renewal->renewal_progress) {
-                                        return null;
-                                    }
-
-                                    return match($renewal->renewal_progress) {
-                                        'new' => 'heroicon-o-star',
-                                        'pending_confirmation' => 'heroicon-o-clock',
-                                        'pending_payment' => 'heroicon-o-credit-card',
-                                        'completed_renewal' => 'heroicon-o-check-circle',
-                                        default => 'heroicon-o-question-mark-circle'
-                                    };
-                                })
-                                ->visible(function ($state, $record) {
-                                    $renewal = Renewal::where('f_company_id', $record->f_company_id)->first();
-                                    return $renewal;
-                                }),
-                        ]),
-                        // TextColumn::make('f_company_id')
-                        //     ->label('Lead Reference')
-                        //     ->formatStateUsing(function ($state) {
-                        //         $renewal = Renewal::where('f_company_id', $state)->first();
-
-                        //         if ($renewal && $renewal->lead_id) {
-                        //             $lead = Lead::with('companyDetail')->find($renewal->lead_id);
-
-                        //             if ($lead && $lead->companyDetail) {
-                        //                 return $lead->companyDetail->company_name;
-                        //             } else {
-                        //                 return 'Lead ID: ' . str_pad($renewal->lead_id, 5, '0', STR_PAD_LEFT);
-                        //             }
-                        //         }
-
-                        //         return '';
-                        //     })
-                        //     ->color('info')
-                        //     ->size('sm')
-                        //     ->url(function ($state, $record) {
-                        //         $renewal = Renewal::where('f_company_id', $record->f_company_id)->first();
-
-                        //         if ($renewal && $renewal->lead_id) {
-                        //             return route('filament.admin.resources.leads.view', [
-                        //                 'record' => \App\Classes\Encryptor::encrypt($renewal->lead_id)
-                        //             ]);
-                        //         }
-
-                        //         return null;
-                        //     })
-                        //     ->openUrlInNewTab(),
+                        //     return match ($renewal->mapping_status) {
+                        //         'pending_mapping' => 'heroicon-o-clock',
+                        //         'completed_mapping' => 'heroicon-o-check-circle',
+                        //         'onhold_mapping' => 'heroicon-o-pause-circle',
+                        //         default => 'heroicon-o-clock'
+                        //     };
+                        // }),
                     ]),
+
+                    // Stack::make([
+
+                    //     // TextColumn::make('f_company_id')
+                    //     //     ->label('Lead Reference')
+                    //     //     ->formatStateUsing(function ($state) {
+                    //     //         $renewal = Renewal::where('f_company_id', $state)->first();
+
+                    //     //         if ($renewal && $renewal->lead_id) {
+                    //     //             $lead = Lead::with('companyDetail')->find($renewal->lead_id);
+
+                    //     //             if ($lead && $lead->companyDetail) {
+                    //     //                 return $lead->companyDetail->company_name;
+                    //     //             } else {
+                    //     //                 return 'Lead ID: ' . str_pad($renewal->lead_id, 5, '0', STR_PAD_LEFT);
+                    //     //             }
+                    //     //         }
+
+                    //     //         return '';
+                    //     //     })
+                    //     //     ->color('info')
+                    //     //     ->size('sm')
+                    //     //     ->url(function ($state, $record) {
+                    //     //         $renewal = Renewal::where('f_company_id', $record->f_company_id)->first();
+
+                    //     //         if ($renewal && $renewal->lead_id) {
+                    //     //             return route('filament.admin.resources.leads.view', [
+                    //     //                 'record' => \App\Classes\Encryptor::encrypt($renewal->lead_id)
+                    //     //             ]);
+                    //     //         }
+
+                    //     //         return null;
+                    //     //     })
+                    //     //     ->openUrlInNewTab(),
+                    // ]),
 
                     Stack::make([
                         TextColumn::make('f_company_id')
@@ -1088,36 +1146,35 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
 
                                 return 'gray'; // Gray for unassigned
                             })
-                            ->icon(function ($state, $record) {
-                                $renewal = Renewal::where('f_company_id', $record->f_company_id)->first();
+                            // ->icon(function ($state, $record) {
+                            //     $renewal = Renewal::where('f_company_id', $record->f_company_id)->first();
 
-                                if ($renewal && $renewal->admin_renewal) {
-                                    return 'heroicon-o-user';
-                                }
+                            //     if ($renewal && $renewal->admin_renewal) {
+                            //         return 'heroicon-o-user';
+                            //     }
 
-                                return null;
-                            })
+                            //     return null;
+                            // })
                             ->visible(function ($state, $record) {
                                 // Only show if mapping is completed
                                 $renewal = Renewal::where('f_company_id', $record->f_company_id)->first();
+
                                 return $renewal;
                             }),
-                    ]),
-
-                    Stack::make([
                         TextColumn::make('f_company_id')
                             ->label('Reseller')
                             ->formatStateUsing(function ($state) {
                                 $reseller = RenewalDataUsd::getResellerForCompany($state);
+
                                 return $reseller ? 'Reseller' : '';
                             })
                             ->badge()
                             ->color('danger')
-                            ->icon('heroicon-o-building-office')
+                            // ->icon('heroicon-o-building-office')
                             ->tooltip(function ($state, $record) {
                                 $reseller = RenewalDataUsd::getResellerForCompany($record->f_company_id);
 
-                                if (!$reseller) {
+                                if (! $reseller) {
                                     return null;
                                 }
 
@@ -1127,36 +1184,11 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                             })
                             ->visible(function ($state, $record) {
                                 $reseller = RenewalDataUsd::getResellerForCompany($record->f_company_id);
+
                                 return $reseller !== null;
                             }),
                     ]),
 
-                    Stack::make([
-                        TextColumn::make('earliest_expiry')
-                            ->label('Expiry Date')
-                            ->date('Y-m-d')
-                            ->color(function ($state) {
-                                $today = Carbon::now();
-                                $expiryDate = Carbon::parse($state);
-
-                                // Color coding based on how close to expiry
-                                if ($expiryDate->isToday()) {
-                                    return 'danger'; // Expires today
-                                } elseif ($expiryDate->diffInDays($today) <= 7) {
-                                    return 'warning'; // Expires within a week
-                                } elseif ($expiryDate->diffInDays($today) <= 30) {
-                                    return 'info'; // Expires within a month
-                                }
-                                return 'gray'; // More than a month
-                            }),
-
-                        // TextColumn::make('total_units')
-                        //     ->label('Units')
-                        //     ->numeric()
-                        //     ->prefix('Total: ')
-                        //     ->color('gray')
-                        //     ->size('sm'),
-                    ]),
                 ])->from('sm'),
 
                 // Collapsible content - shows invoices for the company
@@ -1172,7 +1204,7 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                                 'resellerName' => $reseller ? $reseller->reseller_name : null,
                             ]);
                         })
-                        ->html()
+                        ->html(),
                 ])->collapsible()->collapsed(),
             ])
             ->actions([
@@ -1186,7 +1218,7 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
 
                             if ($renewal && $renewal->lead_id) {
                                 return route('filament.admin.resources.leads.view', [
-                                    'record' => \App\Classes\Encryptor::encrypt($renewal->lead_id)
+                                    'record' => \App\Classes\Encryptor::encrypt($renewal->lead_id),
                                 ]);
                             }
 
@@ -1196,6 +1228,7 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                         ->visible(function ($record) {
                             // Only show if mapping is completed and lead_id exists
                             $renewal = Renewal::where('f_company_id', $record->f_company_id)->first();
+
                             return $renewal &&
                                 $renewal->mapping_status === 'completed_mapping' &&
                                 $renewal->lead_id;
@@ -1213,6 +1246,7 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                         ->visible(function ($record) {
                             // Only show after mapping is completed AND no one is assigned yet
                             $renewal = Renewal::where('f_company_id', $record->f_company_id)->first();
+
                             return $renewal &&
                                 $renewal->mapping_status === 'completed_mapping' &&
                                 $renewal->admin_renewal === null;
@@ -1235,7 +1269,7 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                                     ->send();
 
                             } catch (\Exception $e) {
-                                Log::error("Error assigning renewal: " . $e->getMessage());
+                                Log::error('Error assigning renewal: '.$e->getMessage());
 
                                 Notification::make()
                                     ->danger()
@@ -1256,7 +1290,7 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                                     'Fatimah Nurnabilah' => 'Fatimah Nurnabilah',
                                 ])
                                 ->required()
-                                ->placeholder('Select an admin')
+                                ->placeholder('Select an admin'),
                         ])
                         ->action(function ($record, array $data) {
                             try {
@@ -1276,7 +1310,7 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                                     ->send();
 
                             } catch (\Exception $e) {
-                                Log::error("Error assigning renewal: " . $e->getMessage());
+                                Log::error('Error assigning renewal: '.$e->getMessage());
 
                                 Notification::make()
                                     ->danger()
@@ -1292,11 +1326,11 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                         ->visible(function ($record) {
                             // Only show after mapping is completed AND no one is assigned yet
                             $renewal = Renewal::where('f_company_id', $record->f_company_id)->first();
+
                             return $renewal &&
                                 $renewal->mapping_status === 'completed_mapping' &&
                                 $renewal->admin_renewal === null;
                         }),
-
 
                     Action::make('mapping_action')
                         ->label('Mapping')
@@ -1316,7 +1350,7 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                                 ->options([
                                     'before_handover' => 'Before Software Handover',
                                     'after_handover' => 'After Software Handover',
-                                    'onhold' => 'OnHold Mapping'
+                                    'onhold' => 'OnHold Mapping',
                                 ])
                                 ->required()
                                 ->reactive(),
@@ -1337,7 +1371,7 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                                             $leadIdFormatted = str_pad($lead->id, 5, '0', STR_PAD_LEFT);
 
                                             return [
-                                                $lead->id => "Lead {$leadIdFormatted} - {$companyName}"
+                                                $lead->id => "Lead {$leadIdFormatted} - {$companyName}",
                                             ];
                                         })
                                         ->toArray();
@@ -1362,7 +1396,7 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                                             $leadIdFormatted = str_pad($lead->id, 5, '0', STR_PAD_LEFT);
 
                                             return [
-                                                $lead->id => "Lead {$leadIdFormatted} - {$companyName}"
+                                                $lead->id => "Lead {$leadIdFormatted} - {$companyName}",
                                             ];
                                         })
                                         ->toArray();
@@ -1370,8 +1404,8 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                                 ->getOptionLabelUsing(function ($value) {
                                     $lead = Lead::with('companyDetail')->find($value);
 
-                                    if (!$lead) {
-                                        return "Lead not found";
+                                    if (! $lead) {
+                                        return 'Lead not found';
                                     }
 
                                     $companyName = $lead->companyDetail
@@ -1414,7 +1448,8 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                                                 ->color('primary')
                                                 ->action(function ($state, $set, $livewire) {
                                                     if (empty($state)) {
-                                                        $set('phone_helper_text', "Please enter a phone number to verify");
+                                                        $set('phone_helper_text', 'Please enter a phone number to verify');
+
                                                         return;
                                                     }
 
@@ -1432,13 +1467,14 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
 
                                                     // If exists, set helper text with found lead details
                                                     if ($existingLeadsWithPhone->isNotEmpty()) {
-                                                        $duplicateInfo = $existingLeadsWithPhone->map(function($lead) {
+                                                        $duplicateInfo = $existingLeadsWithPhone->map(function ($lead) {
                                                             $companyName = $lead->companyDetail ? $lead->companyDetail->company_name : 'Unknown Company';
-                                                            return "• {$companyName} (Lead ID: " . str_pad($lead->id, 5, '0', STR_PAD_LEFT) . ")";
+
+                                                            return "• {$companyName} (Lead ID: ".str_pad($lead->id, 5, '0', STR_PAD_LEFT).')';
                                                         })->implode("\n");
 
                                                         // Store as plain string with HTML markup
-                                                        $set('phone_helper_text', '<span style="color:red;">⚠️ This phone number is already in use:</span><br>' . nl2br(htmlspecialchars($duplicateInfo)));
+                                                        $set('phone_helper_text', '<span style="color:red;">⚠️ This phone number is already in use:</span><br>'.nl2br(htmlspecialchars($duplicateInfo)));
                                                     } else {
                                                         // Store as plain string with HTML markup
                                                         $set('phone_helper_text', '<span style="color:green;">✓ Phone number is unique</span>');
@@ -1450,7 +1486,7 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                                         )
                                         ->helperText(function (callable $get) {
                                             if ($get('phone_search_loading')) {
-                                                return "Verifying phone number...";
+                                                return 'Verifying phone number...';
                                             }
 
                                             // Get the helper text which is now stored as a string with HTML markup
@@ -1505,14 +1541,14 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                         ->visible(function ($record) {
                             $renewal = Renewal::where('f_company_id', $record->f_company_id)->first();
 
-                            if (!$renewal) {
+                            if (! $renewal) {
                                 return true;
                             }
 
                             return $renewal->mapping_status !== 'completed_mapping';
                         })
                         ->modalWidth('5xl')
-                        ->modalHeading(fn ($record) => 'Mapping Action - ' . $record->f_company_name),
+                        ->modalHeading(fn ($record) => 'Mapping Action - '.$record->f_company_name),
                     Action::make('completed_follow_up')
                         ->label('Completed Follow Up')
                         ->icon('heroicon-o-check-circle')
@@ -1524,6 +1560,7 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                         ->modalCancelActionLabel('Cancel')
                         ->visible(function ($record) {
                             $renewal = Renewal::where('f_company_id', $record->f_company_id)->first();
+
                             return $renewal &&
                                 $renewal->admin_renewal !== null &&
                                 $renewal->renewal_progress === 'new';
@@ -1570,7 +1607,7 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                                     ->send();
 
                             } catch (\Exception $e) {
-                                Log::error("Error updating follow up status: " . $e->getMessage());
+                                Log::error('Error updating follow up status: '.$e->getMessage());
 
                                 Notification::make()
                                     ->danger()
@@ -1590,6 +1627,7 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                         ->modalCancelActionLabel('Cancel')
                         ->visible(function ($record) {
                             $renewal = Renewal::where('f_company_id', $record->f_company_id)->first();
+
                             return $renewal && ($renewal->renewal_progress === 'pending_confirmation' || $renewal->renewal_progress === 'pending_payment');
                         })
                         ->action(function ($record) {
@@ -1632,11 +1670,11 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                                 Notification::make()
                                     ->success()
                                     ->title('Payment Completed')
-                                    ->body("Payment has been marked as completed. Renewal process is now complete.")
+                                    ->body('Payment has been marked as completed. Renewal process is now complete.')
                                     ->send();
 
                             } catch (\Exception $e) {
-                                Log::error("Error updating payment status: " . $e->getMessage());
+                                Log::error('Error updating payment status: '.$e->getMessage());
 
                                 Notification::make()
                                     ->danger()
@@ -1657,6 +1695,7 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                         ->modalCancelActionLabel('Cancel')
                         ->visible(function ($record) {
                             $renewal = Renewal::where('f_company_id', $record->f_company_id)->first();
+
                             return $renewal && $renewal->renewal_progress === 'pending_confirmation';
                         })
                         ->action(function ($record) {
@@ -1703,7 +1742,7 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                                     ->send();
 
                             } catch (\Exception $e) {
-                                Log::error("Error requesting invoice: " . $e->getMessage());
+                                Log::error('Error requesting invoice: '.$e->getMessage());
 
                                 Notification::make()
                                     ->danger()
@@ -1724,6 +1763,7 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                         ->modalCancelActionLabel('Cancel')
                         ->visible(function ($record) {
                             $renewal = Renewal::where('f_company_id', $record->f_company_id)->first();
+
                             return $renewal && $renewal->renewal_progress === 'pending_confirmation';
                         })
                         ->action(function ($record) {
@@ -1770,7 +1810,7 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                                     ->send();
 
                             } catch (\Exception $e) {
-                                Log::error("Error initiating HRDF claim: " . $e->getMessage());
+                                Log::error('Error initiating HRDF claim: '.$e->getMessage());
 
                                 Notification::make()
                                     ->danger()
@@ -1846,8 +1886,8 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                     //         }
                     //     }),
                 ])
-                ->icon('heroicon-m-ellipsis-vertical')
-                ->color('primary')
+                    ->icon('heroicon-m-ellipsis-vertical')
+                    ->color('primary'),
             ])
             ->bulkActions([
                 \Filament\Tables\Actions\BulkActionGroup::make([
@@ -1882,7 +1922,7 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                                     $updatedCompanies[] = $record->f_company_name;
 
                                 } catch (\Exception $e) {
-                                    Log::error("Error updating OnHold mapping for company {$record->f_company_id}: " . $e->getMessage());
+                                    Log::error("Error updating OnHold mapping for company {$record->f_company_id}: ".$e->getMessage());
                                     $errorCount++;
                                 }
                             }
@@ -1891,8 +1931,8 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                                 Notification::make()
                                     ->success()
                                     ->title('Batch Update Successful')
-                                    ->body("Successfully updated {$successCount} renewal(s) to OnHold Mapping status." .
-                                        ($errorCount > 0 ? " {$errorCount} failed to update." : ""))
+                                    ->body("Successfully updated {$successCount} renewal(s) to OnHold Mapping status.".
+                                        ($errorCount > 0 ? " {$errorCount} failed to update." : ''))
                                     ->send();
                             } else {
                                 Notification::make()
@@ -1916,7 +1956,7 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                                 ])
                                 ->required()
                                 ->placeholder('Select an admin to assign')
-                                ->helperText('All selected renewals will be assigned to the chosen admin.')
+                                ->helperText('All selected renewals will be assigned to the chosen admin.'),
                         ])
                         ->action(function ($records, array $data) {
                             $successCount = 0;
@@ -1937,7 +1977,7 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                                         ]);
 
                                         $successCount++;
-                                    } elseif (!$renewal) {
+                                    } elseif (! $renewal) {
                                         // Create new renewal record with completed mapping (for assignment)
                                         Renewal::create([
                                             'f_company_id' => $record->f_company_id,
@@ -1957,7 +1997,7 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                                     }
 
                                 } catch (\Exception $e) {
-                                    Log::error("Error batch assigning admin for company {$record->f_company_id}: " . $e->getMessage());
+                                    Log::error("Error batch assigning admin for company {$record->f_company_id}: ".$e->getMessage());
                                     $errorCount++;
                                 }
                             }
@@ -2018,7 +2058,7 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                                         ]);
 
                                         $successCount++;
-                                    } elseif (!$renewal) {
+                                    } elseif (! $renewal) {
                                         // Create new renewal record
                                         Renewal::create([
                                             'f_company_id' => $record->f_company_id,
@@ -2038,7 +2078,7 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                                     }
 
                                 } catch (\Exception $e) {
-                                    Log::error("Error batch assigning to self for company {$record->f_company_id}: " . $e->getMessage());
+                                    Log::error("Error batch assigning to self for company {$record->f_company_id}: ".$e->getMessage());
                                     $errorCount++;
                                 }
                             }
@@ -2092,7 +2132,7 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                     // Create CompanyDetail first (like in CreateLead)
                     $companyDetail = CompanyDetail::create([
                         'company_name' => strtoupper(trim($data['company_name'])),
-                        'lead_id' => $nextLeadId
+                        'lead_id' => $nextLeadId,
                     ]);
 
                     // Convert country code to country name (like in CreateLead)
@@ -2147,7 +2187,7 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                         if ($latestActivityLog) {
                             $latestActivityLog->update([
                                 'subject_id' => $lead->id,
-                                'description' => 'Lead assigned to ' . auth()->user()->name . ' and Mark as Closed',
+                                'description' => 'Lead assigned to '.auth()->user()->name.' and Mark as Closed',
                             ]);
                         }
                     }
@@ -2172,12 +2212,12 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                             \Filament\Notifications\Actions\Action::make('view_lead')
                                 ->label('View Lead')
                                 ->url(route('filament.admin.resources.leads.view', ['record' => \App\Classes\Encryptor::encrypt($lead->id)]))
-                                ->openUrlInNewTab()
+                                ->openUrlInNewTab(),
                         ])
                         ->send();
 
                 } catch (\Exception $e) {
-                    Log::error("Error creating lead: " . $e->getMessage());
+                    Log::error('Error creating lead: '.$e->getMessage());
 
                     Notification::make()
                         ->danger()
@@ -2215,7 +2255,7 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                         'company_name' => $record->f_company_name,
                         'mapping_status' => 'onhold_mapping',
                         'renewal_progress' => 'completed_renewal',
-                        'admin_renewal' => 'Auto Renewal'
+                        'admin_renewal' => 'Auto Renewal',
                     ]
                 );
 
