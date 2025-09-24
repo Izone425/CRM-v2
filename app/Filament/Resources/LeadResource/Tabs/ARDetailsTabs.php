@@ -2,31 +2,20 @@
 
 namespace App\Filament\Resources\LeadResource\Tabs;
 
-use App\Models\ActivityLog;
 use App\Models\Lead;
-use App\Models\LeadSource;
 // use App\Models\ImplementerNote;
-use App\Models\SoftwareHandover;
 use Filament\Forms\Components\Actions\Action;
+use Filament\Forms\Components\Button;
+use Filament\Forms\Components\Card;
 use Filament\Forms\Components\Grid;
+use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\View;
-use Filament\Forms\Components\Actions;
-use Filament\Forms\Components\Tabs;
-use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Card;
-use Filament\Forms\Components\RichEditor;
-use Filament\Forms\Components\Repeater;
-use Filament\Forms\Components\Actions\ActionGroup;
-use Filament\Forms\Components\Badge;
-use Filament\Forms\Components\Button;
+use Filament\Forms\Components\View;
 use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
-use Illuminate\View\View as IlluminateView;
 
 class ARDetailsTabs
 {
@@ -56,13 +45,15 @@ class ARDetailsTabs
         return [
             Grid::make(1)
                 ->schema([
-                    Section::make('New Renewal Details added by Admin Renewal')
+                    Section::make()
+                        ->key('Renewal PICS')
+                        ->heading("\u{00A0}")
                         // ->description('Add additional persons in charge for this lead')
-                        ->icon('heroicon-o-users')
+                        // ->icon('heroicon-o-users')
                         ->schema([
                             // Display saved new PICs in a card view
                             View::make('components.new-pic-cards')
-                            ->viewData(["type" => "renewal"]),
+                                ->viewData(['type' => 'renewal']),
                         ])
                         ->headerActions([
                             Action::make('add_new_pic')
@@ -90,7 +81,7 @@ class ARDetailsTabs
                                                                 const value = $el.value;
                                                                 $el.value = value.toUpperCase();
                                                                 $el.setSelectionRange(start, end);
-                                                            '
+                                                            ',
                                                         ])
                                                         ->dehydrateStateUsing(fn ($state) => strtoupper($state))
                                                         ->columnSpan(1),
@@ -104,7 +95,7 @@ class ARDetailsTabs
                                                                 const value = $el.value;
                                                                 $el.value = value.toUpperCase();
                                                                 $el.setSelectionRange(start, end);
-                                                            '
+                                                            ',
                                                         ])
                                                         ->dehydrateStateUsing(fn ($state) => strtoupper($state))
                                                         ->columnSpan(1),
@@ -137,19 +128,20 @@ class ARDetailsTabs
                                         ->defaultItems(1),
                                 ])
                                 ->action(function (Lead $record, array $data) {
-                                    if (!$record->companyDetail) {
+                                    if (! $record->companyDetail) {
                                         Notification::make()
                                             ->title('Error')
                                             ->body('Company details are required before adding additional contacts')
                                             ->danger()
                                             ->send();
+
                                         return;
                                     }
 
                                     try {
                                         // Get existing PICs
                                         $existingPics = [];
-                                        if (!empty($record->companyDetail->additional_pic)) {
+                                        if (! empty($record->companyDetail->additional_pic)) {
                                             if (is_string($record->companyDetail->additional_pic)) {
                                                 $existingPics = json_decode($record->companyDetail->additional_pic, true) ?? [];
                                             } else {
@@ -162,7 +154,7 @@ class ARDetailsTabs
 
                                         // Save to company details
                                         $record->companyDetail->update([
-                                            'additional_pic' => json_encode($allPics)
+                                            'additional_pic' => json_encode($allPics),
                                         ]);
 
                                         // Log activity
@@ -176,9 +168,9 @@ class ARDetailsTabs
                                             ->success()
                                             ->send();
                                     } catch (\Exception $e) {
-                                        Log::error('Failed to save new PICs: ' . $e->getMessage(), [
+                                        Log::error('Failed to save new PICs: '.$e->getMessage(), [
                                             'lead_id' => $record->id,
-                                            'exception' => $e
+                                            'exception' => $e,
                                         ]);
 
                                         Notification::make()
@@ -197,12 +189,12 @@ class ARDetailsTabs
                                 ->modalDescription('You can only update the status of new PICs.')
                                 ->visible(function ($record) {
                                     // First check if user has edit permissions
-                                    if (!self::canEditPICs($record)) {
+                                    if (! self::canEditPICs($record)) {
                                         return false;
                                     }
 
                                     // Check if record exists, has companyDetail, and has additional_pic
-                                    if (!$record || !$record->companyDetail || empty($record->companyDetail->additional_pic)) {
+                                    if (! $record || ! $record->companyDetail || empty($record->companyDetail->additional_pic)) {
                                         return false;
                                     }
 
@@ -218,12 +210,13 @@ class ARDetailsTabs
                                     return count($additionalPics) > 0;
                                 })
                                 ->form(function ($record) {
-                                    if (!$record || !$record->companyDetail || empty($record->companyDetail->additional_pic)) {
+                                    if (! $record || ! $record->companyDetail || empty($record->companyDetail->additional_pic)) {
                                         Notification::make()
                                             ->title('No PICs Found')
                                             ->body('No original PICs found in the software handover.')
                                             ->warning()
                                             ->send();
+
                                         return;
                                     }
 
@@ -237,7 +230,7 @@ class ARDetailsTabs
                                     $formComponents = [];
 
                                     foreach ($additionalPics as $index => $pic) {
-                                        $formComponents[] = Section::make('PIC #' . ($index + 1))
+                                        $formComponents[] = Section::make('PIC #'.($index + 1))
                                             ->schema([
                                                 Grid::make(5)
                                                     ->schema([
@@ -247,9 +240,9 @@ class ARDetailsTabs
                                                             ->required()
                                                             ->maxLength(255)
                                                             ->extraInputAttributes(['style' => 'text-transform: uppercase'])
-                                                            ->afterStateHydrated(fn($state) => Str::upper($state))
-                                                            ->afterStateUpdated(fn($state) => Str::upper($state))
-                                                            ->disabled(fn() => !in_array(auth()->user()->role_id, [3, 5]))
+                                                            ->afterStateHydrated(fn ($state) => Str::upper($state))
+                                                            ->afterStateUpdated(fn ($state) => Str::upper($state))
+                                                            ->disabled(fn () => ! in_array(auth()->user()->role_id, [3, 5]))
                                                             ->columnSpan(1),
 
                                                         TextInput::make("new_pics.{$index}.position")
@@ -257,9 +250,9 @@ class ARDetailsTabs
                                                             ->default($pic['position'] ?? '')
                                                             ->maxLength(255)
                                                             ->extraInputAttributes(['style' => 'text-transform: uppercase'])
-                                                            ->afterStateHydrated(fn($state) => Str::upper($state))
-                                                            ->afterStateUpdated(fn($state) => Str::upper($state))
-                                                            ->disabled(fn() => !in_array(auth()->user()->role_id, [3, 5]))
+                                                            ->afterStateHydrated(fn ($state) => Str::upper($state))
+                                                            ->afterStateUpdated(fn ($state) => Str::upper($state))
+                                                            ->disabled(fn () => ! in_array(auth()->user()->role_id, [3, 5]))
                                                             ->columnSpan(1),
 
                                                         TextInput::make("new_pics.{$index}.hp_number")
@@ -269,7 +262,7 @@ class ARDetailsTabs
                                                             ->tel()
                                                             ->telRegex('/^[+]*[(]{0,1}[0-9]{1,4}[)]{0,1}[-\s\.\/0-9]*$/')
                                                             ->maxLength(20)
-                                                            ->disabled(fn() => !in_array(auth()->user()->role_id, [3, 5]))
+                                                            ->disabled(fn () => ! in_array(auth()->user()->role_id, [3, 5]))
                                                             ->columnSpan(1),
 
                                                         TextInput::make("new_pics.{$index}.email")
@@ -278,14 +271,14 @@ class ARDetailsTabs
                                                             ->required()
                                                             ->email()
                                                             ->maxLength(255)
-                                                            ->disabled(fn() => !in_array(auth()->user()->role_id, [3, 5]))
+                                                            ->disabled(fn () => ! in_array(auth()->user()->role_id, [3, 5]))
                                                             ->columnSpan(1),
 
                                                         Select::make("new_pics.{$index}.status")
                                                             ->label('Status')
                                                             ->options([
                                                                 'Available' => 'Available',
-                                                                'Resign' => 'Resign'
+                                                                'Resign' => 'Resign',
                                                             ])
                                                             ->default($pic['status'] ?? 'Available')
                                                             ->required(),
@@ -300,12 +293,13 @@ class ARDetailsTabs
                                     return $formComponents;
                                 })
                                 ->action(function ($data, Lead $record) {
-                                    if (!$record->companyDetail) {
+                                    if (! $record->companyDetail) {
                                         Notification::make()
                                             ->title('Error')
                                             ->body('Company details not found')
                                             ->danger()
                                             ->send();
+
                                         return;
                                     }
 
@@ -363,7 +357,7 @@ class ARDetailsTabs
 
                                         // Save the updated PICs
                                         $record->companyDetail->update([
-                                            'additional_pic' => json_encode($additionalPics)
+                                            'additional_pic' => json_encode($additionalPics),
                                         ]);
 
                                         // Log activity
@@ -377,9 +371,9 @@ class ARDetailsTabs
                                             ->success()
                                             ->send();
                                     } catch (\Exception $e) {
-                                        Log::error('Failed to update new PIC status: ' . $e->getMessage(), [
+                                        Log::error('Failed to update new PIC status: '.$e->getMessage(), [
                                             'lead_id' => $record->id,
-                                            'exception' => $e
+                                            'exception' => $e,
                                         ]);
 
                                         Notification::make()
@@ -388,7 +382,7 @@ class ARDetailsTabs
                                             ->danger()
                                             ->send();
                                     }
-                                })
+                                }),
                         ]),
                 ]),
         ];

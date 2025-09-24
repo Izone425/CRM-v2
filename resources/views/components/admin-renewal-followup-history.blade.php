@@ -3,7 +3,7 @@
         $lead = $this->getRecord();
 
         // Get implementer logs that are follow-ups
-        $followUps = $lead->adminRenewalLogs()->with('causer')->orderBy('created_at', 'asc')->get();
+        $followUps = $lead->adminRenewalLogs()->with('causer')->orderBy('created_at', 'desc')->get();
 
         $totalFollowUps = $followUps->count();
     @endphp
@@ -73,23 +73,23 @@
                         <thead class="bg-gray-50">
                             <tr>
                                 <th scope="col"
-                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-r border-gray-200">
-                                    FU
+                                    class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-r border-gray-200">
+                                    No
                                 </th>
                                 <th scope="col"
-                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-r border-gray-200">
-                                    Added Date
+                                    class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-r border-gray-200">
+                                    Follow Up Date
                                 </th>
                                 <th scope="col"
-                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-r border-gray-200">
+                                    class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-r border-gray-200">
                                     Admin Renewal
                                 </th>
                                 <th scope="col"
-                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-r border-gray-200">
-                                    Remarks
+                                    class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-r border-gray-200">
+                                    Follow Up Remark
                                 </th>
                                 <th scope="col"
-                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200">
+                                    class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200">
                                     Next Follow Up Date
                                 </th>
                             </tr>
