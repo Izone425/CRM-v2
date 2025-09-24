@@ -3,10 +3,7 @@
         $lead = $this->getRecord();
 
         // Get implementer logs that are follow-ups
-        $followUps = $lead->adminRenewalLogs()
-            ->with('causer')
-            ->orderBy('created_at', 'desc')
-            ->get();
+        $followUps = $lead->adminRenewalLogs()->with('causer')->orderBy('created_at', 'asc')->get();
 
         $totalFollowUps = $followUps->count();
     @endphp
@@ -28,10 +25,7 @@
         }
     }" @keydown.escape.window="showModal = false">
         <!-- Modal -->
-        <div x-show="showModal"
-             class="fixed inset-0 z-50 overflow-y-auto"
-             style="display: none;"
-             x-cloak>
+        <div x-show="showModal" class="fixed inset-0 z-50 overflow-y-auto" style="display: none;" x-cloak>
             <!-- Backdrop -->
             <div class="fixed inset-0 bg-black bg-opacity-50" @click="showModal = false"></div>
 
@@ -44,7 +38,8 @@
                             <h3 class="text-lg font-medium" x-text="emailSubject"></h3>
                             <button @click="showModal = false" class="text-gray-400 hover:text-gray-500">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M6 18L18 6M6 6l12 12"></path>
                                 </svg>
                             </button>
                         </div>
@@ -62,7 +57,8 @@
 
                     <!-- Footer -->
                     <div class="flex justify-end pt-4 border-t border-gray-200">
-                        <button @click="showModal = false" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50">
+                        <button @click="showModal = false"
+                            class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50">
                             Close
                         </button>
                     </div>
@@ -70,34 +66,41 @@
             </div>
         </div>
 
-        @if($followUps->count() > 0)
+        @if ($followUps->count() > 0)
             <div class="w-full overflow-hidden bg-white border border-gray-200 rounded-lg shadow">
                 <div class="overflow-x-auto">
                     <table class="w-full table-auto border-collapse border border-gray-200">
                         <thead class="bg-gray-50">
                             <tr>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-r border-gray-200">
+                                <th scope="col"
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-r border-gray-200">
                                     FU
                                 </th>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-r border-gray-200">
+                                <th scope="col"
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-r border-gray-200">
                                     Added Date
                                 </th>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-r border-gray-200">
+                                <th scope="col"
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-r border-gray-200">
                                     Admin Renewal
                                 </th>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-r border-gray-200">
+                                <th scope="col"
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-r border-gray-200">
                                     Remarks
                                 </th>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200">
+                                <th scope="col"
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200">
                                     Next Follow Up Date
                                 </th>
                             </tr>
                         </thead>
                         <tbody class="bg-white">
-                            @foreach($followUps as $index => $followUp)
+                            @foreach ($followUps as $index => $followUp)
                                 @php
-                                    $followUpDate = $followUp->follow_up_date ? \Carbon\Carbon::parse($followUp->follow_up_date)->format('Y-m-d') : null;
-                                    
+                                    $followUpDate = $followUp->follow_up_date
+                                        ? \Carbon\Carbon::parse($followUp->follow_up_date)->format('Y-m-d')
+                                        : null;
+
                                     // Check if there are any scheduled emails for this follow-up
                                     $scheduledEmails = DB::table('scheduled_emails')
                                         ->where('email_data', 'like', '%"implementer_log_id":' . $followUp->id . '%')
@@ -105,59 +108,69 @@
                                 @endphp
                                 <tr class="hover:bg-gray-50 border-b border-gray-200">
                                     <!-- FU Column -->
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 border-r border-gray-200">
+                                    <td
+                                        class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 border-r border-gray-200">
                                         <div class="flex flex-col">
-                                            <span class="font-bold text-red-600">{{ $index + 1 }}</span>
-                                            @if($followUp->manual_follow_up_count > 0)
-                                                <span class="mt-1 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-800">
+                                            <span class="font-bold text-red-600">{{ $totalFollowUps - $index }}</span>
+                                            @if ($followUp->manual_follow_up_count > 0)
+                                                <span
+                                                    class="mt-1 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-800">
                                                     Follow-up #{{ $followUp->manual_follow_up_count }}
                                                 </span>
                                             @endif
                                         </div>
                                     </td>
-                                    
+
                                     <!-- Added Date Column -->
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-r border-gray-200">
-                                        {{ $followUp->created_at->format('d M Y, h:i A') }}
-                                    </td>
-                                    
-                                    <!-- Admin Renewal Column -->
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-r border-gray-200">
+                                    <td
+                                        class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-r border-gray-200">
                                         <div class="flex flex-col">
-                                            <span class="font-medium">{{ $followUp->causer ? $followUp->causer->name : 'CRM System' }}</span>
-                                           
+                                            <span
+                                                class="font-medium">{{ $followUp->created_at->format('d M Y') }}</span>
+                                            <span
+                                                class="text-xs text-gray-500">{{ $followUp->created_at->format('h:i A') }}</span>
                                         </div>
                                     </td>
-                                    
+
+                                    <!-- Admin Renewal Column -->
+                                    <td
+                                        class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-r border-gray-200">
+                                        <div class="flex flex-col">
+                                            <span
+                                                class="font-medium">{{ $followUp->causer ? $followUp->causer->name : 'CRM System' }}</span>
+
+                                        </div>
+                                    </td>
+
                                     <!-- Remarks Column -->
                                     <td class="px-6 py-4 text-sm text-gray-900 border-r border-gray-200">
                                         <div class="w-full">
                                             @php
                                                 $remark = $followUp->remark;
-                                                
+
                                                 // Convert literal "&nbsp;" text to actual non-breaking spaces
                                                 $remark = str_replace('&nbsp;', ' ', $remark);
                                                 $remark = str_replace('&amp;nbsp;', ' ', $remark);
-                                                
+
                                                 // Handle any other common HTML entities that might be causing issues
                                                 $remark = str_replace('&amp;', '&', $remark);
-                                                
+
                                                 // Final decode of any remaining entities
                                                 $remark = html_entity_decode($remark, ENT_QUOTES | ENT_HTML5, 'UTF-8');
-                                                
+
                                                 // Convert to uppercase after all decoding is done
                                                 $remark = strtoupper($remark);
                                             @endphp
-                                            
+
                                             <div class="prose prose-sm max-w-none">
                                                 {!! $remark !!}
                                             </div>
                                         </div>
                                     </td>
-                                    
+
                                     <!-- Next Follow Up Date Column -->
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                        @if($followUpDate)
+                                        @if ($followUpDate)
                                             <span class="font-medium text-orange-600">
                                                 {{ \Carbon\Carbon::parse($followUpDate)->format('d M Y') }}
                                             </span>
