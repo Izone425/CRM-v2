@@ -35,6 +35,7 @@ use App\Filament\Resources\LeadResource\RelationManagers\SubsidiaryRelationManag
 use App\Filament\Resources\LeadResource\Tabs\AppointmentTabs;
 use App\Filament\Resources\LeadResource\Tabs\ARFollowUpTabs;
 use App\Filament\Resources\LeadResource\Tabs\ARDetailsTabs;
+use App\Filament\Resources\LeadResource\Tabs\ARLicenseTabs;
 use App\Filament\Resources\LeadResource\Tabs\ARQuotationTabs;
 use App\Filament\Resources\LeadResource\Tabs\ARProformaInvoiceTabs;
 use App\Filament\Resources\LeadResource\Tabs\ARNotesTabs;
@@ -224,7 +225,7 @@ class LeadResource extends Resource
 
         if (in_array('ar_license', $activeTabs)) {
             $tabs[] = Tabs\Tab::make('Renewal License')
-                ->schema(ARFollowUpTabs::getSchema());
+                ->schema(ARLicenseTabs::getSchema());
         }
 
         if (in_array('ar_quotation', $activeTabs)) {
