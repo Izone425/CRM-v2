@@ -176,13 +176,14 @@ class ViewLeadRecord extends ViewRecord
                     // For role_id 3 (managers) - show all options
                     if ($user->role_id === 3) {
                         $roleOptions = [
-                            'lead_owner' => 'Lead Owner View',
-                            'admin_repair' => 'Admin Repair View',
-                            'admin_renewal' => 'Admin Renewal View',
-                            'salesperson' => 'Salesperson View',
-                            'implementer' => 'Implementer View',
-                            'technician' => 'Technician View',
-                            'manager' => 'Manager View (All Tabs)',
+                            'manager' => 'Master Admin',
+                            'admin_renewal_v1' => 'Admin Renewal v1',
+                            'admin_renewal_v2' => 'Admin Renewal v2',
+                            'admin_repair' => 'Admin Repair',
+                            'implementer' => 'Implementer',
+                            'lead_owner' => 'Lead Owner',
+                            'salesperson' => 'Salesperson',
+                            'technician' => 'Technician',
                         ];
                     }
                     // For role_id 1 with additional_role 1 - show limited options
@@ -237,7 +238,11 @@ class ViewLeadRecord extends ViewRecord
                         case 'admin_repair':
                             $tabs = ['company', 'quotation', 'repair_appointment'];
                             break;
-                         case 'admin_renewal':
+                        case 'admin_renewal_v1':
+                            $tabs = ['company', 'ar_details','ar_license','ar_quotation','ar_proforma_invoice','ar_follow_up',
+                                'ar_notes'];
+                            break;
+                        case 'admin_renewal_v2':
                             $tabs = ['company', 'ar_details','ar_license','ar_quotation','ar_proforma_invoice','ar_follow_up',
                                 'ar_notes'];
                             break;

@@ -5,37 +5,79 @@
         ->where('mark_as_final', true)
         ->orderByDesc('quotation_date')
         ->get();
+
+    // Separate quotations by sales type
+    $newSalesQuotations = $quotations->where('sales_type', 'NEW SALES');
+    $renewalQuotations = $quotations->where('sales_type', 'RENEWAL SALES');
+
+    $hasNewSalesQuotations = $newSalesQuotations->count() > 0;
+    $hasRenewalQuotations = $renewalQuotations->count() > 0;
+
+    // Calculate NEW SALES deal amount
+    $newSalesDealAmount = 0;
+    if ($hasNewSalesQuotations) {
+        foreach ($newSalesQuotations as $quotation) {
+            $newSalesDealAmount += $quotation->items->sum('total_before_tax');
+        }
+    }
+
+    // Calculate RENEWAL SALES deal amount
+    $renewalDealAmount = 0;
+    if ($hasRenewalQuotations) {
+        foreach ($renewalQuotations as $quotation) {
+            $renewalDealAmount += $quotation->items->sum('total_before_tax');
+        }
+    }
 @endphp
 
 <div class="grid gap-6">
     {{-- Row: Deal Amount + Quotations --}}
-    <div style="display: grid; gap: 24px;" class="grid gap-6 md:grid-cols-2">
-        {{-- Deal Amount --}}
+    <div style="display: grid; gap: 24px;" class="grid gap-6">
+        {{-- Deal Amount (NEW SALES only) --}}
         <div>
             <div class="text-sm font-medium text-gray-950 dark:text-white">Deal Amount</div>
             <div class="text-sm text-gray-900 dark:text-white">
-                RM {{ number_format($lead->deal_amount ?? 0, 2) }}
-            </div>
-        </div>
-
-        {{-- Quotations (Final Only) --}}
-        <div>
-            <div class="text-sm font-medium text-gray-950 dark:text-white">Final Quotations</div>
-            <div class="space-y-1 text-sm text-gray-900 dark:text-white">
-                @forelse ($quotations as $quotation)
-                    <div>
+                RM {{ number_format($newSalesDealAmount, 2) }}
+                @if ($hasNewSalesQuotations)
+                    @foreach ($newSalesQuotations as $quotation)
                         <a href="{{ route('pdf.print-quotation-v2', $quotation) }}"
                            target="_blank"
                            class="underline text-primary-600">
+                            <span class="ml-1 text-xs text-gray-500">
+                                -
+                            </span>
                             {{ $quotation->quotation_reference_no }}
                         </a>
-                    </div>
-                @empty
-                    <div>No Final Quotations</div>
-                @endforelse
+                    @endforeach
+                @endif
             </div>
+            @if (!$hasNewSalesQuotations)
+                <div class="mt-1 text-xs text-gray-500">
+                    No NEW SALES quotations
+                </div>
+            @endif
         </div>
     </div>
+
+    {{-- Row: Renewal Deal Amount (only show if renewal quotations exist) --}}
+    @if ($hasRenewalQuotations)
+        <div>
+            <div class="text-sm font-medium text-gray-950 dark:text-white">Renewal Deal Amount</div>
+            <div class="text-sm text-gray-900 dark:text-white">
+                RM {{ number_format($renewalDealAmount, 2) }}
+                @foreach ($renewalQuotations as $quotation)
+                    <a href="{{ route('pdf.print-quotation-v2', $quotation) }}"
+                       target="_blank"
+                       class="underline text-primary-600">
+                        <span class="ml-1 text-xs text-gray-500">
+                            -
+                        </span>
+                        {{ $quotation->quotation_reference_no }}
+                    </a>
+                @endforeach
+            </div>
+        </div>
+    @endif
 
     {{-- Row: Status --}}
     <div>

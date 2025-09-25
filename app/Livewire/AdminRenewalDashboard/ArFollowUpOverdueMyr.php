@@ -176,18 +176,18 @@ class ArFollowUpOverdueMyr extends Component implements HasForms, HasTable
                     ->label('Follow Up Date')
                     ->date('d M Y'),
 
-                TextColumn::make('f_company_id')
-                    ->label('Currency')
-                    ->formatStateUsing(function ($state) {
-                        $hasMyr = DB::connection('frontenddb')->table('crm_expiring_license')
-                            ->where('f_company_id', $state)
-                            ->where('f_currency', 'MYR')
-                            ->exists();
+                // TextColumn::make('f_company_id')
+                //     ->label('Currency')
+                //     ->formatStateUsing(function ($state) {
+                //         $hasMyr = DB::connection('frontenddb')->table('crm_expiring_license')
+                //             ->where('f_company_id', $state)
+                //             ->where('f_currency', 'MYR')
+                //             ->exists();
 
-                        return $hasMyr ? 'MYR' : 'N/A';
-                    })
-                    ->badge()
-                    ->color('warning'),
+                //         return $hasMyr ? 'MYR' : 'N/A';
+                //     })
+                //     ->badge()
+                //     ->color('warning'),
             ])
             ->actions([
                 ActionGroup::make([
@@ -292,6 +292,11 @@ class ArFollowUpOverdueMyr extends Component implements HasForms, HasTable
                     AdminRenewalActions::addAdminRenewalFollowUp()
                         ->action(function (Renewal $record, array $data) {
                             AdminRenewalActions::processFollowUpWithEmail($record, $data);
+                            $this->dispatch('refresh-admin-renewal-tables');
+                        }),
+                    AdminRenewalActions::stopAdminRenewalFollowUp()
+                        ->action(function (Renewal $record, array $data) {
+                            AdminRenewalActions::processStopFollowUp($record, $data);
                             $this->dispatch('refresh-admin-renewal-tables');
                         }),
                 ])

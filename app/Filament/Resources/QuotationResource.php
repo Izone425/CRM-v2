@@ -554,7 +554,7 @@ class QuotationResource extends Resource
                                     // ->live(debounce:500)
                                     // ->readOnly()
                                     ->visible(function(Forms\Get $get)  {
-                                        $productId = $get('product_id');    
+                                        $productId = $get('product_id');
                                         if ($productId != null) {
                                             $product = Product::find($productId);
                                             if ($product && $get('../../quotation_type') == 'product' && $product->solution == 'software') {

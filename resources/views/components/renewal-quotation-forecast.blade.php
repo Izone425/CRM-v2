@@ -3,7 +3,7 @@
     // Only get quotations marked as final
     $finalQuotations = $lead->quotations()
         ->where('mark_as_final', 1)
-        ->where('sales_type', 'NEW SALES')
+        ->where('sales_type', 'RENEWAL SALES')
         ->orderByDesc('quotation_date')
         ->get();
 

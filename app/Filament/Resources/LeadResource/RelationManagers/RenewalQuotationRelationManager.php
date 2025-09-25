@@ -53,7 +53,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\On;
 
-class QuotationRelationManager extends RelationManager
+class RenewalQuotationRelationManager extends QuotationRelationManager
 {
     protected static string $relationship = 'quotations'; // Define the relationship name in the Lead model
 
@@ -76,7 +76,7 @@ class QuotationRelationManager extends RelationManager
             ->modifyQueryUsing(function ($query) {
                 // Get current authenticated user
                 $user = auth()->user();
-                $query->where('sales_type', 'NEW SALES');
+                $query->where('sales_type', 'RENEWAL SALES');
                 // If user is not a manager (role_id 3), only show their own quotations
                 if ($user->role_id !== 3) {
                     $query->where('sales_person_id', $user->id);
@@ -106,6 +106,17 @@ class QuotationRelationManager extends RelationManager
                         return true;
                     })
                     ->action(function () {
+                        // Check if company address is incomplete
+                        if (auth()->user()->role_id === 3 && $this->isCompanyDetailsIncomplete()) {
+                            Notification::make()
+                                ->danger()
+                                ->title('Incomplete Company Details')
+                                ->body('Please complete the company name and contact number before creating a quotation.')
+                                ->send();
+
+                            return;
+                        }
+
                         // If address is complete, redirect to the quotation creation page
                         $leadId = Encryptor::encrypt($this->getOwnerRecord()->id);
                         $url = route('filament.admin.resources.quotations.create', ['lead_id' => $leadId]);
@@ -960,5 +971,26 @@ class QuotationRelationManager extends RelationManager
     protected function checkRecordCount(): int
     {
         return $this->getOwnerRecord()->quotations()->count();
+    }
+
+    protected function isCompanyDetailsIncomplete(): bool
+    {
+        $company = $this->getOwnerRecord()?->companyDetail;
+
+        if (!$company) return true;
+
+        $isEmpty = fn ($value) => blank($value) || $value === '-';
+
+        // Check if company name is null or "-"
+        if ($isEmpty($company->name)) {
+            return true;
+        }
+
+        // Check if contact number is null or "-"
+        if ($isEmpty($company->contact_no)) {
+            return true;
+        }
+        info("Company Name: {$company->company_name}, Contact No: {$company->contact_no}");
+        return false;
     }
 }

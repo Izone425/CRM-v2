@@ -16,6 +16,7 @@ use App\Filament\Resources\LeadResource\RelationManagers\ImplementerAppointmentR
 use App\Filament\Resources\LeadResource\RelationManagers\ImplementerFollowUpRelationManager;
 use App\Filament\Resources\LeadResource\RelationManagers\ProformaInvoiceRelationManager;
 use App\Filament\Resources\LeadResource\RelationManagers\QuotationRelationManager;
+use App\Filament\Resources\LeadResource\RelationManagers\RenewalQuotationRelationManager;
 use App\Filament\Resources\LeadResource\RelationManagers\RepairAppointmentRelationManager;
 use App\Filament\Resources\LeadResource\RelationManagers\RPTableRelationManager;
 use App\Filament\Resources\LeadResource\RelationManagers\SHTableRelationManager;
@@ -51,6 +52,7 @@ use App\Filament\Resources\LeadResource\Tabs\SoftwareHandoverTabs;
 use App\Filament\Resources\LeadResource\Tabs\SystemTabs;
 use App\Filament\Resources\LeadResource\Tabs\TicketingTabs;
 use App\Models\Lead;
+use App\Models\Renewal;
 use Carbon\Carbon;
 use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Placeholder;
@@ -1259,6 +1261,7 @@ class LeadResource extends Resource
             HHTableRelationManager::class,
             RPTableRelationManager::class,
             SubsidiaryRelationManager::class,
+            RenewalQuotationRelationManager::class,
         ];
     }
 

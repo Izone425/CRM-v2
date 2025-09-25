@@ -175,7 +175,7 @@ class AdminRenewalRawData extends Page implements HasTable
                     })
                     ->indicator('Currency'),
             ])
-            ->filtersFormColumns(4)
+            ->filtersFormColumns(3)
             ->columns([
                 TextColumn::make('id')
                     ->label('NO.')
