@@ -83,6 +83,9 @@ class ArFollowUpTodayUsd extends Component implements HasForms, HasTable
             ->whereDate('f_expiry_date', '>=', today())
             ->distinct()
             ->pluck('f_company_id')
+            ->map(function($id) {
+                return (string) (int) $id; // Cast to int first to remove leading zeros, then to string
+            })
             ->toArray();
 
         $query = Renewal::query()
@@ -165,8 +168,6 @@ class ArFollowUpTodayUsd extends Component implements HasForms, HasTable
                                         target="_blank"
                                         title="'.e($state).'"
                                         class="inline-block"
-                                        style="color:#3b82f6;">
-                                        ' . $company->company_name . '
                                         style="color:#338cf0;">
                                         '.$company->company_name.'
                                     </a>');

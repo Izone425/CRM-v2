@@ -85,6 +85,9 @@ class ArFollowUpOverdueUsd extends Component implements HasForms, HasTable
             ->whereDate('f_expiry_date', '>=', today())
             ->distinct()
             ->pluck('f_company_id')
+            ->map(function($id) {
+                return (string) (int) $id; // Cast to int first to remove leading zeros, then to string
+            })
             ->toArray();
 
         $query = Renewal::query()
@@ -160,29 +163,6 @@ class ArFollowUpOverdueUsd extends Component implements HasForms, HasTable
                 SortFilter::make('sort_by'),
             ])
             ->columns([
-                // TextColumn::make('id')
-                //     ->label('ID')
-                //     ->formatStateUsing(function ($state, Renewal $record) {
-                //         return 'AR_' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
-                //     })
-                //     ->color('primary')
-                //     ->weight('bold'),
-
-                // TextColumn::make('lead.salesperson_name')
-                //     ->label('Salesperson')
-                //     ->formatStateUsing(function ($state, Renewal $record) {
-                //         if ($record->lead && $record->lead->salesperson) {
-                //             $salesperson = User::find($record->lead->salesperson);
-                //             return $salesperson ? $salesperson->name : 'Unknown';
-                //         }
-                //         return 'N/A';
-                //     })
-                //     ->visible(fn(): bool => auth()->user()->role_id !== 2),
-
-                TextColumn::make('admin_renewal')
-                    ->label('Admin Renewal')
-                    ->visible(fn (): bool => auth()->user()->role_id !== 3),
-
                 TextColumn::make('company_name')
                     ->label('Company Name')
                     ->searchable()
@@ -197,8 +177,6 @@ class ArFollowUpOverdueUsd extends Component implements HasForms, HasTable
                                         target="_blank"
                                         title="'.e($state).'"
                                         class="inline-block"
-                                        style="color:#3b82f6;">
-                                        ' . $company->company_name . '
                                         style="color:#338cf0;">
                                         '.$company->company_name.'
                                     </a>');

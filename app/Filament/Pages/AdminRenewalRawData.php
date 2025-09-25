@@ -97,19 +97,10 @@ class AdminRenewalRawData extends Page implements HasTable
 
     public function table(Table $table): Table
     {
-        // Get dates for default 60-day range
-        $today = Carbon::today();
-        $startDate = $today->format('Y-m-d');
-        $endDate = $today->addDays(60)->format('Y-m-d');
-
-        // Format for display in the date range picker
-        $defaultDateRange = Carbon::parse($startDate)->format('d/m/Y') . ' - ' . Carbon::parse($endDate)->format('d/m/Y');
-
         return $table
-            ->query(function () use ($startDate, $endDate) {
-                // Apply the default 60-day filter to the base query
-                return LicenseData::query()
-                    ->whereBetween('f_expiry_date', [$startDate, $endDate]);
+            ->query(function () {
+                // Removed default date filtering - now shows all records
+                return LicenseData::query();
             })
             ->filters([
                 SelectFilter::make('product_group')
@@ -135,13 +126,11 @@ class AdminRenewalRawData extends Page implements HasTable
                     })
                     ->indicator('Product Group'),
 
-
                 Filter::make('expiry_date_range')
                     ->form([
                         DateRangePicker::make('date_range')
                             ->label('Expiry Date Range')
-                            ->placeholder('Select expiry date range')
-                            ->default($defaultDateRange),
+                            ->placeholder('Select expiry date range'),
                     ])
                     ->query(function (Builder $query, array $data) {
                         if (!empty($data['date_range'])) {
@@ -169,8 +158,7 @@ class AdminRenewalRawData extends Page implements HasTable
                                 Carbon::createFromFormat('d/m/Y', trim($end))->format('j M Y');
                         }
                         return null;
-                    })
-                    ->default(true),
+                    }),
 
                 SelectFilter::make('f_currency')
                     ->label('Currency')
@@ -186,44 +174,6 @@ class AdminRenewalRawData extends Page implements HasTable
                             ->toArray();
                     })
                     ->indicator('Currency'),
-
-                Filter::make('f_name')
-                    ->label('Products')
-                    ->columnSpan(4) // This makes it span all 4 columns
-                    ->form([
-                        \Filament\Forms\Components\CheckboxList::make('products')
-                            ->label('Select Products')
-                            ->options(function () {
-                                return LicenseData::query()
-                                    ->distinct()
-                                    ->orderBy('f_name')
-                                    ->pluck('f_name', 'f_name')
-                                    ->toArray();
-                            })
-                            ->searchable()
-                            ->bulkToggleable()
-                            ->columns(6) // Increase columns since we have more space
-                            ->columnSpanFull()
-                            ->gridDirection('row')
-                            ->extraAttributes([
-                                'style' => 'max-height: 300px; overflow-y: auto;'
-                            ])
-                    ])
-                    ->query(function (Builder $query, array $data) {
-                        if (!empty($data['products'])) {
-                            $query->whereIn('f_name', $data['products']);
-                        }
-                    })
-                    ->indicateUsing(function (array $data) {
-                        if (!empty($data['products'])) {
-                            $count = count($data['products']);
-                            if ($count === 1) {
-                                return "Product: " . $data['products'][0];
-                            }
-                            return "Products: {$count} selected";
-                        }
-                        return null;
-                    }),
             ])
             ->filtersFormColumns(4)
             ->columns([
