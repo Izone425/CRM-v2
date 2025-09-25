@@ -9,6 +9,7 @@ use App\Models\AdminRenewalLogs;
 use App\Models\CompanyDetail;
 use App\Models\Renewal;
 use App\Models\User;
+use Carbon\Carbon;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Notifications\Notification;
@@ -19,14 +20,13 @@ use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\HtmlString;
 use Livewire\Attributes\On;
 use Livewire\Component;
 
-class ArFollowUpUpcoming extends Component implements HasForms, HasTable
+class ArFollowUpTodayUsd extends Component implements HasForms, HasTable
 {
     use InteractsWithForms;
     use InteractsWithTable;
@@ -72,31 +72,26 @@ class ArFollowUpUpcoming extends Component implements HasForms, HasTable
         $this->resetTable();
     }
 
-    public function getIncomingRenewals()
+    public function getTodayRenewals()
     {
         $this->selectedUser = $this->selectedUser ?? session('selectedUser') ?? auth()->user()->id;
 
+        // Get company IDs that have USD expiring licenses
+        $usdCompanyIds = DB::connection('frontenddb')->table('crm_expiring_license')
+            ->select('f_company_id')
+            ->where('f_currency', 'USD')
+            ->whereDate('f_expiry_date', '>=', today())
+            ->distinct()
+            ->pluck('f_company_id')
+            ->toArray();
+
         $query = Renewal::query()
-            ->whereDate('follow_up_date', '>', today())
+            ->whereIn('f_company_id', $usdCompanyIds)
+            ->whereDate('follow_up_date', today())
             ->where('follow_up_counter', true)
+            ->where('mapping_status', 'completed_mapping')
             ->orderBy('created_at', 'asc')
             ->selectRaw('*, DATEDIFF(NOW(), follow_up_date) as pending_days');
-
-        // if ($this->selectedUser === 'all-admin-renewal') {
-        //     // Show all admin renewals
-        // } elseif (is_numeric($this->selectedUser)) {
-        //     $user = User::find($this->selectedUser);
-
-        //     if ($user && $user->role_id === 3) {
-        //         $query->where('admin_renewal', $user->name);
-        //     }
-        // } else {
-        //     // $currentUser = auth()->user();
-
-        //     // if ($currentUser->role_id === 3) {
-        //     //     $query->where('admin_renewal', $currentUser->name);
-        //     // }
-        // }
 
         return $query;
     }
@@ -133,7 +128,7 @@ class ArFollowUpUpcoming extends Component implements HasForms, HasTable
     {
         return $table
             ->poll('300s')
-            ->query($this->getIncomingRenewals())
+            ->query($this->getTodayRenewals())
             ->defaultSort('created_at', 'asc')
             ->emptyState(fn () => view('components.empty-state-question'))
             ->defaultPaginationPageOption(5)
@@ -170,6 +165,8 @@ class ArFollowUpUpcoming extends Component implements HasForms, HasTable
                                         target="_blank"
                                         title="'.e($state).'"
                                         class="inline-block"
+                                        style="color:#3b82f6;">
+                                        ' . $company->company_name . '
                                         style="color:#338cf0;">
                                         '.$company->company_name.'
                                     </a>');
@@ -179,6 +176,7 @@ class ArFollowUpUpcoming extends Component implements HasForms, HasTable
                         return "<span title='{$state}'>{$state}</span>";
                     })
                     ->html(),
+
                 TextColumn::make('earliest_expiry_date')
                     ->label('Expiry Date')
                     ->default('N/A')
@@ -189,35 +187,30 @@ class ArFollowUpUpcoming extends Component implements HasForms, HasTable
 
                 TextColumn::make('pending_days')
                     ->label('Pending Days')
-                    ->formatStateUsing(function ($state, $record) {
-                        $daysLeft = $this->getWeekdayCount(now(), $record->follow_up_date);
-
-                        if ($daysLeft <= 0) {
-                            return 'Today';
-                        } else {
-                            return $daysLeft.' days';
-                        }
-                    })
-                    ->color(function ($record) {
-                        $daysLeft = $this->getWeekdayCount(now(), $record->follow_up_date);
-
-                        if ($daysLeft > 3) {
-                            return 'success';
-                        } elseif ($daysLeft > 0) {
-                            return 'warning';
-                        } else {
-                            return 'primary';
-                        }
-                    }),
+                    ->default('0')
+                    ->formatStateUsing(fn ($state) => $state.' '.($state == 0 ? 'Day' : 'Days')),
 
                 TextColumn::make('follow_up_date')
                     ->label('Follow Up Date')
                     ->date('d M Y'),
+
+                TextColumn::make('f_company_id')
+                    ->label('Currency')
+                    ->formatStateUsing(function ($state) {
+                        $hasUsd = DB::connection('frontenddb')->table('crm_expiring_license')
+                            ->where('f_company_id', $state)
+                            ->where('f_currency', 'USD')
+                            ->exists();
+
+                        return $hasUsd ? 'USD' : 'N/A';
+                    })
+                    ->badge()
+                    ->color('info'),
             ])
             ->actions([
                 ActionGroup::make([
                     Action::make('view')
-                        ->label('View Leads')
+                        ->label('View  Leads')
                         ->icon('heroicon-o-eye')
                         ->color('secondary')
                         ->url(function (Renewal $record) {
@@ -230,7 +223,6 @@ class ArFollowUpUpcoming extends Component implements HasForms, HasTable
                             return '#';
                         })
                         ->openUrlInNewTab(),
-
                     Action::make('view_last_follow_up')
                         ->label('View Last Follow Up')
                         ->icon('heroicon-o-eye')
@@ -243,7 +235,7 @@ class ArFollowUpUpcoming extends Component implements HasForms, HasTable
 
                             if (! $data) {
                                 return new HtmlString(
-                                    "<div class='text-center p-6'>
+                                    "<div class='p-6 text-center'>
                                         <p class='text-gray-500'>No follow-up records found for this renewal.</p>
                                     </div>"
                                 );
@@ -256,9 +248,9 @@ class ArFollowUpUpcoming extends Component implements HasForms, HasTable
 
                             return new HtmlString(
                                 "<div class='space-y-6'>
-                                    <div class='bg-gray-50 p-4 rounded-lg'>
-                                        <h3 class='text-lg font-semibold text-gray-900 mb-3'>Follow Up Details</h3>
-                                        <div class='grid grid-cols-2 gap-4 text-sm'>  
+                                    <div class='p-4 rounded-lg bg-gray-50'>
+                                        <h3 class='mb-3 text-lg font-semibold text-gray-900'>Follow Up Details</h3>
+                                        <div class='grid grid-cols-2 gap-4 text-sm'>
                                             <div>
                                                 <span class='font-medium text-gray-700'>Follow Up Date:</span>
                                                 <span class='ml-2 text-gray-900'>{$followUpDate}</span>
@@ -274,18 +266,18 @@ class ArFollowUpUpcoming extends Component implements HasForms, HasTable
                                             ".($followUpCount ? "<div><span class='font-medium text-gray-700'>Count:</span><span class='ml-2 text-gray-900'>{$followUpCount}</span></div>" : '')."
                                         </div>
                                     </div>
-                                    
-                                    <div class='bg-blue-50 p-4 rounded-lg'>
-                                        <h3 class='text-lg font-semibold text-gray-900 mb-3'>Description</h3>
+
+                                    <div class='p-4 rounded-lg bg-blue-50'>
+                                        <h3 class='mb-3 text-lg font-semibold text-gray-900'>Description</h3>
                                         <div class='text-sm text-gray-800'>
                                             {$data->description}
                                         </div>
                                     </div>
-                                    
-                                    <div class='bg-yellow-50 p-4 rounded-lg'>
-                                        <h3 class='text-lg font-semibold text-gray-900 mb-3'>Remarks</h3>
-                                        <div class='prose prose-sm max-w-none'>
-                                            <div class='p-3 bg-white rounded border border-yellow-200 text-sm'>
+
+                                    <div class='p-4 rounded-lg bg-yellow-50'>
+                                        <h3 class='mb-3 text-lg font-semibold text-gray-900'>Remarks</h3>
+                                        <div class='prose-sm prose max-w-none'>
+                                            <div class='p-3 text-sm bg-white border border-yellow-200 rounded'>
                                                 {$data->remark}
                                             </div>
                                         </div>
@@ -323,13 +315,10 @@ class ArFollowUpUpcoming extends Component implements HasForms, HasTable
                             AdminRenewalActions::processFollowUpWithEmail($record, $data);
                             $this->dispatch('refresh-admin-renewal-tables');
                         }),
-
-                    AdminRenewalActions::stopAdminRenewalFollowUp()
-                        ->action(function (Renewal $record) {
-                            AdminRenewalActions::processStopFollowUp($record);
-                            $this->dispatch('refresh-admin-renewal-tables');
-                        }),
                 ])
+                ->button()
+                ->color('info') // Blue color for USD
+                ->label('Actions')
                     ->button()
                     ->color('warning')
                     ->label('Actions'),
@@ -338,22 +327,6 @@ class ArFollowUpUpcoming extends Component implements HasForms, HasTable
 
     public function render()
     {
-        return view('livewire.admin_renewal_dashboard.ar-follow-up-upcoming');
-    }
-
-    private function getWeekdayCount($startDate, $endDate)
-    {
-        $weekdayCount = 0;
-        $currentDate = Carbon::parse($startDate);
-        $endDate = Carbon::parse($endDate);
-
-        while ($currentDate->lte($endDate)) {
-            if (! $currentDate->isWeekend()) {
-                $weekdayCount++;
-            }
-            $currentDate->addDay();
-        }
-
-        return $weekdayCount;
+        return view('livewire.admin_renewal_dashboard.ar-follow-up-today-usd');
     }
 }

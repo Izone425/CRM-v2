@@ -396,21 +396,35 @@
 </style>
 
 @php
-    // Admin Renewal Follow Up Counts - Replace the existing follow-up counts
-    $followUpToday = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpToday::class)
+    // Admin Renewal Follow Up Counts MYR
+    $followUpTodayMYR = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpTodayMyr::class)
         ->getTodayRenewals()
         ->count();
 
-    $followUpOverdue = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpOverdue::class)
+    $followUpOverdueMYR = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpOverdueMyr::class)
         ->getOverdueRenewals()
         ->count();
 
-    $followUpFuture = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpUpcoming::class)
+    $followUpFutureMYR = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpUpcomingMyr::class)
         ->getIncomingRenewals()
         ->count();
 
-    // Calculate total for follow-up category
-    $followUpTotal = $followUpToday + $followUpOverdue + $followUpFuture;
+    // Admin Renewal Follow Up Counts USD
+    $followUpTodayUSD = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpTodayUsd::class)
+        ->getTodayRenewals()
+        ->count();
+
+    $followUpOverdueUSD = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpOverdueUsd::class)
+        ->getOverdueRenewals()
+        ->count();
+
+    $followUpFutureUSD = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpUpcomingUsd::class)
+        ->getIncomingRenewals()
+        ->count();
+
+    // Calculate totals for both currencies
+    $followUpTotalMYR = $followUpTodayMYR + $followUpOverdueMYR + $followUpFutureMYR;
+    $followUpTotalUSD = $followUpTodayUSD + $followUpOverdueUSD + $followUpFutureUSD;
 @endphp
 
 <div id="implementer-container" class="implementer-container"
@@ -446,47 +460,86 @@
     <div class="dashboard-layout" wire:poll.300s>
         <!-- Left sidebar with main category groups -->
         <div class="group-column">
-            <!-- ADMIN RENEWAL FOLLOW UP -->
+            <!-- ADMIN RENEWAL FOLLOW UP MYR -->
             <div class="group-box group-follow-up"
-                :class="{'selected': selectedGroup === 'follow-up'}"
-                @click="setSelectedGroup('follow-up')">
+                :class="{'selected': selectedGroup === 'follow-up-myr'}"
+                @click="setSelectedGroup('follow-up-myr')">
                 <div class="group-info">
-                    <div class="group-title">Follow Up Reminder</div>
+                    <div class="group-title">Follow Up Reminder (MYR)</div>
                 </div>
-                <div class="group-count">{{ $followUpTotal }}</div>
+                <div class="group-count">{{ $followUpTotalMYR }}</div>
+            </div>
+
+            <!-- ADMIN RENEWAL FOLLOW UP USD -->
+            <div class="group-box group-follow-up"
+                :class="{'selected': selectedGroup === 'follow-up-usd'}"
+                @click="setSelectedGroup('follow-up-usd')">
+                <div class="group-info">
+                    <div class="group-title">Follow Up Reminder (USD)</div>
+                </div>
+                <div class="group-count">{{ $followUpTotalUSD }}</div>
             </div>
         </div>
 
         <!-- Right content column -->
         <div class="content-column">
-
-            <!-- ADMIN RENEWAL FOLLOW UP Sub-tabs -->
-            <div class="category-container" x-show="selectedGroup === 'follow-up'" x-transition>
+            <!-- MYR ADMIN RENEWAL FOLLOW UP Sub-tabs -->
+            <div class="category-container" x-show="selectedGroup === 'follow-up-myr'" x-transition>
                 <div class="stat-box follow-up-today"
-                    :class="{'selected': selectedStat === 'follow-up-today'}"
-                    @click="setSelectedStat('follow-up-today')">
+                    :class="{'selected': selectedStat === 'follow-up-today-myr'}"
+                    @click="setSelectedStat('follow-up-today-myr')">
                     <div class="stat-info">
                         <div class="stat-label">Today</div>
                     </div>
-                    <div class="stat-count">{{ $followUpToday }}</div>
+                    <div class="stat-count">{{ $followUpTodayMYR }}</div>
                 </div>
 
                 <div class="stat-box follow-up-overdue"
-                    :class="{'selected': selectedStat === 'follow-up-overdue'}"
-                    @click="setSelectedStat('follow-up-overdue')">
+                    :class="{'selected': selectedStat === 'follow-up-overdue-myr'}"
+                    @click="setSelectedStat('follow-up-overdue-myr')">
                     <div class="stat-info">
                         <div class="stat-label">Overdue</div>
                     </div>
-                    <div class="stat-count">{{ $followUpOverdue }}</div>
+                    <div class="stat-count">{{ $followUpOverdueMYR }}</div>
                 </div>
 
                 <div class="stat-box follow-up-future"
-                    :class="{'selected': selectedStat === 'follow-up-future'}"
-                    @click="setSelectedStat('follow-up-future')">
+                    :class="{'selected': selectedStat === 'follow-up-future-myr'}"
+                    @click="setSelectedStat('follow-up-future-myr')">
                     <div class="stat-info">
                         <div class="stat-label">Next Follow Up</div>
                     </div>
-                    <div class="stat-count">{{ $followUpFuture }}</div>
+                    <div class="stat-count">{{ $followUpFutureMYR }}</div>
+                </div>
+            </div>
+
+            <!-- USD ADMIN RENEWAL FOLLOW UP Sub-tabs -->
+            <div class="category-container" x-show="selectedGroup === 'follow-up-usd'" x-transition>
+                <div class="stat-box follow-up-today"
+                    :class="{'selected': selectedStat === 'follow-up-today-usd'}"
+                    @click="setSelectedStat('follow-up-today-usd')">
+                    <div class="stat-info">
+                        <div class="stat-label">Today</div>
+                    </div>
+                    <div class="stat-count">{{ $followUpTodayUSD }}</div>
+                </div>
+
+                <div class="stat-box follow-up-overdue"
+                    :class="{'selected': selectedStat === 'follow-up-overdue-usd'}"
+                    @click="setSelectedStat('follow-up-overdue-usd')">
+                    <div class="stat-info">
+                        <div class="stat-label">Overdue</div>
+                    </div>
+                    <div class="stat-count">{{ $followUpOverdueUSD }}</div>
+                </div>
+
+                <div class="stat-box follow-up-future"
+                    :class="{'selected': selectedStat === 'follow-up-future-usd'}"
+                    @click="setSelectedStat('follow-up-future-usd')">
+                    <div class="stat-info">
+                        <div class="stat-label">Next Follow Up</div>
+                    </div>
+                    <div class="stat-count">{{ $followUpFutureUSD }}</div>
                 </div>
             </div>
 
@@ -498,20 +551,37 @@
                     <p x-text="selectedGroup === null ? 'Click on any of the category boxes to see options' : 'Click on any of the subcategory boxes to display the corresponding information'"></p>
                 </div>
 
-                <!-- ADMIN RENEWAL FOLLOW UP Tables -->
-                <div x-show="selectedStat === 'follow-up-today'" x-transition>
+                <!-- MYR ADMIN RENEWAL FOLLOW UP Tables -->
+                <div x-show="selectedStat === 'follow-up-today-myr'" x-transition>
                     <div class="p-4">
-                        <livewire:admin-renewal-dashboard.ar-follow-up-today />
+                        <livewire:admin-renewal-dashboard.ar-follow-up-today-myr />
                     </div>
                 </div>
-                <div x-show="selectedStat === 'follow-up-overdue'" x-transition>
+                <div x-show="selectedStat === 'follow-up-overdue-myr'" x-transition>
                     <div class="p-4">
-                        <livewire:admin-renewal-dashboard.ar-follow-up-overdue />
+                        <livewire:admin-renewal-dashboard.ar-follow-up-overdue-myr />
                     </div>
                 </div>
-                <div x-show="selectedStat === 'follow-up-future'" x-transition>
+                <div x-show="selectedStat === 'follow-up-future-myr'" x-transition>
                     <div class="p-4">
-                        <livewire:admin-renewal-dashboard.ar-follow-up-upcoming />
+                        <livewire:admin-renewal-dashboard.ar-follow-up-upcoming-myr />
+                    </div>
+                </div>
+
+                <!-- USD ADMIN RENEWAL FOLLOW UP Tables -->
+                <div x-show="selectedStat === 'follow-up-today-usd'" x-transition>
+                    <div class="p-4">
+                        <livewire:admin-renewal-dashboard.ar-follow-up-today-usd />
+                    </div>
+                </div>
+                <div x-show="selectedStat === 'follow-up-overdue-usd'" x-transition>
+                    <div class="p-4">
+                        <livewire:admin-renewal-dashboard.ar-follow-up-overdue-usd />
+                    </div>
+                </div>
+                <div x-show="selectedStat === 'follow-up-future-usd'" x-transition>
+                    <div class="p-4">
+                        <livewire:admin-renewal-dashboard.ar-follow-up-upcoming-usd />
                     </div>
                 </div>
             </div>
