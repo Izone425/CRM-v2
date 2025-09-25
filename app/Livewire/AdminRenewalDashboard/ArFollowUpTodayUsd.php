@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Livewire\AdminRenewalDashboard;
 
 use App\Filament\Actions\AdminRenewalActions;
@@ -25,8 +24,9 @@ use Filament\Tables\Filters\SelectFilter;
 use Illuminate\Support\HtmlString;
 use Illuminate\View\View;
 use Livewire\Attributes\On;
+use Illuminate\Support\Facades\DB;
 
-class ArFollowUpOverdue extends Component implements HasForms, HasTable
+class ArFollowUpTodayUsd extends Component implements HasForms, HasTable
 {
     use InteractsWithTable;
     use InteractsWithForms;
@@ -71,31 +71,26 @@ class ArFollowUpOverdue extends Component implements HasForms, HasTable
         $this->resetTable();
     }
 
-    public function getOverdueRenewals()
+    public function getTodayRenewals()
     {
         $this->selectedUser = $this->selectedUser ?? session('selectedUser') ?? auth()->user()->id;
 
+        // Get company IDs that have USD expiring licenses
+        $usdCompanyIds = DB::connection('frontenddb')->table('crm_expiring_license')
+            ->select('f_company_id')
+            ->where('f_currency', 'USD')
+            ->whereDate('f_expiry_date', '>=', today())
+            ->distinct()
+            ->pluck('f_company_id')
+            ->toArray();
+
         $query = Renewal::query()
-            ->whereDate('follow_up_date', '<', today())
+            ->whereIn('f_company_id', $usdCompanyIds)
+            ->whereDate('follow_up_date', today())
             ->where('follow_up_counter', true)
+            ->where('mapping_status', 'completed_mapping')
             ->orderBy('created_at', 'asc')
             ->selectRaw('*, DATEDIFF(NOW(), follow_up_date) as pending_days');
-
-        // if ($this->selectedUser === 'all-admin-renewal') {
-        //     // Show all admin renewals
-        // } elseif (is_numeric($this->selectedUser)) {
-        //     $user = User::find($this->selectedUser);
-
-        //     if ($user && $user->role_id === 3) {
-        //         $query->where('admin_renewal', $user->name);
-        //     }
-        // } else {
-        //     $currentUser = auth()->user();
-
-        //     if ($currentUser->role_id === 3) {
-        //         $query->where('admin_renewal', $currentUser->name);
-        //     }
-        // }
 
         return $query;
     }
@@ -104,7 +99,7 @@ class ArFollowUpOverdue extends Component implements HasForms, HasTable
     {
         return $table
             ->poll('300s')
-            ->query($this->getOverdueRenewals())
+            ->query($this->getTodayRenewals())
             ->defaultSort('created_at', 'asc')
             ->emptyState(fn () => view('components.empty-state-question'))
             ->defaultPaginationPageOption(5)
@@ -120,39 +115,9 @@ class ArFollowUpOverdue extends Component implements HasForms, HasTable
                     ->placeholder('All Admin Renewals')
                     ->multiple(),
 
-                SelectFilter::make('salesperson')
-                    ->label('Filter by Salesperson')
-                    ->options(function () {
-                        return User::where('role_id', 2)
-                            ->whereNot('id', 15)
-                            ->pluck('name', 'name')
-                            ->toArray();
-                    })
-                    ->placeholder('All Salesperson')
-                    ->multiple(),
-
                 SortFilter::make("sort_by"),
             ])
             ->columns([
-                TextColumn::make('id')
-                    ->label('ID')
-                    ->formatStateUsing(function ($state, Renewal $record) {
-                        return 'AR_' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
-                    })
-                    ->color('primary')
-                    ->weight('bold'),
-
-                TextColumn::make('lead.salesperson_name')
-                    ->label('Salesperson')
-                    ->formatStateUsing(function ($state, Renewal $record) {
-                        if ($record->lead && $record->lead->salesperson) {
-                            $salesperson = User::find($record->lead->salesperson);
-                            return $salesperson ? $salesperson->name : 'Unknown';
-                        }
-                        return 'N/A';
-                    })
-                    ->visible(fn(): bool => auth()->user()->role_id !== 2),
-
                 TextColumn::make('admin_renewal')
                     ->label('Admin Renewal')
                     ->visible(fn(): bool => auth()->user()->role_id !== 3),
@@ -171,7 +136,7 @@ class ArFollowUpOverdue extends Component implements HasForms, HasTable
                                         target="_blank"
                                         title="' . e($state) . '"
                                         class="inline-block"
-                                        style="color:#338cf0;">
+                                        style="color:#3b82f6;">
                                         ' . $company->company_name . '
                                     </a>');
                             }
@@ -183,12 +148,25 @@ class ArFollowUpOverdue extends Component implements HasForms, HasTable
 
                 TextColumn::make('pending_days')
                     ->label('Pending Days')
-                    ->formatStateUsing(fn ($record) => $this->getWeekdayCount($record->follow_up_date, now()) . ' days')
-                    ->color(fn ($record) => $this->getWeekdayCount($record->follow_up_date, now()) == 0 ? 'draft' : 'danger'),
+                    ->default('0')
+                    ->formatStateUsing(fn ($state) => $state . ' ' . ($state == 0 ? 'Day' : 'Days')),
 
                 TextColumn::make('follow_up_date')
                     ->label('Follow Up Date')
                     ->date('d M Y'),
+
+                TextColumn::make('f_company_id')
+                    ->label('Currency')
+                    ->formatStateUsing(function ($state) {
+                        $hasUsd = DB::connection('frontenddb')->table('crm_expiring_license')
+                            ->where('f_company_id', $state)
+                            ->where('f_currency', 'USD')
+                            ->exists();
+
+                        return $hasUsd ? 'USD' : 'N/A';
+                    })
+                    ->badge()
+                    ->color('info'),
             ])
             ->actions([
                 ActionGroup::make([
@@ -212,29 +190,13 @@ class ArFollowUpOverdue extends Component implements HasForms, HasTable
                         }),
                 ])
                 ->button()
-                ->color('warning')
+                ->color('info') // Blue color for USD
                 ->label('Actions')
             ]);
     }
 
     public function render()
     {
-        return view('livewire.admin_renewal_dashboard.ar-follow-up-overdue');
-    }
-
-    private function getWeekdayCount($startDate, $endDate)
-    {
-        $weekdayCount = 0;
-        $currentDate = Carbon::parse($startDate);
-        $endDate = Carbon::parse($endDate);
-
-        while ($currentDate->lte($endDate)) {
-            if (!$currentDate->isWeekend()) {
-                $weekdayCount++;
-            }
-            $currentDate->addDay();
-        }
-
-        return $weekdayCount;
+        return view('livewire.admin_renewal_dashboard.ar-follow-up-today-usd');
     }
 }

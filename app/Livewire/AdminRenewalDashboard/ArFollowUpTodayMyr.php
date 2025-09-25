@@ -25,8 +25,9 @@ use Filament\Tables\Filters\SelectFilter;
 use Illuminate\Support\HtmlString;
 use Illuminate\View\View;
 use Livewire\Attributes\On;
+use Illuminate\Support\Facades\DB;
 
-class ArFollowUpToday extends Component implements HasForms, HasTable
+class ArFollowUpTodayMyr extends Component implements HasForms, HasTable
 {
     use InteractsWithTable;
     use InteractsWithForms;
@@ -75,28 +76,22 @@ class ArFollowUpToday extends Component implements HasForms, HasTable
     {
         $this->selectedUser = $this->selectedUser ?? session('selectedUser') ?? auth()->user()->id;
 
+        // Get company IDs that have MYR expiring licenses
+        $myrCompanyIds = DB::connection('frontenddb')->table('crm_expiring_license')
+            ->select('f_company_id')
+            ->where('f_currency', 'MYR')
+            ->whereDate('f_expiry_date', '>=', today())
+            ->distinct()
+            ->pluck('f_company_id')
+            ->toArray();
+
         $query = Renewal::query()
+            ->whereIn('f_company_id', $myrCompanyIds)
             ->whereDate('follow_up_date', today())
             ->where('follow_up_counter', true)
             ->where('mapping_status', 'completed_mapping')
             ->orderBy('created_at', 'asc')
             ->selectRaw('*, DATEDIFF(NOW(), follow_up_date) as pending_days');
-
-        // if ($this->selectedUser === 'all-admin-renewal') {
-        //     // Show all admin renewals
-        // } elseif (is_numeric($this->selectedUser)) {
-        //     $user = User::find($this->selectedUser);
-
-        //     if ($user && $user->role_id === 3) {
-        //         $query->where('admin_renewal', $user->name);
-        //     }
-        // } else {
-        //     $currentUser = auth()->user();
-
-        //     if ($currentUser->role_id === 3) {
-        //         $query->where('admin_renewal', $currentUser->name);
-        //     }
-        // }
 
         return $query;
     }
@@ -160,6 +155,20 @@ class ArFollowUpToday extends Component implements HasForms, HasTable
                 TextColumn::make('follow_up_date')
                     ->label('Follow Up Date')
                     ->date('d M Y'),
+
+                TextColumn::make('f_company_id')
+                    ->label('Currency')
+                    ->formatStateUsing(function ($state) {
+                        // Check if this company has MYR licenses
+                        $hasMyr = DB::connection('frontenddb')->table('crm_expiring_license')
+                            ->where('f_company_id', $state)
+                            ->where('f_currency', 'MYR')
+                            ->exists();
+
+                        return $hasMyr ? 'MYR' : 'N/A';
+                    })
+                    ->badge()
+                    ->color('warning'), // Orange color for MYR
             ])
             ->actions([
                 ActionGroup::make([
@@ -183,13 +192,13 @@ class ArFollowUpToday extends Component implements HasForms, HasTable
                         }),
                 ])
                 ->button()
-                ->color('warning')
+                ->color('warning') // Orange color for MYR
                 ->label('Actions')
             ]);
     }
 
     public function render()
     {
-        return view('livewire.admin_renewal_dashboard.ar-follow-up-today');
+        return view('livewire.admin_renewal_dashboard.ar-follow-up-today-myr');
     }
 }

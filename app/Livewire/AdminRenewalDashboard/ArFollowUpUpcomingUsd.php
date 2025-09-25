@@ -25,8 +25,9 @@ use Filament\Tables\Filters\SelectFilter;
 use Illuminate\Support\HtmlString;
 use Illuminate\View\View;
 use Livewire\Attributes\On;
+use Illuminate\Support\Facades\DB;
 
-class ArFollowUpUpcoming extends Component implements HasForms, HasTable
+class ArFollowUpUpcomingUsd extends Component implements HasForms, HasTable
 {
     use InteractsWithTable;
     use InteractsWithForms;
@@ -75,27 +76,22 @@ class ArFollowUpUpcoming extends Component implements HasForms, HasTable
     {
         $this->selectedUser = $this->selectedUser ?? session('selectedUser') ?? auth()->user()->id;
 
+        // Get company IDs that have USD expiring licenses
+        $usdCompanyIds = DB::connection('frontenddb')->table('crm_expiring_license')
+            ->select('f_company_id')
+            ->where('f_currency', 'USD')
+            ->whereDate('f_expiry_date', '>=', today())
+            ->distinct()
+            ->pluck('f_company_id')
+            ->toArray();
+
         $query = Renewal::query()
+            ->whereIn('f_company_id', $usdCompanyIds)
             ->whereDate('follow_up_date', '>', today())
             ->where('follow_up_counter', true)
+            ->where('mapping_status', 'completed_mapping')
             ->orderBy('created_at', 'asc')
             ->selectRaw('*, DATEDIFF(NOW(), follow_up_date) as pending_days');
-
-        // if ($this->selectedUser === 'all-admin-renewal') {
-        //     // Show all admin renewals
-        // } elseif (is_numeric($this->selectedUser)) {
-        //     $user = User::find($this->selectedUser);
-
-        //     if ($user && $user->role_id === 3) {
-        //         $query->where('admin_renewal', $user->name);
-        //     }
-        // } else {
-        //     // $currentUser = auth()->user();
-
-        //     // if ($currentUser->role_id === 3) {
-        //     //     $query->where('admin_renewal', $currentUser->name);
-        //     // }
-        // }
 
         return $query;
     }
@@ -141,7 +137,7 @@ class ArFollowUpUpcoming extends Component implements HasForms, HasTable
                                         target="_blank"
                                         title="' . e($state) . '"
                                         class="inline-block"
-                                        style="color:#338cf0;">
+                                        style="color:#3b82f6;">
                                         ' . $company->company_name . '
                                     </a>');
                             }
@@ -177,6 +173,19 @@ class ArFollowUpUpcoming extends Component implements HasForms, HasTable
                 TextColumn::make('follow_up_date')
                     ->label('Follow Up Date')
                     ->date('d M Y'),
+
+                TextColumn::make('f_company_id')
+                    ->label('Currency')
+                    ->formatStateUsing(function ($state) {
+                        $hasUsd = DB::connection('frontenddb')->table('crm_expiring_license')
+                            ->where('f_company_id', $state)
+                            ->where('f_currency', 'USD')
+                            ->exists();
+
+                        return $hasUsd ? 'USD' : 'N/A';
+                    })
+                    ->badge()
+                    ->color('info'),
             ])
             ->actions([
                 ActionGroup::make([
@@ -206,14 +215,14 @@ class ArFollowUpUpcoming extends Component implements HasForms, HasTable
                         }),
                 ])
                 ->button()
-                ->color('warning')
+                ->color('info') // Blue color for USD
                 ->label('Actions')
             ]);
     }
 
     public function render()
     {
-        return view('livewire.admin_renewal_dashboard.ar-follow-up-upcoming');
+        return view('livewire.admin_renewal_dashboard.ar-follow-up-upcoming-usd');
     }
 
     private function getWeekdayCount($startDate, $endDate)
