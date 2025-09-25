@@ -22,19 +22,21 @@ class ARQuotationTabs
     {
         return [
             Section::make('Status')
-            ->icon('heroicon-o-information-circle')
-            ->extraAttributes([
-                'style' => 'background-color: #e6e6fa4d; border: dashed; border-color: #cdcbeb;'
-            ])
-            ->schema([
-                Grid::make(1) // Single column in the right-side section
-                    ->schema([
-                        View::make('components.quotation-forecast'),
+                ->icon('heroicon-o-information-circle')
+                ->extraAttributes([
+                    'style' => 'background-color: #e6e6fa4d; border: dashed; border-color: #cdcbeb;'
+                ])
+                ->schema([
+                    Grid::make(1) // Single column in the right-side section
+                        ->schema([
+                            View::make('components.renewal-quotation-forecast'),
                         ])
                 ]),
             \Njxqlus\Filament\Components\Forms\RelationManager::make()
-                ->manager(\App\Filament\Resources\LeadResource\RelationManagers\QuotationRelationManager::class,
-            ),
+                ->manager(\App\Filament\Resources\LeadResource\RelationManagers\RenewalQuotationRelationManager::class)
+                ->extraAttributes([
+                    'data-renewal-context' => 'true' // Add context marker
+                ]),
         ];
     }
 }

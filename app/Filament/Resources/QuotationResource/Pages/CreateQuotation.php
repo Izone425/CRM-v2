@@ -73,10 +73,12 @@ class CreateQuotation extends CreateRecord
             $lead = $this->record->lead; // Assuming the 'lead' relationship exists in Quotation
 
             if ($lead) {
-                // Check if this is the first quotation for this lead
-                $quotationCount = $lead->quotations()->count();
+                // Check if this is the first quotation for this lead WITH THIS SALES TYPE
+                $quotationCount = $lead->quotations()
+                    ->where('sales_type', $this->record->sales_type)
+                    ->count();
 
-                // If this is the first quotation (counting this one), mark it as final
+                // If this is the first quotation of this sales type, mark it as final
                 if ($quotationCount <= 1) {
                     $this->record->mark_as_final = 1;
                 }

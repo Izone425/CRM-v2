@@ -1149,27 +1149,43 @@
 
                     <!-- Admin Renewal Section -->
                     <div class="menu-block">
-                        <div class="menu-item nested-dropdown-trigger" data-submenu="admin-renewal-submenu">
+                        <div class="menu-item nested-dropdown-trigger" data-submenu="admin-renewal-v1-submenu">
                             <div class="menu-icon-wrapper">
                                 <i class="bi bi-dot"></i>
                             </div>
-                            <span class="menu-text">Admin - Renewal</span>
+                            <span class="menu-text">Admin - Renewal v1</span>
                             <i class="bi bi-chevron-down menu-arrow"></i>
                         </div>
 
-                        <div class="submenu" id="admin-renewal-submenu">
+                        <div class="submenu" id="admin-renewal-v1-submenu">
                             <a href="{{ route('filament.admin.pages.admin-renewal-raw-data') }}" class="submenu-item">
                                 <span class="module-font">Raw Data</span>
                             </a>
-                            <a href="{{ route('filament.admin.pages.admin-renewal-process-data') }}" class="submenu-item">
+                            <!-- <a href="{{ route('filament.admin.pages.admin-renewal-process-data') }}" class="submenu-item">
                                 <span class="module-font">Process Data</span>
-                            </a>
+                            </a> -->
                             <a href="{{ route('filament.admin.pages.admin-renewal-process-data-myr') }}" class="submenu-item">
                                 <span class="module-font">Process Data - MYR</span>
                             </a>
                             <a href="{{ route('filament.admin.pages.admin-renewal-process-data-usd') }}" class="submenu-item">
                                 <span class="module-font">Process Data - USD</span>
                             </a>
+                        </div>
+                    </div>
+
+                    <div class="menu-block">
+                        <div class="menu-item nested-dropdown-trigger" data-submenu="admin-renewal-v2-submenu">
+                            <div class="menu-icon-wrapper">
+                                <i class="bi bi-dot"></i>
+                            </div>
+                            <span class="menu-text">Admin - Renewal v2</span>
+                            <i class="bi bi-chevron-down menu-arrow"></i>
+                        </div>
+
+                        <div class="submenu" id="admin-renewal-v2-submenu">
+                            <div class="submenu-item">
+                                <span class="module-font"><i class="bi bi-stars"></i> Future Enhancement</span>
+                            </div>
                         </div>
                     </div>
 

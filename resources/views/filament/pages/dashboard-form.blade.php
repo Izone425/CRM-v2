@@ -91,8 +91,8 @@
                                         font-weight: bold;
                                         border: none;
                                         border-radius: 20px;
-                                        background: {{ in_array($currentDashboard, ['MainAdminDashboard', 'SoftwareAdmin', 'HardwareAdmin', 'AdminRepair', 'AdminRenewal']) ? '#431fa1' : 'transparent' }};
-                                        color: {{ in_array($currentDashboard, ['MainAdminDashboard', 'SoftwareAdmin', 'HardwareAdmin', 'AdminRepair', 'AdminRenewal']) ? '#ffffff' : '#555' }};
+                                        background: {{ in_array($currentDashboard, ['MainAdminDashboard', 'SoftwareAdmin', 'HardwareAdmin', 'AdminRepair', 'AdminRenewalv1', 'AdminRenewalv2']) ? '#431fa1' : 'transparent' }};
+                                        color: {{ in_array($currentDashboard, ['MainAdminDashboard', 'SoftwareAdmin', 'HardwareAdmin', 'AdminRepair', 'AdminRenewalv1', 'AdminRenewalv2']) ? '#ffffff' : '#555' }};
                                         cursor: pointer;
                                         display: flex;
                                         align-items: center;
@@ -191,19 +191,35 @@
                                     </button>
 
                                     <button
-                                        wire:click="toggleDashboard('AdminRenewal')"
+                                        wire:click="toggleDashboard('AdminRenewalv1')"
                                         style="
                                             display: block;
                                             width: 100%;
                                             padding: 10px 16px;
                                             text-align: left;
                                             border: none;
-                                            background: {{ $currentDashboard === 'AdminRenewal' ? '#f3f3f3' : 'white' }};
+                                            background: {{ $currentDashboard === 'AdminRenewalv1' ? '#f3f3f3' : 'white' }};
                                             cursor: pointer;
                                             font-size: 14px;
                                         "
                                     >
-                                        Admin - Renewal
+                                        Admin - Renewal v1
+                                    </button>
+
+                                    <button
+                                        wire:click="toggleDashboard('AdminRenewalv2')"
+                                        style="
+                                            display: block;
+                                            width: 100%;
+                                            padding: 10px 16px;
+                                            text-align: left;
+                                            border: none;
+                                            background: {{ $currentDashboard === 'AdminRenewalv2' ? '#f3f3f3' : 'white' }};
+                                            cursor: pointer;
+                                            font-size: 14px;
+                                        "
+                                    >
+                                        Admin - Renewal v2
                                     </button>
 
                                     <button
@@ -572,8 +588,8 @@
                                                 font-weight: bold;
                                                 border: none;
                                                 border-radius: 20px;
-                                                background: {{ in_array($currentDashboard, ['MainAdminDashboard','SoftwareAdmin', 'HardwareAdmin', 'AdminRepair', 'AdminRenewal']) ? '#431fa1' : 'transparent' }};
-                                                color: {{ in_array($currentDashboard, ['MainAdminDashboard','SoftwareAdmin', 'HardwareAdmin', 'AdminRepair', 'AdminRenewal']) ? '#ffffff' : '#555' }};
+                                                background: {{ in_array($currentDashboard, ['MainAdminDashboard','SoftwareAdmin', 'HardwareAdmin', 'AdminRepair', 'AdminRenewalv1', 'AdminRenewalv2']) ? '#431fa1' : 'transparent' }};
+                                                color: {{ in_array($currentDashboard, ['MainAdminDashboard','SoftwareAdmin', 'HardwareAdmin', 'AdminRepair', 'AdminRenewalv1', 'AdminRenewalv2']) ? '#ffffff' : '#555' }};
                                                 cursor: pointer;
                                                 display: flex;
                                                 align-items: center;
@@ -672,19 +688,35 @@
                                             </button>
 
                                             <button
-                                                wire:click="toggleDashboard('AdminRenewal')"
+                                                wire:click="toggleDashboard('AdminRenewalv1')"
                                                 style="
                                                     display: block;
                                                     width: 100%;
                                                     padding: 10px 16px;
                                                     text-align: left;
                                                     border: none;
-                                                    background: {{ $currentDashboard === 'AdminRenewal' ? '#f3f3f3' : 'white' }};
+                                                    background: {{ $currentDashboard === 'AdminRenewalv1' ? '#f3f3f3' : 'white' }};
                                                     cursor: pointer;
                                                     font-size: 14px;
                                                 "
                                             >
-                                                Admin - Renewal
+                                                Admin - Renewal v1
+                                            </button>
+
+                                            <button
+                                                wire:click="toggleDashboard('AdminRenewalv2')"
+                                                style="
+                                                    display: block;
+                                                    width: 100%;
+                                                    padding: 10px 16px;
+                                                    text-align: left;
+                                                    border: none;
+                                                    background: {{ $currentDashboard === 'AdminRenewalv2' ? '#f3f3f3' : 'white' }};
+                                                    cursor: pointer;
+                                                    font-size: 14px;
+                                                "
+                                            >
+                                                Admin - Renewal v2
                                             </button>
 
                                             <button
@@ -786,8 +818,8 @@
                                             font-weight: bold;
                                             border: none;
                                             border-radius: 20px;
-                                            background: {{ in_array($currentDashboard, ['MainAdminDashboard','SoftwareAdmin', 'HardwareAdmin', 'AdminRepair', 'AdminRenewal']) ? '#431fa1' : 'transparent' }};
-                                            color: {{ in_array($currentDashboard, ['SoftwareAdmin', 'HardwareAdmin', 'AdminRepair', 'AdminRenewal']) ? '#ffffff' : '#555' }};
+                                            background: {{ in_array($currentDashboard, ['MainAdminDashboard','SoftwareAdmin', 'HardwareAdmin', 'AdminRepair', 'AdminRenewalv1', 'AdminRenewalv2']) ? '#431fa1' : 'transparent' }};
+                                            color: {{ in_array($currentDashboard, ['SoftwareAdmin', 'HardwareAdmin', 'AdminRepair', 'AdminRenewalv1', 'AdminRenewalv2']) ? '#ffffff' : '#555' }};
                                             cursor: pointer;
                                             display: flex;
                                             align-items: center;
@@ -886,19 +918,35 @@
                                         </button>
 
                                         <button
-                                            wire:click="toggleDashboard('AdminRenewal')"
+                                            wire:click="toggleDashboard('AdminRenewalv1')"
                                             style="
                                                 display: block;
                                                 width: 100%;
                                                 padding: 10px 16px;
                                                 text-align: left;
                                                 border: none;
-                                                background: {{ $currentDashboard === 'AdminRenewal' ? '#f3f3f3' : 'white' }};
+                                                background: {{ $currentDashboard === 'AdminRenewalv1' ? '#f3f3f3' : 'white' }};
                                                 cursor: pointer;
                                                 font-size: 14px;
                                             "
                                         >
-                                            Admin - Renewal
+                                            Admin - Renewal v1
+                                        </button>
+
+                                        <button
+                                            wire:click="toggleDashboard('AdminRenewalv2')"
+                                            style="
+                                                display: block;
+                                                width: 100%;
+                                                padding: 10px 16px;
+                                                text-align: left;
+                                                border: none;
+                                                background: {{ $currentDashboard === 'AdminRenewalv2' ? '#f3f3f3' : 'white' }};
+                                                cursor: pointer;
+                                                font-size: 14px;
+                                            "
+                                        >
+                                            Admin - Renewal v2
                                         </button>
 
                                         <button
@@ -962,7 +1010,9 @@
                             @include('filament.pages.hardwarehandover')
                         @elseif ($currentDashboard === 'AdminRepair')
                             @include('filament.pages.adminrepair')
-                        @elseif ($currentDashboard === 'AdminRenewal')
+                        @elseif ($currentDashboard === 'AdminRenewalv1')
+                            @include('filament.pages.adminrenewal')
+                        @elseif ($currentDashboard === 'AdminRenewalv2')
                             @include('filament.pages.adminrenewal')
                         @elseif ($currentDashboard === 'SoftwareAdmin')
                             @include('filament.pages.softwarehandover')
