@@ -355,7 +355,16 @@ class SoftwareHandoverRelationManager extends RelationManager
                                 ->label('Product')
                                 ->options(function (RelationManager $livewire) {
                                     $leadId = $livewire->getOwnerRecord()->id;
-                                    $currentRecordId = $livewire->mountedTableActionRecord?->id;
+                                    $currentRecordId = null;
+                                    if ($livewire->mountedTableActionRecord) {
+                                        // Check if it's already a model object
+                                        if (is_object($livewire->mountedTableActionRecord)) {
+                                            $currentRecordId = $livewire->mountedTableActionRecord->id;
+                                        } else {
+                                            // If it's a string/ID, use it directly
+                                            $currentRecordId = $livewire->mountedTableActionRecord;
+                                        }
+                                    }
 
                                     // Get all PI IDs already used in other software handovers for this lead
                                     $usedPiIds = [];
@@ -409,7 +418,16 @@ class SoftwareHandoverRelationManager extends RelationManager
                                 ->label('HRDF')
                                 ->options(function (RelationManager $livewire) {
                                     $leadId = $livewire->getOwnerRecord()->id;
-                                    $currentRecordId = $livewire->mountedTableActionRecord?->id;
+                                    $currentRecordId = null;
+                                    if ($livewire->mountedTableActionRecord) {
+                                        // Check if it's already a model object
+                                        if (is_object($livewire->mountedTableActionRecord)) {
+                                            $currentRecordId = $livewire->mountedTableActionRecord->id;
+                                        } else {
+                                            // If it's a string/ID, use it directly
+                                            $currentRecordId = $livewire->mountedTableActionRecord;
+                                        }
+                                    }
 
                                     // Get all PI IDs already used in other software handovers for this lead
                                     $usedPiIds = [];
