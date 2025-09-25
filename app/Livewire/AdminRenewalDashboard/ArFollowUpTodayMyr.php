@@ -4,6 +4,7 @@ namespace App\Livewire\AdminRenewalDashboard;
 
 use App\Filament\Actions\AdminRenewalActions;
 use App\Filament\Filters\SortFilter;
+use App\Filament\Pages\RenewalDataMyr;
 use App\Models\CompanyDetail;
 use App\Models\AdminRenewalLogs;
 use App\Models\Renewal;
@@ -26,6 +27,7 @@ use Illuminate\Support\HtmlString;
 use Illuminate\View\View;
 use Livewire\Attributes\On;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class ArFollowUpTodayMyr extends Component implements HasForms, HasTable
 {
@@ -76,13 +78,16 @@ class ArFollowUpTodayMyr extends Component implements HasForms, HasTable
     {
         $this->selectedUser = $this->selectedUser ?? session('selectedUser') ?? auth()->user()->id;
 
-        // Get company IDs that have MYR expiring licenses
+        // Get company IDs that have MYR expiring licenses - cast to integer for proper comparison
         $myrCompanyIds = DB::connection('frontenddb')->table('crm_expiring_license')
             ->select('f_company_id')
             ->where('f_currency', 'MYR')
             ->whereDate('f_expiry_date', '>=', today())
             ->distinct()
             ->pluck('f_company_id')
+            ->map(function($id) {
+                return (string) (int) $id; // Cast to int first to remove leading zeros, then to string
+            })
             ->toArray();
 
         $query = Renewal::query()
@@ -147,6 +152,22 @@ class ArFollowUpTodayMyr extends Component implements HasForms, HasTable
                     })
                     ->html(),
 
+                TextColumn::make('earliest_expiry_date')
+                    ->label('Expiry Date')
+                    ->default('N/A')
+                    ->formatStateUsing(function ($state, $record) {
+
+                        return Carbon::parse(self::getEarliestExpiryDate($record->f_company_id))->format('d M Y') ?? 'N/A';
+                    }),
+
+                TextColumn::make('earliest_expiry_date')
+                    ->label('Expiry Date')
+                    ->default('N/A')
+                    ->formatStateUsing(function ($state, $record) {
+
+                        return Carbon::parse(self::getEarliestExpiryDate($record->f_company_id))->format('d M Y') ?? 'N/A';
+                    }),
+
                 TextColumn::make('pending_days')
                     ->label('Pending Days')
                     ->default('0')
@@ -155,20 +176,6 @@ class ArFollowUpTodayMyr extends Component implements HasForms, HasTable
                 TextColumn::make('follow_up_date')
                     ->label('Follow Up Date')
                     ->date('d M Y'),
-
-                TextColumn::make('f_company_id')
-                    ->label('Currency')
-                    ->formatStateUsing(function ($state) {
-                        // Check if this company has MYR licenses
-                        $hasMyr = DB::connection('frontenddb')->table('crm_expiring_license')
-                            ->where('f_company_id', $state)
-                            ->where('f_currency', 'MYR')
-                            ->exists();
-
-                        return $hasMyr ? 'MYR' : 'N/A';
-                    })
-                    ->badge()
-                    ->color('warning'), // Orange color for MYR
             ])
             ->actions([
                 ActionGroup::make([
@@ -184,7 +191,92 @@ class ArFollowUpTodayMyr extends Component implements HasForms, HasTable
                             return '#';
                         })
                         ->openUrlInNewTab(),
+                    Action::make('view_last_follow_up')
+                        ->label('View Last Follow Up')
+                        ->icon('heroicon-o-eye')
+                        ->color('secondary')
+                        ->modalHeading('Last Follow Up Information')
+                        ->modalContent(function (Renewal $record) {
+                            $data = AdminRenewalLogs::where('subject_id', $record->id)
+                                ->latest()
+                                ->first();
 
+                            if (! $data) {
+                                return new HtmlString(
+                                    "<div class='p-6 text-center'>
+                                        <p class='text-gray-500'>No follow-up records found for this renewal.</p>
+                                    </div>"
+                                );
+                            }
+
+                            $followUpDate = $data->created_at ? Carbon::parse($data->created_at)->format('d M Y, h:i A') : 'N/A';
+                            $followUpBy = $data->causer ? $data->causer->name : 'System';
+                            $nextFollowUpDate = $data->follow_up_date ? Carbon::parse($data->follow_up_date)->format('d M Y') : 'N/A';
+                            $followUpCount = $data->manual_follow_up_count ? "Follow-up #{$data->manual_follow_up_count}" : '';
+
+                            return new HtmlString(
+                                "<div class='space-y-6'>
+                                    <div class='p-4 rounded-lg bg-gray-50'>
+                                        <h3 class='mb-3 text-lg font-semibold text-gray-900'>Follow Up Details</h3>
+                                        <div class='grid grid-cols-2 gap-4 text-sm'>
+                                            <div>
+                                                <span class='font-medium text-gray-700'>Follow Up Date:</span>
+                                                <span class='ml-2 text-gray-900'>{$followUpDate}</span>
+                                            </div>
+                                            <div>
+                                                <span class='font-medium text-gray-700'>Follow Up By:</span>
+                                                <span class='ml-2 text-gray-900'>{$followUpBy}</span>
+                                            </div>
+                                            <div>
+                                                <span class='font-medium text-gray-700'>Next Follow Up:</span>
+                                                <span class='ml-2 text-gray-900'>{$nextFollowUpDate}</span>
+                                            </div>
+                                            ".($followUpCount ? "<div><span class='font-medium text-gray-700'>Count:</span><span class='ml-2 text-gray-900'>{$followUpCount}</span></div>" : '')."
+                                        </div>
+                                    </div>
+
+                                    <div class='p-4 rounded-lg bg-blue-50'>
+                                        <h3 class='mb-3 text-lg font-semibold text-gray-900'>Description</h3>
+                                        <div class='text-sm text-gray-800'>
+                                            {$data->description}
+                                        </div>
+                                    </div>
+
+                                    <div class='p-4 rounded-lg bg-yellow-50'>
+                                        <h3 class='mb-3 text-lg font-semibold text-gray-900'>Remarks</h3>
+                                        <div class='prose-sm prose max-w-none'>
+                                            <div class='p-3 text-sm bg-white border border-yellow-200 rounded'>
+                                                {$data->remark}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>"
+                            );
+                        })
+                        ->modalWidth('2xl')
+                        ->modalSubmitAction(false)
+                        ->modalCancelActionLabel('Close'),
+                    Action::make('view process data')
+                        ->label('View Process Data')
+                        ->icon('heroicon-o-eye')
+                        ->color('secondary')
+                        ->url(function (Renewal $record) {
+                            $padded = str_pad($record->f_company_id, 10, '0', STR_PAD_LEFT);
+
+                            $data = RenewalDataMyr::where('f_company_id', $padded)
+                                ->first();
+                            if ($data->f_currency == 'MYR') {
+                                //    $encryptedId = \App\Classes\Encryptor::encrypt($data->id);
+
+                                return url('/admin/admin-renewal-process-data-myr');
+                            } else {
+                                return url('/admin/admin-renewal-process-data-usd');
+                            }
+
+                            return '#';
+
+                        })
+                        ->openUrlInNewTab(),
                     AdminRenewalActions::addAdminRenewalFollowUp()
                         ->action(function (Renewal $record, array $data) {
                             AdminRenewalActions::processFollowUpWithEmail($record, $data);
@@ -200,5 +292,33 @@ class ArFollowUpTodayMyr extends Component implements HasForms, HasTable
     public function render()
     {
         return view('livewire.admin_renewal_dashboard.ar-follow-up-today-myr');
+    }
+
+    protected static function getEarliestExpiryDate($companyId)
+    {
+        try {
+            $today = Carbon::now()->format('Y-m-d');
+
+            $earliestExpiry = DB::connection('frontenddb')
+                ->table('crm_expiring_license')
+                ->where('f_company_id', $companyId)
+                ->where('f_expiry_date', '>=', $today)
+                ->where('f_currency', 'MYR')
+                ->whereNotIn('f_name', [
+                    'TimeTec VMS Corporate (1 Floor License)',
+                    'TimeTec VMS SME (1 Location License)',
+                    'TimeTec Patrol (1 Checkpoint License)',
+                    'TimeTec Patrol (10 Checkpoint License)',
+                    'Other',
+                    'TimeTec Profile (10 User License)',
+                ])
+                ->min('f_expiry_date');
+
+            return $earliestExpiry;
+        } catch (\Exception $e) {
+            Log::error("Error fetching earliest expiry date for company {$companyId}: ".$e->getMessage());
+
+            return null;
+        }
     }
 }

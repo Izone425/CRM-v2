@@ -1348,9 +1348,13 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
                         ->fillForm(function ($record) {
                             return [
                                 'company_name' => $record->f_company_name,
+                                'name' => '-',  // Default dash
+                                'email' => 'fatimah.tarmizi@timeteccloud.com',  // Default email
+                                'phone' => '0',  // Default dash for phone
+                                'company_size' => '1-24',  // Default to SMALL
+                                'country' => 'MYS',  // Default to MALAYSIA
                                 'lead_source' => 'Existing Customer (Migration)',
                                 'products' => ['hr'], // This matches the 'hr' key from CreateLead
-                                'country' => 'Malaysia',
                             ];
                         })
                         ->form([
