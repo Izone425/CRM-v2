@@ -534,7 +534,7 @@
                                                                 @endphp
 
                                                                 @if($quotation)
-                                                                    <a href="{{ $quotationUrl }}"
+                                                                    <a href="{{ route('pdf.print-quotation-v2', ['quotation' => encrypt($quotation->id)]) }}"
                                                                     target="_blank"
                                                                     class="flex items-center justify-center px-2 py-1 text-xs text-green-600 border border-green-200 rounded-md bg-green-50 hover:bg-green-100">
                                                                         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">

@@ -384,15 +384,15 @@ class SalesForecastTable extends Component implements HasForms, HasTable
                             ->latest()
                             ->first();
 
-                        // If there is a final quotation, return its route
+                        // If there is a final quotation, return its route with encrypted ID
                         if ($finalQuotation) {
-                            return route('pdf.print-quotation-v2', $finalQuotation);
+                            return route('pdf.print-quotation-v2', ['quotation' => encrypt($finalQuotation->id)]);
                         }
 
                         // Fallback to the most recent quotation if no final one exists
                         $latestQuotation = $record->quotations()->latest()->first();
                         if ($latestQuotation) {
-                            return route('pdf.print-quotation-v2', $latestQuotation);
+                            return route('pdf.print-quotation-v2', ['quotation' => encrypt($latestQuotation->id)]);
                         }
 
                         return null; // No quotation available

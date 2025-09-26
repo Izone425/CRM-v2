@@ -149,9 +149,10 @@ class QuotationResource extends Resource
                             ->label('Date')
                             ->dateFormat('j M Y')
                             ->default(now()->format('j M Y'))
-                            ->minDate(today())
                             ->required()
-                            ->clickOpens(),
+                            ->clickOpens()
+                            ->disabled()
+                            ->dehydrated(true),
                         Select::make('sales_type')
                             ->label('Sales Type')
                             ->placeholder('Select a sales type')
@@ -993,7 +994,7 @@ class QuotationResource extends Resource
                         ->label('Preview')
                         ->icon('heroicon-o-arrow-down-on-square')
                         ->color('success')
-                        ->url(fn(Quotation $quotation) => route('pdf.print-quotation-v2', $quotation))
+                        ->url(fn(Quotation $quotation) => route('pdf.print-quotation-v2', ['quotation' => encrypt($quotation->id)]))
                         ->openUrlInNewTab(),
                     Tables\Actions\Action::make('Accept')
                         ->icon('heroicon-o-clipboard-document-check')

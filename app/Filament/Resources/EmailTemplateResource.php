@@ -33,6 +33,8 @@ class EmailTemplateResource extends Resource
                         'general' => 'General',
                         'implementer' => 'Implementer',
                         'sales' => 'Sales',
+                        'admin_renewal_v1' => 'Admin - Renewal v1',
+                        'admin_renewal_v2' => 'Admin - Renewal v2',
                     ])
                     ->default('general')
                     ->required(),

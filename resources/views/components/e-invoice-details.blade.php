@@ -14,31 +14,17 @@
 
         // Safely create the einvoiceDetails array
         $einvoiceDetails = [
-            ['label' => '1. PIC Email Address', 'value' => $einvoice?->pic_email ?? '-', 'note' => '(Contact for information)'],
-            ['label' => '2. Tax Identification Number', 'value' => $einvoice?->tin_no ?? '-'],
-            ['label' => '3. New Business Reg No', 'value' => $einvoice?->new_business_reg_no ?? '-'],
-            ['label' => '4. Old Business Reg No', 'value' => $einvoice?->old_business_reg_no ?? '-'],
-            ['label' => '5. Registration Name', 'value' => $einvoice?->registration_name ?? '-'],
-            ['label' => '6. Identity Type', 'value' => $einvoice?->identity_type ?? '-'],
-            ['label' => '7. Tax Classification', 'value' => $einvoice?->tax_classification ?? '-'],
-            ['label' => '8. SST Registration No', 'value' => $einvoice?->sst_reg_no ?? '-'],
-            ['label' => '9. MSIC Code', 'value' => $einvoice?->msic_code ?? '-'],
-            ['label' => '10. MSIC Code 2', 'value' => $einvoice?->msic_code_2 ?? '-'],
-            ['label' => '11. MSIC Code 3', 'value' => $einvoice?->msic_code_3 ?? '-'],
-            ['label' => '12. Business Address', 'value' => $einvoice?->business_address ?? '-'],
-            ['label' => '13. Postcode', 'value' => $einvoice?->postcode ?? '-'],
-            ['label' => '14. Contact Number', 'value' => $einvoice?->contact_number ?? '-', 'note' => '(Finance/Account Department)'],
-            ['label' => '15. Email Address', 'value' => $einvoice?->email_address ?? '-', 'note' => '(For receiving e-invoice from IRBM)'],
-            ['label' => '16. City', 'value' => $einvoice?->city ?? '-'],
-            ['label' => '17. Country', 'value' => ($einvoice && $einvoice->country === 'MYS') ? 'Malaysia (MYS)' : ($einvoice?->country ?? '-')],
-            ['label' => '18. State', 'value' => $einvoice?->state ?? '-'],
+            ['label' => 'Tax Identification Number', 'value' => $einvoice?->tin_no ?? '-'],
+            ['label' => 'SST Registration No', 'value' => $einvoice?->sst_reg_no ?? '-'],
+            ['label' => 'MSIC Code', 'value' => $einvoice?->msic_code ?? '-'],
+            ['label' => 'Email Address', 'value' => $einvoice?->email_address ?? '-', 'note' => '(For receiving e-invoice from IRBM)'],
         ];
 
         // Split into rows with 3 items per row
         $rows = array_chunk($einvoiceDetails, 3);
     @endphp
 
-    <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px;"
+    <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 24px;"
          class="grid grid-cols-3 gap-6">
 
         @foreach ($rows as $row)

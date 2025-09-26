@@ -95,8 +95,10 @@ class ArFollowUpOverdueUsd extends Component implements HasForms, HasTable
             ->whereDate('follow_up_date', '<', today())
             ->where('follow_up_counter', true)
             ->where('mapping_status', 'completed_mapping')
+            ->whereIn('renewal_progress', ['new', 'pending_confirmation', 'pending_payment'])
             ->orderBy('created_at', 'asc')
-            ->selectRaw('*, DATEDIFF(NOW(), follow_up_date) as pending_days');
+            ->selectRaw('*, DATEDIFF(NOW(), follow_up_date) as pending_days')
+            ->orderByRaw('(SELECT MIN(f_expiry_date) FROM frontenddb.crm_expiring_license WHERE f_company_id = renewals.f_company_id AND f_currency = "MYR" AND f_expiry_date >= CURDATE()) ASC');
 
         return $query;
     }

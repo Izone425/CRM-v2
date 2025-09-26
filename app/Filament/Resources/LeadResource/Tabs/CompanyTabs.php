@@ -17,6 +17,7 @@ use Filament\Forms\Components\Actions;
 use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Placeholder;
+use Filament\Forms\Components\Radio;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
@@ -31,7 +32,7 @@ class CompanyTabs
         return [
             Grid::make(4)
             ->schema([
-                Grid::make(2)
+                Grid::make(3)
                     ->schema([
                         Section::make('Company Details')
                             ->icon('heroicon-o-briefcase')
@@ -226,75 +227,129 @@ class CompanyTabs
                             ->schema([
                                 View::make('components.company-detail')
                             ]),
-                    ])
-                    ->columnSpan(2),
-                    Grid::make(1) // Nested grid for left side (single column)
-                        ->schema([
-                            Section::make('Person In-Charge')
-                                ->icon('heroicon-o-user')
-                                ->headerActions([
-                                    Action::make('edit_person_in_charge')
-                                        ->label('Edit') // Button label
-                                        ->visible(fn (Lead $lead) =>
-                                            // First check if user role is not 4 or 5
-                                            in_array(auth()->user()->role_id, [1, 2, 3]) &&
+                        Section::make('Person In-Charge')
+                            ->icon('heroicon-o-user')
+                            ->headerActions([
+                                Action::make('edit_person_in_charge')
+                                    ->label('Edit') // Button label
+                                    ->visible(fn (Lead $lead) =>
+                                        // First check if user role is not 4 or 5
+                                        in_array(auth()->user()->role_id, [1, 2, 3]) &&
 
-                                            // If user is role 2 (salesperson), they can only edit their own leads
-                                            (auth()->user()->role_id != 2 || (auth()->user()->role_id == 2 && $lead->salesperson == auth()->user()->id)) &&
+                                        // If user is role 2 (salesperson), they can only edit their own leads
+                                        (auth()->user()->role_id != 2 || (auth()->user()->role_id == 2 && $lead->salesperson == auth()->user()->id)) &&
 
-                                            // Then check if lead owner exists or salesperson exists
-                                            (!is_null($lead->lead_owner) || (is_null($lead->lead_owner) && !is_null($lead->salesperson)))
-                                        )
-                                        ->modalHeading('Edit on Person In-Charge') // Modal heading
-                                        ->modalSubmitActionLabel('Save Changes') // Modal button text
-                                        ->form([ // Define the form fields to show in the modal
-                                            TextInput::make('name')
-                                                ->label('Name')
-                                                ->required()
-                                                ->default(fn ($record) => $record->companyDetail->name ?? $record->name)
-                                                ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()'])
-                                                ->afterStateUpdated(fn ($state, callable $set) => $set('name', strtoupper($state))),
-                                            TextInput::make('email')
-                                                ->label('Email')
-                                                ->required()
-                                                ->default(fn ($record) => $record->companyDetail->email ?? $record->email),
-                                            TextInput::make('contact_no')
-                                                ->label('Contact No.')
-                                                ->required()
-                                                ->default(fn ($record) => $record->companyDetail->contact_no ?? $record->phone),
-                                            TextInput::make('position')
-                                                ->label('Position')
-                                                ->extraInputAttributes(['style' => 'text-transform: uppercase'])
-                                                ->afterStateHydrated(fn($state) => Str::upper($state))
-                                                ->afterStateUpdated(fn($state) => Str::upper($state))
-                                                ->required()
-                                                ->default(fn ($record) => $record->companyDetail->position ?? '-'),
-                                        ])
-                                        ->action(function (Lead $lead, array $data) {
-                                            $record = $lead->companyDetail;
-                                            if ($record) {
-                                                // Update the existing SystemQuestion record
-                                                $record->update($data);
+                                        // Then check if lead owner exists or salesperson exists
+                                        (!is_null($lead->lead_owner) || (is_null($lead->lead_owner) && !is_null($lead->salesperson)))
+                                    )
+                                    ->modalHeading('Edit on Person In-Charge') // Modal heading
+                                    ->modalSubmitActionLabel('Save Changes') // Modal button text
+                                    ->form([ // Define the form fields to show in the modal
+                                        TextInput::make('name')
+                                            ->label('Name')
+                                            ->required()
+                                            ->default(fn ($record) => $record->companyDetail->name ?? $record->name)
+                                            ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()'])
+                                            ->afterStateUpdated(fn ($state, callable $set) => $set('name', strtoupper($state))),
+                                        TextInput::make('email')
+                                            ->label('Email')
+                                            ->required()
+                                            ->default(fn ($record) => $record->companyDetail->email ?? $record->email),
+                                        TextInput::make('contact_no')
+                                            ->label('Contact No.')
+                                            ->required()
+                                            ->default(fn ($record) => $record->companyDetail->contact_no ?? $record->phone),
+                                        TextInput::make('position')
+                                            ->label('Position')
+                                            ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                                            ->afterStateHydrated(fn($state) => Str::upper($state))
+                                            ->afterStateUpdated(fn($state) => Str::upper($state))
+                                            ->required()
+                                            ->default(fn ($record) => $record->companyDetail->position ?? '-'),
+                                    ])
+                                    ->action(function (Lead $lead, array $data) {
+                                        $record = $lead->companyDetail;
+                                        if ($record) {
+                                            // Update the existing SystemQuestion record
+                                            $record->update($data);
 
-                                                Notification::make()
-                                                    ->title('Updated Successfully')
-                                                    ->success()
-                                                    ->send();
-                                            } else {
-                                                // Create a new SystemQuestion record via the relation
-                                                $lead->bankDetail()->create($data);
+                                            Notification::make()
+                                                ->title('Updated Successfully')
+                                                ->success()
+                                                ->send();
+                                        } else {
+                                            // Create a new SystemQuestion record via the relation
+                                            $lead->bankDetail()->create($data);
 
-                                                Notification::make()
-                                                    ->title('Created Successfully')
-                                                    ->success()
-                                                    ->send();
-                                            }
-                                        }),
+                                            Notification::make()
+                                                ->title('Created Successfully')
+                                                ->success()
+                                                ->send();
+                                        }
+                                    }),
+                            ])
+                            ->schema([
+                                View::make('components.person-in-charge')
+                            ]),
+                        Section::make('E-Invoice Details')
+                            ->icon('heroicon-o-document-text')
+                            ->headerActions([
+                                Action::make('edit_einvoice_details')
+                                    ->label('Edit')
+                                    ->modalHeading('Edit E-Invoice Details')
+                                    ->modalSubmitActionLabel('Save Changes')
+                                    ->visible(fn (Lead $lead) => !is_null($lead->lead_owner) || (is_null($lead->lead_owner) && !is_null($lead->salesperson)))
+                                    ->form([
+                                        Grid::make(1)
+                                            ->schema([
+                                                TextInput::make('tin_no')
+                                                    ->label('Tax Identification Number (TIN No.)')
+                                                    ->required()
+                                                    ->default(fn ($record) => $record->eInvoiceDetail->tin_no ?? null),
+
+                                                TextInput::make('sst_reg_no')
+                                                    ->label('Sales and Service Tax (SST) Registration Number')
+                                                    ->required()
+                                                    ->default(fn ($record) => $record->eInvoiceDetail->sst_reg_no ?? null),
+
+                                                TextInput::make('msic_code')
+                                                    ->label('Business MSIC Code')
+                                                    ->required()
+                                                    ->default(fn ($record) => $record->eInvoiceDetail->msic_code ?? null),
+
+                                                TextInput::make('email_address')
+                                                    ->label('Email Address')
+                                                    ->required()
+                                                    ->default(fn ($record) => $record->eInvoiceDetail->email_address ?? null),
+                                            ]),
+                                    ])
+                                    ->action(function (Lead $lead, array $data) {
+                                        $record = $lead->eInvoiceDetail;
+                                        if ($record) {
+                                            // Update the existing record
+                                            $record->update($data);
+
+                                            Notification::make()
+                                                ->title('E-Invoice Details Updated')
+                                                ->success()
+                                                ->send();
+                                        } else {
+                                            // Create a new record
+                                            $lead->eInvoiceDetail()->create($data);
+
+                                            Notification::make()
+                                                ->title('E-Invoice Details Created')
+                                                ->success()
+                                                ->send();
+                                        }
+                                    }),
                                 ])
-                                ->schema([
-                                    View::make('components.person-in-charge')
-                                ]),
-                            ])->columnSpan(1),
+                            ->schema([
+                                View::make('components.e-invoice-details')
+                                ->extraAttributes(['poll' => true])
+                            ]),
+                    ])
+                    ->columnSpan(3),
                     Grid::make(1)
                         ->schema([
                             Section::make('Status')
@@ -596,293 +651,105 @@ class CompanyTabs
                                 ->schema([
                                     View::make('components.project-information'),
                                 ]),
+
+                            Section::make('Reseller Details')
+                                ->icon('heroicon-o-building-storefront')
+                                ->extraAttributes([
+                                    'style' => 'background-color: #e6e6fa4d; border: dashed; border-color: #cdcbeb;'
+                                ])
+                                ->schema([
+                                    Grid::make(1)
+                                        ->schema([
+                                            View::make('components.reseller-details')
+                                                ->extraAttributes(fn ($record) => ['record' => $record]),
+                                        ]),
+                                ])
+                                ->headerActions([
+                                    Action::make('assign_reseller')
+                                        ->label('Assign Reseller')
+                                        ->icon('heroicon-o-link')
+                                        ->visible(fn (Lead $lead) =>
+                                            // First check if user role is not 4 or 5
+                                            in_array(auth()->user()->role_id, [1, 2, 3]) &&
+
+                                            // If user is role 2 (salesperson), they can only edit their own leads
+                                            (auth()->user()->role_id != 2 || (auth()->user()->role_id == 2 && $lead->salesperson == auth()->user()->id)) &&
+
+                                            // Then check if lead owner exists or salesperson exists
+                                            (!is_null($lead->lead_owner) || (is_null($lead->lead_owner) && !is_null($lead->salesperson)))
+                                        )
+                                        ->modalHeading('Assign Reseller to Lead')
+                                        ->modalSubmitActionLabel('Assign')
+                                        ->form([
+                                            Select::make('reseller_id')
+                                                ->label('Reseller')
+                                                ->options(function () {
+                                                    return \App\Models\Reseller::pluck('company_name', 'id')
+                                                        ->toArray();
+                                                })
+                                                ->searchable()
+                                                ->preload()
+                                                ->required(),
+                                        ])
+                                        ->action(function (Lead $lead, array $data) {
+                                            // Update the lead with reseller information
+                                            $lead->updateQuietly([
+                                                'reseller_id' => $data['reseller_id'],
+                                            ]);
+
+                                            $resellerName = \App\Models\Reseller::find($data['reseller_id'])->company_name ?? 'Unknown Reseller';
+
+                                            // Log this action
+                                            activity()
+                                                ->causedBy(auth()->user())
+                                                ->performedOn($lead)
+                                                ->log('Assigned to reseller: ' . $resellerName);
+
+                                            Notification::make()
+                                                ->title('Reseller Assigned')
+                                                ->success()
+                                                ->body('This lead has been assigned to ' . $resellerName)
+                                                ->send();
+                                        }),
+                                    Action::make('reset_reseller')
+                                        ->label('Reset')
+                                        ->icon('heroicon-o-x-mark')
+                                        ->color('danger')
+                                        ->visible(fn (Lead $lead) => !is_null($lead->reseller_id)) // Only show when there's a reseller assigned
+                                        ->modalHeading('Remove Assigned Reseller')
+                                        ->modalDescription('Are you sure you want to remove the assigned reseller from this lead?')
+                                        ->modalSubmitActionLabel('Reset')
+                                        ->requiresConfirmation() // Add confirmation step
+                                        ->action(function (Lead $lead) {
+                                            // Get reseller name for activity log before removing it
+                                            $resellerName = 'Unknown Reseller';
+                                            if ($lead->reseller_id) {
+                                                $reseller = \App\Models\Reseller::find($lead->reseller_id);
+                                                if ($reseller) {
+                                                    $resellerName = $reseller->company_name;
+                                                }
+                                            }
+
+                                            // Update the lead to remove reseller information
+                                            $lead->updateQuietly([
+                                                'reseller_id' => null,
+                                            ]);
+
+                                            // Log this action
+                                            activity()
+                                                ->causedBy(auth()->user())
+                                                ->performedOn($lead)
+                                                ->log('Removed reseller: ' . $resellerName);
+
+                                            Notification::make()
+                                                ->title('Reseller Removed')
+                                                ->success()
+                                                ->body('The reseller has been removed from this lead')
+                                                ->send();
+                                        }),
+                                ])
                         ])->columnSpan(1),
                     ]),
-                    // Section::make('E-Invoice Details')
-                    // ->icon('heroicon-o-document-text')
-                    // ->collapsible()
-                    // ->collapsed()
-                    // ->headerActions([
-                    //     Action::make('edit_einvoice_details')
-                    //         ->label('Edit')
-                    //         ->icon('heroicon-o-pencil')
-                    //         ->modalHeading('Edit E-Invoice Details')
-                    //         ->modalSubmitActionLabel('Save Changes')
-                    //         ->visible(fn (Lead $lead) => !is_null($lead->lead_owner) || (is_null($lead->lead_owner) && !is_null($lead->salesperson)))
-                    //         ->form([
-                    //             Grid::make(3)
-                    //                 ->schema([
-                    //                     TextInput::make('pic_email')
-                    //                         ->label('1. PIC Email Address')
-                    //                         ->required()
-                    //                         ->default(fn ($record) => $record->eInvoiceDetail->pic_email ?? null)
-                    //                         ->helperText('(Note: we will contact via this email if we need further information)'),
-
-                    //                     TextInput::make('tin_no')
-                    //                         ->label('2. Tax Identification Number (TIN No.)')
-                    //                         ->required()
-                    //                         ->default(fn ($record) => $record->eInvoiceDetail->tin_no ?? null)
-                    //                         ->helperText('Note: TIN No. must consist of a combination of the TIN Code and set of number'),
-
-                    //                     TextInput::make('new_business_reg_no')
-                    //                         ->label('3. New Business Registration Number')
-                    //                         ->required()
-                    //                         ->default(fn ($record) => $record->eInvoiceDetail->new_business_reg_no ?? null)
-                    //                         ->helperText('(Note: New ROC No. eg 198701006539. If Foreign Country, please input N/A)'),
-                    //                 ]),
-
-                    //             Grid::make(3)
-                    //                 ->schema([
-                    //                     TextInput::make('old_business_reg_no')
-                    //                         ->label('4. Old Business Registration Number')
-                    //                         ->required()
-                    //                         ->default(fn ($record) => $record->eInvoiceDetail->old_business_reg_no ?? null)
-                    //                         ->helperText('(Note: Old ROC No. eg 123456T. If Foreign Country, please input NA)'),
-
-                    //                     TextInput::make('registration_name')
-                    //                         ->label('5. Registration Name')
-                    //                         ->required()
-                    //                         ->default(fn ($record) => $record->eInvoiceDetail->registration_name ?? null)
-                    //                         ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()'])
-                    //                         ->helperText('(Note: Type only in CAPITAL letter) (as per Business Registration/MyKad/Passport)'),
-
-                    //                     Select::make('identity_type')
-                    //                         ->label('6. Identity Type')
-                    //                         ->options([
-                    //                             'MyKAD' => 'MyKAD',
-                    //                             'MyPR' => 'MyPR',
-                    //                             'MyKAS' => 'MyKAS',
-                    //                             'MyTen' => 'MyTen',
-                    //                             'PassP' => 'PassP',
-                    //                         ])
-                    //                         ->required()
-                    //                         ->default(fn ($record) => $record->eInvoiceDetail->identity_type ?? null)
-                    //                         ->helperText('(Note: For company, please choose MyKAD option)'),
-                    //                 ]),
-
-                    //             Grid::make(3)
-                    //                 ->schema([
-                    //                     Radio::make('tax_classification')
-                    //                         ->label('7. Tax Classification')
-                    //                         ->options([
-                    //                             '0' => 'Individual (0)',
-                    //                             '1' => 'Business (1)',
-                    //                             '2' => 'Government (2)',
-                    //                         ])
-                    //                         ->required()
-                    //                         ->default(fn ($record) => $record->eInvoiceDetail->tax_classification ?? null)
-                    //                         ->helperText('(Note: 0 - Individual  1 - Business   2 - Government)'),
-
-                    //                     TextInput::make('sst_reg_no')
-                    //                         ->label('8. Sales and Service Tax (SST) Registration Number')
-                    //                         ->required()
-                    //                         ->default(fn ($record) => $record->eInvoiceDetail->sst_reg_no ?? null)
-                    //                         ->helperText('(Note: No. eg J31-1808-22000109. If don\'t have, please input N/A)'),
-
-                    //                     TextInput::make('msic_code')
-                    //                         ->label('9. Business MSIC Code')
-                    //                         ->required()
-                    //                         ->default(fn ($record) => $record->eInvoiceDetail->msic_code ?? null)
-                    //                         ->helperText('(Note: The value must be in 5 characters) (as per Form C / Annual Return)'),
-                    //                 ]),
-
-                    //             Grid::make(3)
-                    //                 ->schema([
-                    //                     TextInput::make('msic_code_2')
-                    //                         ->label('10. Business MSIC Code 2')
-                    //                         ->required()
-                    //                         ->default(fn ($record) => $record->eInvoiceDetail->msic_code_2 ?? null)
-                    //                         ->helperText('If more than 1 MSIC Code, If don\'t have, please input N/A (5 characters)'),
-
-                    //                     TextInput::make('msic_code_3')
-                    //                         ->label('11. Business MSIC Code 3')
-                    //                         ->required()
-                    //                         ->default(fn ($record) => $record->eInvoiceDetail->msic_code_3 ?? null)
-                    //                         ->helperText('If more than 2 MSIC Code, If don\'t have, please input N/A (5 characters)'),
-
-                    //                     TextInput::make('business_address')
-                    //                         ->label('12. Business Address')
-                    //                         ->required()
-                    //                         ->default(fn ($record) => $record->eInvoiceDetail->business_address ?? null),
-                    //                 ]),
-
-                    //             Grid::make(3)
-                    //                 ->schema([
-                    //                     TextInput::make('postcode')
-                    //                         ->label('13. Postcode')
-                    //                         ->required()
-                    //                         ->default(fn ($record) => $record->eInvoiceDetail->postcode ?? null),
-
-                    //                     TextInput::make('contact_number')
-                    //                         ->label('14. Contact Number')
-                    //                         ->required()
-                    //                         ->default(fn ($record) => $record->eInvoiceDetail->contact_number ?? null)
-                    //                         ->helperText('(Finance/Account Department)'),
-
-                    //                     TextInput::make('email_address')
-                    //                         ->label('15. Email address')
-                    //                         ->required()
-                    //                         ->default(fn ($record) => $record->eInvoiceDetail->email_address ?? null)
-                    //                         ->helperText('(Note: this email will be receiving e-invoice from IRBM)'),
-                    //                 ]),
-
-                    //             Grid::make(3)
-                    //                 ->schema([
-                    //                     TextInput::make('city')
-                    //                         ->label('16. City')
-                    //                         ->required()
-                    //                         ->default(fn ($record) => $record->eInvoiceDetail->city ?? null),
-
-                    //                     Select::make('country')
-                    //                         ->label('17. Country')
-                    //                         ->options([
-                    //                             'MYS' => 'Malaysia (MYS)',
-                    //                         ])
-                    //                         ->default('MYS')
-                    //                         ->required(),
-
-                    //                     Select::make('state')
-                    //                         ->label('18. State')
-                    //                         ->options(function () {
-                    //                             $filePath = storage_path('app/public/json/StateCodes.json');
-
-                    //                             if (file_exists($filePath)) {
-                    //                                 $countriesContent = file_get_contents($filePath);
-                    //                                 $countries = json_decode($countriesContent, true);
-
-                    //                                 return collect($countries)->mapWithKeys(function ($country) {
-                    //                                     return [$country['Code'] => ucfirst(strtolower($country['State']))];
-                    //                                 })->toArray();
-                    //                             }
-
-                    //                             return [];
-                    //                         })
-                    //                         ->default(fn ($record) => $record->eInvoiceDetail->state ?? null)
-                    //                         ->searchable()
-                    //                         ->preload(),
-                    //                 ]),
-                    //         ])
-                    //         ->action(function (Lead $lead, array $data) {
-                    //             $record = $lead->eInvoiceDetail;
-                    //             if ($record) {
-                    //                 // Update the existing record
-                    //                 $record->update($data);
-
-                    //                 Notification::make()
-                    //                     ->title('E-Invoice Details Updated')
-                    //                     ->success()
-                    //                     ->send();
-                    //             } else {
-                    //                 // Create a new record
-                    //                 $lead->eInvoiceDetail()->create($data);
-
-                    //                 Notification::make()
-                    //                     ->title('E-Invoice Details Created')
-                    //                     ->success()
-                    //                     ->send();
-                    //             }
-                    //         }),
-                    //     ])
-                    // ->schema([
-                    //     View::make('components.e-invoice-details')
-                    //     ->extraAttributes(['poll' => true])
-                    // ]),
-                Section::make('Reseller Details')
-                    ->icon('heroicon-o-building-storefront')
-                    ->extraAttributes([
-                        'style' => 'background-color: #e6e6fa4d; border: dashed; border-color: #cdcbeb;'
-                    ])
-                    ->schema([
-                        Grid::make(1)
-                            ->schema([
-                                View::make('components.reseller-details')
-                                    ->extraAttributes(fn ($record) => ['record' => $record]),
-                            ]),
-                    ])
-                    ->headerActions([
-                        Action::make('assign_reseller')
-                            ->label('Assign Reseller')
-                            ->icon('heroicon-o-link')
-                            ->visible(fn (Lead $lead) =>
-                                // First check if user role is not 4 or 5
-                                in_array(auth()->user()->role_id, [1, 2, 3]) &&
-
-                                // If user is role 2 (salesperson), they can only edit their own leads
-                                (auth()->user()->role_id != 2 || (auth()->user()->role_id == 2 && $lead->salesperson == auth()->user()->id)) &&
-
-                                // Then check if lead owner exists or salesperson exists
-                                (!is_null($lead->lead_owner) || (is_null($lead->lead_owner) && !is_null($lead->salesperson)))
-                            )
-                            ->modalHeading('Assign Reseller to Lead')
-                            ->modalSubmitActionLabel('Assign')
-                            ->form([
-                                Select::make('reseller_id')
-                                    ->label('Reseller')
-                                    ->options(function () {
-                                        return \App\Models\Reseller::pluck('company_name', 'id')
-                                            ->toArray();
-                                    })
-                                    ->searchable()
-                                    ->preload()
-                                    ->required(),
-                            ])
-                            ->action(function (Lead $lead, array $data) {
-                                // Update the lead with reseller information
-                                $lead->updateQuietly([
-                                    'reseller_id' => $data['reseller_id'],
-                                ]);
-
-                                $resellerName = \App\Models\Reseller::find($data['reseller_id'])->company_name ?? 'Unknown Reseller';
-
-                                // Log this action
-                                activity()
-                                    ->causedBy(auth()->user())
-                                    ->performedOn($lead)
-                                    ->log('Assigned to reseller: ' . $resellerName);
-
-                                Notification::make()
-                                    ->title('Reseller Assigned')
-                                    ->success()
-                                    ->body('This lead has been assigned to ' . $resellerName)
-                                    ->send();
-                            }),
-                        Action::make('reset_reseller')
-                            ->label('Reset')
-                            ->icon('heroicon-o-x-mark')
-                            ->color('danger')
-                            ->visible(fn (Lead $lead) => !is_null($lead->reseller_id)) // Only show when there's a reseller assigned
-                            ->modalHeading('Remove Assigned Reseller')
-                            ->modalDescription('Are you sure you want to remove the assigned reseller from this lead?')
-                            ->modalSubmitActionLabel('Reset')
-                            ->requiresConfirmation() // Add confirmation step
-                            ->action(function (Lead $lead) {
-                                // Get reseller name for activity log before removing it
-                                $resellerName = 'Unknown Reseller';
-                                if ($lead->reseller_id) {
-                                    $reseller = \App\Models\Reseller::find($lead->reseller_id);
-                                    if ($reseller) {
-                                        $resellerName = $reseller->company_name;
-                                    }
-                                }
-
-                                // Update the lead to remove reseller information
-                                $lead->updateQuietly([
-                                    'reseller_id' => null,
-                                ]);
-
-                                // Log this action
-                                activity()
-                                    ->causedBy(auth()->user())
-                                    ->performedOn($lead)
-                                    ->log('Removed reseller: ' . $resellerName);
-
-                                Notification::make()
-                                    ->title('Reseller Removed')
-                                    ->success()
-                                    ->body('The reseller has been removed from this lead')
-                                    ->send();
-                            }),
-                    ])
         ];
     }
 }

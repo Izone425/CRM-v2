@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -14,13 +13,25 @@ use App\Models\User;
 
 class GenerateQuotationPdfController extends Controller
 {
-    public function __invoke(Quotation $quotation)
+    public function __invoke($encryptedQuotationId)
     {
-        // info(auth('web')->user()->role);
-        // info($quotation->sales_person_id);
-        if (auth('web')->user()->role == User::IS_USER && auth('web')->user()->id <> $quotation->sales_person_id) {
-            abort(401);
+        try {
+            // Decrypt the quotation ID
+            $quotationId = decrypt($encryptedQuotationId);
+
+            // Find the quotation
+            $quotation = Quotation::findOrFail($quotationId);
+
+        } catch (\Illuminate\Contracts\Encryption\DecryptException $e) {
+            abort(404, 'Invalid quotation reference');
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            abort(404, 'Quotation not found');
         }
+
+        // Rest of your existing code remains the same...
+        // if (auth('web')->user()->role == User::IS_USER && auth('web')->user()->id <> $quotation->sales_person_id) {
+        //     abort(401);
+        // }
 
         $image = file_get_contents(public_path('/img/logo-ttc.png'));
         $image2 = file_get_contents(public_path('/img/tc-chop.png'));
@@ -45,7 +56,6 @@ class GenerateQuotationPdfController extends Controller
         $path_img = 'data:image/png;base64,' . $img_base_64;
         $path_img2 = 'data:image/png;base64,' . $img_base_64_2;
 
-
         view()->share('pdf.quotation-v2', compact('quotation','path_img'));
         $pdf = Pdf::setOptions(['isPhpEnabled' => true,'isRemoteEnabled' => true])->loadView('pdf.quotation-v2', compact('quotation','path_img','path_img2','signature'));
         $pdf->set_paper('a4', 'portrait');
@@ -62,8 +72,7 @@ class GenerateQuotationPdfController extends Controller
             // Use the original company name from lead's company detail
             $companyName = $quotation->lead->companyDetail->company_name ?? 'Unknown';
         }
-        //$quotationFilename = Str::replace('-','_',Str::slug($quotation->company->name)) . '_' . quotation_reference_no($quotation->id) . '_' . Str::lower($quotation->sales_person->code) . '.pdf';
-        //$quotationFilename = Str::replace('-','_',Str::slug($quotation->company->name)) . '_' . quotation_reference_no($quotation->id) . '_' .
+
         $quotationFilename = 'TIMETEC_' . $quotation->sales_person->code . '_' . quotation_reference_no($quotation->id) . '_' . Str::replace('-','_',Str::slug($companyName));
         $quotationFilename = Str::upper($quotationFilename) . '.pdf';
         $pdf->save(public_path('/storage/quotations/'.$quotationFilename));
