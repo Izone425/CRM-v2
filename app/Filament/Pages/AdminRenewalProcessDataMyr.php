@@ -310,11 +310,9 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
                 $endDate = $next60Days;
             }
 
-            // Get renewals with new status that have lead mappings and fall within date range
+            // Get renewals with new status that fall within date range
             $renewals = Renewal::where('renewal_progress', 'new')
-                ->whereNotNull('lead_id')
-                ->whereHas('lead.quotations.items')
-                ->with(['lead.quotations.items'])
+                ->with(['lead.quotations.items']) // Keep the eager loading but don't require it
                 ->get()
                 ->filter(function ($renewal) use ($startDate, $endDate) {
                     // Check if renewal company has expiring licenses within date range
@@ -335,35 +333,42 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
             $totalViaEndUserAmount = 0;
 
             foreach ($renewals as $renewal) {
-                // Check if renewal has lead and lead exists
-                if (!$renewal->lead_id || !$renewal->lead) continue;
+                // Only process quotation data if renewal has lead and lead exists
+                if ($renewal->lead_id && $renewal->lead) {
+                    // Get final renewal quotations for this lead (if they exist)
+                    $renewalQuotations = $renewal->lead->quotations()
+                        ->where('mark_as_final', true)
+                        ->where('sales_type', 'RENEWAL SALES')
+                        ->get();
 
-                // Get final renewal quotations for this lead
-                $renewalQuotations = $renewal->lead->quotations()
-                    ->where('mark_as_final', true)
-                    ->where('sales_type', 'RENEWAL SALES')
-                    ->get();
+                    // If quotations exist, count them and calculate amount
+                    if ($renewalQuotations->isNotEmpty()) {
+                        $totalInvoices += $renewalQuotations->count();
 
-                if ($renewalQuotations->isEmpty()) continue;
+                        // Calculate amount from quotations
+                        $quotationAmount = 0;
+                        foreach ($renewalQuotations as $quotation) {
+                            $quotationAmount += $quotation->items->sum('total_before_tax');
+                        }
 
-                $totalInvoices += $renewalQuotations->count();
+                        $totalAmount += $quotationAmount;
 
-                // Calculate amount from quotations
-                $quotationAmount = 0;
-                foreach ($renewalQuotations as $quotation) {
-                    $quotationAmount += $quotation->items->sum('total_before_tax');
+                        // Check if company has reseller for amount calculation
+                        $reseller = RenewalDataMyr::getResellerForCompany($renewal->f_company_id);
+                        if ($reseller && $reseller->f_rate) {
+                            $totalViaResellerAmount += $quotationAmount;
+                        } else {
+                            $totalViaEndUserAmount += $quotationAmount;
+                        }
+                    }
                 }
 
-                $totalAmount += $quotationAmount;
-
-                // Check if company has reseller
+                // Always count companies regardless of lead mapping or quotation existence
                 $reseller = RenewalDataMyr::getResellerForCompany($renewal->f_company_id);
                 if ($reseller && $reseller->f_rate) {
                     $totalViaResellerCount++;
-                    $totalViaResellerAmount += $quotationAmount;
                 } else {
                     $totalViaEndUserCount++;
-                    $totalViaEndUserAmount += $quotationAmount;
                 }
             }
 
@@ -402,11 +407,9 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
                 $endDate = $next60Days;
             }
 
-            // Get renewals with pending_confirmation status that have lead mappings and fall within date range
+            // Get renewals with pending_confirmation status that fall within date range
             $renewals = Renewal::where('renewal_progress', 'pending_confirmation')
-                ->whereNotNull('lead_id')
-                ->whereHas('lead.quotations.items')
-                ->with(['lead.quotations.items'])
+                ->with(['lead.quotations.items']) // Keep the eager loading but don't require it
                 ->get()
                 ->filter(function ($renewal) use ($startDate, $endDate) {
                     // Check if renewal company has expiring licenses within date range
@@ -427,35 +430,42 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
             $totalViaEndUserAmount = 0;
 
             foreach ($renewals as $renewal) {
-                // Check if renewal has lead and lead exists
-                if (!$renewal->lead_id || !$renewal->lead) continue;
+                // Only process quotation data if renewal has lead and lead exists
+                if ($renewal->lead_id && $renewal->lead) {
+                    // Get final renewal quotations for this lead (if they exist)
+                    $renewalQuotations = $renewal->lead->quotations()
+                        ->where('mark_as_final', true)
+                        ->where('sales_type', 'RENEWAL SALES')
+                        ->get();
 
-                // Get final renewal quotations for this lead
-                $renewalQuotations = $renewal->lead->quotations()
-                    ->where('mark_as_final', true)
-                    ->where('sales_type', 'RENEWAL SALES')
-                    ->get();
+                    // If quotations exist, count them and calculate amount
+                    if ($renewalQuotations->isNotEmpty()) {
+                        $totalInvoices += $renewalQuotations->count();
 
-                if ($renewalQuotations->isEmpty()) continue;
+                        // Calculate amount from quotations
+                        $quotationAmount = 0;
+                        foreach ($renewalQuotations as $quotation) {
+                            $quotationAmount += $quotation->items->sum('total_before_tax');
+                        }
 
-                $totalInvoices += $renewalQuotations->count();
+                        $totalAmount += $quotationAmount;
 
-                // Calculate amount from quotations
-                $quotationAmount = 0;
-                foreach ($renewalQuotations as $quotation) {
-                    $quotationAmount += $quotation->items->sum('total_before_tax');
+                        // Check if company has reseller for amount calculation
+                        $reseller = RenewalDataMyr::getResellerForCompany($renewal->f_company_id);
+                        if ($reseller && $reseller->f_rate) {
+                            $totalViaResellerAmount += $quotationAmount;
+                        } else {
+                            $totalViaEndUserAmount += $quotationAmount;
+                        }
+                    }
                 }
 
-                $totalAmount += $quotationAmount;
-
-                // Check if company has reseller
+                // Always count companies regardless of lead mapping or quotation existence
                 $reseller = RenewalDataMyr::getResellerForCompany($renewal->f_company_id);
                 if ($reseller && $reseller->f_rate) {
                     $totalViaResellerCount++;
-                    $totalViaResellerAmount += $quotationAmount;
                 } else {
                     $totalViaEndUserCount++;
-                    $totalViaEndUserAmount += $quotationAmount;
                 }
             }
 
@@ -494,11 +504,9 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
                 $endDate = $next60Days;
             }
 
-            // Get renewals with pending_payment status that have lead mappings and fall within date range
+            // Get renewals with pending_payment status that fall within date range
             $renewals = Renewal::where('renewal_progress', 'pending_payment')
-                ->whereNotNull('lead_id')
-                ->whereHas('lead.quotations.items')
-                ->with(['lead.quotations.items'])
+                ->with(['lead.quotations.items']) // Keep the eager loading but don't require it
                 ->get()
                 ->filter(function ($renewal) use ($startDate, $endDate) {
                     // Check if renewal company has expiring licenses within date range
@@ -519,35 +527,42 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
             $totalViaEndUserAmount = 0;
 
             foreach ($renewals as $renewal) {
-                // Check if renewal has lead and lead exists
-                if (!$renewal->lead_id || !$renewal->lead) continue;
+                // Only process quotation data if renewal has lead and lead exists
+                if ($renewal->lead_id && $renewal->lead) {
+                    // Get final renewal quotations for this lead (if they exist)
+                    $renewalQuotations = $renewal->lead->quotations()
+                        ->where('mark_as_final', true)
+                        ->where('sales_type', 'RENEWAL SALES')
+                        ->get();
 
-                // Get final renewal quotations for this lead
-                $renewalQuotations = $renewal->lead->quotations()
-                    ->where('mark_as_final', true)
-                    ->where('sales_type', 'RENEWAL SALES')
-                    ->get();
+                    // If quotations exist, count them and calculate amount
+                    if ($renewalQuotations->isNotEmpty()) {
+                        $totalInvoices += $renewalQuotations->count();
 
-                if ($renewalQuotations->isEmpty()) continue;
+                        // Calculate amount from quotations
+                        $quotationAmount = 0;
+                        foreach ($renewalQuotations as $quotation) {
+                            $quotationAmount += $quotation->items->sum('total_before_tax');
+                        }
 
-                $totalInvoices += $renewalQuotations->count();
+                        $totalAmount += $quotationAmount;
 
-                // Calculate amount from quotations
-                $quotationAmount = 0;
-                foreach ($renewalQuotations as $quotation) {
-                    $quotationAmount += $quotation->items->sum('total_before_tax');
+                        // Check if company has reseller for amount calculation
+                        $reseller = RenewalDataMyr::getResellerForCompany($renewal->f_company_id);
+                        if ($reseller && $reseller->f_rate) {
+                            $totalViaResellerAmount += $quotationAmount;
+                        } else {
+                            $totalViaEndUserAmount += $quotationAmount;
+                        }
+                    }
                 }
 
-                $totalAmount += $quotationAmount;
-
-                // Check if company has reseller
+                // Always count companies regardless of lead mapping or quotation existence
                 $reseller = RenewalDataMyr::getResellerForCompany($renewal->f_company_id);
                 if ($reseller && $reseller->f_rate) {
                     $totalViaResellerCount++;
-                    $totalViaResellerAmount += $quotationAmount;
                 } else {
                     $totalViaEndUserCount++;
-                    $totalViaEndUserAmount += $quotationAmount;
                 }
             }
 
@@ -586,11 +601,9 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
                 $endDate = $next60Days;
             }
 
-            // Get renewals with completed_renewal status that have lead mappings and fall within date range
+            // Get renewals with completed_renewal status that fall within date range
             $renewals = Renewal::where('renewal_progress', 'completed_renewal')
-                ->whereNotNull('lead_id')
-                ->whereHas('lead.quotations.items')
-                ->with(['lead.quotations.items'])
+                ->with(['lead.quotations.items']) // Keep the eager loading but don't require it
                 ->get()
                 ->filter(function ($renewal) use ($startDate, $endDate) {
                     // Check if renewal company has expiring licenses within date range
@@ -611,35 +624,42 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
             $totalViaEndUserAmount = 0;
 
             foreach ($renewals as $renewal) {
-                // Check if renewal has lead and lead exists
-                if (!$renewal->lead_id || !$renewal->lead) continue;
+                // Only process quotation data if renewal has lead and lead exists
+                if ($renewal->lead_id && $renewal->lead) {
+                    // Get final renewal quotations for this lead (if they exist)
+                    $renewalQuotations = $renewal->lead->quotations()
+                        ->where('mark_as_final', true)
+                        ->where('sales_type', 'RENEWAL SALES')
+                        ->get();
 
-                // Get final renewal quotations for this lead
-                $renewalQuotations = $renewal->lead->quotations()
-                    ->where('mark_as_final', true)
-                    ->where('sales_type', 'RENEWAL SALES')
-                    ->get();
+                    // If quotations exist, count them and calculate amount
+                    if ($renewalQuotations->isNotEmpty()) {
+                        $totalInvoices += $renewalQuotations->count();
 
-                if ($renewalQuotations->isEmpty()) continue;
+                        // Calculate amount from quotations
+                        $quotationAmount = 0;
+                        foreach ($renewalQuotations as $quotation) {
+                            $quotationAmount += $quotation->items->sum('total_before_tax');
+                        }
 
-                $totalInvoices += $renewalQuotations->count();
+                        $totalAmount += $quotationAmount;
 
-                // Calculate amount from quotations
-                $quotationAmount = 0;
-                foreach ($renewalQuotations as $quotation) {
-                    $quotationAmount += $quotation->items->sum('total_before_tax');
+                        // Check if company has reseller for amount calculation
+                        $reseller = RenewalDataMyr::getResellerForCompany($renewal->f_company_id);
+                        if ($reseller && $reseller->f_rate) {
+                            $totalViaResellerAmount += $quotationAmount;
+                        } else {
+                            $totalViaEndUserAmount += $quotationAmount;
+                        }
+                    }
                 }
 
-                $totalAmount += $quotationAmount;
-
-                // Check if company has reseller
+                // Always count companies regardless of lead mapping or quotation existence
                 $reseller = RenewalDataMyr::getResellerForCompany($renewal->f_company_id);
                 if ($reseller && $reseller->f_rate) {
                     $totalViaResellerCount++;
-                    $totalViaResellerAmount += $quotationAmount;
                 } else {
                     $totalViaEndUserCount++;
-                    $totalViaEndUserAmount += $quotationAmount;
                 }
             }
 

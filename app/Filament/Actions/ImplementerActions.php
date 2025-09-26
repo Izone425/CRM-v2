@@ -933,26 +933,84 @@ class ImplementerActions
                         TextInput::make('required_attendees')
                             ->label('Required Attendees')
                             ->default(function (SoftwareHandover $record = null) {
-                                if ($record && !empty($record->implementation_pics) && is_string($record->implementation_pics)) {
+                                if (!$record) return null;
+
+                                // Initialize emails array to store all collected emails
+                                $emails = [];
+
+                                // 1. Get emails from SoftwareHandover implementation_pics
+                                if (!empty($record->implementation_pics) && is_string($record->implementation_pics)) {
                                     try {
                                         $contacts = json_decode($record->implementation_pics, true);
 
                                         // If it's valid JSON array, extract emails
                                         if (is_array($contacts)) {
-                                            $emails = [];
                                             foreach ($contacts as $contact) {
+                                                // Check if email exists and is valid
                                                 if (!empty($contact['pic_email_impl'])) {
-                                                    $emails[] = $contact['pic_email_impl'];
+                                                    $email = trim($contact['pic_email_impl']);
+                                                    if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                                                        // Only include PICs with "Available" status IF status field exists
+                                                        // If no status field, include all valid emails
+                                                        if (!isset($contact['status']) || $contact['status'] === 'Available') {
+                                                            $emails[] = $email;
+                                                        }
+                                                    }
                                                 }
                                             }
-
-                                            return !empty($emails) ? implode(';', $emails) : null;
                                         }
                                     } catch (\Exception $e) {
                                         \Illuminate\Support\Facades\Log::error('Error parsing implementation_pics JSON: ' . $e->getMessage());
                                     }
                                 }
-                                return null;
+
+                                // 2. Get emails from company_detail->additional_pic
+                                if ($record->lead_id) {
+                                    $lead = \App\Models\Lead::find($record->lead_id);
+                                    if ($lead && $lead->companyDetail && !empty($lead->companyDetail->additional_pic)) {
+                                        try {
+                                            $additionalPics = json_decode($lead->companyDetail->additional_pic, true);
+
+                                            if (is_array($additionalPics)) {
+                                                foreach ($additionalPics as $pic) {
+                                                    // Only include contacts with "Available" status (not "Resign")
+                                                    if (
+                                                        !empty($pic['email']) &&
+                                                        isset($pic['status']) &&
+                                                        $pic['status'] !== 'Resign'
+                                                    ) {
+                                                        $email = trim($pic['email']);
+                                                        if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                                                            $emails[] = $email;
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        } catch (\Exception $e) {
+                                            \Illuminate\Support\Facades\Log::error('Error parsing additional_pic JSON: ' . $e->getMessage());
+                                        }
+                                    }
+                                }
+
+                                // 3. Get salesperson email
+                                if ($record->lead_id) {
+                                    $lead = \App\Models\Lead::find($record->lead_id);
+                                    if ($lead && !empty($lead->salesperson)) {
+                                        // Find the user with this salesperson ID
+                                        $salesperson = \App\Models\User::where('id', $lead->salesperson)->first();
+
+                                        if ($salesperson && !empty($salesperson->email)) {
+                                            $email = trim($salesperson->email);
+                                            if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                                                $emails[] = $email;
+                                            }
+                                        }
+                                    }
+                                }
+
+                                // Remove duplicates and return as semicolon-separated string
+                                $uniqueEmails = array_unique($emails);
+                                return !empty($uniqueEmails) ? implode(';', $uniqueEmails) : null;
                             })
                             ->helperText('Separate each email with a semicolon (e.g., email1;email2;email3).'),
 

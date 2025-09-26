@@ -275,6 +275,12 @@ class ARLicenseTabs
             return [];
         }
 
+        // Check if company has reseller
+        $reseller = DB::connection('frontenddb')->table('crm_reseller_link')
+            ->select('reseller_name', 'f_rate')
+            ->where('f_id', (int) $renewal->f_company_id)
+            ->first();
+
         // Get all license details with invoice information
         $licenses = DB::connection('frontenddb')->table('crm_expiring_license')
             ->where('f_company_id', (int) $renewal->f_company_id)
@@ -289,8 +295,37 @@ class ARLicenseTabs
         foreach ($licenses as $license) {
             $invoiceNo = $license->f_invoice_no ?? 'No Invoice';
 
-            // Calculate unit price
-            $unitPrice = $license->f_unit > 0 ? $license->f_total_amount / $license->f_unit : 0;
+            // Get invoice details from crm_invoice_details table
+            $invoiceDetail = DB::connection('frontenddb')->table('crm_invoice_details')
+                ->where('f_invoice_no', $invoiceNo)
+                ->where('f_name', $license->f_name)
+                ->first(['f_quantity', 'f_unit_price', 'f_billing_cycle', 'f_sales_amount', 'f_total_amount', 'f_gst_amount']);
+
+            // Use invoice details if found, otherwise fallback to license data
+            $quantity = $invoiceDetail ? $invoiceDetail->f_quantity : $license->f_unit;
+            $unitPrice = $invoiceDetail ? $invoiceDetail->f_unit_price : 0;
+            $billingCycle = $invoiceDetail ? $invoiceDetail->f_billing_cycle : 'Annual';
+
+            // Calculate final amount based on reseller status
+            if ($reseller && $reseller->f_rate) {
+                // With reseller: f_total_amount - f_gst_amount
+                $finalAmount = $invoiceDetail ? ($invoiceDetail->f_total_amount - $invoiceDetail->f_gst_amount) : $license->f_total_amount;
+
+                // Calculate discount rate: (f_sales_amount - f_total_amount) / f_sales_amount * 100
+                if ($invoiceDetail && $invoiceDetail->f_sales_amount > 0) {
+                    $discountRate = (($invoiceDetail->f_sales_amount - $finalAmount) / $invoiceDetail->f_sales_amount) * 100;
+                    $discountRate = number_format($discountRate, 2);
+                } else {
+                    $discountRate = $reseller->f_rate; // Fallback to reseller rate
+                }
+            } else {
+                // No reseller: f_sales_amount
+                $finalAmount = $invoiceDetail ? $invoiceDetail->f_sales_amount : $license->f_total_amount;
+                $discountRate = '0.00'; // No reseller commission
+            }
+
+            // Calculate unit price after excluding commission (for display purposes)
+            $unitPriceAfterCommission = $quantity > 0 ? $finalAmount / $quantity : 0;
 
             if (!isset($invoiceGroups[$invoiceNo])) {
                 $invoiceGroups[$invoiceNo] = [
@@ -301,16 +336,17 @@ class ARLicenseTabs
 
             $invoiceGroups[$invoiceNo]['products'][] = [
                 'f_name' => $license->f_name,
-                'f_unit' => $license->f_unit,
-                'unit_price' => $unitPrice,
-                'f_total_amount' => $license->f_total_amount,
+                'f_unit' => $quantity, // From crm_invoice_details
+                'unit_price' => $unitPrice, // Unit price after commission exclusion
+                'original_unit_price' => $unitPrice, // Original price from crm_invoice_details
+                'f_total_amount' => $finalAmount, // Show net amount after commission deduction
                 'f_start_date' => $license->f_start_date,
                 'f_expiry_date' => $license->f_expiry_date,
-                'billing_cycle' => 'Annual', // Default value, adjust as needed
-                'discount' => '0.00' // Default value, adjust as needed
+                'billing_cycle' => $billingCycle, // From crm_invoice_details
+                'discount' => $discountRate // Show reseller f_rate here
             ];
 
-            $invoiceGroups[$invoiceNo]['total_amount'] += $license->f_total_amount;
+            $invoiceGroups[$invoiceNo]['total_amount'] += $finalAmount;
         }
 
         return $invoiceGroups;

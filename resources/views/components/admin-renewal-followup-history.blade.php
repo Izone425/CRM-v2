@@ -69,27 +69,27 @@
         @if ($followUps->count() > 0)
             <div class="w-full overflow-hidden bg-white border border-gray-200 rounded-lg shadow">
                 <div class="overflow-x-auto">
-                    <table class="w-full table-auto border-collapse border border-gray-200">
+                    <table class="w-full border border-collapse border-gray-200 table-auto">
                         <thead class="bg-gray-50">
                             <tr>
                                 <th scope="col"
-                                    class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-r border-gray-200">
+                                    class="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase border-b border-r border-gray-200">
                                     No
                                 </th>
                                 <th scope="col"
-                                    class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-r border-gray-200">
+                                    class="px-6 py-3 text-xs font-medium tracking-wider text-center text-gray-500 uppercase border-b border-r border-gray-200">
                                     Follow Up Date
                                 </th>
                                 <th scope="col"
-                                    class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-r border-gray-200">
+                                    class="px-6 py-3 text-xs font-medium tracking-wider text-center text-gray-500 uppercase border-b border-r border-gray-200">
                                     Admin Renewal
                                 </th>
                                 <th scope="col"
-                                    class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-r border-gray-200">
+                                    class="px-6 py-3 text-xs font-medium tracking-wider text-center text-gray-500 uppercase border-b border-r border-gray-200">
                                     Follow Up Remark
                                 </th>
                                 <th scope="col"
-                                    class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200">
+                                    class="px-6 py-3 text-xs font-medium tracking-wider text-center text-gray-500 uppercase border-b border-gray-200">
                                     Next Follow Up Date
                                 </th>
                             </tr>
@@ -106,10 +106,10 @@
                                         ->where('email_data', 'like', '%"implementer_log_id":' . $followUp->id . '%')
                                         ->get();
                                 @endphp
-                                <tr class="hover:bg-gray-50 border-b border-gray-200">
+                                <tr class="border-b border-gray-200 hover:bg-gray-50">
                                     <!-- FU Column -->
                                     <td
-                                        class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 border-r border-gray-200">
+                                        class="px-6 py-4 text-sm font-medium text-gray-900 border-r border-gray-200 whitespace-nowrap">
                                         <div class="flex flex-col">
                                             <span class="font-bold text-red-600">{{ $totalFollowUps - $index }}</span>
                                             @if ($followUp->manual_follow_up_count > 0)
@@ -123,7 +123,7 @@
 
                                     <!-- Added Date Column -->
                                     <td
-                                        class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-r border-gray-200">
+                                        class="px-6 py-4 text-sm text-gray-900 border-r border-gray-200 whitespace-nowrap">
                                         <div class="flex flex-col">
                                             <span
                                                 class="font-medium">{{ $followUp->created_at->format('d M Y') }}</span>
@@ -134,7 +134,7 @@
 
                                     <!-- Admin Renewal Column -->
                                     <td
-                                        class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-r border-gray-200">
+                                        class="px-6 py-4 text-sm text-gray-900 border-r border-gray-200 whitespace-nowrap">
                                         <div class="flex flex-col">
                                             <span
                                                 class="font-medium">{{ $followUp->causer ? $followUp->causer->name : 'CRM System' }}</span>
@@ -162,14 +162,14 @@
                                                 $remark = strtoupper($remark);
                                             @endphp
 
-                                            <div class="prose prose-sm max-w-none">
+                                            <div class="prose-sm prose max-w-none">
                                                 {!! $remark !!}
                                             </div>
                                         </div>
                                     </td>
 
                                     <!-- Next Follow Up Date Column -->
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                    <td class="px-6 py-4 text-sm text-gray-900 whitespace-nowrap">
                                         @if ($followUpDate)
                                             <span class="font-medium text-orange-600">
                                                 {{ \Carbon\Carbon::parse($followUpDate)->format('d M Y') }}
