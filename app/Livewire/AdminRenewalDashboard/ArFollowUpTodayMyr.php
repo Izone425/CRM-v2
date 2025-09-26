@@ -96,8 +96,7 @@ class ArFollowUpTodayMyr extends Component implements HasForms, HasTable
             ->where('follow_up_counter', true)
             ->where('mapping_status', 'completed_mapping')
             ->whereIn('renewal_progress', ['new', 'pending_confirmation', 'pending_payment'])
-            ->selectRaw('*, DATEDIFF(NOW(), follow_up_date) as pending_days')
-            ->orderByRaw('(SELECT MIN(f_expiry_date) FROM frontenddb.crm_expiring_license WHERE f_company_id = renewals.f_company_id AND f_currency = "MYR" AND f_expiry_date >= CURDATE()) ASC');
+            ->selectRaw('*, DATEDIFF(NOW(), follow_up_date) as pending_days');
 
         return $query;
     }
@@ -120,8 +119,6 @@ class ArFollowUpTodayMyr extends Component implements HasForms, HasTable
                     })
                     ->placeholder('All Admin Renewals')
                     ->multiple(),
-
-                SortFilter::make("sort_by"),
             ])
             ->columns([
                 TextColumn::make('admin_renewal')
