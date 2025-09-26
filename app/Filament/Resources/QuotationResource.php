@@ -186,7 +186,7 @@ class QuotationResource extends Resource
                             }),
 
                         Select::make('quotation_type')
-                            ->label('Type')
+                            ->label('Invoice Type')
                             ->required()
                             ->placeholder('Select a type')
                             ->options([

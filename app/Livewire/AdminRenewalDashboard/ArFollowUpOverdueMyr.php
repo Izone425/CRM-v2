@@ -96,8 +96,8 @@ class ArFollowUpOverdueMyr extends Component implements HasForms, HasTable
             ->where('follow_up_counter', true)
             ->where('mapping_status', 'completed_mapping')
             ->whereIn('renewal_progress', ['new', 'pending_confirmation', 'pending_payment'])
-            ->selectRaw('*, DATEDIFF(NOW(), follow_up_date) as pending_days')
-            ->orderByRaw('(SELECT MIN(f_expiry_date) FROM frontenddb.crm_expiring_license WHERE f_company_id = renewals.f_company_id AND f_currency = "MYR" AND f_expiry_date >= CURDATE()) ASC');
+            ->orderBy('created_at', 'asc')
+            ->selectRaw('*, DATEDIFF(NOW(), follow_up_date) as pending_days');
 
         return $query;
     }
@@ -107,6 +107,7 @@ class ArFollowUpOverdueMyr extends Component implements HasForms, HasTable
         return $table
             ->poll('300s')
             ->query($this->getOverdueRenewals())
+            ->defaultSort('created_at', 'asc')
             ->emptyState(fn () => view('components.empty-state-question'))
             ->defaultPaginationPageOption(5)
             ->paginated([5])
@@ -131,8 +132,6 @@ class ArFollowUpOverdueMyr extends Component implements HasForms, HasTable
                     })
                     ->placeholder('All Salesperson')
                     ->multiple(),
-
-                SortFilter::make("sort_by"),
             ])
             ->columns([
                 TextColumn::make('company_name')
