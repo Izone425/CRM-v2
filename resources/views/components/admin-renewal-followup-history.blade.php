@@ -77,19 +77,19 @@
                                     No
                                 </th>
                                 <th scope="col"
-                                    class="px-6 py-3 text-xs font-medium tracking-wider text-center text-gray-500 uppercase border-b border-r border-gray-200">
+                                    class="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase border-b border-r border-gray-200">
                                     Follow Up Date
                                 </th>
                                 <th scope="col"
-                                    class="px-6 py-3 text-xs font-medium tracking-wider text-center text-gray-500 uppercase border-b border-r border-gray-200">
+                                    class="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase border-b border-r border-gray-200">
                                     Admin Renewal
                                 </th>
                                 <th scope="col"
-                                    class="px-6 py-3 text-xs font-medium tracking-wider text-center text-gray-500 uppercase border-b border-r border-gray-200">
+                                    class="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase border-b border-r border-gray-200">
                                     Follow Up Remark
                                 </th>
                                 <th scope="col"
-                                    class="px-6 py-3 text-xs font-medium tracking-wider text-center text-gray-500 uppercase border-b border-gray-200">
+                                    class="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase border-b border-gray-200">
                                     Next Follow Up Date
                                 </th>
                             </tr>
