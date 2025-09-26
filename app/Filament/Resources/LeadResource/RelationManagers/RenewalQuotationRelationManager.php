@@ -111,7 +111,12 @@ class RenewalQuotationRelationManager extends QuotationRelationManager
                             Notification::make()
                                 ->danger()
                                 ->title('Incomplete Company Details')
-                                ->body('Please complete the company name and contact number before creating a quotation.')
+                                ->body('Rules: Company > Person in Charge Details<br><br>
+                                    Name:<br>
+                                    Contact Number:<br>
+                                    Email Address:<br>
+                                    Position:<br><br>
+                                    Must complete first before admin renewal create the quotation.')
                                 ->send();
 
                             return;
@@ -389,7 +394,7 @@ class RenewalQuotationRelationManager extends QuotationRelationManager
                         ->label('Preview')
                         ->icon('heroicon-o-arrow-down-on-square')
                         ->color('success')
-                        ->url(fn(Quotation $quotation) => route('pdf.print-quotation-v2', $quotation))
+                        ->url(fn(Quotation $quotation) => route('pdf.print-quotation-v2', ['quotation' => encrypt($quotation->id)]))
                         ->openUrlInNewTab(),
                     Tables\Actions\Action::make('Accept')
                         ->icon('heroicon-o-clipboard-document-check')

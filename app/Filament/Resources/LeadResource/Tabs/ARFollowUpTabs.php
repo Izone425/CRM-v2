@@ -6,6 +6,8 @@ use App\Models\AdminRenewalLogs;
 use App\Models\EmailTemplate;
 use App\Models\Lead;
 use App\Models\Renewal;
+use App\Models\Quotation;
+use App\Enums\QuotationStatusEnum;
 use Carbon\Carbon;
 use Filament\Forms\Components\Actions\Action;
 use Filament\Forms\Components\Card;
@@ -24,6 +26,7 @@ use Illuminate\Mail\Message;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class ARFollowUpTabs
@@ -171,6 +174,59 @@ class ARFollowUpTabs
                                                 ->required(),
                                         ]),
 
+                                    Section::make('Quotation Attachments')
+                                        ->schema([
+                                            Grid::make(2)
+                                                ->schema([
+                                                    Select::make('quotation_product')
+                                                        ->label('Product Quotations')
+                                                        ->options(function ($record) {
+                                                            if (!$record) {
+                                                                return [];
+                                                            }
+
+                                                            return Quotation::where('lead_id', $record->id)
+                                                                ->where('quotation_type', 'product')
+                                                                ->where('sales_type', 'RENEWAL SALES')
+                                                                ->get()
+                                                                ->mapWithKeys(function ($quotation) {
+                                                                    $label = $quotation->quotation_reference_no ?? 'No Reference - ID: ' . $quotation->id;
+                                                                    return [$quotation->id => $label];
+                                                                })
+                                                                ->toArray();
+                                                        })
+                                                        ->multiple()
+                                                        ->searchable()
+                                                        ->preload()
+                                                        ->helperText('Select product quotations to attach to the email'),
+
+                                                    Select::make('quotation_hrdf')
+                                                        ->label('HRDF Quotations')
+                                                        ->options(function ($record) {
+                                                            if (!$record) {
+                                                                return [];
+                                                            }
+
+                                                            return Quotation::where('lead_id', $record->id)
+                                                                ->where('quotation_type', 'hrdf')
+                                                                ->where('sales_type', 'RENEWAL SALES')
+                                                                ->get()
+                                                                ->mapWithKeys(function ($quotation) {
+                                                                    $label = $quotation->quotation_reference_no ?? 'No Reference - ID: ' . $quotation->id;
+                                                                    return [$quotation->id => $label];
+                                                                })
+                                                                ->toArray();
+                                                        })
+                                                        ->multiple()
+                                                        ->searchable()
+                                                        ->preload()
+                                                        ->helperText('Select HRDF quotations to attach to the email'),
+                                                ])
+                                        ])
+                                        ->visible(fn ($get) => $get('send_email'))
+                                        ->collapsible()
+                                        ->collapsed(),
+
                                     Fieldset::make('Email Details')
                                         ->schema([
                                             TextInput::make('required_attendees')
@@ -220,7 +276,7 @@ class ARFollowUpTabs
                                             Select::make('email_template')
                                                 ->label('Email Template')
                                                 ->options(function () {
-                                                    return EmailTemplate::where('type', 'admin_renewal')
+                                                    return EmailTemplate::whereIn('type', ['admin_renewal', 'admin_renewal_v1', 'admin_renewal_v2'])
                                                         ->pluck('name', 'id')
                                                         ->toArray();
                                                 })
@@ -235,33 +291,6 @@ class ARFollowUpTabs
                                                             $set('email_content', $template->content);
                                                         }
                                                     }
-                                                })
-                                                ->createOptionForm([
-                                                    TextInput::make('name')
-                                                        ->label('Template Name')
-                                                        ->required(),
-                                                    TextInput::make('subject')
-                                                        ->label('Email Subject')
-                                                        ->required(),
-                                                    RichEditor::make('content')
-                                                        ->label('Email Content')
-                                                        ->disableToolbarButtons([
-                                                            'attachFiles',
-                                                        ])
-                                                        ->required(),
-                                                ])
-                                                ->createOptionAction(function (Action $action) {
-                                                    $action->modalHeading('Create Email Template')
-                                                        ->modalWidth('xl');
-                                                })
-                                                ->createOptionUsing(function (array $data) {
-                                                    return EmailTemplate::create([
-                                                        'name' => $data['name'],
-                                                        'subject' => $data['subject'],
-                                                        'content' => $data['content'],
-                                                        'type' => 'admin_renewal',
-                                                        'created_by' => auth()->id(),
-                                                    ])->id;
                                                 }),
 
                                             TextInput::make('email_subject')
@@ -419,6 +448,8 @@ class ARFollowUpTabs
                                                         'admin_renewal_log_id' => $adminRenewalLog->id,
                                                         'template_name' => $templateName,
                                                         'scheduler_type' => $schedulerType,
+                                                        'quotation_product' => $data['quotation_product'] ?? [],
+                                                        'quotation_hrdf' => $data['quotation_hrdf'] ?? [],
                                                     ];
 
                                                     // Handle different scheduler types
@@ -499,7 +530,6 @@ class ARFollowUpTabs
 
             if (! $adminRenewalLog) {
                 Log::error("Admin renewal log not found for ID: {$emailData['admin_renewal_log_id']}");
-
                 return;
             }
 
@@ -508,7 +538,6 @@ class ARFollowUpTabs
 
             if (! $renewal) {
                 Log::error("Renewal not found for subject_id: {$adminRenewalLog->subject_id}");
-
                 return;
             }
 
@@ -541,8 +570,67 @@ class ARFollowUpTabs
                 }
             }
 
-            // Send the email with CC recipients
-            Mail::html($emailData['content'], function (Message $message) use ($emailData, $ccRecipients) {
+            // Add quotation PDF download links to email content
+            $quotationIds = array_merge(
+                $emailData['quotation_product'] ?? [],
+                $emailData['quotation_hrdf'] ?? []
+            );
+
+            $emailContent = $emailData['content'];
+
+            if (!empty($quotationIds)) {
+                $quotations = Quotation::whereIn('id', $quotationIds)->get();
+
+                if ($quotations->count() > 0) {
+                    $pdfLinks = '<br><br><div style="border: 1px solid #e5e5e5; padding: 15px; border-radius: 5px; background-color: #f9f9f9;">';
+                    $pdfLinks .= '<h4 style="margin: 0 0 10px 0; color: #333;">Quotation Documents</h4>';
+                    $pdfLinks .= '<p style="margin: 0 0 10px 0; color: #666; font-size: 14px;">Click on the links below to download the quotation PDFs:</p>';
+
+                    foreach ($quotations as $quotation) {
+                        // Encrypt the quotation ID for security
+                        $encryptedId = encrypt($quotation->id);
+                        $pdfUrl = route('pdf.print-quotation-v2', ['quotation' => $encryptedId]);
+
+                        $refNo = $quotation->pi_reference_no ?? $quotation->quotation_reference_no ?? 'Quotation ' . $quotation->id;
+                        $quotationType = ucfirst($quotation->quotation_type ?? 'Unknown');
+
+                        // Get company name for display
+                        $companyName = '';
+                        if (!empty($quotation->subsidiary_id)) {
+                            $subsidiary = \App\Models\Subsidiary::find($quotation->subsidiary_id);
+                            $companyName = $subsidiary ? $subsidiary->company_name : 'Unknown Company';
+                        } else {
+                            $companyName = $quotation->lead->companyDetail->company_name ?? 'Unknown Company';
+                        }
+
+                        $pdfLinks .= '<div style="margin-bottom: 8px;">';
+                        $pdfLinks .= '<a href="' . $pdfUrl . '" target="_blank" style="color: #0066cc; text-decoration: none; font-weight: 500;">';
+                        $pdfLinks .= '🔗 ' . $companyName . ' (' . $quotationType . ' Quotation)';
+                        $pdfLinks .= '</a>';
+                        $pdfLinks .= '</div>';
+
+                        Log::info("Added PDF download link for quotation ID: {$quotation->id}", [
+                            'reference' => $refNo,
+                            'company' => $companyName,
+                            'url' => $pdfUrl,
+                            'encrypted_id' => $encryptedId
+                        ]);
+                    }
+
+                    $pdfLinks .= '</div>';
+
+                    // Add the PDF links section to the email content
+                    $emailContent = $emailContent . $pdfLinks;
+
+                    Log::info("Added quotation PDF download links to email", [
+                        'quotation_count' => $quotations->count(),
+                        'quotation_ids' => $quotationIds
+                    ]);
+                }
+            }
+
+            // Send the email with CC recipients (no file attachments)
+            Mail::html($emailContent, function (Message $message) use ($emailData, $ccRecipients) {
                 $message->to($emailData['recipients'])
                     ->subject($emailData['subject'])
                     ->from($emailData['sender_email'], $emailData['sender_name']);
@@ -563,6 +651,8 @@ class ARFollowUpTabs
                 'subject' => $emailData['subject'],
                 'admin_renewal_log_id' => $emailData['admin_renewal_log_id'],
                 'template' => $emailData['template_name'] ?? 'Unknown',
+                'quotation_links_count' => !empty($quotationIds) ? count($quotationIds) : 0,
+                'quotation_ids' => $quotationIds,
             ]);
         } catch (\Exception $e) {
             Log::error('Error in sendEmail method: '.$e->getMessage(), [
@@ -595,7 +685,6 @@ class ARFollowUpTabs
             return $earliestExpiry;
         } catch (\Exception $e) {
             Log::error("Error fetching earliest expiry date for company {$companyId}: ".$e->getMessage());
-
             return null;
         }
     }

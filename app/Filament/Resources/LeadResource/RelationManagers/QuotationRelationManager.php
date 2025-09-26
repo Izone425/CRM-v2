@@ -378,7 +378,7 @@ class QuotationRelationManager extends RelationManager
                         ->label('Preview')
                         ->icon('heroicon-o-arrow-down-on-square')
                         ->color('success')
-                        ->url(fn(Quotation $quotation) => route('pdf.print-quotation-v2', $quotation))
+                        ->url(fn(Quotation $quotation) => route('pdf.print-quotation-v2', ['quotation' => encrypt($quotation->id)]))
                         ->openUrlInNewTab(),
                     Tables\Actions\Action::make('Accept')
                         ->icon('heroicon-o-clipboard-document-check')

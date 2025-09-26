@@ -9,7 +9,8 @@
     ];
 @endphp
 
-<div style="display: grid; gap: 24px;" class="grid gap-6">
+<div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 24px;"
+     class="grid grid-cols-4 gap-6">
 
     @foreach ($personDetails as $item)
         <div style="--col-span-default: span 1 / span 1;" class="col-[--col-span-default]">

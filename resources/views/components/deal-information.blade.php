@@ -40,7 +40,7 @@
                 RM {{ number_format($newSalesDealAmount, 2) }}
                 @if ($hasNewSalesQuotations)
                     @foreach ($newSalesQuotations as $quotation)
-                        <a href="{{ route('pdf.print-quotation-v2', $quotation) }}"
+                        <a href="{{ route('pdf.print-quotation-v2', ['quotation' => encrypt($quotation->id)]) }}"
                            target="_blank"
                            class="underline text-primary-600">
                             <span class="ml-1 text-xs text-gray-500">
@@ -66,7 +66,7 @@
             <div class="text-sm text-gray-900 dark:text-white">
                 RM {{ number_format($renewalDealAmount, 2) }}
                 @foreach ($renewalQuotations as $quotation)
-                    <a href="{{ route('pdf.print-quotation-v2', $quotation) }}"
+                    <a href="{{ route('pdf.print-quotation-v2', ['quotation' => encrypt($quotation->id)]) }}"
                        target="_blank"
                        class="underline text-primary-600">
                         <span class="ml-1 text-xs text-gray-500">

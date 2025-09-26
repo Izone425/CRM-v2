@@ -40,7 +40,7 @@
             <div class="space-y-1 text-sm text-gray-900 dark:text-white">
                 @forelse ($finalQuotations as $quotation)
                     <div>
-                        <a href="{{ route('pdf.print-quotation-v2', $quotation) }}"
+                        <a href="{{ route('pdf.print-quotation-v2', ['quotation' => encrypt($quotation->id)]) }}"
                            target="_blank"
                            class="underline text-primary-600">
                             {{ $quotation->quotation_reference_no }}
