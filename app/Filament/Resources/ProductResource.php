@@ -67,6 +67,10 @@ class ProductResource extends Resource
                         'installation' => 'Installation',
                         'door_access_package' => 'Door Access Package',
                         'door_access_accesories' => 'Door Access Accesories',
+                        'new_sales' => 'New Sales',
+                        'new_sales_addon' => 'New Sales Add On',
+                        'renewal_sales' => 'Renewal Sales',
+                        'renewal_sales_addon' => 'Renewal Sales Add On',
                     ]),
                 RichEditor::make('description'),
                 TextInput::make('unit_price')

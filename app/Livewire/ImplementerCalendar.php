@@ -1528,7 +1528,15 @@ class ImplementerCalendar extends Component
 
             $emails = [];
 
-            // 1. Get emails from SoftwareHandover implementation_pics
+            // 1. Get company email from company_details table
+            if ($companyDetail && !empty($companyDetail->email)) {
+                $email = trim($companyDetail->email);
+                if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                    $emails[] = $email;
+                }
+            }
+
+            // 2. Get emails from SoftwareHandover implementation_pics
             $softwareHandover = \App\Models\SoftwareHandover::where('lead_id', $companyDetail->lead_id)->latest()->first();
 
             if ($softwareHandover && !empty($softwareHandover->implementation_pics)) {
@@ -1561,7 +1569,7 @@ class ImplementerCalendar extends Component
                 }
             }
 
-            // 2. Get emails from company_details additional_pic field
+            // 3. Get emails from company_details additional_pic field
             if ($companyDetail && !empty($companyDetail->additional_pic)) {
                 try {
                     $additionalPics = $companyDetail->additional_pic;
@@ -1576,7 +1584,7 @@ class ImplementerCalendar extends Component
                             // Only include PICs with "Available" status
                             if (
                                 isset($pic['status']) &&
-                                $pic['status'] === 'Available' &&
+                                $pic['status'] !== 'Resign' &&
                                 isset($pic['email']) &&
                                 !empty($pic['email'])
                             ) {
@@ -1592,7 +1600,7 @@ class ImplementerCalendar extends Component
                 }
             }
 
-            // 3. Get salesperson email
+            // 4. Get salesperson email
             if ($companyDetail && $companyDetail->lead_id) {
                 try {
                     $lead = \App\Models\Lead::find($companyDetail->lead_id);
@@ -1622,15 +1630,29 @@ class ImplementerCalendar extends Component
             if (!$this->isLoadingAttendees) {
                 if (empty($emails)) {
                     Notification::make()
-                        ->title('No implementation PICs found')
+                        ->title('No attendees found')
                         ->warning()
                         ->body('Please enter attendees manually')
                         ->send();
                 } else {
+                    $emailSources = [];
+                    if ($companyDetail && !empty($companyDetail->email)) {
+                        $emailSources[] = 'Company Email';
+                    }
+                    if (!empty($implementationPics)) {
+                        $emailSources[] = 'Implementation PICs';
+                    }
+                    if (!empty($additionalPics)) {
+                        $emailSources[] = 'Company PICs';
+                    }
+                    if ($lead && !empty($lead->salesperson)) {
+                        $emailSources[] = 'Salesperson';
+                    }
+
                     Notification::make()
                         ->title('Attendees loaded successfully')
                         ->success()
-                        ->body('Found ' . count($emails) . ' email addresses from Implementation PICs and Available Company PICs')
+                        ->body('Found ' . count($emails) . ' email addresses from: ' . implode(', ', $emailSources))
                         ->send();
                 }
             }

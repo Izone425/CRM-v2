@@ -52,6 +52,18 @@ class ManageProducts extends ManageRecords
             'door_access_accesories' => Tab::make('door_access_accesories')
                         ->label('Door Access Accesories')
                         ->modifyQueryUsing(fn(Builder $query) => $query->where('solution','door_access_accesories')),
+            'new_sales' => Tab::make('new_sales')
+                        ->label('New Sales')
+                        ->modifyQueryUsing(fn(Builder $query) => $query->where('solution','new_sales')),
+            'new_sales_addon' => Tab::make('new_sales_addon')
+                        ->label('New Sales Add On')
+                        ->modifyQueryUsing(fn(Builder $query) => $query->where('solution','new_sales_addon')),
+            'renewal_sales' => Tab::make('renewal_sales')
+                        ->label('Renewal Sales')
+                        ->modifyQueryUsing(fn(Builder $query) => $query->where('solution','renewal_sales')),
+            'renewal_sales_addon' => Tab::make('renewal_sales_addon')
+                        ->label('Renewal Sales Add On')
+                        ->modifyQueryUsing(fn(Builder $query) => $query->where('solution','renewal_sales_addon')),
         ];
     }
 }
