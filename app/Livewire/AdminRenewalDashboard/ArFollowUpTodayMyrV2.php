@@ -279,11 +279,6 @@ class ArFollowUpTodayMyrV2 extends Component implements HasForms, HasTable
                             AdminRenewalActions::processFollowUpWithEmail($record, $data);
                             $this->dispatch('refresh-admin-renewal-tables');
                         }),
-                    AdminRenewalActions::stopAdminRenewalFollowUp()
-                        ->action(function (Renewal $record, array $data) {
-                            AdminRenewalActions::processStopFollowUp($record, $data);
-                            $this->dispatch('refresh-admin-renewal-tables');
-                        }),
                 ])
                 ->button()
                 ->color('warning') // Orange color for MYR
