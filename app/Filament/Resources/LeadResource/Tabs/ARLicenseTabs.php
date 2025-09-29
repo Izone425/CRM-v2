@@ -50,14 +50,13 @@ class ARLicenseTabs
                 .license-summary-table td,
                 .invoice-details-table th,
                 .invoice-details-table td {
-                    padding: 12px 16px;
+                    padding: 12px 8px;
                     text-align: center;
                     border: 1px solid #e5e7eb;
+                    vertical-align: middle;
                 }
 
-                .license-summary-table th,
-                .invoice-details-table th {
-                    background-color: #f9fafb;
+                .license-summary-table th {
                     font-weight: 600;
                     color: #374151;
                     font-size: 14px;
@@ -65,8 +64,15 @@ class ARLicenseTabs
 
                 .license-summary-table td {
                     font-size: 18px;
-                    font-weight: 500;
+                    font-weight: 600;
                     color: #1f2937;
+                }
+
+                .invoice-details-table th {
+                    background-color: #f9fafb !important;
+                    font-weight: 600;
+                    color: #374151;
+                    font-size: 14px;
                 }
 
                 .invoice-details-table td {
@@ -74,13 +80,59 @@ class ARLicenseTabs
                     color: #1f2937;
                 }
 
-                .license-summary-table .attendance { background-color: #fef3c7; }
-                .license-summary-table .leave { background-color: #d1fae5; }
-                .license-summary-table .claim { background-color: #dbeafe; }
-                .license-summary-table .payroll { background-color: #fce7f3; }
+                /* Module column widths - 3/4 of each pair */
+                .module-col {
+                    width: 18.75% !important; /* 3/4 of 25% */
+                    text-align: left !important;
+                    padding-left: 12px !important;
+                }
+
+                /* Headcount column widths - 1/4 of each pair */
+                .headcount-col {
+                    width: 6.25% !important; /* 1/4 of 25% */
+                    text-align: center !important;
+                    font-weight: bold !important;
+                }
+
+                /* Color themes for each module - using !important to override */
+                .attendance-module {
+                    background-color: #fef3c7 !important;
+                    color: #92400e !important;
+                }
+                .attendance-count {
+                    background-color: #f59e0b !important;
+                    color: white !important;
+                }
+
+                .leave-module {
+                    background-color: #d1fae5 !important;
+                    color: #065f46 !important;
+                }
+                .leave-count {
+                    background-color: #10b981 !important;
+                    color: white !important;
+                }
+
+                .claim-module {
+                    background-color: #dbeafe !important;
+                    color: #1e40af !important;
+                }
+                .claim-count {
+                    background-color: #3b82f6 !important;
+                    color: white !important;
+                }
+
+                .payroll-module {
+                    background-color: #fce7f3 !important;
+                    color: #be185d !important;
+                }
+                .payroll-count {
+                    background-color: #ec4899 !important;
+                    color: white !important;
+                }
 
                 .invoice-header {
-                    background-color: #f3f4f6;
+                    background-color: #f3f4f6 !important;
                     font-weight: 700;
                     color: #1f2937;
                     font-size: 15px;
@@ -99,10 +151,10 @@ class ARLicenseTabs
                     margin-bottom: 8px;
                 }
 
-                .product-row-ta { background-color: rgba(254, 243, 199, 0.3); }
-                .product-row-leave { background-color: rgba(209, 250, 229, 0.3); }
-                .product-row-claim { background-color: rgba(219, 234, 254, 0.3); }
-                .product-row-payroll { background-color: rgba(252, 231, 243, 0.3); }
+                .product-row-ta { background-color: rgba(254, 243, 199, 0.3) !important; }
+                .product-row-leave { background-color: rgba(209, 250, 229, 0.3) !important; }
+                .product-row-claim { background-color: rgba(219, 234, 254, 0.3) !important; }
+                .product-row-payroll { background-color: rgba(252, 231, 243, 0.3) !important; }
 
                 .text-right { text-align: right; }
                 .text-left { text-align: left; }
@@ -113,24 +165,20 @@ class ARLicenseTabs
                 <table>
                     <thead>
                         <tr>
-                            <th class="attendance">Attendance</th>
-                            <th class="leave">Leave</th>
-                            <th class="claim">Claim</th>
-                            <th class="payroll">Payroll</th>
+                            <th class="module-col attendance-module">ATTENDANCE</th>
+                            <th class="headcount-col attendance-count">' . $licenseData['attendance'] . '</th>
+                            <th class="module-col leave-module">LEAVE</th>
+                            <th class="headcount-col leave-count">' . $licenseData['leave'] . '</th>
+                            <th class="module-col claim-module">CLAIM</th>
+                            <th class="headcount-col claim-count">' . $licenseData['claim'] . '</th>
+                            <th class="module-col payroll-module">PAYROLL</th>
+                            <th class="headcount-col payroll-count">' . $licenseData['payroll'] . '</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        <tr>
-                            <td class="attendance">' . $licenseData['attendance'] . '</td>
-                            <td class="leave">' . $licenseData['leave'] . '</td>
-                            <td class="claim">' . $licenseData['claim'] . '</td>
-                            <td class="payroll">' . $licenseData['payroll'] . '</td>
-                        </tr>
-                    </tbody>
                 </table>
             </div>';
 
-        // Invoice Details Tables
+        // Invoice Details Tables (keeping the existing structure)
         if (!empty($invoiceDetails)) {
             $html .= '<div class="invoice-details-container">';
 
@@ -191,6 +239,7 @@ class ARLicenseTabs
         return new HtmlString($html);
     }
 
+    // ...existing getLicenseData, getInvoiceDetails, and getProductType methods remain the same...
     private static function getLicenseData($leadId): array
     {
         // First, get f_company_id from renewals table using lead_id

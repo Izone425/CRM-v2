@@ -163,7 +163,7 @@ class ArFollowUpUpcomingUsd extends Component implements HasForms, HasTable
                     ->html(),
 
                 TextColumn::make('pending_days')
-                    ->label('Pending Days')
+                    ->label('Counting Days')
                     ->formatStateUsing(function ($state, $record) {
                         $daysLeft = $this->getWeekdayCount(now(), $record->follow_up_date);
 
