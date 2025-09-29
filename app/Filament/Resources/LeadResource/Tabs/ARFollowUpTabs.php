@@ -394,10 +394,9 @@ class ARFollowUpTabs
                                                 // Add signature to email content if provided
                                                 if (isset($data['admin_name']) && ! empty($data['admin_name'])) {
                                                     $signature = 'Regards,<br>';
-                                                    $signature .= "{$data['admin_name']}<br>";
-                                                    $signature .= "{$data['admin_designation']}<br>";
-                                                    $signature .= "{$data['admin_company']}<br>";
-                                                    $signature .= "Phone: {$data['admin_phone']}<br>";
+                                                    $signature .= "{$data['admin_name']} | {$data['admin_designation']}<br>";
+                                                    $signature .= "Office: 03-8070 9933 (Ext 307) | Mobile: 013-677 0597<br>";
+                                                    $signature .= "Email: renewal.timetec.hr@timeteccloud.com<br>";
 
                                                     if (! empty($data['admin_email'])) {
                                                         $signature .= "Email: {$data['admin_email']}<br>";
@@ -409,7 +408,7 @@ class ARFollowUpTabs
                                                 // Replace placeholders with actual data
                                                 $placeholders = [
                                                     '{customer_name}' => $record->contact_name ?? '',
-                                                    '{company_name}' => $renewal->company_name ?? $record->companyDetail->company_name,
+                                                    '{company_name}' => strtoupper($renewal->company_name ?? $record->companyDetail->company_name),
                                                     '{admin_name}' => $data['admin_name'] ?? auth()->user()->name ?? '',
                                                     '{follow_up_date}' => $data['follow_up_date'] ? date('d M Y', strtotime($data['follow_up_date'])) : '',
                                                 ];
@@ -720,10 +719,7 @@ class ARFollowUpTabs
         $refNo = $quotation->pi_reference_no ?? $quotation->quotation_reference_no ?? 'Quotation-' . $quotation->id;
         $quotationType = ucfirst($quotation->quotation_type ?? 'Unknown');
 
-        // Clean filename for filesystem
-        $cleanRefNo = preg_replace('/[^A-Za-z0-9\-_]/', '_', $refNo);
-
-        return $cleanRefNo . '_' . $quotationType . '_Quotation.pdf';
+        return $quotationType . '_Quotation.pdf';
     }
 
     protected static function getEarliestExpiryDate($companyId)

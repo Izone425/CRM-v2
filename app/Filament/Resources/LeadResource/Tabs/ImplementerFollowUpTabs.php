@@ -183,7 +183,8 @@ class ImplementerFollowUpTabs
                                             Select::make('email_template')
                                                 ->label('Email Template')
                                                 ->options(function () {
-                                                    return EmailTemplate::pluck('name', 'id')
+                                                    return EmailTemplate::whereIn('type', ['implementer'])
+                                                        ->pluck('name', 'id')
                                                         ->toArray();
                                                 })
                                                 ->searchable()
@@ -197,33 +198,6 @@ class ImplementerFollowUpTabs
                                                             $set('email_content', $template->content);
                                                         }
                                                     }
-                                                })
-                                                ->createOptionForm([
-                                                    TextInput::make('name')
-                                                        ->label('Template Name')
-                                                        ->required(),
-                                                    TextInput::make('subject')
-                                                        ->label('Email Subject')
-                                                        ->required(),
-                                                    RichEditor::make('content')
-                                                        ->label('Email Content')
-                                                        ->disableToolbarButtons([
-                                                            'attachFiles',
-                                                        ])
-                                                        ->required(),
-                                                ])
-                                                ->createOptionAction(function (Action $action) {
-                                                    $action->modalHeading('Create Email Template')
-                                                        ->modalWidth('xl');
-                                                })
-                                                ->createOptionUsing(function (array $data) {
-                                                    return EmailTemplate::create([
-                                                        'name' => $data['name'],
-                                                        'subject' => $data['subject'],
-                                                        'content' => $data['content'],
-                                                        'type' => 'implementer',
-                                                        'created_by' => auth()->id(),
-                                                    ])->id;
                                                 })
                                                 ->required(),
 

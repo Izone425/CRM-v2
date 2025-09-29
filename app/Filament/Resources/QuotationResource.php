@@ -500,6 +500,7 @@ class QuotationResource extends Resource
                                     //         ->contains($value);
                                     // })
                                     //->preload()
+                                    ->disabled(fn (Forms\Get $get) => !$get('../../quotation_type'))
                                     ->required()
                                     ->reactive()
                                     ->afterStateUpdated(function (?string $state, Forms\Get $get, Forms\Set $set) {

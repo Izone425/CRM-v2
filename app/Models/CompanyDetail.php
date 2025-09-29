@@ -59,6 +59,11 @@ class CompanyDetail extends Model
         $this->attributes['name'] = strtoupper($value);
     }
 
+    public function setPositionAttribute($value)
+    {
+        $this->attributes['position'] = strtoupper($value);
+    }
+
     public function lead(): BelongsTo
     {
         return $this->belongsTo(Lead::class, 'lead_id', 'id');
