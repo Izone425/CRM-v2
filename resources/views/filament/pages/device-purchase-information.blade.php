@@ -1110,12 +1110,14 @@
                         <span class="text-blue-600">(filtered)</span>
                     @endif
                 </div>
-                <button type="button" class="btn btn-success" wire:click="openCreateModal({{ date('n') }})">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 mr-1">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                    </svg>
-                    Add New Order
-                </button>
+                @if(auth()->user()?->role_id == 3)
+                    <button type="button" class="btn btn-success" wire:click="openCreateModal({{ date('n') }})">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 mr-1">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                        </svg>
+                        Add New Order
+                    </button>
+                @endif
             </div>
 
             <!-- Raw Data Table -->
@@ -1184,26 +1186,30 @@
                                 @endif
                             </td>
                             <td class="px-4 py-3 text-sm text-gray-900">
-                                <!-- Single line action buttons -->
-                                <div class="flex items-center gap-1">
-                                    <div class="action-button-wrapper">
-                                        <button type="button" class="status-update-btn" wire:click="openStatusModal({{ $item['month'] }}, '{{ $item['model'] . '_' . $item['id'] }}')">
-                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
-                                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                            </svg>
-                                        </button>
-                                        <span class="action-tooltip">Update Status</span>
-                                    </div>
+                                @if(auth()->user()?->role_id == 3)
+                                    <!-- Single line action buttons -->
+                                    <div class="flex items-center gap-1">
+                                        <div class="action-button-wrapper">
+                                            <button type="button" class="status-update-btn" wire:click="openStatusModal({{ $item['month'] }}, '{{ $item['model'] . '_' . $item['id'] }}')">
+                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                </svg>
+                                            </button>
+                                            <span class="action-tooltip">Update Status</span>
+                                        </div>
 
-                                    <div class="action-button-wrapper">
-                                        <button type="button" class="edit-btn" wire:click="openEditModal({{ $item['month'] }}, '{{ $item['model'] . '_' . $item['id'] }}')">
-                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
-                                                <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
-                                            </svg>
-                                        </button>
-                                        <span class="action-tooltip">Edit</span>
+                                        <div class="action-button-wrapper">
+                                            <button type="button" class="edit-btn" wire:click="openEditModal({{ $item['month'] }}, '{{ $item['model'] . '_' . $item['id'] }}')">
+                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+                                                </svg>
+                                            </button>
+                                            <span class="action-tooltip">Edit</span>
+                                        </div>
                                     </div>
-                                </div>
+                                @else
+                                    <span class="text-sm text-gray-400">View Only</span>
+                                @endif
                             </td>
                         </tr>
                         @empty
@@ -1264,12 +1270,14 @@
                         <div class="text-sm text-gray-500">
                             {{ count($purchaseData[$selectedMonth]) }} models found
                         </div>
-                        <button type="button" class="btn btn-success" wire:click="openCreateModal({{ $selectedMonth }})">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 mr-1">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                            </svg>
-                            Add New Order
-                        </button>
+                        @if(auth()->user()?->role_id == 3)
+                            <button type="button" class="btn btn-success" wire:click="openCreateModal({{ $selectedMonth }})">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 mr-1">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                                </svg>
+                                Add New Order
+                            </button>
+                        @endif
                     </div>
                     <div class="month-table-container">
                         <table class="month-table">
@@ -1337,24 +1345,28 @@
                                         @endif
                                     </td>
                                     <td>
-                                        <div class="action-buttons">
-                                            <div class="action-button-wrapper">
-                                                <button type="button" class="status-update-btn" wire:click="openStatusModal({{ $selectedMonth }}, '{{ $uniqueKey }}')">
-                                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                    </svg>
-                                                </button>
-                                                <span class="action-tooltip">Update Status</span>
+                                        @if(auth()->user()?->role_id == 3)
+                                            <div class="action-buttons">
+                                                <div class="action-button-wrapper">
+                                                    <button type="button" class="status-update-btn" wire:click="openStatusModal({{ $selectedMonth }}, '{{ $uniqueKey }}')">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                        </svg>
+                                                    </button>
+                                                    <span class="action-tooltip">Update Status</span>
+                                                </div>
+                                                <div class="action-button-wrapper">
+                                                    <button type="button" class="edit-btn" wire:click="openEditModal({{ $selectedMonth }}, '{{ $uniqueKey }}')">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l .8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+                                                        </svg>
+                                                    </button>
+                                                    <span class="action-tooltip">Edit</span>
+                                                </div>
                                             </div>
-                                            <div class="action-button-wrapper">
-                                                <button type="button" class="edit-btn" wire:click="openEditModal({{ $selectedMonth }}, '{{ $uniqueKey }}')">
-                                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
-                                                    </svg>
-                                                </button>
-                                                <span class="action-tooltip">Edit</span>
-                                            </div>
-                                        </div>
+                                        @else
+                                            <span class="text-sm text-gray-400">View Only</span>
+                                        @endif
                                     </td>
                                 </tr>
                                 @endforeach

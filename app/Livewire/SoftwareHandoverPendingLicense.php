@@ -323,6 +323,71 @@ class SoftwareHandoverPendingLicense extends Component implements HasForms, HasT
                                     ]);
                                 }
                             };
+                        }),
+                    Action::make('add_admin_remark')
+                        ->label('Add Admin Remark')
+                        ->icon('heroicon-o-chat-bubble-left-right')
+                        ->color('primary')
+                        ->modalSubmitActionLabel('Save Remark')
+                        ->modalWidth(MaxWidth::Medium)
+                        ->modalHeading(fn(SoftwareHandover $record) => "Add Admin Remark for {$record->company_name}")
+                        ->form([
+                            Textarea::make('remark_content')
+                                ->label('Remark')
+                                ->required()
+                                ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                                ->afterStateHydrated(fn($state) => Str::upper($state))
+                                ->afterStateUpdated(fn($state) => Str::upper($state))
+                                ->rows(4)
+                                ->placeholder('Enter your remark here...')
+                                ->columnSpan(2),
+
+                            // Show existing remarks if any
+                            Placeholder::make('existing_remarks')
+                                ->label('Existing Remarks')
+                                ->content(function (SoftwareHandover $record) {
+                                    if (!$record->admin_remarks) {
+                                        return 'No remarks yet.';
+                                    }
+
+                                    $remarks = json_decode($record->admin_remarks, true) ?: [];
+                                    $html = '';
+
+                                    foreach ($remarks as $index => $remark) {
+                                        $number = $index + 1;
+                                        $html .= "<div class='p-3 mb-4 border border-gray-200 rounded bg-gray-50'>";
+                                        $html .= "<strong>Admin Remark {$number}</strong><br>";
+                                        $html .= "By {$remark['author']}<br>";
+                                        $html .= "<span class='text-xs text-gray-500'>{$remark['date']}</span><br>";
+                                        $html .= "<p class='mt-2'>{$remark['content']}</p>";
+                                        $html .= "</div>";
+                                    }
+
+                                    return new HtmlString($html);
+                                })
+                                ->columnSpan(2)
+                                ->visible(fn(SoftwareHandover $record) => !empty($record->admin_remarks))
+                        ])
+                        ->action(function (SoftwareHandover $record, array $data): void {
+                            // Get existing remarks or create new array
+                            $remarks = json_decode($record->admin_remarks, true) ?: [];
+
+                            // Add new remark
+                            $remarks[] = [
+                                'author' => auth()->user()->name,
+                                'date' => now()->format('Y-m-d H:i:s'),
+                                'content' => strtoupper($data['remark_content'])
+                            ];
+
+                            // Update record
+                            $record->update([
+                                'admin_remarks' => json_encode($remarks)
+                            ]);
+
+                            Notification::make()
+                                ->title('Admin remark added successfully')
+                                ->success()
+                                ->send();
                         })
                 ])->button()
 

@@ -291,63 +291,63 @@ class CompanyTabs
                             ->schema([
                                 View::make('components.person-in-charge')
                             ]),
-                        Section::make('E-Invoice Details')
-                            ->icon('heroicon-o-document-text')
-                            ->headerActions([
-                                Action::make('edit_einvoice_details')
-                                    ->label('Edit')
-                                    ->modalHeading('Edit E-Invoice Details')
-                                    ->modalSubmitActionLabel('Save Changes')
-                                    ->visible(fn (Lead $lead) => !is_null($lead->lead_owner) || (is_null($lead->lead_owner) && !is_null($lead->salesperson)))
-                                    ->form([
-                                        Grid::make(1)
-                                            ->schema([
-                                                TextInput::make('tin_no')
-                                                    ->label('Tax Identification Number (TIN No.)')
-                                                    ->required()
-                                                    ->default(fn ($record) => $record->eInvoiceDetail->tin_no ?? null),
+                        // Section::make('E-Invoice Details')
+                        //     ->icon('heroicon-o-document-text')
+                        //     ->headerActions([
+                        //         Action::make('edit_einvoice_details')
+                        //             ->label('Edit')
+                        //             ->modalHeading('Edit E-Invoice Details')
+                        //             ->modalSubmitActionLabel('Save Changes')
+                        //             ->visible(fn (Lead $lead) => !is_null($lead->lead_owner) || (is_null($lead->lead_owner) && !is_null($lead->salesperson)))
+                        //             ->form([
+                        //                 Grid::make(1)
+                        //                     ->schema([
+                        //                         TextInput::make('tin_no')
+                        //                             ->label('Tax Identification Number (TIN No.)')
+                        //                             ->required()
+                        //                             ->default(fn ($record) => $record->eInvoiceDetail->tin_no ?? null),
 
-                                                TextInput::make('sst_reg_no')
-                                                    ->label('Sales and Service Tax (SST) Registration Number')
-                                                    ->required()
-                                                    ->default(fn ($record) => $record->eInvoiceDetail->sst_reg_no ?? null),
+                        //                         TextInput::make('sst_reg_no')
+                        //                             ->label('Sales and Service Tax (SST) Registration Number')
+                        //                             ->required()
+                        //                             ->default(fn ($record) => $record->eInvoiceDetail->sst_reg_no ?? null),
 
-                                                TextInput::make('msic_code')
-                                                    ->label('Business MSIC Code')
-                                                    ->required()
-                                                    ->default(fn ($record) => $record->eInvoiceDetail->msic_code ?? null),
+                        //                         TextInput::make('msic_code')
+                        //                             ->label('Business MSIC Code')
+                        //                             ->required()
+                        //                             ->default(fn ($record) => $record->eInvoiceDetail->msic_code ?? null),
 
-                                                TextInput::make('email_address')
-                                                    ->label('Email Address')
-                                                    ->required()
-                                                    ->default(fn ($record) => $record->eInvoiceDetail->email_address ?? null),
-                                            ]),
-                                    ])
-                                    ->action(function (Lead $lead, array $data) {
-                                        $record = $lead->eInvoiceDetail;
-                                        if ($record) {
-                                            // Update the existing record
-                                            $record->update($data);
+                        //                         TextInput::make('email_address')
+                        //                             ->label('Email Address')
+                        //                             ->required()
+                        //                             ->default(fn ($record) => $record->eInvoiceDetail->email_address ?? null),
+                        //                     ]),
+                        //             ])
+                        //             ->action(function (Lead $lead, array $data) {
+                        //                 $record = $lead->eInvoiceDetail;
+                        //                 if ($record) {
+                        //                     // Update the existing record
+                        //                     $record->update($data);
 
-                                            Notification::make()
-                                                ->title('E-Invoice Details Updated')
-                                                ->success()
-                                                ->send();
-                                        } else {
-                                            // Create a new record
-                                            $lead->eInvoiceDetail()->create($data);
+                        //                     Notification::make()
+                        //                         ->title('E-Invoice Details Updated')
+                        //                         ->success()
+                        //                         ->send();
+                        //                 } else {
+                        //                     // Create a new record
+                        //                     $lead->eInvoiceDetail()->create($data);
 
-                                            Notification::make()
-                                                ->title('E-Invoice Details Created')
-                                                ->success()
-                                                ->send();
-                                        }
-                                    }),
-                                ])
-                            ->schema([
-                                View::make('components.e-invoice-details')
-                                ->extraAttributes(['poll' => true])
-                            ]),
+                        //                     Notification::make()
+                        //                         ->title('E-Invoice Details Created')
+                        //                         ->success()
+                        //                         ->send();
+                        //                 }
+                        //             }),
+                        //         ])
+                        //     ->schema([
+                        //         View::make('components.e-invoice-details')
+                        //         ->extraAttributes(['poll' => true])
+                        //     ]),
                     ])
                     ->columnSpan(3),
                     Grid::make(1)

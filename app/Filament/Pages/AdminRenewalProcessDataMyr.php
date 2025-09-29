@@ -700,13 +700,13 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
 
             // Add them together
             return [
-                'total_companies' => $newStats['total_companies'] + $pendingConfirmationStats['total_companies'] + $pendingPaymentStats['total_companies'],
-                'total_invoices' => $newStats['total_invoices'] + $pendingConfirmationStats['total_invoices'] + $pendingPaymentStats['total_invoices'],
-                'total_amount' => $newStats['total_amount'] + $pendingConfirmationStats['total_amount'] + $pendingPaymentStats['total_amount'],
-                'total_via_reseller' => $newStats['total_via_reseller'] + $pendingConfirmationStats['total_via_reseller'] + $pendingPaymentStats['total_via_reseller'],
-                'total_via_end_user' => $newStats['total_via_end_user'] + $pendingConfirmationStats['total_via_end_user'] + $pendingPaymentStats['total_via_end_user'],
-                'total_via_reseller_amount' => $newStats['total_via_reseller_amount'] + $pendingConfirmationStats['total_via_reseller_amount'] + $pendingPaymentStats['total_via_reseller_amount'],
-                'total_via_end_user_amount' => $newStats['total_via_end_user_amount'] + $pendingConfirmationStats['total_via_end_user_amount'] + $pendingPaymentStats['total_via_end_user_amount'],
+                'total_companies' => $newStats['total_companies'] + $pendingConfirmationStats['total_companies'],
+                'total_invoices' => $newStats['total_invoices'] + $pendingConfirmationStats['total_invoices'],
+                'total_amount' => $newStats['total_amount'] + $pendingConfirmationStats['total_amount'],
+                'total_via_reseller' => $newStats['total_via_reseller'] + $pendingConfirmationStats['total_via_reseller'],
+                'total_via_end_user' => $newStats['total_via_end_user'] + $pendingConfirmationStats['total_via_end_user'],
+                'total_via_reseller_amount' => $newStats['total_via_reseller_amount'] + $pendingConfirmationStats['total_via_reseller_amount'],
+                'total_via_end_user_amount' => $newStats['total_via_end_user_amount'] + $pendingConfirmationStats['total_via_end_user_amount'],
             ];
         } catch (\Exception $e) {
             Log::error('Error fetching renewal forecast stats: '.$e->getMessage());
@@ -1081,35 +1081,6 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
                                 $renewal = Renewal::where('f_company_id', $record->f_company_id)->first();
                                 return $renewal;
                             }),
-                        TextColumn::make('f_company_id')
-                            ->label('Reseller')
-                            ->formatStateUsing(function ($state, $record) {
-                                if (!$state || !$record) return '';
-
-                                $reseller = RenewalDataMyr::getResellerForCompany($state);
-                                return $reseller ? 'Reseller' : '';
-                            })
-                            ->badge()
-                            ->alignLeft()
-                            ->color('danger')
-                            ->tooltip(function ($state, $record) {
-                                if (!$state || !$record) return null;
-
-                                $reseller = RenewalDataMyr::getResellerForCompany($record->f_company_id);
-
-                                if (! $reseller) {
-                                    return null;
-                                }
-
-                                $tooltipText = strtoupper("{$reseller->reseller_name}");
-                                return new HtmlString($tooltipText);
-                            })
-                            ->visible(function ($state, $record) {
-                                if (!$state || !$record) return false;
-
-                                $reseller = RenewalDataMyr::getResellerForCompany($record->f_company_id);
-                                return $reseller !== null;
-                            }),
                     ]),
 
                     Stack::make([
@@ -1151,6 +1122,38 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
                                 }
 
                                 return number_format($totalAmount, 2);
+                            }),
+                    ]),
+
+                    Stack::make([
+                        TextColumn::make('f_company_id')
+                            ->label('Reseller')
+                            ->formatStateUsing(function ($state, $record) {
+                                if (!$state || !$record) return '';
+
+                                $reseller = RenewalDataMyr::getResellerForCompany($state);
+                                return $reseller ? 'Reseller' : '';
+                            })
+                            ->badge()
+                            ->alignRight()
+                            ->color('danger')
+                            ->tooltip(function ($state, $record) {
+                                if (!$state || !$record) return null;
+
+                                $reseller = RenewalDataMyr::getResellerForCompany($record->f_company_id);
+
+                                if (! $reseller) {
+                                    return null;
+                                }
+
+                                $tooltipText = strtoupper("{$reseller->reseller_name}");
+                                return new HtmlString($tooltipText);
+                            })
+                            ->visible(function ($state, $record) {
+                                if (!$state || !$record) return false;
+
+                                $reseller = RenewalDataMyr::getResellerForCompany($record->f_company_id);
+                                return $reseller !== null;
                             }),
                     ]),
                 ])->from('sm'),

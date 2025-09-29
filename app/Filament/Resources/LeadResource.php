@@ -43,12 +43,15 @@ use App\Filament\Resources\LeadResource\Tabs\ImplementerServiceFormTabs;
 use App\Filament\Resources\LeadResource\Tabs\LeadTabs;
 use App\Filament\Resources\LeadResource\Tabs\OtherFormTabs;
 use App\Filament\Resources\LeadResource\Tabs\ProformaInvoiceTabs;
+use App\Filament\Resources\LeadResource\Tabs\ProspectDetailsTabs;
 use App\Filament\Resources\LeadResource\Tabs\ProspectFollowUpTabs;
 use App\Filament\Resources\LeadResource\Tabs\ProspectPICTabs;
 use App\Filament\Resources\LeadResource\Tabs\QuotationTabs;
 use App\Filament\Resources\LeadResource\Tabs\ReferEarnTabs;
 use App\Filament\Resources\LeadResource\Tabs\RepairAppointmentTabs;
+use App\Filament\Resources\LeadResource\Tabs\SalesProgressTabs;
 use App\Filament\Resources\LeadResource\Tabs\SoftwareHandoverTabs;
+use App\Filament\Resources\LeadResource\Tabs\SubscriberDetailsTabs;
 use App\Filament\Resources\LeadResource\Tabs\SystemTabs;
 use App\Filament\Resources\LeadResource\Tabs\TicketingTabs;
 use App\Models\Lead;
@@ -118,17 +121,9 @@ class LeadResource extends Resource
             if (! $user) {
                 $activeTabs = ['lead', 'company'];
             } elseif ($user->role_id === 1) { // Lead Owner
-                if ($user->additional_role === 1) {
-                    $activeTabs = [
-                        'company', 'quotation', 'repair_appointment',
-                    ];
-                } else {
-                    $activeTabs = ['lead', 'company', 'prospect_pic_details', 'system', 'refer_earn', 'appointment',
-                        'prospect_follow_up', 'commercial_items', 'handover_details'];
-                }
+                $activeTabs = ['prospect_details', 'subscriber_details', 'sales_progress', 'commercial_items', 'handover_details'];
             } elseif ($user->role_id === 2) { // Salesperson
-                $activeTabs = ['lead', 'company', 'system', 'refer_earn', 'appointment',
-                    'prospect_follow_up', 'commercial_items', 'handover_details'];
+                $activeTabs = ['prospect_details', 'subscriber_details', 'sales_progress', 'commercial_items', 'handover_details'];
             } elseif ($user->role_id === 4) { // Implementer
                 $activeTabs = ['company', 'implementer_handover', 'implementer_pic_details',
                     'implementer_notes', 'implementer_appointment', 'implementer_follow_up',
@@ -141,9 +136,7 @@ class LeadResource extends Resource
                 $activeTabs = ['company', 'quotation', 'repair_appointment'];
             } else { // Manager (role_id = 3) or others
                 $activeTabs = [
-                    'lead', 'company', 'prospect_pic_details', 'system', 'refer_earn', 'appointment',
-                    'prospect_follow_up', 'quotation', 'proforma_invoice', 'invoice',
-                    'debtor_follow_up', 'commercial_items', 'handover_details',
+                    'prospect_details', 'subscriber_details', 'sales_progress', 'commercial_items', 'handover_details',
                 ];
             }
         }
@@ -174,8 +167,23 @@ class LeadResource extends Resource
                 ->schema(ReferEarnTabs::getSchema());
         }
 
+        if (in_array('prospect_details', $activeTabs)) {
+            $tabs[] = Tabs\Tab::make('Prospect Details')
+                ->schema(ProspectDetailsTabs::getSchema());
+        }
+
+        if (in_array('subscriber_details', $activeTabs)) {
+            $tabs[] = Tabs\Tab::make('Subscriber Details')
+                ->schema(SubscriberDetailsTabs::getSchema());
+        }
+
+        if (in_array('sales_progress', $activeTabs)) {
+            $tabs[] = Tabs\Tab::make('Sales Progress')
+                ->schema(SalesProgressTabs::getSchema());
+        }
+
         if (in_array('appointment', $activeTabs)) {
-            $tabs[] = Tabs\Tab::make('Appointment')
+            $tabs[] = Tabs\Tab::make('Sales Demo')
                 ->schema(AppointmentTabs::getSchema());
         }
 
@@ -247,12 +255,12 @@ class LeadResource extends Resource
         }
 
         if (in_array('prospect_follow_up', $activeTabs)) {
-            $tabs[] = Tabs\Tab::make('Prospect Follow Up')
+            $tabs[] = Tabs\Tab::make('Sales Follow Up')
                 ->schema(ProspectFollowUpTabs::getSchema());
         }
 
         if (in_array('commercial_items', $activeTabs)) {
-            $tabs[] = Tabs\Tab::make('Commercial Items')
+            $tabs[] = Tabs\Tab::make('Commercial Details')
                 ->schema(CommercialItemTabs::getSchema());
         }
 

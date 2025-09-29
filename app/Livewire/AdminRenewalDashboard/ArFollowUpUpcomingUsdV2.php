@@ -27,7 +27,7 @@ use Illuminate\View\View;
 use Livewire\Attributes\On;
 use Illuminate\Support\Facades\DB;
 
-class ArFollowUpUpcomingUsd extends Component implements HasForms, HasTable
+class ArFollowUpUpcomingUsdV2 extends Component implements HasForms, HasTable
 {
     use InteractsWithTable;
     use InteractsWithForms;
@@ -93,7 +93,7 @@ class ArFollowUpUpcomingUsd extends Component implements HasForms, HasTable
             ->whereDate('follow_up_date', '>', today())
             ->where('follow_up_counter', true)
             ->where('mapping_status', 'completed_mapping')
-            ->whereIn('renewal_progress', ['new', 'pending_confirmation'])
+            ->whereIn('renewal_progress', ['pending_payment'])
             ->selectRaw('*, DATEDIFF(NOW(), follow_up_date) as pending_days');
 
         return $query;
@@ -223,7 +223,7 @@ class ArFollowUpUpcomingUsd extends Component implements HasForms, HasTable
 
     public function render()
     {
-        return view('livewire.admin_renewal_dashboard.ar-follow-up-upcoming-usd');
+        return view('livewire.admin_renewal_dashboard.ar-follow-up-upcoming-usd-v2');
     }
 
     private function getWeekdayCount($startDate, $endDate)

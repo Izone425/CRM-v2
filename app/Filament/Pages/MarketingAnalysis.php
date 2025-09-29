@@ -139,7 +139,8 @@ class MarketingAnalysis extends Page
             'Refer & Earn (Sales)',
             'Jonathan Leads',
             'Existing Customer',
-            'FingerTec Leads'
+            'Existing Customer (Migration)',
+            'FingerTec Leads',
         ];
 
         $this->isExcludingLeadCodes = session('isExcludingLeadCodes', false);
@@ -189,7 +190,7 @@ class MarketingAnalysis extends Page
 
         // Exclude existing customer and null company_size
         $query->where(function($q) {
-            $q->where('lead_code', '!=', 'Existing Customer')
+            $q->whereNotIn('lead_code', ['Existing Customer', 'Existing Customer (Migration)'])
             ->orWhereNull('lead_code');
         })->whereNotNull('company_size');
 
@@ -247,7 +248,7 @@ class MarketingAnalysis extends Page
 
         // Exclude existing customer and null company_size
         $query->where(function($q) {
-            $q->where('lead_code', '!=', 'Existing Customer')
+            $q->whereNotIn('lead_code', ['Existing Customer', 'Existing Customer (Migration)'])
             ->orWhereNull('lead_code');
         })->whereNotNull('company_size');
 

@@ -12,6 +12,7 @@ use App\Models\CompanyDetail;
 use App\Models\UtmDetail;
 use App\Models\ActivityLog;
 use App\Models\ReferralDetail;
+use App\Models\SystemQuestion;
 
 class FetchZohoLeads extends Command
 {
@@ -298,6 +299,60 @@ class FetchZohoLeads extends Command
                             'company_name' => $companyDetail->id ?? null,
                         ]);
                     }
+                } elseif (!empty($lead['Salesperson'])) {
+                    $salespersonUserId = null;
+                    if (!empty($lead['Salesperson'])) {
+                        $user = \App\Models\User::where('name', $lead['Salesperson'])->first();
+                        $salespersonUserId = $user ? $user->id : null;
+                    }
+
+                    $newLead = Lead::create([
+                        'zoho_id'      => $lead['id'] ?? null,
+                        'name'         => $lead['Full_Name'] ?? null,
+                        'email'        => $lead['Email'] ?? null,
+                        'country'      => $lead['Country'] ?? null,
+                        'company_size' => $this->normalizeCompanySize($lead['Company_Size'] ?? '1-24'), // ✅ Normalize before storing
+                        'phone'        => $phoneNumber,
+                        'lead_code'    => $leadSource,
+                        'salesperson'  => $salespersonUserId,
+                        'products'     => isset($lead['TimeTec_Products']) ? json_encode($lead['TimeTec_Products']) : null,
+                        'created_at'   => $leadCreatedTime,
+                        'categories'   => 'Active',
+                        'stage'        => 'Transfer',
+                        'lead_status'  => 'RFQ-Transfer',
+                    ]);
+
+                    SystemQuestion::create([
+                        'lead_id' => $newLead->id,
+                        'modules' => is_array($lead['Which_Module_That_You_Are_Looking_For'])
+                            ? implode(', ', $lead['Which_Module_That_You_Are_Looking_For'])
+                            : $lead['Which_Module_That_You_Are_Looking_For'],
+                        'existing_system' => $lead['What_Is_Your_Existing_System_For_Each_Module'],
+                        'causer_name' => 'Get from EXPO / 2025 / HRDF NHCCE / 6-8 OCTOBER 2025',
+                    ]);
+
+                    $latestActivityLog = ActivityLog::where('subject_id', $newLead->id)
+                        ->orderByDesc('created_at')
+                        ->first();
+
+                    // ✅ Update the latest activity log description
+                    if ($latestActivityLog) {
+                        $latestActivityLog->update([
+                            'description' => 'New lead created and assigned to Salesperson: ' . ($lead['Salesperson'] ?? 'Unknown'),
+                        ]);
+                    }
+
+                    // ✅ Only create company if a new lead was inserted
+                    if (!empty($lead['Company'])) {
+                        $companyDetail = CompanyDetail::create([
+                            'company_name' => $lead['Company'],
+                            'lead_id'      => $newLead->id,
+                        ]);
+
+                        $newLead->updateQuietly([
+                            'company_name' => $companyDetail->id ?? null,
+                        ]);
+                    }
                 }else{
                     // ✅ Create a new lead (no updates for existing ones)
                     $newLead = Lead::create([
@@ -311,6 +366,16 @@ class FetchZohoLeads extends Command
                         'products'     => isset($lead['TimeTec_Products']) ? json_encode($lead['TimeTec_Products']) : null,
                         'created_at'   => $leadCreatedTime,
                     ]);
+
+                    if (!empty($lead['Which_Module_That_You_Are_Looking_For'])) {
+                        SystemQuestion::create([
+                            'lead_id' => $newLead->id,
+                            'modules' => is_array($lead['Which_Module_That_You_Are_Looking_For'])
+                                    ? implode(', ', $lead['Which_Module_That_You_Are_Looking_For'])
+                                    : $lead['Which_Module_That_You_Are_Looking_For'],
+                            'causer_name' => 'Get from EXPO / 2025 / HRDF NHCCE / 6-8 OCTOBER 2025',
+                        ]);
+                    }
 
                     $latestActivityLog = ActivityLog::where('subject_id', $newLead->id)
                         ->orderByDesc('created_at')

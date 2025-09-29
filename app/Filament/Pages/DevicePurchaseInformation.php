@@ -96,6 +96,11 @@ class DevicePurchaseInformation extends Page
         }
     }
 
+    private function canModify(): bool
+    {
+        return auth()->user()?->role_id == 3;
+    }
+
     public function updateRawDataFilters()
     {
         $this->loadRawData();
@@ -212,6 +217,15 @@ class DevicePurchaseInformation extends Page
     // Open edit modal
     public function openEditModal($monthKey, $uniqueKey)
     {
+        if (!$this->canModify()) {
+            Notification::make()
+                ->title('Access Denied')
+                ->body('You do not have permission to edit device purchase information.')
+                ->danger()
+                ->send();
+            return;
+        }
+
         $this->editingMonth = $monthKey;
         $this->editingModel = $uniqueKey;
 
@@ -237,6 +251,15 @@ class DevicePurchaseInformation extends Page
     // Open create modal
     public function openCreateModal($monthKey)
     {
+        if (!$this->canModify()) {
+            Notification::make()
+                ->title('Access Denied')
+                ->body('You do not have permission to add new device purchase information.')
+                ->danger()
+                ->send();
+            return;
+        }
+
         $this->editingMonth = $monthKey;
         $this->editingModel = null;
         $this->editingData = [
@@ -274,6 +297,15 @@ class DevicePurchaseInformation extends Page
     // Open status update modal
     public function openStatusModal($monthKey, $uniqueKey)
     {
+        if (!$this->canModify()) {
+            Notification::make()
+                ->title('Access Denied')
+                ->body('You do not have permission to update status.')
+                ->danger()
+                ->send();
+            return;
+        }
+
         $this->statusMonth = $monthKey;
         $this->statusModel = $uniqueKey;
 
@@ -308,6 +340,15 @@ class DevicePurchaseInformation extends Page
     // Update the updateStatus method to use updatingStatus instead of selectedStatus
     public function updateStatus()
     {
+        if (!$this->canModify()) {
+            Notification::make()
+                ->title('Access Denied')
+                ->body('You do not have permission to update status.')
+                ->danger()
+                ->send();
+            return;
+        }
+
         try {
             $monthKey = $this->statusMonth;
             $uniqueKey = $this->statusModel;
@@ -382,6 +423,15 @@ class DevicePurchaseInformation extends Page
     // Save data from modal (both create and update)
     public function saveModalData()
     {
+        if (!$this->canModify()) {
+            Notification::make()
+                ->title('Access Denied')
+                ->body('You do not have permission to save changes.')
+                ->danger()
+                ->send();
+            return;
+        }
+
         try {
             // Validation
             $errors = [];
@@ -508,6 +558,15 @@ class DevicePurchaseInformation extends Page
 
     public function deleteModel($monthKey, $uniqueKey)
     {
+        if (!$this->canModify()) {
+            Notification::make()
+                ->title('Access Denied')
+                ->body('You do not have permission to delete records.')
+                ->danger()
+                ->send();
+            return;
+        }
+
         try {
             // Get the ID
             if ($this->isRawView) {
