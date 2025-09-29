@@ -933,8 +933,8 @@ class DemoAppointmentRelationManager extends RelationManager
                                 ->execute();
 
                             $appointment->update([
-                                'location' => $onlineMeeting->getOnlineMeeting()->getJoinUrl(), // Update location with meeting join URL
-                                'event_id' => $onlineMeeting->getId(),
+                                'location' => $onlineMeeting->getOnlineMeeting()->getJoinUrl() ?? null, // Update location with meeting join URL
+                                'event_id' => $onlineMeeting->getId() ?? null,
                             ]);
 
                             Notification::make()

@@ -570,67 +570,47 @@ class ARFollowUpTabs
                 }
             }
 
-            // Add quotation PDF download links to email content
+            // Get quotation IDs for attachments
             $quotationIds = array_merge(
                 $emailData['quotation_product'] ?? [],
                 $emailData['quotation_hrdf'] ?? []
             );
 
-            $emailContent = $emailData['content'];
-
+            // Prepare PDF attachments
+            $attachments = [];
             if (!empty($quotationIds)) {
                 $quotations = Quotation::whereIn('id', $quotationIds)->get();
 
-                if ($quotations->count() > 0) {
-                    $pdfLinks = '<br><br><div style="border: 1px solid #e5e5e5; padding: 15px; border-radius: 5px; background-color: #f9f9f9;">';
-                    $pdfLinks .= '<h4 style="margin: 0 0 10px 0; color: #333;">Quotation Documents</h4>';
-                    $pdfLinks .= '<p style="margin: 0 0 10px 0; color: #666; font-size: 14px;">Click on the links below to download the quotation PDFs:</p>';
-
-                    foreach ($quotations as $quotation) {
-                        // Encrypt the quotation ID for security
+                foreach ($quotations as $quotation) {
+                    try {
+                        // Generate PDF content (you might need to adjust this based on your PDF generation logic)
                         $encryptedId = encrypt($quotation->id);
-                        $pdfUrl = route('pdf.print-quotation-v2', ['quotation' => $encryptedId]);
 
-                        $refNo = $quotation->pi_reference_no ?? $quotation->quotation_reference_no ?? 'Quotation ' . $quotation->id;
-                        $quotationType = ucfirst($quotation->quotation_type ?? 'Unknown');
+                        // Generate the PDF file path or create it temporarily
+                        $pdfPath = self::generateQuotationPDF($quotation);
 
-                        // Get company name for display
-                        $companyName = '';
-                        if (!empty($quotation->subsidiary_id)) {
-                            $subsidiary = \App\Models\Subsidiary::find($quotation->subsidiary_id);
-                            $companyName = $subsidiary ? $subsidiary->company_name : 'Unknown Company';
-                        } else {
-                            $companyName = $quotation->lead->companyDetail->company_name ?? 'Unknown Company';
+                        if ($pdfPath && file_exists($pdfPath)) {
+                            $attachments[] = [
+                                'path' => $pdfPath,
+                                'name' => self::getQuotationFileName($quotation),
+                                'mime' => 'application/pdf'
+                            ];
+
+                            Log::info("Added PDF attachment for quotation ID: {$quotation->id}", [
+                                'file_path' => $pdfPath,
+                                'file_name' => self::getQuotationFileName($quotation)
+                            ]);
                         }
-
-                        $pdfLinks .= '<div style="margin-bottom: 8px;">';
-                        $pdfLinks .= '<a href="' . $pdfUrl . '" target="_blank" style="color: #0066cc; text-decoration: none; font-weight: 500;">';
-                        $pdfLinks .= '🔗 ' . $companyName . ' (' . $quotationType . ' Quotation)';
-                        $pdfLinks .= '</a>';
-                        $pdfLinks .= '</div>';
-
-                        Log::info("Added PDF download link for quotation ID: {$quotation->id}", [
-                            'reference' => $refNo,
-                            'company' => $companyName,
-                            'url' => $pdfUrl,
-                            'encrypted_id' => $encryptedId
+                    } catch (\Exception $e) {
+                        Log::error("Error generating PDF for quotation ID: {$quotation->id}", [
+                            'error' => $e->getMessage()
                         ]);
                     }
-
-                    $pdfLinks .= '</div>';
-
-                    // Add the PDF links section to the email content
-                    $emailContent = $emailContent . $pdfLinks;
-
-                    Log::info("Added quotation PDF download links to email", [
-                        'quotation_count' => $quotations->count(),
-                        'quotation_ids' => $quotationIds
-                    ]);
                 }
             }
 
-            // Send the email with CC recipients (no file attachments)
-            Mail::html($emailContent, function (Message $message) use ($emailData, $ccRecipients) {
+            // Send the email with attachments
+            Mail::html($emailData['content'], function (Message $message) use ($emailData, $ccRecipients, $attachments) {
                 $message->to($emailData['recipients'])
                     ->subject($emailData['subject'])
                     ->from($emailData['sender_email'], $emailData['sender_name']);
@@ -642,7 +622,22 @@ class ARFollowUpTabs
 
                 // BCC the sender as well
                 $message->bcc($emailData['sender_email']);
+
+                // Add PDF attachments
+                foreach ($attachments as $attachment) {
+                    $message->attach($attachment['path'], [
+                        'as' => $attachment['name'],
+                        'mime' => $attachment['mime']
+                    ]);
+                }
             });
+
+            // Clean up temporary PDF files if needed
+            foreach ($attachments as $attachment) {
+                if (strpos($attachment['path'], 'temp_quotations') !== false && file_exists($attachment['path'])) {
+                    unlink($attachment['path']);
+                }
+            }
 
             // Log email sent successfully
             Log::info('Admin renewal follow-up email sent successfully', [
@@ -651,7 +646,7 @@ class ARFollowUpTabs
                 'subject' => $emailData['subject'],
                 'admin_renewal_log_id' => $emailData['admin_renewal_log_id'],
                 'template' => $emailData['template_name'] ?? 'Unknown',
-                'quotation_links_count' => !empty($quotationIds) ? count($quotationIds) : 0,
+                'attachments_count' => count($attachments),
                 'quotation_ids' => $quotationIds,
             ]);
         } catch (\Exception $e) {
@@ -660,6 +655,75 @@ class ARFollowUpTabs
                 'data' => $emailData,
             ]);
         }
+    }
+
+    /**
+     * Generate PDF for quotation and return the file path
+     */
+    private static function generateQuotationPDF(Quotation $quotation): ?string
+    {
+        try {
+            // Generate the expected filename based on your existing logic
+            $companyName = '';
+            if (!empty($quotation->subsidiary_id)) {
+                // Fetch from subsidiaries table
+                $subsidiary = \App\Models\Subsidiary::find($quotation->subsidiary_id);
+                $companyName = $subsidiary ? $subsidiary->company_name : 'Unknown';
+            } else {
+                // Use the original company name from lead's company detail
+                $companyName = $quotation->lead->companyDetail->company_name ?? 'Unknown';
+            }
+
+            $quotationFilename = 'TIMETEC_' . $quotation->sales_person->code . '_' . quotation_reference_no($quotation->id) . '_' . Str::replace('-','_',Str::slug($companyName));
+            $quotationFilename = Str::upper($quotationFilename) . '.pdf';
+
+            // Check if the PDF exists in public storage
+            $storagePath = storage_path('app/public/quotations/' . $quotationFilename);
+
+            if (file_exists($storagePath)) {
+                // PDF exists, copy it to temp directory for email attachment
+                $tempDir = storage_path('app/temp_quotations');
+                if (!is_dir($tempDir)) {
+                    mkdir($tempDir, 0755, true);
+                }
+
+                $tempFilename = self::getQuotationFileName($quotation);
+                $tempFilePath = $tempDir . '/' . $tempFilename;
+
+                // Copy the existing PDF to temp directory
+                copy($storagePath, $tempFilePath);
+
+                Log::info("Found existing PDF for quotation {$quotation->id}: {$quotationFilename}");
+
+                return $tempFilePath;
+            } else {
+                // PDF doesn't exist, log the expected path for debugging
+                Log::warning("PDF not found for quotation {$quotation->id}. Expected path: {$storagePath}");
+
+                // Optionally, you could generate the PDF here using your existing controller logic
+                // Or return null to skip this attachment
+                return null;
+            }
+
+        } catch (\Exception $e) {
+            Log::error("Error finding PDF for quotation {$quotation->id}: " . $e->getMessage());
+            return null;
+        }
+    }
+
+
+    /**
+     * Get the filename for the quotation PDF
+     */
+    private static function getQuotationFileName(Quotation $quotation): string
+    {
+        $refNo = $quotation->pi_reference_no ?? $quotation->quotation_reference_no ?? 'Quotation-' . $quotation->id;
+        $quotationType = ucfirst($quotation->quotation_type ?? 'Unknown');
+
+        // Clean filename for filesystem
+        $cleanRefNo = preg_replace('/[^A-Za-z0-9\-_]/', '_', $refNo);
+
+        return $cleanRefNo . '_' . $quotationType . '_Quotation.pdf';
     }
 
     protected static function getEarliestExpiryDate($companyId)
