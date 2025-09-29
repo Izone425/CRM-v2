@@ -221,63 +221,7 @@
 
     <!-- Dashboard Cards -->
     <div class="renewal-dashboard-grid">
-        <!-- Box 1: Completed Renewal -->
-        <div class="renewal-card">
-            <div class="renewal-card-content">
-                <div class="renewal-card-layout">
-                    <div class="renewal-icon-container green">
-                        <svg class="renewal-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                        </svg>
-                    </div>
-                    <div class="renewal-details">
-                        <dt class="renewal-title">Completed Renewal</dt>
-                        <dd>
-                            <div class="renewal-subtitle">Total Company: {{ $completedRenewalStats['total_companies'] }}</div>
-                            <div class="renewal-subtitle">
-                                Via Reseller: {{ $completedRenewalStats['total_via_reseller'] }}
-                                (RM {{ number_format($completedRenewalStats['total_via_reseller_amount'] ?? 0, 2) }})
-                            </div>
-                            <div class="renewal-subtitle">
-                                Via End User: {{ $completedRenewalStats['total_via_end_user'] }}
-                                (RM {{ number_format($completedRenewalStats['total_via_end_user_amount'] ?? 0, 2) }})
-                            </div>
-                            <div class="renewal-amount green">RM {{ number_format($completedRenewalStats['total_amount'], 2) }}</div>
-                        </dd>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Box 2: Renewal Forecast -->
-        <div class="renewal-card">
-            <div class="renewal-card-content">
-                <div class="renewal-card-layout">
-                    <div class="renewal-icon-container blue">
-                        <svg class="renewal-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
-                        </svg>
-                    </div>
-                    <div class="renewal-details">
-                        <dt class="renewal-title">Renewal Forecast</dt>
-                        <dd>
-                            <div class="renewal-subtitle">Total Company: {{ $renewalForecastStats['total_companies'] }}</div>
-                            <div class="renewal-subtitle">
-                                Via Reseller: {{ $renewalForecastStats['total_via_reseller'] }}
-                                (RM {{ number_format($renewalForecastStats['total_via_reseller_amount'] ?? 0, 2) }})
-                            </div>
-                            <div class="renewal-subtitle">
-                                Via End User: {{ $renewalForecastStats['total_via_end_user'] }}
-                                (RM {{ number_format($renewalForecastStats['total_via_end_user_amount'] ?? 0, 2) }})
-                            </div>
-                            <div class="renewal-amount blue">RM {{ number_format($renewalForecastStats['total_amount'], 2) }}</div>
-                        </dd>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Box 3: New -->
+        <!-- Box 1: New -->
         <div class="renewal-card">
             <div class="renewal-card-content">
                 <div class="renewal-card-layout">
@@ -305,7 +249,7 @@
             </div>
         </div>
 
-        <!-- Box 4: Pending Confirmation -->
+        <!-- Box 2: Pending Confirmation -->
         <div class="renewal-card">
             <div class="renewal-card-content">
                 <div class="renewal-card-layout">
@@ -333,7 +277,35 @@
             </div>
         </div>
 
-        <!-- Box 5: Pending Payment -->
+        <!-- Box 3: Renewal Forecast -->
+        <div class="renewal-card">
+            <div class="renewal-card-content">
+                <div class="renewal-card-layout">
+                    <div class="renewal-icon-container blue">
+                        <svg class="renewal-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                        </svg>
+                    </div>
+                    <div class="renewal-details">
+                        <dt class="renewal-title">Renewal Forecast</dt>
+                        <dd>
+                            <div class="renewal-subtitle">Total Company: {{ $renewalForecastStats['total_companies'] }}</div>
+                            <div class="renewal-subtitle">
+                                Via Reseller: {{ $renewalForecastStats['total_via_reseller'] }}
+                                (RM {{ number_format($renewalForecastStats['total_via_reseller_amount'] ?? 0, 2) }})
+                            </div>
+                            <div class="renewal-subtitle">
+                                Via End User: {{ $renewalForecastStats['total_via_end_user'] }}
+                                (RM {{ number_format($renewalForecastStats['total_via_end_user_amount'] ?? 0, 2) }})
+                            </div>
+                            <div class="renewal-amount blue">RM {{ number_format($renewalForecastStats['total_amount'], 2) }}</div>
+                        </dd>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Box 4: Pending Payment -->
         <div class="renewal-card">
             <div class="renewal-card-content">
                 <div class="renewal-card-layout">
@@ -355,6 +327,34 @@
                                 (RM {{ number_format($pendingPaymentStats['total_via_end_user_amount'] ?? 0, 2) }})
                             </div>
                             <div class="renewal-amount red">RM {{ number_format($pendingPaymentStats['total_amount'], 2) }}</div>
+                        </dd>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Box 5: Completed Renewal -->
+        <div class="renewal-card">
+            <div class="renewal-card-content">
+                <div class="renewal-card-layout">
+                    <div class="renewal-icon-container green">
+                        <svg class="renewal-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </div>
+                    <div class="renewal-details">
+                        <dt class="renewal-title">Completed Renewal</dt>
+                        <dd>
+                            <div class="renewal-subtitle">Total Company: {{ $completedRenewalStats['total_companies'] }}</div>
+                            <div class="renewal-subtitle">
+                                Via Reseller: {{ $completedRenewalStats['total_via_reseller'] }}
+                                (RM {{ number_format($completedRenewalStats['total_via_reseller_amount'] ?? 0, 2) }})
+                            </div>
+                            <div class="renewal-subtitle">
+                                Via End User: {{ $completedRenewalStats['total_via_end_user'] }}
+                                (RM {{ number_format($completedRenewalStats['total_via_end_user_amount'] ?? 0, 2) }})
+                            </div>
+                            <div class="renewal-amount green">RM {{ number_format($completedRenewalStats['total_amount'], 2) }}</div>
                         </dd>
                     </div>
                 </div>

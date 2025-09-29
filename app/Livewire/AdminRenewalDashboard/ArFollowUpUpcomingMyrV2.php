@@ -29,7 +29,7 @@ use Livewire\Attributes\On;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
-class ArFollowUpTodayMyr extends Component implements HasForms, HasTable
+class ArFollowUpUpcomingMyrV2 extends Component implements HasForms, HasTable
 {
     use InteractsWithTable;
     use InteractsWithForms;
@@ -74,7 +74,7 @@ class ArFollowUpTodayMyr extends Component implements HasForms, HasTable
         $this->resetTable();
     }
 
-    public function getTodayRenewals()
+    public function getIncomingRenewals ()
     {
         $this->selectedUser = $this->selectedUser ?? session('selectedUser') ?? auth()->user()->id;
 
@@ -92,10 +92,10 @@ class ArFollowUpTodayMyr extends Component implements HasForms, HasTable
 
         $query = Renewal::query()
             ->whereIn('f_company_id', $myrCompanyIds)
-            ->whereDate('follow_up_date', today())
+            ->whereDate('follow_up_date', '>', today())
             ->where('follow_up_counter', true)
             ->where('mapping_status', 'completed_mapping')
-            ->whereIn('renewal_progress', ['new', 'pending_confirmation'])
+            ->whereIn('renewal_progress', ['pending_payment'])
             ->selectRaw('*, DATEDIFF(NOW(), follow_up_date) as pending_days');
 
         return $query;
@@ -105,7 +105,7 @@ class ArFollowUpTodayMyr extends Component implements HasForms, HasTable
     {
         return $table
             ->poll('300s')
-            ->query($this->getTodayRenewals())
+            ->query($this->getIncomingRenewals ())
             ->emptyState(fn () => view('components.empty-state-question'))
             ->defaultPaginationPageOption(5)
             ->paginated([5])
@@ -148,14 +148,6 @@ class ArFollowUpTodayMyr extends Component implements HasForms, HasTable
                         return "<span title='{$state}'>{$state}</span>";
                     })
                     ->html(),
-
-                TextColumn::make('earliest_expiry_date')
-                    ->label('Expiry Date')
-                    ->default('N/A')
-                    ->formatStateUsing(function ($state, $record) {
-
-                        return Carbon::parse(self::getEarliestExpiryDate($record->f_company_id))->format('d M Y') ?? 'N/A';
-                    }),
 
                 TextColumn::make('earliest_expiry_date')
                     ->label('Expiry Date')
@@ -293,7 +285,7 @@ class ArFollowUpTodayMyr extends Component implements HasForms, HasTable
 
     public function render()
     {
-        return view('livewire.admin_renewal_dashboard.ar-follow-up-today-myr');
+        return view('livewire.admin_renewal_dashboard.ar-follow-up-upcoming-myr-v2');
     }
 
     protected static function getEarliestExpiryDate($companyId)

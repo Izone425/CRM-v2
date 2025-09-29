@@ -1,3 +1,4 @@
+<!-- filepath: /var/www/html/timeteccrm/resources/views/filament/pages/adminrenewal.blade.php -->
 <style>
     /* Container styling */
     .implementer-container {
@@ -56,7 +57,6 @@
     .group-title {
         font-size: 15px;
         font-weight: 600;
-        margin-bottom: 8px;
     }
 
     .group-desc {
@@ -74,35 +74,20 @@
     .group-follow-up-myr .group-count { color: #f59e0b; }
     .group-follow-up-myr.selected { background-color: rgba(245, 158, 11, 0.05); }
 
+    /* MYR V2 GROUP COLORS - Amber Theme */
+    .group-follow-up-myr-v2 { border-top-color: #d97706; }
+    .group-follow-up-myr-v2 .group-count { color: #d97706; }
+    .group-follow-up-myr-v2.selected { background-color: rgba(217, 119, 6, 0.05); }
+
     /* USD GROUP COLORS - Blue Theme */
     .group-follow-up-usd { border-top-color: #3b82f6; }
     .group-follow-up-usd .group-count { color: #3b82f6; }
     .group-follow-up-usd.selected { background-color: rgba(59, 130, 246, 0.05); }
 
-    /* Legacy colors for backward compatibility */
-    .group-project-status { border-top-color: #2563eb; }
-    .group-project-status .group-count { color: #2563eb; }
-
-    .group-license { border-top-color: #8b5cf6; }
-    .group-license .group-count { color: #8b5cf6; }
-
-    .group-migration { border-top-color: #10b981; }
-    .group-migration .group-count { color: #10b981; }
-
-    .group-follow-up { border-top-color: #f59e0b; }
-    .group-follow-up .group-count { color: #f59e0b; }
-
-    .group-ticketing { border-top-color: #ec4899; }
-    .group-ticketing .group-count { color: #ec4899; }
-
-    .group-new-request { border-top-color: #06b6d4; }
-    .group-new-request .group-count { color: #06b6d4; }
-
-    .group-implementer-request { border-top-color: #6366f1; }
-    .group-implementer-request .group-count { color: #6366f1; }
-
-    .group-no-respond { border-top-color: #e11d48; }
-    .group-no-respond .group-count { color: #e11d48; }
+    /* USD V2 GROUP COLORS - Indigo Theme */
+    .group-follow-up-usd-v2 { border-top-color: #6366f1; }
+    .group-follow-up-usd-v2 .group-count { color: #6366f1; }
+    .group-follow-up-usd-v2.selected { background-color: rgba(99, 102, 241, 0.05); }
 
     /* Category column styling */
     .category-column {
@@ -233,6 +218,19 @@
     .follow-up-future-myr .stat-count { color: #ea580c; }
     .stat-box.selected.follow-up-future-myr { background-color: rgba(234, 88, 12, 0.05); border-left-width: 6px; }
 
+    /* MYR V2 FOLLOW UP COLORS - Amber Theme */
+    .follow-up-today-myr-v2 { border-left: 4px solid #d97706; }
+    .follow-up-today-myr-v2 .stat-count { color: #d97706; }
+    .stat-box.selected.follow-up-today-myr-v2 { background-color: rgba(217, 119, 6, 0.05); border-left-width: 6px; }
+
+    .follow-up-overdue-myr-v2 { border-left: 4px solid #b45309; }
+    .follow-up-overdue-myr-v2 .stat-count { color: #b45309; }
+    .stat-box.selected.follow-up-overdue-myr-v2 { background-color: rgba(180, 83, 9, 0.05); border-left-width: 6px; }
+
+    .follow-up-future-myr-v2 { border-left: 4px solid #92400e; }
+    .follow-up-future-myr-v2 .stat-count { color: #92400e; }
+    .stat-box.selected.follow-up-future-myr-v2 { background-color: rgba(146, 64, 14, 0.05); border-left-width: 6px; }
+
     /* USD FOLLOW UP COLORS - Blue Theme */
     .follow-up-today-usd { border-left: 4px solid #3b82f6; }
     .follow-up-today-usd .stat-count { color: #3b82f6; }
@@ -246,131 +244,38 @@
     .follow-up-future-usd .stat-count { color: #1d4ed8; }
     .stat-box.selected.follow-up-future-usd { background-color: rgba(29, 78, 216, 0.05); border-left-width: 6px; }
 
-    /* Legacy follow up colors for backward compatibility */
-    .follow-up-today { border-left: 4px solid #f59e0b; }
-    .follow-up-today .stat-count { color: #f59e0b; }
+    /* USD V2 FOLLOW UP COLORS - Indigo Theme */
+    .follow-up-today-usd-v2 { border-left: 4px solid #6366f1; }
+    .follow-up-today-usd-v2 .stat-count { color: #6366f1; }
+    .stat-box.selected.follow-up-today-usd-v2 { background-color: rgba(99, 102, 241, 0.05); border-left-width: 6px; }
 
-    .follow-up-overdue { border-left: 4px solid #f97316; }
-    .follow-up-overdue .stat-count { color: #f97316; }
+    .follow-up-overdue-usd-v2 { border-left: 4px solid #4f46e5; }
+    .follow-up-overdue-usd-v2 .stat-count { color: #4f46e5; }
+    .stat-box.selected.follow-up-overdue-usd-v2 { background-color: rgba(79, 70, 229, 0.05); border-left-width: 6px; }
 
-    .follow-up-future { border-left: 4px solid #ff6a00; }
-    .follow-up-future .stat-count { color: #fa6800; }
+    .follow-up-future-usd-v2 { border-left: 4px solid #4338ca; }
+    .follow-up-future-usd-v2 .stat-count { color: #4338ca; }
+    .stat-box.selected.follow-up-future-usd-v2 { background-color: rgba(67, 56, 202, 0.05); border-left-width: 6px; }
 
-    /* Legacy selected states */
-    .stat-box.selected.follow-up-today { background-color: rgba(245, 158, 11, 0.05); border-left-width: 6px; }
-    .stat-box.selected.follow-up-overdue { background-color: rgba(249, 115, 22, 0.05); border-left-width: 6px; }
+        /* All MYR FOLLOW UP COLORS - Orange Theme (Darker) */
+    .follow-up-all-myr { border-left: 4px solid #dc2626; }
+    .follow-up-all-myr .stat-count { color: #dc2626; }
+    .stat-box.selected.follow-up-all-myr { background-color: rgba(220, 38, 38, 0.05); border-left-width: 6px; }
 
-    /* STAT BOX COLORS - PROJECT STATUS */
-    .status-all { border-left: 4px solid #6b7280; }
-    .status-all .stat-count { color: #6b7280; }
+    /* All MYR V2 FOLLOW UP COLORS - Amber Theme (Darker) */
+    .follow-up-all-myr-v2 { border-left: 4px solid #7c2d12; }
+    .follow-up-all-myr-v2 .stat-count { color: #7c2d12; }
+    .stat-box.selected.follow-up-all-myr-v2 { background-color: rgba(124, 45, 18, 0.05); border-left-width: 6px; }
 
-    .status-open { border-left: 4px solid #2563eb; }
-    .status-open .stat-count { color: #2563eb; }
+    /* All USD FOLLOW UP COLORS - Blue Theme (Darker) */
+    .follow-up-all-usd { border-left: 4px solid #1e40af; }
+    .follow-up-all-usd .stat-count { color: #1e40af; }
+    .stat-box.selected.follow-up-all-usd { background-color: rgba(30, 64, 175, 0.05); border-left-width: 6px; }
 
-    .status-closed { border-left: 4px solid #10b981; }
-    .status-closed .stat-count { color: #10b981; }
-
-    .status-delay { border-left: 4px solid #f59e0b; }
-    .status-delay .stat-count { color: #f59e0b; }
-
-    .status-inactive { border-left: 4px solid #ef4444; }
-    .status-inactive .stat-count { color: #ef4444; }
-
-    /* STAT BOX COLORS - LICENSE CERTIFICATION */
-    .license-pending { border-left: 4px solid #8b5cf6; }
-    .license-pending .stat-count { color: #8b5cf6; }
-
-    .license-completed { border-left: 4px solid #a855f7; }
-    .license-completed .stat-count { color: #a855f7; }
-
-    /* STAT BOX COLORS - DATA MIGRATION */
-    .migration-pending { border-left: 4px solid #10b981; }
-    .migration-pending .stat-count { color: #10b981; }
-
-    .migration-completed { border-left: 4px solid #34d399; }
-    .migration-completed .stat-count { color: #34d399; }
-
-    /* STAT BOX COLORS - TICKETING SYSTEM */
-    .ticketing-today { border-left: 4px solid #ec4899; }
-    .ticketing-today .stat-count { color: #ec4899; }
-
-    .ticketing-overdue { border-left: 4px solid #d946ef; }
-    .ticketing-overdue .stat-count { color: #d946ef; }
-
-    /* STAT BOX COLORS - NEW REQUEST */
-    .customization-pending { border-left: 4px solid #06b6d4; }
-    .customization-pending .stat-count { color: #06b6d4; }
-
-    .customization-completed { border-left: 4px solid #0ea5e9; }
-    .customization-completed .stat-count { color: #0ea5e9; }
-
-    .enhancement-pending { border-left: 4px solid #0284c7; }
-    .enhancement-pending .stat-count { color: #0284c7; }
-
-    .enhancement-completed { border-left: 4px solid #0369a1; }
-    .enhancement-completed .stat-count { color: #0369a1; }
-
-    /* Styles for Implementer Request sub-tabs */
-    .request-pending { border-left: 4px solid #6366f1; }
-    .request-pending .stat-count { color: #6366f1; }
-
-    .request-approved { border-left: 4px solid #8b5cf6; }
-    .request-approved .stat-count { color: #8b5cf6; }
-
-    .request-rejected { border-left: 4px solid #ef4444; }
-    .request-rejected .stat-count { color: #ef4444; }
-
-    .request-cancelled { border-left: 4px solid #94a3b8; }
-    .request-cancelled .stat-count { color: #94a3b8; }
-
-    /* Follow up count status colors */
-    .follow-up-none { border-left: 4px solid #64748b; }
-    .follow-up-none .stat-count { color: #64748b; }
-
-    .follow-up-1 { border-left: 4px solid #f59e0b; }
-    .follow-up-1 .stat-count { color: #f59e0b; }
-
-    .follow-up-2 { border-left: 4px solid #f97316; }
-    .follow-up-2 .stat-count { color: #f97316; }
-
-    .follow-up-3 { border-left: 4px solid #ef4444; }
-    .follow-up-3 .stat-count { color: #ef4444; }
-
-    .follow-up-4 { border-left: 4px solid #dc2626; }
-    .follow-up-4 .stat-count { color: #dc2626; }
-
-    /* Selected states for follow-up counts */
-    .stat-box.selected.follow-up-none { background-color: rgba(100, 116, 139, 0.05); border-left-width: 6px; }
-    .stat-box.selected.follow-up-1 { background-color: rgba(245, 158, 11, 0.05); border-left-width: 6px; }
-    .stat-box.selected.follow-up-2 { background-color: rgba(249, 115, 22, 0.05); border-left-width: 6px; }
-    .stat-box.selected.follow-up-3 { background-color: rgba(239, 68, 68, 0.05); border-left-width: 6px; }
-    .stat-box.selected.follow-up-4 { background-color: rgba(220, 38, 38, 0.05); border-left-width: 6px; }
-
-    /* Selected states for categories */
-    .stat-box.selected.status-all { background-color: rgba(107, 114, 128, 0.05); border-left-width: 6px; }
-    .stat-box.selected.status-open { background-color: rgba(37, 99, 235, 0.05); border-left-width: 6px; }
-    .stat-box.selected.status-closed { background-color: rgba(16, 185, 129, 0.05); border-left-width: 6px; }
-    .stat-box.selected.status-delay { background-color: rgba(245, 158, 11, 0.05); border-left-width: 6px; }
-    .stat-box.selected.status-inactive { background-color: rgba(239, 68, 68, 0.05); border-left-width: 6px; }
-
-    .stat-box.selected.license-pending { background-color: rgba(139, 92, 246, 0.05); border-left-width: 6px; }
-    .stat-box.selected.license-completed { background-color: rgba(168, 85, 247, 0.05); border-left-width: 6px; }
-
-    .stat-box.selected.migration-pending { background-color: rgba(16, 185, 129, 0.05); border-left-width: 6px; }
-    .stat-box.selected.migration-completed { background-color: rgba(52, 211, 153, 0.05); border-left-width: 6px; }
-
-    .stat-box.selected.ticketing-today { background-color: rgba(236, 72, 153, 0.05); border-left-width: 6px; }
-    .stat-box.selected.ticketing-overdue { background-color: rgba(217, 70, 239, 0.05); border-left-width: 6px; }
-
-    .stat-box.selected.customization-pending { background-color: rgba(6, 182, 212, 0.05); border-left-width: 6px; }
-    .stat-box.selected.customization-completed { background-color: rgba(14, 165, 233, 0.05); border-left-width: 6px; }
-    .stat-box.selected.enhancement-pending { background-color: rgba(2, 132, 199, 0.05); border-left-width: 6px; }
-    .stat-box.selected.enhancement-completed { background-color: rgba(3, 105, 161, 0.05); border-left-width: 6px; }
-
-    .stat-box.selected.request-pending { background-color: rgba(99, 102, 241, 0.05); border-left-width: 6px; }
-    .stat-box.selected.request-approved { background-color: rgba(139, 92, 246, 0.05); border-left-width: 6px; }
-    .stat-box.selected.request-rejected { background-color: rgba(239, 68, 68, 0.05); border-left-width: 6px; }
-    .stat-box.selected.request-cancelled { background-color: rgba(148, 163, 184, 0.05); border-left-width: 6px; }
+    /* All USD V2 FOLLOW UP COLORS - Indigo Theme (Darker) */
+    .follow-up-all-usd-v2 { border-left: 4px solid #312e81; }
+    .follow-up-all-usd-v2 .stat-count { color: #312e81; }
+    .stat-box.selected.follow-up-all-usd-v2 { background-color: rgba(49, 46, 129, 0.05); border-left-width: 6px; }
 
     /* Animation for tab switching */
     [x-transition] {
@@ -447,6 +352,10 @@
         ->getIncomingRenewals()
         ->count();
 
+    $followUpAllMYR = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpAllMyr::class)
+        ->getOverdueRenewals()
+        ->count();
+
     // Admin Renewal Follow Up Counts USD
     $followUpTodayUSD = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpTodayUsd::class)
         ->getTodayRenewals()
@@ -460,9 +369,49 @@
         ->getIncomingRenewals()
         ->count();
 
+    $followUpAllUSD = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpAllUsd::class)
+        ->getOverdueRenewals()
+        ->count();
+
+    // Admin Renewal Follow Up Counts MYR V2 (Pending Payment)
+    $followUpTodayMYRv2 = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpTodayMyrV2::class)
+        ->getTodayRenewals()
+        ->count();
+
+    $followUpOverdueMYRv2 = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpOverdueMyrV2::class)
+        ->getOverdueRenewals()
+        ->count();
+
+    $followUpFutureMYRv2 = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpUpcomingMyrV2::class)
+        ->getIncomingRenewals()
+        ->count();
+
+    $followUpAllMYRv2 = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpAllMyrV2::class)
+        ->getOverdueRenewals()
+        ->count();
+
+    // Admin Renewal Follow Up Counts USD V2 (Pending Payment)
+    $followUpTodayUSDv2 = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpTodayUsdV2::class)
+        ->getTodayRenewals()
+        ->count();
+
+    $followUpOverdueUSDv2 = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpOverdueUsdV2::class)
+        ->getOverdueRenewals()
+        ->count();
+
+    $followUpFutureUSDv2 = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpUpcomingUsdV2::class)
+        ->getIncomingRenewals()
+        ->count();
+
+    $followUpAllUSDv2 = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpAllUsdV2::class)
+        ->getOverdueRenewals()
+        ->count();
+
     // Calculate totals for both currencies
     $followUpTotalMYR = $followUpTodayMYR + $followUpOverdueMYR + $followUpFutureMYR;
     $followUpTotalUSD = $followUpTodayUSD + $followUpOverdueUSD + $followUpFutureUSD;
+    $followUpTotalMYRv2 = $followUpTodayMYRv2 + $followUpOverdueMYRv2 + $followUpFutureMYRv2;
+    $followUpTotalUSDv2 = $followUpTodayUSDv2 + $followUpOverdueUSDv2 + $followUpFutureUSDv2;
 @endphp
 
 <div id="implementer-container" class="implementer-container"
@@ -498,7 +447,7 @@
     <div class="dashboard-layout" wire:poll.300s>
         <!-- Left sidebar with main category groups -->
         <div class="group-column">
-            <!-- ADMIN RENEWAL FOLLOW UP MYR -->
+            <!-- 1. ADMIN RENEWAL FOLLOW UP MYR (Orange Theme) -->
             <div class="group-box group-follow-up-myr"
                 :class="{'selected': selectedGroup === 'follow-up-myr'}"
                 @click="setSelectedGroup('follow-up-myr')">
@@ -508,7 +457,18 @@
                 <div class="group-count">{{ $followUpTotalMYR }}</div>
             </div>
 
-            <!-- ADMIN RENEWAL FOLLOW UP USD -->
+            <!-- 2. ADMIN RENEWAL FOLLOW UP MYR V2 (Amber Theme) -->
+            <div class="group-box group-follow-up-myr-v2"
+                :class="{'selected': selectedGroup === 'follow-up-myr-v2'}"
+                @click="setSelectedGroup('follow-up-myr-v2')">
+                <div class="group-info">
+                    <div class="group-title">Follow Up Reminder (MYR) </div>
+                    <div class="group-desc">Pending Payment</div>
+                </div>
+                <div class="group-count">{{ $followUpTotalMYRv2 }}</div>
+            </div>
+
+            <!-- 3. ADMIN RENEWAL FOLLOW UP USD (Blue Theme) -->
             <div class="group-box group-follow-up-usd"
                 :class="{'selected': selectedGroup === 'follow-up-usd'}"
                 @click="setSelectedGroup('follow-up-usd')">
@@ -517,11 +477,22 @@
                 </div>
                 <div class="group-count">{{ $followUpTotalUSD }}</div>
             </div>
+
+            <!-- 4. ADMIN RENEWAL FOLLOW UP USD V2 (Indigo Theme) -->
+            <div class="group-box group-follow-up-usd-v2"
+                :class="{'selected': selectedGroup === 'follow-up-usd-v2'}"
+                @click="setSelectedGroup('follow-up-usd-v2')">
+                <div class="group-info">
+                    <div class="group-title">Follow Up Reminder (USD)</div>
+                    <div class="group-desc">Pending Payment</div>
+                </div>
+                <div class="group-count">{{ $followUpTotalUSDv2 }}</div>
+            </div>
         </div>
 
         <!-- Right content column -->
         <div class="content-column">
-            <!-- MYR ADMIN RENEWAL FOLLOW UP Sub-tabs -->
+            <!-- 1. MYR ADMIN RENEWAL FOLLOW UP Sub-tabs (Orange Theme) -->
             <div class="category-container" x-show="selectedGroup === 'follow-up-myr'" x-transition>
                 <div class="stat-box follow-up-today-myr"
                     :class="{'selected': selectedStat === 'follow-up-today-myr'}"
@@ -549,9 +520,57 @@
                     </div>
                     <div class="stat-count">{{ $followUpFutureMYR }}</div>
                 </div>
+
+                <div class="stat-box follow-up-all-myr"
+                    :class="{'selected': selectedStat === 'follow-up-all-myr'}"
+                    @click="setSelectedStat('follow-up-all-myr')">
+                    <div class="stat-info">
+                        <div class="stat-label">All Follow Ups</div>
+                    </div>
+                    <div class="stat-count">{{ $followUpAllMYR }}</div>
+                </div>
             </div>
 
-            <!-- USD ADMIN RENEWAL FOLLOW UP Sub-tabs -->
+            <!-- 2. MYR V2 ADMIN RENEWAL FOLLOW UP Sub-tabs (Amber Theme) -->
+            <div class="category-container" x-show="selectedGroup === 'follow-up-myr-v2'" x-transition>
+                <div class="stat-box follow-up-today-myr-v2"
+                    :class="{'selected': selectedStat === 'follow-up-today-myr-v2'}"
+                    @click="setSelectedStat('follow-up-today-myr-v2')">
+                    <div class="stat-info">
+                        <div class="stat-label">Today</div>
+                    </div>
+                    <div class="stat-count">{{ $followUpTodayMYRv2 }}</div>
+                </div>
+
+                <div class="stat-box follow-up-overdue-myr-v2"
+                    :class="{'selected': selectedStat === 'follow-up-overdue-myr-v2'}"
+                    @click="setSelectedStat('follow-up-overdue-myr-v2')">
+                    <div class="stat-info">
+                        <div class="stat-label">Overdue</div>
+                    </div>
+                    <div class="stat-count">{{ $followUpOverdueMYRv2 }}</div>
+                </div>
+
+                <div class="stat-box follow-up-future-myr-v2"
+                    :class="{'selected': selectedStat === 'follow-up-future-myr-v2'}"
+                    @click="setSelectedStat('follow-up-future-myr-v2')">
+                    <div class="stat-info">
+                        <div class="stat-label">Next Follow Up</div>
+                    </div>
+                    <div class="stat-count">{{ $followUpFutureMYRv2 }}</div>
+                </div>
+
+                <div class="stat-box follow-up-all-myr-v2"
+                    :class="{'selected': selectedStat === 'follow-up-all-myr-v2'}"
+                    @click="setSelectedStat('follow-up-all-myr-v2')">
+                    <div class="stat-info">
+                        <div class="stat-label">All Follow Ups</div>
+                    </div>
+                    <div class="stat-count">{{ $followUpAllMYRv2 }}</div>
+                </div>
+            </div>
+
+            <!-- 3. USD ADMIN RENEWAL FOLLOW UP Sub-tabs (Blue Theme) -->
             <div class="category-container" x-show="selectedGroup === 'follow-up-usd'" x-transition>
                 <div class="stat-box follow-up-today-usd"
                     :class="{'selected': selectedStat === 'follow-up-today-usd'}"
@@ -579,6 +598,54 @@
                     </div>
                     <div class="stat-count">{{ $followUpFutureUSD }}</div>
                 </div>
+
+                <div class="stat-box follow-up-all-usd"
+                    :class="{'selected': selectedStat === 'follow-up-all-usd'}"
+                    @click="setSelectedStat('follow-up-all-usd')">
+                    <div class="stat-info">
+                        <div class="stat-label">All Follow Ups</div>
+                    </div>
+                    <div class="stat-count">{{ $followUpAllUSD }}</div>
+                </div>
+            </div>
+
+            <!-- 4. USD V2 ADMIN RENEWAL FOLLOW UP Sub-tabs (Indigo Theme) -->
+            <div class="category-container" x-show="selectedGroup === 'follow-up-usd-v2'" x-transition>
+                <div class="stat-box follow-up-today-usd-v2"
+                    :class="{'selected': selectedStat === 'follow-up-today-usd-v2'}"
+                    @click="setSelectedStat('follow-up-today-usd-v2')">
+                    <div class="stat-info">
+                        <div class="stat-label">Today</div>
+                    </div>
+                    <div class="stat-count">{{ $followUpTodayUSDv2 }}</div>
+                </div>
+
+                <div class="stat-box follow-up-overdue-usd-v2"
+                    :class="{'selected': selectedStat === 'follow-up-overdue-usd-v2'}"
+                    @click="setSelectedStat('follow-up-overdue-usd-v2')">
+                    <div class="stat-info">
+                        <div class="stat-label">Overdue</div>
+                    </div>
+                    <div class="stat-count">{{ $followUpOverdueUSDv2 }}</div>
+                </div>
+
+                <div class="stat-box follow-up-future-usd-v2"
+                    :class="{'selected': selectedStat === 'follow-up-future-usd-v2'}"
+                    @click="setSelectedStat('follow-up-future-usd-v2')">
+                    <div class="stat-info">
+                        <div class="stat-label">Next Follow Up</div>
+                    </div>
+                    <div class="stat-count">{{ $followUpFutureUSDv2 }}</div>
+                </div>
+
+                <div class="stat-box follow-up-all-usd-v2"
+                    :class="{'selected': selectedStat === 'follow-up-all-usd-v2'}"
+                    @click="setSelectedStat('follow-up-all-usd-v2')">
+                    <div class="stat-info">
+                        <div class="stat-label">All Follow Ups</div>
+                    </div>
+                    <div class="stat-count">{{ $followUpAllUSDv2 }}</div>
+                </div>
             </div>
 
             <!-- Content area for tables -->
@@ -589,7 +656,7 @@
                     <p x-text="selectedGroup === null ? 'Click on any of the category boxes to see options' : 'Click on any of the subcategory boxes to display the corresponding information'"></p>
                 </div>
 
-                <!-- MYR ADMIN RENEWAL FOLLOW UP Tables -->
+                <!-- 1. MYR ADMIN RENEWAL FOLLOW UP Tables -->
                 <div x-show="selectedStat === 'follow-up-today-myr'" x-transition>
                     <div class="p-4">
                         <livewire:admin-renewal-dashboard.ar-follow-up-today-myr />
@@ -605,8 +672,35 @@
                         <livewire:admin-renewal-dashboard.ar-follow-up-upcoming-myr />
                     </div>
                 </div>
+                <div x-show="selectedStat === 'follow-up-all-myr'" x-transition>
+                    <div class="p-4">
+                        <livewire:admin-renewal-dashboard.ar-follow-up-all-myr />
+                    </div>
+                </div>
 
-                <!-- USD ADMIN RENEWAL FOLLOW UP Tables -->
+                <!-- 2. MYR V2 ADMIN RENEWAL FOLLOW UP Tables (Pending Payment) -->
+                <div x-show="selectedStat === 'follow-up-today-myr-v2'" x-transition>
+                    <div class="p-4">
+                        <livewire:admin-renewal-dashboard.ar-follow-up-today-myr-v2 />
+                    </div>
+                </div>
+                <div x-show="selectedStat === 'follow-up-overdue-myr-v2'" x-transition>
+                    <div class="p-4">
+                        <livewire:admin-renewal-dashboard.ar-follow-up-overdue-myr-v2 />
+                    </div>
+                </div>
+                <div x-show="selectedStat === 'follow-up-future-myr-v2'" x-transition>
+                    <div class="p-4">
+                        <livewire:admin-renewal-dashboard.ar-follow-up-upcoming-myr-v2 />
+                    </div>
+                </div>
+                <div x-show="selectedStat === 'follow-up-all-myr-v2'" x-transition>
+                    <div class="p-4">
+                        <livewire:admin-renewal-dashboard.ar-follow-up-all-myr-v2 />
+                    </div>
+                </div>
+
+                <!-- 3. USD ADMIN RENEWAL FOLLOW UP Tables -->
                 <div x-show="selectedStat === 'follow-up-today-usd'" x-transition>
                     <div class="p-4">
                         <livewire:admin-renewal-dashboard.ar-follow-up-today-usd />
@@ -620,6 +714,33 @@
                 <div x-show="selectedStat === 'follow-up-future-usd'" x-transition>
                     <div class="p-4">
                         <livewire:admin-renewal-dashboard.ar-follow-up-upcoming-usd />
+                    </div>
+                </div>
+                <div x-show="selectedStat === 'follow-up-all-usd'" x-transition>
+                    <div class="p-4">
+                        <livewire:admin-renewal-dashboard.ar-follow-up-all-usd />
+                    </div>
+                </div>
+
+                <!-- 4. USD V2 ADMIN RENEWAL FOLLOW UP Tables (Pending Payment) -->
+                <div x-show="selectedStat === 'follow-up-today-usd-v2'" x-transition>
+                    <div class="p-4">
+                        <livewire:admin-renewal-dashboard.ar-follow-up-today-usd-v2 />
+                    </div>
+                </div>
+                <div x-show="selectedStat === 'follow-up-overdue-usd-v2'" x-transition>
+                    <div class="p-4">
+                        <livewire:admin-renewal-dashboard.ar-follow-up-overdue-usd-v2 />
+                    </div>
+                </div>
+                <div x-show="selectedStat === 'follow-up-future-usd-v2'" x-transition>
+                    <div class="p-4">
+                        <livewire:admin-renewal-dashboard.ar-follow-up-upcoming-usd-v2 />
+                    </div>
+                </div>
+                <div x-show="selectedStat === 'follow-up-all-usd-v2'" x-transition>
+                    <div class="p-4">
+                        <livewire:admin-renewal-dashboard.ar-follow-up-all-usd-v2 />
                     </div>
                 </div>
             </div>

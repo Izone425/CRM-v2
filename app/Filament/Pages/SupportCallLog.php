@@ -149,8 +149,7 @@ class SupportCallLog extends Page implements HasTable
 
                 TextColumn::make('staff_name')
                     ->label('Support')
-                    ->sortable()
-                    ->searchable(),
+                    ->sortable(),
 
                 TextColumn::make('started_at')
                     ->label('Date')
@@ -229,7 +228,15 @@ class SupportCallLog extends Page implements HasTable
                         }
 
                         $staffName = $data['value'];
-                        $extension = $extensionUserMapping[$staffName] ?? null;
+
+                        // Find the extension for this staff name
+                        $extension = null;
+                        foreach ($extensionUserMapping as $name => $ext) {
+                            if ($name === $staffName) {
+                                $extension = $ext;
+                                break;
+                            }
+                        }
 
                         if ($extension) {
                             return $query->where(function ($q) use ($extension) {
@@ -243,7 +250,7 @@ class SupportCallLog extends Page implements HasTable
                                     $subq->where('call_type', 'outgoing')
                                         ->where('caller_number', $extension);
                                 })
-                                // For internal calls
+                                // For internal calls, check both caller and receiver
                                 ->orWhere(function($subq) use ($extension) {
                                     $subq->where('call_type', 'internal')
                                         ->where(function($innerq) use ($extension) {

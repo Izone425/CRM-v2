@@ -608,7 +608,7 @@
                     </div>
                 @endif
 
-                @if(auth()->user()->role_id === 8 || auth()->user()->role_id === 3)
+                @if(auth()->user()->role_id === 8 || auth()->user()->role_id === 3 || auth()->user()->id == 35)
                     <div class="icon-link" data-section="support" title="Support">
                         <div class="icon-wrapper">
                             <i class="bi bi-headset icon"></i>
@@ -1037,12 +1037,10 @@
                                     <i class="bi bi-window-fullscreen submenu-icon"></i>
                                     <span class="module-font">Device Stock Information</span>
                                 </a>
-                                @if(auth()->user()->hasRouteAccess('filament.admin.pages.future-enhancement'))
-                                    <a href="{{ route('filament.admin.pages.device-purchase-information') }}" class="submenu-item">
-                                        <i class="bi bi-box-seam submenu-icon"></i>
-                                        <span class="module-font">Device Purchase Information</span>
-                                    </a>
-                                @endif
+                                <a href="{{ route('filament.admin.pages.device-purchase-information') }}" class="submenu-item">
+                                    <i class="bi bi-box-seam submenu-icon"></i>
+                                    <span class="module-font">Device Purchase Information</span>
+                                </a>
                             </div>
                         </div>
 

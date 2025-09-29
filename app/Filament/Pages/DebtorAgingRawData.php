@@ -278,16 +278,14 @@ class DebtorAgingRawData extends Page implements HasTable
                     // NO1: Toggle column - Currency Type
                     TextColumn::make('currency_code')
                         ->label('Currency')
-                        ->sortable()
-                        ->toggleable(isToggledHiddenByDefault: true),
+                        ->sortable(),
 
                     // NO2: Toggle column - Support
                     TextColumn::make('support')
                         ->label('Support')
                         ->searchable()
                         ->sortable()
-                        ->formatStateUsing(fn ($state) => $state ?: 'N/A')
-                        ->toggleable(isToggledHiddenByDefault: true),
+                        ->formatStateUsing(fn ($state) => $state ?: 'N/A'),
 
                     TextColumn::make('outstanding_rm')
                         ->label('Outstanding')

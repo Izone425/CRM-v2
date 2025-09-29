@@ -29,7 +29,7 @@ use Livewire\Attributes\On;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
-class ArFollowUpTodayMyr extends Component implements HasForms, HasTable
+class ArFollowUpTodayMyrV2 extends Component implements HasForms, HasTable
 {
     use InteractsWithTable;
     use InteractsWithForms;
@@ -95,7 +95,7 @@ class ArFollowUpTodayMyr extends Component implements HasForms, HasTable
             ->whereDate('follow_up_date', today())
             ->where('follow_up_counter', true)
             ->where('mapping_status', 'completed_mapping')
-            ->whereIn('renewal_progress', ['new', 'pending_confirmation'])
+            ->whereIn('renewal_progress', ['pending_payment'])
             ->selectRaw('*, DATEDIFF(NOW(), follow_up_date) as pending_days');
 
         return $query;
@@ -293,7 +293,7 @@ class ArFollowUpTodayMyr extends Component implements HasForms, HasTable
 
     public function render()
     {
-        return view('livewire.admin_renewal_dashboard.ar-follow-up-today-myr');
+        return view('livewire.admin_renewal_dashboard.ar-follow-up-today-myr-v2');
     }
 
     protected static function getEarliestExpiryDate($companyId)

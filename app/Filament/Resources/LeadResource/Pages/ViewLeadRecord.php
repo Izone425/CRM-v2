@@ -66,15 +66,9 @@ class ViewLeadRecord extends ViewRecord
         if (!$user) {
             return ['lead', 'company'];
         } elseif ($user->role_id === 1) { // Lead Owner
-            if ($user->additional_role === 1) {
-                return ['company', 'quotation', 'repair_appointment']; // Admin Repair view
-            } else {
-                return ['lead', 'company', 'prospect_pic_details', 'system', 'refer_earn', 'appointment',
-                    'prospect_follow_up', 'commercial_items', 'handover_details'];
-            }
+                return ['prospect_details', 'subscriber_details', 'sales_progress', 'commercial_items', 'handover_details'];
         } elseif ($user->role_id === 2) { // Salesperson
-            return ['lead', 'company', 'system', 'refer_earn', 'appointment',
-                'prospect_follow_up', 'commercial_items', 'handover_details'];
+            return ['prospect_details', 'subscriber_details', 'sales_progress', 'commercial_items', 'handover_details'];
         } elseif ($user->role_id === 4) { // Implementer
             return ['company', 'implementer_handover','implementer_pic_details',
             'implementer_notes', 'implementer_appointment', 'implementer_follow_up',
@@ -86,8 +80,7 @@ class ViewLeadRecord extends ViewRecord
         } elseif ($user->role_id === 9) { // Technician
             return ['company', 'quotation', 'repair_appointment'];
         } else { // Manager (role_id = 3) or others
-            return ['lead', 'company', 'prospect_pic_details', 'system', 'refer_earn', 'appointment',
-                'prospect_follow_up', 'commercial_items', 'handover_details'];
+            return ['prospect_details', 'subscriber_details', 'sales_progress', 'commercial_items', 'handover_details'];
         }
     }
 
@@ -226,9 +219,7 @@ class ViewLeadRecord extends ViewRecord
 
                     switch ($roleView) {
                         case 'lead_owner':
-                            $tabs = ['lead', 'company', 'prospect_pic_details', 'system', 'refer_earn', 'appointment',
-                                'prospect_follow_up', 'quotation', 'proforma_invoice', 'invoice',
-                                'debtor_follow_up', 'handover_details'];
+                            $tabs = ['prospect_details', 'subscriber_details', 'sales_progress', 'commercial_items', 'handover_details'];
                             break;
                         case 'implementer':
                             $tabs = ['company', 'implementer_handover','implementer_pic_details',
@@ -250,13 +241,11 @@ class ViewLeadRecord extends ViewRecord
                             $tabs = ['company', 'quotation', 'repair_appointment'];
                             break;
                         case 'salesperson':
-                            $tabs = ['lead', 'company', 'system', 'refer_earn', 'appointment',
-                                'prospect_follow_up', 'commercial_items', 'handover_details'];
+                            $tabs = ['prospect_details', 'subscriber_details', 'sales_progress', 'commercial_items', 'handover_details'];
                             break;
                         case 'manager':
                         default:
-                            $tabs = ['lead', 'company', 'prospect_pic_details', 'system', 'refer_earn', 'appointment',
-                                'prospect_follow_up', 'commercial_items', 'handover_details'];
+                            $tabs = ['prospect_details', 'subscriber_details', 'sales_progress', 'commercial_items', 'handover_details'];
                             break;
                     }
 

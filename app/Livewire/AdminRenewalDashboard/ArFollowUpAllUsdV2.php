@@ -5,36 +5,36 @@ namespace App\Livewire\AdminRenewalDashboard;
 use App\Filament\Actions\AdminRenewalActions;
 use App\Filament\Filters\SortFilter;
 use App\Filament\Pages\RenewalDataMyr;
-use App\Models\CompanyDetail;
 use App\Models\AdminRenewalLogs;
-use App\Models\Renewal;
+use App\Models\CompanyDetail;
 use App\Models\Lead;
+use App\Models\Renewal;
 use App\Models\User;
-use Filament\Tables\Actions\Action;
-use Filament\Tables\Table;
-use Filament\Forms\Contracts\HasForms;
-use Filament\Tables\Contracts\HasTable;
 use Filament\Forms\Concerns\InteractsWithForms;
+use Filament\Forms\Contracts\HasForms;
+use Filament\Notifications\Notification;
+use Filament\Tables\Actions\Action;
 use Filament\Tables\Actions\ActionGroup;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
-use Illuminate\Support\Carbon;
-use Livewire\Component;
-use Illuminate\Support\Str;
-use Filament\Notifications\Notification;
+use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Filters\SelectFilter;
-use Illuminate\Support\HtmlString;
-use Illuminate\View\View;
-use Livewire\Attributes\On;
+use Filament\Tables\Table;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\HtmlString;
+use Illuminate\Support\Str;
+use Livewire\Attributes\On;
+use Livewire\Component;
 
-class ArFollowUpTodayMyr extends Component implements HasForms, HasTable
+class ArFollowUpAllUsdV2 extends Component implements HasForms, HasTable
 {
-    use InteractsWithTable;
     use InteractsWithForms;
+    use InteractsWithTable;
 
     public $selectedUser;
+
     public $lastRefreshTime;
 
     public function mount()
@@ -74,14 +74,14 @@ class ArFollowUpTodayMyr extends Component implements HasForms, HasTable
         $this->resetTable();
     }
 
-    public function getTodayRenewals()
+    public function getOverdueRenewals()
     {
         $this->selectedUser = $this->selectedUser ?? session('selectedUser') ?? auth()->user()->id;
 
-        // Get company IDs that have MYR expiring licenses - cast to integer for proper comparison
-        $myrCompanyIds = DB::connection('frontenddb')->table('crm_expiring_license')
+        // Get company IDs that have USD expiring licenses
+        $usdCompanyIds = DB::connection('frontenddb')->table('crm_expiring_license')
             ->select('f_company_id')
-            ->where('f_currency', 'MYR')
+            ->where('f_currency', 'USD')
             ->whereDate('f_expiry_date', '>=', today())
             ->distinct()
             ->pluck('f_company_id')
@@ -91,21 +91,50 @@ class ArFollowUpTodayMyr extends Component implements HasForms, HasTable
             ->toArray();
 
         $query = Renewal::query()
-            ->whereIn('f_company_id', $myrCompanyIds)
-            ->whereDate('follow_up_date', today())
+            ->whereIn('f_company_id', $usdCompanyIds)
             ->where('follow_up_counter', true)
             ->where('mapping_status', 'completed_mapping')
-            ->whereIn('renewal_progress', ['new', 'pending_confirmation'])
+            ->whereIn('renewal_progress', ['pending_payment'])
+            ->orderBy('created_at', 'asc')
             ->selectRaw('*, DATEDIFF(NOW(), follow_up_date) as pending_days');
 
         return $query;
+    }
+
+    protected static function getEarliestExpiryDate($companyId)
+    {
+        try {
+            $today = Carbon::now()->format('Y-m-d');
+
+            $earliestExpiry = DB::connection('frontenddb')
+                ->table('crm_expiring_license')
+                ->where('f_company_id', $companyId)
+                ->where('f_expiry_date', '>=', $today)
+                ->where('f_currency', 'MYR')
+                ->whereNotIn('f_name', [
+                    'TimeTec VMS Corporate (1 Floor License)',
+                    'TimeTec VMS SME (1 Location License)',
+                    'TimeTec Patrol (1 Checkpoint License)',
+                    'TimeTec Patrol (10 Checkpoint License)',
+                    'Other',
+                    'TimeTec Profile (10 User License)',
+                ])
+                ->min('f_expiry_date');
+
+            return $earliestExpiry;
+        } catch (\Exception $e) {
+            Log::error("Error fetching earliest expiry date for company {$companyId}: ".$e->getMessage());
+
+            return null;
+        }
     }
 
     public function table(Table $table): Table
     {
         return $table
             ->poll('300s')
-            ->query($this->getTodayRenewals())
+            ->query($this->getOverdueRenewals())
+            ->defaultSort('created_at', 'asc')
             ->emptyState(fn () => view('components.empty-state-question'))
             ->defaultPaginationPageOption(5)
             ->paginated([5])
@@ -119,12 +148,19 @@ class ArFollowUpTodayMyr extends Component implements HasForms, HasTable
                     })
                     ->placeholder('All Admin Renewals')
                     ->multiple(),
+
+                SelectFilter::make('salesperson')
+                    ->label('Filter by Salesperson')
+                    ->options(function () {
+                        return User::where('role_id', 2)
+                            ->whereNot('id', 15)
+                            ->pluck('name', 'name')
+                            ->toArray();
+                    })
+                    ->placeholder('All Salesperson')
+                    ->multiple(),
             ])
             ->columns([
-                TextColumn::make('admin_renewal')
-                    ->label('Admin Renewal')
-                    ->visible(fn(): bool => auth()->user()->role_id !== 3),
-
                 TextColumn::make('company_name')
                     ->label('Company Name')
                     ->searchable()
@@ -135,12 +171,12 @@ class ArFollowUpTodayMyr extends Component implements HasForms, HasTable
                             if ($company) {
                                 $encryptedId = \App\Classes\Encryptor::encrypt($company->lead_id);
 
-                                return new HtmlString('<a href="' . url('admin/leads/' . $encryptedId) . '"
+                                return new HtmlString('<a href="'.url('admin/leads/'.$encryptedId).'"
                                         target="_blank"
-                                        title="' . e($state) . '"
+                                        title="'.e($state).'"
                                         class="inline-block"
                                         style="color:#338cf0;">
-                                        ' . $company->company_name . '
+                                        '.$company->company_name.'
                                     </a>');
                             }
                         }
@@ -157,34 +193,41 @@ class ArFollowUpTodayMyr extends Component implements HasForms, HasTable
                         return Carbon::parse(self::getEarliestExpiryDate($record->f_company_id))->format('d M Y') ?? 'N/A';
                     }),
 
-                TextColumn::make('earliest_expiry_date')
-                    ->label('Expiry Date')
-                    ->default('N/A')
-                    ->formatStateUsing(function ($state, $record) {
-
-                        return Carbon::parse(self::getEarliestExpiryDate($record->f_company_id))->format('d M Y') ?? 'N/A';
-                    }),
-
                 TextColumn::make('pending_days')
                     ->label('Pending Days')
-                    ->default('0')
-                    ->formatStateUsing(fn ($state) => $state . ' ' . ($state == 0 ? 'Day' : 'Days')),
+                    ->formatStateUsing(fn ($record) => $this->getWeekdayCount($record->follow_up_date, now()).' days')
+                    ->color(fn ($record) => $this->getWeekdayCount($record->follow_up_date, now()) == 0 ? 'draft' : 'danger'),
 
                 TextColumn::make('follow_up_date')
                     ->label('Follow Up Date')
                     ->date('d M Y'),
+
+                TextColumn::make('f_company_id')
+                    ->label('Currency')
+                    ->formatStateUsing(function ($state) {
+                        $hasUsd = DB::connection('frontenddb')->table('crm_expiring_license')
+                            ->where('f_company_id', $state)
+                            ->where('f_currency', 'USD')
+                            ->exists();
+
+                        return $hasUsd ? 'USD' : 'N/A';
+                    })
+                    ->badge()
+                    ->color('info'),
             ])
             ->actions([
                 ActionGroup::make([
                     Action::make('view')
-                        ->label('View')
+                        ->label('View Leads')
                         ->icon('heroicon-o-eye')
                         ->color('secondary')
                         ->url(function (Renewal $record) {
                             if ($record->lead_id) {
                                 $encryptedId = \App\Classes\Encryptor::encrypt($record->lead_id);
-                                return url('admin/leads/' . $encryptedId);
+
+                                return url('admin/leads/'.$encryptedId);
                             }
+
                             return '#';
                         })
                         ->openUrlInNewTab(),
@@ -274,53 +317,40 @@ class ArFollowUpTodayMyr extends Component implements HasForms, HasTable
 
                         })
                         ->openUrlInNewTab(),
+
                     AdminRenewalActions::addAdminRenewalFollowUp()
                         ->action(function (Renewal $record, array $data) {
                             AdminRenewalActions::processFollowUpWithEmail($record, $data);
                             $this->dispatch('refresh-admin-renewal-tables');
                         }),
-                    AdminRenewalActions::stopAdminRenewalFollowUp()
-                        ->action(function (Renewal $record, array $data) {
-                            AdminRenewalActions::processStopFollowUp($record, $data);
-                            $this->dispatch('refresh-admin-renewal-tables');
-                        }),
                 ])
                 ->button()
-                ->color('warning') // Orange color for MYR
+                ->color('info') // Blue color for USD
                 ->label('Actions')
+                    ->button()
+                    ->color('warning')
+                    ->label('Actions'),
             ]);
     }
 
     public function render()
     {
-        return view('livewire.admin_renewal_dashboard.ar-follow-up-today-myr');
+        return view('livewire.admin_renewal_dashboard.ar-follow-up-all-usd-v2');
     }
 
-    protected static function getEarliestExpiryDate($companyId)
+    private function getWeekdayCount($startDate, $endDate)
     {
-        try {
-            $today = Carbon::now()->format('Y-m-d');
+        $weekdayCount = 0;
+        $currentDate = Carbon::parse($startDate);
+        $endDate = Carbon::parse($endDate);
 
-            $earliestExpiry = DB::connection('frontenddb')
-                ->table('crm_expiring_license')
-                ->where('f_company_id', $companyId)
-                ->where('f_expiry_date', '>=', $today)
-                ->where('f_currency', 'MYR')
-                ->whereNotIn('f_name', [
-                    'TimeTec VMS Corporate (1 Floor License)',
-                    'TimeTec VMS SME (1 Location License)',
-                    'TimeTec Patrol (1 Checkpoint License)',
-                    'TimeTec Patrol (10 Checkpoint License)',
-                    'Other',
-                    'TimeTec Profile (10 User License)',
-                ])
-                ->min('f_expiry_date');
-
-            return $earliestExpiry;
-        } catch (\Exception $e) {
-            Log::error("Error fetching earliest expiry date for company {$companyId}: ".$e->getMessage());
-
-            return null;
+        while ($currentDate->lte($endDate)) {
+            if (! $currentDate->isWeekend()) {
+                $weekdayCount++;
+            }
+            $currentDate->addDay();
         }
+
+        return $weekdayCount;
     }
 }
