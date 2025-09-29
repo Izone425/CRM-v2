@@ -92,7 +92,6 @@ class ArFollowUpAllMyr extends Component implements HasForms, HasTable
 
         $query = Renewal::query()
             ->whereIn('f_company_id', $myrCompanyIds)
-            ->whereDate('follow_up_date', '<', today())
             ->where('follow_up_counter', true)
             ->where('mapping_status', 'completed_mapping')
             ->whereIn('renewal_progress', ['new', 'pending_confirmation'])
@@ -293,11 +292,11 @@ class ArFollowUpAllMyr extends Component implements HasForms, HasTable
                             AdminRenewalActions::processFollowUpWithEmail($record, $data);
                             $this->dispatch('refresh-admin-renewal-tables');
                         }),
-                    AdminRenewalActions::stopAdminRenewalFollowUp()
-                        ->action(function (Renewal $record, array $data) {
-                            AdminRenewalActions::processStopFollowUp($record, $data);
-                            $this->dispatch('refresh-admin-renewal-tables');
-                        }),
+                    // AdminRenewalActions::stopAdminRenewalFollowUp()
+                    //     ->action(function (Renewal $record, array $data) {
+                    //         AdminRenewalActions::processStopFollowUp($record, $data);
+                    //         $this->dispatch('refresh-admin-renewal-tables');
+                    //     }),
                 ])
                 ->button()
                 ->color('warning') // Orange color for MYR
