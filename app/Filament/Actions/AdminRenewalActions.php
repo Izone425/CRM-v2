@@ -142,7 +142,7 @@ class AdminRenewalActions
                         Select::make('email_template')
                             ->label('Email Template')
                             ->options(function () {
-                                return EmailTemplate::where('type', 'admin_renewal')
+                                return EmailTemplate::whereIn('type', ['admin_renewal', 'admin_renewal_v1', 'admin_renewal_v2'])
                                     ->pluck('name', 'id')
                                     ->toArray();
                             })
@@ -210,7 +210,26 @@ class AdminRenewalActions
                     ->placeholder('Add your follow-up details here...')
                     ->required()
             ])
-            ->modalHeading('Add New Follow-up');
+            ->modalHeading(function ($record) {
+                $companyName = 'Unknown Company';
+
+                if ($record) {
+                    // Try to get company name from the renewal record first
+                    if (!empty($record->company_name)) {
+                        $companyName = $record->company_name;
+                    }
+                    // Fallback to lead's company detail
+                    elseif ($record->lead && $record->lead->companyDetail && !empty($record->lead->companyDetail->company_name)) {
+                        $companyName = $record->lead->companyDetail->company_name;
+                    }
+                    // Last fallback to lead's company name field
+                    elseif ($record->lead && !empty($record->lead->company)) {
+                        $companyName = $record->lead->company;
+                    }
+                }
+
+                return "Add New Follow-up - {$companyName}";
+            });
     }
 
     public static function processFollowUpWithEmail(Renewal $record, array $data): void

@@ -1017,7 +1017,8 @@ class ImplementerActions
                         Select::make('email_template')
                             ->label('Email Template')
                             ->options(function () {
-                                return EmailTemplate::pluck('name', 'id')
+                                return EmailTemplate::whereIn('type', ['implementer'])
+                                    ->pluck('name', 'id')
                                     ->toArray();
                             })
                             ->searchable()
