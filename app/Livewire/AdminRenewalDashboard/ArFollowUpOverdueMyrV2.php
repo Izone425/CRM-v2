@@ -96,8 +96,22 @@ class ArFollowUpOverdueMyrV2 extends Component implements HasForms, HasTable
             ->where('follow_up_counter', true)
             ->where('mapping_status', 'completed_mapping')
             ->whereIn('renewal_progress', ['pending_payment'])
-            ->orderBy('created_at', 'asc')
-            ->selectRaw('*, DATEDIFF(NOW(), follow_up_date) as pending_days');
+            ->selectRaw('*,
+                DATEDIFF(NOW(), follow_up_date) as pending_days,
+                (SELECT MIN(f_expiry_date) FROM frontenddb.crm_expiring_license
+                WHERE f_company_id = renewals.f_company_id
+                AND f_currency = "MYR"
+                AND f_expiry_date >= CURDATE()
+                AND f_name NOT IN (
+                    "TimeTec VMS Corporate (1 Floor License)",
+                    "TimeTec VMS SME (1 Location License)",
+                    "TimeTec Patrol (1 Checkpoint License)",
+                    "TimeTec Patrol (10 Checkpoint License)",
+                    "Other",
+                    "TimeTec Profile (10 User License)"
+                )
+                ) as earliest_expiry_date')
+            ->orderBy('earliest_expiry_date', 'ASC');
 
         return $query;
     }
@@ -107,7 +121,6 @@ class ArFollowUpOverdueMyrV2 extends Component implements HasForms, HasTable
         return $table
             ->poll('300s')
             ->query($this->getOverdueRenewals())
-            ->defaultSort('created_at', 'asc')
             ->emptyState(fn () => view('components.empty-state-question'))
             ->defaultPaginationPageOption(5)
             ->paginated([5])
