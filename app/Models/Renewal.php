@@ -58,7 +58,7 @@ class Renewal extends Model
             'new' => 'New',
             'pending_confirmation' => 'Pending Confirmation',
             'pending_payment' => 'Pending Payment',
-            'completed_renewal' => 'Completed Renewal',
+            'completed_renewal' => 'Completed Payment',
         ];
     }
 

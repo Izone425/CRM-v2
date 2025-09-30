@@ -897,7 +897,7 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
                         'new' => 'New',
                         'pending_confirmation' => 'Pending Confirmation',
                         'pending_payment' => 'Pending Payment',
-                        'completed_renewal' => 'Completed Renewal',
+                        'completed_renewal' => 'Completed Payment',
                     ])
                     ->query(function (Builder $query, array $data) {
                         if (! empty($data['values'])) {
@@ -1052,7 +1052,7 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
                                     'new' => 'New',
                                     'pending_confirmation' => 'Pending Confirmation',
                                     'pending_payment' => 'Pending Payment',
-                                    'completed_renewal' => 'Completed Renewal',
+                                    'completed_renewal' => 'Completed Payment',
                                     default => ucfirst(str_replace('_', ' ', $renewal->renewal_progress))
                                 };
                             })
@@ -1702,72 +1702,72 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
                             }
                         }),
 
-                    Action::make('claim_via_hrdf')
-                        ->label('Claim via HRDF')
-                        ->icon('heroicon-o-building-library')
-                        ->color('success')
-                        ->requiresConfirmation()
-                        ->modalHeading('Claim via HRDF')
-                        ->modalDescription('Are you sure you want to process HRDF claim? This will change the renewal progress to "Pending Payment".')
-                        ->modalSubmitActionLabel('Yes, Process HRDF Claim')
-                        ->modalCancelActionLabel('Cancel')
-                        ->visible(function ($record) {
-                            $renewal = Renewal::where('f_company_id', $record->f_company_id)->first();
+                    // Action::make('claim_via_hrdf')
+                    //     ->label('Claim via HRDF')
+                    //     ->icon('heroicon-o-building-library')
+                    //     ->color('success')
+                    //     ->requiresConfirmation()
+                    //     ->modalHeading('Claim via HRDF')
+                    //     ->modalDescription('Are you sure you want to process HRDF claim? This will change the renewal progress to "Pending Payment".')
+                    //     ->modalSubmitActionLabel('Yes, Process HRDF Claim')
+                    //     ->modalCancelActionLabel('Cancel')
+                    //     ->visible(function ($record) {
+                    //         $renewal = Renewal::where('f_company_id', $record->f_company_id)->first();
 
-                            return $renewal && $renewal->renewal_progress === 'pending_confirmation';
-                        })
-                        ->action(function ($record) {
-                            try {
-                                // Get the existing renewal record to preserve current progress_history
-                                $existingRenewal = Renewal::where('f_company_id', $record->f_company_id)->first();
+                    //         return $renewal && $renewal->renewal_progress === 'pending_confirmation';
+                    //     })
+                    //     ->action(function ($record) {
+                    //         try {
+                    //             // Get the existing renewal record to preserve current progress_history
+                    //             $existingRenewal = Renewal::where('f_company_id', $record->f_company_id)->first();
 
-                                // Get current progress_history or initialize as empty array
-                                $progressHistory = $existingRenewal && $existingRenewal->progress_history
-                                    ? json_decode($existingRenewal->progress_history, true)
-                                    : [];
+                    //             // Get current progress_history or initialize as empty array
+                    //             $progressHistory = $existingRenewal && $existingRenewal->progress_history
+                    //                 ? json_decode($existingRenewal->progress_history, true)
+                    //                 : [];
 
-                                // Add new log entry
-                                $newLogEntry = [
-                                    'timestamp' => now()->toISOString(),
-                                    'action' => 'hrdf_claim_initiated',
-                                    'previous_status' => $existingRenewal ? $existingRenewal->renewal_progress : null,
-                                    'new_status' => 'pending_payment',
-                                    'performed_by' => auth()->user()->name,
-                                    'performed_by_id' => auth()->user()->id,
-                                    'description' => 'HRDF claim initiated - Status changed to Pending Payment',
-                                    'company_name' => $record->f_company_name,
-                                    'f_company_id' => $record->f_company_id,
-                                ];
+                    //             // Add new log entry
+                    //             $newLogEntry = [
+                    //                 'timestamp' => now()->toISOString(),
+                    //                 'action' => 'hrdf_claim_initiated',
+                    //                 'previous_status' => $existingRenewal ? $existingRenewal->renewal_progress : null,
+                    //                 'new_status' => 'pending_payment',
+                    //                 'performed_by' => auth()->user()->name,
+                    //                 'performed_by_id' => auth()->user()->id,
+                    //                 'description' => 'HRDF claim initiated - Status changed to Pending Payment',
+                    //                 'company_name' => $record->f_company_name,
+                    //                 'f_company_id' => $record->f_company_id,
+                    //             ];
 
-                                // Add the new entry to progress history
-                                $progressHistory[] = $newLogEntry;
+                    //             // Add the new entry to progress history
+                    //             $progressHistory[] = $newLogEntry;
 
-                                // Update renewal record
-                                $renewal = Renewal::updateOrCreate(
-                                    ['f_company_id' => $record->f_company_id],
-                                    [
-                                        'renewal_progress' => 'pending_payment',
-                                        'progress_history' => json_encode($progressHistory),
-                                        'hrdf_claim_initiated_at' => now(),
-                                        'hrdf_claim_initiated_by' => auth()->user()->id,
-                                    ]
-                                );
+                    //             // Update renewal record
+                    //             $renewal = Renewal::updateOrCreate(
+                    //                 ['f_company_id' => $record->f_company_id],
+                    //                 [
+                    //                     'renewal_progress' => 'pending_payment',
+                    //                     'progress_history' => json_encode($progressHistory),
+                    //                     'hrdf_claim_initiated_at' => now(),
+                    //                     'hrdf_claim_initiated_by' => auth()->user()->id,
+                    //                 ]
+                    //             );
 
-                                Notification::make()
-                                    ->success()
-                                    ->title('HRDF Claim Initiated')
-                                    ->body("HRDF claim has been initiated. Renewal progress updated to 'Pending Payment'.")
-                                    ->send();
-                            } catch (\Exception $e) {
-                                Log::error('Error initiating HRDF claim: '.$e->getMessage());
+                    //             Notification::make()
+                    //                 ->success()
+                    //                 ->title('HRDF Claim Initiated')
+                    //                 ->body("HRDF claim has been initiated. Renewal progress updated to 'Pending Payment'.")
+                    //                 ->send();
+                    //         } catch (\Exception $e) {
+                    //             Log::error('Error initiating HRDF claim: '.$e->getMessage());
 
-                                Notification::make()
-                                    ->danger()
-                                    ->title('Error')
-                                    ->body('There was an error initiating the HRDF claim. Please try again.')
-                                    ->send();
-                            }
-                        }),
+                    //             Notification::make()
+                    //                 ->danger()
+                    //                 ->title('Error')
+                    //                 ->body('There was an error initiating the HRDF claim. Please try again.')
+                    //                 ->send();
+                    //         }
+                    //     }),
 
                     // Action::make('termination')
                     //     ->label('Termination')

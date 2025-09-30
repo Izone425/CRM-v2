@@ -310,11 +310,9 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                 $endDate = $next60Days;
             }
 
-            // Get renewals with new status that have lead mappings and fall within date range
+            // Get renewals with new status that fall within date range
             $renewals = Renewal::where('renewal_progress', 'new')
-                ->whereNotNull('lead_id')
-                ->whereHas('lead.quotations.items')
-                ->with(['lead.quotations.items'])
+                ->with(['lead.quotations.items']) // Keep the eager loading but don't require it
                 ->get()
                 ->filter(function ($renewal) use ($startDate, $endDate) {
                     // Check if renewal company has expiring licenses within date range
@@ -335,35 +333,42 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
             $totalViaEndUserAmount = 0;
 
             foreach ($renewals as $renewal) {
-                // Check if renewal has lead and lead exists
-                if (!$renewal->lead_id || !$renewal->lead) continue;
+                // Only process quotation data if renewal has lead and lead exists
+                if ($renewal->lead_id && $renewal->lead) {
+                    // Get final renewal quotations for this lead (if they exist)
+                    $renewalQuotations = $renewal->lead->quotations()
+                        ->where('mark_as_final', true)
+                        ->where('sales_type', 'RENEWAL SALES')
+                        ->get();
 
-                // Get final renewal quotations for this lead
-                $renewalQuotations = $renewal->lead->quotations()
-                    ->where('mark_as_final', true)
-                    ->where('sales_type', 'RENEWAL SALES')
-                    ->get();
+                    // If quotations exist, count them and calculate amount
+                    if ($renewalQuotations->isNotEmpty()) {
+                        $totalInvoices += $renewalQuotations->count();
 
-                if ($renewalQuotations->isEmpty()) continue;
+                        // Calculate amount from quotations
+                        $quotationAmount = 0;
+                        foreach ($renewalQuotations as $quotation) {
+                            $quotationAmount += $quotation->items->sum('total_before_tax');
+                        }
 
-                $totalInvoices += $renewalQuotations->count();
+                        $totalAmount += $quotationAmount;
 
-                // Calculate amount from quotations
-                $quotationAmount = 0;
-                foreach ($renewalQuotations as $quotation) {
-                    $quotationAmount += $quotation->items->sum('total_before_tax');
+                        // Check if company has reseller for amount calculation
+                        $reseller = RenewalDataUsd::getResellerForCompany($renewal->f_company_id);
+                        if ($reseller && $reseller->f_rate) {
+                            $totalViaResellerAmount += $quotationAmount;
+                        } else {
+                            $totalViaEndUserAmount += $quotationAmount;
+                        }
+                    }
                 }
 
-                $totalAmount += $quotationAmount;
-
-                // Check if company has reseller
+                // Always count companies regardless of lead mapping or quotation existence
                 $reseller = RenewalDataUsd::getResellerForCompany($renewal->f_company_id);
                 if ($reseller && $reseller->f_rate) {
                     $totalViaResellerCount++;
-                    $totalViaResellerAmount += $quotationAmount;
                 } else {
                     $totalViaEndUserCount++;
-                    $totalViaEndUserAmount += $quotationAmount;
                 }
             }
 
@@ -402,11 +407,9 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                 $endDate = $next60Days;
             }
 
-            // Get renewals with pending_confirmation status that have lead mappings and fall within date range
+            // Get renewals with pending_confirmation status that fall within date range
             $renewals = Renewal::where('renewal_progress', 'pending_confirmation')
-                ->whereNotNull('lead_id')
-                ->whereHas('lead.quotations.items')
-                ->with(['lead.quotations.items'])
+                ->with(['lead.quotations.items']) // Keep the eager loading but don't require it
                 ->get()
                 ->filter(function ($renewal) use ($startDate, $endDate) {
                     // Check if renewal company has expiring licenses within date range
@@ -427,35 +430,42 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
             $totalViaEndUserAmount = 0;
 
             foreach ($renewals as $renewal) {
-                // Check if renewal has lead and lead exists
-                if (!$renewal->lead_id || !$renewal->lead) continue;
+                // Only process quotation data if renewal has lead and lead exists
+                if ($renewal->lead_id && $renewal->lead) {
+                    // Get final renewal quotations for this lead (if they exist)
+                    $renewalQuotations = $renewal->lead->quotations()
+                        ->where('mark_as_final', true)
+                        ->where('sales_type', 'RENEWAL SALES')
+                        ->get();
 
-                // Get final renewal quotations for this lead
-                $renewalQuotations = $renewal->lead->quotations()
-                    ->where('mark_as_final', true)
-                    ->where('sales_type', 'RENEWAL SALES')
-                    ->get();
+                    // If quotations exist, count them and calculate amount
+                    if ($renewalQuotations->isNotEmpty()) {
+                        $totalInvoices += $renewalQuotations->count();
 
-                if ($renewalQuotations->isEmpty()) continue;
+                        // Calculate amount from quotations
+                        $quotationAmount = 0;
+                        foreach ($renewalQuotations as $quotation) {
+                            $quotationAmount += $quotation->items->sum('total_before_tax');
+                        }
 
-                $totalInvoices += $renewalQuotations->count();
+                        $totalAmount += $quotationAmount;
 
-                // Calculate amount from quotations
-                $quotationAmount = 0;
-                foreach ($renewalQuotations as $quotation) {
-                    $quotationAmount += $quotation->items->sum('total_before_tax');
+                        // Check if company has reseller for amount calculation
+                        $reseller = RenewalDataUsd::getResellerForCompany($renewal->f_company_id);
+                        if ($reseller && $reseller->f_rate) {
+                            $totalViaResellerAmount += $quotationAmount;
+                        } else {
+                            $totalViaEndUserAmount += $quotationAmount;
+                        }
+                    }
                 }
 
-                $totalAmount += $quotationAmount;
-
-                // Check if company has reseller
+                // Always count companies regardless of lead mapping or quotation existence
                 $reseller = RenewalDataUsd::getResellerForCompany($renewal->f_company_id);
                 if ($reseller && $reseller->f_rate) {
                     $totalViaResellerCount++;
-                    $totalViaResellerAmount += $quotationAmount;
                 } else {
                     $totalViaEndUserCount++;
-                    $totalViaEndUserAmount += $quotationAmount;
                 }
             }
 
@@ -494,11 +504,9 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                 $endDate = $next60Days;
             }
 
-            // Get renewals with pending_payment status that have lead mappings and fall within date range
+            // Get renewals with pending_payment status that fall within date range
             $renewals = Renewal::where('renewal_progress', 'pending_payment')
-                ->whereNotNull('lead_id')
-                ->whereHas('lead.quotations.items')
-                ->with(['lead.quotations.items'])
+                ->with(['lead.quotations.items']) // Keep the eager loading but don't require it
                 ->get()
                 ->filter(function ($renewal) use ($startDate, $endDate) {
                     // Check if renewal company has expiring licenses within date range
@@ -519,35 +527,42 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
             $totalViaEndUserAmount = 0;
 
             foreach ($renewals as $renewal) {
-                // Check if renewal has lead and lead exists
-                if (!$renewal->lead_id || !$renewal->lead) continue;
+                // Only process quotation data if renewal has lead and lead exists
+                if ($renewal->lead_id && $renewal->lead) {
+                    // Get final renewal quotations for this lead (if they exist)
+                    $renewalQuotations = $renewal->lead->quotations()
+                        ->where('mark_as_final', true)
+                        ->where('sales_type', 'RENEWAL SALES')
+                        ->get();
 
-                // Get final renewal quotations for this lead
-                $renewalQuotations = $renewal->lead->quotations()
-                    ->where('mark_as_final', true)
-                    ->where('sales_type', 'RENEWAL SALES')
-                    ->get();
+                    // If quotations exist, count them and calculate amount
+                    if ($renewalQuotations->isNotEmpty()) {
+                        $totalInvoices += $renewalQuotations->count();
 
-                if ($renewalQuotations->isEmpty()) continue;
+                        // Calculate amount from quotations
+                        $quotationAmount = 0;
+                        foreach ($renewalQuotations as $quotation) {
+                            $quotationAmount += $quotation->items->sum('total_before_tax');
+                        }
 
-                $totalInvoices += $renewalQuotations->count();
+                        $totalAmount += $quotationAmount;
 
-                // Calculate amount from quotations
-                $quotationAmount = 0;
-                foreach ($renewalQuotations as $quotation) {
-                    $quotationAmount += $quotation->items->sum('total_before_tax');
+                        // Check if company has reseller for amount calculation
+                        $reseller = RenewalDataUsd::getResellerForCompany($renewal->f_company_id);
+                        if ($reseller && $reseller->f_rate) {
+                            $totalViaResellerAmount += $quotationAmount;
+                        } else {
+                            $totalViaEndUserAmount += $quotationAmount;
+                        }
+                    }
                 }
 
-                $totalAmount += $quotationAmount;
-
-                // Check if company has reseller
+                // Always count companies regardless of lead mapping or quotation existence
                 $reseller = RenewalDataUsd::getResellerForCompany($renewal->f_company_id);
                 if ($reseller && $reseller->f_rate) {
                     $totalViaResellerCount++;
-                    $totalViaResellerAmount += $quotationAmount;
                 } else {
                     $totalViaEndUserCount++;
-                    $totalViaEndUserAmount += $quotationAmount;
                 }
             }
 
@@ -586,11 +601,9 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                 $endDate = $next60Days;
             }
 
-            // Get renewals with completed_renewal status that have lead mappings and fall within date range
+            // Get renewals with completed_renewal status that fall within date range
             $renewals = Renewal::where('renewal_progress', 'completed_renewal')
-                ->whereNotNull('lead_id')
-                ->whereHas('lead.quotations.items')
-                ->with(['lead.quotations.items'])
+                ->with(['lead.quotations.items']) // Keep the eager loading but don't require it
                 ->get()
                 ->filter(function ($renewal) use ($startDate, $endDate) {
                     // Check if renewal company has expiring licenses within date range
@@ -611,35 +624,42 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
             $totalViaEndUserAmount = 0;
 
             foreach ($renewals as $renewal) {
-                // Check if renewal has lead and lead exists
-                if (!$renewal->lead_id || !$renewal->lead) continue;
+                // Only process quotation data if renewal has lead and lead exists
+                if ($renewal->lead_id && $renewal->lead) {
+                    // Get final renewal quotations for this lead (if they exist)
+                    $renewalQuotations = $renewal->lead->quotations()
+                        ->where('mark_as_final', true)
+                        ->where('sales_type', 'RENEWAL SALES')
+                        ->get();
 
-                // Get final renewal quotations for this lead
-                $renewalQuotations = $renewal->lead->quotations()
-                    ->where('mark_as_final', true)
-                    ->where('sales_type', 'RENEWAL SALES')
-                    ->get();
+                    // If quotations exist, count them and calculate amount
+                    if ($renewalQuotations->isNotEmpty()) {
+                        $totalInvoices += $renewalQuotations->count();
 
-                if ($renewalQuotations->isEmpty()) continue;
+                        // Calculate amount from quotations
+                        $quotationAmount = 0;
+                        foreach ($renewalQuotations as $quotation) {
+                            $quotationAmount += $quotation->items->sum('total_before_tax');
+                        }
 
-                $totalInvoices += $renewalQuotations->count();
+                        $totalAmount += $quotationAmount;
 
-                // Calculate amount from quotations
-                $quotationAmount = 0;
-                foreach ($renewalQuotations as $quotation) {
-                    $quotationAmount += $quotation->items->sum('total_before_tax');
+                        // Check if company has reseller for amount calculation
+                        $reseller = RenewalDataUsd::getResellerForCompany($renewal->f_company_id);
+                        if ($reseller && $reseller->f_rate) {
+                            $totalViaResellerAmount += $quotationAmount;
+                        } else {
+                            $totalViaEndUserAmount += $quotationAmount;
+                        }
+                    }
                 }
 
-                $totalAmount += $quotationAmount;
-
-                // Check if company has reseller
+                // Always count companies regardless of lead mapping or quotation existence
                 $reseller = RenewalDataUsd::getResellerForCompany($renewal->f_company_id);
                 if ($reseller && $reseller->f_rate) {
                     $totalViaResellerCount++;
-                    $totalViaResellerAmount += $quotationAmount;
                 } else {
                     $totalViaEndUserCount++;
-                    $totalViaEndUserAmount += $quotationAmount;
                 }
             }
 
@@ -680,13 +700,13 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
 
             // Add them together
             return [
-                'total_companies' => $newStats['total_companies'] + $pendingConfirmationStats['total_companies'] + $pendingPaymentStats['total_companies'],
-                'total_invoices' => $newStats['total_invoices'] + $pendingConfirmationStats['total_invoices'] + $pendingPaymentStats['total_invoices'],
-                'total_amount' => $newStats['total_amount'] + $pendingConfirmationStats['total_amount'] + $pendingPaymentStats['total_amount'],
-                'total_via_reseller' => $newStats['total_via_reseller'] + $pendingConfirmationStats['total_via_reseller'] + $pendingPaymentStats['total_via_reseller'],
-                'total_via_end_user' => $newStats['total_via_end_user'] + $pendingConfirmationStats['total_via_end_user'] + $pendingPaymentStats['total_via_end_user'],
-                'total_via_reseller_amount' => $newStats['total_via_reseller_amount'] + $pendingConfirmationStats['total_via_reseller_amount'] + $pendingPaymentStats['total_via_reseller_amount'],
-                'total_via_end_user_amount' => $newStats['total_via_end_user_amount'] + $pendingConfirmationStats['total_via_end_user_amount'] + $pendingPaymentStats['total_via_end_user_amount'],
+                'total_companies' => $newStats['total_companies'] + $pendingConfirmationStats['total_companies'],
+                'total_invoices' => $newStats['total_invoices'] + $pendingConfirmationStats['total_invoices'],
+                'total_amount' => $newStats['total_amount'] + $pendingConfirmationStats['total_amount'],
+                'total_via_reseller' => $newStats['total_via_reseller'] + $pendingConfirmationStats['total_via_reseller'],
+                'total_via_end_user' => $newStats['total_via_end_user'] + $pendingConfirmationStats['total_via_end_user'],
+                'total_via_reseller_amount' => $newStats['total_via_reseller_amount'] + $pendingConfirmationStats['total_via_reseller_amount'],
+                'total_via_end_user_amount' => $newStats['total_via_end_user_amount'] + $pendingConfirmationStats['total_via_end_user_amount'],
             ];
         } catch (\Exception $e) {
             Log::error('Error fetching renewal forecast stats: '.$e->getMessage());
@@ -877,7 +897,7 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                         'new' => 'New',
                         'pending_confirmation' => 'Pending Confirmation',
                         'pending_payment' => 'Pending Payment',
-                        'completed_renewal' => 'Completed Renewal',
+                        'completed_renewal' => 'Completed Payment',
                     ])
                     ->query(function (Builder $query, array $data) {
                         if (! empty($data['values'])) {
@@ -1032,7 +1052,7 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                                     'new' => 'New',
                                     'pending_confirmation' => 'Pending Confirmation',
                                     'pending_payment' => 'Pending Payment',
-                                    'completed_renewal' => 'Completed Renewal',
+                                    'completed_renewal' => 'Completed Payment',
                                     default => ucfirst(str_replace('_', ' ', $renewal->renewal_progress))
                                 };
                             })
@@ -1060,35 +1080,6 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
 
                                 $renewal = Renewal::where('f_company_id', $record->f_company_id)->first();
                                 return $renewal;
-                            }),
-                        TextColumn::make('f_company_id')
-                            ->label('Reseller')
-                            ->formatStateUsing(function ($state, $record) {
-                                if (!$state || !$record) return '';
-
-                                $reseller = RenewalDataUsd::getResellerForCompany($state);
-                                return $reseller ? 'Reseller' : '';
-                            })
-                            ->badge()
-                            ->alignLeft()
-                            ->color('danger')
-                            ->tooltip(function ($state, $record) {
-                                if (!$state || !$record) return null;
-
-                                $reseller = RenewalDataUsd::getResellerForCompany($record->f_company_id);
-
-                                if (! $reseller) {
-                                    return null;
-                                }
-
-                                $tooltipText = strtoupper("{$reseller->reseller_name}");
-                                return new HtmlString($tooltipText);
-                            })
-                            ->visible(function ($state, $record) {
-                                if (!$state || !$record) return false;
-
-                                $reseller = RenewalDataUsd::getResellerForCompany($record->f_company_id);
-                                return $reseller !== null;
                             }),
                     ]),
 
@@ -1131,6 +1122,38 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                                 }
 
                                 return number_format($totalAmount, 2);
+                            }),
+                    ]),
+
+                    Stack::make([
+                        TextColumn::make('f_company_id')
+                            ->label('Reseller')
+                            ->formatStateUsing(function ($state, $record) {
+                                if (!$state || !$record) return '';
+
+                                $reseller = RenewalDataUsd::getResellerForCompany($state);
+                                return $reseller ? 'Reseller' : '';
+                            })
+                            ->badge()
+                            ->alignRight()
+                            ->color('danger')
+                            ->tooltip(function ($state, $record) {
+                                if (!$state || !$record) return null;
+
+                                $reseller = RenewalDataUsd::getResellerForCompany($record->f_company_id);
+
+                                if (! $reseller) {
+                                    return null;
+                                }
+
+                                $tooltipText = strtoupper("{$reseller->reseller_name}");
+                                return new HtmlString($tooltipText);
+                            })
+                            ->visible(function ($state, $record) {
+                                if (!$state || !$record) return false;
+
+                                $reseller = RenewalDataUsd::getResellerForCompany($record->f_company_id);
+                                return $reseller !== null;
                             }),
                     ]),
                 ])->from('sm'),
@@ -1679,72 +1702,72 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                             }
                         }),
 
-                    Action::make('claim_via_hrdf')
-                        ->label('Claim via HRDF')
-                        ->icon('heroicon-o-building-library')
-                        ->color('success')
-                        ->requiresConfirmation()
-                        ->modalHeading('Claim via HRDF')
-                        ->modalDescription('Are you sure you want to process HRDF claim? This will change the renewal progress to "Pending Payment".')
-                        ->modalSubmitActionLabel('Yes, Process HRDF Claim')
-                        ->modalCancelActionLabel('Cancel')
-                        ->visible(function ($record) {
-                            $renewal = Renewal::where('f_company_id', $record->f_company_id)->first();
+                    // Action::make('claim_via_hrdf')
+                    //     ->label('Claim via HRDF')
+                    //     ->icon('heroicon-o-building-library')
+                    //     ->color('success')
+                    //     ->requiresConfirmation()
+                    //     ->modalHeading('Claim via HRDF')
+                    //     ->modalDescription('Are you sure you want to process HRDF claim? This will change the renewal progress to "Pending Payment".')
+                    //     ->modalSubmitActionLabel('Yes, Process HRDF Claim')
+                    //     ->modalCancelActionLabel('Cancel')
+                    //     ->visible(function ($record) {
+                    //         $renewal = Renewal::where('f_company_id', $record->f_company_id)->first();
 
-                            return $renewal && $renewal->renewal_progress === 'pending_confirmation';
-                        })
-                        ->action(function ($record) {
-                            try {
-                                // Get the existing renewal record to preserve current progress_history
-                                $existingRenewal = Renewal::where('f_company_id', $record->f_company_id)->first();
+                    //         return $renewal && $renewal->renewal_progress === 'pending_confirmation';
+                    //     })
+                    //     ->action(function ($record) {
+                    //         try {
+                    //             // Get the existing renewal record to preserve current progress_history
+                    //             $existingRenewal = Renewal::where('f_company_id', $record->f_company_id)->first();
 
-                                // Get current progress_history or initialize as empty array
-                                $progressHistory = $existingRenewal && $existingRenewal->progress_history
-                                    ? json_decode($existingRenewal->progress_history, true)
-                                    : [];
+                    //             // Get current progress_history or initialize as empty array
+                    //             $progressHistory = $existingRenewal && $existingRenewal->progress_history
+                    //                 ? json_decode($existingRenewal->progress_history, true)
+                    //                 : [];
 
-                                // Add new log entry
-                                $newLogEntry = [
-                                    'timestamp' => now()->toISOString(),
-                                    'action' => 'hrdf_claim_initiated',
-                                    'previous_status' => $existingRenewal ? $existingRenewal->renewal_progress : null,
-                                    'new_status' => 'pending_payment',
-                                    'performed_by' => auth()->user()->name,
-                                    'performed_by_id' => auth()->user()->id,
-                                    'description' => 'HRDF claim initiated - Status changed to Pending Payment',
-                                    'company_name' => $record->f_company_name,
-                                    'f_company_id' => $record->f_company_id,
-                                ];
+                    //             // Add new log entry
+                    //             $newLogEntry = [
+                    //                 'timestamp' => now()->toISOString(),
+                    //                 'action' => 'hrdf_claim_initiated',
+                    //                 'previous_status' => $existingRenewal ? $existingRenewal->renewal_progress : null,
+                    //                 'new_status' => 'pending_payment',
+                    //                 'performed_by' => auth()->user()->name,
+                    //                 'performed_by_id' => auth()->user()->id,
+                    //                 'description' => 'HRDF claim initiated - Status changed to Pending Payment',
+                    //                 'company_name' => $record->f_company_name,
+                    //                 'f_company_id' => $record->f_company_id,
+                    //             ];
 
-                                // Add the new entry to progress history
-                                $progressHistory[] = $newLogEntry;
+                    //             // Add the new entry to progress history
+                    //             $progressHistory[] = $newLogEntry;
 
-                                // Update renewal record
-                                $renewal = Renewal::updateOrCreate(
-                                    ['f_company_id' => $record->f_company_id],
-                                    [
-                                        'renewal_progress' => 'pending_payment',
-                                        'progress_history' => json_encode($progressHistory),
-                                        'hrdf_claim_initiated_at' => now(),
-                                        'hrdf_claim_initiated_by' => auth()->user()->id,
-                                    ]
-                                );
+                    //             // Update renewal record
+                    //             $renewal = Renewal::updateOrCreate(
+                    //                 ['f_company_id' => $record->f_company_id],
+                    //                 [
+                    //                     'renewal_progress' => 'pending_payment',
+                    //                     'progress_history' => json_encode($progressHistory),
+                    //                     'hrdf_claim_initiated_at' => now(),
+                    //                     'hrdf_claim_initiated_by' => auth()->user()->id,
+                    //                 ]
+                    //             );
 
-                                Notification::make()
-                                    ->success()
-                                    ->title('HRDF Claim Initiated')
-                                    ->body("HRDF claim has been initiated. Renewal progress updated to 'Pending Payment'.")
-                                    ->send();
-                            } catch (\Exception $e) {
-                                Log::error('Error initiating HRDF claim: '.$e->getMessage());
+                    //             Notification::make()
+                    //                 ->success()
+                    //                 ->title('HRDF Claim Initiated')
+                    //                 ->body("HRDF claim has been initiated. Renewal progress updated to 'Pending Payment'.")
+                    //                 ->send();
+                    //         } catch (\Exception $e) {
+                    //             Log::error('Error initiating HRDF claim: '.$e->getMessage());
 
-                                Notification::make()
-                                    ->danger()
-                                    ->title('Error')
-                                    ->body('There was an error initiating the HRDF claim. Please try again.')
-                                    ->send();
-                            }
-                        }),
+                    //             Notification::make()
+                    //                 ->danger()
+                    //                 ->title('Error')
+                    //                 ->body('There was an error initiating the HRDF claim. Please try again.')
+                    //                 ->send();
+                    //         }
+                    //     }),
 
                     // Action::make('termination')
                     //     ->label('Termination')
