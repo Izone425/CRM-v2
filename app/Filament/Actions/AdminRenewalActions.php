@@ -37,11 +37,18 @@ class AdminRenewalActions
                             ->label('Next Follow-up Date')
                             ->default(function() {
                                 $today = now();
-                                $daysUntilNextTuesday = (9 - $today->dayOfWeek) % 7;
-                                if ($daysUntilNextTuesday === 0) {
-                                    $daysUntilNextTuesday = 7;
+                                $workingDaysAdded = 0;
+                                $currentDate = $today->copy();
+
+                                while ($workingDaysAdded < 2) {
+                                    $currentDate->addDay();
+                                    // Check if it's a weekday (Monday = 1, Sunday = 7)
+                                    if ($currentDate->dayOfWeek >= 1 && $currentDate->dayOfWeek <= 5) {
+                                        $workingDaysAdded++;
+                                    }
                                 }
-                                return $today->addDays($daysUntilNextTuesday);
+
+                                return $currentDate;
                             })
                             ->minDate(now()->subDay())
                             ->required(),
@@ -91,6 +98,59 @@ class AdminRenewalActions
                             ->visible(fn ($get) => $get('send_email'))
                             ->required(),
                     ]),
+
+                \Filament\Forms\Components\Section::make('Quotation Attachments')
+                    ->schema([
+                        Grid::make(2)
+                            ->schema([
+                                Select::make('quotation_product')
+                                    ->label('Product Quotations')
+                                    ->options(function ($record) {
+                                        if (!$record || !$record->lead_id) {
+                                            return [];
+                                        }
+
+                                        return \App\Models\Quotation::where('lead_id', $record->lead_id)
+                                            ->where('quotation_type', 'product')
+                                            ->where('sales_type', 'RENEWAL SALES')
+                                            ->get()
+                                            ->mapWithKeys(function ($quotation) {
+                                                $label = $quotation->quotation_reference_no ?? 'No Reference - ID: ' . $quotation->id;
+                                                return [$quotation->id => $label];
+                                            })
+                                            ->toArray();
+                                    })
+                                    ->multiple()
+                                    ->searchable()
+                                    ->preload()
+                                    ->helperText('Select product quotations to attach to the email'),
+
+                                Select::make('quotation_hrdf')
+                                    ->label('HRDF Quotations')
+                                    ->options(function ($record) {
+                                        if (!$record || !$record->lead_id) {
+                                            return [];
+                                        }
+
+                                        return \App\Models\Quotation::where('lead_id', $record->lead_id)
+                                            ->where('quotation_type', 'hrdf')
+                                            ->where('sales_type', 'RENEWAL SALES')
+                                            ->get()
+                                            ->mapWithKeys(function ($quotation) {
+                                                $label = $quotation->quotation_reference_no ?? 'No Reference - ID: ' . $quotation->id;
+                                                return [$quotation->id => $label];
+                                            })
+                                            ->toArray();
+                                    })
+                                    ->multiple()
+                                    ->searchable()
+                                    ->preload()
+                                    ->helperText('Select HRDF quotations to attach to the email'),
+                            ])
+                    ])
+                    ->visible(fn ($get) => $get('send_email'))
+                    ->collapsible()
+                    ->collapsed(),
 
                 Fieldset::make('Email Details')
                     ->schema([
@@ -157,8 +217,7 @@ class AdminRenewalActions
                                         $set('email_content', $template->content);
                                     }
                                 }
-                            })
-                            ->required(),
+                            }),
 
                         TextInput::make('email_subject')
                             ->label('Email Subject')
@@ -272,16 +331,11 @@ class AdminRenewalActions
                     $content = $data['email_content'];
 
                     // Add signature to email content
-                    if (isset($data['admin_name']) && !empty($data['admin_name'])) {
-                        $signature = "Regards,<br>";
-                        $signature .= "{$data['admin_name']}<br>";
-                        $signature .= "{$data['admin_designation']}<br>";
-                        $signature .= "{$data['admin_company']}<br>";
-                        $signature .= "Phone: {$data['admin_phone']}<br>";
-
-                        if (!empty($data['admin_email'])) {
-                            $signature .= "Email: {$data['admin_email']}<br>";
-                        }
+                    if (isset($data['admin_name']) && ! empty($data['admin_name'])) {
+                        $signature = 'Regards,<br>';
+                        $signature .= "{$data['admin_name']} | {$data['admin_designation']}<br>";
+                        $signature .= "Office: 03-8070 9933 (Ext 307) | Mobile: 013-677 0597<br>";
+                        $signature .= "Email: renewal.timetec.hr@timeteccloud.com<br>";
 
                         $content .= $signature;
                     }
@@ -326,6 +380,8 @@ class AdminRenewalActions
                             'admin_renewal_log_id' => $adminRenewalLog->id,
                             'template_name' => $templateName,
                             'scheduler_type' => $schedulerType,
+                            'quotation_product' => $data['quotation_product'] ?? [],
+                            'quotation_hrdf' => $data['quotation_hrdf'] ?? [],
                         ];
 
                         // Handle different scheduler types
@@ -393,17 +449,6 @@ class AdminRenewalActions
                 $adminUser = \App\Models\User::where('name', $renewal->admin_renewal)->first();
                 if ($adminUser && $adminUser->email && $adminUser->email !== $emailData['sender_email']) {
                     $ccRecipients[] = $adminUser->email;
-                }
-            }
-
-            // Add salesperson to CC
-            $lead = $renewal->lead;
-            if ($lead && $lead->salesperson) {
-                $salesperson = \App\Models\User::find($lead->salesperson);
-                if ($salesperson && $salesperson->email &&
-                    $salesperson->email !== $emailData['sender_email'] &&
-                    !in_array($salesperson->email, $ccRecipients)) {
-                    $ccRecipients[] = $salesperson->email;
                 }
             }
 

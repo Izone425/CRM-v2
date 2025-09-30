@@ -202,6 +202,8 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
 
     public $pendingPaymentStats;
 
+    public $renewalForecastCurrentMonthStats;
+
     public $shouldRefreshStats = false;
 
     public function mount(): void
@@ -285,6 +287,7 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
         $this->newStats = $this->getNewStats($startDate, $endDate);
         $this->pendingConfirmationStats = $this->getPendingConfirmationStats($startDate, $endDate);
         $this->pendingPaymentStats = $this->getPendingPaymentStats($startDate, $endDate);
+        $this->renewalForecastCurrentMonthStats = $this->getRenewalForecastCurrentMonthStats(); // Add this line
     }
 
     protected function getHeaderActions(): array
@@ -496,22 +499,111 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
     protected function getPendingPaymentStats($startDate = null, $endDate = null)
     {
         try {
-            // Set default date range if not provided
-            if (!$startDate || !$endDate) {
-                $today = Carbon::now()->format('Y-m-d');
-                $next60Days = Carbon::now()->addDays(60)->format('Y-m-d');
-                $startDate = $today;
-                $endDate = $next60Days;
+            // For pending_payment stats, we don't apply date filtering
+            // because pending payments should always be visible regardless of expiry date
+
+            // Get renewals with pending_payment status (no date filtering)
+            $renewals = Renewal::where('renewal_progress', 'pending_payment')
+                ->with(['lead.quotations.items'])
+                ->get()
+                ->filter(function ($renewal) {
+                    // Only check if renewal company has ANY active licenses (not date-restricted)
+                    $hasActiveLicense = RenewalDataMyr::where('f_company_id', $renewal->f_company_id)
+                        ->where('f_expiry_date', '>=', Carbon::now()->format('Y-m-d'))
+                        ->where('f_currency', 'MYR')
+                        ->exists();
+
+                    return $hasActiveLicense;
+                });
+
+            $totalCompanies = $renewals->count();
+            $totalInvoices = 0;
+            $totalAmount = 0;
+            $totalViaResellerCount = 0;
+            $totalViaEndUserCount = 0;
+            $totalViaResellerAmount = 0;
+            $totalViaEndUserAmount = 0;
+
+            foreach ($renewals as $renewal) {
+                // Only process quotation data if renewal has lead and lead exists
+                if ($renewal->lead_id && $renewal->lead) {
+                    // Get final renewal quotations for this lead (if they exist)
+                    $renewalQuotations = $renewal->lead->quotations()
+                        ->where('mark_as_final', true)
+                        ->where('sales_type', 'RENEWAL SALES')
+                        ->get();
+
+                    // If quotations exist, count them and calculate amount
+                    if ($renewalQuotations->isNotEmpty()) {
+                        $totalInvoices += $renewalQuotations->count();
+
+                        // Calculate amount from quotations
+                        $quotationAmount = 0;
+                        foreach ($renewalQuotations as $quotation) {
+                            $quotationAmount += $quotation->items->sum('total_before_tax');
+                        }
+
+                        $totalAmount += $quotationAmount;
+
+                        // Check if company has reseller for amount calculation
+                        $reseller = RenewalDataMyr::getResellerForCompany($renewal->f_company_id);
+                        if ($reseller && $reseller->f_rate) {
+                            $totalViaResellerAmount += $quotationAmount;
+                        } else {
+                            $totalViaEndUserAmount += $quotationAmount;
+                        }
+                    }
+                }
+
+                // Always count companies regardless of lead mapping or quotation existence
+                $reseller = RenewalDataMyr::getResellerForCompany($renewal->f_company_id);
+                if ($reseller && $reseller->f_rate) {
+                    $totalViaResellerCount++;
+                } else {
+                    $totalViaEndUserCount++;
+                }
             }
 
-            // Get renewals with pending_payment status that fall within date range
-            $renewals = Renewal::where('renewal_progress', 'pending_payment')
-                ->with(['lead.quotations.items']) // Keep the eager loading but don't require it
+            return [
+                'total_companies' => $totalCompanies,
+                'total_invoices' => $totalInvoices,
+                'total_amount' => $totalAmount,
+                'total_via_reseller' => $totalViaResellerCount,
+                'total_via_end_user' => $totalViaEndUserCount,
+                'total_via_reseller_amount' => $totalViaResellerAmount,
+                'total_via_end_user_amount' => $totalViaEndUserAmount,
+            ];
+        } catch (\Exception $e) {
+            Log::error('Error fetching pending payment stats: '.$e->getMessage());
+
+            return [
+                'total_companies' => 0,
+                'total_invoices' => 0,
+                'total_amount' => 0,
+                'total_via_reseller' => 0,
+                'total_via_end_user' => 0,
+                'total_via_reseller_amount' => 0,
+                'total_via_end_user_amount' => 0,
+            ];
+        }
+    }
+
+    protected function getRenewalForecastCurrentMonthStats()
+    {
+        try {
+            // Get the current month's date range - starting from first day of month
+            $startOfMonth = Carbon::now()->startOfMonth()->format('Y-m-d');
+            $endOfMonth = Carbon::now()->endOfMonth()->format('Y-m-d');
+
+            // Get all renewals that are not completed and have expiring licenses in current month
+            $renewals = Renewal::whereIn('renewal_progress', ['new', 'pending_confirmation'])
+                ->with(['lead.quotations.items'])
                 ->get()
-                ->filter(function ($renewal) use ($startDate, $endDate) {
-                    // Check if renewal company has expiring licenses within date range
+                ->filter(function ($renewal) use ($startOfMonth, $endOfMonth) {
+                    // Check if renewal company has expiring licenses within current month
                     $hasExpiringLicense = RenewalDataMyr::where('f_company_id', $renewal->f_company_id)
-                        ->whereBetween('f_expiry_date', [$startDate, $endDate])
+                        ->whereBetween('f_expiry_date', [$startOfMonth, $endOfMonth])
+                        ->where('f_expiry_date', '>=', Carbon::now()->format('Y-m-d'))
                         ->where('f_currency', 'MYR')
                         ->exists();
 
@@ -576,7 +668,7 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
                 'total_via_end_user_amount' => $totalViaEndUserAmount,
             ];
         } catch (\Exception $e) {
-            Log::error('Error fetching pending payment stats: '.$e->getMessage());
+            Log::error('Error fetching renewal forecast current month stats: '.$e->getMessage());
 
             return [
                 'total_companies' => 0,
@@ -851,9 +943,25 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
                     ])
                     ->query(function (Builder $query, array $data) {
                         if (empty($data['date_range'])) {
+                            // Default behavior: Apply 60-day limit except for pending_payment renewals
                             $today = Carbon::now()->format('Y-m-d');
                             $next60Days = Carbon::now()->addDays(60)->format('Y-m-d');
-                            $query->whereBetween('f_expiry_date', [$today, $next60Days]);
+
+                            // Get company IDs with pending_payment status
+                            $pendingPaymentCompanyIds = Renewal::where('renewal_progress', 'pending_payment')
+                                ->pluck('f_company_id')
+                                ->toArray();
+
+                            if (!empty($pendingPaymentCompanyIds)) {
+                                // Apply date filter: within 60 days OR pending_payment status
+                                $query->where(function ($q) use ($today, $next60Days, $pendingPaymentCompanyIds) {
+                                    $q->whereBetween('f_expiry_date', [$today, $next60Days])
+                                    ->orWhereIn('f_company_id', $pendingPaymentCompanyIds);
+                                });
+                            } else {
+                                // No pending_payment renewals, apply normal 60-day filter
+                                $query->whereBetween('f_expiry_date', [$today, $next60Days]);
+                            }
                         } else {
                             try {
                                 [$start, $end] = explode(' - ', $data['date_range']);
@@ -865,12 +973,38 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
                                     $startDate = $today;
                                 }
 
-                                $query->whereBetween('f_expiry_date', [$startDate, $endDate]);
+                                // When user specifies custom date range, apply it normally
+                                // but still exclude pending_payment from the date restriction
+                                $pendingPaymentCompanyIds = Renewal::where('renewal_progress', 'pending_payment')
+                                    ->pluck('f_company_id')
+                                    ->toArray();
+
+                                if (!empty($pendingPaymentCompanyIds)) {
+                                    $query->where(function ($q) use ($startDate, $endDate, $pendingPaymentCompanyIds) {
+                                        $q->whereBetween('f_expiry_date', [$startDate, $endDate])
+                                        ->orWhereIn('f_company_id', $pendingPaymentCompanyIds);
+                                    });
+                                } else {
+                                    $query->whereBetween('f_expiry_date', [$startDate, $endDate]);
+                                }
                             } catch (\Exception $e) {
                                 Log::error('Date filter error: '.$e->getMessage());
                                 $today = Carbon::now()->format('Y-m-d');
                                 $next60Days = Carbon::now()->addDays(60)->format('Y-m-d');
-                                $query->whereBetween('f_expiry_date', [$today, $next60Days]);
+
+                                // Fallback with pending_payment exception
+                                $pendingPaymentCompanyIds = Renewal::where('renewal_progress', 'pending_payment')
+                                    ->pluck('f_company_id')
+                                    ->toArray();
+
+                                if (!empty($pendingPaymentCompanyIds)) {
+                                    $query->where(function ($q) use ($today, $next60Days, $pendingPaymentCompanyIds) {
+                                        $q->whereBetween('f_expiry_date', [$today, $next60Days])
+                                        ->orWhereIn('f_company_id', $pendingPaymentCompanyIds);
+                                    });
+                                } else {
+                                    $query->whereBetween('f_expiry_date', [$today, $next60Days]);
+                                }
                             }
                         }
                     })
@@ -881,15 +1015,17 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
                             return 'Expiry: '.
                                 Carbon::createFromFormat('d/m/Y', trim($start))->format('j M Y').
                                 ' → '.
-                                Carbon::createFromFormat('d/m/Y', trim($end))->format('j M Y');
+                                Carbon::createFromFormat('d/m/Y', trim($end))->format('j M Y').
+                                ' (+ Pending Payment)';
                         }
 
                         return 'Expiry: '.
                             Carbon::now()->format('j M Y').
                             ' → '.
                             Carbon::now()->addDays(60)->format('j M Y').
-                            ' (Default 60 days)';
+                            ' (Default 60 days + Pending Payment)';
                     }),
+
                 SelectFilter::make('renewal_progress')
                     ->multiple()
                     ->label('Renewal Progress')
