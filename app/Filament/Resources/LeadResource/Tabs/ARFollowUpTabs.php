@@ -112,14 +112,20 @@ class ARFollowUpTabs
                                         ->schema([
                                             DatePicker::make('follow_up_date')
                                                 ->label('Next Follow-up Date')
-                                                ->default(function () {
+                                                ->default(function() {
                                                     $today = now();
-                                                    $daysUntilNextTuesday = (9 - $today->dayOfWeek) % 7; // 2 is Tuesday, but we add 7 to ensure positive
-                                                    if ($daysUntilNextTuesday === 0) {
-                                                        $daysUntilNextTuesday = 7; // If today is Tuesday, we want next Tuesday
+                                                    $workingDaysAdded = 0;
+                                                    $currentDate = $today->copy();
+
+                                                    while ($workingDaysAdded < 2) {
+                                                        $currentDate->addDay();
+                                                        // Check if it's a weekday (Monday = 1, Sunday = 7)
+                                                        if ($currentDate->dayOfWeek >= 1 && $currentDate->dayOfWeek <= 5) {
+                                                            $workingDaysAdded++;
+                                                        }
                                                     }
 
-                                                    return $today->addDays($daysUntilNextTuesday);
+                                                    return $currentDate;
                                                 })
                                                 ->minDate(now()->subDay())
                                                 ->required(),
@@ -548,20 +554,6 @@ class ARFollowUpTabs
                     Log::info("Added admin renewal to CC: {$adminUser->name} <{$adminUser->email}>");
                 } else {
                     Log::info("Admin renewal user not found or no valid email for: {$renewal->admin_renewal}");
-                }
-            }
-
-            // Get lead and add salesperson to CC if available
-            $lead = Lead::find($renewal->lead_id);
-            if ($lead && $lead->salesperson) {
-                $salesperson = \App\Models\User::find($lead->salesperson);
-                if ($salesperson && $salesperson->email &&
-                    $salesperson->email !== $emailData['sender_email'] &&
-                    ! in_array($salesperson->email, $ccRecipients)) {
-                    $ccRecipients[] = $salesperson->email;
-                    Log::info("Added salesperson to CC: {$salesperson->name} <{$salesperson->email}>");
-                } else {
-                    Log::info("Salesperson not found or no valid email for ID: {$lead->salesperson}");
                 }
             }
 
