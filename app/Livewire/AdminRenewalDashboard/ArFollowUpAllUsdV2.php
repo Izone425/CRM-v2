@@ -85,8 +85,12 @@ class ArFollowUpAllUsdV2 extends Component implements HasForms, HasTable
             ->whereDate('f_expiry_date', '>=', today())
             ->distinct()
             ->pluck('f_company_id')
-            ->map(function($id) {
-                return (string) (int) $id; // Cast to int first to remove leading zeros, then to string
+            ->flatMap(function($id) {
+                // Return both formats: with leading zeros and without
+                $withoutZeros = (string) (int) $id; // Remove leading zeros
+                $withZeros = str_pad($withoutZeros, 10, '0', STR_PAD_LEFT); // Add leading zeros
+
+                return [$withoutZeros, $withZeros];
             })
             ->toArray();
 

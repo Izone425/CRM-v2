@@ -398,10 +398,6 @@ class ARFollowUpTabs
                                                     $signature .= "Office: 03-8070 9933 (Ext 307) | Mobile: 013-677 0597<br>";
                                                     $signature .= "Email: renewal.timetec.hr@timeteccloud.com<br>";
 
-                                                    if (! empty($data['admin_email'])) {
-                                                        $signature .= "Email: {$data['admin_email']}<br>";
-                                                    }
-
                                                     $content .= $signature;
                                                 }
 
@@ -673,39 +669,65 @@ class ARFollowUpTabs
                 $companyName = $quotation->lead->companyDetail->company_name ?? 'Unknown';
             }
 
+            // Primary filename attempt
             $quotationFilename = 'TIMETEC_' . $quotation->sales_person->code . '_' . quotation_reference_no($quotation->id) . '_' . Str::replace('-','_',Str::slug($companyName));
             $quotationFilename = Str::upper($quotationFilename) . '.pdf';
 
-            // Check if the PDF exists in public storage
-            $storagePath = storage_path('app/public/quotations/' . $quotationFilename);
+            // Check multiple possible paths
+            $possiblePaths = [
+                storage_path('app/public/quotations/' . $quotationFilename),
+                // Add alternative filename patterns if needed
+                storage_path('app/public/quotations/TIMETEC_' . $quotation->sales_person->code . '_' . $quotation->id . '_' . Str::replace('-','_',Str::slug($companyName)) . '.pdf'),
+            ];
 
-            if (file_exists($storagePath)) {
-                // PDF exists, copy it to temp directory for email attachment
-                $tempDir = storage_path('app/temp_quotations');
-                if (!is_dir($tempDir)) {
-                    mkdir($tempDir, 0755, true);
+            // Also try to find any PDF file that starts with the quotation pattern
+            $quotationsDir = storage_path('app/public/quotations/');
+            if (is_dir($quotationsDir)) {
+                $pattern = 'TIMETEC_' . $quotation->sales_person->code . '_' . quotation_reference_no($quotation->id) . '_*';
+                $matches = glob($quotationsDir . $pattern . '.pdf');
+
+                if (!empty($matches)) {
+                    $possiblePaths = array_merge($possiblePaths, $matches);
                 }
-
-                $tempFilename = self::getQuotationFileName($quotation);
-                $tempFilePath = $tempDir . '/' . $tempFilename;
-
-                // Copy the existing PDF to temp directory
-                copy($storagePath, $tempFilePath);
-
-                Log::info("Found existing PDF for quotation {$quotation->id}: {$quotationFilename}");
-
-                return $tempFilePath;
-            } else {
-                // PDF doesn't exist, log the expected path for debugging
-                Log::warning("PDF not found for quotation {$quotation->id}. Expected path: {$storagePath}");
-
-                // Optionally, you could generate the PDF here using your existing controller logic
-                // Or return null to skip this attachment
-                return null;
             }
 
+            // Try each possible path
+            foreach ($possiblePaths as $storagePath) {
+                if (file_exists($storagePath)) {
+                    // PDF exists, copy it to temp directory for email attachment
+                    $tempDir = storage_path('app/temp_quotations');
+                    if (!is_dir($tempDir)) {
+                        mkdir($tempDir, 0755, true);
+                    }
+
+                    $tempFilename = self::getQuotationFileName($quotation);
+                    $tempFilePath = $tempDir . '/' . $tempFilename;
+
+                    // Copy the existing PDF to temp directory
+                    copy($storagePath, $tempFilePath);
+
+                    Log::info("Found existing PDF for quotation {$quotation->id}: " . basename($storagePath));
+
+                    return $tempFilePath;
+                }
+            }
+
+            // If no PDF found, log all attempted paths for debugging
+            Log::warning("PDF not found for quotation {$quotation->id}. Attempted paths:", [
+                'primary_filename' => $quotationFilename,
+                'attempted_paths' => $possiblePaths,
+                'quotation_id' => $quotation->id,
+                'company_name' => $companyName,
+                'sales_person_code' => $quotation->sales_person->code ?? 'UNKNOWN',
+                'reference_no' => quotation_reference_no($quotation->id),
+            ]);
+
+            return null;
+
         } catch (\Exception $e) {
-            Log::error("Error finding PDF for quotation {$quotation->id}: " . $e->getMessage());
+            Log::error("Error finding PDF for quotation {$quotation->id}: " . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
             return null;
         }
     }

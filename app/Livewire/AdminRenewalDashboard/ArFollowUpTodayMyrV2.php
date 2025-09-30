@@ -85,8 +85,12 @@ class ArFollowUpTodayMyrV2 extends Component implements HasForms, HasTable
             ->whereDate('f_expiry_date', '>=', today())
             ->distinct()
             ->pluck('f_company_id')
-            ->map(function($id) {
-                return (string) (int) $id; // Cast to int first to remove leading zeros, then to string
+            ->flatMap(function($id) {
+                // Return both formats: with leading zeros and without
+                $withoutZeros = (string) (int) $id; // Remove leading zeros
+                $withZeros = str_pad($withoutZeros, 10, '0', STR_PAD_LEFT); // Add leading zeros
+
+                return [$withoutZeros, $withZeros];
             })
             ->toArray();
 
@@ -95,6 +99,7 @@ class ArFollowUpTodayMyrV2 extends Component implements HasForms, HasTable
             ->whereDate('follow_up_date', today())
             ->where('follow_up_counter', true)
             ->where('mapping_status', 'completed_mapping')
+            ->whereIn('renewal_progress', ['pending_payment'])
             ->selectRaw('*,
                 DATEDIFF(NOW(), follow_up_date) as pending_days,
                 (SELECT MIN(f_expiry_date) FROM frontenddb.crm_expiring_license

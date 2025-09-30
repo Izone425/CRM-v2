@@ -343,7 +343,7 @@
                         </svg>
                     </div>
                     <div class="renewal-details">
-                        <dt class="renewal-title">Completed Renewal</dt>
+                        <dt class="renewal-title">Completed Payment</dt>
                         <dd>
                             <div class="renewal-subtitle">Total Company: {{ $completedRenewalStats['total_companies'] }}</div>
                             <div class="renewal-subtitle">
