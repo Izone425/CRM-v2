@@ -239,7 +239,6 @@ class ARLicenseTabs
         return new HtmlString($html);
     }
 
-    // ...existing getLicenseData, getInvoiceDetails, and getProductType methods remain the same...
     private static function getLicenseData($leadId): array
     {
         // First, get f_company_id from renewals table using lead_id
@@ -256,11 +255,11 @@ class ARLicenseTabs
             ];
         }
 
-        // Then get all active licenses for this company from crm_expiring_license
+        // Get all license details with invoice information
         $licenses = DB::connection('frontenddb')->table('crm_expiring_license')
             ->where('f_company_id', (int) $renewal->f_company_id)
             ->whereDate('f_expiry_date', '>=', today())
-            ->get(['f_name', 'f_unit']);
+            ->get(['f_name', 'f_invoice_no']);
 
         $totals = [
             'attendance' => 0,
@@ -271,41 +270,50 @@ class ARLicenseTabs
 
         foreach ($licenses as $license) {
             $licenseName = $license->f_name;
-            $unit = (int) $license->f_unit;
+            $invoiceNo = $license->f_invoice_no ?? 'No Invoice';
+
+            // Get quantity from crm_invoice_details table
+            $invoiceDetail = DB::connection('frontenddb')->table('crm_invoice_details')
+                ->where('f_invoice_no', $invoiceNo)
+                ->where('f_name', $license->f_name)
+                ->first(['f_quantity']);
+
+            // Use quantity from invoice details, fallback to 1 if not found
+            $quantity = $invoiceDetail ? (int) $invoiceDetail->f_quantity : 1;
 
             // Attendance licenses
             if (strpos($licenseName, 'TimeTec TA') !== false) {
                 if (strpos($licenseName, '(10 User License)') !== false) {
-                    $totals['attendance'] += 10 * $unit;
+                    $totals['attendance'] += 10 * $quantity; // 10 users per license * quantity
                 } elseif (strpos($licenseName, '(1 User License)') !== false) {
-                    $totals['attendance'] += 1 * $unit;
+                    $totals['attendance'] += 1 * $quantity; // 1 user per license * quantity
                 }
             }
 
             // Leave licenses
             if (strpos($licenseName, 'TimeTec Leave') !== false) {
                 if (strpos($licenseName, '(10 User License)') !== false || strpos($licenseName, '(10 Leave License)') !== false) {
-                    $totals['leave'] += 10 * $unit;
+                    $totals['leave'] += 10 * $quantity; // 10 users per license * quantity
                 } elseif (strpos($licenseName, '(1 User License)') !== false || strpos($licenseName, '(1 Leave License)') !== false) {
-                    $totals['leave'] += 1 * $unit;
+                    $totals['leave'] += 1 * $quantity; // 1 user per license * quantity
                 }
             }
 
             // Claim licenses
             if (strpos($licenseName, 'TimeTec Claim') !== false) {
                 if (strpos($licenseName, '(10 User License)') !== false || strpos($licenseName, '(10 Claim License)') !== false) {
-                    $totals['claim'] += 10 * $unit;
+                    $totals['claim'] += 10 * $quantity; // 10 users per license * quantity
                 } elseif (strpos($licenseName, '(1 User License)') !== false || strpos($licenseName, '(1 Claim License)') !== false) {
-                    $totals['claim'] += 1 * $unit;
+                    $totals['claim'] += 1 * $quantity; // 1 user per license * quantity
                 }
             }
 
             // Payroll licenses
             if (strpos($licenseName, 'TimeTec Payroll') !== false) {
                 if (strpos($licenseName, '(10 Payroll License)') !== false) {
-                    $totals['payroll'] += 10 * $unit;
+                    $totals['payroll'] += 10 * $quantity; // 10 users per license * quantity
                 } elseif (strpos($licenseName, '(1 Payroll License)') !== false) {
-                    $totals['payroll'] += 1 * $unit;
+                    $totals['payroll'] += 1 * $quantity; // 1 user per license * quantity
                 }
             }
         }
@@ -353,28 +361,22 @@ class ARLicenseTabs
             // Use invoice details if found, otherwise fallback to license data
             $quantity = $invoiceDetail ? $invoiceDetail->f_quantity : $license->f_unit;
             $unitPrice = $invoiceDetail ? $invoiceDetail->f_unit_price : 0;
-            $billingCycle = $invoiceDetail ? $invoiceDetail->f_billing_cycle : 'Annual';
+            $billingCycle = $invoiceDetail ? $invoiceDetail->f_billing_cycle : 0;
+
+            // Calculate amount using: f_quantity * f_unit_price * f_billing_cycle
+            $calculatedAmount = $quantity * $unitPrice * $billingCycle;
 
             // Calculate final amount based on reseller status
             if ($reseller && $reseller->f_rate) {
-                // With reseller: f_total_amount - f_gst_amount
-                $finalAmount = $invoiceDetail ? ($invoiceDetail->f_total_amount - $invoiceDetail->f_gst_amount) : $license->f_total_amount;
-
-                // Calculate discount rate: (f_sales_amount - f_total_amount) / f_sales_amount * 100
-                if ($invoiceDetail && $invoiceDetail->f_sales_amount > 0) {
-                    $discountRate = (($invoiceDetail->f_sales_amount - $finalAmount) / $invoiceDetail->f_sales_amount) * 100;
-                    $discountRate = number_format($discountRate, 2);
-                } else {
-                    $discountRate = $reseller->f_rate; // Fallback to reseller rate
-                }
+                // Apply reseller discount to calculated amount
+                $discountAmount = $calculatedAmount * ($reseller->f_rate / 100);
+                $finalAmount = $calculatedAmount - $discountAmount;
+                $discountRate = $reseller->f_rate;
             } else {
-                // No reseller: f_sales_amount
-                $finalAmount = $invoiceDetail ? $invoiceDetail->f_sales_amount : $license->f_total_amount;
-                $discountRate = '0.00'; // No reseller commission
+                // No reseller: use full calculated amount
+                $finalAmount = $calculatedAmount;
+                $discountRate = '0.00';
             }
-
-            // Calculate unit price after excluding commission (for display purposes)
-            $unitPriceAfterCommission = $quantity > 0 ? $finalAmount / $quantity : 0;
 
             if (!isset($invoiceGroups[$invoiceNo])) {
                 $invoiceGroups[$invoiceNo] = [
@@ -385,14 +387,14 @@ class ARLicenseTabs
 
             $invoiceGroups[$invoiceNo]['products'][] = [
                 'f_name' => $license->f_name,
-                'f_unit' => $quantity, // From crm_invoice_details
-                'unit_price' => $unitPrice, // Unit price after commission exclusion
-                'original_unit_price' => $unitPrice, // Original price from crm_invoice_details
-                'f_total_amount' => $finalAmount, // Show net amount after commission deduction
+                'f_unit' => $quantity,
+                'unit_price' => $unitPrice,
+                'original_unit_price' => $unitPrice,
+                'f_total_amount' => $finalAmount, // Now calculated as quantity * unit_price * billing_cycle
                 'f_start_date' => $license->f_start_date,
                 'f_expiry_date' => $license->f_expiry_date,
-                'billing_cycle' => $billingCycle, // From crm_invoice_details
-                'discount' => $discountRate // Show reseller f_rate here
+                'billing_cycle' => $billingCycle,
+                'discount' => $discountRate
             ];
 
             $invoiceGroups[$invoiceNo]['total_amount'] += $finalAmount;

@@ -408,10 +408,10 @@
         ->count();
 
     // Calculate totals for both currencies
-    $followUpTotalMYR = $followUpTodayMYR + $followUpOverdueMYR;
-    $followUpTotalUSD = $followUpTodayUSD + $followUpOverdueUSD;
-    $followUpTotalMYRv2 = $followUpTodayMYRv2 + $followUpOverdueMYRv2;
-    $followUpTotalUSDv2 = $followUpTodayUSDv2 + $followUpOverdueUSDv2;
+    $followUpTotalMYR = $followUpTodayMYR + $followUpOverdueMYR + $followUpFutureMYR;
+    $followUpTotalUSD = $followUpTodayUSD + $followUpOverdueUSD + $followUpFutureUSD;
+    $followUpTotalMYRv2 = $followUpTodayMYRv2 + $followUpOverdueMYRv2 + $followUpFutureMYRv2;
+    $followUpTotalUSDv2 = $followUpTodayUSDv2 + $followUpOverdueUSDv2 + $followUpFutureUSDv2;
 @endphp
 
 <div id="implementer-container" class="implementer-container"
