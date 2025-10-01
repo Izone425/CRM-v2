@@ -83,7 +83,7 @@ class ARLicenseTabs
                 /* Module column widths - 3/4 of each pair */
                 .module-col {
                     width: 18.75% !important; /* 3/4 of 25% */
-                    text-align: left !important;
+                    text-align: center !important;
                     padding-left: 12px !important;
                 }
 
@@ -206,7 +206,7 @@ class ARLicenseTabs
                     $productType = self::getProductType($product['f_name']);
                     $html .= '
                                 <tr class="product-row-' . $productType . '">
-                                    <td class="text-left">' . htmlspecialchars($product['f_name']) . '</td>
+                                    <td style="text-align: left;">' . htmlspecialchars($product['f_name']) . '</td>
                                     <td>' . $product['f_unit'] . '</td>
                                     <td class="text-right">' . number_format($product['unit_price'], 2) . '</td>
                                     <td>' . ($product['billing_cycle'] ?? 'Annual') . '</td>
