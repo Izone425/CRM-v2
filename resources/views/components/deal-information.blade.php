@@ -32,35 +32,24 @@
 
 <div class="grid gap-6">
     {{-- Row: Deal Amount + Quotations --}}
-    <div style="display: grid; gap: 24px;" class="grid gap-6">
-        {{-- Deal Amount (NEW SALES only) --}}
-        <div>
-            <div class="text-sm font-medium text-gray-950 dark:text-white">Deal Amount</div>
-            <div class="text-sm text-gray-900 dark:text-white">
-                RM {{ number_format($newSalesDealAmount, 2) }}
-                @if ($hasNewSalesQuotations)
-                    @foreach ($newSalesQuotations as $quotation)
-                        <a href="{{ route('pdf.print-quotation-v2', ['quotation' => encrypt($quotation->id)]) }}"
-                           target="_blank"
-                           class="underline text-primary-600">
-                            <span class="ml-1 text-xs text-gray-500">
-                                -
-                            </span>
-                            {{ $quotation->quotation_reference_no }}
-                        </a>
-                    @endforeach
-                @endif
-            </div>
-            @if (!$hasNewSalesQuotations)
-                <div class="mt-1 text-xs text-gray-500">
-                    No NEW SALES quotations
-                </div>
-            @endif
-        </div>
+    <div class="text-sm leading-6 text-gray-900 dark:text-white">
+        <span class="font-medium">Deal Amt:</span>
+        @if ($hasNewSalesQuotations)
+            RM {{ number_format($newSalesDealAmount, 2) }}
+            @foreach ($newSalesQuotations as $quotation)
+                <a href="{{ route('pdf.print-quotation-v2', ['quotation' => encrypt($quotation->id)]) }}"
+                   target="_blank"
+                   class="underline text-primary-600">
+                    <span class="ml-1 text-xs text-gray-500">-</span>
+                    {{ $quotation->quotation_reference_no }}
+                </a>
+            @endforeach
+        @else
+            <span class="text-xs text-gray-500">No NEW SALES quotations</span>
+        @endif
     </div>
 
-    {{-- Row: Renewal Deal Amount (only show if renewal quotations exist) --}}
-    @if ($hasRenewalQuotations)
+    {{-- @if ($hasRenewalQuotations)
         <div>
             <div class="text-sm font-medium text-gray-950 dark:text-white">Renewal Deal Amount</div>
             <div class="text-sm text-gray-900 dark:text-white">
@@ -77,13 +66,12 @@
                 @endforeach
             </div>
         </div>
-    @endif
+    @endif --}}
 
     {{-- Row: Status --}}
     <div>
-        <div class="text-sm font-medium text-gray-950 dark:text-white">Status</div>
-        <div class="text-sm text-gray-900 dark:text-white">
-            {{ ($lead->stage ?? $lead->categories) ? ($lead->stage ?? $lead->categories) . ' : ' . $lead->lead_status : '-' }}
+        <div class="text-sm leading-6 text-gray-900 dark:text-white">
+            <span class="font-medium">Status:</span> {{ ($lead->stage ?? $lead->categories) ? ($lead->stage ?? $lead->categories) . ' - ' . $lead->lead_status : '-' }}
         </div>
     </div>
 </div>

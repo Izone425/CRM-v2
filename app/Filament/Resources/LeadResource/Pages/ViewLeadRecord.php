@@ -70,11 +70,11 @@ class ViewLeadRecord extends ViewRecord
         } elseif ($user->role_id === 2) { // Salesperson
             return ['prospect_details', 'subscriber_details', 'sales_progress', 'commercial_items', 'handover_details'];
         } elseif ($user->role_id === 4) { // Implementer
-            return ['company', 'implementer_handover','implementer_pic_details',
+            return ['implementer_handover','implementer_pic_details',
             'implementer_notes', 'implementer_appointment', 'implementer_follow_up',
             'data_file', 'implementer_service_form', 'other_form', 'ticketing'];
         } elseif ($user->role_id === 5) { // Implementer
-            return ['company', 'implementer_handover','implementer_pic_details',
+            return ['implementer_handover','implementer_pic_details',
             'implementer_notes', 'implementer_appointment', 'implementer_follow_up',
             'data_file', 'implementer_service_form', 'other_form', 'ticketing'];
         } elseif ($user->role_id === 9) { // Technician
@@ -222,7 +222,7 @@ class ViewLeadRecord extends ViewRecord
                             $tabs = ['prospect_details', 'subscriber_details', 'sales_progress', 'commercial_items', 'handover_details'];
                             break;
                         case 'implementer':
-                            $tabs = ['company', 'implementer_handover','implementer_pic_details',
+                            $tabs = ['implementer_handover','implementer_pic_details',
                                 'implementer_notes', 'implementer_appointment', 'implementer_follow_up',
                                 'implementer_service_form', 'data_file', 'other_form', 'ticketing'];
                             break;

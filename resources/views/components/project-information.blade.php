@@ -32,14 +32,14 @@
             </div>
 
             <!-- Go Live Date -->
-            @if($softwareHandover->go_live_date)
+            {{-- @if($softwareHandover->go_live_date)
                 <div class="flex items-start">
                     <div class="w-1/3 text-sm font-medium text-gray-950 dark:text-white">Go Live Date:</div>&nbsp;
                     <div class="w-2/3 text-sm text-gray-900 dark:text-white">
                         {{ \Carbon\Carbon::parse($softwareHandover->go_live_date)->format('d M Y') }}
                     </div>
                 </div>
-            @endif
+            @endif --}}
         </div>
     @else
         <div class="p-4 text-center text-gray-500 border border-gray-200 rounded-md bg-gray-50">
