@@ -114,8 +114,7 @@ class ArFollowUpTodayMyrV2 extends Component implements HasForms, HasTable
                     "Other",
                     "TimeTec Profile (10 User License)"
                 )
-                ) as earliest_expiry_date')
-            ->orderBy('earliest_expiry_date', 'ASC');
+                ) as earliest_expiry_date');
 
         return $query;
     }
@@ -179,6 +178,7 @@ class ArFollowUpTodayMyrV2 extends Component implements HasForms, HasTable
                 TextColumn::make('earliest_expiry_date')
                     ->label('Expiry Date')
                     ->default('N/A')
+                    ->sortable()
                     ->formatStateUsing(function ($state, $record) {
 
                         return Carbon::parse(self::getEarliestExpiryDate($record->f_company_id))->format('d M Y') ?? 'N/A';
@@ -187,6 +187,7 @@ class ArFollowUpTodayMyrV2 extends Component implements HasForms, HasTable
                 TextColumn::make('pending_days')
                     ->label('Pending Days')
                     ->alignCenter()
+                    ->sortable()
                     ->default('0')
                     ->formatStateUsing(fn ($state) => $state . ' ' . ($state == 0 ? 'Day' : 'Days')),
 

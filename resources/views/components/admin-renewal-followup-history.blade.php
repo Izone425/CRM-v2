@@ -186,10 +186,7 @@
             </div>
         @else
             <div class="flex items-center justify-center p-6 text-gray-500 rounded-lg bg-gray-50">
-                <div class="text-center">
-                    <p>No follow-ups available for this project</p>
-                    <p class="mt-1 text-sm">Click 'Add Follow-up' to create the first follow-up record</p>
-                </div>
+
             </div>
         @endif
     </div>
