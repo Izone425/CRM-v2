@@ -154,6 +154,7 @@ class ArFollowUpTodayUsdV2 extends Component implements HasForms, HasTable
             ->emptyState(fn () => view('components.empty-state-question'))
             ->defaultPaginationPageOption(5)
             ->paginated([5])
+            ->defaultSort('earliest_expiry_date', 'asc')
             ->filters([
                 SelectFilter::make('admin_renewal')
                     ->label('Filter by Admin Renewal')

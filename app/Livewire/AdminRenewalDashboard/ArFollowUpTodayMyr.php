@@ -127,6 +127,7 @@ class ArFollowUpTodayMyr extends Component implements HasForms, HasTable
             ->emptyState(fn () => view('components.empty-state-question'))
             ->defaultPaginationPageOption(5)
             ->paginated([5])
+            ->defaultSort('earliest_expiry_date', 'asc')
             ->filters([
                 SelectFilter::make('admin_renewal')
                     ->label('Filter by Admin Renewal')
@@ -166,14 +167,6 @@ class ArFollowUpTodayMyr extends Component implements HasForms, HasTable
                         return "<span title='{$state}'>{$state}</span>";
                     })
                     ->html(),
-
-                TextColumn::make('earliest_expiry_date')
-                    ->label('Expiry Date')
-                    ->default('N/A')
-                    ->formatStateUsing(function ($state, $record) {
-
-                        return Carbon::parse(self::getEarliestExpiryDate($record->f_company_id))->format('d M Y') ?? 'N/A';
-                    }),
 
                 TextColumn::make('earliest_expiry_date')
                     ->label('Expiry Date')
