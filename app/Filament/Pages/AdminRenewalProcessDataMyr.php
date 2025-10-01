@@ -832,12 +832,12 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
                 RenewalDataMyr::applyProductExclusions($baseQuery);
 
                 // Exclude terminated renewals from the main view
-                $terminatedCompanyIds = Renewal::where('renewal_progress', 'terminated')
+                $excludedCompanyIds = Renewal::whereIn('renewal_progress', ['terminated', 'completed_renewal'])
                     ->pluck('f_company_id')
                     ->toArray();
 
-                if (! empty($terminatedCompanyIds)) {
-                    $baseQuery->whereNotIn('f_company_id', $terminatedCompanyIds);
+                if (! empty($excludedCompanyIds)) {
+                    $baseQuery->whereNotIn('f_company_id', $excludedCompanyIds);
                 }
 
                 // Apply aggregation - GROUP BY invoice to avoid duplicate amounts

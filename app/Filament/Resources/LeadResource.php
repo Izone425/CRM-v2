@@ -125,11 +125,11 @@ class LeadResource extends Resource
             } elseif ($user->role_id === 2) { // Salesperson
                 $activeTabs = ['prospect_details', 'subscriber_details', 'sales_progress', 'commercial_items', 'handover_details'];
             } elseif ($user->role_id === 4) { // Implementer
-                $activeTabs = ['company', 'implementer_handover', 'implementer_pic_details',
+                $activeTabs = ['implementer_handover', 'implementer_pic_details',
                     'implementer_notes', 'implementer_appointment', 'implementer_follow_up',
                     'data_file', 'implementer_service_form', 'ticketing'];
             } elseif ($user->role_id === 5) { // Implementer
-                $activeTabs = ['company', 'implementer_handover', 'implementer_pic_details',
+                $activeTabs = ['implementer_handover', 'implementer_pic_details',
                     'implementer_notes', 'implementer_appointment', 'implementer_follow_up',
                     'data_file', 'implementer_service_form', 'other_form', 'ticketing'];
             } elseif ($user->role_id === 9) { // Technician

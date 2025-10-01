@@ -25,15 +25,6 @@ class ImplementerAuditList extends Page
         'quarter' => 'Past Quarter'
     ];
 
-    public $largeImplementers = [
-        'Mohd Amirul Ashraf',
-        'Nur Alia',
-        'Zulhilmie',
-        'John Low',
-        'Muhamad Izzul Aiman'
-    ];
-    public $largeStatsData = [];
-
     public static function canAccess(): bool
     {
         $user = auth()->user();
@@ -47,17 +38,19 @@ class ImplementerAuditList extends Page
 
     public function mount()
     {
-        // List of allowed implementers for both small and medium companies
+        // List of implementers in the specified order
         $this->implementers = [
-            'Nurul Shaqinur Ain',
-            'Ahmad Syamim',
-            'Zulhilmie',
+            'Mohd Amirul Ashraf',
             'John Low',
+            'Zulhilmie',
             'Muhamad Izzul Aiman',
+            'Ahmad Syamim',
+            'Nurul Shaqinur Ain',
+            'Siti Shahilah',
+            'Nur Alia',
         ];
 
         $this->calculateStats();
-        $this->calculateLargeStats();
     }
 
     public function calculateStats()
@@ -84,48 +77,7 @@ class ImplementerAuditList extends Page
                 ->where('headcount', '<=', 99)
                 ->count();
 
-            // Get latest assignment
-            $latestAssignment = SoftwareHandover::query()
-                ->whereNotNull('completed_at')
-                ->where('software_handovers.id', '>=', 666)
-                ->where('implementer', $implementer)
-                ->where(function($query) {
-                    $query->where(function($q) {
-                        $q->where('headcount', '>=', 1)
-                          ->where('headcount', '<=', 99);
-                    });
-                })
-                ->orderBy('completed_at', 'desc')
-                ->first();
-
-            $latestDate = $latestAssignment ? Carbon::parse($latestAssignment->completed_at)->format('M d, Y') : 'No assignments';
-
-            // Calculate total assignments and percentages
-            $totalAssignments = $smallAssignments + $mediumAssignments;
-            $percentSmall = $totalAssignments > 0 ? round(($smallAssignments / $totalAssignments) * 100) : 0;
-            $percentMedium = $totalAssignments > 0 ? round(($mediumAssignments / $totalAssignments) * 100) : 0;
-
-            $this->statsData[$implementer] = [
-                'small' => $smallAssignments,
-                'medium' => $mediumAssignments,
-                'total' => $totalAssignments,
-                'percentSmall' => $percentSmall,
-                'percentMedium' => $percentMedium,
-                'latestAssignment' => $latestDate,
-                'color' => $this->getImplementerColor($implementer)
-            ];
-        }
-
-        // Calculate overall stats
-        $this->calculateOverallStats();
-    }
-
-    public function calculateLargeStats()
-    {
-        $this->largeStatsData = [];
-
-        foreach ($this->largeImplementers as $implementer) {
-            // Large companies (100-500)
+            // Get large company assignments (100-500 headcount)
             $largeAssignments = SoftwareHandover::query()
                 ->whereNotNull('completed_at')
                 ->where('software_handovers.id', '>=', 599)
@@ -134,7 +86,7 @@ class ImplementerAuditList extends Page
                 ->where('headcount', '<=', 500)
                 ->count();
 
-            // Enterprise companies (501 and Above)
+            // Get enterprise company assignments (501+ headcount)
             $enterpriseAssignments = SoftwareHandover::query()
                 ->whereNotNull('completed_at')
                 ->where('software_handovers.id', '>=', 599)
@@ -142,77 +94,44 @@ class ImplementerAuditList extends Page
                 ->where('headcount', '>=', 501)
                 ->count();
 
-            $totalAssignments = $largeAssignments + $enterpriseAssignments;
-            $percentLarge = $totalAssignments > 0 ? round(($largeAssignments / $totalAssignments) * 100) : 0;
-            $percentEnterprise = $totalAssignments > 0 ? round(($enterpriseAssignments / $totalAssignments) * 100) : 0;
-
+            // Get latest assignment overall
             $latestAssignment = SoftwareHandover::query()
                 ->whereNotNull('completed_at')
-                ->where('software_handovers.id', '>=', 599)
+                ->where(function($query) {
+                    $query->where('software_handovers.id', '>=', 666)
+                          ->orWhere('software_handovers.id', '>=', 599);
+                })
                 ->where('implementer', $implementer)
-                ->where('headcount', '>=', 100)
+                ->where('headcount', '>=', 1)
                 ->orderBy('completed_at', 'desc')
                 ->first();
 
-            $latestDate = $latestAssignment ? Carbon::parse($latestAssignment->completed_at)->format('M d, Y') : 'No assignments';
+            $latestAssignmentDate = $latestAssignment ? Carbon::parse($latestAssignment->completed_at)->format('M d, Y') : 'No assignments';
 
-            $this->largeStatsData[$implementer] = [
+            // Calculate total and percentages
+            $totalAssignments = $smallAssignments + $mediumAssignments + $largeAssignments + $enterpriseAssignments;
+            $percentSmall = $totalAssignments > 0 ? round(($smallAssignments / $totalAssignments) * 100) : 0;
+            $percentMedium = $totalAssignments > 0 ? round(($mediumAssignments / $totalAssignments) * 100) : 0;
+            $percentLarge = $totalAssignments > 0 ? round(($largeAssignments / $totalAssignments) * 100) : 0;
+            $percentEnterprise = $totalAssignments > 0 ? round(($enterpriseAssignments / $totalAssignments) * 100) : 0;
+
+            $this->statsData[$implementer] = [
+                'small' => $smallAssignments,
+                'medium' => $mediumAssignments,
                 'large' => $largeAssignments,
                 'enterprise' => $enterpriseAssignments,
                 'total' => $totalAssignments,
+                'percentSmall' => $percentSmall,
+                'percentMedium' => $percentMedium,
                 'percentLarge' => $percentLarge,
                 'percentEnterprise' => $percentEnterprise,
-                'latestAssignment' => $latestDate,
-                'color' => $this->getImplementerColor($implementer),
+                'latestAssignment' => $latestAssignmentDate,
+                'color' => $this->getImplementerColor($implementer)
             ];
         }
 
-        // Overall stats for large/enterprise
-        $totalLarge = SoftwareHandover::query()
-            ->whereNotNull('completed_at')
-            ->where('software_handovers.id', '>=', 599)
-            ->whereIn('implementer', $this->largeImplementers)
-            ->where('headcount', '>=', 100)
-            ->where('headcount', '<=', 500)
-            ->count();
-
-        $totalEnterprise = SoftwareHandover::query()
-            ->whereNotNull('completed_at')
-            ->where('software_handovers.id', '>=', 599)
-            ->whereIn('implementer', $this->largeImplementers)
-            ->where('headcount', '>=', 501)
-            ->count();
-
-        $totalAssignments = $totalLarge + $totalEnterprise;
-
-        $latestHandover = SoftwareHandover::query()
-            ->whereNotNull('completed_at')
-            ->where('software_handovers.id', '>=', 599)
-            ->whereIn('implementer', $this->largeImplementers)
-            ->where('headcount', '>=', 100)
-            ->orderBy('completed_at', 'desc')
-            ->first();
-
-        $latestImplementer = $latestHandover ? $latestHandover->implementer : 'None';
-        $latestHandoverId = $latestHandover ? $this->formatHandoverId($latestHandover) : '-';
-
-        $latestCompanyName = '-';
-        if ($latestHandover && $latestHandover->lead_id) {
-            $companyDetail = \App\Models\CompanyDetail::where('lead_id', $latestHandover->lead_id)->first();
-            $latestCompanyName = $companyDetail ? $companyDetail->company_name : '-';
-        } elseif ($latestHandover) {
-            $latestCompanyName = $latestHandover->company_name ?? '-';
-        }
-
-        $this->largeStatsData['overall'] = [
-            'totalLarge' => $totalLarge,
-            'totalEnterprise' => $totalEnterprise,
-            'totalAssignments' => $totalAssignments,
-            'latestImplementer' => $latestImplementer,
-            'latestHandoverId' => $latestHandoverId,
-            'latestCompanyName' => $latestCompanyName,
-            'periodLabel' => 'All Time'
-        ];
+        // Calculate overall stats
+        $this->calculateOverallStats();
     }
 
     private function formatHandoverId($handover)
@@ -229,50 +148,33 @@ class ImplementerAuditList extends Page
 
     private function calculateOverallStats()
     {
-        // Total assignments (all time, small & medium only)
+        // Total assignments for all company sizes
         $totalAssignments = SoftwareHandover::query()
             ->whereNotNull('completed_at')
-            ->where('software_handovers.id', '>=', 666)
-            ->whereIn('implementer', $this->implementers)
             ->where(function($query) {
-                $query->where(function($q) {
-                    $q->where('headcount', '>=', 1)
-                      ->where('headcount', '<=', 99);
-                });
+                $query->where('software_handovers.id', '>=', 666)
+                      ->orWhere('software_handovers.id', '>=', 599);
             })
+            ->whereIn('implementer', $this->implementers)
+            ->where('headcount', '>=', 1)
             ->count();
 
-        // Latest software handover assigned (small & medium only)
+        // Latest software handover overall
         $latestHandover = SoftwareHandover::query()
             ->whereNotNull('completed_at')
-            ->where('software_handovers.id', '>=', 666)
-            ->whereIn('implementer', $this->implementers)
             ->where(function($query) {
-                $query->where(function($q) {
-                    $q->where('headcount', '>=', 1)
-                      ->where('headcount', '<=', 99);
-                });
+                $query->where('software_handovers.id', '>=', 666)
+                      ->orWhere('software_handovers.id', '>=', 599);
             })
+            ->whereIn('implementer', $this->implementers)
+            ->where('headcount', '>=', 1)
             ->orderBy('completed_at', 'desc')
             ->first();
 
-        $latestImplementer = $latestHandover ? $latestHandover->implementer : 'None';
-        $latestHandoverId = $latestHandover ? $this->formatHandoverId($latestHandover) : '-';
-
-        // Get company name from company_details using lead_id
-        $latestCompanyName = '-';
-        if ($latestHandover && $latestHandover->lead_id) {
-            $companyDetail = \App\Models\CompanyDetail::where('lead_id', $latestHandover->lead_id)->first();
-            $latestCompanyName = $companyDetail ? $companyDetail->company_name : '-';
-        } elseif ($latestHandover) {
-            $latestCompanyName = $latestHandover->company_name ?? '-';
-        }
-
         $this->statsData['overall'] = [
             'totalAssignments' => $totalAssignments,
-            'latestImplementer' => $latestImplementer,
-            'latestHandoverId' => $latestHandoverId,
-            'latestCompanyName' => $latestCompanyName,
+            'latestImplementer' => $latestHandover ? $latestHandover->implementer : 'None',
+            'latestHandoverId' => $latestHandover ? $this->formatHandoverId($latestHandover) : '-',
             'periodLabel' => 'All Time'
         ];
     }
@@ -280,12 +182,13 @@ class ImplementerAuditList extends Page
     private function getImplementerColor($implementer)
     {
         return match($implementer) {
-            'Ahmad Syamim' => [59, 130, 246],
+            'Mohd Amirul Ashraf' => [239, 68, 68],
             'John Low' => [16, 185, 129],
             'Zulhilmie' => [245, 158, 11],
             'Muhamad Izzul Aiman' => [236, 72, 153],
+            'Ahmad Syamim' => [59, 130, 246],
             'Nurul Shaqinur Ain' => [139, 92, 246],
-            'Mohd Amirul Ashraf' => [239, 68, 68],
+            'Siti Shahilah' => [168, 85, 247],
             'Nur Alia' => [34, 197, 94],
             default => [107, 114, 128],
         };
@@ -301,8 +204,6 @@ class ImplementerAuditList extends Page
         return [
             'implementers' => $this->implementers,
             'statsData' => $this->statsData,
-            'largeImplementers' => $this->largeImplementers,
-            'largeStatsData' => $this->largeStatsData,
             'selectedPeriod' => $this->selectedPeriod,
             'periods' => $this->periods,
         ];

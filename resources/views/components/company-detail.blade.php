@@ -4,12 +4,12 @@
     $companyDetails = [
         // First row - 3 columns
         ['label' => 'Company Name', 'value' => $lead->companyDetail->company_name ?? '-'],
+        ['label' => 'Company Address 1', 'value' => $lead->companyDetail->company_address1 ?? '-'],
         ['label' => 'New Reg No.', 'value' => $lead->companyDetail->reg_no_new ?? '-'],
+        ['label' => 'Company Address 2', 'value' => $lead->companyDetail->company_address2 ?? '-'],
         ['label' => 'Industry', 'value' => $lead->companyDetail->industry ?? '-'],
 
         // Second row - 3 columns
-        ['label' => 'Company Address 1', 'value' => $lead->companyDetail->company_address1 ?? '-'],
-        ['label' => 'Company Address 2', 'value' => $lead->companyDetail->company_address2 ?? '-'],
         // Combined Postcode and State in one cell (side by side)
         [
             'label' => 'Location',
@@ -25,8 +25,8 @@
     $rows = array_chunk($companyDetails, 3);
 @endphp
 
-<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px;"
-     class="grid grid-cols-3 gap-6">
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px;"
+     class="grid grid-cols-2 gap-6">
 
     @foreach ($rows as $row)
         @foreach ($row as $item)

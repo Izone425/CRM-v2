@@ -29,10 +29,9 @@
         display: flex;
         flex-direction: column;
         justify-content: center;
-        align-items: center;
         margin-bottom: 15px;
         width: 100%;
-        text-align: center;
+        text-align: center; /* Changed from center to left */
         max-height: 82px;
         max-width: 220px;
     }
@@ -53,10 +52,12 @@
         flex-direction: column;
     }
 
+
     .group-title {
         font-size: 15px;
         font-weight: 600;
         margin-bottom: 8px;
+        text-align: left;
     }
 
     .group-desc {
@@ -565,7 +566,7 @@
                 :class="{'selected': selectedGroup === 'new-request'}"
                 @click="setSelectedGroup('appointment')">
                 <div class="group-info">
-                    <div class="group-title">Session</div>
+                    <div class="group-title">Project Session</div>
                 </div>
                 <div class="group-count">{{ $sessionsTotal }}</div>
             </div>
@@ -575,7 +576,7 @@
                 :class="{'selected': selectedGroup === 'license'}"
                 @click="setSelectedGroup('license')">
                 <div class="group-info">
-                    <div class="group-title">Pending Task</div>
+                    <div class="group-title">Project Task</div>
                 </div>
                 <div class="group-count">{{ $licenseTotal }}</div>
             </div>
@@ -585,7 +586,7 @@
                 :class="{'selected': selectedGroup === 'implementer-request'}"
                 @click="setSelectedGroup('implementer-request')">
                 <div class="group-info">
-                    <div class="group-title">Implementer Request</div>
+                    <div class="group-title">Project Request</div>
                 </div>
                 <div class="group-count">{{ $implementerRequestTotal }}</div>
             </div>

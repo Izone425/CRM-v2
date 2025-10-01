@@ -1717,9 +1717,10 @@
                             <option value="">-- Select Onsite Category --</option>
                             <option value="ONSITE TRAINING">Onsite Training</option>
                             <option value="ONSITE KICK OFF MEETING">Onsite Kick Off Meeting</option>
-                            <option value="ONSITE REVIEW SESSION">Onsite Review SESSION</option>
+                            <option value="ONSITE REVIEW SESSION">Onsite Review Session</option>
                             <option value="ONSITE PROOF OF CONCEPT">Onsite Proof Of Concept</option>
                             <option value="ONSITE BUSINESS TRIP">Onsite Business Trip</option>
+                            <option value="BACKUP SUPPORT">Backup Support</option>
                         </select>
                         @error('onsiteCategory')
                             <span class="form-error">{{ $message }}</span>

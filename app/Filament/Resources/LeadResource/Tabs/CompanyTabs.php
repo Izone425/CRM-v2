@@ -31,335 +31,412 @@ class CompanyTabs
     {
         return [
             Grid::make(4)
-            ->schema([
-                Grid::make(3)
-                    ->schema([
-                        Section::make('Company Details')
-                            ->icon('heroicon-o-briefcase')
-                            ->headerActions([
-                                Action::make('edit_company_detail')
-                                    ->label('Edit') // Button label
-                                    ->modalHeading('Edit Information') // Modal heading
-                                    ->visible(fn (Lead $lead) =>
-                                        // First check if user role is not 4 or 5
-                                        in_array(auth()->user()->role_id, [1, 2, 3]) &&
+                ->schema([
+                    Grid::make(2)
+                        ->schema([
+                            Section::make('Company Details')
+                                ->headerActions([
+                                    Action::make('edit_company_detail')
+                                        ->label('Edit') // Button label
+                                        ->icon('heroicon-o-pencil')
+                                        ->modalHeading('Edit Information') // Modal heading
+                                        ->visible(fn (Lead $lead) =>
+                                            // First check if user role is not 4 or 5
+                                            in_array(auth()->user()->role_id, [1, 2, 3]) &&
 
-                                        // If user is role 2 (salesperson), they can only edit their own leads
-                                        (auth()->user()->role_id != 2 || (auth()->user()->role_id == 2 && $lead->salesperson == auth()->user()->id)) &&
+                                            // If user is role 2 (salesperson), they can only edit their own leads
+                                            (auth()->user()->role_id != 2 || (auth()->user()->role_id == 2 && $lead->salesperson == auth()->user()->id)) &&
 
-                                        // Then check if lead owner exists or salesperson exists
-                                        (!is_null($lead->lead_owner) || (is_null($lead->lead_owner) && !is_null($lead->salesperson)))
-                                    )
-                                    ->modalSubmitActionLabel('Save Changes') // Modal button text
-                                    ->form(function (Lead $record) {
-                                        // Check if the lead was created more than 30 days ago
-                                        $isOlderThan30Days = $record->created_at->diffInDays(now()) > 30;
-                                        $isAdmin = auth()->user()->role_id === 1;
+                                            // Then check if lead owner exists or salesperson exists
+                                            (!is_null($lead->lead_owner) || (is_null($lead->lead_owner) && !is_null($lead->salesperson)))
+                                        )
+                                        ->modalSubmitActionLabel('Save Changes') // Modal button text
+                                        ->form(function (Lead $record) {
+                                            // Check if the lead was created more than 30 days ago
+                                            $isOlderThan30Days = $record->created_at->diffInDays(now()) > 30;
+                                            $isAdmin = auth()->user()->role_id === 1;
 
-                                        $schema = [];
+                                            $schema = [];
 
-                                        // Add company_name field with appropriate disabled state
-                                        $schema[] = TextInput::make('company_name')
-                                            ->label('Company Name')
-                                            ->default(strtoupper($record->companyDetail->company_name ?? '-'))
-                                            ->disabled(function () use ($isOlderThan30Days, $isAdmin, $record) {
-                                                // Rule 1: If user has role_id 3, never disable the field regardless of lead age
-                                                if (auth()->user()->role_id === 3) {
-                                                    return false;
-                                                }
+                                            // Add company_name field with appropriate disabled state
+                                            $schema[] = TextInput::make('company_name')
+                                                ->label('Company Name')
+                                                ->default(strtoupper($record->companyDetail->company_name ?? '-'))
+                                                ->disabled(function () use ($isOlderThan30Days, $isAdmin, $record) {
+                                                    // Rule 1: If user has role_id 3, never disable the field regardless of lead age
+                                                    if (auth()->user()->role_id === 3) {
+                                                        return false;
+                                                    }
 
-                                                // Rule 2: If lead has a salesperson assigned and current user is role_id 1, disable the field
-                                                if (!is_null($record->salesperson) && auth()->user()->role_id === 1) {
-                                                    return true;
-                                                }
+                                                    // Rule 2: If lead has a salesperson assigned and current user is role_id 1, disable the field
+                                                    if (!is_null($record->salesperson) && auth()->user()->role_id === 1) {
+                                                        return true;
+                                                    }
 
-                                                // Rule 3: Original condition - disable if older than 30 days and not admin
-                                                return $isOlderThan30Days && !$isAdmin;
-                                            })
-                                            ->helperText(function () use ($isOlderThan30Days, $isAdmin, $record) {
-                                                // If user has role_id 3, no helper text needed
-                                                if (auth()->user()->role_id === 3) {
-                                                    return '';
-                                                }
+                                                    // Rule 3: Original condition - disable if older than 30 days and not admin
+                                                    return $isOlderThan30Days && !$isAdmin;
+                                                })
+                                                ->helperText(function () use ($isOlderThan30Days, $isAdmin, $record) {
+                                                    // If user has role_id 3, no helper text needed
+                                                    if (auth()->user()->role_id === 3) {
+                                                        return '';
+                                                    }
 
-                                                // If lead has a salesperson assigned and current user is role_id 1
-                                                if (!is_null($record->salesperson) && auth()->user()->role_id === 1) {
-                                                    return 'Company name cannot be edited when a salesperson is assigned.';
-                                                }
+                                                    // If lead has a salesperson assigned and current user is role_id 1
+                                                    if (!is_null($record->salesperson) && auth()->user()->role_id === 1) {
+                                                        return 'Company name cannot be edited when a salesperson is assigned.';
+                                                    }
 
-                                                // Original helper text
-                                                return $isOlderThan30Days && !$isAdmin ?
-                                                    'Company name cannot be changed after 30 days. Please ask for Faiz on this issue.' : '';
-                                            })
-                                            ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()']);
+                                                    // Original helper text
+                                                    return $isOlderThan30Days && !$isAdmin ?
+                                                        'Company name cannot be changed after 30 days. Please ask for Faiz on this issue.' : '';
+                                                })
+                                                ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()']);
 
-                                        // Add the rest of the fields that don't have the restriction
-                                        $schema[] = TextInput::make('company_address1')
-                                            ->label('Company Address 1')
-                                            ->maxLength(40)
-                                            ->default($record->companyDetail->company_address1 ?? '-')
-                                            ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()']);
+                                            // Add the rest of the fields that don't have the restriction
+                                            $schema[] = TextInput::make('company_address1')
+                                                ->label('Company Address 1')
+                                                ->maxLength(40)
+                                                ->default($record->companyDetail->company_address1 ?? '-')
+                                                ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()']);
 
-                                        $schema[] = TextInput::make('company_address2')
-                                            ->label('Company Address 2')
-                                            ->maxLength(40)
-                                            ->default($record->companyDetail->company_address2 ?? '-')
-                                            ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()']);
+                                            $schema[] = TextInput::make('company_address2')
+                                                ->label('Company Address 2')
+                                                ->maxLength(40)
+                                                ->default($record->companyDetail->company_address2 ?? '-')
+                                                ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()']);
 
-                                        $schema[] = Grid::make(3) // Create a 3-column grid
-                                            ->schema([
-                                                TextInput::make('postcode')
-                                                    ->label('Postcode')
-                                                    ->default($record->companyDetail->postcode ?? '-'),
+                                            $schema[] = Grid::make(3) // Create a 3-column grid
+                                                ->schema([
+                                                    TextInput::make('postcode')
+                                                        ->label('Postcode')
+                                                        ->default($record->companyDetail->postcode ?? '-'),
 
-                                                Select::make('state')
-                                                    ->label('State')
-                                                    ->options(function () {
-                                                        $filePath = storage_path('app/public/json/StateCodes.json');
+                                                    Select::make('state')
+                                                        ->label('State')
+                                                        ->options(function () {
+                                                            $filePath = storage_path('app/public/json/StateCodes.json');
 
-                                                        if (file_exists($filePath)) {
-                                                            $countriesContent = file_get_contents($filePath);
-                                                            $countries = json_decode($countriesContent, true);
+                                                            if (file_exists($filePath)) {
+                                                                $countriesContent = file_get_contents($filePath);
+                                                                $countries = json_decode($countriesContent, true);
 
-                                                            // Map 3-letter country codes to full country names
-                                                            return collect($countries)->mapWithKeys(function ($country) {
-                                                                return [$country['Code'] => ucfirst(strtolower($country['State']))];
-                                                            })->toArray();
-                                                        }
+                                                                // Map 3-letter country codes to full country names
+                                                                return collect($countries)->mapWithKeys(function ($country) {
+                                                                    return [$country['Code'] => ucfirst(strtolower($country['State']))];
+                                                                })->toArray();
+                                                            }
 
-                                                        return [];
-                                                    })
-                                                    ->dehydrateStateUsing(function ($state) {
-                                                        // Convert the selected code to the full country name
-                                                        $filePath = storage_path('app/public/json/StateCodes.json');
+                                                            return [];
+                                                        })
+                                                        ->dehydrateStateUsing(function ($state) {
+                                                            // Convert the selected code to the full country name
+                                                            $filePath = storage_path('app/public/json/StateCodes.json');
 
-                                                        if (file_exists($filePath)) {
-                                                            $countriesContent = file_get_contents($filePath);
-                                                            $countries = json_decode($countriesContent, true);
+                                                            if (file_exists($filePath)) {
+                                                                $countriesContent = file_get_contents($filePath);
+                                                                $countries = json_decode($countriesContent, true);
 
-                                                            foreach ($countries as $country) {
-                                                                if ($country['Code'] === $state) {
-                                                                    return ucfirst(strtolower($country['State']));
+                                                                foreach ($countries as $country) {
+                                                                    if ($country['Code'] === $state) {
+                                                                        return ucfirst(strtolower($country['State']));
+                                                                    }
                                                                 }
                                                             }
-                                                        }
 
-                                                        return $state; // Fallback to the original state if mapping fails
-                                                    })
-                                                    ->default($record->companyDetail->state ?? null)
-                                                    ->searchable()
-                                                    ->preload(),
+                                                            return $state; // Fallback to the original state if mapping fails
+                                                        })
+                                                        ->default($record->companyDetail->state ?? null)
+                                                        ->searchable()
+                                                        ->preload(),
 
-                                                Select::make('industry')
-                                                    ->label('Industry')
-                                                    ->placeholder('Select an industry')
-                                                    ->default($record->companyDetail->industry ?? 'None')
-                                                    ->options(fn () => collect(['None' => 'None'])->merge(Industry::pluck('name', 'name')))
-                                                    ->searchable()
-                                                    ->required()
-                                            ]);
+                                                    Select::make('industry')
+                                                        ->label('Industry')
+                                                        ->placeholder('Select an industry')
+                                                        ->default($record->companyDetail->industry ?? 'None')
+                                                        ->options(fn () => collect(['None' => 'None'])->merge(Industry::pluck('name', 'name')))
+                                                        ->searchable()
+                                                        ->required()
+                                                ]);
 
-                                        $schema[] = Grid::make(2)
-                                            ->schema([
-                                                TextInput::make('reg_no_new')
-                                                    ->label('New Registration No.')
-                                                    ->default($record->companyDetail->reg_no_new ?? '-')
-                                                    ->minLength(12) // Ensures at least 12 characters
-                                                    ->helperText('Registration number must be at least 12 characters long')
-                                                    ->required()
-                                            ]);
+                                            $schema[] = Grid::make(2)
+                                                ->schema([
+                                                    TextInput::make('reg_no_new')
+                                                        ->label('New Registration No.')
+                                                        ->default($record->companyDetail->reg_no_new ?? '-')
+                                                        ->minLength(12) // Ensures at least 12 characters
+                                                        ->helperText('Registration number must be at least 12 characters long')
+                                                        ->required()
+                                                ]);
 
-                                        return $schema;
-                                    })
-                                    ->action(function (Lead $lead, array $data) {
-                                        $isOlderThan30Days = $lead->created_at->diffInDays(now()) > 30;
-                                        $isAdmin = auth()->user()->role_id === 1;
-                                        $isSpecialRole = auth()->user()->role_id === 3;
+                                            return $schema;
+                                        })
+                                        ->action(function (Lead $lead, array $data) {
+                                            $isOlderThan30Days = $lead->created_at->diffInDays(now()) > 30;
+                                            $isAdmin = auth()->user()->role_id === 1;
+                                            $isSpecialRole = auth()->user()->role_id === 3;
 
-                                        // If trying to update company name and it's older than 30 days but not admin or special role
-                                        if (isset($data['company_name']) && $isOlderThan30Days && !$isAdmin && !$isSpecialRole) {
-                                            // Remove company_name from the data if user shouldn't be able to update it
-                                            $originalCompanyName = $lead->companyDetail->company_name ?? '-';
+                                            // If trying to update company name and it's older than 30 days but not admin or special role
+                                            if (isset($data['company_name']) && $isOlderThan30Days && !$isAdmin && !$isSpecialRole) {
+                                                // Remove company_name from the data if user shouldn't be able to update it
+                                                $originalCompanyName = $lead->companyDetail->company_name ?? '-';
 
-                                            // If they somehow attempted to change the value despite the disabled field
-                                            if ($data['company_name'] !== $originalCompanyName) {
+                                                // If they somehow attempted to change the value despite the disabled field
+                                                if ($data['company_name'] !== $originalCompanyName) {
+                                                    Notification::make()
+                                                        ->title('Permission Denied')
+                                                        ->danger()
+                                                        ->body('You are not authorized to change the company name after 30 days.')
+                                                        ->send();
+
+                                                    return;
+                                                }
+                                            }
+
+                                            $record = $lead->companyDetail;
+                                            if ($record) {
+                                                // Update the existing CompanyDetail record
+                                                $record->update($data);
+
                                                 Notification::make()
-                                                    ->title('Permission Denied')
-                                                    ->danger()
-                                                    ->body('You are not authorized to change the company name after 30 days.')
+                                                    ->title('Updated Successfully')
+                                                    ->success()
                                                     ->send();
 
-                                                return;
+                                                // Log if admin or special role changed company name on an old record
+                                                if ($isOlderThan30Days && ($isAdmin || $isSpecialRole) &&
+                                                    isset($data['company_name']) &&
+                                                    $data['company_name'] !== $record->getOriginal('company_name')) {
+
+                                                    activity()
+                                                        ->causedBy(auth()->user())
+                                                        ->performedOn($lead)
+                                                        ->log(($isSpecialRole ? 'Special role' : 'Admin') . ' modified company name on a lead older than 30 days');
+                                                }
+                                            } else {
+                                                // Create a new CompanyDetail record via the relation
+                                                $lead->companyDetail()->create($data);
+
+                                                Notification::make()
+                                                    ->title('Created Successfully')
+                                                    ->success()
+                                                    ->send();
                                             }
-                                        }
-
-                                        $record = $lead->companyDetail;
-                                        if ($record) {
-                                            // Update the existing CompanyDetail record
-                                            $record->update($data);
-
-                                            Notification::make()
-                                                ->title('Updated Successfully')
-                                                ->success()
-                                                ->send();
-
-                                            // Log if admin or special role changed company name on an old record
-                                            if ($isOlderThan30Days && ($isAdmin || $isSpecialRole) &&
-                                                isset($data['company_name']) &&
-                                                $data['company_name'] !== $record->getOriginal('company_name')) {
-
-                                                activity()
-                                                    ->causedBy(auth()->user())
-                                                    ->performedOn($lead)
-                                                    ->log(($isSpecialRole ? 'Special role' : 'Admin') . ' modified company name on a lead older than 30 days');
-                                            }
-                                        } else {
-                                            // Create a new CompanyDetail record via the relation
-                                            $lead->companyDetail()->create($data);
-
-                                            Notification::make()
-                                                ->title('Created Successfully')
-                                                ->success()
-                                                ->send();
-                                        }
-                                    })
-                            ])
-                            ->schema([
-                                View::make('components.company-detail')
-                            ]),
-                        Section::make('Person In-Charge')
-                            ->icon('heroicon-o-user')
-                            ->headerActions([
-                                Action::make('edit_person_in_charge')
-                                    ->label('Edit') // Button label
-                                    ->visible(fn (Lead $lead) =>
-                                        // First check if user role is not 4 or 5
-                                        in_array(auth()->user()->role_id, [1, 2, 3]) &&
-
-                                        // If user is role 2 (salesperson), they can only edit their own leads
-                                        (auth()->user()->role_id != 2 || (auth()->user()->role_id == 2 && $lead->salesperson == auth()->user()->id)) &&
-
-                                        // Then check if lead owner exists or salesperson exists
-                                        (!is_null($lead->lead_owner) || (is_null($lead->lead_owner) && !is_null($lead->salesperson)))
-                                    )
-                                    ->modalHeading('Edit on Person In-Charge') // Modal heading
-                                    ->modalSubmitActionLabel('Save Changes') // Modal button text
-                                    ->form([ // Define the form fields to show in the modal
-                                        TextInput::make('name')
-                                            ->label('Name')
-                                            ->required()
-                                            ->default(fn ($record) => $record->companyDetail->name ?? $record->name)
-                                            ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()'])
-                                            ->afterStateUpdated(fn ($state, callable $set) => $set('name', strtoupper($state))),
-                                        TextInput::make('email')
-                                            ->label('Email')
-                                            ->required()
-                                            ->default(fn ($record) => $record->companyDetail->email ?? $record->email),
-                                        TextInput::make('contact_no')
-                                            ->label('Contact No.')
-                                            ->required()
-                                            ->default(fn ($record) => $record->companyDetail->contact_no ?? $record->phone),
-                                        TextInput::make('position')
-                                            ->label('Position')
-                                            ->extraInputAttributes(['style' => 'text-transform: uppercase'])
-                                            ->afterStateHydrated(fn($state) => Str::upper($state))
-                                            ->afterStateUpdated(fn($state) => Str::upper($state))
-                                            ->required()
-                                            ->default(fn ($record) => $record->companyDetail->position ?? '-'),
-                                    ])
-                                    ->action(function (Lead $lead, array $data) {
-                                        $record = $lead->companyDetail;
-                                        if ($record) {
-                                            // Update the existing SystemQuestion record
-                                            $record->update($data);
-
-                                            Notification::make()
-                                                ->title('Updated Successfully')
-                                                ->success()
-                                                ->send();
-                                        } else {
-                                            // Create a new SystemQuestion record via the relation
-                                            $lead->bankDetail()->create($data);
-
-                                            Notification::make()
-                                                ->title('Created Successfully')
-                                                ->success()
-                                                ->send();
-                                        }
-                                    }),
-                            ])
-                            ->schema([
-                                View::make('components.person-in-charge')
-                            ]),
-                        // Section::make('E-Invoice Details')
-                        //     ->icon('heroicon-o-document-text')
-                        //     ->headerActions([
-                        //         Action::make('edit_einvoice_details')
-                        //             ->label('Edit')
-                        //             ->modalHeading('Edit E-Invoice Details')
-                        //             ->modalSubmitActionLabel('Save Changes')
-                        //             ->visible(fn (Lead $lead) => !is_null($lead->lead_owner) || (is_null($lead->lead_owner) && !is_null($lead->salesperson)))
-                        //             ->form([
-                        //                 Grid::make(1)
-                        //                     ->schema([
-                        //                         TextInput::make('tin_no')
-                        //                             ->label('Tax Identification Number (TIN No.)')
-                        //                             ->required()
-                        //                             ->default(fn ($record) => $record->eInvoiceDetail->tin_no ?? null),
-
-                        //                         TextInput::make('sst_reg_no')
-                        //                             ->label('Sales and Service Tax (SST) Registration Number')
-                        //                             ->required()
-                        //                             ->default(fn ($record) => $record->eInvoiceDetail->sst_reg_no ?? null),
-
-                        //                         TextInput::make('msic_code')
-                        //                             ->label('Business MSIC Code')
-                        //                             ->required()
-                        //                             ->default(fn ($record) => $record->eInvoiceDetail->msic_code ?? null),
-
-                        //                         TextInput::make('email_address')
-                        //                             ->label('Email Address')
-                        //                             ->required()
-                        //                             ->default(fn ($record) => $record->eInvoiceDetail->email_address ?? null),
-                        //                     ]),
-                        //             ])
-                        //             ->action(function (Lead $lead, array $data) {
-                        //                 $record = $lead->eInvoiceDetail;
-                        //                 if ($record) {
-                        //                     // Update the existing record
-                        //                     $record->update($data);
-
-                        //                     Notification::make()
-                        //                         ->title('E-Invoice Details Updated')
-                        //                         ->success()
-                        //                         ->send();
-                        //                 } else {
-                        //                     // Create a new record
-                        //                     $lead->eInvoiceDetail()->create($data);
-
-                        //                     Notification::make()
-                        //                         ->title('E-Invoice Details Created')
-                        //                         ->success()
-                        //                         ->send();
-                        //                 }
-                        //             }),
-                        //         ])
-                        //     ->schema([
-                        //         View::make('components.e-invoice-details')
-                        //         ->extraAttributes(['poll' => true])
-                        //     ]),
-                    ])
-                    ->columnSpan(3),
+                                        })
+                                ])
+                                ->schema([
+                                    View::make('components.company-detail')
+                                ]),
+                        ])->columnSpan(2),
                     Grid::make(1)
                         ->schema([
+                            Section::make('Sales In-Charge')
+                                ->extraAttributes([
+                                    'style' => 'background-color: #e6e6fa4d; border: dashed; border-color: #cdcbeb;'
+                                ])
+                                ->headerActions([
+                                    Action::make('edit_sales_in_charge')
+                                        ->label('Edit')
+                                        ->icon('heroicon-o-pencil')
+                                        ->visible(function ($record) {
+                                            return (auth()->user()?->role_id === 1 && !is_null($record->lead_owner) && !is_null($record->salesperson)
+                                            || auth()->user()?->role_id === 3);
+                                        })
+                                        ->form(array_merge(
+                                            auth()->user()->role_id !== 1
+                                                ? [
+                                                    Grid::make()
+                                                        ->schema([
+                                                            Select::make('position')
+                                                                ->label('Lead Owner Role')
+                                                                ->options([
+                                                                    'sale_admin' => 'Sales Admin',
+                                                                ]),
+                                                            Select::make('lead_owner')
+                                                                ->label('Lead Owner')
+                                                                ->default(fn ($record) => $record?->lead_owner ?? null)
+                                                                ->options(
+                                                                    \App\Models\User::where('role_id', 1)
+                                                                        ->pluck('name', 'id')
+                                                                )
+                                                                ->searchable(),
+                                                        ])->columns(2),
+                                                ]
+                                                : [],
+                                            [
+                                                Select::make('salesperson')
+                                                    ->label('Salesperson')
+                                                    ->options(
+                                                        \App\Models\User::where('role_id', 2)
+                                                            ->pluck('name', 'id')
+                                                    )
+                                                    ->default(fn ($record) => $record?->salesperson)
+                                                    ->required()
+                                                    ->searchable(),
+                                            ]
+                                        ))
+                                        ->action(function ($record, $data) {
+                                            if (!empty($data['salesperson'])) {
+                                                $salespersonName = \App\Models\User::find($data['salesperson'])?->name ?? 'Unknown Salesperson';
+                                                $record->update(['salesperson' => $data['salesperson'],
+                                                    'salesperson_assigned_date' => now(),
+                                                    ]);
+                                            }
+
+                                            // Check and update lead_owner if it's not null
+                                            if (!empty($data['lead_owner'])) {
+                                                $leadOwnerName = \App\Models\User::find($data['lead_owner'])?->name ?? 'Unknown Lead Owner';
+                                                $record->update(['lead_owner' => $leadOwnerName]);
+                                            }
+
+                                            $latestActivityLogs = ActivityLog::where('subject_id', $record->id)
+                                                ->orderByDesc('created_at')
+                                                ->take(2)
+                                                ->get();
+
+                                            // Check if at least two logs exist
+                                            if (auth()->user()->role_id == 3) {
+                                                $causer_id = auth()->user()->id;
+                                                $causer_name = \App\Models\User::find($causer_id)->name;
+                                                $latestActivityLogs[0]->update([
+                                                    'description' => 'Lead Owner updated by '. $causer_name . ": " . $leadOwnerName,
+                                                ]);
+
+                                                // Update the second activity log
+                                                $latestActivityLogs[1]->update([
+                                                    'description' => 'Salesperson updated by '. $causer_name . ": " . $salespersonName,
+                                                ]);
+                                            }else{
+                                                $causer_id = auth()->user()->id;
+                                                $causer_name = \App\Models\User::find($causer_id)->name;
+                                                // $latestActivityLogs[0]->delete();
+                                                $latestActivityLogs[0]->update([
+                                                    'description' => 'Salesperson updated by '. $causer_name . ": " . $salespersonName,
+                                                ]);
+                                            }
+                                            // Log the activity for auditing
+                                            activity()
+                                                ->causedBy(auth()->user())
+                                                ->performedOn($record);
+
+                                            Notification::make()
+                                            ->title('Sales In-Charge Edited Successfully')
+                                            ->success()
+                                            ->send();
+                                        })
+                                        ->modalHeading('Edit Sales In-Charge')
+                                        ->modalDescription('Changing the Lead Owner and Salesperson will allow the new staff
+                                                            to take action on the current and future follow-ups only.')
+                                        ->modalSubmitActionLabel('Save Changes'),
+
+                                    Action::make('request_change_lead_owner')
+                                        ->label('Request Change Lead Owner')
+                                        ->visible(fn () => auth()->user()?->role_id == 1) // Only visible to non-manager roles
+                                        ->form([
+                                            \Filament\Forms\Components\Select::make('requested_owner_id')
+                                                ->label('New Lead Owner')
+                                                ->searchable()
+                                                ->required()
+                                                ->options(
+                                                    \App\Models\User::where('role_id', 1)->pluck('name', 'id') // Assuming lead owners are role_id = 1
+                                                ),
+                                            \Filament\Forms\Components\Textarea::make('reason')
+                                                ->label('Reason for Request')
+                                                ->rows(3)
+                                                ->autosize()
+                                                ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()'])
+                                                ->required(),
+                                        ])
+                                        ->action(function ($record, array $data) {
+                                            $manager = \App\Models\User::where('role_id', 3)->first();
+
+                                            // Create the request
+                                            \App\Models\Request::create([
+                                                'lead_id' => $record->id,
+                                                'requested_by' => auth()->id(),
+                                                'current_owner_id' => \App\Models\User::where('name', $record->lead_owner)->value('id'),
+                                                'requested_owner_id' => $data['requested_owner_id'],
+                                                'reason' => $data['reason'],
+                                                'status' => 'pending',
+                                            ]);
+
+                                            activity()
+                                                ->causedBy(auth()->user())
+                                                ->performedOn($record)
+                                                ->withProperties([
+                                                    'lead_id' => $record->id,
+                                                    'requested_by' => auth()->user()->name,
+                                                    'requested_owner_id' => \App\Models\User::find($data['requested_owner_id'])?->name,
+                                                    'reason' => $data['reason'],
+                                                ])
+                                                ->log('Requested lead owner change');
+
+                                            Notification::make()
+                                                ->title('Request Submitted')
+                                                ->body('Your request to change the lead owner has been submitted to the manager.')
+                                                ->success()
+                                                ->send();
+
+                                            if ($manager) {
+                                                Notification::make()
+                                                    ->title('New Lead Owner Change Request')
+                                                    ->body(auth()->user()->name . ' requested to change the owner for Lead ID: ' . $record->id);
+                                            }
+
+                                            try {
+                                                $lead = $record;
+                                                $viewName = 'emails.change_lead_owner';
+
+                                                // Set fixed recipient
+                                                $recipients = collect([
+                                                    (object)[
+                                                        'email' => 'faiz@timeteccloud.com', // ✅ Your desired recipient
+                                                        'name' => 'Faiz'
+                                                    ]
+                                                ]);
+
+                                                foreach ($recipients as $recipient) {
+                                                    $emailContent = [
+                                                        'leadOwnerName' => $recipient->name ?? 'Unknown Person',
+                                                        'lead' => [
+                                                            'lead_code' => 'Website',
+                                                            'lastName' => $lead->name ?? 'N/A',
+                                                            'company' => $lead->companyDetail->company_name ?? 'N/A',
+                                                            'companySize' => $lead->company_size ?? 'N/A',
+                                                            'phone' => $lead->phone ?? 'N/A',
+                                                            'email' => $lead->email ?? 'N/A',
+                                                            'country' => $lead->country ?? 'N/A',
+                                                            'products' => $lead->products ?? 'N/A',
+                                                        ],
+                                                        'remark' => $lead->remark ?? 'No remarks provided',
+                                                        'formatted_products' => is_array($lead->formatted_products)
+                                                            ? implode(', ', $lead->formatted_products)
+                                                            : ($lead->formatted_products ?? 'N/A'),
+                                                    ];
+
+                                                    Mail::to($recipient->email)
+                                                        ->send(new \App\Mail\ChangeLeadOwnerNotification($emailContent, $viewName));
+                                                }
+                                            } catch (\Exception $e) {
+                                                Log::error("New Lead Email Error: {$e->getMessage()}");
+                                            }
+                                        }),
+                                ])
+                                ->schema([
+                                    Grid::make(1) // Single column in the right-side section
+                                        ->schema([
+                                            View::make('components.lead-owner'),
+                                        ]),
+                                ])
+                                ->columnSpan(1), // Right side spans 1 column
                             Section::make('Status')
-                                ->icon('heroicon-o-information-circle')
                                 ->extraAttributes([
                                     'style' => 'background-color: #e6e6fa4d; border: dashed; border-color: #cdcbeb;'
                                 ])
                                 ->headerActions([
                                     Action::make('archive')
                                         ->label(__('Edit'))
+                                        ->icon('heroicon-o-pencil')
                                         ->visible(fn (Lead $lead) =>
                                             // First check if user role is not 4 or 5
                                             in_array(auth()->user()->role_id, [1, 2, 3]) &&
@@ -564,8 +641,15 @@ class CompanyTabs
                                             View::make('components.deal-information'),
                                         ]),
                                     ]),
+                        ])->columnSpan(1),
+                    Grid::make(1)
+                        ->schema([
                             Section::make('Project Information')
-                                ->icon('heroicon-o-clipboard-document-list')
+                                ->headerActions([
+                                    Action::make('edit_utm_details')
+                                        ->label('Edit') // Modal buttonF
+                                        ->icon('heroicon-o-pencil')
+                                ])
                                 ->extraAttributes([
                                     'style' => 'background-color: #fff5f5; border: dashed; border-color: #feb2b2;'
                                 ])
@@ -653,7 +737,6 @@ class CompanyTabs
                                 ]),
 
                             Section::make('Reseller Details')
-                                ->icon('heroicon-o-building-storefront')
                                 ->extraAttributes([
                                     'style' => 'background-color: #e6e6fa4d; border: dashed; border-color: #cdcbeb;'
                                 ])
@@ -667,7 +750,6 @@ class CompanyTabs
                                 ->headerActions([
                                     Action::make('assign_reseller')
                                         ->label('Assign Reseller')
-                                        ->icon('heroicon-o-link')
                                         ->visible(fn (Lead $lead) =>
                                             // First check if user role is not 4 or 5
                                             in_array(auth()->user()->role_id, [1, 2, 3]) &&
@@ -713,7 +795,6 @@ class CompanyTabs
                                         }),
                                     Action::make('reset_reseller')
                                         ->label('Reset')
-                                        ->icon('heroicon-o-x-mark')
                                         ->color('danger')
                                         ->visible(fn (Lead $lead) => !is_null($lead->reseller_id)) // Only show when there's a reseller assigned
                                         ->modalHeading('Remove Assigned Reseller')
@@ -749,7 +830,71 @@ class CompanyTabs
                                         }),
                                 ])
                         ])->columnSpan(1),
-                    ]),
+                    Section::make('Person In-Charge')
+                        ->headerActions([
+                            Action::make('edit_person_in_charge')
+                                ->label('Edit') // Button label
+                                ->icon('heroicon-o-pencil')
+                                ->visible(fn (Lead $lead) =>
+                                    // First check if user role is not 4 or 5
+                                    in_array(auth()->user()->role_id, [1, 2, 3]) &&
+
+                                    // If user is role 2 (salesperson), they can only edit their own leads
+                                    (auth()->user()->role_id != 2 || (auth()->user()->role_id == 2 && $lead->salesperson == auth()->user()->id)) &&
+
+                                    // Then check if lead owner exists or salesperson exists
+                                    (!is_null($lead->lead_owner) || (is_null($lead->lead_owner) && !is_null($lead->salesperson)))
+                                )
+                                ->modalHeading('Edit on Person In-Charge') // Modal heading
+                                ->modalSubmitActionLabel('Save Changes') // Modal button text
+                                ->form([ // Define the form fields to show in the modal
+                                    TextInput::make('name')
+                                        ->label('Name')
+                                        ->required()
+                                        ->default(fn ($record) => $record->companyDetail->name ?? $record->name)
+                                        ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()'])
+                                        ->afterStateUpdated(fn ($state, callable $set) => $set('name', strtoupper($state))),
+                                    TextInput::make('email')
+                                        ->label('Email')
+                                        ->required()
+                                        ->default(fn ($record) => $record->companyDetail->email ?? $record->email),
+                                    TextInput::make('contact_no')
+                                        ->label('Contact No.')
+                                        ->required()
+                                        ->default(fn ($record) => $record->companyDetail->contact_no ?? $record->phone),
+                                    TextInput::make('position')
+                                        ->label('Position')
+                                        ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                                        ->afterStateHydrated(fn($state) => Str::upper($state))
+                                        ->afterStateUpdated(fn($state) => Str::upper($state))
+                                        ->required()
+                                        ->default(fn ($record) => $record->companyDetail->position ?? '-'),
+                                ])
+                                ->action(function (Lead $lead, array $data) {
+                                    $record = $lead->companyDetail;
+                                    if ($record) {
+                                        // Update the existing SystemQuestion record
+                                        $record->update($data);
+
+                                        Notification::make()
+                                            ->title('Updated Successfully')
+                                            ->success()
+                                            ->send();
+                                    } else {
+                                        // Create a new SystemQuestion record via the relation
+                                        $lead->bankDetail()->create($data);
+
+                                        Notification::make()
+                                            ->title('Created Successfully')
+                                            ->success()
+                                            ->send();
+                                    }
+                                }),
+                        ])
+                        ->schema([
+                            View::make('components.person-in-charge')
+                        ]),
+                ]),
         ];
     }
 }

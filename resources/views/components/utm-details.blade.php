@@ -18,7 +18,7 @@
     $rows = array_chunk($utmDetails, 4);
 @endphp
 
-<div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 24px;" class="grid grid-cols-4 gap-6">
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px;" class="grid grid-cols-2 gap-6">
     @foreach ($rows as $row)
         @foreach ($row as $item)
             <div style="--col-span-default: span 1 / span 1;" class="col-[--col-span-default]">
