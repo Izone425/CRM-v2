@@ -113,8 +113,7 @@ class ArFollowUpAllUsd extends Component implements HasForms, HasTable
                     "Other",
                     "TimeTec Profile (10 User License)"
                 )
-                ) as earliest_expiry_date')
-            ->orderBy('earliest_expiry_date', 'ASC');
+                ) as earliest_expiry_date');
 
         return $query;
     }
@@ -165,17 +164,6 @@ class ArFollowUpAllUsd extends Component implements HasForms, HasTable
                     })
                     ->placeholder('All Admin Renewals')
                     ->multiple(),
-
-                SelectFilter::make('salesperson')
-                    ->label('Filter by Salesperson')
-                    ->options(function () {
-                        return User::where('role_id', 2)
-                            ->whereNot('id', 15)
-                            ->pluck('name', 'name')
-                            ->toArray();
-                    })
-                    ->placeholder('All Salesperson')
-                    ->multiple(),
             ])
             ->columns([
                 TextColumn::make('company_name')
@@ -205,6 +193,7 @@ class ArFollowUpAllUsd extends Component implements HasForms, HasTable
                 TextColumn::make('earliest_expiry_date')
                     ->label('Expiry Date')
                     ->default('N/A')
+                    ->sortable()
                     ->formatStateUsing(function ($state, $record) {
 
                         return Carbon::parse(self::getEarliestExpiryDate($record->f_company_id))->format('d M Y') ?? 'N/A';
@@ -213,25 +202,13 @@ class ArFollowUpAllUsd extends Component implements HasForms, HasTable
                 TextColumn::make('pending_days')
                     ->label('Pending Days')
                     ->alignCenter()
+                    ->sortable()
                     ->formatStateUsing(fn ($record) => $this->getWeekdayCount($record->follow_up_date, now()).' days')
                     ->color(fn ($record) => $this->getWeekdayCount($record->follow_up_date, now()) == 0 ? 'draft' : 'danger'),
 
                 TextColumn::make('follow_up_date')
                     ->label('Follow Up Date')
                     ->date('d M Y'),
-
-                TextColumn::make('f_company_id')
-                    ->label('Currency')
-                    ->formatStateUsing(function ($state) {
-                        $hasUsd = DB::connection('frontenddb')->table('crm_expiring_license')
-                            ->where('f_company_id', $state)
-                            ->where('f_currency', 'USD')
-                            ->exists();
-
-                        return $hasUsd ? 'USD' : 'N/A';
-                    })
-                    ->badge()
-                    ->color('info'),
             ])
             ->actions([
                 ActionGroup::make([

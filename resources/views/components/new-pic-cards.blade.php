@@ -143,11 +143,7 @@
     @if (empty($pics))
         <div class="empty-state">
             <p class="empty-message">
-                @if (isset($type) && $type === 'renewal')
-                    No additional PICs added yet.
-                @else
-                    No additional PICs added by implementer yet.
-                @endif
+
             </p>
         </div>
     @else

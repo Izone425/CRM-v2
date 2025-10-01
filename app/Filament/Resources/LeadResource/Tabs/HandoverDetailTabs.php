@@ -62,12 +62,12 @@ class HandoverDetailTabs
 
                         ]),
 
-                    Tabs\Tab::make('OnSite Handover')
+                    Tabs\Tab::make('OnSite Repair')
                         ->schema([
 
                         ]),
 
-                    Tabs\Tab::make('InHouse Handover')
+                    Tabs\Tab::make('InHouse Repair')
                         ->schema([
 
                         ]),
