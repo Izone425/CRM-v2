@@ -213,6 +213,7 @@ class ArFollowUpOverdueUsd extends Component implements HasForms, HasTable
 
                 TextColumn::make('pending_days')
                     ->label('Pending Days')
+                    ->alignCenter()
                     ->formatStateUsing(fn ($record) => $this->getWeekdayCount($record->follow_up_date, now()).' days')
                     ->color(fn ($record) => $this->getWeekdayCount($record->follow_up_date, now()) == 0 ? 'draft' : 'danger'),
 

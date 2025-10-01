@@ -178,6 +178,7 @@ class ArFollowUpUpcomingMyrV2 extends Component implements HasForms, HasTable
 
                 TextColumn::make('pending_days')
                     ->label('Counting Days')
+                    ->alignCenter()
                     ->default('0')
                     ->formatStateUsing(fn ($state) => $state . ' ' . ($state == 0 ? 'Day' : 'Days')),
 
