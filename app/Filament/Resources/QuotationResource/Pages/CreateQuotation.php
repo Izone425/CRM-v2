@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Filament\Resources\QuotationResource\Pages;
 
 use App\Classes\Encryptor;
@@ -11,6 +10,7 @@ use Filament\Actions;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Log;
 
 class CreateQuotation extends CreateRecord
 {
@@ -127,10 +127,37 @@ class CreateQuotation extends CreateRecord
                 }
             }
         }
+
+        // Generate PDF after all database updates are complete
+        $this->generateQuotationPDF($this->record);
     }
 
     protected function getRedirectUrl(): string
     {
         return $this->getResource()::getUrl('index');
+    }
+
+    private function generateQuotationPDF($quotation): void
+    {
+        try {
+            Log::info("Starting PDF generation for quotation {$quotation->id}");
+
+            // Encrypt the quotation ID as expected by the controller
+            $encryptedId = encrypt($quotation->id);
+
+            // Use your existing PDF generation controller
+            $controller = new \App\Http\Controllers\GenerateQuotationPdfController();
+            $response = $controller->__invoke($encryptedId);
+
+            Log::info("PDF generation completed for quotation {$quotation->id}");
+
+        } catch (\Exception $e) {
+            Log::error("Failed to auto-generate PDF for quotation {$quotation->id}: " . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            // Don't throw the exception to prevent breaking the quotation creation flow
+            // The PDF can be generated manually later if needed
+        }
     }
 }

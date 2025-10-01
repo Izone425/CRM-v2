@@ -46,6 +46,31 @@ class HandoverDetailTabs
                                 ->manager(\App\Filament\Resources\LeadResource\RelationManagers\HardwareHandoverRelationManager::class
                             ),
                         ]),
+
+                    Tabs\Tab::make('HRDF Handover')
+                        ->schema([
+
+                        ]),
+
+                    Tabs\Tab::make('Reseller Handover')
+                        ->schema([
+
+                        ]),
+
+                    Tabs\Tab::make('Headcount Handover')
+                        ->schema([
+
+                        ]),
+
+                    Tabs\Tab::make('OnSite Handover')
+                        ->schema([
+
+                        ]),
+
+                    Tabs\Tab::make('InHouse Handover')
+                        ->schema([
+
+                        ]),
                 ])
                 ->columnSpan(2)
                 ->visible(function ($livewire) {

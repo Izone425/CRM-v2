@@ -173,8 +173,8 @@ class ARFollowUpTabs
                                                 ->label('Scheduler Type')
                                                 ->options([
                                                     'instant' => 'Instant',
-                                                    'scheduled' => 'Next Follow Up Date at 8am',
-                                                    'both' => 'Both',
+                                                    // 'scheduled' => 'Next Follow Up Date at 8am',
+                                                    // 'both' => 'Both',
                                                 ])
                                                 ->visible(fn ($get) => $get('send_email'))
                                                 ->required(),
@@ -195,6 +195,10 @@ class ARFollowUpTabs
                                                                 ->where('quotation_type', 'product')
                                                                 ->where('sales_type', 'RENEWAL SALES')
                                                                 ->get()
+                                                                ->filter(function ($quotation) {
+                                                                    // Only include quotations that have existing PDF files
+                                                                    return self::checkQuotationPDFExists($quotation);
+                                                                })
                                                                 ->mapWithKeys(function ($quotation) {
                                                                     $label = $quotation->quotation_reference_no ?? 'No Reference - ID: ' . $quotation->id;
                                                                     return [$quotation->id => $label];
@@ -204,7 +208,7 @@ class ARFollowUpTabs
                                                         ->multiple()
                                                         ->searchable()
                                                         ->preload()
-                                                        ->helperText('Select product quotations to attach to the email'),
+                                                        ->helperText('Select product quotations to attach to the email (Only quotations with existing PDFs are shown)'),
 
                                                     Select::make('quotation_hrdf')
                                                         ->label('HRDF Quotations')
@@ -217,6 +221,10 @@ class ARFollowUpTabs
                                                                 ->where('quotation_type', 'hrdf')
                                                                 ->where('sales_type', 'RENEWAL SALES')
                                                                 ->get()
+                                                                ->filter(function ($quotation) {
+                                                                    // Only include quotations that have existing PDF files
+                                                                    return self::checkQuotationPDFExists($quotation);
+                                                                })
                                                                 ->mapWithKeys(function ($quotation) {
                                                                     $label = $quotation->quotation_reference_no ?? 'No Reference - ID: ' . $quotation->id;
                                                                     return [$quotation->id => $label];
@@ -226,7 +234,7 @@ class ARFollowUpTabs
                                                         ->multiple()
                                                         ->searchable()
                                                         ->preload()
-                                                        ->helperText('Select HRDF quotations to attach to the email'),
+                                                        ->helperText('Select HRDF quotations to attach to the email (Only quotations with existing PDFs are shown)'),
                                                 ])
                                         ])
                                         ->visible(fn ($get) => $get('send_email'))
@@ -760,6 +768,67 @@ class ARFollowUpTabs
         } catch (\Exception $e) {
             Log::error("Error fetching earliest expiry date for company {$companyId}: ".$e->getMessage());
             return null;
+        }
+    }
+
+    private static function checkQuotationPDFExists(Quotation $quotation): bool
+    {
+        try {
+            // Generate the expected filename based on your existing logic
+            $companyName = '';
+            if (!empty($quotation->subsidiary_id)) {
+                // Fetch from subsidiaries table
+                $subsidiary = \App\Models\Subsidiary::find($quotation->subsidiary_id);
+                $companyName = $subsidiary ? $subsidiary->company_name : 'Unknown';
+            } else {
+                // Use the original company name from lead's company detail
+                $companyName = $quotation->lead->companyDetail->company_name ?? 'Unknown';
+            }
+
+            // Primary filename attempt
+            $quotationFilename = 'TIMETEC_' . $quotation->sales_person->code . '_' . quotation_reference_no($quotation->id) . '_' . Str::replace('-','_',Str::slug($companyName));
+            $quotationFilename = Str::upper($quotationFilename) . '.pdf';
+
+            // Check multiple possible paths
+            $possiblePaths = [
+                storage_path('app/public/quotations/' . $quotationFilename),
+                // Add alternative filename patterns if needed
+                storage_path('app/public/quotations/TIMETEC_' . $quotation->sales_person->code . '_' . $quotation->id . '_' . Str::replace('-','_',Str::slug($companyName)) . '.pdf'),
+            ];
+
+            // Also try to find any PDF file that starts with the quotation pattern
+            $quotationsDir = storage_path('app/public/quotations/');
+            if (is_dir($quotationsDir)) {
+                $pattern = 'TIMETEC_' . $quotation->sales_person->code . '_' . quotation_reference_no($quotation->id) . '_*';
+                $matches = glob($quotationsDir . $pattern . '.pdf');
+
+                if (!empty($matches)) {
+                    $possiblePaths = array_merge($possiblePaths, $matches);
+                }
+            }
+
+            // Check if any of the possible paths exist
+            foreach ($possiblePaths as $storagePath) {
+                if (file_exists($storagePath)) {
+                    Log::info("PDF exists for quotation {$quotation->id}: " . basename($storagePath));
+                    return true;
+                }
+            }
+
+            // Log when PDF is not found for debugging
+            Log::info("PDF not found for quotation {$quotation->id}. Checked paths:", [
+                'quotation_id' => $quotation->id,
+                'reference_no' => quotation_reference_no($quotation->id),
+                'company_name' => $companyName,
+                'sales_person_code' => $quotation->sales_person->code ?? 'UNKNOWN',
+                'checked_paths' => $possiblePaths,
+            ]);
+
+            return false;
+
+        } catch (\Exception $e) {
+            Log::error("Error checking PDF existence for quotation {$quotation->id}: " . $e->getMessage());
+            return false;
         }
     }
 }
