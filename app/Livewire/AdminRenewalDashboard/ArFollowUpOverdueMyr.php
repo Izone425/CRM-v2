@@ -126,6 +126,7 @@ class ArFollowUpOverdueMyr extends Component implements HasForms, HasTable
             ->emptyState(fn () => view('components.empty-state-question'))
             ->defaultPaginationPageOption(5)
             ->paginated([5])
+            ->defaultSort('earliest_expiry_date', 'asc')
             ->filters([
                 SelectFilter::make('admin_renewal')
                     ->label('Filter by Admin Renewal')
@@ -191,7 +192,6 @@ class ArFollowUpOverdueMyr extends Component implements HasForms, HasTable
 
                 TextColumn::make('follow_up_date')
                     ->label('Follow Up Date')
-                    ->sortable()
                     ->date('d M Y'),
             ])
             ->actions([
@@ -253,7 +253,7 @@ class ArFollowUpOverdueMyr extends Component implements HasForms, HasTable
                                     </div>
 
                                     <div class='p-4 rounded-lg bg-blue-50'>
-                                        <h3 class='mb-3 text-lg font-semibold text-gray-900'>Description</h3>
+                                        <h3 class='mb-3 text-lg text-gray-900 font-semibent'>Description</h3>
                                         <div class='text-sm text-gray-800'>
                                             {$data->description}
                                         </div>
