@@ -1,0 +1,605 @@
+<?php
+namespace App\Filament\Pages;
+
+use Filament\Pages\Page;
+use Filament\Forms\Contracts\HasForms;
+use Filament\Forms\Concerns\InteractsWithForms;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Section;
+use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Grid;
+use Filament\Forms\Components\Tabs;
+use Filament\Forms\Form;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\HtmlString;
+use Filament\Notifications\Notification;
+use Illuminate\Support\Facades\Log;
+use Carbon\Carbon;
+
+class SearchLicense extends Page implements HasForms
+{
+    use InteractsWithForms;
+
+    protected static ?string $navigationIcon = 'heroicon-o-document-text';
+    protected static ?string $navigationLabel = 'Search License';
+    protected static ?string $title = 'Search License';
+    protected static string $view = 'filament.pages.search-license';
+
+    public ?array $data = [];
+    public $searchResults = [];
+    public $hasSearched = false;
+    public $calculatorResult = null;
+    public $hasCalculated = false;
+
+    public function mount(): void
+    {
+        $this->form->fill();
+    }
+
+    public function form(Form $form): Form
+    {
+        return $form
+            ->schema([
+                Tabs::make('License Tools')
+                    ->tabs([
+                        // Search License Tab
+                        Tabs\Tab::make('Search License')
+                            ->icon('heroicon-o-magnifying-glass')
+                            ->schema([
+                                Section::make('Search License Information')
+                                    ->description('Enter a company name to search for their license details and invoice information.')
+                                    ->schema([
+                                        TextInput::make('company_name')
+                                            ->label('Company Name')
+                                            ->placeholder('Enter company name to search...')
+                                            ->suffixAction(
+                                                \Filament\Forms\Components\Actions\Action::make('search')
+                                                    ->icon('heroicon-o-magnifying-glass')
+                                                    ->action('searchLicense')
+                                            )
+                                    ])
+                            ]),
+
+                        // License Range Calculator Tab
+                        Tabs\Tab::make('License Range Calculator')
+                            ->icon('heroicon-o-calculator')
+                            ->schema([
+                                Section::make('License Range Calculator')
+                                    ->description('Select a license expiry date to calculate how many months remaining from today.')
+                                    ->schema([
+                                        Grid::make(2)
+                                            ->schema([
+                                                DatePicker::make('expiry_date')
+                                                    ->label('License Expiry Date')
+                                                    ->placeholder('Select expiry date...')
+                                                    ->native(false)
+                                                    ->displayFormat('d/m/Y'),
+
+                                                TextInput::make('result_display')
+                                                    ->label('Result')
+                                                    ->placeholder('Select date and click submit')
+                                                    ->disabled()
+                                                    ->dehydrated(false)
+                                            ]),
+
+                                        \Filament\Forms\Components\Actions::make([
+                                            \Filament\Forms\Components\Actions\Action::make('calculate')
+                                                ->label('Submit')
+                                                ->icon('heroicon-o-calculator')
+                                                ->color('primary')
+                                                ->action('calculateRange')
+                                        ])
+                                    ])
+                            ])
+                    ])
+            ])
+            ->statePath('data');
+    }
+
+    public function searchLicense(): void
+    {
+        $data = $this->form->getState();
+
+        if (empty($data['company_name'])) {
+            Notification::make()
+                ->warning()
+                ->title('Please enter a company name to search')
+                ->send();
+            return;
+        }
+
+        $this->searchResults = $this->getCompanyLicenseData($data['company_name']);
+        $this->hasSearched = true;
+
+        if (empty($this->searchResults)) {
+            Notification::make()
+                ->warning()
+                ->title('No Results Found')
+                ->body("No license data found for companies matching '{$data['company_name']}'")
+                ->send();
+        } else {
+            Notification::make()
+                ->success()
+                ->title('Search Completed')
+                ->body(count($this->searchResults) . ' company(ies) found')
+                ->send();
+        }
+    }
+
+    public function calculateRange(): void
+    {
+        $data = $this->form->getState();
+
+        if (empty($data['expiry_date'])) {
+            Notification::make()
+                ->warning()
+                ->title('Please select an expiry date')
+                ->send();
+            return;
+        }
+
+        try {
+            $expiryDate = Carbon::parse($data['expiry_date']);
+            $today = Carbon::today();
+
+            // Calculate months difference and round to nearest month
+            $diffInMonths = $today->diffInMonths($expiryDate, false);
+
+            // If the expiry date has passed, show negative months
+            if ($expiryDate->lt($today)) {
+                $diffInMonths = -abs($diffInMonths);
+                $resultText = abs($diffInMonths) . ' months ago (Expired)';
+                $statusColor = 'danger';
+            } else {
+                $resultText = $diffInMonths . ' months';
+                $statusColor = 'success';
+            }
+
+            $this->calculatorResult = $resultText;
+            $this->hasCalculated = true;
+
+            // Update the result display field
+            $this->form->fill([
+                ...$data,
+                'result_display' => $resultText
+            ]);
+
+            Notification::make()
+                ->title('Calculation Complete')
+                ->body($resultText)
+                ->color($statusColor)
+                ->send();
+
+        } catch (\Exception $e) {
+            Log::error('Error calculating license range: ' . $e->getMessage());
+
+            Notification::make()
+                ->danger()
+                ->title('Calculation Error')
+                ->body('Failed to calculate license range. Please check the date format.')
+                ->send();
+        }
+    }
+
+    public function clearSearch(): void
+    {
+        $this->searchResults = [];
+        $this->hasSearched = false;
+        $currentData = $this->form->getState();
+        $this->form->fill([
+            ...$currentData,
+            'company_name' => ''
+        ]);
+    }
+
+    public function clearCalculator(): void
+    {
+        $this->calculatorResult = null;
+        $this->hasCalculated = false;
+        $currentData = $this->form->getState();
+        $this->form->fill([
+            ...$currentData,
+            'expiry_date' => null,
+            'result_display' => null
+        ]);
+    }
+
+    private function getCompanyLicenseData(string $searchTerm): array
+    {
+        try {
+            // Search for companies in crm_expiring_license by company name
+            $companies = DB::connection('frontenddb')
+                ->table('crm_expiring_license')
+                ->select('f_company_id', 'f_company_name')
+                ->where('f_company_name', 'like', "%{$searchTerm}%")
+                ->whereDate('f_expiry_date', '>=', today())
+                ->groupBy('f_company_id', 'f_company_name')
+                ->get();
+
+            $results = [];
+
+            foreach ($companies as $company) {
+                $licenseData = $this->getLicenseDataForCompany($company->f_company_id);
+                $invoiceDetails = $this->getInvoiceDetailsForCompany($company->f_company_id);
+
+                $results[] = [
+                    'f_company_id' => $company->f_company_id,
+                    'f_company_name' => $company->f_company_name,
+                    'license_html' => $this->generateLicenseHtml($licenseData, $invoiceDetails)
+                ];
+            }
+
+            return $results;
+        } catch (\Exception $e) {
+            Log::error('Error searching license data: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    private function getLicenseDataForCompany($companyId): array
+    {
+        // Get all license details
+        $licenses = DB::connection('frontenddb')->table('crm_expiring_license')
+            ->where('f_company_id', (int) $companyId)
+            ->whereDate('f_expiry_date', '>=', today())
+            ->get(['f_name', 'f_invoice_no']);
+
+        $totals = [
+            'attendance' => 0,
+            'leave' => 0,
+            'claim' => 0,
+            'payroll' => 0
+        ];
+
+        foreach ($licenses as $license) {
+            $licenseName = $license->f_name;
+            $invoiceNo = $license->f_invoice_no ?? 'No Invoice';
+
+            // Get quantity from crm_invoice_details table
+            $invoiceDetail = DB::connection('frontenddb')->table('crm_invoice_details')
+                ->where('f_invoice_no', $invoiceNo)
+                ->where('f_name', $license->f_name)
+                ->first(['f_quantity']);
+
+            $quantity = $invoiceDetail ? (int) $invoiceDetail->f_quantity : 1;
+
+            // Attendance licenses
+            if (strpos($licenseName, 'TimeTec TA') !== false) {
+                if (strpos($licenseName, '(10 User License)') !== false) {
+                    $totals['attendance'] += 10 * $quantity;
+                } elseif (strpos($licenseName, '(1 User License)') !== false) {
+                    $totals['attendance'] += 1 * $quantity;
+                }
+            }
+
+            // Leave licenses
+            if (strpos($licenseName, 'TimeTec Leave') !== false) {
+                if (strpos($licenseName, '(10 User License)') !== false || strpos($licenseName, '(10 Leave License)') !== false) {
+                    $totals['leave'] += 10 * $quantity;
+                } elseif (strpos($licenseName, '(1 User License)') !== false || strpos($licenseName, '(1 Leave License)') !== false) {
+                    $totals['leave'] += 1 * $quantity;
+                }
+            }
+
+            // Claim licenses
+            if (strpos($licenseName, 'TimeTec Claim') !== false) {
+                if (strpos($licenseName, '(10 User License)') !== false || strpos($licenseName, '(10 Claim License)') !== false) {
+                    $totals['claim'] += 10 * $quantity;
+                } elseif (strpos($licenseName, '(1 User License)') !== false || strpos($licenseName, '(1 Claim License)') !== false) {
+                    $totals['claim'] += 1 * $quantity;
+                }
+            }
+
+            // Payroll licenses
+            if (strpos($licenseName, 'TimeTec Payroll') !== false) {
+                if (strpos($licenseName, '(10 Payroll License)') !== false) {
+                    $totals['payroll'] += 10 * $quantity;
+                } elseif (strpos($licenseName, '(1 Payroll License)') !== false) {
+                    $totals['payroll'] += 1 * $quantity;
+                }
+            }
+        }
+
+        return $totals;
+    }
+
+    private function getInvoiceDetailsForCompany($companyId): array
+    {
+        // Check if company has reseller
+        $reseller = DB::connection('frontenddb')->table('crm_reseller_link')
+            ->select('reseller_name', 'f_rate')
+            ->where('f_id', (int) $companyId)
+            ->first();
+
+        // Get all license details with f_id included
+        $licenses = DB::connection('frontenddb')->table('crm_expiring_license')
+            ->where('f_company_id', (int) $companyId)
+            ->whereDate('f_expiry_date', '>=', today())
+            ->get([
+                'f_id', 'f_name', 'f_unit', 'f_total_amount', 'f_start_date',
+                'f_expiry_date', 'f_invoice_no'
+            ]);
+
+        $invoiceGroups = [];
+
+        foreach ($licenses as $license) {
+            $invoiceNo = $license->f_invoice_no ?? 'No Invoice';
+
+            // Get invoice details from crm_invoice_details table
+            $invoiceDetail = DB::connection('frontenddb')->table('crm_invoice_details')
+                ->where('f_invoice_no', $invoiceNo)
+                ->where('f_name', $license->f_name)
+                ->first(['f_quantity', 'f_unit_price', 'f_billing_cycle', 'f_sales_amount', 'f_total_amount', 'f_gst_amount']);
+
+            $quantity = $invoiceDetail ? $invoiceDetail->f_quantity : $license->f_unit;
+            $unitPrice = $invoiceDetail ? $invoiceDetail->f_unit_price : 0;
+            $billingCycle = $invoiceDetail ? $invoiceDetail->f_billing_cycle : 0;
+
+            $calculatedAmount = $quantity * $unitPrice * $billingCycle;
+            $finalAmount = $calculatedAmount;
+            $discountRate = ($reseller && $reseller->f_rate) ? $reseller->f_rate : '0.00';
+
+            if (!isset($invoiceGroups[$invoiceNo])) {
+                $invoiceGroups[$invoiceNo] = [
+                    'f_id' => $license->f_id,
+                    'products' => [],
+                    'total_amount' => 0
+                ];
+            }
+
+            $invoiceGroups[$invoiceNo]['products'][] = [
+                'f_name' => $license->f_name,
+                'f_unit' => $quantity,
+                'unit_price' => $unitPrice,
+                'original_unit_price' => $unitPrice,
+                'f_total_amount' => $finalAmount,
+                'f_start_date' => $license->f_start_date,
+                'f_expiry_date' => $license->f_expiry_date,
+                'billing_cycle' => $billingCycle,
+                'discount' => $discountRate
+            ];
+
+            $invoiceGroups[$invoiceNo]['total_amount'] += $finalAmount;
+        }
+
+        return $invoiceGroups;
+    }
+
+    private function encryptCompanyId($companyId): string
+    {
+        $aesKey = 'Epicamera@99';
+        try {
+            $encrypted = openssl_encrypt($companyId, "AES-128-ECB", $aesKey);
+            return base64_encode($encrypted);
+        } catch (\Exception $e) {
+            Log::error('Company ID encryption failed: ' . $e->getMessage());
+            return $companyId;
+        }
+    }
+
+    private function getProductType($productName): string
+    {
+        if (strpos($productName, 'TimeTec TA') !== false) {
+            return 'ta';
+        } elseif (strpos($productName, 'TimeTec Leave') !== false) {
+            return 'leave';
+        } elseif (strpos($productName, 'TimeTec Claim') !== false) {
+            return 'claim';
+        } elseif (strpos($productName, 'TimeTec Payroll') !== false) {
+            return 'payroll';
+        }
+        return 'ta';
+    }
+
+    private function generateLicenseHtml($licenseData, $invoiceDetails): string
+    {
+        $html = '
+        <div class="license-summary-container">
+            <style>
+                .license-summary-container {
+                    margin: 16px 0;
+                }
+                .license-summary-table table,
+                .invoice-details-table table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin: 16px 0;
+                    background: white;
+                    border-radius: 8px;
+                    overflow: hidden;
+                    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+                }
+                .license-summary-table th,
+                .license-summary-table td,
+                .invoice-details-table th,
+                .invoice-details-table td {
+                    padding: 12px 8px;
+                    text-align: center;
+                    border: 1px solid #e5e7eb;
+                    vertical-align: middle;
+                }
+                .license-summary-table th {
+                    font-weight: 600;
+                    color: #374151;
+                    font-size: 14px;
+                }
+                .license-summary-table td {
+                    font-size: 18px;
+                    font-weight: 600;
+                    color: #1f2937;
+                }
+                .invoice-details-table th {
+                    background-color: #f9fafb !important;
+                    font-weight: 600;
+                    color: #374151;
+                    font-size: 14px;
+                }
+                .invoice-details-table td {
+                    font-size: 13px;
+                    color: #1f2937;
+                }
+                .module-col {
+                    width: 18.75% !important;
+                    text-align: center !important;
+                    padding-left: 12px !important;
+                }
+                .headcount-col {
+                    width: 6.25% !important;
+                    text-align: center !important;
+                    font-weight: bold !important;
+                }
+                .attendance-module {
+                    background-color: rgba(34, 197, 94, 0.1) !important;
+                    color: rgba(34, 197, 94, 1) !important;
+                }
+                .attendance-count {
+                    background-color: rgba(34, 197, 94, 1) !important;
+                    color: white !important;
+                }
+                .leave-module {
+                    background-color: rgba(37, 99, 235, 0.1) !important;
+                    color: rgba(37, 99, 235, 1) !important;
+                }
+                .leave-count {
+                    background-color: rgba(37, 99, 235, 1) !important;
+                    color: white !important;
+                }
+                .claim-module {
+                    background-color: rgba(124, 58, 237, 0.1) !important;
+                    color: rgba(124, 58, 237, 1) !important;
+                }
+                .claim-count {
+                    background-color: rgba(124, 58, 237, 1) !important;
+                    color: white !important;
+                }
+                .payroll-module {
+                    background-color: rgba(249, 115, 22, 0.1) !important;
+                    color: rgba(249, 115, 22, 1) !important;
+                }
+                .payroll-count {
+                    background-color: rgba(249, 115, 22, 1) !important;
+                    color: white !important;
+                }
+                .invoice-header {
+                    background-color: #f3f4f6 !important;
+                    font-weight: 700;
+                    color: #1f2937;
+                    font-size: 15px;
+                }
+                .invoice-group {
+                    margin-bottom: 24px;
+                }
+                .invoice-title {
+                    background-color: #e5e7eb;
+                    padding: 8px 12px;
+                    font-weight: 600;
+                    color: #374151;
+                    border-radius: 4px;
+                    margin-bottom: 8px;
+                }
+                .invoice-link {
+                    color: #2563eb;
+                    text-decoration: none;
+                    font-weight: 600;
+                }
+                .invoice-link:hover {
+                    color: #1d4ed8;
+                    text-decoration: underline;
+                }
+                .product-row-ta {
+                    background-color: rgba(34, 197, 94, 0.1) !important;
+                }
+                .product-row-leave {
+                    background-color: rgba(37, 99, 235, 0.1) !important;
+                }
+                .product-row-claim {
+                    background-color: rgba(124, 58, 237, 0.1) !important;
+                }
+                .product-row-payroll {
+                    background-color: rgba(249, 115, 22, 0.1) !important;
+                }
+                .text-right { text-align: right; }
+                .text-left { text-align: left; }
+            </style>
+
+            <!-- License Summary Table -->
+            <div class="license-summary-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th class="module-col attendance-module">ATTENDANCE</th>
+                            <th class="headcount-col attendance-count">' . $licenseData['attendance'] . '</th>
+                            <th class="module-col leave-module">LEAVE</th>
+                            <th class="headcount-col leave-count">' . $licenseData['leave'] . '</th>
+                            <th class="module-col claim-module">CLAIM</th>
+                            <th class="headcount-col claim-count">' . $licenseData['claim'] . '</th>
+                            <th class="module-col payroll-module">PAYROLL</th>
+                            <th class="headcount-col payroll-count">' . $licenseData['payroll'] . '</th>
+                        </tr>
+                    </thead>
+                </table>
+            </div>';
+
+        // Invoice Details Tables
+        if (!empty($invoiceDetails)) {
+            $html .= '<div class="invoice-details-container">';
+
+            foreach ($invoiceDetails as $invoiceNumber => $invoiceData) {
+                $companyFId = $invoiceData['f_id'] ?? null;
+
+                if ($companyFId) {
+                    $encryptedFId = $this->encryptCompanyId($companyFId);
+                    $invoiceLink = 'https://www.timeteccloud.com/paypal_reseller_invoice?iIn=' . $encryptedFId;
+                } else {
+                    $invoiceLink = '#';
+                }
+
+                $html .= '
+                <div class="invoice-group">
+                    <div class="invoice-title">Invoice: <a href="' . $invoiceLink . '" target="_blank" class="invoice-link">' . htmlspecialchars($invoiceNumber) . '</a></div>
+                    <div class="invoice-details-table">
+                        <table>
+                            <thead>
+                                <tr class="invoice-header">
+                                    <th class="text-left">Product Name</th>
+                                    <th>Qty</th>
+                                    <th class="text-right">Price</th>
+                                    <th>Billing Cycle</th>
+                                    <th>Start Date</th>
+                                    <th>Expiry Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>';
+
+                foreach ($invoiceData['products'] as $product) {
+                    $productType = $this->getProductType($product['f_name']);
+                    $html .= '
+                                <tr class="product-row-' . $productType . '">
+                                    <td style="text-align: left;">' . htmlspecialchars($product['f_name']) . '</td>
+                                    <td>' . $product['f_unit'] . '</td>
+                                    <td class="text-right">' . number_format($product['unit_price'], 2) . '</td>
+                                    <td>' . ($product['billing_cycle'] ?? 'Annual') . '</td>
+                                    <td>' . date('d M Y', strtotime($product['f_start_date'])) . '</td>
+                                    <td>' . date('d M Y', strtotime($product['f_expiry_date'])) . '</td>
+                                </tr>';
+                }
+
+                $html .= '
+                            </tbody>
+                        </table>
+                    </div>
+                </div>';
+            }
+
+            $html .= '</div>';
+        }
+
+        $html .= '</div>';
+        return $html;
+    }
+
+    public static function canAccess(): bool
+    {
+        return true;
+    }
+}

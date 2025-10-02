@@ -103,7 +103,7 @@ class ArFollowUpTodayUsd extends Component implements HasForms, HasTable
                 DATEDIFF(NOW(), follow_up_date) as pending_days,
                 (SELECT MIN(f_expiry_date) FROM frontenddb.crm_expiring_license
                 WHERE f_company_id = renewals.f_company_id
-                AND f_currency = "MYR"
+                AND f_currency = "USD"
                 AND f_expiry_date >= CURDATE()
                 AND f_name NOT IN (
                     "TimeTec VMS Corporate (1 Floor License)",
@@ -128,7 +128,7 @@ class ArFollowUpTodayUsd extends Component implements HasForms, HasTable
                 ->where('f_company_id', $companyId)
                 ->where('f_expiry_date', '>=', $today)
                 ->whereDate('f_expiry_date', '<=', today()->addDays(60))
-                ->where('f_currency', 'MYR')
+                ->where('f_currency', 'USD')
                 ->whereNotIn('f_name', [
                     'TimeTec VMS Corporate (1 Floor License)',
                     'TimeTec VMS SME (1 Location License)',
@@ -238,19 +238,6 @@ class ArFollowUpTodayUsd extends Component implements HasForms, HasTable
                     ->label('Follow Up Date')
                     ->sortable()
                     ->date('d M Y'),
-
-                TextColumn::make('f_company_id')
-                    ->label('Currency')
-                    ->formatStateUsing(function ($state) {
-                        $hasUsd = DB::connection('frontenddb')->table('crm_expiring_license')
-                            ->where('f_company_id', $state)
-                            ->where('f_currency', 'USD')
-                            ->exists();
-
-                        return $hasUsd ? 'USD' : 'N/A';
-                    })
-                    ->badge()
-                    ->color('info'),
             ])
             ->actions([
                 ActionGroup::make([

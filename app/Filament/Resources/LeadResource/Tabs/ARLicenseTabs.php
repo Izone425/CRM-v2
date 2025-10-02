@@ -226,8 +226,6 @@ class ARLicenseTabs
                                     <th>Qty</th>
                                     <th class="text-right">Price (RM)</th>
                                     <th>Billing Cycle</th>
-                                    <th class="text-right">Discount (%)</th>
-                                    <th class="text-right">Amount (RM)</th>
                                     <th>Start Date</th>
                                     <th>Expiry Date</th>
                                 </tr>
@@ -242,25 +240,10 @@ class ARLicenseTabs
                                     <td>' . $product['f_unit'] . '</td>
                                     <td class="text-right">' . number_format($product['unit_price'], 2) . '</td>
                                     <td>' . ($product['billing_cycle'] ?? 'Annual') . '</td>
-                                    <td class="text-right">' . ($product['discount'] ?? '0.00') . '</td>
-                                    <td class="text-right">' . number_format($product['f_total_amount'], 2) . '</td>
                                     <td>' . date('d M Y', strtotime($product['f_start_date'])) . '</td>
                                     <td>' . date('d M Y', strtotime($product['f_expiry_date'])) . '</td>
                                 </tr>';
                 }
-
-                $html .= '
-                            </tbody>
-                            <tfoot>
-                                <tr style="background-color: #f9fafb; font-weight: 600;">
-                                    <td colspan="5" class="text-right">Total Amount:</td>
-                                    <td class="text-right">RM ' . number_format($invoiceData['total_amount'], 2) . '</td>
-                                    <td colspan="2"></td>
-                                </tr>
-                            </tfoot>
-                        </table>
-                    </div>
-                </div>';
             }
 
             $html .= '</div>';
