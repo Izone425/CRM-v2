@@ -126,6 +126,7 @@ class ArFollowUpTodayUsd extends Component implements HasForms, HasTable
                 ->table('crm_expiring_license')
                 ->where('f_company_id', $companyId)
                 ->where('f_expiry_date', '>=', $today)
+                ->whereDate('f_expiry_date', '<=', today()->addDays(60))
                 ->where('f_currency', 'MYR')
                 ->whereNotIn('f_name', [
                     'TimeTec VMS Corporate (1 Floor License)',

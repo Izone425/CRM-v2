@@ -97,6 +97,7 @@ class ArFollowUpOverdueMyrV2 extends Component implements HasForms, HasTable
         $query = Renewal::query()
             ->whereIn('f_company_id', $myrCompanyIds)
             ->whereDate('follow_up_date', '<', today())
+            ->whereDate('f_expiry_date', '<=', today()->addDays(60))
             ->where('follow_up_counter', true)
             ->where('mapping_status', 'completed_mapping')
             ->whereIn('renewal_progress', ['pending_payment'])
