@@ -95,7 +95,6 @@ class AutoMappingRenewalCommand extends Command
                 DB::raw('MIN(f_expiry_date) as earliest_expiry'),
                 DB::raw('COUNT(*) as license_count')
             ])
-            ->where('f_currency', 'MYR')
             ->whereBetween('f_expiry_date', [$today, $next60Days])
             ->whereRaw('f_expiry_date >= ?', [$today]);
 
