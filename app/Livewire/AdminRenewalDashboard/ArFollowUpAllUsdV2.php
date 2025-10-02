@@ -83,6 +83,7 @@ class ArFollowUpAllUsdV2 extends Component implements HasForms, HasTable
             ->select('f_company_id')
             ->where('f_currency', 'USD')
             ->whereDate('f_expiry_date', '>=', today())
+            ->whereDate('f_expiry_date', '<=', today()->addDays(60))
             ->distinct()
             ->pluck('f_company_id')
             ->flatMap(function($id) {
