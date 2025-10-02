@@ -929,6 +929,41 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
                     })
                     ->indicator('Product Group'),
 
+                SelectFilter::make('reseller_name')
+                    ->label('Filter by Reseller')
+                    ->searchable()
+                    ->preload()
+                    ->options(function () {
+                        // Get all unique resellers from the reseller link table
+                        return DB::connection('frontenddb')
+                            ->table('crm_reseller_link')
+                            ->select('reseller_name')
+                            ->whereNotNull('reseller_name')
+                            ->where('reseller_name', '!=', '')
+                            ->distinct()
+                            ->orderBy('reseller_name')
+                            ->pluck('reseller_name', 'reseller_name')
+                            ->toArray();
+                    })
+                    ->query(function (Builder $query, array $data) {
+                        if (! empty($data['value'])) {
+                            // Get company IDs that belong to the selected reseller
+                            $resellerCompanyIds = DB::connection('frontenddb')
+                                ->table('crm_reseller_link')
+                                ->where('reseller_name', $data['value'])
+                                ->pluck('f_id')
+                                ->toArray();
+
+                            if (! empty($resellerCompanyIds)) {
+                                $query->whereIn('f_company_id', $resellerCompanyIds);
+                            } else {
+                                // If no companies found for this reseller, return empty result
+                                $query->where('f_company_id', -1);
+                            }
+                        }
+                    })
+                    ->indicator('Reseller'),
+
                 Filter::make('earliest_expiry')
                     ->form([
                         DateRangePicker::make('date_range')
