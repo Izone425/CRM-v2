@@ -139,15 +139,13 @@ class ArFollowUpOverdueMyr extends Component implements HasForms, HasTable
                     ->placeholder('All Admin Renewals')
                     ->multiple(),
 
-                SelectFilter::make('salesperson')
-                    ->label('Filter by Salesperson')
-                    ->options(function () {
-                        return User::where('role_id', 2)
-                            ->whereNot('id', 15)
-                            ->pluck('name', 'name')
-                            ->toArray();
-                    })
-                    ->placeholder('All Salesperson')
+                SelectFilter::make('renewal_progress')
+                    ->label('Filter by Status')
+                    ->options([
+                        'new' => 'New',
+                        'pending_confirmation' => 'Pending Confirmation',
+                    ])
+                    ->placeholder('All Statuses')
                     ->multiple(),
             ])
             ->columns([
@@ -174,6 +172,20 @@ class ArFollowUpOverdueMyr extends Component implements HasForms, HasTable
                         return "<span title='{$state}'>{$state}</span>";
                     })
                     ->html(),
+
+                TextColumn::make('renewal_progress')
+                    ->label('Status')
+                    ->formatStateUsing(function ($state) {
+                        $statusMap = [
+                            'new' => 'New',
+                            'pending_confirmation' => 'Pending Confirmation',
+                            'pending_payment' => 'Pending Payment',
+                            'completed_renewal' => 'Completed Payment',
+                            'terminated' => 'Terminated',
+                        ];
+
+                        return $statusMap[$state] ?? ucfirst(str_replace('_', ' ', $state));
+                    }),
 
                 TextColumn::make('earliest_expiry_date')
                     ->label('Expiry Date')
