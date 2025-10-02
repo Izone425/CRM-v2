@@ -52,12 +52,48 @@ class SendScheduledEmails extends Command
                     continue;
                 }
 
-                // Send the email
-                Mail::html($emailData['content'], function (Message $message) use ($emailData) {
+                // Get CC recipients (if stored in email data)
+                $ccRecipients = $emailData['cc_recipients'] ?? [];
+
+                // Get attachments data
+                $attachmentsData = $emailData['attachments_data'] ?? [];
+
+                // Validate that attachment files still exist
+                $validAttachments = [];
+                foreach ($attachmentsData as $attachment) {
+                    if (isset($attachment['path']) && file_exists($attachment['path'])) {
+                        $validAttachments[] = $attachment;
+                    } else {
+                        $this->warn("Attachment file not found: " . ($attachment['path'] ?? 'Unknown path'));
+                        Log::warning("Scheduled email attachment not found", [
+                            'email_id' => $email->id,
+                            'attachment_path' => $attachment['path'] ?? 'Unknown',
+                            'quotation_id' => $attachment['quotation_id'] ?? 'Unknown'
+                        ]);
+                    }
+                }
+
+                // Send the email with attachments
+                Mail::html($emailData['content'], function (Message $message) use ($emailData, $ccRecipients, $validAttachments) {
                     $message->to($emailData['recipients'])
-                        ->bcc($emailData['sender_email'])
                         ->subject($emailData['subject'])
                         ->from($emailData['sender_email'], $emailData['sender_name']);
+
+                    // Add CC recipients if we have any
+                    if (!empty($ccRecipients)) {
+                        $message->cc($ccRecipients);
+                    }
+
+                    // BCC the sender
+                    $message->bcc($emailData['sender_email']);
+
+                    // Add PDF attachments
+                    foreach ($validAttachments as $attachment) {
+                        $message->attach($attachment['path'], [
+                            'as' => $attachment['name'],
+                            'mime' => $attachment['mime']
+                        ]);
+                    }
                 });
 
                 // Mark the email as sent
@@ -69,13 +105,16 @@ class SendScheduledEmails extends Command
                         'updated_at' => Carbon::now(),
                     ]);
 
-                $this->info("Email ID {$email->id} sent successfully");
+                $this->info("Email ID {$email->id} sent successfully with " . count($validAttachments) . " attachment(s)");
 
-                // Optional: Add logging for tracking
+                // Log successful send
                 Log::info('Scheduled email sent', [
                     'email_id' => $email->id,
                     'recipients' => $emailData['recipients'],
+                    'cc_recipients' => $ccRecipients,
                     'subject' => $emailData['subject'],
+                    'attachments_count' => count($validAttachments),
+                    'template' => $emailData['template_name'] ?? 'Unknown',
                 ]);
 
                 // Sleep briefly to prevent flooding the mail server
@@ -83,6 +122,16 @@ class SendScheduledEmails extends Command
 
             } catch (\Exception $e) {
                 $this->error("Failed to send email ID {$email->id}: {$e->getMessage()}");
+
+                // Mark as failed
+                DB::table('scheduled_emails')
+                    ->where('id', $email->id)
+                    ->update([
+                        'status' => 'Failed',
+                        'error_message' => $e->getMessage(),
+                        'updated_at' => Carbon::now(),
+                    ]);
+
                 Log::error('Failed to send scheduled email', [
                     'email_id' => $email->id,
                     'error' => $e->getMessage(),

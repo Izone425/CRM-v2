@@ -173,7 +173,7 @@ class ARFollowUpTabs
                                                 ->label('Scheduler Type')
                                                 ->options([
                                                     'instant' => 'Instant',
-                                                    // 'scheduled' => 'Next Follow Up Date at 8am',
+                                                    'scheduled' => 'Next Follow Up Date at 8am',
                                                     // 'both' => 'Both',
                                                 ])
                                                 ->visible(fn ($get) => $get('send_email'))
@@ -476,6 +476,12 @@ class ARFollowUpTabs
                                                         // Schedule email for follow-up date at 8am
                                                         $scheduledDate = date('Y-m-d 08:00:00', strtotime($data['follow_up_date']));
 
+                                                        // Prepare attachments data for scheduled email
+                                                        $attachmentsData = self::prepareAttachmentsData($emailData);
+
+                                                        // Add attachments data to email data for scheduled sending
+                                                        $emailData['attachments_data'] = $attachmentsData;
+
                                                         // Store scheduled email in database
                                                         DB::table('scheduled_emails')->insert([
                                                             'email_data' => json_encode($emailData),
@@ -565,47 +571,11 @@ class ARFollowUpTabs
                 }
             }
 
-            // Get quotation IDs for attachments
-            $quotationIds = array_merge(
-                $emailData['quotation_product'] ?? [],
-                $emailData['quotation_hrdf'] ?? []
-            );
-
-            // Prepare PDF attachments
-            $attachments = [];
-            if (!empty($quotationIds)) {
-                $quotations = Quotation::whereIn('id', $quotationIds)->get();
-
-                foreach ($quotations as $quotation) {
-                    try {
-                        // Generate PDF content (you might need to adjust this based on your PDF generation logic)
-                        $encryptedId = encrypt($quotation->id);
-
-                        // Generate the PDF file path or create it temporarily
-                        $pdfPath = self::generateQuotationPDF($quotation);
-
-                        if ($pdfPath && file_exists($pdfPath)) {
-                            $attachments[] = [
-                                'path' => $pdfPath,
-                                'name' => self::getQuotationFileName($quotation),
-                                'mime' => 'application/pdf'
-                            ];
-
-                            Log::info("Added PDF attachment for quotation ID: {$quotation->id}", [
-                                'file_path' => $pdfPath,
-                                'file_name' => self::getQuotationFileName($quotation)
-                            ]);
-                        }
-                    } catch (\Exception $e) {
-                        Log::error("Error generating PDF for quotation ID: {$quotation->id}", [
-                            'error' => $e->getMessage()
-                        ]);
-                    }
-                }
-            }
+            // Prepare attachments data for both instant and scheduled emails
+            $attachmentsData = self::prepareAttachmentsData($emailData);
 
             // Send the email with attachments
-            Mail::html($emailData['content'], function (Message $message) use ($emailData, $ccRecipients, $attachments) {
+            Mail::html($emailData['content'], function (Message $message) use ($emailData, $ccRecipients, $attachmentsData) {
                 $message->to($emailData['recipients'])
                     ->subject($emailData['subject'])
                     ->from($emailData['sender_email'], $emailData['sender_name']);
@@ -619,20 +589,15 @@ class ARFollowUpTabs
                 $message->bcc($emailData['sender_email']);
 
                 // Add PDF attachments
-                foreach ($attachments as $attachment) {
-                    $message->attach($attachment['path'], [
-                        'as' => $attachment['name'],
-                        'mime' => $attachment['mime']
-                    ]);
+                foreach ($attachmentsData as $attachment) {
+                    if (file_exists($attachment['path'])) {
+                        $message->attach($attachment['path'], [
+                            'as' => $attachment['name'],
+                            'mime' => $attachment['mime']
+                        ]);
+                    }
                 }
             });
-
-            // Clean up temporary PDF files if needed
-            foreach ($attachments as $attachment) {
-                if (strpos($attachment['path'], 'temp_quotations') !== false && file_exists($attachment['path'])) {
-                    unlink($attachment['path']);
-                }
-            }
 
             // Log email sent successfully
             Log::info('Admin renewal follow-up email sent successfully', [
@@ -641,14 +606,104 @@ class ARFollowUpTabs
                 'subject' => $emailData['subject'],
                 'admin_renewal_log_id' => $emailData['admin_renewal_log_id'],
                 'template' => $emailData['template_name'] ?? 'Unknown',
-                'attachments_count' => count($attachments),
-                'quotation_ids' => $quotationIds,
+                'attachments_count' => count($attachmentsData),
             ]);
         } catch (\Exception $e) {
             Log::error('Error in sendEmail method: '.$e->getMessage(), [
                 'trace' => $e->getTraceAsString(),
                 'data' => $emailData,
             ]);
+        }
+    }
+
+    private static function prepareAttachmentsData(array $emailData): array
+    {
+        $attachmentsData = [];
+
+        // Get quotation IDs for attachments
+        $quotationIds = array_merge(
+            $emailData['quotation_product'] ?? [],
+            $emailData['quotation_hrdf'] ?? []
+        );
+
+        if (!empty($quotationIds)) {
+            $quotations = \App\Models\Quotation::whereIn('id', $quotationIds)->get();
+
+            foreach ($quotations as $quotation) {
+                try {
+                    $pdfPath = self::findQuotationPDF($quotation);
+
+                    if ($pdfPath && file_exists($pdfPath)) {
+                        $attachmentsData[] = [
+                            'path' => $pdfPath,
+                            'name' => self::getQuotationFileName($quotation),
+                            'mime' => 'application/pdf',
+                            'quotation_id' => $quotation->id
+                        ];
+
+                        Log::info("Added PDF attachment for quotation ID: {$quotation->id}", [
+                            'file_path' => $pdfPath,
+                            'file_name' => self::getQuotationFileName($quotation)
+                        ]);
+                    }
+                } catch (\Exception $e) {
+                    Log::error("Error preparing PDF for quotation ID: {$quotation->id}", [
+                        'error' => $e->getMessage()
+                    ]);
+                }
+            }
+        }
+
+        return $attachmentsData;
+    }
+
+    private static function findQuotationPDF(\App\Models\Quotation $quotation): ?string
+    {
+        try {
+            // Generate the expected filename based on your existing logic
+            $companyName = '';
+            if (!empty($quotation->subsidiary_id)) {
+                $subsidiary = \App\Models\Subsidiary::find($quotation->subsidiary_id);
+                $companyName = $subsidiary ? $subsidiary->company_name : 'Unknown';
+            } else {
+                $companyName = $quotation->lead->companyDetail->company_name ?? 'Unknown';
+            }
+
+            // Primary filename attempt
+            $quotationFilename = 'TIMETEC_' . $quotation->sales_person->code . '_' . quotation_reference_no($quotation->id) . '_' . Str::replace('-','_',Str::slug($companyName));
+            $quotationFilename = Str::upper($quotationFilename) . '.pdf';
+
+            // Check multiple possible paths
+            $possiblePaths = [
+                storage_path('app/public/quotations/' . $quotationFilename),
+                storage_path('app/public/quotations/TIMETEC_' . $quotation->sales_person->code . '_' . $quotation->id . '_' . Str::replace('-','_',Str::slug($companyName)) . '.pdf'),
+            ];
+
+            // Also try to find any PDF file that starts with the quotation pattern
+            $quotationsDir = storage_path('app/public/quotations/');
+            if (is_dir($quotationsDir)) {
+                $pattern = 'TIMETEC_' . $quotation->sales_person->code . '_' . quotation_reference_no($quotation->id) . '_*';
+                $matches = glob($quotationsDir . $pattern . '.pdf');
+
+                if (!empty($matches)) {
+                    $possiblePaths = array_merge($possiblePaths, $matches);
+                }
+            }
+
+            // Try each possible path
+            foreach ($possiblePaths as $storagePath) {
+                if (file_exists($storagePath)) {
+                    Log::info("Found existing PDF for quotation {$quotation->id}: " . basename($storagePath));
+                    return $storagePath;
+                }
+            }
+
+            Log::warning("PDF not found for quotation {$quotation->id}");
+            return null;
+
+        } catch (\Exception $e) {
+            Log::error("Error finding PDF for quotation {$quotation->id}: " . $e->getMessage());
+            return null;
         }
     }
 
@@ -741,7 +796,7 @@ class ARFollowUpTabs
         $refNo = $quotation->pi_reference_no ?? $quotation->quotation_reference_no ?? 'Quotation-' . $quotation->id;
         $quotationType = ucfirst($quotation->quotation_type ?? 'Unknown');
 
-        return $quotationType . '_Quotation.pdf';
+        return 'Renewal_Quotation.pdf';
     }
 
     protected static function getEarliestExpiryDate($companyId)
