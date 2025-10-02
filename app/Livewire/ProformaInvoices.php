@@ -88,12 +88,22 @@ class ProformaInvoices extends Component implements HasForms, HasTable
                 TextColumn::make('items_sum_total_before_tax')
                     ->label('Value (Before Tax)')
                     ->sum('items','total_before_tax')
-                    // ->summarize([
-                    //     Sum::make()
-                    //         ->label('Total')
-                    //         ->formatStateUsing(fn($state) => number_format($state,2,'.','')),
-                    // ])
-                    //->formatStateUsing(fn(Model $record, $state) => $record->currency . ' ' . $state)
+                    ->summarize([
+                            \Filament\Tables\Columns\Summarizers\Summarizer::make()
+                                ->label('Total:')
+                                ->using(function ($query) {
+                                    // Get all records from the current query
+                                    $records = $query->get();
+                                    $total = 0;
+
+                                    // Calculate the sum manually
+                                    foreach ($records as $record) {
+                                        $total += $record->items_sum_total_before_tax ?? 0;
+                                    }
+
+                                    return number_format($total, 2);
+                                }),
+                        ])
                     ->alignRight(),
                 TextColumn::make('sales_person.name')
                     ->label('Sales Person'),

@@ -29,7 +29,8 @@ class SoftwareHandover extends Model
         'salesperson',
         'payroll_code',
         'speaker_category',
-        'admin_remarks',
+        'admin_remarks_license',
+        'admin_remarks_kickoff',
 
         // Section 2: Implementation Timeline
         'db_creation',

@@ -80,7 +80,23 @@ class InvoiceResource extends Resource
                     ->getStateUsing(function (Invoice $record): float {
                         // Calculate the sum for this invoice_no
                         return Invoice::where('invoice_no', $record->invoice_no)->sum('invoice_amount');
-                    }),
+                    })
+                    ->summarize([
+                        Tables\Columns\Summarizers\Summarizer::make()
+                            ->label('Grand Total')
+                            ->using(function ($query) {
+                                // Get the grouped results
+                                $groupedResults = $query->get();
+                                $grandTotal = 0;
+
+                                // Calculate total for each unique invoice
+                                foreach ($groupedResults as $record) {
+                                    $grandTotal += Invoice::where('invoice_no', $record->invoice_no)->sum('invoice_amount');
+                                }
+
+                                return 'RM ' . number_format($grandTotal, 2);
+                            }),
+                    ]),
 
                 Tables\Columns\BadgeColumn::make('payment_status')
                     ->label('Payment Status')

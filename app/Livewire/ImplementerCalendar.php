@@ -2498,8 +2498,23 @@ class ImplementerCalendar extends Component
                 $today = Carbon::now()->format('Y-m-d');
                 $sessionDate = Carbon::parse($formattedDate)->format('Y-m-d');
 
-                // If the date is in the past (previous days), mark as past
-                if ($sessionDate < $today) {
+                // Check if there's a WEEKLY FOLLOW UP SESSION booked for this slot
+                $hasWeeklyFollowUp = false;
+                if ($user) {
+                    $weeklyFollowUpAppointment = \App\Models\ImplementerAppointment::where('implementer', $user->name)
+                        ->where('date', $formattedDate)
+                        ->where('start_time', $session['start_time'])
+                        ->where('type', 'WEEKLY FOLLOW UP SESSION')
+                        ->where('status', '!=', 'Cancelled')
+                        ->first();
+
+                    if ($weeklyFollowUpAppointment) {
+                        $hasWeeklyFollowUp = true;
+                    }
+                }
+
+                // If the date is in the past (previous days), mark as past UNLESS it's a Weekly Follow Up
+                if ($sessionDate < $today && !$hasWeeklyFollowUp) {
                     $standardSessions[$key]['status'] = 'past';
                 }
                 // Otherwise, all sessions for today and future days are available
@@ -2521,20 +2536,34 @@ class ImplementerCalendar extends Component
 
                     foreach ($standardSessions as $key => $session) {
                         if ($session['start_time'] === $appointmentStartTime) {
-                            // Get the session start time as Carbon object
-                            $sessionStartDateTime = Carbon::parse($formattedDate . ' ' . $session['start_time']);
+                            $currentTime = Carbon::now();
+                            $appointmentDateTime = Carbon::parse($formattedDate . ' ' . $session['start_time']);
 
-                            // If the current day is past the session day, mark as past
-                            if (Carbon::now()->format('Y-m-d') > $formattedDate) {
-                                $standardSessions[$key]['status'] = 'past';
-                            }
-                            // If today, always make available regardless of session time
-                            else {
-                                $standardSessions[$key]['status'] = 'available';
-                                // Important: Remove any association with the cancelled appointment
+                            // Special handling for WEEKLY FOLLOW UP SESSIONS
+                            if ($appointment->type === 'WEEKLY FOLLOW UP SESSION') {
+                                // For Weekly Follow Up Sessions, check if the session time has passed
+                                if ($appointmentDateTime < $currentTime) {
+                                    $standardSessions[$key]['status'] = 'past';
+                                } else {
+                                    $standardSessions[$key]['status'] = 'available';
+                                }
                                 $standardSessions[$key]['booked'] = false;
                                 $standardSessions[$key]['appointment'] = null;
-                                // Add explicit wasCancelled flag here
+                                $standardSessions[$key]['wasCancelled'] = true;
+                            }
+                            // For other appointment types
+                            else {
+                                // If the appointment date/time has passed, mark as past
+                                if ($appointmentDateTime < $currentTime) {
+                                    $standardSessions[$key]['status'] = 'past';
+                                } else {
+                                    // Future cancelled appointment - show as available
+                                    $standardSessions[$key]['status'] = 'available';
+                                }
+
+                                // Remove association with the cancelled appointment
+                                $standardSessions[$key]['booked'] = false;
+                                $standardSessions[$key]['appointment'] = null;
                                 $standardSessions[$key]['wasCancelled'] = true;
                             }
                         }

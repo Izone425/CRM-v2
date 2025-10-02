@@ -830,11 +830,11 @@ class SoftwareHandoverKickOffReminder extends Component implements HasForms, Has
                             Placeholder::make('existing_remarks')
                                 ->label('Existing Remarks')
                                 ->content(function (SoftwareHandover $record) {
-                                    if (!$record->admin_remarks) {
+                                    if (!$record->admin_remarks_kickoff) {
                                         return 'No remarks yet.';
                                     }
 
-                                    $remarks = json_decode($record->admin_remarks, true) ?: [];
+                                    $remarks = json_decode($record->admin_remarks_kickoff, true) ?: [];
                                     $html = '';
 
                                     foreach ($remarks as $index => $remark) {
@@ -850,11 +850,11 @@ class SoftwareHandoverKickOffReminder extends Component implements HasForms, Has
                                     return new HtmlString($html);
                                 })
                                 ->columnSpan(2)
-                                ->visible(fn(SoftwareHandover $record) => !empty($record->admin_remarks))
+                                ->visible(fn(SoftwareHandover $record) => !empty($record->admin_remarks_kickoff))
                         ])
                         ->action(function (SoftwareHandover $record, array $data): void {
                             // Get existing remarks or create new array
-                            $remarks = json_decode($record->admin_remarks, true) ?: [];
+                            $remarks = json_decode($record->admin_remarks_kickoff, true) ?: [];
 
                             // Add new remark
                             $remarks[] = [
@@ -865,7 +865,7 @@ class SoftwareHandoverKickOffReminder extends Component implements HasForms, Has
 
                             // Update record
                             $record->update([
-                                'admin_remarks' => json_encode($remarks)
+                                'admin_remarks_kickoff' => json_encode($remarks)
                             ]);
 
                             Notification::make()
