@@ -160,7 +160,10 @@ class QuotationResource extends Resource
                                 'NEW SALES' => 'NEW SALES',
                                 'RENEWAL SALES' => 'RENEWAL SALES',
                             ])
-                            ->default('NEW SALES')
+                            ->default(function () {
+                                // If user ID is 5, default to RENEWAL SALES, otherwise NEW SALES
+                                return auth()->user()?->id === 5 ? 'RENEWAL SALES' : 'NEW SALES';
+                            })
                             ->required()
                             ->disabled(fn () => auth()->user()?->role_id == 2),
                         Select::make('currency')

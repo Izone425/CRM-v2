@@ -20,9 +20,111 @@ use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\HtmlString;
 
 class AdminRenewalActions
 {
+    public static function viewAction(): Action
+    {
+        return Action::make('view')
+            ->label('View')
+            ->icon('heroicon-o-eye')
+            ->color('secondary')
+            ->url(function (Renewal $record) {
+                if ($record->lead_id) {
+                    $encryptedId = \App\Classes\Encryptor::encrypt($record->lead_id);
+                    return url('admin/leads/' . $encryptedId);
+                }
+                return '#';
+            })
+            ->openUrlInNewTab();
+    }
+
+    public static function viewLastFollowUpAction(): Action
+    {
+        return Action::make('view_last_follow_up')
+            ->label('View Last Follow Up')
+            ->icon('heroicon-o-eye')
+            ->color('secondary')
+            ->modalHeading('Last Follow Up Information')
+            ->modalContent(function (Renewal $record) {
+                $data = AdminRenewalLogs::where('subject_id', $record->id)
+                    ->latest()
+                    ->first();
+
+                if (! $data) {
+                    return new \Illuminate\Support\HtmlString(
+                        "<div class='p-6 text-center'>
+                            <p class='text-gray-500'>No follow-up records found for this renewal.</p>
+                        </div>"
+                    );
+                }
+
+                $followUpDate = $data->created_at ? Carbon::parse($data->created_at)->format('d M Y, h:i A') : 'N/A';
+                $followUpBy = $data->causer ? $data->causer->name : 'System';
+                $nextFollowUpDate = $data->follow_up_date ? Carbon::parse($data->follow_up_date)->format('d M Y') : 'N/A';
+                $followUpCount = $data->manual_follow_up_count ? "Follow-up #{$data->manual_follow_up_count}" : '';
+
+                return new HtmlString(
+                    "<div class='space-y-6'>
+                        <div class='p-4 rounded-lg bg-gray-50'>
+                            <h3 class='mb-3 text-lg font-semibold text-gray-900'>Follow Up Details</h3><br>
+                            <div class='grid grid-cols-2 text-sm gap'>
+                                <div>
+                                    <span class='font-medium text-gray-700'>Follow Up Date:</span>
+                                    <span class='ml-2 text-gray-900'>{$followUpDate}</span>
+                                </div>
+                                <div>
+                                    <span class='font-medium text-gray-700'>Follow Up By:</span>
+                                    <span class='ml-2 text-gray-900'>{$followUpBy}</span>
+                                </div>
+                                <div>
+                                    <span class='font-medium text-gray-700'>Next Follow Up:</span>
+                                    <span class='ml-2 text-gray-900'>{$nextFollowUpDate}</span>
+                                </div>
+                                ".($followUpCount ? "<div><span class='font-medium text-gray-700'>Count:</span><span class='ml-2 text-gray-900'>{$followUpCount}</span></div>" : '')."
+                            </div>
+                        </div>
+                        <div class='p-4 rounded-lg bg-gray-50'>
+                            <h3 class='mb-3 text-lg font-semibold text-gray-900'>Remarks</h3>
+                            <br>
+                            <div class='grid grid-cols-2 text-sm gap'>
+                                <div>
+                                    {$data->remark}
+                                </div>
+                            </div>
+                        </div>
+                    </div>"
+                );
+            })
+            ->modalWidth('2xl')
+            ->modalSubmitAction(false)
+            ->modalCancelActionLabel('Close');
+    }
+
+    public static function viewProcessDataAction(): Action
+    {
+        return Action::make('view_process_data')
+            ->label('View Process Data')
+            ->icon('heroicon-o-eye')
+            ->color('secondary')
+            ->url(function (Renewal $record) {
+                $padded = str_pad($record->f_company_id, 10, '0', STR_PAD_LEFT);
+
+                $data = \App\Filament\Pages\RenewalDataMyr::where('f_company_id', $padded)
+                    ->first();
+
+                if ($data && $data->f_currency == 'MYR') {
+                    return url('/admin/admin-renewal-process-data-myr');
+                } else {
+                    return url('/admin/admin-renewal-process-data-usd');
+                }
+
+                return '#';
+            })
+            ->openUrlInNewTab();
+    }
+
     public static function addAdminRenewalFollowUp(): Action
     {
         return Action::make('add_follow_up')
@@ -91,7 +193,7 @@ class AdminRenewalActions
                         Select::make('scheduler_type')
                             ->label('Scheduler Type')
                             ->options([
-                                'instant' => 'Instant',
+                                'instant' => 'Email Immediately',
                                 'scheduled' => 'Next Follow Up Date at 8am',
                                 // 'both' => 'Both'
                             ])

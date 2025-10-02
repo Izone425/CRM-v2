@@ -230,19 +230,9 @@ class ArFollowUpUpcomingUsd extends Component implements HasForms, HasTable
             ])
             ->actions([
                 ActionGroup::make([
-                    Action::make('view')
-                        ->label('View')
-                        ->icon('heroicon-o-eye')
-                        ->color('secondary')
-                        ->url(function (Renewal $record) {
-                            if ($record->lead_id) {
-                                $encryptedId = \App\Classes\Encryptor::encrypt($record->lead_id);
-                                return url('admin/leads/' . $encryptedId);
-                            }
-                            return '#';
-                        })
-                        ->openUrlInNewTab(),
-
+                    AdminRenewalActions::viewAction(),
+                    AdminRenewalActions::viewLastFollowUpAction(),
+                    AdminRenewalActions::viewProcessDataAction(),
                     AdminRenewalActions::addAdminRenewalFollowUp()
                         ->action(function (Renewal $record, array $data) {
                             AdminRenewalActions::processFollowUpWithEmail($record, $data);

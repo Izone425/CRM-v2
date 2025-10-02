@@ -172,7 +172,7 @@ class ARFollowUpTabs
                                             Select::make('scheduler_type')
                                                 ->label('Scheduler Type')
                                                 ->options([
-                                                    'instant' => 'Instant',
+                                                    'instant' => 'Email Immediately',
                                                     'scheduled' => 'Next Follow Up Date at 8am',
                                                     // 'both' => 'Both',
                                                 ])
