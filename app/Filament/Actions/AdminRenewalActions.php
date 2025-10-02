@@ -93,7 +93,7 @@ class AdminRenewalActions
                             ->options([
                                 'instant' => 'Instant',
                                 'scheduled' => 'Next Follow Up Date at 8am',
-                                'both' => 'Both'
+                                // 'both' => 'Both'
                             ])
                             ->visible(fn ($get) => $get('send_email'))
                             ->required(),
