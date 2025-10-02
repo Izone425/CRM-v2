@@ -104,7 +104,7 @@ class ArFollowUpAllUsd extends Component implements HasForms, HasTable
                 DATEDIFF(NOW(), follow_up_date) as pending_days,
                 (SELECT MIN(f_expiry_date) FROM frontenddb.crm_expiring_license
                 WHERE f_company_id = renewals.f_company_id
-                AND f_currency = "MYR"
+                AND f_currency = "USD"
                 AND f_expiry_date >= CURDATE()
                 AND f_name NOT IN (
                     "TimeTec VMS Corporate (1 Floor License)",
@@ -128,7 +128,7 @@ class ArFollowUpAllUsd extends Component implements HasForms, HasTable
                 ->table('crm_expiring_license')
                 ->where('f_company_id', $companyId)
                 ->where('f_expiry_date', '>=', $today)
-                ->where('f_currency', 'MYR')
+                ->where('f_currency', 'USD')
                 ->whereNotIn('f_name', [
                     'TimeTec VMS Corporate (1 Floor License)',
                     'TimeTec VMS SME (1 Location License)',

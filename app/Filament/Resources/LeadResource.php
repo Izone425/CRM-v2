@@ -11,7 +11,9 @@ use App\Filament\Resources\LeadResource\Pages;
 use App\Filament\Resources\LeadResource\RelationManagers\ActivityLogRelationManager;
 use App\Filament\Resources\LeadResource\RelationManagers\DemoAppointmentRelationManager;
 use App\Filament\Resources\LeadResource\RelationManagers\HardwareHandoverRelationManager;
+use App\Filament\Resources\LeadResource\RelationManagers\HeadcountHandoverRelationManager;
 use App\Filament\Resources\LeadResource\RelationManagers\HHTableRelationManager;
+use App\Filament\Resources\LeadResource\RelationManagers\HRDFHandoverRelationManager;
 use App\Filament\Resources\LeadResource\RelationManagers\ImplementerAppointmentRelationManager;
 use App\Filament\Resources\LeadResource\RelationManagers\ImplementerFollowUpRelationManager;
 use App\Filament\Resources\LeadResource\RelationManagers\ProformaInvoiceRelationManager;
@@ -1270,6 +1272,8 @@ class LeadResource extends Resource
             RPTableRelationManager::class,
             SubsidiaryRelationManager::class,
             RenewalQuotationRelationManager::class,
+            HRDFHandoverRelationManager::class,
+            HeadcountHandoverRelationManager::class,
         ];
     }
 

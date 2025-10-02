@@ -91,8 +91,8 @@
                                         font-weight: bold;
                                         border: none;
                                         border-radius: 20px;
-                                        background: {{ in_array($currentDashboard, ['MainAdminDashboard', 'SoftwareAdmin', 'HardwareAdmin', 'AdminRepair', 'AdminRenewalv1', 'AdminRenewalv2']) ? '#431fa1' : 'transparent' }};
-                                        color: {{ in_array($currentDashboard, ['MainAdminDashboard', 'SoftwareAdmin', 'HardwareAdmin', 'AdminRepair', 'AdminRenewalv1', 'AdminRenewalv2']) ? '#ffffff' : '#555' }};
+                                        background: {{ in_array($currentDashboard, ['MainAdminDashboard', 'SoftwareAdmin', 'HardwareAdmin', 'AdminRepair', 'AdminRenewalv1', 'AdminRenewalv2', 'AdminHRDF', 'AdminHeadcount']) ? '#431fa1' : 'transparent' }};
+                                        color: {{ in_array($currentDashboard, ['MainAdminDashboard', 'SoftwareAdmin', 'HardwareAdmin', 'AdminRepair', 'AdminRenewalv1', 'AdminRenewalv2', 'AdminHRDF', 'AdminHeadcount']) ? '#ffffff' : '#555' }};
                                         cursor: pointer;
                                         display: flex;
                                         align-items: center;
@@ -220,6 +220,38 @@
                                         "
                                     >
                                         Admin - Renewal v2
+                                    </button>
+
+                                    <button
+                                        wire:click="toggleDashboard('AdminHRDF')"
+                                        style="
+                                            display: block;
+                                            width: 100%;
+                                            padding: 10px 16px;
+                                            text-align: left;
+                                            border: none;
+                                            background: {{ $currentDashboard === 'AdminHRDF' ? '#f3f3f3' : 'white' }};
+                                            cursor: pointer;
+                                            font-size: 14px;
+                                        "
+                                    >
+                                        Admin - HRDF
+                                    </button>
+
+                                    <button
+                                        wire:click="toggleDashboard('AdminHeadcount')"
+                                        style="
+                                            display: block;
+                                            width: 100%;
+                                            padding: 10px 16px;
+                                            text-align: left;
+                                            border: none;
+                                            background: {{ $currentDashboard === 'AdminHeadcount' ? '#f3f3f3' : 'white' }};
+                                            cursor: pointer;
+                                            font-size: 14px;
+                                        "
+                                    >
+                                        Admin - Headcount
                                     </button>
 
                                     <button
@@ -588,8 +620,8 @@
                                                 font-weight: bold;
                                                 border: none;
                                                 border-radius: 20px;
-                                                background: {{ in_array($currentDashboard, ['MainAdminDashboard','SoftwareAdmin', 'HardwareAdmin', 'AdminRepair', 'AdminRenewalv1', 'AdminRenewalv2']) ? '#431fa1' : 'transparent' }};
-                                                color: {{ in_array($currentDashboard, ['MainAdminDashboard','SoftwareAdmin', 'HardwareAdmin', 'AdminRepair', 'AdminRenewalv1', 'AdminRenewalv2']) ? '#ffffff' : '#555' }};
+                                                background: {{ in_array($currentDashboard, ['MainAdminDashboard','SoftwareAdmin', 'HardwareAdmin', 'AdminRepair', 'AdminRenewalv1', 'AdminRenewalv2', 'AdminHRDF', 'AdminHeadcount']) ? '#431fa1' : 'transparent' }};
+                                                color: {{ in_array($currentDashboard, ['MainAdminDashboard','SoftwareAdmin', 'HardwareAdmin', 'AdminRepair', 'AdminRenewalv1', 'AdminRenewalv2', 'AdminHRDF', 'AdminHeadcount']) ? '#ffffff' : '#555' }};
                                                 cursor: pointer;
                                                 display: flex;
                                                 align-items: center;
@@ -720,6 +752,38 @@
                                             </button>
 
                                             <button
+                                                wire:click="toggleDashboard('AdminHRDF')"
+                                                style="
+                                                    display: block;
+                                                    width: 100%;
+                                                    padding: 10px 16px;
+                                                    text-align: left;
+                                                    border: none;
+                                                    background: {{ $currentDashboard === 'AdminHRDF' ? '#f3f3f3' : 'white' }};
+                                                    cursor: pointer;
+                                                    font-size: 14px;
+                                                "
+                                            >
+                                                Admin - HRDF
+                                            </button>
+
+                                            <button
+                                                wire:click="toggleDashboard('AdminHeadcount')"
+                                                style="
+                                                    display: block;
+                                                    width: 100%;
+                                                    padding: 10px 16px;
+                                                    text-align: left;
+                                                    border: none;
+                                                    background: {{ $currentDashboard === 'AdminHeadcount' ? '#f3f3f3' : 'white' }};
+                                                    cursor: pointer;
+                                                    font-size: 14px;
+                                                "
+                                            >
+                                                Admin - Headcount
+                                            </button>
+
+                                            <button
                                                 wire:click="toggleDashboard('Debtor')"
                                                 style="
                                                     display: block;
@@ -818,8 +882,8 @@
                                             font-weight: bold;
                                             border: none;
                                             border-radius: 20px;
-                                            background: {{ in_array($currentDashboard, ['MainAdminDashboard','SoftwareAdmin', 'HardwareAdmin', 'AdminRepair', 'AdminRenewalv1', 'AdminRenewalv2']) ? '#431fa1' : 'transparent' }};
-                                            color: {{ in_array($currentDashboard, ['SoftwareAdmin', 'HardwareAdmin', 'AdminRepair', 'AdminRenewalv1', 'AdminRenewalv2']) ? '#ffffff' : '#555' }};
+                                            background: {{ in_array($currentDashboard, ['MainAdminDashboard','SoftwareAdmin', 'HardwareAdmin', 'AdminRepair', 'AdminRenewalv1', 'AdminRenewalv2', 'AdminHRDF', 'AdminHeadcount']) ? '#431fa1' : 'transparent' }};
+                                            color: {{ in_array($currentDashboard, ['SoftwareAdmin', 'HardwareAdmin', 'AdminRepair', 'AdminRenewalv1', 'AdminRenewalv2', 'AdminHRDF', 'AdminHeadcount']) ? '#ffffff' : '#555' }};
                                             cursor: pointer;
                                             display: flex;
                                             align-items: center;
@@ -950,6 +1014,38 @@
                                         </button>
 
                                         <button
+                                            wire:click="toggleDashboard('AdminHRDF')"
+                                            style="
+                                                display: block;
+                                                width: 100%;
+                                                padding: 10px 16px;
+                                                text-align: left;
+                                                border: none;
+                                                background: {{ $currentDashboard === 'AdminHRDF' ? '#f3f3f3' : 'white' }};
+                                                cursor: pointer;
+                                                font-size: 14px;
+                                            "
+                                        >
+                                            Admin - HRDF
+                                        </button>
+
+                                        <button
+                                            wire:click="toggleDashboard('AdminHeadcount')"
+                                            style="
+                                                display: block;
+                                                width: 100%;
+                                                padding: 10px 16px;
+                                                text-align: left;
+                                                border: none;
+                                                background: {{ $currentDashboard === 'AdminHeadcount' ? '#f3f3f3' : 'white' }};
+                                                cursor: pointer;
+                                                font-size: 14px;
+                                            "
+                                        >
+                                            Admin - Headcount
+                                        </button>
+
+                                        <button
                                             wire:click="toggleDashboard('Debtor')"
                                             style="
                                                 display: block;
@@ -1014,6 +1110,10 @@
                             @include('filament.pages.adminrenewal')
                         @elseif ($currentDashboard === 'AdminRenewalv2')
                             @include('filament.pages.adminrenewal')
+                        @elseif ($currentDashboard === 'AdminHRDF')
+                            @include('filament.pages.adminhrdf')
+                        @elseif ($currentDashboard === 'AdminHeadcount')
+                            @include('filament.pages.adminheadcount')
                         @elseif ($currentDashboard === 'SoftwareAdmin')
                             @include('filament.pages.softwarehandover')
                         @elseif ($currentDashboard === 'Debtor')
