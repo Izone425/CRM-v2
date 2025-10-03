@@ -23,17 +23,16 @@
         background-color: white;
         border-radius: 8px;
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        padding: 20px 0px 20px 0px;
+        padding: 20px 15px;
         cursor: pointer;
         transition: all 0.2s;
         border-top: 4px solid transparent;
         display: flex;
         flex-direction: column;
         justify-content: center;
-        align-items: center;
         margin-bottom: 15px;
         width: 100%;
-        text-align: center;
+        text-align: center; /* Changed from center to left */
         max-height: 82px;
         max-width: 220px;
     }
@@ -54,9 +53,12 @@
         flex-direction: column;
     }
 
+
     .group-title {
         font-size: 15px;
         font-weight: 600;
+        margin-bottom: 8px;
+        text-align: left;
     }
 
     .group-desc {
@@ -68,6 +70,7 @@
         font-size: 24px;
         font-weight: bold;
     }
+
 
     /* HRDF ALL GROUP COLORS - Purple Theme */
     .group-hrdf-all { border-top-color: #8b5cf6; }
@@ -260,7 +263,7 @@
                 :class="{'selected': selectedGroup === 'hrdf-all'}"
                 @click="setSelectedGroup('hrdf-all')">
                 <div class="group-info">
-                    <div class="group-title">HRDF All</div>
+                    <div class="group-title">HRDF Handover</div>
                 </div>
                 <div class="group-count">{{ $hrdfAllCount }}</div>
             </div>
@@ -270,7 +273,7 @@
                 :class="{'selected': selectedGroup === 'hrdf-new'}"
                 @click="setSelectedGroup('hrdf-new')">
                 <div class="group-info">
-                    <div class="group-title">HRDF New</div>
+                    <div class="group-title">New Task</div>
                 </div>
                 <div class="group-count">{{ $hrdfNewCount }}</div>
             </div>
@@ -280,7 +283,7 @@
                 :class="{'selected': selectedGroup === 'hrdf-completed'}"
                 @click="setSelectedGroup('hrdf-completed')">
                 <div class="group-info">
-                    <div class="group-title">HRDF Completed</div>
+                    <div class="group-title">Completed Task</div>
                 </div>
                 <div class="group-count">{{ $hrdfCompletedCount }}</div>
             </div>
@@ -290,7 +293,7 @@
                 :class="{'selected': selectedGroup === 'hrdf-rejected'}"
                 @click="setSelectedGroup('hrdf-rejected')">
                 <div class="group-info">
-                    <div class="group-title">HRDF Rejected</div>
+                    <div class="group-title">Rejected Task</div>
                 </div>
                 <div class="group-count">{{ $hrdfRejectedCount }}</div>
             </div>
