@@ -15,6 +15,15 @@ use Illuminate\Support\HtmlString;
 use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
+use App\Models\SoftwareHandover;
+use App\Models\CompanyDetail;
+use App\Models\Lead;
+use App\Models\User;
+use App\Services\CategoryService;
+use App\Enums\LeadCategoriesEnum;
+use App\Enums\LeadStageEnum;
+use App\Enums\LeadStatusEnum;
+use Illuminate\Support\Str;
 
 class SearchLicense extends Page implements HasForms
 {
@@ -30,6 +39,10 @@ class SearchLicense extends Page implements HasForms
     public $hasSearched = false;
     public $calculatorResult = null;
     public $hasCalculated = false;
+    public $projectResults = [];
+    public $hasProjectSearched = false;
+    public $leadResults = [];
+    public $hasLeadSearched = false;
 
     public function mount(): void
     {
@@ -90,6 +103,42 @@ class SearchLicense extends Page implements HasForms
                                                 ->action('calculateRange')
                                         ])
                                     ])
+                            ]),
+
+                        // Search Project List Tab
+                        Tabs\Tab::make('Search Project List')
+                            ->icon('heroicon-o-rectangle-stack')
+                            ->schema([
+                                Section::make('Search Project Information')
+                                    ->description('Enter a company name to search for their software handover projects.')
+                                    ->schema([
+                                        TextInput::make('project_company_name')
+                                            ->label('Company Name')
+                                            ->placeholder('Enter company name to search projects...')
+                                            ->suffixAction(
+                                                \Filament\Forms\Components\Actions\Action::make('searchProjects')
+                                                    ->icon('heroicon-o-magnifying-glass')
+                                                    ->action('searchProjects')
+                                            )
+                                    ])
+                            ]),
+
+                        // Search Leads Tab
+                        Tabs\Tab::make('Search Leads')
+                            ->icon('heroicon-o-briefcase')
+                            ->schema([
+                                Section::make('Search Leads Information')
+                                    ->description('Enter a company name to search for leads and their details.')
+                                    ->schema([
+                                        TextInput::make('lead_company_name')
+                                            ->label('Company Name')
+                                            ->placeholder('Enter company name to search leads...')
+                                            ->suffixAction(
+                                                \Filament\Forms\Components\Actions\Action::make('searchLeads')
+                                                    ->icon('heroicon-o-magnifying-glass')
+                                                    ->action('searchLeads')
+                                            )
+                                    ])
                             ])
                     ])
             ])
@@ -122,6 +171,66 @@ class SearchLicense extends Page implements HasForms
                 ->success()
                 ->title('Search Completed')
                 ->body(count($this->searchResults) . ' company(ies) found')
+                ->send();
+        }
+    }
+
+    public function searchProjects(): void
+    {
+        $data = $this->form->getState();
+
+        if (empty($data['project_company_name'])) {
+            Notification::make()
+                ->warning()
+                ->title('Please enter a company name to search')
+                ->send();
+            return;
+        }
+
+        $this->projectResults = $this->getCompanyProjects($data['project_company_name']);
+        $this->hasProjectSearched = true;
+
+        if (empty($this->projectResults)) {
+            Notification::make()
+                ->warning()
+                ->title('No Results Found')
+                ->body("No software handover projects found for companies matching '{$data['project_company_name']}'")
+                ->send();
+        } else {
+            Notification::make()
+                ->success()
+                ->title('Search Completed')
+                ->body(count($this->projectResults) . ' project(s) found')
+                ->send();
+        }
+    }
+
+    public function searchLeads(): void
+    {
+        $data = $this->form->getState();
+
+        if (empty($data['lead_company_name'])) {
+            Notification::make()
+                ->warning()
+                ->title('Please enter a company name to search')
+                ->send();
+            return;
+        }
+
+        $this->leadResults = $this->getCompanyLeads($data['lead_company_name']);
+        $this->hasLeadSearched = true;
+
+        if (empty($this->leadResults)) {
+            Notification::make()
+                ->warning()
+                ->title('No Results Found')
+                ->body("No leads found for companies matching '{$data['lead_company_name']}'")
+                ->send();
+        } else {
+            Notification::make()
+                ->success()
+                ->title('Search Completed')
+                ->body(count($this->leadResults) . ' lead(s) found')
                 ->send();
         }
     }
@@ -192,6 +301,28 @@ class SearchLicense extends Page implements HasForms
         ]);
     }
 
+    public function clearProjectSearch(): void
+    {
+        $this->projectResults = [];
+        $this->hasProjectSearched = false;
+        $currentData = $this->form->getState();
+        $this->form->fill([
+            ...$currentData,
+            'project_company_name' => ''
+        ]);
+    }
+
+    public function clearLeadSearch(): void
+    {
+        $this->leadResults = [];
+        $this->hasLeadSearched = false;
+        $currentData = $this->form->getState();
+        $this->form->fill([
+            ...$currentData,
+            'lead_company_name' => ''
+        ]);
+    }
+
     public function clearCalculator(): void
     {
         $this->calculatorResult = null;
@@ -204,6 +335,386 @@ class SearchLicense extends Page implements HasForms
         ]);
     }
 
+    private function getCompanyLeads(string $searchTerm): array
+    {
+        try {
+            // Search for leads by company name
+            $leads = Lead::with(['companyDetail', 'salespersonUser'])
+                ->whereHas('companyDetail', function ($query) use ($searchTerm) {
+                    $query->where('company_name', 'like', "%{$searchTerm}%");
+                })
+                ->orderBy('created_at', 'desc')
+                ->get();
+
+            $results = [];
+
+            foreach ($leads as $lead) {
+                $results[] = [
+                    'lead' => $lead,
+                    'lead_html' => $this->generateLeadHtml($lead)
+                ];
+            }
+
+            return $results;
+        } catch (\Exception $e) {
+            Log::error('Error searching lead data: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    private function generateLeadHtml(Lead $lead): string
+    {
+        // Get lead owner name
+        $leadOwner = $lead->lead_owner ?? '-';
+
+        // Get salesperson name
+        $salesperson = $lead->salespersonUser ? $lead->salespersonUser->name : '-';
+
+        // Get company details
+        $companyName = $lead->companyDetail->company_name ?? 'N/A';
+        $companySize = $lead->companyDetail->company_size ?? 'N/A';
+
+        // Get company size label
+        $companySizeLabel = match($companySize) {
+            '1-24' => 'Small',
+            '25-99' => 'Medium',
+            '100-500' => 'Large',
+            '501 and Above' => 'Enterprise',
+            default => 'N/A'
+        };
+
+        // Calculate days from creation
+        $daysFromCreated = $lead->created_at ? Carbon::parse($lead->created_at)->diffInDays(Carbon::now()) . ' days' : 'N/A';
+
+        // Get encrypted ID for link
+        $encryptedId = \App\Classes\Encryptor::encrypt($lead->id);
+        $leadLink = url('admin/leads/' . $encryptedId);
+
+        // Get category color
+        $categoryColor = '';
+        if ($lead->categories) {
+            $categoryEnum = LeadCategoriesEnum::tryFrom($lead->categories);
+            $categoryColor = $categoryEnum ? $categoryEnum->getColor() : '';
+        }
+
+        // Get stage color
+        $stageColor = '';
+        if ($lead->stage) {
+            $stageEnum = LeadStageEnum::tryFrom($lead->stage);
+            $stageColor = $stageEnum ? $stageEnum->getColor() : '';
+        }
+
+        // Get lead status color
+        $leadStatusColor = '';
+        $leadStatusTextColor = '';
+        if ($lead->lead_status) {
+            $leadStatusEnum = LeadStatusEnum::tryFrom($lead->lead_status);
+            $leadStatusColor = $leadStatusEnum ? $leadStatusEnum->getColor() : '';
+            // Add white text for specific statuses
+            $leadStatusTextColor = in_array($lead->lead_status, ['Hot', 'Warm', 'Cold', 'RFQ-Transfer']) ? 'color: white;' : '';
+        }
+
+        $html = '
+        <div class="lead-container">
+            <style>
+                .lead-container {
+                    margin: 16px 0;
+                    background: white;
+                    border-radius: 8px;
+                    overflow: hidden;
+                    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+                }
+                .lead-table {
+                    width: 100%;
+                    border-collapse: collapse;
+                }
+                .lead-table th,
+                .lead-table td {
+                    padding: 12px;
+                    text-align: left;
+                    border-bottom: 1px solid #e5e7eb;
+                    vertical-align: middle;
+                }
+                .lead-table th {
+                    background-color: #f9fafb;
+                    font-weight: 600;
+                    color: #374151;
+                    font-size: 14px;
+                }
+                .lead-table td {
+                    font-size: 14px;
+                    color: #1f2937;
+                }
+                .lead-id {
+                    font-weight: bold;
+                    color: #3b82f6;
+                }
+                .company-link {
+                    color: #338cf0;
+                    text-decoration: none;
+                    font-weight: 500;
+                }
+                .company-link:hover {
+                    text-decoration: underline;
+                }
+                .status-badge {
+                    padding: 4px 8px;
+                    border-radius: 25px;
+                    font-size: 12px;
+                    font-weight: 600;
+                    text-transform: uppercase;
+                    display: inline-block;
+                    text-align: center;
+                    min-width: 60px;
+                }
+                .text-center { text-align: center; }
+            </style>
+
+            <table class="lead-table">
+                <thead>
+                    <tr>
+                        <th>Lead ID</th>
+                        <th>Lead Owner</th>
+                        <th>Salesperson</th>
+                        <th>Created On</th>
+                        <th>Company Name</th>
+                        <th>Category</th>
+                        <th>Stage</th>
+                        <th>Lead Status</th>
+                        <th>From Lead Created</th>
+                        <th>Company Size</th>
+                        <th>Headcount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="lead-id">' . $lead->id . '</td>
+                        <td>' . htmlspecialchars($leadOwner) . '</td>
+                        <td>' . htmlspecialchars($salesperson) . '</td>
+                        <td>' . ($lead->created_at ? Carbon::parse($lead->created_at)->setTimezone('Asia/Kuala_Lumpur')->format('d M Y, h:i A') : 'N/A') . '</td>
+                        <td>
+                            <a href="' . $leadLink . '" target="_blank" class="company-link">
+                                ' . strtoupper(Str::limit($companyName, 30, '...')) . '
+                            </a>
+                        </td>
+                        <td class="text-center">
+                            <span class="status-badge" style="background-color: ' . $categoryColor . '; border-radius: 25px; width: 60%; height: 27px;">
+                                ' . htmlspecialchars($lead->categories ?? 'N/A') . '
+                            </span>
+                        </td>
+                        <td class="text-center">
+                            <span class="status-badge" style="background-color: ' . $stageColor . '; border-radius: 25px; width: 90%; height: 27px;">
+                                ' . htmlspecialchars($lead->stage ?? 'N/A') . '
+                            </span>
+                        </td>
+                        <td class="text-center">
+                            <span class="status-badge" style="background-color: ' . $leadStatusColor . '; border-radius: 25px; width: 90%; height: 27px; ' . $leadStatusTextColor . '">
+                                ' . htmlspecialchars($lead->lead_status ?? 'N/A') . '
+                            </span>
+                        </td>
+                        <td>' . htmlspecialchars($daysFromCreated) . '</td>
+                        <td>' . htmlspecialchars($companySizeLabel) . '</td>
+                        <td>' . htmlspecialchars($companySize) . '</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>';
+
+        return $html;
+    }
+
+    private function getCompanyProjects(string $searchTerm): array
+    {
+        try {
+            // Search for projects in software_handovers by company name
+            $projects = SoftwareHandover::where('status', 'Completed')
+                ->where('company_name', 'like', "%{$searchTerm}%")
+                ->orderBy('id', 'desc')
+                ->get();
+
+            $results = [];
+
+            foreach ($projects as $project) {
+                $results[] = [
+                    'project' => $project,
+                    'project_html' => $this->generateProjectHtml($project)
+                ];
+            }
+
+            return $results;
+        } catch (\Exception $e) {
+            Log::error('Error searching project data: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    private function generateProjectHtml(SoftwareHandover $project): string
+    {
+        // Get company details and links (similar to SoftwareResource)
+        $company = CompanyDetail::where('company_name', $project->company_name)->first();
+        if (!empty($project->lead_id)) {
+            $company = CompanyDetail::where('lead_id', $project->lead_id)->first();
+        }
+
+        $companyLink = '';
+        if ($company) {
+            $encryptedId = \App\Classes\Encryptor::encrypt($company->lead_id);
+            $companyLink = url('admin/leads/' . $encryptedId);
+        }
+
+        // Format project ID
+        $projectId = 'SW_250' . str_pad($project->id, 3, '0', STR_PAD_LEFT);
+        if ($project->handover_pdf) {
+            $projectId = basename($project->handover_pdf, '.pdf');
+        }
+
+        // Calculate total days (similar to SoftwareResource logic)
+        $totalDays = '';
+        if (!$project->go_live_date) {
+            try {
+                $completedDate = Carbon::parse($project->completed_at);
+                $today = Carbon::now();
+                $daysDifference = $completedDate->diffInDays($today);
+                $totalDays = $daysDifference . ' ' . Str::plural('day', $daysDifference);
+            } catch (\Exception $e) {
+                $totalDays = 'Error: ' . $e->getMessage();
+            }
+        } else {
+            try {
+                $goLiveDate = Carbon::parse($project->go_live_date);
+                $completedDate = Carbon::parse($project->completed_at);
+                $daysDifference = $completedDate->diffInDays($goLiveDate);
+                $totalDays = $daysDifference . ' ' . Str::plural('day', $daysDifference);
+            } catch (\Exception $e) {
+                $totalDays = 'Error: ' . $e->getMessage();
+            }
+        }
+
+        // Get company size using CategoryService
+        $categoryService = app(CategoryService::class);
+        $companySize = 'N/A';
+        if ($project->headcount) {
+            $companySize = $categoryService->retrieve($project->headcount);
+        }
+
+        $html = '
+        <div class="project-container">
+            <style>
+                .project-container {
+                    margin: 16px 0;
+                    background: white;
+                    border-radius: 8px;
+                    overflow: hidden;
+                    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+                }
+                .project-table {
+                    width: 100%;
+                    border-collapse: collapse;
+                }
+                .project-table th,
+                .project-table td {
+                    padding: 12px;
+                    text-align: left;
+                    border-bottom: 1px solid #e5e7eb;
+                    vertical-align: middle;
+                }
+                .project-table th {
+                    background-color: #f9fafb;
+                    font-weight: 600;
+                    color: #374151;
+                    font-size: 14px;
+                }
+                .project-table td {
+                    font-size: 14px;
+                    color: #1f2937;
+                }
+                .project-id {
+                    font-weight: bold;
+                    color: #3b82f6;
+                }
+                .company-link {
+                    color: #338cf0;
+                    text-decoration: none;
+                    font-weight: 500;
+                }
+                .company-link:hover {
+                    text-decoration: underline;
+                }
+                .module-icon {
+                    font-size: 1.2rem;
+                    margin: 0 2px;
+                }
+                .module-icon.active {
+                    color: green;
+                }
+                .module-icon.inactive {
+                    color: red;
+                }
+                .status-badge {
+                    padding: 4px 8px;
+                    border-radius: 4px;
+                    font-size: 12px;
+                    font-weight: 600;
+                    text-transform: uppercase;
+                }
+                .status-open { background: #dbeafe; color: #1e40af; }
+                .status-inactive { background: #fee2e2; color: #991b1b; }
+                .status-delay { background: #fef3c7; color: #92400e; }
+                .status-closed { background: #d1fae5; color: #065f46; }
+                .text-center { text-align: center; }
+            </style>
+
+            <table class="project-table">
+                <thead>
+                    <tr>
+                        <th>Project ID</th>
+                        <th>Company Name</th>
+                        <th>Salesperson</th>
+                        <th>Implementer</th>
+                        <th>Status</th>
+                        <th>Modules</th>
+                        <th>Company Size</th>
+                        <th>Headcount</th>
+                        <th>DB Creation</th>
+                        <th>Total Days</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="project-id">' . htmlspecialchars($projectId) . '</td>
+                        <td>' .
+                            ($company ?
+                                '<a href="' . $companyLink . '" target="_blank" class="company-link">' .
+                                strtoupper(Str::limit($project->company_name, 30, '...')) .
+                                '</a>'
+                                : strtoupper(Str::limit($project->company_name, 30, '...'))) .
+                        '</td>
+                        <td>' . htmlspecialchars($project->salesperson ?? 'N/A') . '</td>
+                        <td>' . htmlspecialchars($project->implementer ?? 'N/A') . '</td>
+                        <td>
+                            <span class="status-badge status-' . strtolower($project->status_handover ?? 'open') . '">
+                                ' . htmlspecialchars($project->status_handover ?? 'Open') . '
+                            </span>
+                        </td>
+                        <td class="text-center">
+                            <i class="bi bi-' . ($project->ta ? 'check-circle-fill module-icon active' : 'x-circle-fill module-icon inactive') . '" title="TA"></i>
+                            <i class="bi bi-' . ($project->tl ? 'check-circle-fill module-icon active' : 'x-circle-fill module-icon inactive') . '" title="TL"></i>
+                            <i class="bi bi-' . ($project->tc ? 'check-circle-fill module-icon active' : 'x-circle-fill module-icon inactive') . '" title="TC"></i>
+                            <i class="bi bi-' . ($project->tp ? 'check-circle-fill module-icon active' : 'x-circle-fill module-icon inactive') . '" title="TP"></i>
+                        </td>
+                        <td>' . htmlspecialchars($companySize) . '</td>
+                        <td>' . htmlspecialchars($project->headcount ?? 'N/A') . '</td>
+                        <td>' . ($project->completed_at ? Carbon::parse($project->completed_at)->format('d M Y') : 'N/A') . '</td>
+                        <td>' . htmlspecialchars($totalDays) . '</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>';
+
+        return $html;
+    }
+
+    // ... (keep all existing methods for license search unchanged)
     private function getCompanyLicenseData(string $searchTerm): array
     {
         try {

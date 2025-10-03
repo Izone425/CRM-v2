@@ -110,14 +110,27 @@ class HrdfAllTable extends Component implements HasForms, HasTable
 
                 TextColumn::make('lead.companyDetail.company_name')
                     ->label('Company Name')
-                    ->formatStateUsing(function ($state, $record) {
-                        $fullName = $state ?? 'N/A';
-                        $shortened = strtoupper(Str::limit($fullName, 25, '...'));
+                    ->formatStateUsing(function ($state, HRDFHandover $record) {
+                        // Determine display name
+                        $displayName = $state ?? 'N/A';
+
+                        // If subsidiary_id exists and is not null/empty, get subsidiary company name for display
+                        if (!empty($record->subsidiary_id)) {
+                            $subsidiary = \App\Models\Subsidiary::find($record->subsidiary_id);
+                            if ($subsidiary && !empty($subsidiary->company_name)) {
+                                $displayName = $subsidiary->company_name . ' (Subsidiary)';
+                            }
+                        }
+
+                        // Shorten the display name
+                        $shortened = strtoupper(Str::limit($displayName, 25, '...'));
+
+                        // Always encrypt the main lead ID for the link
                         $encryptedId = \App\Classes\Encryptor::encrypt($record->lead->id);
 
                         return '<a href="' . url('admin/leads/' . $encryptedId) . '"
                                     target="_blank"
-                                    title="' . e($fullName) . '"
+                                    title="' . e($displayName) . '"
                                     class="inline-block"
                                     style="color:#338cf0;">
                                     ' . $shortened . '

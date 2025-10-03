@@ -239,7 +239,7 @@ class HeadcountNewTable extends Component implements HasForms, HasTable
                                             'record' => $record
                                         ], function ($mail) use ($salesperson, $completedBy, $handoverId, $data) {
                                             $mail->to($salesperson->email, $salesperson->name)
-                                                ->subject("Headcount Handover Completed - {$handoverId}");
+                                                ->subject("HEADCOUNT HANDOVER | {$handoverId} | COMPLETED");
 
                                             // Attach invoice if uploaded
                                             if (!empty($data['invoice_file'])) {

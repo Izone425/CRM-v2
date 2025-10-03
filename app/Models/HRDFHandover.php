@@ -14,6 +14,7 @@ class HRDFHandover extends Model
 
     protected $fillable = [
         'lead_id',
+        'subsidiary_id',
         'hrdf_grant_id',
         'jd14_form_files',
         'autocount_invoice_file',

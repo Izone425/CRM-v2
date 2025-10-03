@@ -18,6 +18,28 @@
                     </x-filament::button>
                 @endif
 
+                @if($hasProjectSearched && !empty($projectResults))
+                    <x-filament::button
+                        color="gray"
+                        wire:click="clearProjectSearch"
+                        icon="heroicon-o-x-mark"
+                        size="sm"
+                    >
+                        Clear Project Results
+                    </x-filament::button>
+                @endif
+
+                @if($hasLeadSearched && !empty($leadResults))
+                    <x-filament::button
+                        color="gray"
+                        wire:click="clearLeadSearch"
+                        icon="heroicon-o-x-mark"
+                        size="sm"
+                    >
+                        Clear Lead Results
+                    </x-filament::button>
+                @endif
+
                 @if($hasCalculated)
                     <x-filament::button
                         color="gray"
@@ -75,5 +97,68 @@
                 </div>
             @endif
         @endif
+
+        <!-- Project Search Results -->
+        @if($hasProjectSearched)
+            @if(!empty($projectResults))
+                <div class="space-y-6">
+                    @foreach($projectResults as $result)
+                        <div class="p-6 bg-white border border-gray-200 rounded-lg shadow-sm">
+                            <h3 class="mb-4 text-lg font-semibold text-gray-900">
+                                {{ $result['project']->company_name }}
+                                <span class="text-sm font-normal text-gray-500">(Project ID: SW_250{{ str_pad($result['project']->id, 3, '0', STR_PAD_LEFT) }})</span>
+                            </h3>
+
+                            <div class="project-content">
+                                {!! $result['project_html'] !!}
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            @else
+                <div class="p-12 text-center bg-white border border-gray-200 rounded-lg shadow-sm">
+                    <div class="flex items-center justify-center w-12 h-12 mx-auto mb-4 bg-gray-100 rounded-lg">
+                        <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                        </svg>
+                    </div>
+                    <h3 class="mb-2 text-lg font-medium text-gray-900">No Projects Found</h3>
+                    <p class="text-gray-500">No software handover projects found for the searched company name.</p>
+                </div>
+            @endif
+        @endif
+
+        <!-- Lead Search Results -->
+        @if($hasLeadSearched)
+            @if(!empty($leadResults))
+                <div class="space-y-6">
+                    @foreach($leadResults as $result)
+                        <div class="p-6 bg-white border border-gray-200 rounded-lg shadow-sm">
+                            <h3 class="mb-4 text-lg font-semibold text-gray-900">
+                                {{ $result['lead']->companyDetail->company_name ?? 'N/A' }}
+                                <span class="text-sm font-normal text-gray-500">(Lead ID: {{ $result['lead']->id }})</span>
+                            </h3>
+
+                            <div class="lead-content">
+                                {!! $result['lead_html'] !!}
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            @else
+                <div class="p-12 text-center bg-white border border-gray-200 rounded-lg shadow-sm">
+                    <div class="flex items-center justify-center w-12 h-12 mx-auto mb-4 bg-gray-100 rounded-lg">
+                        <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2-2v2m8 0V6a2 2 0 012 2v6a2 2 0 01-2 2H8a2 2 0 01-2-2V8a2 2 0 012-2h8z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="mb-2 text-lg font-medium text-gray-900">No Leads Found</h3>
+                    <p class="text-gray-500">No leads found for the searched company name.</p>
+                </div>
+            @endif
+        @endif
     </div>
+
+    <!-- Add Bootstrap Icons for the module icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
 </x-filament-panels::page>

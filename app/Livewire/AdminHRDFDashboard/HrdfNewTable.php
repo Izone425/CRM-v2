@@ -19,6 +19,7 @@ use Illuminate\Support\HtmlString;
 use Illuminate\View\View;
 use Livewire\Attributes\On;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Mail;
 
 class HrdfNewTable extends Component implements HasForms, HasTable
 {
@@ -111,14 +112,27 @@ class HrdfNewTable extends Component implements HasForms, HasTable
 
                 TextColumn::make('lead.companyDetail.company_name')
                     ->label('Company Name')
-                    ->formatStateUsing(function ($state, $record) {
-                        $fullName = $state ?? 'N/A';
-                        $shortened = strtoupper(Str::limit($fullName, 25, '...'));
+                    ->formatStateUsing(function ($state, HRDFHandover $record) {
+                        // Determine display name
+                        $displayName = $state ?? 'N/A';
+
+                        // If subsidiary_id exists and is not null/empty, get subsidiary company name for display
+                        if (!empty($record->subsidiary_id)) {
+                            $subsidiary = \App\Models\Subsidiary::find($record->subsidiary_id);
+                            if ($subsidiary && !empty($subsidiary->company_name)) {
+                                $displayName = $subsidiary->company_name . ' (Subsidiary)';
+                            }
+                        }
+
+                        // Shorten the display name
+                        $shortened = strtoupper(Str::limit($displayName, 25, '...'));
+
+                        // Always encrypt the main lead ID for the link
                         $encryptedId = \App\Classes\Encryptor::encrypt($record->lead->id);
 
                         return '<a href="' . url('admin/leads/' . $encryptedId) . '"
                                     target="_blank"
-                                    title="' . e($fullName) . '"
+                                    title="' . e($displayName) . '"
                                     class="inline-block"
                                     style="color:#338cf0;">
                                     ' . $shortened . '
@@ -147,7 +161,7 @@ class HrdfNewTable extends Component implements HasForms, HasTable
                     ->formatStateUsing(fn (string $state): HtmlString => match ($state) {
                         'Draft' => new HtmlString('<span style="color: orange;">Draft</span>'),
                         'New' => new HtmlString('<span style="color: blue;">New</span>'),
-                        'Completed' => new HtmlString('<span style="color: green;">Completed</span>'), // Changed from 'Approved'
+                        'Completed' => new HtmlString('<span style="color: green;">Completed</span>'),
                         'Rejected' => new HtmlString('<span style="color: red;">Rejected</span>'),
                         default => new HtmlString('<span>' . ucfirst($state) . '</span>'),
                     }),
@@ -167,23 +181,76 @@ class HrdfNewTable extends Component implements HasForms, HasTable
                                 ->with('extraAttributes', ['record' => $record]);
                         }),
 
-                    Action::make('complete')  // Changed from 'approve'
-                        ->label('Mark as Completed')  // Changed label
+                    Action::make('complete')
+                        ->label('Mark as Completed')
                         ->icon('heroicon-o-check-circle')
                         ->color('success')
                         ->visible(fn(): bool => auth()->user()->role_id === 3) // Only managers can complete
                         ->requiresConfirmation()
                         ->action(function (HRDFHandover $record): void {
-                            $record->update([
-                                'status' => 'Completed',  // Changed from 'Approved'
-                                'completed_by' => auth()->id(),  // Changed from 'approved_by'
-                                'completed_at' => now(),  // Changed from 'approved_at'
-                            ]);
+                            try {
+                                // Update the record
+                                $record->update([
+                                    'status' => 'Completed',
+                                    'completed_by' => auth()->id(),
+                                    'completed_at' => now(),
+                                ]);
 
-                            Notification::make()
-                                ->title('HRDF handover marked as completed successfully')  // Updated message
-                                ->success()
-                                ->send();
+                                // Get necessary data for email
+                                $handoverId = 'HRDF_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+                                $companyDetail = $record->lead->companyDetail;
+                                $companyName = $companyDetail ? $companyDetail->company_name : 'Unknown Company';
+
+                                // Get salesperson from lead->salesperson (user ID)
+                                $salesperson = null;
+                                if ($record->lead && $record->lead->salesperson) {
+                                    $salesperson = User::find($record->lead->salesperson);
+                                }
+
+                                $completedBy = auth()->user();
+
+                                // Send email notification to salesperson
+                                if ($salesperson && $salesperson->email) {
+                                    try {
+                                        Mail::send('emails.hrdf-handover-completed', [
+                                            'handoverId' => $handoverId,
+                                            'companyName' => $companyName,
+                                            'salesperson' => $salesperson,
+                                            'completedBy' => $completedBy,
+                                            'completedAt' => now(),
+                                            'record' => $record
+                                        ], function ($mail) use ($salesperson, $handoverId) {
+                                            $mail->to($salesperson->email, $salesperson->name)
+                                                ->subject("{$handoverId} | Completed");
+                                        });
+
+                                        \Illuminate\Support\Facades\Log::info("HRDF handover completion email sent", [
+                                            'handover_id' => $handoverId,
+                                            'salesperson_email' => $salesperson->email,
+                                            'completed_by' => $completedBy->email
+                                        ]);
+
+                                    } catch (\Exception $e) {
+                                        \Illuminate\Support\Facades\Log::error("Failed to send HRDF handover completion email", [
+                                            'error' => $e->getMessage(),
+                                            'handover_id' => $handoverId
+                                        ]);
+                                    }
+                                }
+
+                                Notification::make()
+                                    ->title('HRDF handover marked as completed successfully')
+                                    ->body("HRDF handover {$handoverId} has been completed and notification sent to salesperson.")
+                                    ->success()
+                                    ->send();
+
+                            } catch (\Exception $e) {
+                                Notification::make()
+                                    ->title('Error')
+                                    ->body('Failed to complete HRDF handover: ' . $e->getMessage())
+                                    ->danger()
+                                    ->send();
+                            }
                         }),
 
                     Action::make('reject')
@@ -197,20 +264,73 @@ class HrdfNewTable extends Component implements HasForms, HasTable
                                 ->required()
                                 ->placeholder('Please provide a reason for rejecting this HRDF handover')
                                 ->maxLength(500)
-                                // Removed the uppercase transformations since the model handles it now
                         ])
                         ->action(function (HRDFHandover $record, array $data): void {
-                            $record->update([
-                                'status' => 'Rejected',
-                                'reject_reason' => $data['reject_reason'],
-                                'rejected_by' => auth()->id(),
-                                'rejected_at' => now(),
-                            ]);
+                            try {
+                                // Update the record
+                                $record->update([
+                                    'status' => 'Rejected',
+                                    'reject_reason' => $data['reject_reason'],
+                                    'rejected_by' => auth()->id(),
+                                    'rejected_at' => now(),
+                                ]);
 
-                            Notification::make()
-                                ->title('HRDF handover rejected')
-                                ->success()
-                                ->send();
+                                // Get necessary data for email
+                                $handoverId = 'HRDF_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+                                $companyDetail = $record->lead->companyDetail;
+                                $companyName = $companyDetail ? $companyDetail->company_name : 'Unknown Company';
+
+                                // Get salesperson from lead->salesperson (user ID)
+                                $salesperson = null;
+                                if ($record->lead && $record->lead->salesperson) {
+                                    $salesperson = User::find($record->lead->salesperson);
+                                }
+
+                                $rejectedBy = auth()->user();
+
+                                // Send email notification to salesperson
+                                if ($salesperson && $salesperson->email) {
+                                    try {
+                                        Mail::send('emails.hrdf-handover-rejected', [
+                                            'handoverId' => $handoverId,
+                                            'companyName' => $companyName,
+                                            'salesperson' => $salesperson,
+                                            'rejectedBy' => $rejectedBy,
+                                            'rejectedAt' => now(),
+                                            'rejectReason' => $data['reject_reason'],
+                                            'record' => $record
+                                        ], function ($mail) use ($salesperson, $handoverId) {
+                                            $mail->to($salesperson->email, $salesperson->name)
+                                                ->subject("{$handoverId} | Rejected");
+                                        });
+
+                                        \Illuminate\Support\Facades\Log::info("HRDF handover rejection email sent", [
+                                            'handover_id' => $handoverId,
+                                            'salesperson_email' => $salesperson->email,
+                                            'rejected_by' => $rejectedBy->email
+                                        ]);
+
+                                    } catch (\Exception $e) {
+                                        \Illuminate\Support\Facades\Log::error("Failed to send HRDF handover rejection email", [
+                                            'error' => $e->getMessage(),
+                                            'handover_id' => $handoverId
+                                        ]);
+                                    }
+                                }
+
+                                Notification::make()
+                                    ->title('HRDF handover rejected')
+                                    ->body("HRDF handover {$handoverId} has been rejected and notification sent to salesperson.")
+                                    ->success()
+                                    ->send();
+
+                            } catch (\Exception $e) {
+                                Notification::make()
+                                    ->title('Error')
+                                    ->body('Failed to reject HRDF handover: ' . $e->getMessage())
+                                    ->danger()
+                                    ->send();
+                            }
                         }),
                 ])->button()
                 ->label('Actions')

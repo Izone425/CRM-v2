@@ -50,11 +50,22 @@
             : $record->confirmation_order_file;
     }
 
-    // Get invoice files for completed handovers
+    // Get invoice files for completed handovers - Fix this part
     if ($record->invoice_file) {
-        $invoiceFiles = is_string($record->invoice_file)
-            ? json_decode($record->invoice_file, true)
-            : $record->invoice_file;
+        if (is_string($record->invoice_file)) {
+            // Try to decode JSON first
+            $decoded = json_decode($record->invoice_file, true);
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                $invoiceFiles = $decoded;
+            } else {
+                // If it's not JSON, treat as single file path
+                $invoiceFiles = [$record->invoice_file];
+            }
+        } elseif (is_array($record->invoice_file)) {
+            $invoiceFiles = $record->invoice_file;
+        } else {
+            $invoiceFiles = [$record->invoice_file];
+        }
     }
 
     // Get company and creator details
@@ -64,6 +75,7 @@
     $rejectedBy = $record->rejectedBy ?? null;
 @endphp
 
+{{-- Keep all your existing styles... --}}
 <style>
     .detail-container {
         background: #f8fafc;
@@ -317,13 +329,18 @@
         text-align: center;
         color: #6b7280;
         font-style: italic;
-        padding: 10px;
+        padding: 16px;
         background: #f9fafb;
         border-radius: 8px;
         border: 1px dashed #d1d5db;
         margin: 0;
         width: 100%;
         box-sizing: border-box;
+    }
+
+    /* Special styling for invoice files */
+    .invoice-file-icon {
+        background: #10b981 !important;
     }
 </style>
 
@@ -411,7 +428,7 @@
                                 @endforeach
                             </div>
                         @else
-                            <span class="empty-state">No Product PI selected</span>
+                            <div class="empty-state">No Product PI selected</div>
                         @endif
                     </div>
                 </div>
@@ -430,7 +447,7 @@
                                 @endforeach
                             </div>
                         @else
-                            <span class="empty-state">No HRDF PI selected</span>
+                            <div class="empty-state">No HRDF PI selected</div>
                         @endif
                     </div>
                 </div>
@@ -498,26 +515,32 @@
                 </div>
             </div>
 
-            <!-- Invoice Files (for completed handovers) -->
-            @if($record->status === 'Completed' && is_array($invoiceFiles) && count($invoiceFiles) > 0)
+            <!-- Invoice Files (for completed handovers) - FIXED SECTION -->
+            @if($record->status === 'Completed')
             <div class="info-item">
                 <div class="info-label">Invoice Files</div>
                 <div class="info-value">
-                    <div class="file-list">
-                        @foreach($invoiceFiles as $file)
-                            <div class="file-item">
-                                <div class="file-icon">INV</div>
-                                <div class="file-info">
-                                    <div class="file-name">{{ basename($file) }}</div>
-                                    <div class="file-size">Invoice Document</div>
+                    @if(is_array($invoiceFiles) && count($invoiceFiles) > 0)
+                        <div class="file-list">
+                            @foreach($invoiceFiles as $file)
+                                @if($file) {{-- Make sure file is not empty --}}
+                                <div class="file-item">
+                                    <div class="file-icon invoice-file-icon">INV</div>
+                                    <div class="file-info">
+                                        <div class="file-name">{{ basename($file) }}</div>
+                                        <div class="file-size">Invoice Document</div>
+                                    </div>
+                                    <div class="file-actions">
+                                        <a href="{{ Storage::url($file) }}" target="_blank" class="file-action-btn btn-view">View</a>
+                                        <a href="{{ Storage::url($file) }}" download class="file-action-btn btn-download">Download</a>
+                                    </div>
                                 </div>
-                                <div class="file-actions">
-                                    <a href="{{ Storage::url($file) }}" target="_blank" class="file-action-btn btn-view">View</a>
-                                    <a href="{{ Storage::url($file) }}" download class="file-action-btn btn-download">Download</a>
-                                </div>
-                            </div>
-                        @endforeach
-                    </div>
+                                @endif
+                            @endforeach
+                        </div>
+                    @else
+                        <div class="no-files">No invoice files uploaded</div>
+                    @endif
                 </div>
             </div>
             @endif
@@ -527,7 +550,7 @@
         <div class="section">
             <div class="section-title">
                 <svg class="section-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012-2h-3l-4 4z"></path>
                 </svg>
                 Remarks
             </div>
