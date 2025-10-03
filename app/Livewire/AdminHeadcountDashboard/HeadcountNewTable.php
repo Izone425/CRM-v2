@@ -1,4 +1,5 @@
 <?php
+// filepath: /var/www/html/timeteccrm/app/Livewire/AdminHeadcountDashboard/HeadcountNewTable.php
 
 namespace App\Livewire\AdminHeadcountDashboard;
 
@@ -59,7 +60,7 @@ class HeadcountNewTable extends Component implements HasForms, HasTable
 
     public function getNewHeadcountHandovers()
     {
-        return HeadcountHandover::with(['lead.companyDetail', 'creator'])
+        return HeadcountHandover::with(['lead.companyDetail', 'lead.salespersonUser'])
             ->where('status', 'New')
             ->orderBy('created_at', 'desc');
     }
@@ -113,23 +114,19 @@ class HeadcountNewTable extends Component implements HasForms, HasTable
                     })
                     ->html(),
 
-                TextColumn::make('creator.name')
+                TextColumn::make('salesperson_name')
                     ->label('Salesperson')
+                    ->getStateUsing(function (HeadcountHandover $record) {
+                        if ($record->lead && $record->lead->salesperson) {
+                            $user = User::find($record->lead->salesperson);
+                            return $user ? $user->name : 'N/A';
+                        }
+                        return 'N/A';
+                    })
                     ->limit(20)
                     ->tooltip(function (TextColumn $column): ?string {
                         $state = $column->getState();
                         if (strlen($state) <= 20) {
-                            return null;
-                        }
-                        return $state;
-                    }),
-
-                TextColumn::make('salesperson_remark')
-                    ->label('Remark')
-                    ->limit(30)
-                    ->tooltip(function (TextColumn $column): ?string {
-                        $state = $column->getState();
-                        if (strlen($state) <= 30) {
                             return null;
                         }
                         return $state;
@@ -220,7 +217,13 @@ class HeadcountNewTable extends Component implements HasForms, HasTable
                                 $handoverId = 'HC_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
                                 $companyDetail = $record->lead->companyDetail;
                                 $companyName = $companyDetail ? $companyDetail->company_name : 'Unknown Company';
-                                $salesperson = $record->creator;
+
+                                // Get salesperson from lead->salesperson (user ID)
+                                $salesperson = null;
+                                if ($record->lead && $record->lead->salesperson) {
+                                    $salesperson = User::find($record->lead->salesperson);
+                                }
+
                                 $completedBy = auth()->user();
 
                                 // Send email notification to salesperson
@@ -236,7 +239,6 @@ class HeadcountNewTable extends Component implements HasForms, HasTable
                                             'record' => $record
                                         ], function ($mail) use ($salesperson, $completedBy, $handoverId, $data) {
                                             $mail->to($salesperson->email, $salesperson->name)
-                                                ->cc($completedBy->email, $completedBy->name)
                                                 ->subject("Headcount Handover Completed - {$handoverId}");
 
                                             // Attach invoice if uploaded

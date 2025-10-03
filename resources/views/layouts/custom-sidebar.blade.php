@@ -811,6 +811,9 @@
                             <a href="{{ route('filament.admin.pages.search-lead') }}" class="submenu-item">
                                 <span class="module-font">Search Leads</span>
                             </a>
+                            <a href="{{ route('filament.admin.pages.search-license') }}" class="submenu-item">
+                                <span class="module-font">Search License</span>
+                            </a>
                         </div>
                     </div>
 

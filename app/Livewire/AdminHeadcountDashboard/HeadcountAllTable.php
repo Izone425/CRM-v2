@@ -117,17 +117,6 @@ class HeadcountAllTable extends Component implements HasForms, HasTable
                         return $state;
                     }),
 
-                TextColumn::make('salesperson_remark')
-                    ->label('Remark')
-                    ->limit(30)
-                    ->tooltip(function (TextColumn $column): ?string {
-                        $state = $column->getState();
-                        if (strlen($state) <= 30) {
-                            return null;
-                        }
-                        return $state;
-                    }),
-
                 TextColumn::make('status')
                     ->label('STATUS')
                     ->formatStateUsing(fn (string $state): HtmlString => match ($state) {

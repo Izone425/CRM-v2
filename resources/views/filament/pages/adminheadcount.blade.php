@@ -23,17 +23,16 @@
         background-color: white;
         border-radius: 8px;
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        padding: 20px 0px 20px 0px;
+        padding: 20px 15px;
         cursor: pointer;
         transition: all 0.2s;
         border-top: 4px solid transparent;
         display: flex;
         flex-direction: column;
         justify-content: center;
-        align-items: center;
         margin-bottom: 15px;
         width: 100%;
-        text-align: center;
+        text-align: center; /* Changed from center to left */
         max-height: 82px;
         max-width: 220px;
     }
@@ -54,9 +53,12 @@
         flex-direction: column;
     }
 
+
     .group-title {
         font-size: 15px;
         font-weight: 600;
+        margin-bottom: 8px;
+        text-align: left;
     }
 
     .group-desc {
@@ -260,7 +262,7 @@
                 :class="{'selected': selectedGroup === 'headcount-all'}"
                 @click="setSelectedGroup('headcount-all')">
                 <div class="group-info">
-                    <div class="group-title">Headcount All</div>
+                    <div class="group-title">Headcount Handover</div>
                 </div>
                 <div class="group-count">{{ $headcountAllCount }}</div>
             </div>
@@ -270,7 +272,7 @@
                 :class="{'selected': selectedGroup === 'headcount-new'}"
                 @click="setSelectedGroup('headcount-new')">
                 <div class="group-info">
-                    <div class="group-title">Headcount New</div>
+                    <div class="group-title">New Task</div>
                 </div>
                 <div class="group-count">{{ $headcountNewCount }}</div>
             </div>
@@ -280,7 +282,7 @@
                 :class="{'selected': selectedGroup === 'headcount-completed'}"
                 @click="setSelectedGroup('headcount-completed')">
                 <div class="group-info">
-                    <div class="group-title">Headcount Completed</div>
+                    <div class="group-title">Completed Task</div>
                 </div>
                 <div class="group-count">{{ $headcountCompletedCount }}</div>
             </div>
@@ -290,7 +292,7 @@
                 :class="{'selected': selectedGroup === 'headcount-rejected'}"
                 @click="setSelectedGroup('headcount-rejected')">
                 <div class="group-info">
-                    <div class="group-title">Headcount Rejected</div>
+                    <div class="group-title">Rejected Task</div>
                 </div>
                 <div class="group-count">{{ $headcountRejectedCount }}</div>
             </div>
