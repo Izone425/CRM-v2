@@ -291,11 +291,19 @@ class HeadcountHandoverRelationManager extends RelationManager
             Section::make('Salesperson Remark')
                 ->schema([
                     Textarea::make('salesperson_remark')
-                        ->label('Remark')
-                        ->placeholder('Optional remarks from salesperson...')
+                        ->label('SalesPerson Remark')
                         ->rows(4)
                         ->maxLength(1000)
-                        ->helperText('Optional field - Add any additional notes or remarks')
+                        ->extraAlpineAttributes([
+                            'x-on:input' => '
+                                const start = $el.selectionStart;
+                                const end = $el.selectionEnd;
+                                const value = $el.value;
+                                $el.value = value.toUpperCase();
+                                $el.setSelectionRange(start, end);
+                            '
+                        ])
+                        ->dehydrateStateUsing(fn ($state) => strtoupper($state))
                         ->default(fn (?HeadcountHandover $record = null) => $record?->salesperson_remark ?? null),
                 ]),
         ];
