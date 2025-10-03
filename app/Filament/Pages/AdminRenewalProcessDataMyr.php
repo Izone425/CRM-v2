@@ -1169,6 +1169,40 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
                         }
                     })
                     ->indicator('Reseller Status'),
+
+                SelectFilter::make('exclude_resellers')
+                    ->label('Exclude Resellers')
+                    ->multiple()
+                    ->searchable()
+                    ->preload()
+                    ->options(function () {
+                        // Get all unique resellers from the reseller link table
+                        return DB::connection('frontenddb')
+                            ->table('crm_reseller_link')
+                            ->select('reseller_name')
+                            ->whereNotNull('reseller_name')
+                            ->where('reseller_name', '!=', '')
+                            ->distinct()
+                            ->orderBy('reseller_name')
+                            ->pluck('reseller_name', 'reseller_name')
+                            ->toArray();
+                    })
+                    ->query(function (Builder $query, array $data) {
+                        if (!empty($data['values'])) {
+                            // Get company IDs that belong to the excluded resellers
+                            $excludedResellerCompanyIds = DB::connection('frontenddb')
+                                ->table('crm_reseller_link')
+                                ->whereIn('reseller_name', $data['values'])
+                                ->pluck('f_id')
+                                ->toArray();
+
+                            if (!empty($excludedResellerCompanyIds)) {
+                                // Exclude companies that belong to these resellers
+                                $query->whereNotIn('f_company_id', $excludedResellerCompanyIds);
+                            }
+                        }
+                    })
+                    ->indicator('Exclude Resellers'),
             ])
             ->filtersFormColumns(3)
             ->columns([
@@ -2011,6 +2045,126 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
             ])
             ->bulkActions([
                 \Filament\Tables\Actions\BulkActionGroup::make([
+                    \Filament\Tables\Actions\BulkAction::make('batch_complete_renewal')
+                        ->label('Batch Complete Renewal')
+                        ->icon('heroicon-o-check-circle')
+                        ->color('success')
+                        ->requiresConfirmation()
+                        ->modalHeading('Batch Complete Renewal')
+                        ->modalDescription('Are you sure you want to mark all selected renewals as "Completed Renewal"? This will update their renewal progress status.')
+                        ->modalSubmitActionLabel('Yes, Complete Renewals')
+                        ->modalCancelActionLabel('Cancel')
+                        ->action(function ($records) {
+                            $successCount = 0;
+                            $errorCount = 0;
+                            $skippedCount = 0;
+                            $updatedCompanies = [];
+
+                            foreach ($records as $record) {
+                                try {
+                                    // Get existing renewal record
+                                    $renewal = Renewal::where('f_company_id', $record->f_company_id)->first();
+
+                                    if ($renewal) {
+                                        // Skip if already completed
+                                        if ($renewal->renewal_progress === 'completed_renewal') {
+                                            $skippedCount++;
+                                            continue;
+                                        }
+
+                                        // Get current progress_history or initialize as empty array
+                                        $progressHistory = $renewal->progress_history
+                                            ? json_decode($renewal->progress_history, true)
+                                            : [];
+
+                                        // Add new log entry
+                                        $newLogEntry = [
+                                            'timestamp' => now()->toISOString(),
+                                            'action' => 'batch_completion',
+                                            'previous_status' => $renewal->renewal_progress,
+                                            'new_status' => 'completed_renewal',
+                                            'performed_by' => auth()->user()->name,
+                                            'performed_by_id' => auth()->user()->id,
+                                            'description' => 'Renewal marked as completed via batch action',
+                                            'company_name' => $record->f_company_name,
+                                            'f_company_id' => $record->f_company_id,
+                                        ];
+
+                                        // Add the new entry to progress history
+                                        $progressHistory[] = $newLogEntry;
+
+                                        // Update renewal record
+                                        $renewal->update([
+                                            'renewal_progress' => 'completed_renewal',
+                                            'progress_history' => json_encode($progressHistory),
+                                            'payment_completed_at' => now(),
+                                            'payment_completed_by' => auth()->user()->id,
+                                            'updated_at' => now(),
+                                        ]);
+
+                                        $successCount++;
+                                        $updatedCompanies[] = $record->f_company_name;
+                                    } else {
+                                        // Create new renewal record with completed status
+                                        Renewal::create([
+                                            'f_company_id' => $record->f_company_id,
+                                            'company_name' => $record->f_company_name,
+                                            'renewal_progress' => 'completed_renewal',
+                                            'progress_history' => json_encode([[
+                                                'timestamp' => now()->toISOString(),
+                                                'action' => 'batch_completion',
+                                                'previous_status' => null,
+                                                'new_status' => 'completed_renewal',
+                                                'performed_by' => auth()->user()->name,
+                                                'performed_by_id' => auth()->user()->id,
+                                                'description' => 'Renewal created and marked as completed via batch action',
+                                                'company_name' => $record->f_company_name,
+                                                'f_company_id' => $record->f_company_id,
+                                            ]]),
+                                            'payment_completed_at' => now(),
+                                            'payment_completed_by' => auth()->user()->id,
+                                            'mapping_status' => 'completed_mapping',
+                                            'created_at' => now(),
+                                            'updated_at' => now(),
+                                        ]);
+
+                                        $successCount++;
+                                        $updatedCompanies[] = $record->f_company_name;
+                                    }
+                                } catch (\Exception $e) {
+                                    Log::error("Error batch completing renewal for company {$record->f_company_id}: " . $e->getMessage());
+                                    $errorCount++;
+                                }
+                            }
+
+                            // Send notification with results
+                            if ($successCount > 0) {
+                                $message = "Successfully completed {$successCount} renewal(s).";
+                                if ($skippedCount > 0) {
+                                    $message .= " {$skippedCount} were already completed.";
+                                }
+                                if ($errorCount > 0) {
+                                    $message .= " {$errorCount} failed due to errors.";
+                                }
+
+                                Notification::make()
+                                    ->success()
+                                    ->title('Batch Completion Successful')
+                                    ->body($message)
+                                    ->send();
+                            } else {
+                                Notification::make()
+                                    ->warning()
+                                    ->title('No Renewals Completed')
+                                    ->body("No renewals were updated. {$skippedCount} were already completed and {$errorCount} had errors.")
+                                    ->send();
+                            }
+                        })
+                        ->deselectRecordsAfterCompletion()
+                        ->visible(function () {
+                            // Only show if user has appropriate permissions
+                            return auth()->user()->role_id === 1 || auth()->user()->role_id === 3;
+                        }),
                     \Filament\Tables\Actions\BulkAction::make('batch_onhold_mapping')
                         ->label('Batch Update OnHold Mapping')
                         ->icon('heroicon-o-pause-circle')

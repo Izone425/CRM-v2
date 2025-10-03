@@ -65,6 +65,10 @@ class SearchLicense extends Page implements HasForms
                                         TextInput::make('company_name')
                                             ->label('Company Name')
                                             ->placeholder('Enter company name to search...')
+                                            ->live(onBlur: true)
+                                            ->extraAlpineAttributes([
+                                                'x-on:keydown.enter' => '$wire.searchLicense()'
+                                            ])
                                             ->suffixAction(
                                                 \Filament\Forms\Components\Actions\Action::make('search')
                                                     ->icon('heroicon-o-magnifying-glass')
@@ -86,7 +90,10 @@ class SearchLicense extends Page implements HasForms
                                                     ->label('License Expiry Date')
                                                     ->placeholder('Select expiry date...')
                                                     ->native(false)
-                                                    ->displayFormat('d/m/Y'),
+                                                    ->displayFormat('d/m/Y')
+                                                    ->extraAlpineAttributes([
+                                                        'x-on:keydown.enter' => '$wire.calculateRange()'
+                                                    ]),
 
                                                 TextInput::make('result_display')
                                                     ->label('Result')
@@ -115,6 +122,10 @@ class SearchLicense extends Page implements HasForms
                                         TextInput::make('project_company_name')
                                             ->label('Company Name')
                                             ->placeholder('Enter company name to search projects...')
+                                            ->live(onBlur: true)
+                                            ->extraAlpineAttributes([
+                                                'x-on:keydown.enter' => '$wire.searchProjects()'
+                                            ])
                                             ->suffixAction(
                                                 \Filament\Forms\Components\Actions\Action::make('searchProjects')
                                                     ->icon('heroicon-o-magnifying-glass')
@@ -133,6 +144,10 @@ class SearchLicense extends Page implements HasForms
                                         TextInput::make('lead_company_name')
                                             ->label('Company Name')
                                             ->placeholder('Enter company name to search leads...')
+                                            ->live(onBlur: true)
+                                            ->extraAlpineAttributes([
+                                                'x-on:keydown.enter' => '$wire.searchLeads()'
+                                            ])
                                             ->suffixAction(
                                                 \Filament\Forms\Components\Actions\Action::make('searchLeads')
                                                     ->icon('heroicon-o-magnifying-glass')
@@ -335,113 +350,44 @@ class SearchLicense extends Page implements HasForms
         ]);
     }
 
-    private function getCompanyLeads(string $searchTerm): array
+    private function generateLeadHtml($leads): string
     {
-        try {
-            // Search for leads by company name
-            $leads = Lead::with(['companyDetail', 'salespersonUser'])
-                ->whereHas('companyDetail', function ($query) use ($searchTerm) {
-                    $query->where('company_name', 'like', "%{$searchTerm}%");
-                })
-                ->orderBy('created_at', 'desc')
-                ->get();
-
-            $results = [];
-
-            foreach ($leads as $lead) {
-                $results[] = [
-                    'lead' => $lead,
-                    'lead_html' => $this->generateLeadHtml($lead)
-                ];
-            }
-
-            return $results;
-        } catch (\Exception $e) {
-            Log::error('Error searching lead data: ' . $e->getMessage());
-            return [];
-        }
-    }
-
-    private function generateLeadHtml(Lead $lead): string
-    {
-        // Get lead owner name
-        $leadOwner = $lead->lead_owner ?? '-';
-
-        // Get salesperson name
-        $salesperson = $lead->salespersonUser ? $lead->salespersonUser->name : '-';
-
-        // Get company details
-        $companyName = $lead->companyDetail->company_name ?? 'N/A';
-        $companySize = $lead->companyDetail->company_size ?? 'N/A';
-
-        // Get company size label
-        $companySizeLabel = match($companySize) {
-            '1-24' => 'Small',
-            '25-99' => 'Medium',
-            '100-500' => 'Large',
-            '501 and Above' => 'Enterprise',
-            default => 'N/A'
-        };
-
-        // Calculate days from creation
-        $daysFromCreated = $lead->created_at ? Carbon::parse($lead->created_at)->diffInDays(Carbon::now()) . ' days' : 'N/A';
-
-        // Get encrypted ID for link
-        $encryptedId = \App\Classes\Encryptor::encrypt($lead->id);
-        $leadLink = url('admin/leads/' . $encryptedId);
-
-        // Get category color
-        $categoryColor = '';
-        if ($lead->categories) {
-            $categoryEnum = LeadCategoriesEnum::tryFrom($lead->categories);
-            $categoryColor = $categoryEnum ? $categoryEnum->getColor() : '';
+        if (empty($leads)) {
+            return '';
         }
 
-        // Get stage color
-        $stageColor = '';
-        if ($lead->stage) {
-            $stageEnum = LeadStageEnum::tryFrom($lead->stage);
-            $stageColor = $stageEnum ? $stageEnum->getColor() : '';
-        }
-
-        // Get lead status color
-        $leadStatusColor = '';
-        $leadStatusTextColor = '';
-        if ($lead->lead_status) {
-            $leadStatusEnum = LeadStatusEnum::tryFrom($lead->lead_status);
-            $leadStatusColor = $leadStatusEnum ? $leadStatusEnum->getColor() : '';
-            // Add white text for specific statuses
-            $leadStatusTextColor = in_array($lead->lead_status, ['Hot', 'Warm', 'Cold', 'RFQ-Transfer']) ? 'color: white;' : '';
-        }
-
+        // Start the HTML with a single table
         $html = '
-        <div class="lead-container">
+        <div class="leads-container">
             <style>
-                .lead-container {
+                .leads-container {
                     margin: 16px 0;
                     background: white;
                     border-radius: 8px;
                     overflow: hidden;
                     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
                 }
-                .lead-table {
+                .leads-table {
                     width: 100%;
                     border-collapse: collapse;
                 }
-                .lead-table th,
-                .lead-table td {
+                .leads-table th,
+                .leads-table td {
                     padding: 12px;
                     text-align: left;
                     border-bottom: 1px solid #e5e7eb;
                     vertical-align: middle;
                 }
-                .lead-table th {
+                .leads-table th {
                     background-color: #f9fafb;
                     font-weight: 600;
                     color: #374151;
                     font-size: 14px;
+                    position: sticky;
+                    top: 0;
+                    z-index: 10;
                 }
-                .lead-table td {
+                .leads-table td {
                     font-size: 14px;
                     color: #1f2937;
                 }
@@ -468,9 +414,12 @@ class SearchLicense extends Page implements HasForms
                     min-width: 60px;
                 }
                 .text-center { text-align: center; }
+                .leads-table tbody tr:hover {
+                    background-color: #f9fafb;
+                }
             </style>
 
-            <table class="lead-table">
+            <table class="leads-table">
                 <thead>
                     <tr>
                         <th>Lead ID</th>
@@ -479,14 +428,46 @@ class SearchLicense extends Page implements HasForms
                         <th>Created On</th>
                         <th>Company Name</th>
                         <th>Category</th>
-                        <th>Stage</th>
                         <th>Lead Status</th>
-                        <th>From Lead Created</th>
-                        <th>Company Size</th>
-                        <th>Headcount</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody>';
+
+        // Add each lead as a row in the same table
+        foreach ($leads as $leadData) {
+            $lead = $leadData['lead'];
+
+            // Get lead owner name
+            $leadOwner = $lead->lead_owner ?? '-';
+
+            // Get salesperson name
+            $salesperson = $lead->salespersonUser ? $lead->salespersonUser->name : '-';
+
+            // Get company details
+            $companyName = $lead->companyDetail->company_name ?? 'N/A';
+
+            // Get encrypted ID for link
+            $encryptedId = \App\Classes\Encryptor::encrypt($lead->id);
+            $leadLink = url('admin/leads/' . $encryptedId);
+
+            // Get category color
+            $categoryColor = '';
+            if ($lead->categories) {
+                $categoryEnum = LeadCategoriesEnum::tryFrom($lead->categories);
+                $categoryColor = $categoryEnum ? $categoryEnum->getColor() : '';
+            }
+
+            // Get lead status color
+            $leadStatusColor = '';
+            $leadStatusTextColor = '';
+            if ($lead->lead_status) {
+                $leadStatusEnum = LeadStatusEnum::tryFrom($lead->lead_status);
+                $leadStatusColor = $leadStatusEnum ? $leadStatusEnum->getColor() : '';
+                // Add white text for specific statuses
+                $leadStatusTextColor = in_array($lead->lead_status, ['Hot', 'Warm', 'Cold', 'RFQ-Transfer']) ? 'color: white;' : '';
+            }
+
+            $html .= '
                     <tr>
                         <td class="lead-id">' . $lead->id . '</td>
                         <td>' . htmlspecialchars($leadOwner) . '</td>
@@ -503,24 +484,45 @@ class SearchLicense extends Page implements HasForms
                             </span>
                         </td>
                         <td class="text-center">
-                            <span class="status-badge" style="background-color: ' . $stageColor . '; border-radius: 25px; width: 90%; height: 27px;">
-                                ' . htmlspecialchars($lead->stage ?? 'N/A') . '
-                            </span>
-                        </td>
-                        <td class="text-center">
                             <span class="status-badge" style="background-color: ' . $leadStatusColor . '; border-radius: 25px; width: 90%; height: 27px; ' . $leadStatusTextColor . '">
                                 ' . htmlspecialchars($lead->lead_status ?? 'N/A') . '
                             </span>
                         </td>
-                        <td>' . htmlspecialchars($daysFromCreated) . '</td>
-                        <td>' . htmlspecialchars($companySizeLabel) . '</td>
-                        <td>' . htmlspecialchars($companySize) . '</td>
-                    </tr>
+                    </tr>';
+        }
+
+        $html .= '
                 </tbody>
             </table>
         </div>';
 
         return $html;
+    }
+
+    private function getCompanyLeads(string $searchTerm): array
+    {
+        try {
+            // Search for leads by company name
+            $leads = Lead::with(['companyDetail', 'salespersonUser'])
+                ->whereHas('companyDetail', function ($query) use ($searchTerm) {
+                    $query->where('company_name', 'like', "%{$searchTerm}%");
+                })
+                ->orderBy('created_at', 'desc')
+                ->get();
+
+            $results = [];
+
+            foreach ($leads as $lead) {
+                $results[] = [
+                    'lead' => $lead
+                ];
+            }
+
+            return $results;
+        } catch (\Exception $e) {
+            Log::error('Error searching lead data: ' . $e->getMessage());
+            return [];
+        }
     }
 
     private function getCompanyProjects(string $searchTerm): array
@@ -671,12 +673,6 @@ class SearchLicense extends Page implements HasForms
                         <th>Company Name</th>
                         <th>Salesperson</th>
                         <th>Implementer</th>
-                        <th>Status</th>
-                        <th>Modules</th>
-                        <th>Company Size</th>
-                        <th>Headcount</th>
-                        <th>DB Creation</th>
-                        <th>Total Days</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -691,21 +687,6 @@ class SearchLicense extends Page implements HasForms
                         '</td>
                         <td>' . htmlspecialchars($project->salesperson ?? 'N/A') . '</td>
                         <td>' . htmlspecialchars($project->implementer ?? 'N/A') . '</td>
-                        <td>
-                            <span class="status-badge status-' . strtolower($project->status_handover ?? 'open') . '">
-                                ' . htmlspecialchars($project->status_handover ?? 'Open') . '
-                            </span>
-                        </td>
-                        <td class="text-center">
-                            <i class="bi bi-' . ($project->ta ? 'check-circle-fill module-icon active' : 'x-circle-fill module-icon inactive') . '" title="TA"></i>
-                            <i class="bi bi-' . ($project->tl ? 'check-circle-fill module-icon active' : 'x-circle-fill module-icon inactive') . '" title="TL"></i>
-                            <i class="bi bi-' . ($project->tc ? 'check-circle-fill module-icon active' : 'x-circle-fill module-icon inactive') . '" title="TC"></i>
-                            <i class="bi bi-' . ($project->tp ? 'check-circle-fill module-icon active' : 'x-circle-fill module-icon inactive') . '" title="TP"></i>
-                        </td>
-                        <td>' . htmlspecialchars($companySize) . '</td>
-                        <td>' . htmlspecialchars($project->headcount ?? 'N/A') . '</td>
-                        <td>' . ($project->completed_at ? Carbon::parse($project->completed_at)->format('d M Y') : 'N/A') . '</td>
-                        <td>' . htmlspecialchars($totalDays) . '</td>
                     </tr>
                 </tbody>
             </table>

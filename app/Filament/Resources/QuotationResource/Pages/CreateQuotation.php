@@ -73,14 +73,25 @@ class CreateQuotation extends CreateRecord
             $lead = $this->record->lead; // Assuming the 'lead' relationship exists in Quotation
 
             if ($lead) {
-                // Check if this is the first quotation for this lead WITH THIS SALES TYPE
-                $quotationCount = $lead->quotations()
+                // FIXED: Check if there are OTHER quotations for this lead WITH THIS SALES TYPE (excluding current one)
+                $existingQuotationsCount = $lead->quotations()
                     ->where('sales_type', $this->record->sales_type)
+                    ->where('id', '!=', $this->record->id) // Exclude current quotation
                     ->count();
 
-                // If this is the first quotation of this sales type, mark it as final
-                if ($quotationCount <= 1) {
+                // If there are no other quotations of this sales type, mark this as final
+                if ($existingQuotationsCount == 0) {
                     $this->record->mark_as_final = 1;
+
+                    // IMPORTANT: Also unmark any other quotations of the same sales type as final
+                    // This handles edge cases where data might be inconsistent
+                    $lead->quotations()
+                        ->where('sales_type', $this->record->sales_type)
+                        ->where('id', '!=', $this->record->id)
+                        ->update(['mark_as_final' => 0]);
+                } else {
+                    // If there are already other quotations of this sales type, this one should not be final
+                    $this->record->mark_as_final = 0;
                 }
 
                 // Update lead status based on current status

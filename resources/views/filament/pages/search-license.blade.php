@@ -2,55 +2,53 @@
 <x-filament-panels::page>
     <div class="space-y-6">
         <!-- Forms Container with Tabs -->
-        <div class="p-6 bg-white border border-gray-200 rounded-lg shadow-sm">
-            {{ $this->form }}
+        {{ $this->form }}
 
-            <!-- Action Buttons -->
-            <div class="flex flex-wrap gap-3 mt-4">
-                @if($hasSearched && !empty($searchResults))
-                    <x-filament::button
-                        color="gray"
-                        wire:click="clearSearch"
-                        icon="heroicon-o-x-mark"
-                        size="sm"
-                    >
-                        Clear Search Results
-                    </x-filament::button>
-                @endif
+        <!-- Action Buttons -->
+        <div class="flex flex-wrap gap-3 mt-4">
+            @if($hasSearched && !empty($searchResults))
+                <x-filament::button
+                    color="gray"
+                    wire:click="clearSearch"
+                    icon="heroicon-o-x-mark"
+                    size="sm"
+                >
+                    Clear Search Results
+                </x-filament::button>
+            @endif
 
-                @if($hasProjectSearched && !empty($projectResults))
-                    <x-filament::button
-                        color="gray"
-                        wire:click="clearProjectSearch"
-                        icon="heroicon-o-x-mark"
-                        size="sm"
-                    >
-                        Clear Project Results
-                    </x-filament::button>
-                @endif
+            @if($hasProjectSearched && !empty($projectResults))
+                <x-filament::button
+                    color="gray"
+                    wire:click="clearProjectSearch"
+                    icon="heroicon-o-x-mark"
+                    size="sm"
+                >
+                    Clear Project Results
+                </x-filament::button>
+            @endif
 
-                @if($hasLeadSearched && !empty($leadResults))
-                    <x-filament::button
-                        color="gray"
-                        wire:click="clearLeadSearch"
-                        icon="heroicon-o-x-mark"
-                        size="sm"
-                    >
-                        Clear Lead Results
-                    </x-filament::button>
-                @endif
+            @if($hasLeadSearched && !empty($leadResults))
+                <x-filament::button
+                    color="gray"
+                    wire:click="clearLeadSearch"
+                    icon="heroicon-o-x-mark"
+                    size="sm"
+                >
+                    Clear Lead Results
+                </x-filament::button>
+            @endif
 
-                @if($hasCalculated)
-                    <x-filament::button
-                        color="gray"
-                        wire:click="clearCalculator"
-                        icon="heroicon-o-x-mark"
-                        size="sm"
-                    >
-                        Clear Calculator
-                    </x-filament::button>
-                @endif
-            </div>
+            @if($hasCalculated)
+                <x-filament::button
+                    color="gray"
+                    wire:click="clearCalculator"
+                    icon="heroicon-o-x-mark"
+                    size="sm"
+                >
+                    Clear Calculator
+                </x-filament::button>
+            @endif
         </div>
 
         <!-- Calculator Result Display -->
@@ -132,18 +130,16 @@
         @if($hasLeadSearched)
             @if(!empty($leadResults))
                 <div class="space-y-6">
-                    @foreach($leadResults as $result)
-                        <div class="p-6 bg-white border border-gray-200 rounded-lg shadow-sm">
-                            <h3 class="mb-4 text-lg font-semibold text-gray-900">
-                                {{ $result['lead']->companyDetail->company_name ?? 'N/A' }}
-                                <span class="text-sm font-normal text-gray-500">(Lead ID: {{ $result['lead']->id }})</span>
-                            </h3>
+                    <div class="p-6 bg-white border border-gray-200 rounded-lg shadow-sm">
+                        <h3 class="mb-4 text-lg font-semibold text-gray-900">
+                            Lead Search Results
+                            <span class="text-sm font-normal text-gray-500">({{ count($leadResults) }} lead(s) found)</span>
+                        </h3>
 
-                            <div class="lead-content">
-                                {!! $result['lead_html'] !!}
-                            </div>
+                        <div class="lead-content">
+                            {!! $this->generateLeadHtml($leadResults) !!}
                         </div>
-                    @endforeach
+                    </div>
                 </div>
             @else
                 <div class="p-12 text-center bg-white border border-gray-200 rounded-lg shadow-sm">
