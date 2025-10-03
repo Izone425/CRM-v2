@@ -72,11 +72,6 @@
     </style>
 </head>
 <body>
-    <div class="header">
-        <h2>🎉 Headcount Handover Completed</h2>
-        <div class="success-badge">COMPLETED</div>
-    </div>
-
     <div class="content">
         <p>Dear {{ $salesperson->name }},</p>
 
@@ -99,12 +94,6 @@
                 <th>Completed At:</th>
                 <td>{{ $completedAt->format('d M Y, H:i A') }}</td>
             </tr>
-            @if($record->salesperson_remark)
-            <tr>
-                <th>Your Remark:</th>
-                <td>{{ $record->salesperson_remark }}</td>
-            </tr>
-            @endif
         </table>
     </div>
 </body>

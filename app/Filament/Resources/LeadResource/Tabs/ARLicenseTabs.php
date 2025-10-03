@@ -215,6 +215,7 @@ class ARLicenseTabs
                 } else {
                     $invoiceLink = '#'; // Fallback if no f_id
                 }
+
                 $html .= '
                 <div class="invoice-group">
                     <div class="invoice-title">Invoice: <a href="' . $invoiceLink . '" target="_blank" class="invoice-link">' . htmlspecialchars($invoiceNumber) . '</a></div>
@@ -244,6 +245,12 @@ class ARLicenseTabs
                                     <td>' . date('d M Y', strtotime($product['f_expiry_date'])) . '</td>
                                 </tr>';
                 }
+
+                $html .= '
+                            </tbody>
+                        </table>
+                    </div>
+                </div>';
             }
 
             $html .= '</div>';

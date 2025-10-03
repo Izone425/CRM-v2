@@ -631,7 +631,7 @@ class SoftwareHandoverRelationManager extends RelationManager
             // Action 1: Warning notification when e-invoice is incomplete
             Tables\Actions\Action::make('EInvoiceWarning')
                 ->label('Add Software Handover')
-                ->icon('heroicon-o-pencil')
+                ->icon('heroicon-o-plus')
                 ->color('gray')
                 ->visible(function () use ($leadStatus, $isCompanyDetailsIncomplete) {
                     return $leadStatus !== 'Closed' || $isCompanyDetailsIncomplete;
@@ -648,7 +648,7 @@ class SoftwareHandoverRelationManager extends RelationManager
             // Action 2: Actual form when e-invoice is complete
             Tables\Actions\Action::make('AddSoftwareHandover')
                 ->label('Add Software Handover')
-                ->icon('heroicon-o-pencil')
+                ->icon('heroicon-o-plus')
                 ->color('primary')
                 ->visible(function () use ($leadStatus, $isCompanyDetailsIncomplete) {
                     return $leadStatus === 'Closed' && !$isCompanyDetailsIncomplete;

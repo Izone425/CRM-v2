@@ -66,6 +66,11 @@ class HandoverDetailTabs
                             ),
                         ]),
 
+                    Tabs\Tab::make('Finance Handover')
+                        ->schema([
+
+                        ]),
+
                     Tabs\Tab::make('OnSite Repair')
                         ->schema([
 

@@ -318,7 +318,7 @@ class HeadcountHandoverRelationManager extends RelationManager
             // Action 1: Warning notification when requirements are not met
             Tables\Actions\Action::make('HeadcountHandoverWarning')
                 ->label('Add Headcount Handover')
-                ->icon('heroicon-o-pencil')
+                ->icon('heroicon-o-plus')
                 ->color('gray')
                 ->visible(function () use ($leadStatus, $isCompanyDetailsIncomplete) {
                     return $leadStatus !== 'Closed' || $isCompanyDetailsIncomplete;
@@ -335,7 +335,7 @@ class HeadcountHandoverRelationManager extends RelationManager
             // Action 2: Actual form when requirements are met
             Tables\Actions\Action::make('AddHeadcountHandover')
                 ->label('Add Headcount Handover')
-                ->icon('heroicon-o-pencil')
+                ->icon('heroicon-o-plus')
                 ->color('primary')
                 ->visible(function () use ($leadStatus, $isCompanyDetailsIncomplete) {
                     return $leadStatus === 'Closed' && !$isCompanyDetailsIncomplete;

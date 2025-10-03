@@ -110,17 +110,14 @@ class LeadResource extends Resource
     {
         $tabs = [];
 
-        // Check if we should load tabs from session (for view page)
-        $activeTabs = [];
+        // Get tabs from session (set by ViewLeadRecord component)
+        $activeTabs = session('lead_visible_tabs', []);
 
-        if (session()->has('lead_visible_tabs')) {
-            // Get tabs from session (set by ViewLeadRecord component)
-            $activeTabs = session('lead_visible_tabs');
-        } else {
+        if (empty($activeTabs)) {
             // Default tabs based on user role
             $user = auth()->user();
 
-            if (! $user) {
+            if (!$user) {
                 $activeTabs = ['lead', 'company'];
             } elseif ($user->role_id === 1) { // Lead Owner
                 $activeTabs = ['prospect_details', 'subscriber_details', 'sales_progress', 'commercial_items', 'handover_details'];
@@ -143,7 +140,7 @@ class LeadResource extends Resource
             }
         }
 
-        // Add tabs based on permissions
+        // Add tabs based on permissions - MAKE SURE ALL TABS ARE DEFINED
         if (in_array('lead', $activeTabs)) {
             $tabs[] = Tabs\Tab::make('Lead')
                 ->schema(LeadTabs::getSchema());
@@ -154,6 +151,7 @@ class LeadResource extends Resource
                 ->schema(CompanyTabs::getSchema());
         }
 
+        // Add ALL the missing tab definitions
         if (in_array('prospect_pic_details', $activeTabs)) {
             $tabs[] = Tabs\Tab::make('Prospect PICs')
                 ->schema(ProspectPICTabs::getSchema());
@@ -214,20 +212,21 @@ class LeadResource extends Resource
                 ->schema(ImplementerAppointmentTabs::getSchema());
         }
 
-        // if (in_array('data_file', $activeTabs)) {
-        //     $tabs[] = Tabs\Tab::make('Data Files')
-        //         ->schema(DataFileTabs::getSchema());
-        // }
+        // UNCOMMENT AND FIX THESE TABS
+        if (in_array('data_file', $activeTabs)) {
+            $tabs[] = Tabs\Tab::make('Data Files')
+                ->schema(DataFileTabs::getSchema());
+        }
 
-        // if (in_array('implementer_service_form', $activeTabs)) {
-        //     $tabs[] = Tabs\Tab::make('Service Form')
-        //         ->schema(ImplementerServiceFormTabs::getSchema());
-        // }
+        if (in_array('implementer_service_form', $activeTabs)) {
+            $tabs[] = Tabs\Tab::make('Service Form')
+                ->schema(ImplementerServiceFormTabs::getSchema());
+        }
 
-        // if (in_array('other_form', $activeTabs)) {
-        //     $tabs[] = Tabs\Tab::make('Other Form')
-        //         ->schema(OtherFormTabs::getSchema());
-        // }
+        if (in_array('other_form', $activeTabs)) {
+            $tabs[] = Tabs\Tab::make('Other Form')
+                ->schema(OtherFormTabs::getSchema());
+        }
 
         if (in_array('ar_details', $activeTabs)) {
             $tabs[] = Tabs\Tab::make('Renewal Details')
@@ -243,14 +242,17 @@ class LeadResource extends Resource
             $tabs[] = Tabs\Tab::make('Renewal Quotation')
                 ->schema(ARQuotationTabs::getSchema());
         }
+
         if (in_array('ar_proforma_invoice', $activeTabs)) {
             $tabs[] = Tabs\Tab::make('Renewal PI')
                 ->schema(ARProformaInvoiceTabs::getSchema());
         }
+
         if (in_array('ar_follow_up', $activeTabs)) {
             $tabs[] = Tabs\Tab::make('Renewal Follow Up')
                 ->schema(ARFollowUpTabs::getSchema());
         }
+
         if (in_array('ar_notes', $activeTabs)) {
             $tabs[] = Tabs\Tab::make('Renewal Notes')
                 ->schema(ARNotesTabs::getSchema());
@@ -271,20 +273,16 @@ class LeadResource extends Resource
                 ->schema(HandoverDetailTabs::getSchema());
         }
 
-        // if (in_array('quotation', $activeTabs)) {
-        //     $tabs[] = Tabs\Tab::make('Quotation')
-        //         ->schema(QuotationTabs::getSchema());
-        // }
+        // UNCOMMENT THESE IF NEEDED
+        if (in_array('quotation', $activeTabs)) {
+            $tabs[] = Tabs\Tab::make('Quotation')
+                ->schema(QuotationTabs::getSchema());
+        }
 
-        // if (in_array('proforma_invoice', $activeTabs)) {
-        //     $tabs[] = Tabs\Tab::make('Proforma Invoice')
-        //         ->schema(ProformaInvoiceTabs::getSchema());
-        // }
-
-        // if (in_array('invoice', $activeTabs)) {
-        //     $tabs[] = Tabs\Tab::make('Invoice')
-        //         ->schema([]);
-        // }
+        if (in_array('proforma_invoice', $activeTabs)) {
+            $tabs[] = Tabs\Tab::make('Proforma Invoice')
+                ->schema(ProformaInvoiceTabs::getSchema());
+        }
 
         if (in_array('software_handover', $activeTabs)) {
             $tabs[] = Tabs\Tab::make('Software Handover')
@@ -301,10 +299,16 @@ class LeadResource extends Resource
                 ->schema(RepairAppointmentTabs::getSchema());
         }
 
-        // if (in_array('ticketing', $activeTabs)) {
-        //     $tabs[] = Tabs\Tab::make('Ticketing')
-        //         ->schema(TicketingTabs::getSchema());
-        // }
+        if (in_array('ticketing', $activeTabs)) {
+            $tabs[] = Tabs\Tab::make('Ticketing')
+                ->schema(TicketingTabs::getSchema());
+        }
+
+        // Ensure at least one tab is always shown
+        if (empty($tabs)) {
+            $tabs[] = Tabs\Tab::make('Company')
+                ->schema(CompanyTabs::getSchema());
+        }
 
         return $form
             ->schema([

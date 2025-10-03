@@ -59,7 +59,12 @@ class CommercialItemTabs
                             ),
                         ]),
 
-                    Tabs\Tab::make('Invoice')
+                    Tabs\Tab::make('Purchase Order')
+                        ->schema([
+
+                        ]),
+
+                    Tabs\Tab::make('Sales Invoice')
                         ->schema([
 
                         ]),
