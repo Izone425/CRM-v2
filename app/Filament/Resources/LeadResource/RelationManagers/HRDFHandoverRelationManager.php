@@ -82,7 +82,7 @@ class HRDFHandoverRelationManager extends RelationManager
                         ->schema([
                             // Box 1 - JD14 Form (Compulsory)
                             FileUpload::make('jd14_form_files')
-                                ->label('Box 1: Upload JD14 Form + 3 Days (COMPULSORY)')
+                                ->label('JD14 Form + 3 Days')
                                 ->disk('public')
                                 ->directory('handovers/hrdf/jd14_forms')
                                 ->visibility('public')
@@ -90,7 +90,7 @@ class HRDFHandoverRelationManager extends RelationManager
                                 ->maxFiles(4)
                                 ->required()
                                 ->acceptedFileTypes(['application/pdf'])
-                                ->helperText('Upload JD14 Form files (Maximum 4 PDF files)')
+                                ->helperText('(Maximum 4 PDF files)')
                                 ->openable()
                                 ->downloadable()
                                 ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
@@ -118,7 +118,7 @@ class HRDFHandoverRelationManager extends RelationManager
 
                             // Box 2 - AutoCount Invoice (Compulsory)
                             FileUpload::make('autocount_invoice_file')
-                                ->label('Box 2: AutoCount Invoice (COMPULSORY)')
+                                ->label('AutoCount Invoice')
                                 ->disk('public')
                                 ->directory('handovers/hrdf/autocount_invoices')
                                 ->visibility('public')
@@ -126,7 +126,7 @@ class HRDFHandoverRelationManager extends RelationManager
                                 ->maxFiles(1)
                                 ->required()
                                 ->acceptedFileTypes(['application/pdf'])
-                                ->helperText('Upload AutoCount Invoice (Maximum 1 PDF file)')
+                                ->helperText('(Maximum 1 PDF file)')
                                 ->openable()
                                 ->downloadable()
                                 ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
@@ -154,7 +154,7 @@ class HRDFHandoverRelationManager extends RelationManager
 
                             // Box 3 - HRDF Grant Approval Letter (Compulsory)
                             FileUpload::make('hrdf_grant_approval_file')
-                                ->label('Box 3: HRDF Grant Approval Letter (COMPULSORY)')
+                                ->label('HRDF Grant Approval Letter')
                                 ->disk('public')
                                 ->directory('handovers/hrdf/grant_approvals')
                                 ->visibility('public')
@@ -162,7 +162,7 @@ class HRDFHandoverRelationManager extends RelationManager
                                 ->maxFiles(1)
                                 ->required()
                                 ->acceptedFileTypes(['application/pdf'])
-                                ->helperText('Upload HRDF Grant Approval Letter (Maximum 1 PDF file)')
+                                ->helperText('(Maximum 1 PDF file)')
                                 ->openable()
                                 ->downloadable()
                                 ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
@@ -196,7 +196,6 @@ class HRDFHandoverRelationManager extends RelationManager
                                 ->required()
                                 ->placeholder('Enter HRDF Grant ID')
                                 ->maxLength(50)
-                                ->regex('/^[a-zA-Z0-9]+$/')
                                 ->extraAlpineAttributes([
                                     'x-on:input' => '
                                         const start = $el.selectionStart;
@@ -210,11 +209,9 @@ class HRDFHandoverRelationManager extends RelationManager
 
                             // Salesperson Remark - Optional
                             Textarea::make('salesperson_remark')
-                                ->label('Remark')
-                                ->placeholder('Optional remarks from salesperson...')
+                                ->label('SalesPerson Remark')
                                 ->rows(4)
                                 ->maxLength(1000)
-                                ->helperText('Optional field - Add any additional notes or remarks')
                                 ->default(fn (?HRDFHandover $record = null) => $record?->salesperson_remark ?? null)
                                 ->extraAlpineAttributes([
                                     'x-on:input' => '
@@ -357,17 +354,6 @@ class HRDFHandoverRelationManager extends RelationManager
                     ->label('Company Name')
                     ->limit(30),
 
-                TextColumn::make('salesperson_remark')
-                    ->label('Remark')
-                    ->limit(50)
-                    ->tooltip(function (TextColumn $column): ?string {
-                        $state = $column->getState();
-                        if (strlen($state) <= 50) {
-                            return null;
-                        }
-                        return $state;
-                    }),
-
                 TextColumn::make('status')
                     ->label('STATUS')
                     ->formatStateUsing(fn (string $state): HtmlString => match ($state) {
@@ -398,35 +384,35 @@ class HRDFHandoverRelationManager extends RelationManager
                                 ->with('extraAttributes', ['record' => $record]);
                         }),
 
-                    Action::make('edit_hrdf_handover')
-                        ->modalHeading(function (HRDFHandover $record): string {
-                            $formattedId = 'HRDF_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
-                            return "Edit HRDF Handover {$formattedId}";
-                        })
-                        ->label('Edit HRDF Handover')
-                        ->icon('heroicon-o-pencil')
-                        ->color('warning')
-                        ->modalSubmitActionLabel('Save Changes')
-                        ->visible(fn (HRDFHandover $record): bool => in_array($record->status, ['Draft', 'New']))
-                        ->modalWidth(MaxWidth::FourExtraLarge)
-                        ->slideOver()
-                        ->form($this->defaultForm())
-                        ->action(function (HRDFHandover $record, array $data): void {
-                            // Handle file array encodings
-                            foreach (['jd14_form_files', 'autocount_invoice_file', 'hrdf_grant_approval_file'] as $field) {
-                                if (isset($data[$field]) && is_array($data[$field])) {
-                                    $data[$field] = json_encode($data[$field]);
-                                }
-                            }
+                    // Action::make('edit_hrdf_handover')
+                    //     ->modalHeading(function (HRDFHandover $record): string {
+                    //         $formattedId = 'HRDF_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+                    //         return "Edit HRDF Handover {$formattedId}";
+                    //     })
+                    //     ->label('Edit HRDF Handover')
+                    //     ->icon('heroicon-o-pencil')
+                    //     ->color('warning')
+                    //     ->modalSubmitActionLabel('Save Changes')
+                    //     ->visible(fn (HRDFHandover $record): bool => in_array($record->status, ['Draft', 'New']))
+                    //     ->modalWidth(MaxWidth::FourExtraLarge)
+                    //     ->slideOver()
+                    //     ->form($this->defaultForm())
+                    //     ->action(function (HRDFHandover $record, array $data): void {
+                    //         // Handle file array encodings
+                    //         foreach (['jd14_form_files', 'autocount_invoice_file', 'hrdf_grant_approval_file'] as $field) {
+                    //             if (isset($data[$field]) && is_array($data[$field])) {
+                    //                 $data[$field] = json_encode($data[$field]);
+                    //             }
+                    //         }
 
-                            // Update the record
-                            $record->update($data);
+                    //         // Update the record
+                    //         $record->update($data);
 
-                            Notification::make()
-                                ->title('HRDF handover updated successfully')
-                                ->success()
-                                ->send();
-                        }),
+                    //         Notification::make()
+                    //             ->title('HRDF handover updated successfully')
+                    //             ->success()
+                    //             ->send();
+                    //     }),
 
                     Action::make('view_reason')
                         ->label('View Rejection Reason')

@@ -447,17 +447,6 @@ class HeadcountHandoverRelationManager extends RelationManager
                     ->label('Company Name')
                     ->limit(30),
 
-                TextColumn::make('salesperson_remark')
-                    ->label('Remark')
-                    ->limit(50)
-                    ->tooltip(function (TextColumn $column): ?string {
-                        $state = $column->getState();
-                        if (strlen($state) <= 50) {
-                            return null;
-                        }
-                        return $state;
-                    }),
-
                 TextColumn::make('status')
                     ->label('STATUS')
                     ->formatStateUsing(fn (string $state): HtmlString => match ($state) {
@@ -488,49 +477,49 @@ class HeadcountHandoverRelationManager extends RelationManager
                                 ->with('extraAttributes', ['record' => $record]);
                         }),
 
-                    Action::make('edit_headcount_handover')
-                        ->modalHeading(function (HeadcountHandover $record): string {
-                            $formattedId = 'HC_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
-                            return "Edit Headcount Handover {$formattedId}";
-                        })
-                        ->label('Edit Headcount Handover')
-                        ->icon('heroicon-o-pencil')
-                        ->color('warning')
-                        ->modalSubmitActionLabel('Save Changes')
-                        ->visible(fn (HeadcountHandover $record): bool => in_array($record->status, ['Draft', 'New']))
-                        ->modalWidth(MaxWidth::FourExtraLarge)
-                        ->slideOver()
-                        ->form($this->defaultForm())
-                        ->action(function (HeadcountHandover $record, array $data): void {
-                            // Validation: Check if at least one document is uploaded
-                            $hasPaymentSlip = !empty($data['payment_slip_file']);
-                            $hasConfirmationOrder = !empty($data['confirmation_order_file']);
+                    // Action::make('edit_headcount_handover')
+                    //     ->modalHeading(function (HeadcountHandover $record): string {
+                    //         $formattedId = 'HC_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+                    //         return "Edit Headcount Handover {$formattedId}";
+                    //     })
+                    //     ->label('Edit Headcount Handover')
+                    //     ->icon('heroicon-o-pencil')
+                    //     ->color('warning')
+                    //     ->modalSubmitActionLabel('Save Changes')
+                    //     ->visible(fn (HeadcountHandover $record): bool => in_array($record->status, ['Draft', 'Rejected']))
+                    //     ->modalWidth(MaxWidth::FourExtraLarge)
+                    //     ->slideOver()
+                    //     ->form($this->defaultForm())
+                    //     ->action(function (HeadcountHandover $record, array $data): void {
+                    //         // Validation: Check if at least one document is uploaded
+                    //         $hasPaymentSlip = !empty($data['payment_slip_file']);
+                    //         $hasConfirmationOrder = !empty($data['confirmation_order_file']);
 
-                            if (!$hasPaymentSlip && !$hasConfirmationOrder) {
-                                Notification::make()
-                                    ->danger()
-                                    ->title('Upload Required')
-                                    ->body('You must upload at least one document: Payment Slip OR Confirmation Order.')
-                                    ->persistent()
-                                    ->send();
-                                return;
-                            }
+                    //         if (!$hasPaymentSlip && !$hasConfirmationOrder) {
+                    //             Notification::make()
+                    //                 ->danger()
+                    //                 ->title('Upload Required')
+                    //                 ->body('You must upload at least one document: Payment Slip OR Confirmation Order.')
+                    //                 ->persistent()
+                    //                 ->send();
+                    //             return;
+                    //         }
 
-                            // Handle file array encodings
-                            foreach (['payment_slip_file', 'confirmation_order_file', 'proforma_invoice_product', 'proforma_invoice_hrdf'] as $field) {
-                                if (isset($data[$field]) && is_array($data[$field])) {
-                                    $data[$field] = json_encode($data[$field]);
-                                }
-                            }
+                    //         // Handle file array encodings
+                    //         foreach (['payment_slip_file', 'confirmation_order_file', 'proforma_invoice_product', 'proforma_invoice_hrdf'] as $field) {
+                    //             if (isset($data[$field]) && is_array($data[$field])) {
+                    //                 $data[$field] = json_encode($data[$field]);
+                    //             }
+                    //         }
 
-                            // Update the record
-                            $record->update($data);
+                    //         // Update the record
+                    //         $record->update($data);
 
-                            Notification::make()
-                                ->title('Headcount handover updated successfully')
-                                ->success()
-                                ->send();
-                        }),
+                    //         Notification::make()
+                    //             ->title('Headcount handover updated successfully')
+                    //             ->success()
+                    //             ->send();
+                    //     }),
 
                     Action::make('view_reason')
                         ->label('View Rejection Reason')

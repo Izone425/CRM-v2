@@ -313,13 +313,17 @@
     }
 
     .empty-state {
+        display: block;
         text-align: center;
         color: #6b7280;
         font-style: italic;
-        padding: 12px;
+        padding: 10px;
         background: #f9fafb;
-        border-radius: 6px;
+        border-radius: 8px;
         border: 1px dashed #d1d5db;
+        margin: 0;
+        width: 100%;
+        box-sizing: border-box;
     }
 </style>
 

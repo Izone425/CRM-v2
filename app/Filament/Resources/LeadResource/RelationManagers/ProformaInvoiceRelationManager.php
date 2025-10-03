@@ -79,7 +79,8 @@ class ProformaInvoiceRelationManager extends RelationManager
                 $this->quotation = Quotation::where('lead_id', $leadId)->latest()->first();
 
                 return Quotation::where('status', QuotationStatusEnum::accepted)
-                                ->where('lead_id', $leadId);
+                                ->where('lead_id', $leadId)
+                                ->orderBy('quotation_date', 'desc');
             })
             ->columns([
                 TextColumn::make('pi_reference_no')
