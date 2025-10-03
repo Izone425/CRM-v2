@@ -16,6 +16,7 @@ class HRDFHandover extends Model
         'lead_id',
         'subsidiary_id',
         'hrdf_grant_id',
+        'hrdf_claim_id',
         'jd14_form_files',
         'autocount_invoice_file',
         'hrdf_grant_approval_file',
@@ -43,6 +44,11 @@ class HRDFHandover extends Model
     public function setHrdfGrantIdAttribute($value)
     {
         $this->attributes['hrdf_grant_id'] = $value ? Str::upper($value) : $value;
+    }
+
+    public function setHrdfClaimIdAttribute($value)
+    {
+        $this->attributes['hrdf_claim_id'] = $value ? Str::upper($value) : $value;
     }
 
     public function setSalespersonRemarkAttribute($value)
