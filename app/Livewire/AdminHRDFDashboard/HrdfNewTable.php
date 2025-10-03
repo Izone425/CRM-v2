@@ -186,14 +186,39 @@ class HrdfNewTable extends Component implements HasForms, HasTable
                         ->icon('heroicon-o-check-circle')
                         ->color('success')
                         ->visible(fn(): bool => auth()->user()->role_id === 3) // Only managers can complete
-                        ->requiresConfirmation()
-                        ->action(function (HRDFHandover $record): void {
+                        ->form([
+                            \Filament\Forms\Components\TextInput::make('hrdf_claim_id')
+                                ->label('HRDF Claim ID')
+                                ->required()
+                                ->placeholder('Enter HRDF Claim ID')
+                                ->maxLength(100)
+                                ->extraAlpineAttributes([
+                                    'x-on:input' => '
+                                        const start = $el.selectionStart;
+                                        const end = $el.selectionEnd;
+                                        const value = $el.value;
+                                        $el.value = value.toUpperCase();
+                                        $el.setSelectionRange(start, end);
+                                    '
+                                ])
+                                ->dehydrateStateUsing(fn ($state) => strtoupper($state))
+                                ->validationMessages([
+                                    'required' => 'HRDF Claim ID is required.',
+                                    'max' => 'HRDF Claim ID cannot exceed 100 characters.',
+                                ])
+                                ->helperText('This will be saved as the HRDF Claim ID for this handover'),
+                        ])
+                        ->modalHeading('Complete HRDF Handover')
+                        ->modalSubmitActionLabel('Complete Handover')
+                        ->modalWidth('md')
+                        ->action(function (HRDFHandover $record, array $data): void {
                             try {
-                                // Update the record
+                                // Update the record with completion details and HRDF Claim ID
                                 $record->update([
                                     'status' => 'Completed',
                                     'completed_by' => auth()->id(),
                                     'completed_at' => now(),
+                                    'hrdf_claim_id' => $data['hrdf_claim_id'], // Save the HRDF Claim ID
                                 ]);
 
                                 // Get necessary data for email
@@ -218,6 +243,7 @@ class HrdfNewTable extends Component implements HasForms, HasTable
                                             'salesperson' => $salesperson,
                                             'completedBy' => $completedBy,
                                             'completedAt' => now(),
+                                            'hrdfClaimId' => $data['hrdf_claim_id'], // Include HRDF Claim ID in email
                                             'record' => $record
                                         ], function ($mail) use ($salesperson, $handoverId) {
                                             $mail->to($salesperson->email, $salesperson->name)
@@ -226,6 +252,7 @@ class HrdfNewTable extends Component implements HasForms, HasTable
 
                                         \Illuminate\Support\Facades\Log::info("HRDF handover completion email sent", [
                                             'handover_id' => $handoverId,
+                                            'hrdf_claim_id' => $data['hrdf_claim_id'],
                                             'salesperson_email' => $salesperson->email,
                                             'completed_by' => $completedBy->email
                                         ]);
@@ -239,8 +266,8 @@ class HrdfNewTable extends Component implements HasForms, HasTable
                                 }
 
                                 Notification::make()
-                                    ->title('HRDF handover marked as completed successfully')
-                                    ->body("HRDF handover {$handoverId} has been completed and notification sent to salesperson.")
+                                    ->title('HRDF handover completed successfully')
+                                    ->body("HRDF handover {$handoverId} has been completed with Claim ID: {$data['hrdf_claim_id']}")
                                     ->success()
                                     ->send();
 
@@ -252,6 +279,7 @@ class HrdfNewTable extends Component implements HasForms, HasTable
                                     ->send();
                             }
                         }),
+
 
                     Action::make('reject')
                         ->label('Reject')
