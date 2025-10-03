@@ -247,7 +247,7 @@ class HrdfNewTable extends Component implements HasForms, HasTable
                                             'record' => $record
                                         ], function ($mail) use ($salesperson, $handoverId) {
                                             $mail->to($salesperson->email, $salesperson->name)
-                                                ->subject("{$handoverId} | Completed");
+                                                ->subject("HRDF HANDOVER | {$handoverId} | COMPLETED");
                                         });
 
                                         \Illuminate\Support\Facades\Log::info("HRDF handover completion email sent", [

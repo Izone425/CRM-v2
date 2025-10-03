@@ -117,7 +117,7 @@
                                     display: none;
                                     position: absolute;
                                     background-color: white;
-                                    min-width: 160px;
+                                    min-width: 200px;
                                     box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
                                     z-index: 1000;
                                     border-radius: 6px;
@@ -175,6 +175,39 @@
                                     </button>
 
                                     <button
+                                        wire:click="toggleDashboard('AdminHeadcount')"
+                                        style="
+                                            display: block;
+                                            width: 100%;
+                                            padding: 10px 16px;
+                                            text-align: left;
+                                            border: none;
+                                            background: {{ $currentDashboard === 'AdminHeadcount' ? '#f3f3f3' : 'white' }};
+                                            cursor: pointer;
+                                            font-size: 14px;
+                                        "
+                                    >
+                                        Admin - Headcount
+                                    </button>
+
+
+                                    <button
+                                        wire:click="toggleDashboard('AdminHRDF')"
+                                        style="
+                                            display: block;
+                                            width: 100%;
+                                            padding: 10px 16px;
+                                            text-align: left;
+                                            border: none;
+                                            background: {{ $currentDashboard === 'AdminHRDF' ? '#f3f3f3' : 'white' }};
+                                            cursor: pointer;
+                                            font-size: 14px;
+                                        "
+                                    >
+                                        Admin - HRDF
+                                    </button>
+
+                                    <button
                                         wire:click="toggleDashboard('AdminRepair')"
                                         style="
                                             display: block;
@@ -187,7 +220,23 @@
                                             font-size: 14px;
                                         "
                                     >
-                                        Admin - Repair
+                                        Admin - Onsite Repair
+                                    </button>
+
+                                    <button
+                                        wire:click="toggleDashboard('Debtor')"
+                                        style="
+                                            display: block;
+                                            width: 100%;
+                                            padding: 10px 16px;
+                                            text-align: left;
+                                            border: none;
+                                            background: {{ $currentDashboard === 'Debtor' ? '#f3f3f3' : 'white' }};
+                                            cursor: pointer;
+                                            font-size: 14px;
+                                        "
+                                    >
+                                        Admin - InHouse Repair
                                     </button>
 
                                     <button
@@ -220,54 +269,6 @@
                                         "
                                     >
                                         Admin - Renewal v2
-                                    </button>
-
-                                    <button
-                                        wire:click="toggleDashboard('AdminHRDF')"
-                                        style="
-                                            display: block;
-                                            width: 100%;
-                                            padding: 10px 16px;
-                                            text-align: left;
-                                            border: none;
-                                            background: {{ $currentDashboard === 'AdminHRDF' ? '#f3f3f3' : 'white' }};
-                                            cursor: pointer;
-                                            font-size: 14px;
-                                        "
-                                    >
-                                        Admin - HRDF
-                                    </button>
-
-                                    <button
-                                        wire:click="toggleDashboard('AdminHeadcount')"
-                                        style="
-                                            display: block;
-                                            width: 100%;
-                                            padding: 10px 16px;
-                                            text-align: left;
-                                            border: none;
-                                            background: {{ $currentDashboard === 'AdminHeadcount' ? '#f3f3f3' : 'white' }};
-                                            cursor: pointer;
-                                            font-size: 14px;
-                                        "
-                                    >
-                                        Admin - Headcount
-                                    </button>
-
-                                    <button
-                                        wire:click="toggleDashboard('Debtor')"
-                                        style="
-                                            display: block;
-                                            width: 100%;
-                                            padding: 10px 16px;
-                                            text-align: left;
-                                            border: none;
-                                            background: {{ $currentDashboard === 'Debtor' ? '#f3f3f3' : 'white' }};
-                                            cursor: pointer;
-                                            font-size: 14px;
-                                        "
-                                    >
-                                        Admin - Debtor
                                     </button>
                                 </div>
                             </div>
@@ -646,7 +647,7 @@
                                             display: none;
                                             position: absolute;
                                             background-color: white;
-                                            min-width: 180px;
+                                            min-width: 200px;
                                             box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
                                             z-index: 1000;
                                             border-radius: 6px;
@@ -704,6 +705,39 @@
                                             </button>
 
                                             <button
+                                                wire:click="toggleDashboard('AdminHeadcount')"
+                                                style="
+                                                    display: block;
+                                                    width: 100%;
+                                                    padding: 10px 16px;
+                                                    text-align: left;
+                                                    border: none;
+                                                    background: {{ $currentDashboard === 'AdminHeadcount' ? '#f3f3f3' : 'white' }};
+                                                    cursor: pointer;
+                                                    font-size: 14px;
+                                                "
+                                            >
+                                                Admin - Headcount
+                                            </button>
+
+
+                                            <button
+                                                wire:click="toggleDashboard('AdminHRDF')"
+                                                style="
+                                                    display: block;
+                                                    width: 100%;
+                                                    padding: 10px 16px;
+                                                    text-align: left;
+                                                    border: none;
+                                                    background: {{ $currentDashboard === 'AdminHRDF' ? '#f3f3f3' : 'white' }};
+                                                    cursor: pointer;
+                                                    font-size: 14px;
+                                                "
+                                            >
+                                                Admin - HRDF
+                                            </button>
+
+                                            <button
                                                 wire:click="toggleDashboard('AdminRepair')"
                                                 style="
                                                     display: block;
@@ -716,7 +750,23 @@
                                                     font-size: 14px;
                                                 "
                                             >
-                                                Admin - OnSite Repair
+                                                Admin - Onsite Repair
+                                            </button>
+
+                                            <button
+                                                wire:click="toggleDashboard('Debtor')"
+                                                style="
+                                                    display: block;
+                                                    width: 100%;
+                                                    padding: 10px 16px;
+                                                    text-align: left;
+                                                    border: none;
+                                                    background: {{ $currentDashboard === 'Debtor' ? '#f3f3f3' : 'white' }};
+                                                    cursor: pointer;
+                                                    font-size: 14px;
+                                                "
+                                            >
+                                                Admin - InHouse Repair
                                             </button>
 
                                             <button
@@ -749,54 +799,6 @@
                                                 "
                                             >
                                                 Admin - Renewal v2
-                                            </button>
-
-                                            <button
-                                                wire:click="toggleDashboard('AdminHRDF')"
-                                                style="
-                                                    display: block;
-                                                    width: 100%;
-                                                    padding: 10px 16px;
-                                                    text-align: left;
-                                                    border: none;
-                                                    background: {{ $currentDashboard === 'AdminHRDF' ? '#f3f3f3' : 'white' }};
-                                                    cursor: pointer;
-                                                    font-size: 14px;
-                                                "
-                                            >
-                                                Admin - HRDF
-                                            </button>
-
-                                            <button
-                                                wire:click="toggleDashboard('AdminHeadcount')"
-                                                style="
-                                                    display: block;
-                                                    width: 100%;
-                                                    padding: 10px 16px;
-                                                    text-align: left;
-                                                    border: none;
-                                                    background: {{ $currentDashboard === 'AdminHeadcount' ? '#f3f3f3' : 'white' }};
-                                                    cursor: pointer;
-                                                    font-size: 14px;
-                                                "
-                                            >
-                                                Admin - Headcount
-                                            </button>
-
-                                            <button
-                                                wire:click="toggleDashboard('Debtor')"
-                                                style="
-                                                    display: block;
-                                                    width: 100%;
-                                                    padding: 10px 16px;
-                                                    text-align: left;
-                                                    border: none;
-                                                    background: {{ $currentDashboard === 'Debtor' ? '#f3f3f3' : 'white' }};
-                                                    cursor: pointer;
-                                                    font-size: 14px;
-                                                "
-                                            >
-                                                Admin - Debtor
                                             </button>
                                         </div>
                                     </div>
@@ -908,7 +910,7 @@
                                         display: none;
                                         position: absolute;
                                         background-color: white;
-                                        min-width: 160px;
+                                        min-width: 200px;
                                         box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
                                         z-index: 1000;
                                         border-radius: 6px;
@@ -966,6 +968,39 @@
                                         </button>
 
                                         <button
+                                            wire:click="toggleDashboard('AdminHeadcount')"
+                                            style="
+                                                display: block;
+                                                width: 100%;
+                                                padding: 10px 16px;
+                                                text-align: left;
+                                                border: none;
+                                                background: {{ $currentDashboard === 'AdminHeadcount' ? '#f3f3f3' : 'white' }};
+                                                cursor: pointer;
+                                                font-size: 14px;
+                                            "
+                                        >
+                                            Admin - Headcount
+                                        </button>
+
+
+                                        <button
+                                            wire:click="toggleDashboard('AdminHRDF')"
+                                            style="
+                                                display: block;
+                                                width: 100%;
+                                                padding: 10px 16px;
+                                                text-align: left;
+                                                border: none;
+                                                background: {{ $currentDashboard === 'AdminHRDF' ? '#f3f3f3' : 'white' }};
+                                                cursor: pointer;
+                                                font-size: 14px;
+                                            "
+                                        >
+                                            Admin - HRDF
+                                        </button>
+
+                                        <button
                                             wire:click="toggleDashboard('AdminRepair')"
                                             style="
                                                 display: block;
@@ -978,7 +1013,23 @@
                                                 font-size: 14px;
                                             "
                                         >
-                                            Admin - Repair
+                                            Admin - Onsite Repair
+                                        </button>
+
+                                        <button
+                                            wire:click="toggleDashboard('Debtor')"
+                                            style="
+                                                display: block;
+                                                width: 100%;
+                                                padding: 10px 16px;
+                                                text-align: left;
+                                                border: none;
+                                                background: {{ $currentDashboard === 'Debtor' ? '#f3f3f3' : 'white' }};
+                                                cursor: pointer;
+                                                font-size: 14px;
+                                            "
+                                        >
+                                            Admin - InHouse Repair
                                         </button>
 
                                         <button
@@ -1011,54 +1062,6 @@
                                             "
                                         >
                                             Admin - Renewal v2
-                                        </button>
-
-                                        <button
-                                            wire:click="toggleDashboard('AdminHRDF')"
-                                            style="
-                                                display: block;
-                                                width: 100%;
-                                                padding: 10px 16px;
-                                                text-align: left;
-                                                border: none;
-                                                background: {{ $currentDashboard === 'AdminHRDF' ? '#f3f3f3' : 'white' }};
-                                                cursor: pointer;
-                                                font-size: 14px;
-                                            "
-                                        >
-                                            Admin - HRDF
-                                        </button>
-
-                                        <button
-                                            wire:click="toggleDashboard('AdminHeadcount')"
-                                            style="
-                                                display: block;
-                                                width: 100%;
-                                                padding: 10px 16px;
-                                                text-align: left;
-                                                border: none;
-                                                background: {{ $currentDashboard === 'AdminHeadcount' ? '#f3f3f3' : 'white' }};
-                                                cursor: pointer;
-                                                font-size: 14px;
-                                            "
-                                        >
-                                            Admin - Headcount
-                                        </button>
-
-                                        <button
-                                            wire:click="toggleDashboard('Debtor')"
-                                            style="
-                                                display: block;
-                                                width: 100%;
-                                                padding: 10px 16px;
-                                                text-align: left;
-                                                border: none;
-                                                background: {{ $currentDashboard === 'Debtor' ? '#f3f3f3' : 'white' }};
-                                                cursor: pointer;
-                                                font-size: 14px;
-                                            "
-                                        >
-                                            Admin - Debtor
                                         </button>
                                     </div>
                                 </div>
@@ -1117,7 +1120,7 @@
                         @elseif ($currentDashboard === 'SoftwareAdmin')
                             @include('filament.pages.softwarehandover')
                         @elseif ($currentDashboard === 'Debtor')
-                            @include('filament.pages.admindebtor')
+                            {{-- @include('filament.pages.admindebtor') --}}
                         @elseif ($currentDashboard === 'HardwareAdmin')
                             @include('filament.pages.hardwarehandover')
                         @elseif ($currentDashboard === 'Trainer')
