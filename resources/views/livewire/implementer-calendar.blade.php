@@ -1727,124 +1727,156 @@
                         @enderror
                     </div>
 
-                    <!-- Company selection -->
-                    <div class="form-group" wire:poll.1s>
-                        <label for="selectedCompany" class="form-label">Software Handover ID / Company Name <span class="text-red-600">*</span></label>
+                    <!-- Company selection - Hide when BACKUP SUPPORT is selected -->
+                    @if($onsiteCategory !== 'BACKUP SUPPORT')
+                        <div class="form-group" wire:poll.1s>
+                            <label for="selectedCompany" class="form-label">Software Handover ID / Company Name <span class="text-red-600">*</span></label>
 
-                        <!-- Searchable dropdown container -->
-                        <div x-data="{ open: false, search: @entangle('companySearch').live, selected: @entangle('selectedCompany') }" class="relative">
-                            <!-- Search input that shows the selected value or placeholder -->
-                            <div
-                                @click="open = !open"
-                                class="flex items-center justify-between w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm cursor-pointer"
-                            >
-                                <span x-text="selected ? (Object.values({{ json_encode($filteredOpenDelayCompanies) }}).find(c => c.id == selected)?.name || (Object.entries({{ json_encode($filteredOpenDelayCompanies) }}).find(([id, _]) => id == selected)?.[1]?.name || 'Select a company')) : 'Select a company'"></span>
-                                <svg class="w-5 h-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                                </svg>
-                            </div>
-
-                            <!-- Dropdown with search -->
-                            <div
-                                x-show="open"
-                                @click.away="open = false"
-                                class="absolute left-0 z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg"
-                                style="display: none; max-height: 300px; overflow-y: auto;"
-                            >
-                                <!-- Search input -->
-                                <div class="sticky top-0 z-10 p-2 bg-white border-b">
-                                    <input
-                                        x-model="search"
-                                        @input="$wire.updateOpenDelayCompanies()"
-                                        type="text"
-                                        placeholder="Search companies..."
-                                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    >
-                                </div>
-
-                                <!-- Open Projects Group -->
-                                <div class="px-2 py-1 text-xs font-semibold text-gray-500 bg-gray-50">Open Projects</div>
-                                <div class="overflow-y-auto max-h-40">
-                                    @foreach($filteredOpenDelayCompanies as $id => $data)
-                                        @if($data['status'] === 'Open')
-                                            <div
-                                                @click="selected = '{{ $id }}'; open = false"
-                                                :class="{'bg-blue-50': selected == '{{ $id }}'}"
-                                                class="px-3 py-2 cursor-pointer hover:bg-gray-100"
-                                            >
-                                                <div class="font-medium">SW_{{ $data['handover_id'] }} | {{ $data['name'] }}</div>
-                                                @if($requestSessionType === 'DATA MIGRATION SESSION' && isset($data['data_migration_count']) && $data['data_migration_count'] > 0)
-                                                    <div class="text-xs text-gray-500">({{ $data['data_migration_count'] }}/2 Data Migration)</div>
-                                                @endif
-                                                @if($requestSessionType === 'SYSTEM SETTING SESSION' && isset($data['system_setting_count']) && $data['system_setting_count'] > 0)
-                                                    <div class="text-xs text-gray-500">({{ $data['system_setting_count'] }}/4 System Setting)</div>
-                                                @endif
-                                            </div>
-                                        @endif
-                                    @endforeach
-                                </div>
-
-                                <!-- Delay Projects Group -->
-                                <div class="px-2 py-1 text-xs font-semibold text-gray-500 bg-gray-50">Delay Projects</div>
-                                <div class="overflow-y-auto max-h-40">
-                                    @foreach($filteredOpenDelayCompanies as $id => $data)
-                                        @if($data['status'] === 'Delay')
-                                            <div
-                                                @click="selected = '{{ $id }}'; open = false"
-                                                :class="{'bg-blue-50': selected == '{{ $id }}'}"
-                                                class="px-3 py-2 cursor-pointer hover:bg-gray-100"
-                                            >
-                                                <div class="font-medium">SW_{{ $data['handover_id'] }} | {{ $data['name'] }}</div>
-                                                @if($requestSessionType === 'DATA MIGRATION SESSION' && isset($data['data_migration_count']) && $data['data_migration_count'] > 0)
-                                                    <div class="text-xs text-gray-500">({{ $data['data_migration_count'] }}/2 Data Migration)</div>
-                                                @endif
-                                                @if($requestSessionType === 'SYSTEM SETTING SESSION' && isset($data['system_setting_count']) && $data['system_setting_count'] > 0)
-                                                    <div class="text-xs text-gray-500">({{ $data['system_setting_count'] }}/4 System Setting)</div>
-                                                @endif
-                                            </div>
-                                        @endif
-                                    @endforeach
-                                </div>
-
-                                <!-- No results message -->
+                            <!-- Searchable dropdown container -->
+                            <div x-data="{ open: false, search: @entangle('companySearch').live, selected: @entangle('selectedCompany') }" class="relative">
+                                <!-- Search input that shows the selected value or placeholder -->
                                 <div
-                                    x-show="!Object.values({{ json_encode($filteredOpenDelayCompanies) }}).length"
-                                    class="px-3 py-4 text-sm text-center text-gray-500"
+                                    @click="open = !open"
+                                    class="flex items-center justify-between w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm cursor-pointer"
                                 >
-                                    No companies found matching your search
+                                    <span x-text="selected ? (Object.values({{ json_encode($filteredOpenDelayCompanies) }}).find(c => c.id == selected)?.name || (Object.entries({{ json_encode($filteredOpenDelayCompanies) }}).find(([id, _]) => id == selected)?.[1]?.name || 'Select a company')) : 'Select a company'"></span>
+                                    <svg class="w-5 h-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                    </svg>
+                                </div>
+
+                                <!-- Dropdown with search -->
+                                <div
+                                    x-show="open"
+                                    @click.away="open = false"
+                                    class="absolute left-0 z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg"
+                                    style="display: none; max-height: 300px; overflow-y: auto;"
+                                >
+                                    <!-- Search input -->
+                                    <div class="sticky top-0 z-10 p-2 bg-white border-b">
+                                        <input
+                                            x-model="search"
+                                            @input="$wire.updateOpenDelayCompanies()"
+                                            type="text"
+                                            placeholder="Search companies..."
+                                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        >
+                                    </div>
+
+                                    <!-- Open Projects Group -->
+                                    <div class="px-2 py-1 text-xs font-semibold text-gray-500 bg-gray-50">Open Projects</div>
+                                    <div class="overflow-y-auto max-h-40">
+                                        @foreach($filteredOpenDelayCompanies as $id => $data)
+                                            @if($data['status'] === 'Open')
+                                                <div
+                                                    @click="selected = '{{ $id }}'; open = false"
+                                                    :class="{'bg-blue-50': selected == '{{ $id }}'}"
+                                                    class="px-3 py-2 cursor-pointer hover:bg-gray-100"
+                                                >
+                                                    <div class="font-medium">SW_{{ $data['handover_id'] }} | {{ $data['name'] }}</div>
+                                                    @if($requestSessionType === 'DATA MIGRATION SESSION' && isset($data['data_migration_count']) && $data['data_migration_count'] > 0)
+                                                        <div class="text-xs text-gray-500">({{ $data['data_migration_count'] }}/2 Data Migration)</div>
+                                                    @endif
+                                                    @if($requestSessionType === 'SYSTEM SETTING SESSION' && isset($data['system_setting_count']) && $data['system_setting_count'] > 0)
+                                                        <div class="text-xs text-gray-500">({{ $data['system_setting_count'] }}/4 System Setting)</div>
+                                                    @endif
+                                                </div>
+                                            @endif
+                                        @endforeach
+                                    </div>
+
+                                    <!-- Delay Projects Group -->
+                                    <div class="px-2 py-1 text-xs font-semibold text-gray-500 bg-gray-50">Delay Projects</div>
+                                    <div class="overflow-y-auto max-h-40">
+                                        @foreach($filteredOpenDelayCompanies as $id => $data)
+                                            @if($data['status'] === 'Delay')
+                                                <div
+                                                    @click="selected = '{{ $id }}'; open = false"
+                                                    :class="{'bg-blue-50': selected == '{{ $id }}'}"
+                                                    class="px-3 py-2 cursor-pointer hover:bg-gray-100"
+                                                >
+                                                    <div class="font-medium">SW_{{ $data['handover_id'] }} | {{ $data['name'] }}</div>
+                                                    @if($requestSessionType === 'DATA MIGRATION SESSION' && isset($data['data_migration_count']) && $data['data_migration_count'] > 0)
+                                                        <div class="text-xs text-gray-500">({{ $data['data_migration_count'] }}/2 Data Migration)</div>
+                                                    @endif
+                                                    @if($requestSessionType === 'SYSTEM SETTING SESSION' && isset($data['system_setting_count']) && $data['system_setting_count'] > 0)
+                                                        <div class="text-xs text-gray-500">({{ $data['system_setting_count'] }}/4 System Setting)</div>
+                                                    @endif
+                                                </div>
+                                            @endif
+                                        @endforeach
+                                    </div>
+
+                                    <!-- No results message -->
+                                    <div
+                                        x-show="!Object.values({{ json_encode($filteredOpenDelayCompanies) }}).length"
+                                        class="px-3 py-4 text-sm text-center text-gray-500"
+                                    >
+                                        No companies found matching your search
+                                    </div>
+                                </div>
+
+                                <!-- Hidden select field to maintain Livewire data binding -->
+                                <select wire:model="selectedCompany" id="selectedCompany" class="hidden">
+                                    <option value="">-- Select a company --</option>
+                                    @foreach($filteredOpenDelayCompanies as $id => $data)
+                                        <option value="{{ $id }}">{{ $data['name'] }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            @error('selectedCompany')
+                                <span class="form-error">{{ $message }}</span>
+                            @enderror
+                        </div>
+                    @endif
+
+                    <!-- Required Attendees - Hide when BACKUP SUPPORT is selected -->
+                    @if($onsiteCategory !== 'BACKUP SUPPORT')
+                        <div class="form-group">
+                            <label for="requiredAttendees" class="form-label">Required Attendees <span class="text-red-600">*</span></label>
+                            <input
+                                type="text"
+                                wire:model="requiredAttendees"
+                                id="requiredAttendees"
+                                class="form-input"
+                                placeholder="email1@example.com;email2@example.com"
+                            >
+                            <p class="mt-1 text-xs text-gray-500">Separate each email with a semicolon (e.g., email1;email2;email3)</p>
+                            @error('requiredAttendees')
+                                <span class="form-error">{{ $message }}</span>
+                            @enderror
+                        </div>
+                    @else
+                        <!-- Show info message for backup support -->
+                        <div class="form-group">
+                            <div class="p-3 rounded-md bg-blue-50">
+                                <div class="flex">
+                                    <div class="flex-shrink-0">
+                                        <svg class="w-5 h-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                                        </svg>
+                                    </div>
+                                    <div class="ml-3">
+                                        <p class="text-sm text-blue-700">
+                                            <strong>Backup Support Request</strong><br>
+                                            No company selection or attendees required for backup support requests.
+                                        </p>
+                                    </div>
                                 </div>
                             </div>
-
-                            <!-- Hidden select field to maintain Livewire data binding -->
-                            <select wire:model="selectedCompany" id="selectedCompany" class="hidden">
-                                <option value="">-- Select a company --</option>
-                                @foreach($filteredOpenDelayCompanies as $id => $data)
-                                    <option value="{{ $id }}">{{ $data['name'] }}</option>
-                                @endforeach
-                            </select>
                         </div>
-                        @error('selectedCompany')
-                            <span class="form-error">{{ $message }}</span>
-                        @enderror
-                    </div>
+                    @endif
 
-                    <!-- Required Attendees -->
+                    <!-- Remarks (Optional) -->
                     <div class="form-group">
-                        <label for="requiredAttendees" class="form-label">Required Attendees <span class="text-red-600">*</span></label>
-                        <input
-                            type="text"
-                            wire:model="requiredAttendees"
-                            id="requiredAttendees"
-                            class="form-input"
-                            placeholder="email1@example.com;email2@example.com"
-                        >
-                        <!-- <button type="button" wire:click="loadAttendees" class="px-3 py-1 mt-1 text-xs text-white bg-blue-500 rounded hover:bg-blue-600" style="background-color: #2563eb;">
-                            Load from Software Handover
-                        </button> -->
-                        <p class="mt-1 text-xs text-gray-500">Separate each email with a semicolon (e.g., email1;email2;email3)</p>
-                        @error('requiredAttendees')
-                            <span class="form-error">{{ $message }}</span>
-                        @enderror
+                        <label for="onsiteRemarks" class="form-label">Remarks (Optional)</label>
+                        <textarea
+                            wire:model="onsiteRemarks"
+                            id="onsiteRemarks"
+                            class="form-textarea"
+                            rows="3"
+                            placeholder="Additional remarks or notes..."
+                        ></textarea>
                     </div>
                 </div>
             </div>

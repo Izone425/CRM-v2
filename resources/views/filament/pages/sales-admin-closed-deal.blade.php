@@ -6,13 +6,12 @@
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             border-radius: 12px;
             padding: 24px;
-            margin-bottom: 24px;
             color: white;
         }
 
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
             gap: 16px;
             margin-top: 20px;
         }
@@ -97,27 +96,11 @@
 
     <!-- Stats Header -->
     <div class="stats-header">
-        <div class="page-title">Sales Performance Dashboard</div>
+        <div class="page-title">Sales Admin - Closed Deals</div>
 
         @php
             $overallStats = $this->getOverallStats();
         @endphp
-
-        <!-- Overall Stats -->
-        <div class="overall-stats">
-            <div class="overall-stat-card">
-                <div class="overall-stat-title">Total Leads</div>
-                <div class="overall-stat-value">{{ number_format($overallStats['total_leads']) }}</div>
-            </div>
-            <div class="overall-stat-card">
-                <div class="overall-stat-title">Total Closed</div>
-                <div class="overall-stat-value">{{ number_format($overallStats['total_closed']) }}</div>
-            </div>
-            <div class="overall-stat-card">
-                <div class="overall-stat-title">Total Amount</div>
-                <div class="overall-stat-value">RM {{ number_format($overallStats['total_amount'], 0) }}</div>
-            </div>
-        </div>
 
         <!-- Salesperson Stats -->
         <div class="stats-grid">

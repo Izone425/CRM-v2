@@ -749,7 +749,8 @@ class CompanyTabs
                                 ])
                                 ->headerActions([
                                     Action::make('assign_reseller')
-                                        ->label('Assign Reseller')
+                                        ->label('Edit')
+                                        ->icon('heroicon-o-pencil')
                                         ->visible(fn (Lead $lead) =>
                                             // First check if user role is not 4 or 5
                                             in_array(auth()->user()->role_id, [1, 2, 3]) &&

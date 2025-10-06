@@ -444,10 +444,6 @@ class DevicePurchaseInformation extends Page
                 $errors[] = 'Quantity is required and must be at least 1';
             }
 
-            if (empty($this->editingData['languages'])) {
-                $errors[] = 'Languages field is required';
-            }
-
             if (!empty($errors)) {
                 foreach ($errors as $error) {
                     Notification::make()
@@ -481,20 +477,6 @@ class DevicePurchaseInformation extends Page
             } else {
                 // We're creating a new record
                 $modelName = $this->editingData['model'];
-
-                // Check if model already exists for this year/month combination
-                $existingItem = DevicePurchaseItem::where('year', $this->selectedYear)
-                    ->where('month', $monthKey)
-                    ->where('model', $modelName)
-                    ->first();
-
-                if ($existingItem) {
-                    Notification::make()
-                        ->title("Model '{$modelName}' already exists for this month. Please choose a different model name or edit the existing entry.")
-                        ->warning()
-                        ->send();
-                    return;
-                }
 
                 $item = new DevicePurchaseItem();
                 $item->year = $this->selectedYear;
