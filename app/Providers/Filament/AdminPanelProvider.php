@@ -31,6 +31,7 @@ use App\Filament\Pages\ImplementerCalendar;
 use App\Filament\Pages\ImplementerDataFile;
 use App\Filament\Pages\ImplementerRequestCount;
 use App\Filament\Pages\ImplementerRequestList;
+use App\Filament\Pages\InvoicesTable;
 use App\Filament\Pages\InvoiceSummary;
 use App\Filament\Pages\KickOffMeetingSession;
 use App\Filament\Pages\LeadAnalysis;
@@ -264,7 +265,6 @@ class AdminPanelProvider extends PanelProvider
                 PhoneExtensionResource::class,
                 PolicyResource::class,
                 PolicyCategoryResource::class,
-                InvoiceResource::class,
                 ShippingDeviceModelResource::class,
             ])
             // ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
@@ -332,6 +332,7 @@ class AdminPanelProvider extends PanelProvider
                 AdminRenewalProcessDataUsd::class,
                 SearchLicense::class,
                 SalesAdminClosedDeal::class,
+                InvoicesTable::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([

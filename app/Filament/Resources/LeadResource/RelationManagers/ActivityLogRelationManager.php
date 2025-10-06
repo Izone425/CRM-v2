@@ -145,7 +145,7 @@ class ActivityLogRelationManager extends RelationManager
                         // Set default filter based on user role
                         return match(auth()->user()->role_id) {
                             1 => 'all', // Lead owner sees all activities
-                            2 => 'salesperson', // Salesperson sees only salesperson activities
+                            2 => 'all', // Salesperson sees all activities
                             3 => 'salesperson', // Manager sees only salesperson activities
                             default => 'all',
                         };

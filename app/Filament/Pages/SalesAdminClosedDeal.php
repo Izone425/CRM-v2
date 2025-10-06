@@ -19,6 +19,7 @@ use Filament\Tables\Filters\Filter;
 use Filament\Forms\Components\Grid;
 use Illuminate\Database\Eloquent\Builder;
 use Carbon\Carbon;
+use Malzariey\FilamentDaterangepickerFilter\Fields\DateRangePicker;
 
 class SalesAdminClosedDeal extends Page implements HasTable
 {
@@ -26,15 +27,24 @@ class SalesAdminClosedDeal extends Page implements HasTable
 
     protected static ?string $navigationIcon = 'heroicon-o-chart-bar';
     protected static ?string $navigationLabel = 'Closed Deals Analytics';
-    protected static ?string $title = 'Sales Admin - Closed Deals';
+    protected static ?string $title = '';
     protected static string $view = 'filament.pages.sales-admin-closed-deal';
 
     public function getTableQuery(): Builder
     {
+        // Define the 7 salespersons by getting their user IDs
+        $salespersonNames = ['Muim', 'Yasmin', 'Farhanah', 'Joshua', 'Aziz', 'Bari', 'Vince'];
+
+        $salespersonIds = User::where(function ($query) use ($salespersonNames) {
+            foreach ($salespersonNames as $name) {
+                $query->orWhere('name', 'like', '%' . $name . '%');
+            }
+        })->pluck('id')->toArray();
+
         return Lead::query()
             ->whereIn('lead_status', ['Closed'])
-            ->whereNotNull('closing_date')
-            ->with(['quotations.quotationDetails', 'companyDetail'])
+            ->whereIn('salesperson', $salespersonIds) // Filter by the 7 salespersons
+            ->with(['companyDetail'])
             ->orderBy('closing_date', 'desc');
     }
 
@@ -43,17 +53,13 @@ class SalesAdminClosedDeal extends Page implements HasTable
         return $table
             ->query($this->getTableQuery())
             ->columns([
-                TextColumn::make('sales_admin_name')
+                TextColumn::make('lead_owner')
                     ->label('Sales Admin')
                     ->searchable()
                     ->sortable()
                     ->getStateUsing(function ($record) {
-                        if ($record->salesperson) {
-                            $user = User::find($record->salesperson);
-                            if ($user && $user->id) {
-                                $admin = User::find($user->id);
-                                return $admin ? $admin->name : 'N/A';
-                            }
+                        if ($record->lead_owner) {
+                            return $record->lead_owner ? $record->lead_owner: 'N/A';
                         }
                         return 'N/A';
                     }),
@@ -77,16 +83,12 @@ class SalesAdminClosedDeal extends Page implements HasTable
                     ->limit(30)
                     ->default('N/A'),
 
-                TextColumn::make('company_size')
-                    ->label('Company Size')
-                    ->badge()
-                    ->color(fn (?string $state): string => match ($state) {
-                        'Small' => 'success',
-                        'Medium' => 'warning',
-                        'Large' => 'danger',
-                        default => 'gray',
+                TextColumn::make('company_size_label')
+                    ->label('COMPANY SIZE')
+                    ->getStateUsing(function ($record) {
+                        return $record->company_size_label ?? 'Unknown';
                     })
-                    ->default('N/A'),
+                    ->sortable(),
 
                 TextColumn::make('created_at')
                     ->label('Leads Created Date')
@@ -103,26 +105,9 @@ class SalesAdminClosedDeal extends Page implements HasTable
                     ->getStateUsing(function ($record) {
                         if ($record->closing_date && $record->created_at) {
                             return Carbon::parse($record->created_at)
-                                ->diffInDays(Carbon::parse($record->closing_date)) . ' days';
+                                ->diffInWeekdays(Carbon::parse($record->closing_date)) . ' business days';
                         }
                         return 'N/A';
-                    })
-                    ->sortable(),
-
-                TextColumn::make('pi_amount')
-                    ->label('Proforma Invoice Amount')
-                    ->getStateUsing(function ($record) {
-                        // Get total from quotation_details table
-                        $totalAmount = 0;
-
-                        foreach ($record->quotations as $quotation) {
-                            if (in_array($quotation->status, ['Approved', 'Sent', 'Accepted'])) {
-                                $totalAmount += $quotation->quotationDetails()
-                                    ->sum('total_before_tax');
-                            }
-                        }
-
-                        return 'RM ' . number_format($totalAmount, 2);
                     })
                     ->sortable(),
             ])
@@ -130,33 +115,26 @@ class SalesAdminClosedDeal extends Page implements HasTable
                 SelectFilter::make('sales_admin')
                     ->label('Sales Admin')
                     ->options(function () {
-                        // Get all users who are admins (have leads assigned to their subordinates)
-                        $adminIds = User::whereIn('id', function ($query) {
-                            $query->select('id')
-                                  ->from('users')
-                                  ->whereNotNull('id');
-                        })->pluck('name', 'id');
-
-                        return $adminIds;
+                        // Get only users with role_id = 2 (Sales Admin role)
+                        return User::where('role_id', 1)
+                            ->pluck('name', 'name'); // Use name as both key and value since lead_owner stores names
                     })
                     ->query(function (Builder $query, array $data) {
                         if (isset($data['value'])) {
-                            $query->whereIn('salesperson', function ($subQuery) use ($data) {
-                                $subQuery->select('id')
-                                        ->from('users')
-                                        ->where('id', $data['value']);
-                            });
+                            $query->where('lead_owner', $data['value']);
                         }
                     }),
 
                 SelectFilter::make('sales_person')
                     ->label('Sales Person')
                     ->options(function () {
-                        // Get all users who are assigned to leads
-                        return User::whereIn('id', function ($query) {
-                            $query->select('salesperson')
-                                  ->from('leads')
-                                  ->whereNotNull('salesperson');
+                        // Get only the 7 specific salespersons that are being displayed
+                        $salespersonNames = ['Muim', 'Yasmin', 'Farhanah', 'Joshua', 'Aziz', 'Bari', 'Vince'];
+
+                        return User::where(function ($query) use ($salespersonNames) {
+                            foreach ($salespersonNames as $name) {
+                                $query->orWhere('name', 'like', '%' . $name . '%');
+                            }
                         })->pluck('name', 'id');
                     })
                     ->query(function (Builder $query, array $data) {
@@ -168,53 +146,77 @@ class SalesAdminClosedDeal extends Page implements HasTable
                 SelectFilter::make('company_size')
                     ->label('Company Size')
                     ->options([
-                        'Small' => 'Small',
-                        'Medium' => 'Medium',
-                        'Large' => 'Large',
-                    ]),
+                        '1-24' => 'Small',
+                        '25-99' => 'Medium',
+                        '100-500' => 'Large',
+                        '501 and Above' => 'Enterprise',
+                    ])
+                    ->query(function (Builder $query, array $data) {
+                        if (isset($data['value'])) {
+                            $query->where('company_size', $data['value']);
+                        }
+                    }),
 
                 Filter::make('created_at')
                     ->form([
-                        Grid::make(2)
-                            ->schema([
-                                DatePicker::make('created_from')
-                                    ->label('Created From'),
-                                DatePicker::make('created_until')
-                                    ->label('Created Until'),
-                            ]),
+                        DateRangePicker::make('created_date_range')
+                            ->label('Created Date Range')
+                            ->placeholder('Select created date range'),
                     ])
-                    ->query(function (Builder $query, array $data): Builder {
-                        return $query
-                            ->when(
-                                $data['created_from'],
-                                fn (Builder $query, $date): Builder => $query->whereDate('created_at', '>=', $date),
-                            )
-                            ->when(
-                                $data['created_until'],
-                                fn (Builder $query, $date): Builder => $query->whereDate('created_at', '<=', $date),
-                            );
+                    ->query(function (\Illuminate\Database\Eloquent\Builder $query, array $data) {
+                        if (! empty($data['created_date_range'])) {
+                            // Parse the date range from the "start - end" format
+                            [$start, $end] = explode(' - ', $data['created_date_range']);
+
+                            // Ensure valid dates
+                            $startDate = Carbon::createFromFormat('d/m/Y', $start)->startOfDay();
+                            $endDate = Carbon::createFromFormat('d/m/Y', $end)->endOfDay();
+
+                            // Apply the filter
+                            $query->whereBetween('created_at', [$startDate, $endDate]);
+                        }
+                    })
+                    ->indicateUsing(function (array $data) {
+                        if (! empty($data['created_date_range'])) {
+                            // Parse the date range for display
+                            [$start, $end] = explode(' - ', $data['created_date_range']);
+
+                            return 'Created: '.Carbon::createFromFormat('d/m/Y', $start)->format('j M Y').
+                                ' To: '.Carbon::createFromFormat('d/m/Y', $end)->format('j M Y');
+                        }
+
+                        return null;
                     }),
 
                 Filter::make('closed_at')
                     ->form([
-                        Grid::make(2)
-                            ->schema([
-                                DatePicker::make('closed_from')
-                                    ->label('Closed From'),
-                                DatePicker::make('closed_until')
-                                    ->label('Closed Until'),
-                            ]),
+                        DateRangePicker::make('closed_date_range')
+                            ->label('Closed Date Range')
+                            ->placeholder('Select closed date range'),
                     ])
-                    ->query(function (Builder $query, array $data): Builder {
-                        return $query
-                            ->when(
-                                $data['closed_from'],
-                                fn (Builder $query, $date): Builder => $query->whereDate('closing_date', '>=', $date),
-                            )
-                            ->when(
-                                $data['closed_until'],
-                                fn (Builder $query, $date): Builder => $query->whereDate('closing_date', '<=', $date),
-                            );
+                    ->query(function (\Illuminate\Database\Eloquent\Builder $query, array $data) {
+                        if (! empty($data['closed_date_range'])) {
+                            // Parse the date range from the "start - end" format
+                            [$start, $end] = explode(' - ', $data['closed_date_range']);
+
+                            // Ensure valid dates
+                            $startDate = Carbon::createFromFormat('d/m/Y', $start)->startOfDay();
+                            $endDate = Carbon::createFromFormat('d/m/Y', $end)->endOfDay();
+
+                            // Apply the filter
+                            $query->whereBetween('closing_date', [$startDate, $endDate]);
+                        }
+                    })
+                    ->indicateUsing(function (array $data) {
+                        if (! empty($data['closed_date_range'])) {
+                            // Parse the date range for display
+                            [$start, $end] = explode(' - ', $data['closed_date_range']);
+
+                            return 'Closed: '.Carbon::createFromFormat('d/m/Y', $start)->format('j M Y').
+                                ' To: '.Carbon::createFromFormat('d/m/Y', $end)->format('j M Y');
+                        }
+
+                        return null;
                     }),
             ])
             ->defaultPaginationPageOption(50)
@@ -236,7 +238,6 @@ class SalesAdminClosedDeal extends Page implements HasTable
 
                 $closedLeads = Lead::where('salesperson', $userId)
                     ->whereIn('lead_status', ['Closed'])
-                    ->whereNotNull('closing_date')
                     ->count();
 
                 $stats[] = [

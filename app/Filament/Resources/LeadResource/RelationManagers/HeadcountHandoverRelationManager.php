@@ -76,236 +76,226 @@ class HeadcountHandoverRelationManager extends RelationManager
     public function defaultForm()
     {
         return [
-            Section::make('Part 1: Choose PI (Mandatory)')
+            Grid::make(2)
                 ->schema([
-                    Grid::make(2)
-                        ->schema([
-                            Select::make('proforma_invoice_product')
-                                ->required()
-                                ->label('Product PI')
-                                ->options(function (RelationManager $livewire) {
-                                    $leadId = $livewire->getOwnerRecord()->id;
-                                    $currentRecordId = null;
-                                    if ($livewire->mountedTableActionRecord) {
-                                        // Check if it's already a model object
-                                        if (is_object($livewire->mountedTableActionRecord)) {
-                                            $currentRecordId = $livewire->mountedTableActionRecord->id;
-                                        } else {
-                                            // If it's a string/ID, use it directly
-                                            $currentRecordId = $livewire->mountedTableActionRecord;
-                                        }
-                                    }
+                    Select::make('proforma_invoice_product')
+                        ->required()
+                        ->label('Product PI')
+                        ->options(function (RelationManager $livewire) {
+                            $leadId = $livewire->getOwnerRecord()->id;
+                            $currentRecordId = null;
+                            if ($livewire->mountedTableActionRecord) {
+                                // Check if it's already a model object
+                                if (is_object($livewire->mountedTableActionRecord)) {
+                                    $currentRecordId = $livewire->mountedTableActionRecord->id;
+                                } else {
+                                    // If it's a string/ID, use it directly
+                                    $currentRecordId = $livewire->mountedTableActionRecord;
+                                }
+                            }
 
-                                    // Get all PI IDs already used in other headcount handovers for this lead
-                                    $usedPiIds = [];
-                                    $headcountHandovers = HeadcountHandover::where('lead_id', $leadId)
-                                        ->when($currentRecordId, function ($query) use ($currentRecordId) {
-                                            // Exclude current record if we're editing
-                                            return $query->where('id', '!=', $currentRecordId);
-                                        })
-                                        ->get();
-
-                                    // Extract used product PI IDs from all handovers
-                                    foreach ($headcountHandovers as $handover) {
-                                        $piProduct = $handover->proforma_invoice_product;
-                                        if (!empty($piProduct)) {
-                                            // Handle JSON string format
-                                            if (is_string($piProduct)) {
-                                                $piIds = json_decode($piProduct, true);
-                                                if (is_array($piIds)) {
-                                                    $usedPiIds = array_merge($usedPiIds, $piIds);
-                                                }
-                                            }
-                                            // Handle array format
-                                            elseif (is_array($piProduct)) {
-                                                $usedPiIds = array_merge($usedPiIds, $piProduct);
-                                            }
-                                        }
-                                    }
-
-                                    // Get available product PIs excluding already used ones
-                                    return \App\Models\Quotation::where('lead_id', $leadId)
-                                        ->where('quotation_type', 'product')
-                                        ->where('status', \App\Enums\QuotationStatusEnum::accepted)
-                                        ->whereNotIn('id', array_filter($usedPiIds)) // Filter out null/empty values
-                                        ->pluck('pi_reference_no', 'id')
-                                        ->toArray();
+                            // Get all PI IDs already used in other headcount handovers for this lead
+                            $usedPiIds = [];
+                            $headcountHandovers = HeadcountHandover::where('lead_id', $leadId)
+                                ->when($currentRecordId, function ($query) use ($currentRecordId) {
+                                    // Exclude current record if we're editing
+                                    return $query->where('id', '!=', $currentRecordId);
                                 })
-                                ->multiple()
-                                ->searchable()
-                                ->preload()
-                                ->helperText('Select Product PI (Required)')
-                                ->default(function (?HeadcountHandover $record = null) {
-                                    if (!$record || !$record->proforma_invoice_product) {
-                                        return [];
-                                    }
-                                    if (is_string($record->proforma_invoice_product)) {
-                                        return json_decode($record->proforma_invoice_product, true) ?? [];
-                                    }
-                                    return is_array($record->proforma_invoice_product) ? $record->proforma_invoice_product : [];
-                                }),
+                                ->get();
 
-                            Select::make('proforma_invoice_hrdf')
-                                ->label('HRDF PI')
-                                ->options(function (RelationManager $livewire) {
-                                    $leadId = $livewire->getOwnerRecord()->id;
-                                    $currentRecordId = null;
-                                    if ($livewire->mountedTableActionRecord) {
-                                        // Check if it's already a model object
-                                        if (is_object($livewire->mountedTableActionRecord)) {
-                                            $currentRecordId = $livewire->mountedTableActionRecord->id;
-                                        } else {
-                                            // If it's a string/ID, use it directly
-                                            $currentRecordId = $livewire->mountedTableActionRecord;
+                            // Extract used product PI IDs from all handovers
+                            foreach ($headcountHandovers as $handover) {
+                                $piProduct = $handover->proforma_invoice_product;
+                                if (!empty($piProduct)) {
+                                    // Handle JSON string format
+                                    if (is_string($piProduct)) {
+                                        $piIds = json_decode($piProduct, true);
+                                        if (is_array($piIds)) {
+                                            $usedPiIds = array_merge($usedPiIds, $piIds);
                                         }
                                     }
-
-                                    // Get all PI IDs already used in other headcount handovers for this lead
-                                    $usedPiIds = [];
-                                    $headcountHandovers = HeadcountHandover::where('lead_id', $leadId)
-                                        ->when($currentRecordId, function ($query) use ($currentRecordId) {
-                                            // Exclude current record if we're editing
-                                            return $query->where('id', '!=', $currentRecordId);
-                                        })
-                                        ->get();
-
-                                    // Extract used HRDF PI IDs from all handovers
-                                    foreach ($headcountHandovers as $handover) {
-                                        $piHrdf = $handover->proforma_invoice_hrdf;
-                                        if (!empty($piHrdf)) {
-                                            // Handle JSON string format
-                                            if (is_string($piHrdf)) {
-                                                $piIds = json_decode($piHrdf, true);
-                                                if (is_array($piIds)) {
-                                                    $usedPiIds = array_merge($usedPiIds, $piIds);
-                                                }
-                                            }
-                                            // Handle array format
-                                            elseif (is_array($piHrdf)) {
-                                                $usedPiIds = array_merge($usedPiIds, $piHrdf);
-                                            }
-                                        }
+                                    // Handle array format
+                                    elseif (is_array($piProduct)) {
+                                        $usedPiIds = array_merge($usedPiIds, $piProduct);
                                     }
+                                }
+                            }
 
-                                    // Get available HRDF PIs excluding already used ones
-                                    return \App\Models\Quotation::where('lead_id', $leadId)
-                                        ->where('quotation_type', 'hrdf')
-                                        ->where('status', \App\Enums\QuotationStatusEnum::accepted)
-                                        ->whereNotIn('id', array_filter($usedPiIds)) // Filter out null/empty values
-                                        ->pluck('pi_reference_no', 'id')
-                                        ->toArray();
+                            // Get available product PIs excluding already used ones
+                            return \App\Models\Quotation::where('lead_id', $leadId)
+                                ->where('quotation_type', 'product')
+                                ->where('status', \App\Enums\QuotationStatusEnum::accepted)
+                                ->whereNotIn('id', array_filter($usedPiIds)) // Filter out null/empty values
+                                ->pluck('pi_reference_no', 'id')
+                                ->toArray();
+                        })
+                        ->multiple()
+                        ->searchable()
+                        ->preload()
+                        ->helperText('Select Product PI (Required)')
+                        ->default(function (?HeadcountHandover $record = null) {
+                            if (!$record || !$record->proforma_invoice_product) {
+                                return [];
+                            }
+                            if (is_string($record->proforma_invoice_product)) {
+                                return json_decode($record->proforma_invoice_product, true) ?? [];
+                            }
+                            return is_array($record->proforma_invoice_product) ? $record->proforma_invoice_product : [];
+                        }),
+
+                    Select::make('proforma_invoice_hrdf')
+                        ->label('HRDF PI')
+                        ->options(function (RelationManager $livewire) {
+                            $leadId = $livewire->getOwnerRecord()->id;
+                            $currentRecordId = null;
+                            if ($livewire->mountedTableActionRecord) {
+                                // Check if it's already a model object
+                                if (is_object($livewire->mountedTableActionRecord)) {
+                                    $currentRecordId = $livewire->mountedTableActionRecord->id;
+                                } else {
+                                    // If it's a string/ID, use it directly
+                                    $currentRecordId = $livewire->mountedTableActionRecord;
+                                }
+                            }
+
+                            // Get all PI IDs already used in other headcount handovers for this lead
+                            $usedPiIds = [];
+                            $headcountHandovers = HeadcountHandover::where('lead_id', $leadId)
+                                ->when($currentRecordId, function ($query) use ($currentRecordId) {
+                                    // Exclude current record if we're editing
+                                    return $query->where('id', '!=', $currentRecordId);
                                 })
-                                ->multiple()
-                                ->searchable()
-                                ->preload()
-                                ->helperText('Select HRDF PI (Optional)')
-                                ->default(function (?HeadcountHandover $record = null) {
-                                    if (!$record || !$record->proforma_invoice_hrdf) {
-                                        return [];
+                                ->get();
+
+                            // Extract used HRDF PI IDs from all handovers
+                            foreach ($headcountHandovers as $handover) {
+                                $piHrdf = $handover->proforma_invoice_hrdf;
+                                if (!empty($piHrdf)) {
+                                    // Handle JSON string format
+                                    if (is_string($piHrdf)) {
+                                        $piIds = json_decode($piHrdf, true);
+                                        if (is_array($piIds)) {
+                                            $usedPiIds = array_merge($usedPiIds, $piIds);
+                                        }
                                     }
-                                    if (is_string($record->proforma_invoice_hrdf)) {
-                                        return json_decode($record->proforma_invoice_hrdf, true) ?? [];
+                                    // Handle array format
+                                    elseif (is_array($piHrdf)) {
+                                        $usedPiIds = array_merge($usedPiIds, $piHrdf);
                                     }
-                                    return is_array($record->proforma_invoice_hrdf) ? $record->proforma_invoice_hrdf : [];
-                                }),
-                        ])
+                                }
+                            }
+
+                            // Get available HRDF PIs excluding already used ones
+                            return \App\Models\Quotation::where('lead_id', $leadId)
+                                ->where('quotation_type', 'hrdf')
+                                ->where('status', \App\Enums\QuotationStatusEnum::accepted)
+                                ->whereNotIn('id', array_filter($usedPiIds)) // Filter out null/empty values
+                                ->pluck('pi_reference_no', 'id')
+                                ->toArray();
+                        })
+                        ->multiple()
+                        ->searchable()
+                        ->preload()
+                        ->helperText('Select HRDF PI (Optional)')
+                        ->default(function (?HeadcountHandover $record = null) {
+                            if (!$record || !$record->proforma_invoice_hrdf) {
+                                return [];
+                            }
+                            if (is_string($record->proforma_invoice_hrdf)) {
+                                return json_decode($record->proforma_invoice_hrdf, true) ?? [];
+                            }
+                            return is_array($record->proforma_invoice_hrdf) ? $record->proforma_invoice_hrdf : [];
+                        }),
                 ]),
 
-            Section::make('Upload Documents (Either One Compulsory)')
-                ->description('You must upload at least one of the following documents')
+            Grid::make(2)
                 ->schema([
-                    Grid::make(2)
-                        ->schema([
-                            // Upload Payment - Either one compulsory
-                            FileUpload::make('payment_slip_file')
-                                ->label('Upload Payment Slip')
-                                ->disk('public')
-                                ->directory('handovers/headcount/payment_slips')
-                                ->visibility('public')
-                                ->multiple()
-                                ->maxFiles(5)
-                                ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'])
-                                ->helperText('Upload Payment Slip files (Maximum 5 files)')
-                                ->openable()
-                                ->downloadable()
-                                ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
-                                    // Get lead ID from ownerRecord
-                                    $leadId = $this->getOwnerRecord()->id;
-                                    // Format ID with prefix (250) and padding
-                                    $formattedId = '250' . str_pad($leadId, 3, '0', STR_PAD_LEFT);
-                                    // Get extension
-                                    $extension = $file->getClientOriginalExtension();
-                                    // Generate a unique identifier (timestamp) to avoid overwriting files
-                                    $timestamp = now()->format('YmdHis');
-                                    $random = rand(1000, 9999);
+                    // Upload Payment - Either one compulsory
+                    FileUpload::make('payment_slip_file')
+                        ->label('Upload Payment Slip')
+                        ->disk('public')
+                        ->directory('handovers/headcount/payment_slips')
+                        ->visibility('public')
+                        ->multiple()
+                        ->maxFiles(5)
+                        ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'])
+                        ->helperText('Upload Payment Slip files (Maximum 5 files)')
+                        ->openable()
+                        ->downloadable()
+                        ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
+                            // Get lead ID from ownerRecord
+                            $leadId = $this->getOwnerRecord()->id;
+                            // Format ID with prefix (250) and padding
+                            $formattedId = '250' . str_pad($leadId, 3, '0', STR_PAD_LEFT);
+                            // Get extension
+                            $extension = $file->getClientOriginalExtension();
+                            // Generate a unique identifier (timestamp) to avoid overwriting files
+                            $timestamp = now()->format('YmdHis');
+                            $random = rand(1000, 9999);
 
-                                    return "{$formattedId}-HC-PAYMENT-{$timestamp}-{$random}.{$extension}";
-                                })
-                                ->default(function (?HeadcountHandover $record = null) {
-                                    if (!$record || !$record->payment_slip_file) {
-                                        return [];
-                                    }
-                                    if (is_string($record->payment_slip_file)) {
-                                        return json_decode($record->payment_slip_file, true) ?? [];
-                                    }
-                                    return is_array($record->payment_slip_file) ? $record->payment_slip_file : [];
-                                }),
+                            return "{$formattedId}-HC-PAYMENT-{$timestamp}-{$random}.{$extension}";
+                        })
+                        ->default(function (?HeadcountHandover $record = null) {
+                            if (!$record || !$record->payment_slip_file) {
+                                return [];
+                            }
+                            if (is_string($record->payment_slip_file)) {
+                                return json_decode($record->payment_slip_file, true) ?? [];
+                            }
+                            return is_array($record->payment_slip_file) ? $record->payment_slip_file : [];
+                        }),
 
-                            // Upload Confirmation Order - Either one compulsory
-                            FileUpload::make('confirmation_order_file')
-                                ->label('Upload Confirmation Order')
-                                ->disk('public')
-                                ->directory('handovers/headcount/confirmation_orders')
-                                ->visibility('public')
-                                ->multiple()
-                                ->maxFiles(5)
-                                ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'])
-                                ->helperText('Upload Confirmation Order files (Maximum 5 files)')
-                                ->openable()
-                                ->downloadable()
-                                ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
-                                    // Get lead ID from ownerRecord
-                                    $leadId = $this->getOwnerRecord()->id;
-                                    // Format ID with prefix (250) and padding
-                                    $formattedId = '250' . str_pad($leadId, 3, '0', STR_PAD_LEFT);
-                                    // Get extension
-                                    $extension = $file->getClientOriginalExtension();
-                                    // Generate a unique identifier (timestamp) to avoid overwriting files
-                                    $timestamp = now()->format('YmdHis');
-                                    $random = rand(1000, 9999);
+                    // Upload Confirmation Order - Either one compulsory
+                    FileUpload::make('confirmation_order_file')
+                        ->label('Upload Confirmation Order')
+                        ->disk('public')
+                        ->directory('handovers/headcount/confirmation_orders')
+                        ->visibility('public')
+                        ->multiple()
+                        ->maxFiles(5)
+                        ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'])
+                        ->helperText('Upload Confirmation Order files (Maximum 5 files)')
+                        ->openable()
+                        ->downloadable()
+                        ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
+                            // Get lead ID from ownerRecord
+                            $leadId = $this->getOwnerRecord()->id;
+                            // Format ID with prefix (250) and padding
+                            $formattedId = '250' . str_pad($leadId, 3, '0', STR_PAD_LEFT);
+                            // Get extension
+                            $extension = $file->getClientOriginalExtension();
+                            // Generate a unique identifier (timestamp) to avoid overwriting files
+                            $timestamp = now()->format('YmdHis');
+                            $random = rand(1000, 9999);
 
-                                    return "{$formattedId}-HC-CONFIRM-{$timestamp}-{$random}.{$extension}";
-                                })
-                                ->default(function (?HeadcountHandover $record = null) {
-                                    if (!$record || !$record->confirmation_order_file) {
-                                        return [];
-                                    }
-                                    if (is_string($record->confirmation_order_file)) {
-                                        return json_decode($record->confirmation_order_file, true) ?? [];
-                                    }
-                                    return is_array($record->confirmation_order_file) ? $record->confirmation_order_file : [];
-                                }),
-                        ]),
+                            return "{$formattedId}-HC-CONFIRM-{$timestamp}-{$random}.{$extension}";
+                        })
+                        ->default(function (?HeadcountHandover $record = null) {
+                            if (!$record || !$record->confirmation_order_file) {
+                                return [];
+                            }
+                            if (is_string($record->confirmation_order_file)) {
+                                return json_decode($record->confirmation_order_file, true) ?? [];
+                            }
+                            return is_array($record->confirmation_order_file) ? $record->confirmation_order_file : [];
+                        }),
                 ]),
 
-            Section::make('Salesperson Remark')
-                ->schema([
-                    Textarea::make('salesperson_remark')
-                        ->label('SalesPerson Remark')
-                        ->rows(4)
-                        ->maxLength(1000)
-                        ->extraAlpineAttributes([
-                            'x-on:input' => '
-                                const start = $el.selectionStart;
-                                const end = $el.selectionEnd;
-                                const value = $el.value;
-                                $el.value = value.toUpperCase();
-                                $el.setSelectionRange(start, end);
-                            '
-                        ])
-                        ->dehydrateStateUsing(fn ($state) => strtoupper($state))
-                        ->default(fn (?HeadcountHandover $record = null) => $record?->salesperson_remark ?? null),
-                ]),
+            Textarea::make('salesperson_remark')
+                ->label('SalesPerson Remark')
+                ->rows(4)
+                ->maxLength(1000)
+                ->extraAlpineAttributes([
+                    'x-on:input' => '
+                        const start = $el.selectionStart;
+                        const end = $el.selectionEnd;
+                        const value = $el.value;
+                        $el.value = value.toUpperCase();
+                        $el.setSelectionRange(start, end);
+                    '
+                ])
+                ->dehydrateStateUsing(fn ($state) => strtoupper($state))
+                ->default(fn (?HeadcountHandover $record = null) => $record?->salesperson_remark ?? null),
         ];
     }
 

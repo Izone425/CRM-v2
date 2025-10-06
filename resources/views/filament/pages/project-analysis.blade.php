@@ -468,21 +468,22 @@
                 <thead>
                     <tr>
                         <th colspan="2" class="status-header col-group-end" style='background-color: #ffff00'>Count By Implementer</th>
-                        <th colspan="2" class="status-header col-group-end" style='background-color: #f1a983'>Status</th>
-                        <th colspan="3" class="status-ongoing-header" style='background-color: #0f9ed5'>Status - OnGoing</th>
-                    </tr>
-                    <tr>
-                        <td class="tier-header" style="width:28%;">Active Implementer / Tier 1</td>
-                        <td style="width:12%; background-color: #f2f25e" class="col-group-end">Total</td>
-                        <td style="width:12%; background-color: #fbe2d5">Closed</td>
-                        <td style="width:12%; background-color: #fbe2d5" class="col-group-end">OnGoing</td>
-                        <td style="width:12%; background-color: #caedfb">Open</td>
-                        <td style="width:12%; background-color: #caedfb">Delay</td>
-                        <td style="width:12%; background-color: #caedfb">InActive</td>
+                        <th colspan="3" class="status-header col-group-end" style='background-color: #f1a983'>Status</th>
+                        <th colspan="2" class="status-ongoing-header" style='background-color: #0f9ed5'>Status - OnGoing</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach($this->getTier1Implementers() as $implementer)
+                    <!-- Active Implementers Section -->
+                    <tr>
+                        <td class="tier-header" style="width:28%;">Active Implementer</td>
+                        <td style="width:12%; background-color: #f2f25e" class="col-group-end">Total</td>
+                        <td style="width:12%; background-color: #fbe2d5">Closed</td>
+                        <td style="width:12%; background-color: #fbe2d5">InActive</td>
+                        <td style="width:12%; background-color: #fbe2d5" class="col-group-end">OnGoing</td>
+                        <td style="width:12%; background-color: #caedfb">Open</td>
+                        <td style="width:12%; background-color: #caedfb">Delay</td>
+                    </tr>
+                    @foreach($this->getAllActiveImplementers() as $implementer)
                         <tr>
                             <td class="name-column clickable" wire:click="openImplementerHandoversSlideOver('{{ $implementer }}')">
                                 {{ $implementer }}
@@ -493,41 +494,8 @@
                             <td class="clickable" wire:click="openImplementerHandoversSlideOver('{{ $implementer }}', 'CLOSED')">
                                 {{ $this->getImplementerClosedCount($implementer) }}
                             </td>
-                            <td class="col-group-end clickable" wire:click="openOngoingHandoversSlideOver('{{ $implementer }}')">
-                                {{ $this->getImplementerOngoingCount($implementer) }}
-                            </td>
-                            <td class="clickable" wire:click="openImplementerHandoversSlideOver('{{ $implementer }}', 'OPEN')">
-                                {{ $this->getImplementerStatusCount($implementer, 'OPEN') }}
-                            </td>
-                            <td class="clickable" wire:click="openImplementerHandoversSlideOver('{{ $implementer }}', 'DELAY')">
-                                {{ $this->getImplementerStatusCount($implementer, 'DELAY') }}
-                            </td>
                             <td class="clickable" wire:click="openImplementerHandoversSlideOver('{{ $implementer }}', 'INACTIVE')">
                                 {{ $this->getImplementerStatusCount($implementer, 'INACTIVE') }}
-                            </td>
-                        </tr>
-                    @endforeach
-
-                    <!-- Tier 2 -->
-                    <tr>
-                        <td class="tier-header">Active Implementer / Tier 2</td>
-                        <td style="width:12%; background-color: #f2f25e" class="col-group-end">Total</td>
-                        <td style="width:12%; background-color: #fbe2d5">Closed</td>
-                        <td style="width:12%; background-color: #fbe2d5" class="col-group-end">OnGoing</td>
-                        <td style="width:12%; background-color: #caedfb">Open</td>
-                        <td style="width:12%; background-color: #caedfb">Delay</td>
-                        <td style="width:12%; background-color: #caedfb">InActive</td>
-                    </tr>
-                    @foreach($this->getTier2Implementers() as $implementer)
-                        <tr>
-                            <td class="name-column clickable" wire:click="openImplementerHandoversSlideOver('{{ $implementer }}')">
-                                {{ $implementer }}
-                            </td>
-                            <td class="col-group-end clickable" wire:click="openImplementerHandoversSlideOver('{{ $implementer }}')">
-                                {{ $this->getImplementerTotal($implementer) }}
-                            </td>
-                            <td class="clickable" wire:click="openImplementerHandoversSlideOver('{{ $implementer }}', 'CLOSED')">
-                                {{ $this->getImplementerClosedCount($implementer) }}
                             </td>
                             <td class="col-group-end clickable" wire:click="openOngoingHandoversSlideOver('{{ $implementer }}')">
                                 {{ $this->getImplementerOngoingCount($implementer) }}
@@ -538,80 +506,41 @@
                             <td class="clickable" wire:click="openImplementerHandoversSlideOver('{{ $implementer }}', 'DELAY')">
                                 {{ $this->getImplementerStatusCount($implementer, 'DELAY') }}
                             </td>
-                            <td class="clickable" wire:click="openImplementerHandoversSlideOver('{{ $implementer }}', 'INACTIVE')">
-                                {{ $this->getImplementerStatusCount($implementer, 'INACTIVE') }}
-                            </td>
                         </tr>
                     @endforeach
 
-                    <!-- Tier 3 -->
+                    <!-- Inactive Implementers Section -->
                     <tr>
-                        <td class="tier-header">Active Implementer / Tier 3</td>
+                        <td class="tier-header" style="width:28%;">InActive Implementer</td>
                         <td style="width:12%; background-color: #f2f25e" class="col-group-end">Total</td>
                         <td style="width:12%; background-color: #fbe2d5">Closed</td>
+                        <td style="width:12%; background-color: #fbe2d5">InActive</td>
                         <td style="width:12%; background-color: #fbe2d5" class="col-group-end">OnGoing</td>
                         <td style="width:12%; background-color: #caedfb">Open</td>
                         <td style="width:12%; background-color: #caedfb">Delay</td>
-                        <td style="width:12%; background-color: #caedfb">InActive</td>
                     </tr>
-                    @foreach($this->getTier3Implementers() as $implementer)
+                    @foreach($this->getAllInactiveImplementers() as $dbName => $displayName)
                         <tr>
-                            <td class="name-column clickable" wire:click="openImplementerHandoversSlideOver('{{ $implementer }}')">
-                                {{ $implementer }}
+                            <td class="name-column clickable" wire:click="openImplementerHandoversSlideOver('{{ $dbName }}')">
+                                {{ $displayName }}
                             </td>
-                            <td class="col-group-end clickable" wire:click="openImplementerHandoversSlideOver('{{ $implementer }}')">
-                                {{ $this->getImplementerTotal($implementer) }}
+                            <td class="col-group-end clickable" wire:click="openImplementerHandoversSlideOver('{{ $dbName }}')">
+                                {{ $this->getImplementerTotal($dbName) }}
                             </td>
-                            <td class="clickable" wire:click="openImplementerHandoversSlideOver('{{ $implementer }}', 'CLOSED')">
-                                {{ $this->getImplementerClosedCount($implementer) }}
+                            <td class="clickable" wire:click="openImplementerHandoversSlideOver('{{ $dbName }}', 'CLOSED')">
+                                {{ $this->getImplementerClosedCount($dbName) }}
                             </td>
-                            <td class="col-group-end clickable" wire:click="openOngoingHandoversSlideOver('{{ $implementer }}')">
-                                {{ $this->getImplementerOngoingCount($implementer) }}
+                            <td class="clickable" wire:click="openImplementerHandoversSlideOver('{{ $dbName }}', 'INACTIVE')">
+                                {{ $this->getImplementerStatusCount($dbName, 'INACTIVE') }}
                             </td>
-                            <td class="clickable" wire:click="openImplementerHandoversSlideOver('{{ $implementer }}', 'OPEN')">
-                                {{ $this->getImplementerStatusCount($implementer, 'OPEN') }}
+                            <td class="col-group-end clickable" wire:click="openOngoingHandoversSlideOver('{{ $dbName }}')">
+                                {{ $this->getImplementerOngoingCount($dbName) }}
                             </td>
-                            <td class="clickable" wire:click="openImplementerHandoversSlideOver('{{ $implementer }}', 'DELAY')">
-                                {{ $this->getImplementerStatusCount($implementer, 'DELAY') }}
+                            <td class="clickable" wire:click="openImplementerHandoversSlideOver('{{ $dbName }}', 'OPEN')">
+                                {{ $this->getImplementerStatusCount($dbName, 'OPEN') }}
                             </td>
-                            <td class="clickable" wire:click="openImplementerHandoversSlideOver('{{ $implementer }}', 'INACTIVE')">
-                                {{ $this->getImplementerStatusCount($implementer, 'INACTIVE') }}
-                            </td>
-                        </tr>
-                    @endforeach
-
-                    <!-- Inactive -->
-                    <tr>
-                        <td class="tier-header">InActive Implementers</td>
-                        <td style="width:12%; background-color: #f2f25e" class="col-group-end">Total</td>
-                        <td style="width:12%; background-color: #fbe2d5">Closed</td>
-                        <td style="width:12%; background-color: #fbe2d5" class="col-group-end">OnGoing</td>
-                        <td style="width:12%; background-color: #caedfb">Open</td>
-                        <td style="width:12%; background-color: #caedfb">Delay</td>
-                        <td style="width:12%; background-color: #caedfb">InActive</td>
-                    </tr>
-                    @foreach($this->getInactiveImplementers() as $implementer)
-                        <tr>
-                            <td class="name-column clickable" wire:click="openImplementerHandoversSlideOver('{{ $implementer['dbName'] }}')">
-                                {{ $implementer['name'] }}
-                            </td>
-                            <td class="col-group-end clickable" wire:click="openImplementerHandoversSlideOver('{{ $implementer['dbName'] }}')">
-                                {{ $implementer['total'] }}
-                            </td>
-                            <td class="clickable" wire:click="openImplementerHandoversSlideOver('{{ $implementer['dbName'] }}', 'CLOSED')">
-                                {{ $implementer['closed'] }}
-                            </td>
-                            <td class="col-group-end clickable" wire:click="openOngoingHandoversSlideOver('{{ $implementer['dbName'] }}')">
-                                {{ $implementer['ongoing'] }}
-                            </td>
-                            <td class="clickable" wire:click="openImplementerHandoversSlideOver('{{ $implementer['dbName'] }}', 'OPEN')">
-                                {{ $implementer['open'] }}
-                            </td>
-                            <td class="clickable" wire:click="openImplementerHandoversSlideOver('{{ $implementer['dbName'] }}', 'DELAY')">
-                                {{ $implementer['delay'] }}
-                            </td>
-                            <td class="clickable" wire:click="openImplementerHandoversSlideOver('{{ $implementer['dbName'] }}', 'INACTIVE')">
-                                {{ $implementer['inactive'] }}
+                            <td class="clickable" wire:click="openImplementerHandoversSlideOver('{{ $dbName }}', 'DELAY')">
+                                {{ $this->getImplementerStatusCount($dbName, 'DELAY') }}
                             </td>
                         </tr>
                     @endforeach
@@ -625,6 +554,9 @@
                         <td class="clickable" wire:click="openClosedHandoversSlideOver()">
                             {{ $stats['closed'] }}
                         </td>
+                        <td class="clickable" wire:click="openInactiveHandoversSlideOver()">
+                            {{ $stats['inactive'] }}
+                        </td>
                         <td class="col-group-end clickable" wire:click="openOngoingHandoversSlideOver()">
                             {{ $stats['ongoing'] }}
                         </td>
@@ -633,9 +565,6 @@
                         </td>
                         <td class="clickable" wire:click="openDelayHandoversSlideOver()">
                             {{ $stats['delay'] }}
-                        </td>
-                        <td class="clickable" wire:click="openInactiveHandoversSlideOver()">
-                            {{ $stats['inactive'] }}
                         </td>
                     </tr>
                 </tbody>

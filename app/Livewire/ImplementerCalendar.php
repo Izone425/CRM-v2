@@ -1230,13 +1230,19 @@ class ImplementerCalendar extends Component
 
     public function submitOnsiteRequest()
     {
-        // Validate form inputs
-        $this->validate([
+        // Validate form inputs - conditional validation based on category
+        $rules = [
             'onsiteDayType' => 'required|in:FULL_DAY,HALF_DAY_MORNING,HALF_DAY_EVENING',
             'onsiteCategory' => 'required|string',
-            'selectedCompany' => 'required|exists:company_details,id',
-            'requiredAttendees' => 'required|string',  // Changed from onsiteAttendees to requiredAttendees
-        ]);
+        ];
+
+        // Only require company and attendees if NOT backup support
+        if ($this->onsiteCategory !== 'BACKUP SUPPORT') {
+            $rules['selectedCompany'] = 'required|exists:company_details,id';
+            $rules['requiredAttendees'] = 'required|string';
+        }
+
+        $this->validate($rules);
 
         // Ensure we have sessions selected
         if (empty($this->selectedOnsiteSessions)) {
@@ -1248,14 +1254,27 @@ class ImplementerCalendar extends Component
             return;
         }
 
-        // Get company details
-        $companyDetail = \App\Models\CompanyDetail::find($this->selectedCompany);
-        if (!$companyDetail) {
-            Notification::make()
-                ->title('Company not found')
-                ->danger()
-                ->send();
-            return;
+        // Get company details (only if not backup support)
+        $companyDetail = null;
+        $leadId = null;
+        $softwareHandover = null;
+
+        if ($this->onsiteCategory !== 'BACKUP SUPPORT' && $this->selectedCompany) {
+            $companyDetail = \App\Models\CompanyDetail::find($this->selectedCompany);
+            if (!$companyDetail) {
+                Notification::make()
+                    ->title('Company not found')
+                    ->danger()
+                    ->send();
+                return;
+            }
+            $leadId = $companyDetail->lead_id;
+
+            if ($leadId) {
+                $softwareHandover = \App\Models\SoftwareHandover::where('lead_id', $leadId)
+                    ->orderBy('id', 'desc')
+                    ->first();
+            }
         }
 
         // Get implementer details
@@ -1271,23 +1290,22 @@ class ImplementerCalendar extends Component
         try {
             DB::beginTransaction();
 
-            // Find the software handover ID
-            $leadId = $companyDetail->lead_id;
-
-            if ($leadId) {
-                $softwareHandover = \App\Models\SoftwareHandover::where('lead_id', $leadId)
-                    ->orderBy('id', 'desc')
-                    ->first();
-            }
-
             // Create one appointment for each selected session
             $createdAppointments = [];
 
             foreach ($this->selectedOnsiteSessions as $session) {
                 $appointment = new \App\Models\ImplementerAppointment();
 
+                // Set title based on category
+                $appointmentTitle = $this->onsiteCategory;
+                if ($this->onsiteCategory === 'BACKUP SUPPORT') {
+                    $appointmentTitle .= ' | ' . $session['name'];
+                } else {
+                    $appointmentTitle .= ' | ' . ($companyDetail ? $companyDetail->company_name : 'Unknown Company') . ' | ' . $session['name'];
+                }
+
                 $appointment->fill([
-                    'lead_id' => $leadId,
+                    'lead_id' => $leadId, // Will be null for backup support
                     'type' => $this->onsiteCategory,
                     'appointment_type' => 'ONSITE', // Always ONSITE for onsite requests
                     'date' => $this->bookingDate,
@@ -1295,11 +1313,11 @@ class ImplementerCalendar extends Component
                     'end_time' => $session['end_time'],
                     'implementer' => $implementer->name,
                     'causer_id' => auth()->user()->id,
-                    'title' => $this->onsiteCategory . ' | ' . $companyDetail->company_name . ' | ' . $session['name'],
+                    'title' => $appointmentTitle,
                     'status' => 'New',
                     'request_status' => 'PENDING',
-                    'required_attendees' => $this->requiredAttendees, // Already correct
-                    'software_handover_id' => $softwareHandover->id,
+                    'required_attendees' => $this->onsiteCategory === 'BACKUP SUPPORT' ? null : $this->requiredAttendees,
+                    'software_handover_id' => $softwareHandover ? $softwareHandover->id : null,
                 ]);
 
                 $appointment->save();
@@ -1315,9 +1333,7 @@ class ImplementerCalendar extends Component
                 $senderEmail = $authUser->email;
                 $senderName = $authUser->name;
 
-                // Recipients
-                // $recipients = ['fazuliana.mohdarsad@timeteccloud.com']; // Main recipient
-                $recipients = []; // Main recipient
+                $recipients = []; // Main recipient - you may want to add recipients here
 
                 // Format session information for email
                 $sessionInfo = [];
@@ -1329,30 +1345,38 @@ class ImplementerCalendar extends Component
                     'implementerId' => 'IMP_' . str_pad($implementer->id, 6, '0', STR_PAD_LEFT),
                     'implementerName' => strtoupper($implementer->name),
                     'requestDateTime' => Carbon::now()->format('d F Y h:i A'),
-                    'companyName' => $companyDetail->company_name, // Use direct company details instead
+                    'companyName' => $this->onsiteCategory === 'BACKUP SUPPORT'
+                        ? 'BACKUP SUPPORT REQUEST'
+                        : ($companyDetail ? $companyDetail->company_name : 'Unknown Company'),
                     'onsiteCategory' => $this->onsiteCategory,
                     'dateAndDay' => Carbon::parse($this->bookingDate)->format('d F Y / l'),
                     'dayType' => str_replace('_', ' ', $this->onsiteDayType),
                     'sessions' => implode('<br>', $sessionInfo),
-                    'attendees' => $this->requiredAttendees,
+                    'attendees' => $this->onsiteCategory === 'BACKUP SUPPORT'
+                        ? 'N/A - Backup Support Request'
+                        : $this->requiredAttendees,
                     'remarks' => $this->onsiteRemarks ?? 'No additional remarks',
                 ];
 
-                \Illuminate\Support\Facades\Mail::send(
-                    'emails.implementer_onsite_request',
-                    ['content' => $emailData],
-                    function ($message) use ($recipients, $senderEmail, $senderName, $implementer) {
-                        $message->from($senderEmail, $senderName)
-                            ->to($recipients)
-                            ->cc($senderEmail)
-                            ->subject("ONSITE REQUEST: " . strtoupper($implementer->name));
-                    }
-                );
+                if (!empty($recipients)) {
+                    \Illuminate\Support\Facades\Mail::send(
+                        'emails.implementer_onsite_request',
+                        ['content' => $emailData],
+                        function ($message) use ($recipients, $senderEmail, $senderName, $implementer) {
+                            $message->from($senderEmail, $senderName)
+                                ->to($recipients)
+                                ->cc($senderEmail)
+                                ->subject("ONSITE REQUEST: " . strtoupper($implementer->name));
+                        }
+                    );
+                }
 
                 Notification::make()
                     ->title('Onsite request submitted successfully')
                     ->success()
-                    ->body('Email notification has been sent')
+                    ->body($this->onsiteCategory === 'BACKUP SUPPORT'
+                        ? 'Backup support request has been submitted'
+                        : 'Email notification has been sent')
                     ->send();
 
             } catch (\Exception $e) {

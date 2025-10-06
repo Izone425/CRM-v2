@@ -65,7 +65,7 @@ class ReferEarnTabs
                                                 })
                                         ])
                                         ->action(function (Lead $record, array $data) {
-                                            $record->update([
+                                            $record->updateQuietly([
                                                 'closed_by' => $data['closed_by'],
                                             ]);
 

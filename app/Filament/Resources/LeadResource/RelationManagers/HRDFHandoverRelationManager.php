@@ -76,58 +76,94 @@ class HRDFHandoverRelationManager extends RelationManager
     public function defaultForm()
     {
         return [
-            Section::make('Upload HRDF Document')
+            Select::make('subsidiary_id')
+                ->label('Use Subsidiary Details')
+                ->options(function (Forms\Get $get) {
+                    $leadId = $this->getOwnerRecord()->id;
+                    if (!$leadId) {
+                        return [];
+                    }
+
+                    $lead = Lead::find($leadId);
+                    if (!$lead) {
+                        return [];
+                    }
+
+                    // Return "None" option plus all subsidiaries
+                    $options = ['' => 'Use Default Company Details'];
+
+                    // Add subsidiaries - with null check
+                    $subsidiaries = $lead->subsidiaries()->get();
+
+                    foreach ($subsidiaries as $subsidiary) {
+                        // Only add subsidiaries that have a valid name
+                        if (!empty($subsidiary->company_name) && !is_null($subsidiary->company_name)) {
+                            $options[$subsidiary->id] = $subsidiary->company_name;
+                        }
+                    }
+
+                    return $options;
+                })
+                ->afterStateUpdated(function ($state, Forms\Set $set) {
+                    // Clear any previous selections
+                    $set('subsidiary_id', $state);
+                })
+                ->placeholder('Use Default Company Details')
+                ->searchable()
+                ->preload()
+                ->live(),
+
+            Grid::make(1)
                 ->schema([
-                    Select::make('subsidiary_id')
-                        ->label('Use Subsidiary Details')
-                        ->options(function (Forms\Get $get) {
+                    // Box 1 - JD14 Form (Compulsory)
+                    FileUpload::make('jd14_form_files')
+                        ->label('JD14 Form + 3 Days Attendance Logs')
+                        ->disk('public')
+                        ->directory('handovers/hrdf/jd14_forms')
+                        ->visibility('public')
+                        ->multiple()
+                        ->maxFiles(4)
+                        ->required()
+                        ->acceptedFileTypes(['application/pdf'])
+                        ->helperText('(Maximum 4 PDF files)')
+                        ->openable()
+                        ->downloadable()
+                        ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
+                            // Get lead ID from ownerRecord
                             $leadId = $this->getOwnerRecord()->id;
-                            if (!$leadId) {
+                            // Format ID with prefix (250) and padding
+                            $formattedId = '250' . str_pad($leadId, 3, '0', STR_PAD_LEFT);
+                            // Get extension
+                            $extension = $file->getClientOriginalExtension();
+                            // Generate a unique identifier (timestamp) to avoid overwriting files
+                            $timestamp = now()->format('YmdHis');
+                            $random = rand(1000, 9999);
+
+                            return "{$formattedId}-HRDF-JD14-{$timestamp}-{$random}.{$extension}";
+                        })
+                        ->default(function (?HRDFHandover $record = null) {
+                            if (!$record || !$record->jd14_form_files) {
                                 return [];
                             }
-
-                            $lead = Lead::find($leadId);
-                            if (!$lead) {
-                                return [];
+                            if (is_string($record->jd14_form_files)) {
+                                return json_decode($record->jd14_form_files, true) ?? [];
                             }
+                            return is_array($record->jd14_form_files) ? $record->jd14_form_files : [];
+                        }),
 
-                            // Return "None" option plus all subsidiaries
-                            $options = ['' => 'Use Default Company Details'];
-
-                            // Add subsidiaries - with null check
-                            $subsidiaries = $lead->subsidiaries()->get();
-
-                            foreach ($subsidiaries as $subsidiary) {
-                                // Only add subsidiaries that have a valid name
-                                if (!empty($subsidiary->company_name) && !is_null($subsidiary->company_name)) {
-                                    $options[$subsidiary->id] = $subsidiary->company_name;
-                                }
-                            }
-
-                            return $options;
-                        })
-                        ->afterStateUpdated(function ($state, Forms\Set $set) {
-                            // Clear any previous selections
-                            $set('subsidiary_id', $state);
-                        })
-                        ->placeholder('Use Default Company Details')
-                        ->searchable()
-                        ->preload()
-                        ->live(),
-
-                    Grid::make(1)
+                    Grid::make(2)
                         ->schema([
-                            // Box 1 - JD14 Form (Compulsory)
-                            FileUpload::make('jd14_form_files')
-                                ->label('JD14 Form + 3 Days')
+                            // Box 2 - AutoCount Invoice (Compulsory)
+                            FileUpload::make('autocount_invoice_file')
+                                ->label('AutoCount Invoice')
                                 ->disk('public')
-                                ->directory('handovers/hrdf/jd14_forms')
+                                ->directory('handovers/hrdf/autocount_invoices')
                                 ->visibility('public')
                                 ->multiple()
-                                ->maxFiles(4)
+                                ->maxFiles(1)
                                 ->required()
                                 ->acceptedFileTypes(['application/pdf'])
-                                ->helperText('(Maximum 4 PDF files)')
+                                ->helperText('(Maximum 1 PDF file)')
                                 ->openable()
                                 ->downloadable()
                                 ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
@@ -141,136 +177,97 @@ class HRDFHandoverRelationManager extends RelationManager
                                     $timestamp = now()->format('YmdHis');
                                     $random = rand(1000, 9999);
 
-                                    return "{$formattedId}-HRDF-JD14-{$timestamp}-{$random}.{$extension}";
+                                    return "{$formattedId}-HRDF-AUTOCOUNT-{$timestamp}-{$random}.{$extension}";
                                 })
                                 ->default(function (?HRDFHandover $record = null) {
-                                    if (!$record || !$record->jd14_form_files) {
+                                    if (!$record || !$record->autocount_invoice_file) {
                                         return [];
                                     }
-                                    if (is_string($record->jd14_form_files)) {
-                                        return json_decode($record->jd14_form_files, true) ?? [];
+                                    if (is_string($record->autocount_invoice_file)) {
+                                        return json_decode($record->autocount_invoice_file, true) ?? [];
                                     }
-                                    return is_array($record->jd14_form_files) ? $record->jd14_form_files : [];
+                                    return is_array($record->autocount_invoice_file) ? $record->autocount_invoice_file : [];
                                 }),
 
-                            Grid::make(2)
-                                ->schema([
-                                    // Box 2 - AutoCount Invoice (Compulsory)
-                                    FileUpload::make('autocount_invoice_file')
-                                        ->label('AutoCount Invoice')
-                                        ->disk('public')
-                                        ->directory('handovers/hrdf/autocount_invoices')
-                                        ->visibility('public')
-                                        ->multiple()
-                                        ->maxFiles(1)
-                                        ->required()
-                                        ->acceptedFileTypes(['application/pdf'])
-                                        ->helperText('(Maximum 1 PDF file)')
-                                        ->openable()
-                                        ->downloadable()
-                                        ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
-                                            // Get lead ID from ownerRecord
-                                            $leadId = $this->getOwnerRecord()->id;
-                                            // Format ID with prefix (250) and padding
-                                            $formattedId = '250' . str_pad($leadId, 3, '0', STR_PAD_LEFT);
-                                            // Get extension
-                                            $extension = $file->getClientOriginalExtension();
-                                            // Generate a unique identifier (timestamp) to avoid overwriting files
-                                            $timestamp = now()->format('YmdHis');
-                                            $random = rand(1000, 9999);
-
-                                            return "{$formattedId}-HRDF-AUTOCOUNT-{$timestamp}-{$random}.{$extension}";
-                                        })
-                                        ->default(function (?HRDFHandover $record = null) {
-                                            if (!$record || !$record->autocount_invoice_file) {
-                                                return [];
-                                            }
-                                            if (is_string($record->autocount_invoice_file)) {
-                                                return json_decode($record->autocount_invoice_file, true) ?? [];
-                                            }
-                                            return is_array($record->autocount_invoice_file) ? $record->autocount_invoice_file : [];
-                                        }),
-
-                                    // Box 3 - HRDF Grant Approval Letter (Compulsory)
-                                    FileUpload::make('hrdf_grant_approval_file')
-                                        ->label('HRDF Grant Approval Letter')
-                                        ->disk('public')
-                                        ->directory('handovers/hrdf/grant_approvals')
-                                        ->visibility('public')
-                                        ->multiple()
-                                        ->maxFiles(1)
-                                        ->required()
-                                        ->acceptedFileTypes(['application/pdf'])
-                                        ->helperText('(Maximum 1 PDF file)')
-                                        ->openable()
-                                        ->downloadable()
-                                        ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
-                                            // Get lead ID from ownerRecord
-                                            $leadId = $this->getOwnerRecord()->id;
-                                            // Format ID with prefix (250) and padding
-                                            $formattedId = '250' . str_pad($leadId, 3, '0', STR_PAD_LEFT);
-                                            // Get extension
-                                            $extension = $file->getClientOriginalExtension();
-                                            // Generate a unique identifier (timestamp) to avoid overwriting files
-                                            $timestamp = now()->format('YmdHis');
-                                            $random = rand(1000, 9999);
-
-                                            return "{$formattedId}-HRDF-GRANT-{$timestamp}-{$random}.{$extension}";
-                                        })
-                                        ->default(function (?HRDFHandover $record = null) {
-                                            if (!$record || !$record->hrdf_grant_approval_file) {
-                                                return [];
-                                            }
-                                            if (is_string($record->hrdf_grant_approval_file)) {
-                                                return json_decode($record->hrdf_grant_approval_file, true) ?? [];
-                                            }
-                                            return is_array($record->hrdf_grant_approval_file) ? $record->hrdf_grant_approval_file : [];
-                                        }),
-                                ]),
-                        ]),
-                    Grid::make(2)
-                        ->schema([
-                            // HRDF Grant ID - Most Important Field
-                            TextInput::make('hrdf_grant_id')
-                                ->label('HRDF Grant ID')
+                            // Box 3 - HRDF Grant Approval Letter (Compulsory)
+                            FileUpload::make('hrdf_grant_approval_file')
+                                ->label('HRDF Grant Approval Letter')
+                                ->disk('public')
+                                ->directory('handovers/hrdf/grant_approvals')
+                                ->visibility('public')
+                                ->multiple()
+                                ->maxFiles(1)
                                 ->required()
-                                ->placeholder('Enter HRDF Grant ID')
-                                ->maxLength(50)
-                                ->extraAlpineAttributes([
-                                    'x-on:input' => '
-                                        const start = $el.selectionStart;
-                                        const end = $el.selectionEnd;
-                                        const value = $el.value;
-                                        $el.value = value.toUpperCase();
-                                        $el.setSelectionRange(start, end);
-                                    '
-                                ])
-                                ->dehydrateStateUsing(fn ($state) => strtoupper($state))
-                                ->unique(HRDFHandover::class, 'hrdf_grant_id', ignoreRecord: true)
-                                ->validationMessages([
-                                    'required' => 'HRDF Grant ID is required.',
-                                    'max' => 'HRDF Grant ID cannot exceed 50 characters.',
-                                    'unique' => 'This HRDF Grant ID already exists. Please use a different Grant ID.',
-                                ]),
+                                ->acceptedFileTypes(['application/pdf'])
+                                ->helperText('(Maximum 1 PDF file)')
+                                ->openable()
+                                ->downloadable()
+                                ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
+                                    // Get lead ID from ownerRecord
+                                    $leadId = $this->getOwnerRecord()->id;
+                                    // Format ID with prefix (250) and padding
+                                    $formattedId = '250' . str_pad($leadId, 3, '0', STR_PAD_LEFT);
+                                    // Get extension
+                                    $extension = $file->getClientOriginalExtension();
+                                    // Generate a unique identifier (timestamp) to avoid overwriting files
+                                    $timestamp = now()->format('YmdHis');
+                                    $random = rand(1000, 9999);
 
-
-                            // Salesperson Remark - Optional
-                            Textarea::make('salesperson_remark')
-                                ->label('SalesPerson Remark')
-                                ->rows(4)
-                                ->maxLength(1000)
-                                ->default(fn (?HRDFHandover $record = null) => $record?->salesperson_remark ?? null)
-                                ->extraAlpineAttributes([
-                                    'x-on:input' => '
-                                        const start = $el.selectionStart;
-                                        const end = $el.selectionEnd;
-                                        const value = $el.value;
-                                        $el.value = value.toUpperCase();
-                                        $el.setSelectionRange(start, end);
-                                    '
-                                ])
-                                ->dehydrateStateUsing(fn ($state) => strtoupper($state)),
+                                    return "{$formattedId}-HRDF-GRANT-{$timestamp}-{$random}.{$extension}";
+                                })
+                                ->default(function (?HRDFHandover $record = null) {
+                                    if (!$record || !$record->hrdf_grant_approval_file) {
+                                        return [];
+                                    }
+                                    if (is_string($record->hrdf_grant_approval_file)) {
+                                        return json_decode($record->hrdf_grant_approval_file, true) ?? [];
+                                    }
+                                    return is_array($record->hrdf_grant_approval_file) ? $record->hrdf_grant_approval_file : [];
+                                }),
                         ]),
+                ]),
+            Grid::make(2)
+                ->schema([
+                    // HRDF Grant ID - Most Important Field
+                    TextInput::make('hrdf_grant_id')
+                        ->label('HRDF Grant ID')
+                        ->required()
+                        ->placeholder('Enter HRDF Grant ID')
+                        ->maxLength(50)
+                        ->extraAlpineAttributes([
+                            'x-on:input' => '
+                                const start = $el.selectionStart;
+                                const end = $el.selectionEnd;
+                                const value = $el.value;
+                                $el.value = value.toUpperCase();
+                                $el.setSelectionRange(start, end);
+                            '
+                        ])
+                        ->dehydrateStateUsing(fn ($state) => strtoupper($state))
+                        ->unique(HRDFHandover::class, 'hrdf_grant_id', ignoreRecord: true)
+                        ->validationMessages([
+                            'required' => 'HRDF Grant ID is required.',
+                            'max' => 'HRDF Grant ID cannot exceed 50 characters.',
+                            'unique' => 'This HRDF Grant ID already exists. Please use a different Grant ID.',
+                        ]),
+
+
+                    // Salesperson Remark - Optional
+                    Textarea::make('salesperson_remark')
+                        ->label('SalesPerson Remark')
+                        ->rows(4)
+                        ->maxLength(1000)
+                        ->default(fn (?HRDFHandover $record = null) => $record?->salesperson_remark ?? null)
+                        ->extraAlpineAttributes([
+                            'x-on:input' => '
+                                const start = $el.selectionStart;
+                                const end = $el.selectionEnd;
+                                const value = $el.value;
+                                $el.value = value.toUpperCase();
+                                $el.setSelectionRange(start, end);
+                            '
+                        ])
+                        ->dehydrateStateUsing(fn ($state) => strtoupper($state)),
                 ]),
         ];
     }

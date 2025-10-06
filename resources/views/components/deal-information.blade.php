@@ -32,7 +32,7 @@
 
 <div class="grid gap-6">
     {{-- Row: Deal Amount + Quotations --}}
-    <div class="text-sm leading-6 text-gray-900 dark:text-white">
+    {{-- <div class="text-sm leading-6 text-gray-900 dark:text-white">
         <span class="font-medium">Deal Amt:</span>
         @if ($hasNewSalesQuotations)
             RM {{ number_format($newSalesDealAmount, 2) }}
@@ -47,7 +47,7 @@
         @else
             <span class="text-xs text-gray-500">No NEW SALES quotations</span>
         @endif
-    </div>
+    </div> --}}
 
     {{-- @if ($hasRenewalQuotations)
         <div>

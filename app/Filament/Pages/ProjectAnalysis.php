@@ -102,12 +102,12 @@ class ProjectAnalysis extends Page
 
     public function getImplementerOngoingCount($implementer)
     {
+        // New Formula: OnGoing = Open + Delay (excluding INACTIVE)
         return $this->getBaseQuery()
             ->where('implementer', $implementer)
-            ->whereIn('status_handover', ['OPEN', 'DELAY', 'INACTIVE'])
+            ->whereIn('status_handover', ['OPEN', 'DELAY']) // Removed 'INACTIVE'
             ->count();
     }
-
     public function getImplementerStatusCount($implementer, $status)
     {
         return $this->getBaseQuery()
@@ -134,8 +134,17 @@ class ProjectAnalysis extends Page
 
     public function getActiveImplementers()
     {
-        // Define your list of active implementers - this could be stored in config or determined dynamically
-        $activeImplementers = ['SHAQINUR', 'SYAMIM', 'SYAZWAN', 'AIMAN', 'ZULHILMIE', 'AMIRUL', 'JOHN', 'FAZULIANA'];
+        // Updated list of active implementers
+        $activeImplementers = [
+            'Mohd Amirul Ashraf',
+            'John Low',
+            'Zulhilmie',
+            'Muhamad Izzul Aiman',
+            'Ahmad Syamim',
+            'Nurul Shaqinur Ain',
+            'Siti Shahilah',
+            'Nur Alia'
+        ];
 
         $implementers = [];
 
@@ -177,26 +186,31 @@ class ProjectAnalysis extends Page
 
     public function getInactiveImplementers()
     {
-        // Define your list of inactive implementers
-        $inactiveImplementers = ['BARI', 'ADZZIM', 'AZRUL', 'Ummu Najwa Fajrina', 'Noor Syazana', 'HANIF'];
-        $displayNames = $this->getImplementerDisplayNames();
+        // Updated list of inactive implementers with display names
+        $inactiveImplementers = [
+            'HANIF' => 'Hanif',
+            'Nur Fazuliana' => 'Nur Fazuliana',
+            'BARI' => 'Muhammad Khoirul Bariah',
+            'Ummu Najwa Fajrina' => 'Ummu Najwa Fajrina',
+            'Noor Syazana' => 'Noor Syazana',
+            'SYAZWAN' => 'Ahmad Syazwan',
+            'ADZZIM' => 'Adzzim Bin Kassim',
+            'AZRUL' => 'Azrul Nizam'
+        ];
 
         $implementers = [];
 
-        foreach ($inactiveImplementers as $implementer) {
-            $total = $this->getImplementerTotal($implementer);
-            $closed = $this->getImplementerClosedCount($implementer);
-            $ongoing = $this->getImplementerOngoingCount($implementer);
-            $open = $this->getImplementerStatusCount($implementer, 'OPEN');
-            $delay = $this->getImplementerStatusCount($implementer, 'DELAY');
-            $inactive = $this->getImplementerStatusCount($implementer, 'INACTIVE');
-
-            // Get display name if available, otherwise use original name
-            $displayName = isset($displayNames[$implementer]) ? $displayNames[$implementer] : $implementer;
+        foreach ($inactiveImplementers as $dbName => $displayName) {
+            $total = $this->getImplementerTotal($dbName);
+            $closed = $this->getImplementerClosedCount($dbName);
+            $ongoing = $this->getImplementerOngoingCount($dbName);
+            $open = $this->getImplementerStatusCount($dbName, 'OPEN');
+            $delay = $this->getImplementerStatusCount($dbName, 'DELAY');
+            $inactive = $this->getImplementerStatusCount($dbName, 'INACTIVE');
 
             $implementers[] = [
                 'name' => $displayName, // Use display name in the UI
-                'dbName' => $implementer, // Keep the original name for database queries
+                'dbName' => $dbName, // Keep the original name for database queries
                 'isActive' => false,
                 'total' => $total,
                 'closed' => $closed,
@@ -233,36 +247,73 @@ class ProjectAnalysis extends Page
             ->whereRaw("TRIM(LOWER(status_handover)) = ?", ['inactive'])
             ->count();
 
-        $ongoing = $open + $delay + $inactive;
+        // New Formula: OnGoing = Open + Delay
+        $ongoing = $open + $delay;
+
+        // Verify: Total should equal Closed + InActive + OnGoing
+        $calculatedTotal = $closed + $inactive + $ongoing;
+
+        // Log if there's a discrepancy (optional for debugging)
+        if ($total !== $calculatedTotal) {
+            Log::info("Status count discrepancy - DB Total: {$total}, Calculated Total: {$calculatedTotal}");
+        }
 
         return [
             'total' => $total,
             'closed' => $closed,
-            'ongoing' => $ongoing,
+            'ongoing' => $ongoing,  // Now calculated as Open + Delay only
             'open' => $open,
             'delay' => $delay,
             'inactive' => $inactive
         ];
     }
 
-    public function getTier1Implementers()
+    // public function getTier1Implementers()
+    // {
+    //     return ['Nurul Shaqinur Ain', 'Ahmad Syamim', 'Ahmad Syazwan', 'Siti Shahilah'];
+    // }
+
+    // public function getTier2Implementers()
+    // {
+    //     return ['Muhamad Izzul Aiman', 'Zulhilmie'];
+    // }
+
+    // public function getTier3Implementers()
+    // {
+    //     return ['Mohd Amirul Ashraf', 'John Low', 'Nur Alia', 'Nur Fazuliana'];
+    // }
+
+    // public function getInactiveImplementersList()
+    // {
+    //     return ['BARI', 'ADZZIM', 'AZRUL', 'Ummu Najwa Fajrina', 'Noor Syazana', 'HANIF'];
+    // }
+
+    public function getAllActiveImplementers()
     {
-        return ['Nurul Shaqinur Ain', 'Ahmad Syamim', 'Ahmad Syazwan', 'Siti Shahilah'];
+        return [
+            'Mohd Amirul Ashraf',
+            'John Low',
+            'Zulhilmie',
+            'Muhamad Izzul Aiman',
+            'Ahmad Syamim',
+            'Nurul Shaqinur Ain',
+            'Siti Shahilah',
+            'Nur Alia'
+        ];
     }
 
-    public function getTier2Implementers()
+    public function getAllInactiveImplementers()
     {
-        return ['Muhamad Izzul Aiman', 'Zulhilmie'];
-    }
-
-    public function getTier3Implementers()
-    {
-        return ['Mohd Amirul Ashraf', 'John Low', 'Nur Alia', 'Nur Fazuliana'];
-    }
-
-    public function getInactiveImplementersList()
-    {
-        return ['BARI', 'ADZZIM', 'AZRUL', 'Ummu Najwa Fajrina', 'Noor Syazana', 'HANIF'];
+        return [
+            'HANIF' => 'Hanif',
+            'Nur Fazuliana' => 'Nur Fazuliana',
+            'BARI' => 'Muhammad Khoirul Bariah',
+            'Ummu Najwa Fajrina' => 'Ummu Najwa Fajrina',
+            'Noor Syazana' => 'Noor Syazana',
+            'SYAZWAN' => 'Ahmad Syazwan',
+            'ADZZIM' => 'Adzzim Bin Kassim',
+            'AZRUL' => 'Azrul Nizam'
+        ];
     }
 
     private function groupHandoversByCompanySize($handovers)
@@ -413,7 +464,8 @@ class ProjectAnalysis extends Page
     // For "ONGOING" status handovers (combines OPEN, DELAY, INACTIVE)
     public function openOngoingHandoversSlideOver($implementer = null)
     {
-        $query = SoftwareHandover::query()->whereIn('status_handover', ['OPEN', 'DELAY', 'INACTIVE']);
+        // New Formula: OnGoing = Open + Delay (excluding INACTIVE)
+        $query = SoftwareHandover::query()->whereIn('status_handover', ['OPEN', 'DELAY']);
 
         if ($implementer) {
             $query->where('implementer', $implementer);
@@ -427,8 +479,8 @@ class ProjectAnalysis extends Page
 
         // Updated title format
         $title = $implementer ?
-            "{$implementer} Project Status: Ongoing" :
-            "Project Status: Ongoing";
+            "{$implementer} Project Status: Ongoing (Open + Delay)" :
+            "Project Status: Ongoing (Open + Delay)";
 
         $this->slideOverTitle = $title;
         $this->showSlideOver = true;
