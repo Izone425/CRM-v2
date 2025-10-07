@@ -762,14 +762,31 @@
                             <a href="{{ route('filament.admin.pages.sales-admin-analysis-v3') }}" class="submenu-item">
                                 <span class="module-font">Action Task</span>
                             </a>
-                            <a href="{{ route('filament.admin.pages.sales-admin-analysis-v4') }}" class="submenu-item">
-                                <span class="module-font">Phone Call Log</span>
-                            </a>
                             @if(auth()->user()->hasRouteAccess('filament.admin.pages.demo-ranking'))
                             <a href="{{ route('filament.admin.pages.demo-ranking') }}" class="submenu-item">
                                 <span class="module-font">Demo Ranking</span>
                             </a>
                             @endif
+                        </div>
+                    </div>
+
+                    <!-- Information Section -->
+                    <div class="menu-block">
+                        <div class="menu-item nested-dropdown-trigger" data-submenu="salesadmin-information-submenu">
+                            <div class="menu-icon-wrapper">
+                                <i class="bi bi-whatsapp"></i>
+                            </div>
+                            <span class="menu-text">Information</span>
+                            <i class="bi bi-chevron-down menu-arrow"></i>
+                        </div>
+
+                        <div class="submenu" id="salesadmin-information-submenu">
+                            <a href="{{ route('filament.admin.pages.sales-admin-call-log') }}" class="submenu-item">
+                                <span class="module-font">Sales Admin - Call Log</span>
+                            </a>
+                            <a href="{{ route('filament.admin.pages.sales-admin-closed-deal') }}" class="submenu-item">
+                                <span class="module-font">Sales Admin - Closed Deal</span>
+                            </a>
                         </div>
                     </div>
 

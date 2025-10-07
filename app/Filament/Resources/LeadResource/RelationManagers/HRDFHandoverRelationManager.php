@@ -228,47 +228,73 @@ class HRDFHandoverRelationManager extends RelationManager
                 ]),
             Grid::make(2)
                 ->schema([
-                    // HRDF Grant ID - Most Important Field
-                    TextInput::make('hrdf_grant_id')
-                        ->label('HRDF Grant ID')
-                        ->required()
-                        ->placeholder('Enter HRDF Grant ID')
-                        ->maxLength(50)
-                        ->extraAlpineAttributes([
-                            'x-on:input' => '
-                                const start = $el.selectionStart;
-                                const end = $el.selectionEnd;
-                                const value = $el.value;
-                                $el.value = value.toUpperCase();
-                                $el.setSelectionRange(start, end);
-                            '
-                        ])
-                        ->dehydrateStateUsing(fn ($state) => strtoupper($state))
-                        ->unique(HRDFHandover::class, 'hrdf_grant_id', ignoreRecord: true)
-                        ->validationMessages([
-                            'required' => 'HRDF Grant ID is required.',
-                            'max' => 'HRDF Grant ID cannot exceed 50 characters.',
-                            'unique' => 'This HRDF Grant ID already exists. Please use a different Grant ID.',
-                        ]),
+                    Grid::make(1)
+                        ->schema([
+                            // HRDF Grant ID - Most Important Field
+                            TextInput::make('hrdf_grant_id')
+                                ->label('HRDF Grant ID')
+                                ->required()
+                                ->placeholder('Enter HRDF Grant ID')
+                                ->maxLength(50)
+                                ->extraAlpineAttributes([
+                                    'x-on:input' => '
+                                        const start = $el.selectionStart;
+                                        const end = $el.selectionEnd;
+                                        const value = $el.value;
+                                        $el.value = value.toUpperCase();
+                                        $el.setSelectionRange(start, end);
+                                    '
+                                ])
+                                ->dehydrateStateUsing(fn ($state) => strtoupper($state))
+                                ->unique(HRDFHandover::class, 'hrdf_grant_id', ignoreRecord: true)
+                                ->validationMessages([
+                                    'required' => 'HRDF Grant ID is required.',
+                                    'max' => 'HRDF Grant ID cannot exceed 50 characters.',
+                                    'unique' => 'This HRDF Grant ID already exists. Please use a different Grant ID.',
+                                ]),
 
+                            // AutoCount Invoice Number - New Field
+                            TextInput::make('autocount_invoice_number')
+                                ->label('AutoCount Invoice Number')
+                                ->required()
+                                ->placeholder('Enter AutoCount Invoice Number')
+                                ->maxLength(50)
+                                ->extraAlpineAttributes([
+                                    'x-on:input' => '
+                                        const start = $el.selectionStart;
+                                        const end = $el.selectionEnd;
+                                        const value = $el.value;
+                                        $el.value = value.toUpperCase();
+                                        $el.setSelectionRange(start, end);
+                                    '
+                                ])
+                                ->dehydrateStateUsing(fn ($state) => strtoupper($state))
+                                ->validationMessages([
+                                    'required' => 'AutoCount Invoice Number is required.',
+                                    'max' => 'AutoCount Invoice Number cannot exceed 50 characters.',
+                                ]),
+                        ])->columnSpan(1),
 
-                    // Salesperson Remark - Optional
-                    Textarea::make('salesperson_remark')
-                        ->label('SalesPerson Remark')
-                        ->rows(4)
-                        ->maxLength(1000)
-                        ->default(fn (?HRDFHandover $record = null) => $record?->salesperson_remark ?? null)
-                        ->extraAlpineAttributes([
-                            'x-on:input' => '
-                                const start = $el.selectionStart;
-                                const end = $el.selectionEnd;
-                                const value = $el.value;
-                                $el.value = value.toUpperCase();
-                                $el.setSelectionRange(start, end);
-                            '
-                        ])
-                        ->dehydrateStateUsing(fn ($state) => strtoupper($state)),
-                ]),
+                    Grid::make(1)
+                        ->schema([
+                            // Salesperson Remark - Optional
+                            Textarea::make('salesperson_remark')
+                                ->label('SalesPerson Remark')
+                                ->rows(4)
+                                ->maxLength(1000)
+                                ->default(fn (?HRDFHandover $record = null) => $record?->salesperson_remark ?? null)
+                                ->extraAlpineAttributes([
+                                    'x-on:input' => '
+                                        const start = $el.selectionStart;
+                                        const end = $el.selectionEnd;
+                                        const value = $el.value;
+                                        $el.value = value.toUpperCase();
+                                        $el.setSelectionRange(start, end);
+                                    '
+                                ])
+                                ->dehydrateStateUsing(fn ($state) => strtoupper($state)),
+                        ])->columnSpan(1),
+                ])
         ];
     }
 
@@ -391,7 +417,7 @@ class HRDFHandoverRelationManager extends RelationManager
                     ->weight('bold')
                     ->action(
                         Action::make('viewHRDFHandoverDetails')
-                            ->modalHeading('HRDF Handover Details')
+                            ->modalHeading('')
                             ->modalWidth('3xl')
                             ->modalSubmitAction(false)
                             ->modalCancelAction(false)

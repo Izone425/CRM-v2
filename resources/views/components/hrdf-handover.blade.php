@@ -35,439 +35,272 @@
     // Get company and creator details
     $companyDetail = $record->lead->companyDetail ?? null;
     $creator = $record->creator ?? null;
-    $completedBy = $record->completedBy ?? null;
-    $rejectedBy = $record->rejectedBy ?? null;
+
+    // Combine invoice and grant files
+    $combinedFiles = array_merge($invoiceFiles ?: [], $grantFiles ?: []);
 @endphp
 
 <style>
-    .detail-container {
-        background: #f8fafc;
-        border-radius: 12px;
-        overflow: hidden;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    .hrdf-container {
+        padding: 1.5rem;
+        background-color: white;
+        border-radius: 0.5rem;
     }
 
-    .detail-header {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        padding: 20px 24px;
-        text-align: center;
+    .hrdf-grid-3 {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1rem;
+        margin-bottom: 1.5rem;
     }
 
-    .detail-header h2 {
-        font-size: 24px;
-        font-weight: 700;
-        margin: 0;
-        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    .hrdf-grid-4 {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1rem;
     }
 
-    .detail-header .subtitle {
-        font-size: 14px;
-        opacity: 0.9;
-        margin-top: 4px;
+    .hrdf-field {
+        margin-bottom: 0.5rem;
     }
 
-    .detail-body {
-        padding: 0;
-        background: white;
-    }
-
-    .section {
-        border-bottom: 1px solid #e5e7eb;
-        padding: 24px;
-    }
-
-    .section:last-child {
-        border-bottom: none;
-    }
-
-    .section-title {
-        font-size: 18px;
+    .hrdf-label {
         font-weight: 600;
         color: #374151;
-        margin-bottom: 16px;
-        display: flex;
-        align-items: center;
-        gap: 8px;
     }
 
-    .section-icon {
-        width: 20px;
-        height: 20px;
-        color: #6b7280;
-    }
-
-    .info-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-        gap: 16px;
-    }
-
-    .info-item {
-        background: #f9fafb;
-        border-radius: 8px;
-        padding: 16px;
-        border-left: 4px solid #3b82f6;
-    }
-
-    .info-label {
-        font-size: 12px;
-        font-weight: 600;
-        color: #6b7280;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        margin-bottom: 4px;
-    }
-
-    .info-value {
-        font-size: 14px;
+    .hrdf-value {
         color: #111827;
-        font-weight: 500;
-        word-break: break-word;
     }
 
-    .file-list {
+    .hrdf-section-title {
+        font-size: 1.125rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        color: #111827;
+    }
+
+    .hrdf-section {
+        margin-bottom: 1.5rem;
+    }
+
+    .hrdf-file-card {
+        padding: 1rem;
+        border: 1px solid #d1d5db;
+        border-radius: 0.5rem;
+    }
+
+    .hrdf-file-title {
+        font-weight: 500;
+        margin-bottom: 0.75rem;
+        color: #374151;
+    }
+
+    .hrdf-button-group {
         display: flex;
         flex-direction: column;
-        gap: 8px;
+        gap: 0.5rem;
     }
 
-    .file-item {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        background: #f9fafb;
-        border-radius: 8px;
-        padding: 12px;
-        border: 1px solid #e5e7eb;
-    }
-
-    .file-icon {
-        width: 32px;
-        height: 32px;
-        border-radius: 6px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
+    .hrdf-btn {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.875rem;
+        text-align: center;
         color: white;
-        font-size: 12px;
-        font-weight: 600;
-    }
-
-    .file-icon.jd14 {
-        background: #10b981;
-    }
-
-    .file-icon.invoice {
-        background: #f59e0b;
-    }
-
-    .file-icon.grant {
-        background: #8b5cf6;
-    }
-
-    .file-info {
-        flex: 1;
-    }
-
-    .file-name {
-        font-size: 14px;
-        font-weight: 500;
-        color: #111827;
-        margin-bottom: 2px;
-    }
-
-    .file-size {
-        font-size: 12px;
-        color: #6b7280;
-    }
-
-    .file-actions {
-        display: flex;
-        gap: 8px;
-    }
-
-    .file-action-btn {
-        padding: 6px 12px;
-        border-radius: 6px;
-        font-size: 12px;
-        font-weight: 500;
         text-decoration: none;
-        transition: all 0.2s;
+        border-radius: 0.25rem;
+        border: none;
+        cursor: pointer;
+        transition: background-color 0.2s;
     }
 
-    .btn-view {
-        background: #3b82f6;
-        color: white;
+    .hrdf-btn-view {
+        background-color: #2563eb;
     }
 
-    .btn-view:hover {
-        background: #2563eb;
-        color: white;
+    .hrdf-btn-view:hover {
+        background-color: #1d4ed8;
     }
 
-    .btn-download {
-        background: #10b981;
-        color: white;
+    .hrdf-btn-download {
+        background-color: #16a34a;
     }
 
-    .btn-download:hover {
-        background: #059669;
-        color: white;
+    .hrdf-btn-download:hover {
+        background-color: #15803d;
     }
 
-    .status-badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        padding: 6px 12px;
-        border-radius: 20px;
-        font-size: 12px;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
+    .hrdf-status-completed {
+        color: #059669;
     }
 
-    .status-draft {
-        background: #fef3c7;
-        color: #92400e;
+    .hrdf-status-rejected {
+        color: #dc2626;
     }
 
-    .status-new {
-        background: #dbeafe;
-        color: #1e40af;
+    .hrdf-status-draft {
+        color: #d97706;
     }
 
-    .status-completed {
-        background: #d1fae5;
-        color: #065f46;
+    .hrdf-status-new {
+        color: #4f46e5;
     }
 
-    .status-rejected {
-        background: #fee2e2;
-        color: #991b1b;
-    }
-
-    .no-files {
-        text-align: center;
-        padding: 24px;
+    .hrdf-no-files {
         color: #6b7280;
-        font-style: italic;
     }
 
-    .remark-box {
-        background: #fffbeb;
-        border: 1px solid #fbbf24;
-        border-radius: 8px;
-        padding: 16px;
-        margin-top: 8px;
+    .hrdf-remark {
+        color: #374151;
     }
 
-    .remark-text {
-        color: #92400e;
-        font-size: 14px;
-        line-height: 1.5;
-        margin: 0;
-        white-space: pre-wrap;
+    /* Responsive adjustments */
+    @media (max-width: 1024px) {
+        .hrdf-grid-4 {
+            grid-template-columns: repeat(3, 1fr);
+        }
     }
 
-    .empty-state {
-        text-align: center;
-        color: #6b7280;
-        font-style: italic;
-        padding: 12px;
-        background: #f9fafb;
-        border-radius: 6px;
-        border: 1px dashed #d1d5db;
+    @media (max-width: 768px) {
+        .hrdf-grid-3 {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .hrdf-grid-4 {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @media (max-width: 640px) {
+        .hrdf-grid-3 {
+            grid-template-columns: 1fr;
+        }
+
+        .hrdf-grid-4 {
+            grid-template-columns: 1fr;
+        }
+
+        .hrdf-container {
+            padding: 1rem;
+        }
     }
 </style>
 
-<div class="detail-container">
-    <!-- Header -->
-    <div class="detail-header">
-        <h2>{{ $handoverId }}</h2>
-        <div class="subtitle">HRDF Handover Details</div>
+<div class="hrdf-container">
+    <!-- Basic Information - 3 columns -->
+    <div class="hrdf-grid-3">
+        <div>
+            <p class="hrdf-field">
+                <span class="hrdf-label">Company Name:</span><br>
+                <span class="hrdf-value">{{ $companyDetail->company_name ?? 'N/A' }}</span>
+            </p>
+        </div>
+        <div>
+            <p class="hrdf-field">
+                <span class="hrdf-label">Created By:</span><br>
+                <span class="hrdf-value">{{ $creator->name ?? 'Unknown' }}</span>
+            </p>
+        </div>
+        <div>
+            <p class="hrdf-field">
+                <span class="hrdf-label">Date Submitted:</span><br>
+                <span class="hrdf-value">{{ $record->submitted_at ? $record->submitted_at->format('d M Y') : 'N/A' }}</span>
+            </p>
+        </div>
     </div>
 
-    <div class="detail-body">
-        <!-- Basic Information -->
-        <div class="section">
-            <div class="section-title">
-                <svg class="section-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
-                Basic Information
-            </div>
-            <div class="info-grid">
-                <div class="info-item">
-                    <div class="info-label">HRDF ID</div>
-                    <div class="info-value">{{ $handoverId }}</div>
-                </div>
-                <div class="info-item">
-                    <div class="info-label">HRDF Grant ID</div>
-                    <div class="info-value">{{ $record->hrdf_grant_id ?? 'N/A' }}</div>
-                </div>
-                @if($record->hrdf_claim_id)
-                <div class="info-item">
-                    <div class="info-label">HRDF Claim ID</div>
-                    <div class="info-value">{{ $record->hrdf_claim_id }}</div>
-                </div>
+    <div class="hrdf-grid-4">
+        <div>
+            <p class="hrdf-field">
+                <span class="hrdf-label">HRDF Grant ID:</span><br>
+                <span class="hrdf-value">{{ $record->hrdf_grant_id ?? 'N/A' }}</span>
+            </p>
+        </div>
+        <div>
+            <p class="hrdf-field">
+                <span class="hrdf-label">AutoCount Inv No:</span><br>
+                <span class="hrdf-value">{{ $record->autocount_invoice_number ?? 'N/A' }}</span>
+            </p>
+        </div>
+        <div>
+            <p class="hrdf-field">
+                <span class="hrdf-label">HRDF ID:</span><br>
+                <span class="hrdf-value">{{ $handoverId }}</span>
+            </p>
+        </div>
+        <div>
+            <p class="hrdf-field">
+                <span class="hrdf-label">Status:</span><br>
+                @if($record->status == 'Completed')
+                    <span class="hrdf-status-completed">{{ $record->status }}</span>
+                @elseif($record->status == 'Rejected')
+                    <span class="hrdf-status-rejected">{{ $record->status }}</span>
+                @elseif($record->status == 'Draft')
+                    <span class="hrdf-status-draft">{{ $record->status }}</span>
+                @elseif($record->status == 'New')
+                    <span class="hrdf-status-new">{{ $record->status }}</span>
+                @else
+                    <span class="hrdf-value">{{ $record->status ?? '-' }}</span>
                 @endif
-                <div class="info-item">
-                    <div class="info-label">Company Name</div>
-                    <div class="info-value">{{ $companyDetail->company_name ?? 'N/A' }}</div>
-                </div>
-                <div class="info-item">
-                    <div class="info-label">Date Submitted</div>
-                    <div class="info-value">{{ $record->submitted_at ? $record->submitted_at->format('d M Y, H:i A') : 'N/A' }}</div>
-                </div>
-                <div class="info-item">
-                    <div class="info-label">Status</div>
-                    <div class="info-value">
-                        <span class="status-badge status-{{ strtolower($record->status) }}">
-                            {{ $record->status }}
-                        </span>
+            </p>
+        </div>
+    </div>
+
+    <!-- JD14 Form + 3 Days Attendance Logs - 4 columns -->
+    <div class="hrdf-section">
+        <h3 class="hrdf-section-title">JD 14 FORM + 3 DAYS ATTENDANCE LOGS</h3>
+        @if(is_array($jd14Files) && count($jd14Files) > 0)
+            <div class="hrdf-grid-4">
+                @foreach($jd14Files as $index => $file)
+                    <div class="hrdf-file-card">
+                        <p class="hrdf-file-title">File {{ $index + 1 }}</p>
+                        <div class="hrdf-button-group">
+                            <a href="{{ Storage::url($file) }}" target="_blank" class="hrdf-btn hrdf-btn-view">
+                                View
+                            </a>
+                            <a href="{{ Storage::url($file) }}" download class="hrdf-btn hrdf-btn-download">
+                                Download
+                            </a>
+                        </div>
                     </div>
-                </div>
-                <div class="info-item">
-                    <div class="info-label">Created By</div>
-                    <div class="info-value">{{ $creator->name ?? 'Unknown' }}</div>
-                </div>
-                @if($record->status === 'Completed' && $completedBy)
-                <div class="info-item">
-                    <div class="info-label">Completed By</div>
-                    <div class="info-value">{{ $completedBy->name }}</div>
-                </div>
-                <div class="info-item">
-                    <div class="info-label">Completed At</div>
-                    <div class="info-value">{{ $record->completed_at ? $record->completed_at->format('d M Y, H:i A') : 'N/A' }}</div>
-                </div>
-                @endif
-                @if($record->status === 'Rejected' && $rejectedBy)
-                <div class="info-item">
-                    <div class="info-label">Rejected By</div>
-                    <div class="info-value">{{ $rejectedBy->name }}</div>
-                </div>
-                <div class="info-item">
-                    <div class="info-label">Rejected At</div>
-                    <div class="info-value">{{ $record->rejected_at ? $record->rejected_at->format('d M Y, H:i A') : 'N/A' }}</div>
-                </div>
-                @endif
+                @endforeach
             </div>
-        </div>
+        @else
+            <p class="hrdf-no-files">No files available</p>
+        @endif
+    </div>
 
-        <!-- File Uploads -->
-        <div class="section">
-            <div class="section-title">
-                <svg class="section-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                </svg>
-                Uploaded Documents
-            </div>
-
-            <!-- JD14 Form Files -->
-            <div class="info-item">
-                <div class="info-label">JD14 Form Files</div>
-                <div class="info-value">
-                    @if(is_array($jd14Files) && count($jd14Files) > 0)
-                        <div class="file-list">
-                            @foreach($jd14Files as $file)
-                                <div class="file-item">
-                                    <div class="file-icon jd14">JD14</div>
-                                    <div class="file-info">
-                                        <div class="file-name">{{ basename($file) }}</div>
-                                        <div class="file-size">JD14 Form Document</div>
-                                    </div>
-                                    <div class="file-actions">
-                                        <a href="{{ Storage::url($file) }}" target="_blank" class="file-action-btn btn-view">View</a>
-                                        <a href="{{ Storage::url($file) }}" download class="file-action-btn btn-download">Download</a>
-                                    </div>
-                                </div>
-                            @endforeach
+    <!-- AutoCount Invoice | HRDF Grant Approval Letter -->
+    <div class="hrdf-section">
+        <h3 class="hrdf-section-title">AUTOCOUNT INVOICE | HRDF GRANT APPROVAL LETTER</h3>
+        @if(count($combinedFiles) > 0)
+            <div class="hrdf-grid-4">
+                @foreach($combinedFiles as $index => $file)
+                    <div class="hrdf-file-card">
+                        <p class="hrdf-file-title">File {{ $index + 1 }}</p>
+                        <div class="hrdf-button-group">
+                            <a href="{{ Storage::url($file) }}" target="_blank" class="hrdf-btn hrdf-btn-view">
+                                View
+                            </a>
+                            <a href="{{ Storage::url($file) }}" download class="hrdf-btn hrdf-btn-download">
+                                Download
+                            </a>
                         </div>
-                    @else
-                        <div class="no-files">No JD14 form files uploaded</div>
-                    @endif
-                </div>
+                    </div>
+                @endforeach
             </div>
+        @else
+            <p class="hrdf-no-files">No files available</p>
+        @endif
+    </div>
 
-            <!-- AutoCount Invoice Files -->
-            <div class="info-item">
-                <div class="info-label">AutoCount Invoice Files</div>
-                <div class="info-value">
-                    @if(is_array($invoiceFiles) && count($invoiceFiles) > 0)
-                        <div class="file-list">
-                            @foreach($invoiceFiles as $file)
-                                <div class="file-item">
-                                    <div class="file-icon invoice">INV</div>
-                                    <div class="file-info">
-                                        <div class="file-name">{{ basename($file) }}</div>
-                                        <div class="file-size">AutoCount Invoice Document</div>
-                                    </div>
-                                    <div class="file-actions">
-                                        <a href="{{ Storage::url($file) }}" target="_blank" class="file-action-btn btn-view">View</a>
-                                        <a href="{{ Storage::url($file) }}" download class="file-action-btn btn-download">Download</a>
-                                    </div>
-                                </div>
-                            @endforeach
-                        </div>
-                    @else
-                        <div class="no-files">No AutoCount invoice files uploaded</div>
-                    @endif
-                </div>
-            </div>
-
-            <!-- HRDF Grant Approval Files -->
-            <div class="info-item">
-                <div class="info-label">HRDF Grant Approval Files</div>
-                <div class="info-value">
-                    @if(is_array($grantFiles) && count($grantFiles) > 0)
-                        <div class="file-list">
-                            @foreach($grantFiles as $file)
-                                <div class="file-item">
-                                    <div class="file-icon grant">GRANT</div>
-                                    <div class="file-info">
-                                        <div class="file-name">{{ basename($file) }}</div>
-                                        <div class="file-size">HRDF Grant Approval Document</div>
-                                    </div>
-                                    <div class="file-actions">
-                                        <a href="{{ Storage::url($file) }}" target="_blank" class="file-action-btn btn-view">View</a>
-                                        <a href="{{ Storage::url($file) }}" download class="file-action-btn btn-download">Download</a>
-                                    </div>
-                                </div>
-                            @endforeach
-                        </div>
-                    @else
-                        <div class="no-files">No HRDF grant approval files uploaded</div>
-                    @endif
-                </div>
-            </div>
-        </div>
-
-        <!-- Remarks -->
-        <div class="section">
-            <div class="section-title">
-                <svg class="section-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"></path>
-                </svg>
-                Remarks
-            </div>
-
-            @if($record->salesperson_remark)
-                <div class="remark-box">
-                    <div class="info-label">Salesperson Remark</div>
-                    <p class="remark-text">{{ $record->salesperson_remark }}</p>
-                </div>
-            @else
-                <div class="empty-state">No remarks provided</div>
-            @endif
-
-            @if($record->status === 'Rejected' && $record->reject_reason)
-                <div class="remark-box" style="background: #fef2f2; border-color: #f87171;">
-                    <div class="info-label" style="color: #991b1b;">Rejection Reason</div>
-                    <p class="remark-text" style="color: #991b1b;">{{ $record->reject_reason }}</p>
-                </div>
-            @endif
-        </div>
+    <!-- Salesperson Remark -->
+    <div class="hrdf-section">
+        <h3 class="hrdf-section-title">SALESPERSON REMARK</h3>
+        @if($record->salesperson_remark)
+            <p class="hrdf-remark">{{ $record->salesperson_remark }}</p>
+        @else
+            <p class="hrdf-no-files">No remark provided</p>
+        @endif
     </div>
 </div>

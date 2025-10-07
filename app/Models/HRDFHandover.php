@@ -17,6 +17,7 @@ class HRDFHandover extends Model
         'subsidiary_id',
         'hrdf_grant_id',
         'hrdf_claim_id',
+        'autocount_invoice_number',
         'jd14_form_files',
         'autocount_invoice_file',
         'hrdf_grant_approval_file',

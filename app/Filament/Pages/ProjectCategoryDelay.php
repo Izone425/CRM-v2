@@ -67,7 +67,7 @@ class ProjectCategoryDelay extends Page implements HasTable
                     ->action(
                         Action::make('viewHandoverDetails')
                             ->modalHeading(' ')
-                            ->modalWidth('3xl')
+                            ->modalWidth('md')
                             ->modalSubmitAction(false)
                             ->modalCancelAction(false)
                             ->modalContent(function (SoftwareHandover $record): View {

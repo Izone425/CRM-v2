@@ -26,7 +26,7 @@
     @if($reseller)
         <div>
             <div class="text-sm leading-6 text-gray-900 dark:text-white">
-                <span class="font-medium">Reseller:</span> {{ $item['value'] }}
+                <span class="font-medium">Reseller:</span> {{ $reseller->company_name }}
             </div>
         </div>
     @else

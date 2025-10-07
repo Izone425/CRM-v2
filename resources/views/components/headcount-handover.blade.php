@@ -50,15 +50,13 @@
             : $record->confirmation_order_file;
     }
 
-    // Get invoice files for completed handovers - Fix this part
+    // Get invoice files for completed handovers
     if ($record->invoice_file) {
         if (is_string($record->invoice_file)) {
-            // Try to decode JSON first
             $decoded = json_decode($record->invoice_file, true);
             if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
                 $invoiceFiles = $decoded;
             } else {
-                // If it's not JSON, treat as single file path
                 $invoiceFiles = [$record->invoice_file];
             }
         } elseif (is_array($record->invoice_file)) {
@@ -72,504 +70,351 @@
     $companyDetail = $record->lead->companyDetail ?? null;
     $creator = $record->creator ?? null;
     $completedBy = $record->completedBy ?? null;
-    $rejectedBy = $record->rejectedBy ?? null;
 @endphp
 
-{{-- Keep all your existing styles... --}}
 <style>
-    .detail-container {
-        background: #f8fafc;
-        border-radius: 12px;
-        overflow: hidden;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    .hc-container {
+        padding: 1.5rem;
+        background-color: white;
+        border-radius: 0.5rem;
     }
 
-    .detail-header {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        padding: 20px 24px;
-        text-align: center;
+    .hc-grid-3 {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1rem;
+        margin-bottom: 1.5rem;
     }
 
-    .detail-header h2 {
-        font-size: 24px;
-        font-weight: 700;
-        margin: 0;
-        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    .hc-grid-2 {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+        margin-bottom: 1.5rem;
     }
 
-    .detail-header .subtitle {
-        font-size: 14px;
-        opacity: 0.9;
-        margin-top: 4px;
+    .hc-field {
+        margin-bottom: 0.5rem;
     }
 
-    .detail-body {
-        padding: 0;
-        background: white;
-    }
-
-    .section {
-        border-bottom: 1px solid #e5e7eb;
-        padding: 24px;
-    }
-
-    .section:last-child {
-        border-bottom: none;
-    }
-
-    .section-title {
-        font-size: 18px;
+    .hc-label {
         font-weight: 600;
         color: #374151;
-        margin-bottom: 16px;
-        display: flex;
-        align-items: center;
-        gap: 8px;
     }
 
-    .section-icon {
-        width: 20px;
-        height: 20px;
-        color: #6b7280;
-    }
-
-    .info-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-        gap: 16px;
-    }
-
-    .info-item {
-        background: #f9fafb;
-        border-radius: 8px;
-        padding: 16px;
-        border-left: 4px solid #3b82f6;
-    }
-
-    .info-label {
-        font-size: 12px;
-        font-weight: 600;
-        color: #6b7280;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        margin-bottom: 4px;
-    }
-
-    .info-value {
-        font-size: 14px;
+    .hc-value {
         color: #111827;
-        font-weight: 500;
-        word-break: break-word;
     }
 
-    .pi-list {
+    .hc-section {
+        margin-bottom: 1.5rem;
+    }
+
+    .hc-file-section {
+        margin-bottom: 1rem;
+    }
+
+    .hc-file-label {
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+
+    .hc-file-list {
         display: flex;
         flex-direction: column;
-        gap: 8px;
+        gap: 0.5rem;
     }
 
-    .pi-item {
-        background: #f3f4f6;
-        border-radius: 6px;
-        padding: 12px;
-        border-left: 3px solid #10b981;
-        font-size: 14px;
-        font-weight: 500;
+    .hc-file-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem;
+        border-radius: 0.25rem;
     }
 
-    .pi-link {
+    .hc-file-name {
+        flex: 1;
+        font-size: 0.875rem;
+        color: #111827;
+    }
+
+    .hc-file-actions {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .hc-btn {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+        text-align: center;
+        color: white;
+        text-decoration: none;
+        border-radius: 0.25rem;
+        border: none;
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+
+    .hc-btn-view {
+        background-color: #2563eb;
+    }
+
+    .hc-btn-view:hover {
+        background-color: #1d4ed8;
+    }
+
+    .hc-btn-download {
+        background-color: #16a34a;
+    }
+
+    .hc-btn-download:hover {
+        background-color: #15803d;
+    }
+
+    .hc-status-completed {
+        color: #059669;
+    }
+
+    .hc-status-rejected {
+        color: #dc2626;
+    }
+
+    .hc-status-draft {
+        color: #d97706;
+    }
+
+    .hc-status-new {
+        color: #4f46e5;
+    }
+
+    .hc-no-files {
+        color: #6b7280;
+        font-style: italic;
+        font-size: 0.875rem;
+    }
+
+    .hc-pi-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    .hc-pi-item {
+        font-size: 0.875rem;
+    }
+
+    .hc-pi-link {
         color: #2563EB;
         text-decoration: none;
         font-weight: 500;
-        transition: all 0.2s ease;
     }
 
-    .pi-link:hover {
+    .hc-pi-link:hover {
         text-decoration: underline;
-        color: #1d4ed8;
     }
 
-    .file-list {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-    }
-
-    .file-item {
-        display: flex;
-        align-items: center;
-        gap: 12px;
+    .hc-remark {
+        color: #374151;
+        padding: 1rem;
         background: #f9fafb;
-        border-radius: 8px;
-        padding: 12px;
-        border: 1px solid #e5e7eb;
-    }
-
-    .file-icon {
-        width: 32px;
-        height: 32px;
-        background: #3b82f6;
-        border-radius: 6px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: white;
-        font-size: 12px;
-        font-weight: 600;
-    }
-
-    .file-info {
-        flex: 1;
-    }
-
-    .file-name {
-        font-size: 14px;
-        font-weight: 500;
-        color: #111827;
-        margin-bottom: 2px;
-    }
-
-    .file-size {
-        font-size: 12px;
-        color: #6b7280;
-    }
-
-    .file-actions {
-        display: flex;
-        gap: 8px;
-    }
-
-    .file-action-btn {
-        padding: 6px 12px;
-        border-radius: 6px;
-        font-size: 12px;
-        font-weight: 500;
-        text-decoration: none;
-        transition: all 0.2s;
-    }
-
-    .btn-view {
-        background: #3b82f6;
-        color: white;
-    }
-
-    .btn-view:hover {
-        background: #2563eb;
-        color: white;
-    }
-
-    .btn-download {
-        background: #10b981;
-        color: white;
-    }
-
-    .btn-download:hover {
-        background: #059669;
-        color: white;
-    }
-
-    .status-badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        padding: 6px 12px;
-        border-radius: 20px;
-        font-size: 12px;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-
-    .status-draft {
-        background: #fef3c7;
-        color: #92400e;
-    }
-
-    .status-new {
-        background: #dbeafe;
-        color: #1e40af;
-    }
-
-    .status-completed {
-        background: #d1fae5;
-        color: #065f46;
-    }
-
-    .status-rejected {
-        background: #fee2e2;
-        color: #991b1b;
-    }
-
-    .no-files {
-        text-align: center;
-        padding: 24px;
-        color: #6b7280;
-        font-style: italic;
-    }
-
-    .remark-box {
-        background: #fffbeb;
-        border: 1px solid #fbbf24;
-        border-radius: 8px;
-        padding: 16px;
-        margin-top: 8px;
-    }
-
-    .remark-text {
-        color: #92400e;
-        font-size: 14px;
-        line-height: 1.5;
-        margin: 0;
+        border-radius: 0.25rem;
+        border: 1px solid #d1d5db;
         white-space: pre-wrap;
     }
 
-    .empty-state {
-        display: block;
-        text-align: center;
-        color: #6b7280;
-        font-style: italic;
-        padding: 16px;
-        background: #f9fafb;
-        border-radius: 8px;
-        border: 1px dashed #d1d5db;
-        margin: 0;
-        width: 100%;
-        box-sizing: border-box;
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+        .hc-grid-3 {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .hc-grid-2 {
+            grid-template-columns: 1fr;
+        }
     }
 
-    /* Special styling for invoice files */
-    .invoice-file-icon {
-        background: #10b981 !important;
+    @media (max-width: 640px) {
+        .hc-grid-3 {
+            grid-template-columns: 1fr;
+        }
+
+        .hc-container {
+            padding: 1rem;
+        }
     }
 </style>
 
-<div class="detail-container">
-    <!-- Header -->
-    <div class="detail-header">
-        <h2>{{ $handoverId }}</h2>
-        <div class="subtitle">Headcount Handover Details</div>
+<div class="hc-container">
+    <!-- Basic Information - 3 columns -->
+    <div class="hc-grid-3">
+        <div>
+            <p class="hc-field">
+                <span class="hc-label">Company Name:</span><br>
+                <span class="hc-value">{{ $companyDetail->company_name ?? 'N/A' }}</span>
+            </p>
+        </div>
+        <div>
+            <p class="hc-field">
+                <span class="hc-label">Created By:</span><br>
+                <span class="hc-value">{{ $creator->name ?? 'Unknown' }}</span>
+            </p>
+        </div>
+        <div>
+            <p class="hc-field">
+                <span class="hc-label">Status:</span><br>
+                @if($record->status == 'Completed')
+                    <span class="hc-status-completed">{{ $record->status }}</span>
+                @elseif($record->status == 'Rejected')
+                    <span class="hc-status-rejected">{{ $record->status }}</span>
+                @elseif($record->status == 'Draft')
+                    <span class="hc-status-draft">{{ $record->status }}</span>
+                @elseif($record->status == 'New')
+                    <span class="hc-status-new">{{ $record->status }}</span>
+                @else
+                    <span class="hc-value">{{ $record->status ?? '-' }}</span>
+                @endif
+            </p>
+        </div>
     </div>
 
-    <div class="detail-body">
-        <!-- Basic Information -->
-        <div class="section">
-            <div class="section-title">
-                <svg class="section-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
-                Basic Information
-            </div>
-            <div class="info-grid">
-                <div class="info-item">
-                    <div class="info-label">Company Name</div>
-                    <div class="info-value">{{ $companyDetail->company_name ?? 'N/A' }}</div>
-                </div>
-                <div class="info-item">
-                    <div class="info-label">Date Submitted</div>
-                    <div class="info-value">{{ $record->submitted_at ? $record->submitted_at->format('d M Y, H:i A') : 'N/A' }}</div>
-                </div>
-                <div class="info-item">
-                    <div class="info-label">Status</div>
-                    <div class="info-value">
-                        <span class="status-badge status-{{ strtolower($record->status) }}">
-                            {{ $record->status }}
-                        </span>
-                    </div>
-                </div>
-                <div class="info-item">
-                    <div class="info-label">Created By</div>
-                    <div class="info-value">{{ $creator->name ?? 'Unknown' }}</div>
-                </div>
-                @if($record->status === 'Completed' && $completedBy)
-                <div class="info-item">
-                    <div class="info-label">Completed By</div>
-                    <div class="info-value">{{ $completedBy->name }}</div>
-                </div>
-                <div class="info-item">
-                    <div class="info-label">Completed At</div>
-                    <div class="info-value">{{ $record->completed_at ? $record->completed_at->format('d M Y, H:i A') : 'N/A' }}</div>
-                </div>
-                @endif
-                @if($record->status === 'Rejected' && $rejectedBy)
-                <div class="info-item">
-                    <div class="info-label">Rejected By</div>
-                    <div class="info-value">{{ $rejectedBy->name }}</div>
-                </div>
-                <div class="info-item">
-                    <div class="info-label">Rejected At</div>
-                    <div class="info-value">{{ $record->rejected_at ? $record->rejected_at->format('d M Y, H:i A') : 'N/A' }}</div>
-                </div>
-                @endif
-            </div>
+    <div class="hc-grid-3">
+        <div>
+            <p class="hc-field">
+                <span class="hc-label">Date Submitted:</span><br>
+                <span class="hc-value">{{ $record->submitted_at ? $record->submitted_at->format('d M Y') : 'N/A' }}</span>
+            </p>
         </div>
+        @if($record->status === 'Completed' && $completedBy)
+        <div>
+            <p class="hc-field">
+                <span class="hc-label">Completed By:</span><br>
+                <span class="hc-value">{{ $completedBy->name }}</span>
+            </p>
+        </div>
+        <div>
+            <p class="hc-field">
+                <span class="hc-label">Completed At:</span><br>
+                <span class="hc-value">{{ $record->completed_at ? $record->completed_at->format('d M Y') : 'N/A' }}</span>
+            </p>
+        </div>
+        @endif
+    </div>
 
-        <!-- Proforma Invoice Information -->
-        <div class="section">
-            <div class="section-title">
-                <svg class="section-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                </svg>
-                Proforma Invoice Details
-            </div>
-
-            <div class="info-grid">
-                <div class="info-item">
-                    <div class="info-label">Product PI</div>
-                    <div class="info-value">
-                        @if(count($productPIs) > 0)
-                            <div class="pi-list">
-                                @foreach($productPIs as $index => $pi)
-                                    <div class="pi-item">
-                                        <a href="{{ url('proforma-invoice-v2/' . $pi->id) }}" target="_blank" class="pi-link">
-                                            {{ $pi->pi_reference_no }}
-                                        </a>
-                                    </div>
-                                @endforeach
+    <!-- Product PI & HRDF PI - 2 columns -->
+    <div class="hc-grid-2">
+        <div>
+            <p class="hc-field">
+                <span class="hc-label">Product PI:</span><br>
+                @if(count($productPIs) > 0)
+                    <div class="hc-pi-list">
+                        @foreach($productPIs as $pi)
+                            <div class="hc-pi-item">
+                                <a href="{{ url('proforma-invoice-v2/' . $pi->id) }}" target="_blank" class="hc-pi-link">
+                                    {{ $pi->pi_reference_no }}
+                                </a>
                             </div>
-                        @else
-                            <div class="empty-state">No Product PI selected</div>
-                        @endif
+                        @endforeach
                     </div>
-                </div>
-
-                <div class="info-item">
-                    <div class="info-label">HRDF PI</div>
-                    <div class="info-value">
-                        @if(count($hrdfPIs) > 0)
-                            <div class="pi-list">
-                                @foreach($hrdfPIs as $index => $pi)
-                                    <div class="pi-item">
-                                        <a href="{{ url('proforma-invoice-v2/' . $pi->id) }}" target="_blank" class="pi-link">
-                                            {{ $pi->pi_reference_no }}
-                                        </a>
-                                    </div>
-                                @endforeach
+                @else
+                    <span class="hc-no-files">No Product PI selected</span>
+                @endif
+            </p>
+        </div>
+        <div>
+            <p class="hc-field">
+                <span class="hc-label">HRDF PI:</span><br>
+                @if(count($hrdfPIs) > 0)
+                    <div class="hc-pi-list">
+                        @foreach($hrdfPIs as $pi)
+                            <div class="hc-pi-item">
+                                <a href="{{ url('proforma-invoice-v2/' . $pi->id) }}" target="_blank" class="hc-pi-link">
+                                    {{ $pi->pi_reference_no }}
+                                </a>
                             </div>
-                        @else
-                            <div class="empty-state">No HRDF PI selected</div>
-                        @endif
+                        @endforeach
                     </div>
-                </div>
-            </div>
+                @else
+                    <span class="hc-no-files">No HRDF PI selected</span>
+                @endif
+            </p>
         </div>
+    </div>
 
-        <!-- File Uploads -->
-        <div class="section">
-            <div class="section-title">
-                <svg class="section-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                </svg>
-                Uploaded Documents
-            </div>
-
-            <!-- Payment Slip Files -->
-            <div class="info-item">
-                <div class="info-label">Payment Slip Files</div>
-                <div class="info-value">
-                    @if(is_array($paymentSlipFiles) && count($paymentSlipFiles) > 0)
-                        <div class="file-list">
-                            @foreach($paymentSlipFiles as $file)
-                                <div class="file-item">
-                                    <div class="file-icon">PDF</div>
-                                    <div class="file-info">
-                                        <div class="file-name">{{ basename($file) }}</div>
-                                        <div class="file-size">Payment Slip Document</div>
-                                    </div>
-                                    <div class="file-actions">
-                                        <a href="{{ Storage::url($file) }}" target="_blank" class="file-action-btn btn-view">View</a>
-                                        <a href="{{ Storage::url($file) }}" download class="file-action-btn btn-download">Download</a>
-                                    </div>
-                                </div>
-                            @endforeach
+    <div class="hc-grid-3">
+        <!-- Payment Slip -->
+        <div class="hc-file-section">
+            <span class="hc-file-label">Payment Slip:</span>
+            @if(is_array($paymentSlipFiles) && count($paymentSlipFiles) > 0)
+                <div class="hc-file-list">
+                    @foreach($paymentSlipFiles as $file)
+                        <div class="hc-file-item">
+                            <div class="hc-file-actions">
+                                <a href="{{ Storage::url($file) }}" target="_blank" class="hc-btn hc-btn-view">View</a>
+                                <a href="{{ Storage::url($file) }}" download class="hc-btn hc-btn-download">Download</a>
+                            </div>
                         </div>
-                    @else
-                        <div class="no-files">No payment slip files uploaded</div>
-                    @endif
-                </div>
-            </div>
-
-            <!-- Confirmation Order Files -->
-            <div class="info-item">
-                <div class="info-label">Confirmation Order Files</div>
-                <div class="info-value">
-                    @if(is_array($confirmationOrderFiles) && count($confirmationOrderFiles) > 0)
-                        <div class="file-list">
-                            @foreach($confirmationOrderFiles as $file)
-                                <div class="file-item">
-                                    <div class="file-icon">PDF</div>
-                                    <div class="file-info">
-                                        <div class="file-name">{{ basename($file) }}</div>
-                                        <div class="file-size">Confirmation Order Document</div>
-                                    </div>
-                                    <div class="file-actions">
-                                        <a href="{{ Storage::url($file) }}" target="_blank" class="file-action-btn btn-view">View</a>
-                                        <a href="{{ Storage::url($file) }}" download class="file-action-btn btn-download">Download</a>
-                                    </div>
-                                </div>
-                            @endforeach
-                        </div>
-                    @else
-                        <div class="no-files">No confirmation order files uploaded</div>
-                    @endif
-                </div>
-            </div>
-
-            <!-- Invoice Files (for completed handovers) - FIXED SECTION -->
-            @if($record->status === 'Completed')
-            <div class="info-item">
-                <div class="info-label">Invoice Files</div>
-                <div class="info-value">
-                    @if(is_array($invoiceFiles) && count($invoiceFiles) > 0)
-                        <div class="file-list">
-                            @foreach($invoiceFiles as $file)
-                                @if($file) {{-- Make sure file is not empty --}}
-                                <div class="file-item">
-                                    <div class="file-icon invoice-file-icon">INV</div>
-                                    <div class="file-info">
-                                        <div class="file-name">{{ basename($file) }}</div>
-                                        <div class="file-size">Invoice Document</div>
-                                    </div>
-                                    <div class="file-actions">
-                                        <a href="{{ Storage::url($file) }}" target="_blank" class="file-action-btn btn-view">View</a>
-                                        <a href="{{ Storage::url($file) }}" download class="file-action-btn btn-download">Download</a>
-                                    </div>
-                                </div>
-                                @endif
-                            @endforeach
-                        </div>
-                    @else
-                        <div class="no-files">No invoice files uploaded</div>
-                    @endif
-                </div>
-            </div>
-            @endif
-        </div>
-
-        <!-- Remarks -->
-        <div class="section">
-            <div class="section-title">
-                <svg class="section-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012-2h-3l-4 4z"></path>
-                </svg>
-                Remarks
-            </div>
-
-            @if($record->salesperson_remark)
-                <div class="remark-box">
-                    <div class="info-label">Salesperson Remark</div>
-                    <p class="remark-text">{{ $record->salesperson_remark }}</p>
+                    @endforeach
                 </div>
             @else
-                <div class="empty-state">No remarks provided</div>
-            @endif
-
-            @if($record->status === 'Rejected' && $record->reject_reason)
-                <div class="remark-box" style="background: #fef2f2; border-color: #f87171;">
-                    <div class="info-label" style="color: #991b1b;">Rejection Reason</div>
-                    <p class="remark-text" style="color: #991b1b;">{{ $record->reject_reason }}</p>
-                </div>
+                <div class="hc-no-files">No payment slip files uploaded</div>
             @endif
         </div>
+
+        <!-- Confirmation Order -->
+        <div class="hc-file-section">
+            <span class="hc-file-label">Confirmation Order:</span>
+            @if(is_array($confirmationOrderFiles) && count($confirmationOrderFiles) > 0)
+                <div class="hc-file-list">
+                    @foreach($confirmationOrderFiles as $file)
+                        <div class="hc-file-item">
+                            <div class="hc-file-actions">
+                                <a href="{{ Storage::url($file) }}" target="_blank" class="hc-btn hc-btn-view">View</a>
+                                <a href="{{ Storage::url($file) }}" download class="hc-btn hc-btn-download">Download</a>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            @else
+                <div class="hc-no-files">No confirmation order files uploaded</div>
+            @endif
+        </div>
+
+        <!-- Invoice (for completed handovers only) -->
+        <div class="hc-file-section">
+            <span class="hc-file-label">Invoice:</span>
+            @if($record->status === 'Completed')
+                @if(is_array($invoiceFiles) && count($invoiceFiles) > 0)
+                    <div class="hc-file-list">
+                        @foreach($invoiceFiles as $file)
+                            @if($file)
+                            <div class="hc-file-item">
+                                <div class="hc-file-actions">
+                                    <a href="{{ Storage::url($file) }}" target="_blank" class="hc-btn hc-btn-view">View</a>
+                                    <a href="{{ Storage::url($file) }}" download class="hc-btn hc-btn-download">Download</a>
+                                </div>
+                            </div>
+                            @endif
+                        @endforeach
+                    </div>
+                @else
+                    <div class="hc-no-files">No invoice files uploaded</div>
+                @endif
+            @else
+                <div class="hc-no-files">Available when completed</div>
+            @endif
+        </div>
+    </div>
+
+    <!-- Salesperson Remark -->
+    <div class="hc-section">
+        <span class="hc-file-label">Salesperson Remark:</span>
+        @if($record->salesperson_remark)
+            <div class="hc-remark">{{ $record->salesperson_remark }}</div>
+        @else
+            <div class="hc-no-files">No remark provided</div>
+        @endif
     </div>
 </div>
