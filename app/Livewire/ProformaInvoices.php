@@ -55,6 +55,9 @@ class ProformaInvoices extends Component implements HasForms, HasTable
                 return Quotation::where('status', QuotationStatusEnum::accepted)->where('sales_person_id', auth()->user()->id)->orderBy('id', 'desc');
                 ;
             })
+            ->defaultPaginationPageOption(50)
+            ->paginated([50, 100])
+            ->paginationPageOptions([50, 100])
             ->columns([
                 TextColumn::make('pi_reference_no')
                     ->label('Ref No'),
@@ -168,7 +171,13 @@ class ProformaInvoices extends Component implements HasForms, HasTable
                     )
                     ->getOptionLabelUsing(
                         fn(User $user, $value, QuotationService $quotationService): string => $quotationService->getSalesPersonName($user, $value)
-                    ),
+                    )
+                    ->hidden(function () {
+                        $currentUser = auth()->user();
+
+                        // Hide filter for role_id = 2 since they only see their own data
+                        return $currentUser->role_id == 2;
+                    }),
                 // SelectFilter::make('status')
                 //     ->label('Status')
                 //     ->searchable()

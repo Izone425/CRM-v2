@@ -1054,14 +1054,10 @@
                     </div>
                 @elseif($row['type'] === 'reseller')
                     <div style="font-weight: bold; display: flex; align-items: center; justify-content: center;">
-                        <img style="width: 45px; height: 45px; border-radius: 50%; margin-right: 8px;"
-                            src="{{ $row['technicianAvatar'] }}" alt="{{ $row['technicianShortName'] }}">
                         <div style="font-size: 0.9rem;">{{ $row['technicianShortName'] }}</div>
                     </div>
                 @else
                     <div style="font-weight: bold; display: flex; align-items: center; justify-content: center;">
-                        <img style="width: 45px; height: 45px; border-radius: 50%; margin-right: 8px;"
-                            src="{{ $row['technicianAvatar'] }}" alt="{{ $row['technicianShortName'] }}">
                         <div style="font-size: 0.9rem;">{{ $row['technicianShortName'] }}</div>
                     </div>
                 @endif
@@ -1125,9 +1121,6 @@
                                             @endif
                                         </div>
                                         <div class="appointment-time">{{ $appointment->start_time }} - {{ $appointment->end_time }}</div>
-                                        <div class="reseller-name" style="font-weight: bold; font-size: 0.75rem; color: #666; margin-top: 2px;">
-                                            {{ isset($appointment->reseller_company) ? $appointment->reseller_company : ($appointment->technician ?? 'Unknown Reseller') }}
-                                        </div>
                                     @else
                                         <!-- Regular format for technicians -->
                                         <div class="appointment-demo-type">

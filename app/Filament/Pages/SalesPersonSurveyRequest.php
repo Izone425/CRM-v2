@@ -430,7 +430,7 @@ class SalesPersonSurveyRequest extends Page implements HasTable
                                     ->schema([
                                         TextInput::make('type')
                                             ->label('Type')
-                                            ->default('SITE SURVEY HANDOVER')
+                                            ->default('SITE SURVEY')
                                             ->disabled()
                                             ->dehydrated(true),
 

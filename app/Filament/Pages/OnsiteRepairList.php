@@ -974,10 +974,19 @@ class OnsiteRepairList extends Page implements HasTable
                             })
                     ),
 
-                TextColumn::make('created_at')
-                    ->label('Date Created')
-                    ->dateTime('d M Y, h:i A')
-                    ->sortable(),
+                TextColumn::make('created_date')
+                    ->label('Date')
+                    ->getStateUsing(fn (AdminRepair $record) => $record->created_at?->format('d M Y'))
+                    ->sortable(query: function (Builder $query, string $direction): Builder {
+                        return $query->orderBy('created_at', $direction);
+                    }),
+
+                TextColumn::make('created_time')
+                    ->label('Time')
+                    ->getStateUsing(fn (AdminRepair $record) => $record->created_at?->format('h:i A'))
+                    ->sortable(query: function (Builder $query, string $direction): Builder {
+                        return $query->orderBy('created_at', $direction);
+                    }),
 
                 TextColumn::make('days_elapsed')
                     ->label('Total Days')
@@ -1052,7 +1061,15 @@ class OnsiteRepairList extends Page implements HasTable
 
                 TextColumn::make('zoho_ticket')
                     ->searchable()
-                    ->label('Zoho Ticket'),
+                    ->label('Zoho Ticket')
+                    ->formatStateUsing(function ($state) {
+                        if (!$state) {
+                            return null;
+                        }
+
+                        // Remove all # symbols and return only numbers and other characters
+                        return str_replace('#', '', $state);
+                    }),
 
                 TextColumn::make('status')
                     ->label('Status')
