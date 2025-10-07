@@ -642,7 +642,7 @@
             @endphp
 
             @if(count($sortedLeadTypeCounts) > 0)
-                <div class="bars-container" style="display: flex; overflow-x: {{ count($sortedLeadTypeCounts) > 8 ? 'auto' : 'hidden' }}; height: 250px; padding: 20px 10px 10px; align-items: flex-end; gap: 24px; width: {{ $containerWidth }}; justify-content: {{ count($sortedLeadTypeCounts) <= 8 ? 'center' : 'flex-start' }};">
+                <div class="bars-container" style="display: flex; overflow-x: auto; height: 250px; padding: 20px 10px 10px; align-items: flex-end; gap: 24px; width: {{ $containerWidth }}; justify-content: flex-start;">
 
                     @foreach($sortedLeadTypeCounts as $key => $data)
                         @php

@@ -36,6 +36,7 @@ class SalesAdminAnalysisV4 extends Page implements HasTable
     protected static ?int $navigationSort = 86;
     protected static ?string $navigationGroup = 'Communication';
     protected static string $view = 'filament.pages.sales-admin-analysis-v4';
+    protected static ?string $slug = 'sales-admin-call-log';
 
     public $showStaffStats = false;
     public $slideOverTitle = 'Sales Admin Call Analytics';

@@ -769,7 +769,7 @@ class SoftwareHandoverRelationManager extends RelationManager
                     ->action(
                         Action::make('viewHandoverDetails')
                             ->modalHeading(' ')
-                            ->modalWidth('3xl')
+                            ->modalWidth('md')
                             ->modalSubmitAction(false)
                             ->modalCancelAction(false)
                             ->modalContent(function (SoftwareHandover $record): View {
