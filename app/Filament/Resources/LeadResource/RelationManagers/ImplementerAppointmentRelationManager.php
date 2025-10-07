@@ -92,33 +92,56 @@ class ImplementerAppointmentRelationManager extends RelationManager
                     ->label('SESSION')
                     ->options(function (callable $get) {
                         $date = $get('date');
+                        $selectedImplementer = $get('implementer');
+
                         if (!$date) return [];
 
                         $selectedDate = Carbon::parse($date);
                         $dayOfWeek = $selectedDate->dayOfWeek;
 
-                        // Friday sessions (dayOfWeek = 5)
-                        if ($dayOfWeek === 5) {
-                            return [
+                        // Define base sessions based on day
+                        if ($dayOfWeek === 5) { // Friday
+                            $baseSessions = [
                                 'SESSION 1' => 'SESSION 1 (0930 - 1030)',
                                 'SESSION 2' => 'SESSION 2 (1100 - 1200)',
                                 'SESSION 3' => 'SESSION 3 (1500 - 1600)',
                                 'SESSION 4' => 'SESSION 4 (1630 - 1730)',
                             ];
-                        }
-                        // Monday to Thursday sessions (dayOfWeek = 1-4)
-                        else if ($dayOfWeek >= 1 && $dayOfWeek <= 4) {
-                            return [
+                        } else if ($dayOfWeek >= 1 && $dayOfWeek <= 4) { // Monday to Thursday
+                            $baseSessions = [
                                 'SESSION 1' => 'SESSION 1 (0930 - 1030)',
                                 'SESSION 2' => 'SESSION 2 (1100 - 1200)',
                                 'SESSION 3' => 'SESSION 3 (1400 - 1500)',
                                 'SESSION 4' => 'SESSION 4 (1530 - 1630)',
                                 'SESSION 5' => 'SESSION 5 (1700 - 1800)',
                             ];
+                        } else {
+                            // Weekend
+                            return ['NO_SESSIONS' => 'No sessions available on weekends'];
                         }
 
-                        // Weekend or invalid date
-                        return ['NO_SESSIONS' => 'No sessions available on weekends'];
+                        // Filter out unavailable sessions for the selected implementer
+                        $availableSessions = [];
+                        foreach ($baseSessions as $sessionKey => $sessionLabel) {
+                            // Check if this slot is already booked by the SAME implementer
+                            $existingAppointment = \App\Models\ImplementerAppointment::where('date', $date)
+                                ->where('session', $sessionKey)
+                                ->where('implementer', $selectedImplementer) // Check same implementer
+                                ->where('status', '!=', 'Cancelled')
+                                ->first();
+
+                            // Only include session if it's available (no existing appointment for this implementer)
+                            if (!$existingAppointment) {
+                                $availableSessions[$sessionKey] = $sessionLabel;
+                            }
+                        }
+
+                        // If no sessions are available, show a message
+                        if (empty($availableSessions)) {
+                            return ['NO_AVAILABLE' => 'No sessions available for this implementer on this date'];
+                        }
+
+                        return $availableSessions;
                     })
                     ->default(function (callable $get, ?Model $record = null) {
                         // If editing existing record, use its session value
@@ -126,30 +149,79 @@ class ImplementerAppointmentRelationManager extends RelationManager
                             return $record->session;
                         }
 
-                        // For new records, select a default based on the day
+                        // For new records, find the first available session for the selected implementer
                         $date = $get('date');
-                        if (!$date) return null;
+                        $selectedImplementer = $get('implementer');
+
+                        if (!$date || !$selectedImplementer) return null;
 
                         $selectedDate = Carbon::parse($date);
                         $dayOfWeek = $selectedDate->dayOfWeek;
 
-                        // Default to SESSION 1 for all days
-                        return 'SESSION 1';
+                        // Get session list based on day
+                        $sessions = [];
+                        if ($dayOfWeek === 5) {
+                            $sessions = ['SESSION 1', 'SESSION 2', 'SESSION 3', 'SESSION 4'];
+                        } else if ($dayOfWeek >= 1 && $dayOfWeek <= 4) {
+                            $sessions = ['SESSION 1', 'SESSION 2', 'SESSION 3', 'SESSION 4', 'SESSION 5'];
+                        }
+
+                        // Find first available session for this implementer
+                        foreach ($sessions as $session) {
+                            $existingAppointment = \App\Models\ImplementerAppointment::where('date', $date)
+                                ->where('session', $session)
+                                ->where('implementer', $selectedImplementer) // Check same implementer
+                                ->where('status', '!=', 'Cancelled')
+                                ->first();
+
+                            if (!$existingAppointment) {
+                                return $session; // Return first available session
+                            }
+                        }
+
+                        return null; // No available sessions
                     })
                     ->columnSpan(2)
                     ->required()
                     ->reactive()
+                    ->rules([
+                        function (callable $get) {
+                            return function (string $attribute, $value, \Closure $fail) use ($get) {
+                                $date = $get('date');
+                                $selectedImplementer = $get('implementer');
+
+                                if (!$date || !$value || !$selectedImplementer) return;
+
+                                // Prevent selection of unavailable indicator
+                                if ($value === 'NO_AVAILABLE' || $value === 'NO_SESSIONS') {
+                                    $fail('Please select a valid session or choose a different date.');
+                                    return;
+                                }
+
+                                // Double-check availability for the same implementer (in case of race conditions)
+                                $existingAppointment = \App\Models\ImplementerAppointment::where('date', $date)
+                                    ->where('session', $value)
+                                    ->where('implementer', $selectedImplementer) // Check same implementer
+                                    ->where('status', '!=', 'Cancelled')
+                                    ->first();
+
+                                if ($existingAppointment) {
+                                    $fail('This session slot has already been booked by this implementer. Please select a different session.');
+                                }
+                            };
+                        },
+                    ])
                     ->afterStateUpdated(function ($state, callable $set, callable $get) {
                         // Set the start_time and end_time based on selected session
                         $times = [
                             'SESSION 1' => ['09:30', '10:30'],
                             'SESSION 2' => ['11:00', '12:00'],
                             'SESSION 3' => ['14:00', '15:00'],
-                            'SESSION 4' => ['15:30', '16:30'], // Friday has different time
-                            'SESSION 5' => ['17:00', '18:00'], // Friday has different time
+                            'SESSION 4' => ['15:30', '16:30'],
+                            'SESSION 5' => ['17:00', '18:00'],
                         ];
 
-                        // Friday has different times for sessions 4 and 5
+                        // Friday has different times for sessions 3 and 4
                         $date = $get('date');
                         if ($date) {
                             $carbonDate = Carbon::parse($date);

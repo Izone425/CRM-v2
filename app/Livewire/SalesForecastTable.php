@@ -294,12 +294,14 @@ class SalesForecastTable extends Component implements HasForms, HasTable
                         default => 'secondary',
                     }),
                 TextColumn::make('created_at')
-                    ->label('Lead Created On')
-                    ->date('d M Y')
+                    ->label('Lead Date')
+                    ->date('d F Y')
+                    ->alignRight()
                     ->sortable(),
                 TextColumn::make('first_demo')
                     ->label('Demo Date')
-                    ->date('d M Y')
+                    ->date('d F Y')
+                    ->alignRight()
                     ->sortable(query: function (Builder $query, string $direction): Builder {
                         // We need to join with appointments table to sort by the first demo date
                         return $query
@@ -340,6 +342,7 @@ class SalesForecastTable extends Component implements HasForms, HasTable
                             ? $days . ' days'
                             : $days
                     )
+                    ->alignRight()
                     ->sortable(query: function (Builder $query, string $direction): Builder {
                         // Join with appointments to sort by days from new demo
                         return $query

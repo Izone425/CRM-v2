@@ -3,6 +3,7 @@ namespace App\Filament\Pages;
 
 use App\Models\Policy;
 use App\Models\PolicyPage;
+use App\Models\PolicyCategory;
 use Filament\Pages\Page;
 use Filament\Actions\Action;
 use Livewire\WithPagination;
@@ -22,6 +23,7 @@ class PolicyManagement extends Page
     public $selectedPolicy = null;
     public $selectedPage = null;
     public $currentPageIndex = 0;
+    public $departmentFilter = ''; // New property for department filter
 
     protected function getHeaderActions(): array
     {
@@ -42,6 +44,14 @@ class PolicyManagement extends Page
     public function updatedSearch(): void
     {
         $this->resetPage();
+    }
+
+    public function updatedDepartmentFilter(): void
+    {
+        $this->resetPage();
+        $this->selectedPolicy = null;
+        $this->selectedPage = null;
+        $this->currentPageIndex = 0;
     }
 
     public function selectPolicy($policyId): void
@@ -81,34 +91,72 @@ class PolicyManagement extends Page
         }
     }
 
+    public function clearFilters(): void
+    {
+        $this->search = '';
+        $this->departmentFilter = '';
+        $this->selectedPolicy = null;
+        $this->selectedPage = null;
+        $this->currentPageIndex = 0;
+        $this->resetPage();
+    }
+
     public function getPolicies()
     {
         $userRoleId = auth()->user()->role_id;
-        $userRoleIdJson = json_encode((string)$userRoleId); // Convert to JSON string format
+        $userRoleIdJson = json_encode((string)$userRoleId);
 
         $query = Policy::query()
             ->with(['pages', 'category'])
-            ->where('status', 'Active') // Only show Active policies
+            ->where('status', 'Active')
             ->when($this->search !== '', function ($query) {
                 $query->where('title', 'like', "%{$this->search}%");
+            })
+            ->when($this->departmentFilter !== '', function ($query) {
+                $query->whereHas('category', function ($categoryQuery) {
+                    $categoryQuery->where('name', $this->departmentFilter);
+                });
             });
 
         // Filter policies by category access rights
         $query->whereHas('category', function ($categoryQuery) use ($userRoleId, $userRoleIdJson) {
             $categoryQuery->where(function ($q) use ($userRoleId, $userRoleIdJson) {
-                $q->whereNull('access_right')  // Categories with no restrictions
-                ->orWhere('access_right', '[]') // Empty JSON array
-                ->orWhereRaw("JSON_CONTAINS(access_right, ?)", [$userRoleIdJson]); // Contains user's role
+                $q->whereNull('access_right')
+                ->orWhere('access_right', '[]')
+                ->orWhereRaw("JSON_CONTAINS(access_right, ?)", [$userRoleIdJson]);
             });
         });
 
         return $query->orderBy('title')->get();
     }
 
+    public function getDepartments()
+    {
+        $userRoleId = auth()->user()->role_id;
+        $userRoleIdJson = json_encode((string)$userRoleId);
+
+        // Get categories that the user has access to and have active policies
+        return PolicyCategory::query()
+            ->where(function ($q) use ($userRoleId, $userRoleIdJson) {
+                $q->whereNull('access_right')
+                ->orWhere('access_right', '[]')
+                ->orWhereRaw("JSON_CONTAINS(access_right, ?)", [$userRoleIdJson]);
+            })
+            ->whereHas('policies', function ($policyQuery) {
+                $policyQuery->where('status', 'Active');
+            })
+            ->orderBy('name')
+            ->pluck('name')
+            ->unique()
+            ->values()
+            ->toArray();
+    }
+
     protected function getViewData(): array
     {
         return [
             'policies' => $this->getPolicies(),
+            'departments' => $this->getDepartments(),
         ];
     }
 }

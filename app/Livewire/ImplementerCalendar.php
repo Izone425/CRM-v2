@@ -2412,7 +2412,7 @@ class ImplementerCalendar extends Component
             ],
         ];
 
-        // Friday has different schedule and no SESSION 3
+        // Friday has different schedule
         if (strtolower($dayOfWeek) === 'friday') {
             $standardSessions['SESSION 1'] = [
                 'start_time' => '09:30:00',
@@ -2421,8 +2421,8 @@ class ImplementerCalendar extends Component
                 'formatted_end' => '10:30 AM',
                 'booked' => false,
                 'appointment' => null,
-                'status' => 'available', // Default status
-                'time_period' => 'am' // AM session
+                'status' => 'available',
+                'time_period' => 'am'
             ];
 
             $standardSessions['SESSION 2'] = [
@@ -2432,14 +2432,10 @@ class ImplementerCalendar extends Component
                 'formatted_end' => '12:00 PM',
                 'booked' => false,
                 'appointment' => null,
-                'status' => 'available', // Default status
-                'time_period' => 'am' // AM session
+                'status' => 'available',
+                'time_period' => 'am'
             ];
 
-            // // Remove SESSION 3
-            // unset($standardSessions['SESSION 3']);
-
-            // Update SESSION 4 and 5 times for Friday and rename them to SESSION 3 and 4
             $standardSessions['SESSION 3'] = [
                 'start_time' => '15:00:00',
                 'end_time' => '16:00:00',
@@ -2447,8 +2443,8 @@ class ImplementerCalendar extends Component
                 'formatted_end' => '4:00 PM',
                 'booked' => false,
                 'appointment' => null,
-                'status' => 'available', // Default status
-                'time_period' => 'pm' // PM session
+                'status' => 'available',
+                'time_period' => 'pm'
             ];
 
             $standardSessions['SESSION 4'] = [
@@ -2458,8 +2454,8 @@ class ImplementerCalendar extends Component
                 'formatted_end' => '5:30 PM',
                 'booked' => false,
                 'appointment' => null,
-                'status' => 'available', // Default status
-                'time_period' => 'pm' // PM session
+                'status' => 'available',
+                'time_period' => 'pm'
             ];
 
             // Remove SESSION 5 completely for Friday
@@ -2469,7 +2465,7 @@ class ImplementerCalendar extends Component
         // If a date is provided, we can check for public holidays and leaves
         if ($date && $implementerId) {
             $formattedDate = Carbon::parse($date)->format('Y-m-d');
-            $currentTime = Carbon::now();
+            $currentDate = Carbon::now()->format('Y-m-d'); // Only compare dates, not time
 
             // Check for public holidays (make session unavailable)
             $isPublicHoliday = PublicHoliday::where('date', $formattedDate)->exists();
@@ -2487,7 +2483,7 @@ class ImplementerCalendar extends Component
                 $leaves = UserLeave::where('user_id', $implementerId)
                     ->where('date', $formattedDate)
                     ->whereIn('status', ['Approved', 'Pending'])
-                    ->get(); // Changed from ->first() to ->get()
+                    ->get();
 
                 if ($leaves->count() > 0) {
                     $hasAmLeave = $leaves->where('session', 'am')->count() > 0;
@@ -2517,11 +2513,8 @@ class ImplementerCalendar extends Component
                 }
             }
 
-            // Check if the session is in the past (before current time)
+            // **UPDATED LOGIC**: Check if the session is in the past based on DATE only
             foreach ($standardSessions as $key => $session) {
-                $today = Carbon::now()->format('Y-m-d');
-                $sessionDate = Carbon::parse($formattedDate)->format('Y-m-d');
-
                 // Check if there's a WEEKLY FOLLOW UP SESSION booked for this slot
                 $hasWeeklyFollowUp = false;
                 if ($user) {
@@ -2537,18 +2530,17 @@ class ImplementerCalendar extends Component
                     }
                 }
 
-                // If the date is in the past (previous days), mark as past UNLESS it's a Weekly Follow Up
-                if ($sessionDate < $today && !$hasWeeklyFollowUp) {
+                // **NEW LOGIC**: Only mark as past if the DATE is before today
+                // Compare dates only, not time
+                if ($formattedDate < $currentDate && !$hasWeeklyFollowUp) {
                     $standardSessions[$key]['status'] = 'past';
-                }
-                // Otherwise, all sessions for today and future days are available
-                else {
+                } else {
+                    // Session is today or in the future - always available
                     $standardSessions[$key]['status'] = 'available';
                 }
             }
 
             // Process any cancelled appointments
-            // This will mark the session as cancelled but still display it in the calendar
             if ($user) {
                 $cancelledAppointments = \App\Models\ImplementerAppointment::where('implementer', $user->name)
                     ->where('date', $formattedDate)
@@ -2560,13 +2552,10 @@ class ImplementerCalendar extends Component
 
                     foreach ($standardSessions as $key => $session) {
                         if ($session['start_time'] === $appointmentStartTime) {
-                            $currentTime = Carbon::now();
-                            $appointmentDateTime = Carbon::parse($formattedDate . ' ' . $session['start_time']);
-
                             // Special handling for WEEKLY FOLLOW UP SESSIONS
                             if ($appointment->type === 'WEEKLY FOLLOW UP SESSION') {
-                                // For Weekly Follow Up Sessions, check if the session time has passed
-                                if ($appointmentDateTime < $currentTime) {
+                                // For Weekly Follow Up Sessions, check if the DATE is before today
+                                if ($formattedDate < $currentDate) {
                                     $standardSessions[$key]['status'] = 'past';
                                 } else {
                                     $standardSessions[$key]['status'] = 'available';
@@ -2577,11 +2566,11 @@ class ImplementerCalendar extends Component
                             }
                             // For other appointment types
                             else {
-                                // If the appointment date/time has passed, mark as past
-                                if ($appointmentDateTime < $currentTime) {
+                                // **UPDATED**: If the DATE is before today, mark as past
+                                if ($formattedDate < $currentDate) {
                                     $standardSessions[$key]['status'] = 'past';
                                 } else {
-                                    // Future cancelled appointment - show as available
+                                    // Today or future cancelled appointment - show as available
                                     $standardSessions[$key]['status'] = 'available';
                                 }
 
