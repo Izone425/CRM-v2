@@ -1,3 +1,4 @@
+{{-- filepath: /var/www/html/timeteccrm/resources/views/filament/pages/policy-management.blade.php --}}
 <x-filament-panels::page>
     <style>
         .policy-container {
@@ -31,13 +32,17 @@
             overflow: hidden;
         }
 
-        .policy-search {
+        .policy-filters {
             padding: 1rem;
             border-bottom: 1px solid #f3f4f6;
             background-color: #fcfcfc;
         }
 
-        .policy-search input {
+        .policy-search {
+            margin-bottom: 1rem;
+        }
+
+        .policy-search input, .policy-department-filter select {
             width: 100%;
             padding: 0.625rem 0.875rem;
             border: 1px solid #e5e7eb;
@@ -48,15 +53,49 @@
             transition: all 0.2s;
         }
 
-        .policy-search input:focus {
+        .policy-search input:focus, .policy-department-filter select:focus {
             outline: none;
             ring: 2px;
             ring-color: #3b82f6;
             border-color: #93c5fd;
         }
 
+        .policy-department-filter {
+            margin-bottom: 0.75rem;
+        }
+
+        .policy-department-filter label {
+            display: block;
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: #6b7280;
+            margin-bottom: 0.25rem;
+        }
+
+        .policy-clear-filters {
+            display: flex;
+            justify-content: center;
+        }
+
+        .policy-clear-btn {
+            padding: 0.375rem 0.75rem;
+            background-color: #f3f4f6;
+            border: 1px solid #d1d5db;
+            border-radius: 0.375rem;
+            color: #4b5563;
+            font-size: 0.75rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .policy-clear-btn:hover {
+            background-color: #e5e7eb;
+            color: #374151;
+        }
+
         .policy-list {
-            max-height: calc(100vh - 200px);
+            max-height: calc(100vh - 280px);
             overflow-y: auto;
         }
 
@@ -98,7 +137,7 @@
             box-shadow: 0 1px 3px rgba(0,0,0,0.1), 0 4px 6px rgba(0,0,0,0.05);
             display: flex;
             flex-direction: column;
-            min-height: calc(100vh - 150px); /* Adjust this value based on your layout */
+            min-height: calc(100vh - 150px);
         }
 
         .policy-content {
@@ -107,6 +146,7 @@
             display: flex;
             flex-direction: column;
         }
+
         .policy-header {
             padding-bottom: 1.25rem;
             margin-bottom: 1.5rem;
@@ -173,7 +213,7 @@
         .policy-body {
             line-height: 1.625;
             color: #374151;
-            flex-grow: 1; /* This allows content to expand */
+            flex-grow: 1;
         }
 
         .policy-body h1, .policy-body h2, .policy-body h3 {
@@ -224,7 +264,7 @@
             display: flex;
             flex-wrap: wrap;
             justify-content: space-between;
-            margin-top: auto; /* This pushes the footer to the bottom */
+            margin-top: auto;
         }
 
         .policy-empty {
@@ -258,17 +298,12 @@
             padding-bottom: 0.5rem;
         }
 
-        .policy-page-nav {
-            display: flex;
-            gap: 0.5rem;
-        }
-
         .policy-nav-button {
             padding: 0.5rem 1rem;
             background-color: #017efc;
             border: 1px solid #e5e7eb;
             border-radius: 0.375rem;
-            color: #4b5563;
+            color: white;
             font-size: 0.875rem;
             font-weight: 500;
             transition: all 0.2s ease;
@@ -276,7 +311,6 @@
 
         .policy-nav-button:hover {
             background-color: #0153f8;
-            color: #1f2937;
         }
 
         .policy-nav-button:disabled {
@@ -284,60 +318,6 @@
             cursor: not-allowed;
         }
 
-        .policy-tabs {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.5rem;
-            margin-bottom: 1.5rem;
-            border-bottom: 1px solid #e5e7eb;
-            padding-bottom: 0.5rem;
-        }
-
-        .policy-tab {
-            padding: 0.5rem 1rem;
-            border-radius: 0.375rem 0.375rem 0 0;
-            font-size: 0.875rem;
-            font-weight: 500;
-            color: #6b7280;
-            transition: all 0.2s;
-            border-bottom: 2px solid transparent;
-        }
-
-        .policy-tab:hover {
-            color: #4b5563;
-        }
-
-        .policy-tab.active {
-            color: #3b82f6;
-            border-bottom-color: #3b82f6;
-        }
-
-        .policy-summary {
-            background-color: #f9fafb;
-            border-radius: 0.375rem;
-            padding: 1rem;
-            margin-bottom: 1.5rem;
-            border: 1px solid #e5e7eb;
-        }
-
-        .policy-summary-title {
-            font-weight: 600;
-            color: #4b5563;
-            margin-bottom: 0.5rem;
-        }
-
-        .prose.policy-body.max-w-none {
-            flex-grow: 1;
-            min-height: 200px; /* Minimum height to push footer down */
-        }
-
-        .prose.policy-body.max-w-none {
-            flex-grow: 1;
-            min-height: 200px; /* Minimum height to push footer down */
-            --tw-prose-bullets: #000000; /* Make bullets black */
-        }
-
-        /* Alternative approach - directly target the markers */
         .policy-body ul > li::marker {
             color: #000000 !important;
         }
@@ -352,15 +332,6 @@
             font-weight: 600 !important;
         }
 
-        /* Alternative approach for more specific targeting */
-        .prose.policy-body.max-w-none table thead th {
-            background-color: #f3f4f6 !important;
-            color: #374151 !important;
-            font-weight: 600 !important;
-            border: 1px solid #d1d5db !important;
-        }
-
-        /* Ensure table styling is consistent */
         .policy-body table {
             border-collapse: collapse !important;
             width: 100% !important;
@@ -370,14 +341,66 @@
             border: 1px solid #d1d5db !important;
             padding: 0.5rem !important;
         }
+
+        .policy-filter-info {
+            padding: 0.5rem 1rem;
+            background-color: #fef3c7;
+            border-bottom: 1px solid #f3f4f6;
+            font-size: 0.75rem;
+            color: #92400e;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .policy-filter-count {
+            font-weight: 600;
+        }
     </style>
 
     <div class="policy-container">
-        <!-- Left sidebar - Policy List -->
+        <!-- Left sidebar - Policy List with Filters -->
         <div class="policy-sidebar">
-            <div class="policy-search">
-                <input type="text" wire:model.live="search" placeholder="Search policies..." />
+            <div class="policy-filters">
+                <div class="policy-search">
+                    <input type="text" wire:model.live="search" placeholder="Search policies..." />
+                </div>
+
+                @if(auth()->user()->role_id === 3)
+                    <div class="policy-department-filter">
+                        <label for="departmentFilter">Filter by Department:</label>
+                        <select wire:model.live="departmentFilter" id="departmentFilter">
+                            <option value="">All Departments</option>
+                            @foreach($departments as $department)
+                                <option value="{{ $department }}">{{ $department }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                @endif
+
+                @if($search !== '' || $departmentFilter !== '')
+                    <div class="policy-clear-filters">
+                        <button wire:click="clearFilters" class="policy-clear-btn">
+                            Clear Filters
+                        </button>
+                    </div>
+                @endif
             </div>
+
+            @if($search !== '' || $departmentFilter !== '')
+                <div class="policy-filter-info">
+                    <span>
+                        @if($search !== '')
+                            Search: "{{ $search }}"
+                        @endif
+                        @if($departmentFilter !== '')
+                            @if($search !== '') • @endif
+                            Department: {{ $departmentFilter }}
+                        @endif
+                    </span>
+                    <span class="policy-filter-count">{{ count($policies) }} result(s)</span>
+                </div>
+            @endif
 
             <div class="policy-list">
                 @forelse($policies as $policy)
@@ -393,7 +416,11 @@
                     </button>
                 @empty
                     <div class="p-4 text-center text-gray-500">
-                        No policies found
+                        @if($search !== '' || $departmentFilter !== '')
+                            No policies found matching your filters
+                        @else
+                            No policies found
+                        @endif
                     </div>
                 @endforelse
             </div>
@@ -434,7 +461,7 @@
                         @if($selectedPolicy->pages->count() > 1)
                             <div class="policy-navigation">
                                 <button wire:click="prevPage"
-                                    class="policy-nav-button" style="color: white;"
+                                    class="policy-nav-button"
                                     {{ $currentPageIndex === 0 ? 'disabled' : '' }}>
                                     <span>&larr; Previous</span>
                                 </button>
@@ -444,7 +471,7 @@
                                 </div>
 
                                 <button wire:click="nextPage"
-                                    class="policy-nav-button" style="color: white;"
+                                    class="policy-nav-button"
                                     {{ $currentPageIndex >= $selectedPolicy->pages->count() - 1 ? 'disabled' : '' }}>
                                     <span>Next &rarr;</span>
                                 </button>
@@ -476,6 +503,13 @@
                     </div>
                     <h3 class="policy-empty-title">Select a policy</h3>
                     <p>Choose a policy from the list to view its details</p>
+                    @if($search !== '' || $departmentFilter !== '')
+                        <div class="mt-4">
+                            <button wire:click="clearFilters" class="policy-clear-btn">
+                                Clear Filters & Show All
+                            </button>
+                        </div>
+                    @endif
                 </div>
             @endif
         </div>

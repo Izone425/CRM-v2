@@ -67,6 +67,7 @@ use App\Filament\Pages\SalespersonCalendarV2;
 use App\Filament\Pages\SalespersonCalendarV3;
 use App\Filament\Pages\SalespersonLeadSequence;
 use App\Filament\Pages\SalesPersonSurveyRequest;
+use App\Filament\Pages\SalesPricingManagement;
 use App\Filament\Pages\SalesTargetAnalysis;
 use App\Filament\Pages\SearchLead;
 use App\Filament\Pages\SearchLicense;
@@ -103,6 +104,7 @@ use App\Filament\Resources\QuotationResource;
 use App\Filament\Resources\UserResource;
 use App\Filament\Resources\ResellerResource;
 use App\Filament\Resources\RoleResource;
+use App\Filament\Resources\SalesPricingResource;
 use App\Filament\Resources\ShippingDeviceModelResource;
 use App\Filament\Resources\SoftwareAttachmentResource;
 use App\Filament\Resources\SoftwareHandoverResource;
@@ -266,6 +268,7 @@ class AdminPanelProvider extends PanelProvider
                 PolicyResource::class,
                 PolicyCategoryResource::class,
                 ShippingDeviceModelResource::class,
+                SalesPricingResource::class,
             ])
             // ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->pages([
@@ -333,6 +336,7 @@ class AdminPanelProvider extends PanelProvider
                 SearchLicense::class,
                 SalesAdminClosedDeal::class,
                 InvoicesTable::class,
+                SalesPricingManagement::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([

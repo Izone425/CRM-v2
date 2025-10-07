@@ -1,14 +1,14 @@
 <?php
+// filepath: /var/www/html/timeteccrm/app/Filament/Resources/SalesPricingResource/Pages/EditSalesPricing.php
+namespace App\Filament\Resources\SalesPricingResource\Pages;
 
-namespace App\Filament\Resources\PolicyResource\Pages;
-
-use App\Filament\Resources\PolicyResource;
+use App\Filament\Resources\SalesPricingResource;
 use Filament\Actions;
 use Filament\Resources\Pages\EditRecord;
 
-class EditPolicy extends EditRecord
+class EditSalesPricing extends EditRecord
 {
-    protected static string $resource = PolicyResource::class;
+    protected static string $resource = SalesPricingResource::class;
 
     protected function getHeaderActions(): array
     {

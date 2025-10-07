@@ -1,14 +1,13 @@
 <?php
+// filepath: /var/www/html/timeteccrm/app/Filament/Resources/SalesPricingResource/Pages/CreateSalesPricing.php
+namespace App\Filament\Resources\SalesPricingResource\Pages;
 
-namespace App\Filament\Resources\PolicyResource\Pages;
-
-use App\Filament\Resources\PolicyResource;
-use Filament\Actions;
+use App\Filament\Resources\SalesPricingResource;
 use Filament\Resources\Pages\CreateRecord;
 
-class CreatePolicy extends CreateRecord
+class CreateSalesPricing extends CreateRecord
 {
-    protected static string $resource = PolicyResource::class;
+    protected static string $resource = SalesPricingResource::class;
 
     protected function mutateFormDataBeforeCreate(array $data): array
     {

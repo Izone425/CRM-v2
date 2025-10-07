@@ -1555,7 +1555,7 @@
 
                         <div class="submenu" id="external-submenu">
                             <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
-                                <span class="module-font">Technical Tips</span>
+                                <span class="module-font">Knowledge Base</span>
                             </a>
                         </div>
                     </div>
