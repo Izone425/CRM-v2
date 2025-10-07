@@ -143,13 +143,12 @@
         .policy-meta-item {
             display: flex;
             align-items: center;
+            gap: 0.5rem;
         }
 
         .policy-meta-label {
             font-weight: 600;
             color: #4b5563;
-            width: 130px;
-            flex-shrink: 0;
         }
 
         .policy-status-badge {

@@ -17,6 +17,8 @@ use Illuminate\Support\HtmlString;
 use Illuminate\Support\Str;
 use Filament\Support\Colors\Color;
 use Filament\Tables\Actions\Action;
+use Filament\Tables\Filters\SelectFilter;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 use Malzariey\FilamentDaterangepickerFilter\Fields\DateRangePicker;
 
@@ -260,35 +262,159 @@ class HardwareDashboardAll extends Page implements HasTable
                     ->toggleable(),
             ])
             ->filters([
+                // Existing Date Range Filter
                 Filter::make('created_at')
-                ->form([
-                    DateRangePicker::make('date_range')
-                        ->label('')
-                        ->placeholder('Select date range'),
-                ])
-                ->query(function (\Illuminate\Database\Eloquent\Builder $query, array $data) {
-                    if (!empty($data['date_range'])) {
-                        // Parse the date range from the "start - end" format
-                        [$start, $end] = explode(' - ', $data['date_range']);
+                    ->form([
+                        DateRangePicker::make('date_range')
+                            ->label('')
+                            ->placeholder('Select date range'),
+                    ])
+                    ->query(function (\Illuminate\Database\Eloquent\Builder $query, array $data) {
+                        if (!empty($data['date_range'])) {
+                            // Parse the date range from the "start - end" format
+                            [$start, $end] = explode(' - ', $data['date_range']);
 
-                        // Ensure valid dates
-                        $startDate = Carbon::createFromFormat('d/m/Y', $start)->startOfDay();
-                        $endDate = Carbon::createFromFormat('d/m/Y', $end)->endOfDay();
+                            // Ensure valid dates
+                            $startDate = Carbon::createFromFormat('d/m/Y', $start)->startOfDay();
+                            $endDate = Carbon::createFromFormat('d/m/Y', $end)->endOfDay();
 
-                        // Apply the filter
-                        $query->whereBetween('created_at', [$startDate, $endDate]);
-                    }
-                })
-                ->indicateUsing(function (array $data) {
-                    if (!empty($data['date_range'])) {
-                        // Parse the date range for display
-                        [$start, $end] = explode(' - ', $data['date_range']);
+                            // Apply the filter
+                            $query->whereBetween('created_at', [$startDate, $endDate]);
+                        }
+                    })
+                    ->indicateUsing(function (array $data) {
+                        if (!empty($data['date_range'])) {
+                            // Parse the date range for display
+                            [$start, $end] = explode(' - ', $data['date_range']);
 
-                        return 'From: ' . Carbon::createFromFormat('d/m/Y', $start)->format('j M Y') .
-                            ' To: ' . Carbon::createFromFormat('d/m/Y', $end)->format('j M Y');
-                    }
-                    return null;
-                }),
+                            return 'From: ' . Carbon::createFromFormat('d/m/Y', $start)->format('j M Y') .
+                                ' To: ' . Carbon::createFromFormat('d/m/Y', $end)->format('j M Y');
+                        }
+                        return null;
+                    }),
+
+                // F1 - BY DEVICE MODEL
+                Filter::make('device_model')
+                    ->label('Device Model')
+                    ->form([
+                        \Filament\Forms\Components\CheckboxList::make('device_models')
+                            ->label('')
+                            ->options([
+                                'tc10' => 'TC10',
+                                'tc20' => 'TC20',
+                                'face_id5' => 'FACE ID 5',
+                                'face_id6' => 'FACE ID 6',
+                                'time_beacon' => 'TIME BEACON',
+                                'nfc_tag' => 'NFC TAG',
+                            ])
+                            ->columns(2)
+                    ])
+                    ->query(function (Builder $query, array $data) {
+                        if (!empty($data['device_models'])) {
+                            $query->where(function (Builder $query) use ($data) {
+                                foreach ($data['device_models'] as $device) {
+                                    switch ($device) {
+                                        case 'tc10':
+                                            $query->orWhere('tc10_quantity', '>', 0);
+                                            break;
+                                        case 'tc20':
+                                            $query->orWhere('tc20_quantity', '>', 0);
+                                            break;
+                                        case 'face_id5':
+                                            $query->orWhere('face_id5_quantity', '>', 0);
+                                            break;
+                                        case 'face_id6':
+                                            $query->orWhere('face_id6_quantity', '>', 0);
+                                            break;
+                                        case 'time_beacon':
+                                            $query->orWhere('time_beacon_quantity', '>', 0);
+                                            break;
+                                        case 'nfc_tag':
+                                            $query->orWhere('nfc_tag_quantity', '>', 0);
+                                            break;
+                                    }
+                                }
+                            });
+                        }
+                    })
+                    ->indicateUsing(function (array $data) {
+                        if (!empty($data['device_models'])) {
+                            $deviceNames = [
+                                'tc10' => 'TC10',
+                                'tc20' => 'TC20',
+                                'face_id5' => 'FACE ID 5',
+                                'face_id6' => 'FACE ID 6',
+                                'time_beacon' => 'TIME BEACON',
+                                'nfc_tag' => 'NFC TAG',
+                            ];
+
+                            $selectedDevices = array_map(function ($device) use ($deviceNames) {
+                                return $deviceNames[$device] ?? $device;
+                            }, $data['device_models']);
+
+                            return 'Device Model: ' . implode(', ', $selectedDevices);
+                        }
+                        return null;
+                    }),
+
+                // F2 - BY STATUS
+                SelectFilter::make('status')
+                    ->label('Status')
+                    ->options([
+                        'New' => 'New',
+                        'Draft' => 'Draft',
+                        'Approved' => 'Approved',
+                        'Rejected' => 'Rejected',
+                        'Completed' => 'Completed',
+                        'Pending Stock' => 'Pending Stock',
+                        'Pending Migration' => 'Pending Migration',
+                        'Completed: Installation' => 'Completed: Installation',
+                        'Completed: Courier' => 'Completed: Courier',
+                        'Completed Migration' => 'Completed Migration',
+                    ])
+                    ->searchable()
+                    ->preload(),
+
+                // F3 - BY SALESPERSON
+                SelectFilter::make('salesperson')
+                    ->label('SalesPerson')
+                    ->options(function () {
+                        // Get unique salesperson IDs from hardware handovers through leads
+                        $salespersonIds = DB::table('hardware_handovers')
+                            ->join('leads', 'hardware_handovers.lead_id', '=', 'leads.id')
+                            ->whereNotNull('leads.salesperson')
+                            ->distinct()
+                            ->pluck('leads.salesperson')
+                            ->filter()
+                            ->toArray();
+
+                        // Get user names for these IDs
+                        return User::whereIn('id', $salespersonIds)
+                            ->pluck('name', 'id')
+                            ->toArray();
+                    })
+                    ->searchable()
+                    ->preload()
+                    ->query(function (Builder $query, array $data) {
+                        if (!empty($data['value'])) {
+                            $query->whereHas('lead', function (Builder $query) use ($data) {
+                                $query->where('salesperson', $data['value']);
+                            });
+                        }
+                    }),
+
+                // F4 - BY IMPLEMENTER
+                SelectFilter::make('implementer')
+                    ->label('Implementer')
+                    ->options(function () {
+                        return HardwareHandover::whereNotNull('implementer')
+                            ->where('implementer', '!=', '')
+                            ->distinct()
+                            ->pluck('implementer', 'implementer')
+                            ->toArray();
+                    })
+                    ->searchable()
+                    ->preload(),
             ]);
     }
 }

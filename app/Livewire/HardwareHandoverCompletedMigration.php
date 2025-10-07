@@ -32,6 +32,7 @@ use Livewire\Component;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 use Filament\Notifications\Notification;
+use Filament\Support\Exceptions\Halt;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Columns\BadgeColumn;
 use Illuminate\Support\Facades\Auth;
@@ -250,7 +251,7 @@ class HardwareHandoverCompletedMigration extends Component implements HasForms, 
                         ->icon('heroicon-o-eye')
                         ->color('secondary')
                         ->modalHeading(' ')
-                        ->modalWidth('3xl')
+                        ->modalWidth('md')
                         ->modalSubmitAction(false)
                         ->modalCancelAction(false)
                         // Use a callback function instead of arrow function for more control
@@ -867,6 +868,24 @@ class HardwareHandoverCompletedMigration extends Component implements HasForms, 
                             })
                         ])
                         ->action(function (HardwareHandover $record, array $data): void {
+                            $leaveError = $this->checkTechnicianLeave(
+                                $data['technician'],
+                                $data['date'],
+                                $data['start_time'],
+                                $data['end_time']
+                            );
+
+                            if ($leaveError) {
+                                Notification::make()
+                                    ->title('Appointment Scheduling Error')
+                                    ->danger()
+                                    ->body($leaveError)
+                                    ->persistent()
+                                    ->send();
+
+                                throw new Halt();
+                            }
+
                             // Process remarks to merge with existing ones
                             if (isset($data['remarks']) && is_array($data['remarks'])) {
                                 // Get existing admin remarks
@@ -1726,6 +1745,87 @@ class HardwareHandoverCompletedMigration extends Component implements HasForms, 
                 ->color('warning')
                 ->label('Actions')
             ]);
+    }
+
+    private function timesOverlap($start1, $end1, $start2, $end2)
+    {
+        return $start1->lt($end2) && $end1->gt($start2);
+    }
+
+    private function checkTechnicianLeave($technicianName, $date, $startTime, $endTime)
+    {
+        // First, try to find the technician as a user (internal technician)
+        $technician = \App\Models\User::where('name', $technicianName)->first();
+
+        if (!$technician) {
+            // If not found as user, it might be a reseller - no leave validation needed
+            return null;
+        }
+
+        // Get leaves for this technician on the selected date
+        $leaves = \App\Models\UserLeave::where('user_ID', $technician->id)
+            ->whereDate('date', '=', $date)
+            ->where('status', 'Approved')
+            ->get();
+
+        if ($leaves->isEmpty()) {
+            return null; // No leave on this date
+        }
+
+        foreach ($leaves as $leave) {
+            $appointmentStart = \Carbon\Carbon::parse($date . ' ' . $startTime);
+            $appointmentEnd = \Carbon\Carbon::parse($date . ' ' . $endTime);
+
+            // Check leave session and time conflicts
+            switch ($leave->session) {
+                case 'am':
+                    // AM session: Use start_time and end_time from database
+                    $leaveStart = \Carbon\Carbon::parse($date . ' ' . $leave->start_time);
+                    $leaveEnd = \Carbon\Carbon::parse($date . ' ' . $leave->end_time);
+
+                    if ($this->timesOverlap($appointmentStart, $appointmentEnd, $leaveStart, $leaveEnd)) {
+                        return "Technician {$technicianName} is on {$leave->leave_type} leave (AM Session: " .
+                            \Carbon\Carbon::parse($leave->start_time)->format('h:i A') . " - " .
+                            \Carbon\Carbon::parse($leave->end_time)->format('h:i A') . ") on " .
+                            \Carbon\Carbon::parse($date)->format('d M Y') . ". Please select a different time or technician.";
+                    }
+                    break;
+
+                case 'pm':
+                    // PM session: Use start_time and end_time from database
+                    $leaveStart = \Carbon\Carbon::parse($date . ' ' . $leave->start_time);
+                    $leaveEnd = \Carbon\Carbon::parse($date . ' ' . $leave->end_time);
+
+                    if ($this->timesOverlap($appointmentStart, $appointmentEnd, $leaveStart, $leaveEnd)) {
+                        return "Technician {$technicianName} is on {$leave->leave_type} leave (PM Session: " .
+                            \Carbon\Carbon::parse($leave->start_time)->format('h:i A') . " - " .
+                            \Carbon\Carbon::parse($leave->end_time)->format('h:i A') . ") on " .
+                            \Carbon\Carbon::parse($date)->format('d M Y') . ". Please select a different time or technician.";
+                    }
+                    break;
+
+                case 'full':
+                case 'full_day':
+                default:
+                    // Full day or other types: Use start_time and end_time from database, or default to full working hours
+                    if ($leave->start_time && $leave->end_time) {
+                        $leaveStart = \Carbon\Carbon::parse($date . ' ' . $leave->start_time);
+                        $leaveEnd = \Carbon\Carbon::parse($date . ' ' . $leave->end_time);
+                    } else {
+                        // Default full working day if times not specified
+                        $leaveStart = \Carbon\Carbon::parse($date . ' 09:00:00');
+                        $leaveEnd = \Carbon\Carbon::parse($date . ' 18:00:00');
+                    }
+
+                    if ($this->timesOverlap($appointmentStart, $appointmentEnd, $leaveStart, $leaveEnd)) {
+                        return "Technician {$technicianName} is on {$leave->leave_type} leave (Full Day) on " .
+                            \Carbon\Carbon::parse($date)->format('d M Y') . ". Please select a different date or technician.";
+                    }
+                    break;
+            }
+        }
+
+        return null; // No conflict found
     }
 
     public function render()

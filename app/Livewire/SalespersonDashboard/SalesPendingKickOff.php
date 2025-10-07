@@ -275,16 +275,6 @@ class SalesPendingKickOff extends Component implements HasForms, HasTable
                     })
                     ->html(),
 
-                TextColumn::make('status')
-                    ->label('Status')
-                    ->formatStateUsing(fn(string $state): HtmlString => match ($state) {
-                        'Draft' => new HtmlString('<span style="color: orange;">Draft</span>'),
-                        'New' => new HtmlString('<span style="color: blue;">New</span>'),
-                        'Approved' => new HtmlString('<span style="color: green;">Approved</span>'),
-                        'Rejected' => new HtmlString('<span style="color: red;">Rejected</span>'),
-                        default => new HtmlString('<span>' . ucfirst($state) . '</span>'),
-                    }),
-
                 // TextColumn::make('submitted_at')
                 //     ->label('Date Submit')
                 //     ->date('d M Y'),
@@ -317,7 +307,7 @@ class SalesPendingKickOff extends Component implements HasForms, HasTable
                         ->icon('heroicon-o-eye')
                         ->color('secondary')
                         ->modalHeading(' ')
-                        ->modalWidth('3xl')
+                        ->modalWidth('md')
                         ->modalSubmitAction(false)
                         ->modalCancelAction(false)
                         ->visible(fn(SoftwareHandover $record): bool => in_array($record->status, ['New', 'Completed', 'Approved']))

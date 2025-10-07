@@ -30,6 +30,7 @@ use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Support\Enums\ActionSize;
+use Filament\Support\Exceptions\Halt;
 use Filament\Tables;
 use Filament\Tables\Actions\Action;
 use Filament\Tables\Actions\ActionGroup;
@@ -609,6 +610,24 @@ class RepairAppointmentRelationManager extends RelationManager
                             $record->status !== 'Cancelled' && $record->status !== 'Completed'
                         )
                         ->action(function (array $data, RepairAppointment $record) {
+                            $leaveError = $this->checkTechnicianLeave(
+                                $data['technician'],
+                                $data['date'],
+                                $data['start_time'],
+                                $data['end_time']
+                            );
+
+                            if ($leaveError) {
+                                Notification::make()
+                                    ->title('Appointment Rescheduling Error')
+                                    ->danger()
+                                    ->body($leaveError)
+                                    ->persistent()
+                                    ->send();
+
+                                throw new Halt();
+                            }
+
                             // Store the previous appointment details for the notification
                             $oldDate = Carbon::parse($record->date)->format('d/m/Y');
                             $oldStartTime = Carbon::parse($record->start_time)->format('h:i A');
@@ -749,6 +768,24 @@ class RepairAppointmentRelationManager extends RelationManager
                 })
                 ->form($this->defaultForm())
                 ->action(function (RepairAppointment $appointment, array $data) {
+                    $leaveError = $this->checkTechnicianLeave(
+                        $data['technician'],
+                        $data['date'],
+                        $data['start_time'],
+                        $data['end_time']
+                    );
+
+                    if ($leaveError) {
+                        Notification::make()
+                            ->title('Appointment Scheduling Error')
+                            ->danger()
+                            ->body($leaveError)
+                            ->persistent()
+                            ->send();
+
+                        throw new Halt();
+                    }
+
                     // Create a new Appointment and store the form data in the appointments table
                     $lead = $this->ownerRecord;
                     $appointment = new \App\Models\RepairAppointment();
@@ -875,6 +912,87 @@ class RepairAppointmentRelationManager extends RelationManager
                         ->send();
                 }),
         ];
+    }
+
+    private function checkTechnicianLeave($technicianName, $date, $startTime, $endTime)
+    {
+        // First, try to find the technician as a user (internal technician)
+        $technician = \App\Models\User::where('name', $technicianName)->first();
+
+        if (!$technician) {
+            // If not found as user, it might be a reseller - no leave validation needed
+            return null;
+        }
+
+        // Get leaves for this technician on the selected date
+        $leaves = \App\Models\UserLeave::where('user_ID', $technician->id)
+            ->whereDate('date', '=', $date)
+            ->where('status', 'Approved')
+            ->get();
+
+        if ($leaves->isEmpty()) {
+            return null; // No leave on this date
+        }
+
+        foreach ($leaves as $leave) {
+            $appointmentStart = \Carbon\Carbon::parse($date . ' ' . $startTime);
+            $appointmentEnd = \Carbon\Carbon::parse($date . ' ' . $endTime);
+
+            // Check leave session and time conflicts
+            switch ($leave->session) {
+                case 'am':
+                    // AM session: Use start_time and end_time from database
+                    $leaveStart = \Carbon\Carbon::parse($date . ' ' . $leave->start_time);
+                    $leaveEnd = \Carbon\Carbon::parse($date . ' ' . $leave->end_time);
+
+                    if ($this->timesOverlap($appointmentStart, $appointmentEnd, $leaveStart, $leaveEnd)) {
+                        return "Technician {$technicianName} is on {$leave->leave_type} leave (AM Session: " .
+                            \Carbon\Carbon::parse($leave->start_time)->format('h:i A') . " - " .
+                            \Carbon\Carbon::parse($leave->end_time)->format('h:i A') . ") on " .
+                            \Carbon\Carbon::parse($date)->format('d M Y') . ". Please select a different time or technician.";
+                    }
+                    break;
+
+                case 'pm':
+                    // PM session: Use start_time and end_time from database
+                    $leaveStart = \Carbon\Carbon::parse($date . ' ' . $leave->start_time);
+                    $leaveEnd = \Carbon\Carbon::parse($date . ' ' . $leave->end_time);
+
+                    if ($this->timesOverlap($appointmentStart, $appointmentEnd, $leaveStart, $leaveEnd)) {
+                        return "Technician {$technicianName} is on {$leave->leave_type} leave (PM Session: " .
+                            \Carbon\Carbon::parse($leave->start_time)->format('h:i A') . " - " .
+                            \Carbon\Carbon::parse($leave->end_time)->format('h:i A') . ") on " .
+                            \Carbon\Carbon::parse($date)->format('d M Y') . ". Please select a different time or technician.";
+                    }
+                    break;
+
+                case 'full':
+                case 'full_day':
+                default:
+                    // Full day or other types: Use start_time and end_time from database, or default to full working hours
+                    if ($leave->start_time && $leave->end_time) {
+                        $leaveStart = \Carbon\Carbon::parse($date . ' ' . $leave->start_time);
+                        $leaveEnd = \Carbon\Carbon::parse($date . ' ' . $leave->end_time);
+                    } else {
+                        // Default full working day if times not specified
+                        $leaveStart = \Carbon\Carbon::parse($date . ' 09:00:00');
+                        $leaveEnd = \Carbon\Carbon::parse($date . ' 18:00:00');
+                    }
+
+                    if ($this->timesOverlap($appointmentStart, $appointmentEnd, $leaveStart, $leaveEnd)) {
+                        return "Technician {$technicianName} is on {$leave->leave_type} leave (Full Day) on " .
+                            \Carbon\Carbon::parse($date)->format('d M Y') . ". Please select a different date or technician.";
+                    }
+                    break;
+            }
+        }
+
+        return null; // No conflict found
+    }
+
+    private function timesOverlap($start1, $end1, $start2, $end2)
+    {
+        return $start1->lt($end2) && $end1->gt($start2);
     }
 
     private function isJson($string) {

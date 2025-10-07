@@ -314,7 +314,7 @@ class SoftwareHandoverNew extends Component implements HasForms, HasTable
                         ->icon('heroicon-o-eye')
                         ->color('secondary')
                         ->modalHeading(' ')
-                        ->modalWidth('3xl')
+                        ->modalWidth('md')
                         ->modalSubmitAction(false)
                         ->modalCancelAction(false)
                         ->visible(fn(SoftwareHandover $record): bool => in_array($record->status, ['New', 'Completed', 'Approved']))

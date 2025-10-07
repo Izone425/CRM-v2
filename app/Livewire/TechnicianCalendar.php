@@ -510,7 +510,6 @@ class TechnicianCalendar extends Component
             'technicianID' => $resellerName,
             'technicianName' => $resellerName,
             'technicianShortName' => $shortName,
-            'technicianAvatar' => asset('storage/uploads/photos/reseller-avatar.png'),
             'mondayAppointments' => [],
             'tuesdayAppointments' => [],
             'wednesdayAppointments' => [],
@@ -699,7 +698,6 @@ class TechnicianCalendar extends Component
                     'id' => $reseller->name, // Use company name as ID
                     'name' => $reseller->name,
                     'avatar_path' => null,
-                    'avatar_url' => asset('storage/uploads/photos/reseller-avatar.png'),
                     'type' => 'reseller',
                     'isReseller' => true
                 ];
