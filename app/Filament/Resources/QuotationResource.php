@@ -1023,6 +1023,25 @@ class QuotationResource extends Resource
                         ])
                         ->action(
                             function (Quotation $quotation, QuotationService $quotationService, array $data) {
+                                // Check if quotation contains TCL_SW_OTHERS product
+                                $hasOthersProduct = $quotation->items()
+                                    ->whereHas('product', function($query) {
+                                        $query->where('code', 'TCL_SW_OTHERS');
+                                    })
+                                    ->exists();
+
+                                if ($hasOthersProduct) {
+                                    Notification::make()
+                                        ->danger()
+                                        ->title('Cannot Convert to Proforma Invoice')
+                                        ->body('Your quotation contains TCL_SW_OTHERS product. Please remove or replace this product before converting to Proforma Invoice.')
+                                        ->persistent()
+                                        ->send();
+
+                                    return; // Stop execution
+                                }
+
+                                // Proceed with normal acceptance flow
                                 $quotation->confirmation_order_document = $data['attachment'];
                                 $quotation->pi_reference_no = $quotationService->update_pi_reference_no($quotation);
                                 $quotation->status = QuotationStatusEnum::accepted;

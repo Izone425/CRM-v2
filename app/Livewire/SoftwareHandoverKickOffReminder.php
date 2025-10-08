@@ -824,6 +824,16 @@ class SoftwareHandoverKickOffReminder extends Component implements HasForms, Has
                                 ->required()
                                 ->rows(4)
                                 ->placeholder('Enter your remark here...')
+                                ->extraAlpineAttributes([
+                                    'x-on:input' => '
+                                        const start = $el.selectionStart;
+                                        const end = $el.selectionEnd;
+                                        const value = $el.value;
+                                        $el.value = value.toUpperCase();
+                                        $el.setSelectionRange(start, end);
+                                    '
+                                ])
+                                ->dehydrateStateUsing(fn ($state) => strtoupper($state))
                                 ->columnSpan(2),
 
                             // Show existing remarks if any

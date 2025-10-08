@@ -115,7 +115,6 @@ class RenewalQuotationRelationManager extends QuotationRelationManager
                                     Name:<br>
                                     Contact Number:<br>
                                     Email Address:<br>
-                                    Position:<br><br>
                                     Must complete first before admin renewal create the quotation.')
                                 ->send();
 
@@ -991,10 +990,15 @@ class RenewalQuotationRelationManager extends QuotationRelationManager
             return true;
         }
 
+        if ($isEmpty($company->email)) {
+            return true;
+        }
+
         // Check if contact number is null or "-"
         if ($isEmpty($company->contact_no)) {
             return true;
         }
+
         info("Company Name: {$company->company_name}, Contact No: {$company->contact_no}");
         return false;
     }
