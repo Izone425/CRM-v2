@@ -95,7 +95,7 @@
     .hc-column {
         display: flex;
         flex-direction: column;
-        gap: 1rem;
+        gap: 0.5rem;
     }
 
     .hc-column-right {
@@ -363,16 +363,15 @@
     [x-cloak] { display: none !important; }
 </style>
 
+<div class="hc-info-item">
+    <span class="hc-label">Company Name:</span>
+    <span class="hc-value">{{ $companyDetail->company_name ?? 'N/A' }}</span>
+</div>
 <div class="hc-container">
     <div class="hc-grid">
         <!-- Left Column -->
         <div class="hc-column">
             <!-- Basic Information -->
-            <div class="hc-info-item">
-                <span class="hc-label">Company Name:</span>
-                <span class="hc-value">{{ $companyDetail->company_name ?? 'N/A' }}</span>
-            </div>
-
             <div class="hc-info-item">
                 <span class="hc-label">Created By:</span>
                 <span class="hc-value">{{ $creator->name ?? 'Unknown' }}</span>
@@ -382,6 +381,8 @@
                 <span class="hc-label">Created At:</span>
                 <span class="hc-value">{{ $record->submitted_at ? $record->submitted_at->format('d M Y') : 'N/A' }}</span>
             </div>
+
+            <hr class="my-6 border-t border-gray-300">
 
             @if($record->status === 'Completed' && $completedBy)
             <div class="hc-info-item">
@@ -394,6 +395,8 @@
                 <span class="hc-value">{{ $record->completed_at ? $record->completed_at->format('d M Y') : 'N/A' }}</span>
             </div>
             @endif
+
+            <hr class="my-6 border-t border-gray-300">
 
             <!-- SalesPerson Remark with Modal -->
             <div class="hc-remark-container" x-data="{ remarkOpen: false }">
@@ -442,7 +445,7 @@
                     @if(count($productPIs) > 0)
                         <div class="hc-pi-list" style="display: inline; margin-left: 0.5rem;">
                             @foreach($productPIs as $index => $pi)
-                                <span class="hc-pi-item" style="display: inline;">
+                                <span style="display: inline;">
                                     @if($index > 0), @endif
                                     <a href="{{ url('proforma-invoice-v2/' . $pi->id) }}" target="_blank" class="hc-pi-link">
                                         {{ $pi->pi_reference_no }}
