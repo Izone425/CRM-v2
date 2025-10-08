@@ -184,6 +184,10 @@ class SalesAdminAnalysisV4 extends Page implements HasTable
                         default => 'gray',
                     }),
 
+                TextColumn::make('receiver_number')
+                    ->label('Receiver Number')
+                    ->sortable(),
+
                 TextColumn::make('lead_id')
                     ->label('Lead')
                     ->searchable()

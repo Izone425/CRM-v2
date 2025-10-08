@@ -11,6 +11,7 @@ use App\Filament\Resources\LeadResource\Pages;
 use App\Filament\Resources\LeadResource\RelationManagers\ActivityLogRelationManager;
 use App\Filament\Resources\LeadResource\RelationManagers\DemoAppointmentRelationManager;
 use App\Filament\Resources\LeadResource\RelationManagers\HardwareHandoverRelationManager;
+use App\Filament\Resources\LeadResource\RelationManagers\HardwareHandoverV2RelationManager;
 use App\Filament\Resources\LeadResource\RelationManagers\HeadcountHandoverRelationManager;
 use App\Filament\Resources\LeadResource\RelationManagers\HHTableRelationManager;
 use App\Filament\Resources\LeadResource\RelationManagers\HRDFHandoverRelationManager;
@@ -790,7 +791,31 @@ class LeadResource extends Resource
                     })
                     ->hidden(fn ($livewire) => $livewire->activeTab === 'demo'),
 
-                // Generate Filter for State
+                Filter::make('phone_number')
+                    ->form([
+                        TextInput::make('phone_number')
+                            ->hiddenLabel()
+                            ->placeholder('Enter phone number')
+                    ])
+                    ->query(function (\Illuminate\Database\Eloquent\Builder $query, array $data) {
+                        if (!empty($data['phone_number'])) {
+                            $phoneNumber = $data['phone_number'];
+
+                            $query->where(function ($query) use ($phoneNumber) {
+                                // Search in lead's direct phone field
+                                $query->where('phone', 'like', '%' . $phoneNumber . '%')
+                                    // OR search in company detail's contact_no field
+                                    ->orWhereHas('companyDetail', function ($query) use ($phoneNumber) {
+                                        $query->where('contact_no', 'like', '%' . $phoneNumber . '%');
+                                    });
+                            });
+                        }
+                    })
+                    ->indicateUsing(function (array $data) {
+                        return isset($data['phone_number']) && !empty($data['phone_number'])
+                            ? 'Phone: ' . $data['phone_number']
+                            : null;
+                    }),
 
             ], layout: FiltersLayout::AboveContent)
             ->filtersFormColumns(6)
@@ -1278,6 +1303,7 @@ class LeadResource extends Resource
             RenewalQuotationRelationManager::class,
             HRDFHandoverRelationManager::class,
             HeadcountHandoverRelationManager::class,
+            // HardwareHandoverV2RelationManager::class,
         ];
     }
 

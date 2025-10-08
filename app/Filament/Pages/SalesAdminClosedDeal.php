@@ -20,6 +20,7 @@ use Filament\Forms\Components\Grid;
 use Illuminate\Database\Eloquent\Builder;
 use Carbon\Carbon;
 use Malzariey\FilamentDaterangepickerFilter\Fields\DateRangePicker;
+use Illuminate\Support\Str;
 
 class SalesAdminClosedDeal extends Page implements HasTable
 {
@@ -78,10 +79,22 @@ class SalesAdminClosedDeal extends Page implements HasTable
 
                 TextColumn::make('companyDetail.company_name')
                     ->label('Company Name')
-                    ->searchable()
                     ->sortable()
-                    ->limit(30)
-                    ->default('N/A'),
+                    ->searchable()
+                    ->formatStateUsing(function ($state, $record) {
+                        $fullName = $state ?? 'N/A';
+                        $shortened = strtoupper(Str::limit($fullName, 25, '...'));
+                        $encryptedId = \App\Classes\Encryptor::encrypt($record->id);
+
+                        return '<a href="' . url('admin/leads/' . $encryptedId) . '"
+                                    target="_blank"
+                                    title="' . e($fullName) . '"
+                                    class="inline-block"
+                                    style="color:#338cf0;">
+                                    ' . $shortened . '
+                                </a>';
+                    })
+                    ->html(),
 
                 TextColumn::make('company_size_label')
                     ->label('COMPANY SIZE')
@@ -92,20 +105,23 @@ class SalesAdminClosedDeal extends Page implements HasTable
 
                 TextColumn::make('created_at')
                     ->label('Leads Created Date')
-                    ->date('d M Y')
+                    ->date('d F Y')
+                    ->alignRight()
                     ->sortable(),
 
                 TextColumn::make('closing_date')
                     ->label('Leads Closed Date')
-                    ->date('d M Y')
+                    ->date('d F Y')
+                    ->alignRight()
                     ->sortable(),
 
                 TextColumn::make('total_days')
                     ->label('Total Days')
+                    ->alignRight()
                     ->getStateUsing(function ($record) {
                         if ($record->closing_date && $record->created_at) {
                             return Carbon::parse($record->created_at)
-                                ->diffInWeekdays(Carbon::parse($record->closing_date)) . ' business days';
+                                ->diffInWeekdays(Carbon::parse($record->closing_date));
                         }
                         return 'N/A';
                     })

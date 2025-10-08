@@ -96,8 +96,6 @@
 
     <!-- Stats Header -->
     <div class="stats-header">
-        <div class="page-title">Sales Admin - Closed Deals</div>
-
         @php
             $overallStats = $this->getOverallStats();
         @endphp
