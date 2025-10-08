@@ -220,6 +220,17 @@ class WhatsAppController extends Controller
 
                 *Please note that the demo will be attended by multiple companies.*",
 
+            'HX412a62868446c87862cfe6980de4bdc7' =>
+                "Hi {{1}}, your demo session has been confirmed:
+
+                {{2}} ({{3}}) - {{4}}
+                {{5}} Demo
+                Salesperson - {{6}}, {{7}}
+
+                The demo will take 1 hour, including a Q&A session. If you have any questions or things you'd like to clarify, feel free to jot them down and bring them up during the demo.
+
+                Our salesperson will be contacting you directly. Please feel free to liaise with them for any further assistance.",
+
             'HXf85bfd84362e7fe7d9fe8ecb41c6ee17' =>
                 "您好！产品演示已为您安排好了，以下是演示的详情：
 

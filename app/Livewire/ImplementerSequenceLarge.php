@@ -95,10 +95,13 @@ class ImplementerSequenceLarge extends Component implements HasForms, HasTable
         // List of allowed implementers for small companies
         $allowedImplementers = [
             'Mohd Amirul Ashraf',
-            'Nur Alia',
-            'Zulhilmie',
             'John Low',
-            'Muhamad Izzul Aiman'
+            'Zulhilmie',
+            'Muhamad Izzul Aiman',
+            'Ahmad Syamim',
+            'Nurul Shaqinur Ain',
+            'Siti Shahilah',
+            'Nur Alia',
         ];
 
         $query = SoftwareHandover::query()

@@ -309,6 +309,11 @@
             </div>
 
             <div class="hrdf-info-item">
+                <span class="hrdf-label">HRDF Claim ID:</span>
+                <span class="hrdf-value">{{ $record->hrdf_claim_id ?? 'N/A' }}</span>
+            </div>
+
+            <div class="hrdf-info-item">
                 <span class="hrdf-label">AutoCount Invoice No:</span>
                 <span class="hrdf-value">{{ $record->autocount_invoice_number ?? 'N/A' }}</span>
             </div>

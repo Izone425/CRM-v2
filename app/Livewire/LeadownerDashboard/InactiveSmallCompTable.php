@@ -133,6 +133,7 @@ class InactiveSmallCompTable extends Component implements HasForms, HasTable
                 TextColumn::make('companyDetail.company_name')
                     ->label('Company Name')
                     ->sortable()
+                    ->searchable()
                     ->formatStateUsing(function ($state, $record) {
                         $fullName = $state ?? 'N/A';
                         $shortened = strtoupper(Str::limit($fullName, 25, '...'));

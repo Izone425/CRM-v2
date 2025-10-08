@@ -950,8 +950,11 @@ class ActivityLogRelationManager extends RelationManager
                         $salespersonContact = $salespersonUser->mobile_number ?? 'N/A';
 
                         if (in_array(auth()->user()->role_id, [1, 3]) && !empty($phoneNumber)) {
-                                // Use regular template for non-CN leads
-                                $templateSid = 'HX23b2a24ea30108f54de52c467fdb9e54';
+                                if ($appointment->type === 'WEBINAR DEMO') {
+                                    $templateSid = 'HX23b2a24ea30108f54de52c467fdb9e54';
+                                } else {
+                                    $templateSid = 'HX412a62868446c87862cfe6980de4bdc7';
+                                }
 
                                 // For regular templates, include the recipient name
                                 $variables = [

@@ -26,6 +26,8 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Validation\Rule;
 use Filament\Forms\Components\Grid;
+use Filament\Support\Enums\MaxWidth;
+use Filament\Tables\Actions\Action;
 
 class ProductResource extends Resource
 {
@@ -177,35 +179,55 @@ class ProductResource extends Resource
                 TextColumn::make('description')
                     ->html()
                     ->width(500)
+                    ->limit(50)
                     ->wrap()
+                    ->alignCenter()
+                    ->tooltip('Click to view full description')
+                    ->badge()
                     ->formatStateUsing(function ($state) {
-                        // Ensure the HTML is properly formatted and encoded
+                        // Don't display the actual description content
                         if ($state) {
-                            // Clean up any potential double-encoding issues
-                            $state = html_entity_decode($state);
-
-                            // Check if it's a list without proper <ul> tags
-                            if (!str_contains($state, '<ul>') && str_contains($state, '<li>')) {
-                                $state = '<ul style="list-style-type: disc; padding-left: 20px;">' . $state . '</ul>';
-                            }
-                            // If it already has <ul> tags, add styling to them
-                            else if (str_contains($state, '<ul>')) {
-                                $state = str_replace('<ul>', '<ul style="list-style-type: disc; padding-left: 20px;">', $state);
-                            }
-
-                            // Make sure <li> tags also have proper styling
-                            $state = str_replace('<li>', '<li style="display: list-item;">', $state);
-
-                            return $state;
+                            return 'View';
                         }
-                        return '';
-                    }),
+                        return 'No description';
+                    })
+                    ->action(
+                        Action::make('viewDescription')
+                            ->label('View Full Description')
+                            ->modalHeading(fn ($record) => 'Product Description: ' . $record->code)
+                            ->modalContent(function ($record) {
+                                $description = $record->description;
+
+                                if ($description) {
+                                    // Apply the same formatting
+                                    $description = html_entity_decode($description);
+                                    if (!str_contains($description, '<ul>') && str_contains($description, '<li>')) {
+                                        $description = '<ul style="list-style-type: disc; padding-left: 20px;">' . $description . '</ul>';
+                                    } else if (str_contains($description, '<ul>')) {
+                                        $description = str_replace('<ul>', '<ul style="list-style-type: disc; padding-left: 20px;">', $description);
+                                    }
+                                    $description = str_replace('<li>', '<li style="display: list-item;">', $description);
+
+                                    return new \Illuminate\Support\HtmlString(
+                                        '<div style="padding: 1rem; line-height: 1.6; color: #374151;">' .
+                                        $description .
+                                        '</div>'
+                                    );
+                                }
+
+                                return new \Illuminate\Support\HtmlString('<div style="padding: 1rem;">No description available.</div>');
+                            })
+                            ->modalSubmitAction(false)
+                            ->modalCancelActionLabel('Close')
+                            ->modalWidth(MaxWidth::Large)
+                            ->icon('heroicon-o-eye')
+                    ),
                 TextColumn::make('unit_price')->label('Cost (RM)')->width(100),
                 TextColumn::make('subscription_period')->label('Sub Period (Months)')->width(150),
-                ToggleColumn::make('taxable')->label('Taxable?')->width(100)->disabled(),
-                ToggleColumn::make('is_active')->label('Is Active?')->width(100)->disabled(),
-                ToggleColumn::make('editable')->label('Editable?')->width(100)->disabled(),
-                ToggleColumn::make('minimum_price')->label('Minimum Price?')->width(100)->disabled(),
+                ToggleColumn::make('taxable')->label('Taxable?')->width(100)->disabled(fn() => auth()->user()->role_id != 3),
+                ToggleColumn::make('is_active')->label('Is Active?')->width(100)->disabled(fn() => auth()->user()->role_id != 3),
+                ToggleColumn::make('editable')->label('Editable?')->width(100)->disabled(fn() => auth()->user()->role_id != 3),
+                ToggleColumn::make('minimum_price')->label('Minimum Price?')->width(100)->disabled(fn() => auth()->user()->role_id != 3),
             ])
             ->filters([
                 Filter::make('package_group')

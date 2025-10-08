@@ -1085,7 +1085,8 @@
 
         @foreach (['monday', 'tuesday', 'wednesday', 'thursday', 'friday'] as $day)
             <div class="day">
-                @if (isset($row['leave'][$loop->iteration]))
+                {{-- HALF DAY AM and FULL DAY leaves - Display at TOP --}}
+                @if (isset($row['leave'][$loop->iteration]) && in_array($row['leave'][$loop->iteration]['session'], ['full', 'am']))
                     <div
                         style="
                         padding-block: 1rem;
@@ -1114,7 +1115,8 @@
                         </div>
                     </div>
                 @endif
-                {{-- @else --}}
+
+                {{-- APPOINTMENTS SECTION --}}
                 <div x-data="{ expanded: false }">
                     @if (count($row[$day . 'Appointments']) <= 4)
                         @foreach ($row[$day . 'Appointments'] as $appointment)
@@ -1255,7 +1257,31 @@
                         </template>
                     @endif
                 </div>
-                {{-- @endif --}}
+
+                {{-- HALF DAY PM leaves - Display at BOTTOM --}}
+                @if (isset($row['leave'][$loop->iteration]) && $row['leave'][$loop->iteration]['session'] === 'pm')
+                    <div
+                        style="
+                        padding-block: 1rem;
+                        width: 100%;
+                        background-color: #E9EBF0;
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+                        margin-block:0.5rem;
+                    ">
+                        <div style="flex:1; text-align: center;">
+                            <div style="font-size: 1.2rem; font-weight: bold;">On Leave</div>
+                            <div style="font-size: 0.8rem;font-style: italic;">
+                                {{ $row['leave'][$loop->iteration]['leave_type'] }}
+                            </div>
+                            <div style="font-size: 0.8rem;">
+                                {{ $row['leave'][$loop->iteration]['status'] }} |
+                                Half PM
+                            </div>
+                        </div>
+                    </div>
+                @endif
             </div>
         @endforeach
     @endforeach

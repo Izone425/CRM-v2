@@ -19,6 +19,45 @@
         }
     </style>
 
+    @php
+        // Calculate counts for admin dropdown badges
+        // use App\Models\SoftwareHandover;
+        // use App\Models\HardwareHandover;
+
+        // ADMIN SOFTWARE counts (NEW TASK + PENDING KICK OFF + PENDING LICENSE)
+        $softwareNewCount = app(\App\Livewire\SalespersonDashboard\SoftwareHandoverNew::class)
+            ->getNewSoftwareHandovers()
+            ->count();
+        $softwarePendingKickOffCount = app(\App\Livewire\SoftwareHandoverKickOffReminder::class)
+            ->getNewSoftwareHandovers()
+            ->count();
+        $softwarePendingLicenseCount = app(\App\Livewire\SoftwareHandoverPendingLicense::class)
+            ->getNewSoftwareHandovers()
+            ->count();
+        $adminSoftwareTotal = $softwareNewCount + $softwarePendingKickOffCount + $softwarePendingLicenseCount;
+
+        // ADMIN HARDWARE counts (NEW TASK + PENDING STOCK)
+        $hardwareNewCount = app(\App\Livewire\SalespersonDashboard\HardwareHandoverNew::class)
+            ->getNewHardwareHandovers()
+            ->count();
+        $hardwarePendingStockCount = app(\App\Livewire\HardwareHandoverPendingStock::class)
+            ->getOverdueHardwareHandovers()
+            ->count();
+        $adminHardwareTotal = $hardwareNewCount + $hardwarePendingStockCount;
+
+        // ADMIN HEADCOUNT counts (NEW TASK)
+        $adminHeadcountTotal = app(\App\Livewire\AdminHeadcountDashboard\HeadcountNewTable::class)
+            ->getNewHeadcountHandovers()
+            ->count();
+
+        // ADMIN HRDF counts (NEW TASK)
+        $adminHrdfTotal = app(\App\Livewire\AdminHRDFDashboard\HrdfNewTable::class)
+            ->getNewHrdfHandovers()
+            ->count();
+
+        $adminTotal = $adminSoftwareTotal + $adminHardwareTotal + $adminHeadcountTotal + $adminHrdfTotal;
+    @endphp
+
     <div
         x-data="{
             initialized: false,
@@ -629,7 +668,20 @@
                                                 gap: 4px;
                                             "
                                         >
-                                            Admin <i class="fas fa-caret-down" style="font-size: 12px;"></i>
+                                            Admin
+                                            @if($adminTotal > 0)
+                                                <span style="
+                                                    background: #ef4444;
+                                                    color: white;
+                                                    border-radius: 12px;
+                                                    padding: 2px 8px;
+                                                    font-size: 12px;
+                                                    font-weight: bold;
+                                                    min-width: 20px;
+                                                    text-align: center;
+                                                ">{{ $adminTotal }}</span>
+                                            @endif
+                                            <i class="fas fa-caret-down" style="font-size: 12px;"></i>
                                         </button>
 
                                         <!-- This is the bridge element that covers the gap -->
@@ -652,30 +704,16 @@
                                             z-index: 1000;
                                             border-radius: 6px;
                                             overflow: hidden;
-                                            top: 100%; /* Position at the bottom of the button */
+                                            top: 100%;
                                             left: 0;
-                                            margin-top: 5px; /* Add a small gap */
+                                            margin-top: 5px;
                                         ">
-                                            <!-- <button
-                                                wire:click="toggleDashboard('MainAdminDashboard')"
-                                                style="
-                                                    display: block;
-                                                    width: 200px;
-                                                    padding: 10px 16px;
-                                                    text-align: left;
-                                                    border: none;
-                                                    background: {{ $currentDashboard === 'MainAdminDashboard' ? '#f3f3f3' : 'white' }};
-                                                    cursor: pointer;
-                                                    font-size: 14px;
-                                                "
-                                            >
-                                                Admin - Dashboard
-                                            </button> -->
-
                                             <button
                                                 wire:click="toggleDashboard('SoftwareAdmin')"
                                                 style="
-                                                    display: block;
+                                                    display: flex;
+                                                    justify-content: space-between;
+                                                    align-items: center;
                                                     width: 100%;
                                                     padding: 10px 16px;
                                                     text-align: left;
@@ -685,13 +723,27 @@
                                                     font-size: 14px;
                                                 "
                                             >
-                                                Admin - Software
+                                                <span>Admin - Software</span>
+                                                @if($adminSoftwareTotal > 0)
+                                                    <span style="
+                                                        background: #ef4444;
+                                                        color: white;
+                                                        border-radius: 12px;
+                                                        padding: 2px 8px;
+                                                        font-size: 12px;
+                                                        font-weight: bold;
+                                                        min-width: 20px;
+                                                        text-align: center;
+                                                    ">{{ $adminSoftwareTotal }}</span>
+                                                @endif
                                             </button>
 
                                             <button
                                                 wire:click="toggleDashboard('HardwareAdmin')"
                                                 style="
-                                                    display: block;
+                                                    display: flex;
+                                                    justify-content: space-between;
+                                                    align-items: center;
                                                     width: 100%;
                                                     padding: 10px 16px;
                                                     text-align: left;
@@ -701,13 +753,27 @@
                                                     font-size: 14px;
                                                 "
                                             >
-                                                Admin - Hardware
+                                                <span>Admin - Hardware</span>
+                                                @if($adminHardwareTotal > 0)
+                                                    <span style="
+                                                        background: #ef4444;
+                                                        color: white;
+                                                        border-radius: 12px;
+                                                        padding: 2px 8px;
+                                                        font-size: 12px;
+                                                        font-weight: bold;
+                                                        min-width: 20px;
+                                                        text-align: center;
+                                                    ">{{ $adminHardwareTotal }}</span>
+                                                @endif
                                             </button>
 
                                             <button
                                                 wire:click="toggleDashboard('AdminHeadcount')"
                                                 style="
-                                                    display: block;
+                                                    display: flex;
+                                                    justify-content: space-between;
+                                                    align-items: center;
                                                     width: 100%;
                                                     padding: 10px 16px;
                                                     text-align: left;
@@ -717,14 +783,27 @@
                                                     font-size: 14px;
                                                 "
                                             >
-                                                Admin - Headcount
+                                                <span>Admin - Headcount</span>
+                                                @if($adminHeadcountTotal > 0)
+                                                    <span style="
+                                                        background: #ef4444;
+                                                        color: white;
+                                                        border-radius: 12px;
+                                                        padding: 2px 8px;
+                                                        font-size: 12px;
+                                                        font-weight: bold;
+                                                        min-width: 20px;
+                                                        text-align: center;
+                                                    ">{{ $adminHeadcountTotal }}</span>
+                                                @endif
                                             </button>
-
 
                                             <button
                                                 wire:click="toggleDashboard('AdminHRDF')"
                                                 style="
-                                                    display: block;
+                                                    display: flex;
+                                                    justify-content: space-between;
+                                                    align-items: center;
                                                     width: 100%;
                                                     padding: 10px 16px;
                                                     text-align: left;
@@ -734,7 +813,19 @@
                                                     font-size: 14px;
                                                 "
                                             >
-                                                Admin - HRDF
+                                                <span>Admin - HRDF</span>
+                                                @if($adminHrdfTotal > 0)
+                                                    <span style="
+                                                        background: #ef4444;
+                                                        color: white;
+                                                        border-radius: 12px;
+                                                        padding: 2px 8px;
+                                                        font-size: 12px;
+                                                        font-weight: bold;
+                                                        min-width: 20px;
+                                                        text-align: center;
+                                                    ">{{ $adminHrdfTotal }}</span>
+                                                @endif
                                             </button>
 
                                             <button
