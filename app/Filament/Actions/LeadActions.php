@@ -1244,7 +1244,31 @@ class LeadActions
                             && in_array(Auth::user()->role_id, [2, 3])
                             && ($record->stage ?? '') === 'Follow Up'
                         ),
-                ])
+                    Select::make('hot_percentage')
+                        ->label('HOT PERCENTAGE')
+                        ->options([
+                            '80' => '80%',
+                            '85' => '85%',
+                            '90' => '90%',
+                            '95' => '95%',
+                        ])
+                        ->required()
+                        ->placeholder('Select percentage')
+                        ->visible(function (callable $get, ?Lead $record) {
+                            return $record
+                                && in_array(Auth::user()->role_id, [2, 3])
+                                && $get('status') === 'Hot';
+                        })
+                        ->rules([
+                            function (callable $get) {
+                                return function (string $attribute, $value, callable $fail) use ($get) {
+                                    if ($get('status') === 'Hot' && empty($value)) {
+                                        $fail('Hot percentage is required when status is Hot.');
+                                    }
+                                };
+                            },
+                        ]),
+                ]),
         ])
         ->color('success')
         // ->visible(fn (Lead $record) => $record->follow_up_needed == 0)
@@ -1267,6 +1291,10 @@ class LeadActions
                     $updateData['lead_status'] = $data['status'];
                 }
 
+                if (isset($data['status']) && $data['status'] === 'Hot' && isset($data['hot_percentage'])) {
+                    $updateData['hot_percentage'] = $data['hot_percentage'];
+                }
+
                 $lead->update($updateData);
 
                 if(auth()->user()->role_id == 1){
@@ -1278,6 +1306,10 @@ class LeadActions
                 }
                 // Increment the follow-up count for the new description
                 $followUpDescription = $role .' Follow Up '. $lead->manual_follow_up_count;
+
+                if (isset($data['status']) && $data['status'] === 'Hot' && isset($data['hot_percentage'])) {
+                    $followUpDescription .= ' (Hot: ' . $data['hot_percentage'] . '%)';
+                }
 
                 // Update or create the latest activity log description
                 $latestActivityLog = ActivityLog::where('subject_id', $lead->id)

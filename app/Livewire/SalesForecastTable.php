@@ -280,7 +280,7 @@ class SalesForecastTable extends Component implements HasForms, HasTable
                     })
                     ->html(),
                 TextColumn::make('lead_status')
-                    ->label('Lead Status')
+                    ->label('Status')
                     ->sortable(query: function ($query, $direction) {
                         return $query->orderByRaw("
                             FIELD(lead_status, 'Hot', 'Warm', 'Cold') $direction
@@ -293,6 +293,8 @@ class SalesForecastTable extends Component implements HasForms, HasTable
                         'Cold' => 'gray',
                         default => 'secondary',
                     }),
+                TextColumn::make('hot_percentage')
+                    ->label('%'),
                 TextColumn::make('created_at')
                     ->label('Lead Date')
                     ->date('d F Y')

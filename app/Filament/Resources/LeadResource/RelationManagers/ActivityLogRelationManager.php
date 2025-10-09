@@ -1202,9 +1202,36 @@ class ActivityLogRelationManager extends RelationManager
                                             'Warm' => 'Warm',
                                             'Cold' => 'Cold'
                                         ])
-                                        ->default('hot')
+                                        ->default('Hot')
                                         ->required()
+                                        ->reactive()
                                         ->visible(fn (ActivityLog $record) => in_array(Auth::user()->role_id, [2, 3]) && $record->lead->stage === 'Follow Up'),
+
+                                    Select::make('hot_percentage')
+                                        ->label('HOT PERCENTAGE')
+                                        ->options([
+                                            '80' => '80%',
+                                            '85' => '85%',
+                                            '90' => '90%',
+                                            '95' => '95%',
+                                        ])
+                                        ->required()
+                                        ->placeholder('Select percentage')
+                                        ->visible(function (callable $get, ActivityLog $record) {
+                                            return $record
+                                                && $record->lead
+                                                && in_array(Auth::user()->role_id, [2, 3])
+                                                && $get('status') === 'Hot';
+                                        })
+                                        ->rules([
+                                            function (callable $get) {
+                                                return function (string $attribute, $value, callable $fail) use ($get) {
+                                                    if ($get('status') === 'Hot' && empty($value)) {
+                                                        $fail('Hot percentage is required when status is Hot.');
+                                                    }
+                                                };
+                                            },
+                                        ]),
                                 ])
                             ])
                         ->color('success')
@@ -1215,55 +1242,64 @@ class ActivityLogRelationManager extends RelationManager
 
                             // Check if follow_up_date exists in the $data array; if not, set it to next Tuesday
                             $followUpDate = $data['follow_up_date'] ?? now()->next(Carbon::TUESDAY);
-                            // if($lead->lead_status === 'New' || $lead->lead_status === 'Under Review'){
 
-                                $updateData = [
-                                    'follow_up_date' => $followUpDate,
-                                    'remark' => $data['remark'],
-                                    'follow_up_needed' => 0,
-                                    'follow_up_counter' => true,
-                                    'manual_follow_up_count' => $lead->manual_follow_up_count + 1
-                                ];
+                            $updateData = [
+                                'follow_up_date' => $followUpDate,
+                                'remark' => $data['remark'],
+                                'follow_up_needed' => 0,
+                                'follow_up_counter' => true,
+                                'manual_follow_up_count' => $lead->manual_follow_up_count + 1
+                            ];
 
-                                // Only update 'status' if it exists in $data
-                                if (isset($data['status'])) {
-                                    $updateData['lead_status'] = $data['status'];
-                                }
+                            // Only update 'status' if it exists in $data
+                            if (isset($data['status'])) {
+                                $updateData['lead_status'] = $data['status'];
+                            }
 
-                                $lead->update($updateData);
+                            // Store hot percentage if status is Hot
+                            if (isset($data['status']) && $data['status'] === 'Hot' && isset($data['hot_percentage'])) {
+                                $updateData['hot_percentage'] = $data['hot_percentage'];
+                            }
 
-                                if(auth()->user()->role_id == 1){
-                                    $role = 'Lead Owner';
-                                }else if(auth()->user()->role_id == 2){
-                                    $role = 'Salesperson';
-                                }else{
-                                    $role = 'Manager';
-                                }
+                            $lead->update($updateData);
 
-                                // Increment the follow-up count for the new description
-                                $followUpDescription = $role .' Follow Up '. $lead->manual_follow_up_count;
+                            if(auth()->user()->role_id == 1){
+                                $role = 'Lead Owner';
+                            }else if(auth()->user()->role_id == 2){
+                                $role = 'Salesperson';
+                            }else{
+                                $role = 'Manager';
+                            }
 
-                                // Update or create the latest activity log description
-                                $latestActivityLog = ActivityLog::where('subject_id', $lead->id)
-                                    ->orderByDesc('created_at')
-                                    ->first();
+                            // Increment the follow-up count for the new description
+                            $followUpDescription = $role .' Follow Up '. $lead->manual_follow_up_count;
 
-                                if ($latestActivityLog) {
-                                    $latestActivityLog->update([
-                                        'description' => $followUpDescription,
-                                    ]);
-                                } else {
-                                    activity()
-                                        ->causedBy(auth()->user())
-                                        ->performedOn($lead)
-                                        ->withProperties(['description' => $followUpDescription]);
-                                }
+                            // Add percentage info to description if status is Hot
+                            if (isset($data['status']) && $data['status'] === 'Hot' && isset($data['hot_percentage'])) {
+                                $followUpDescription .= ' (Hot: ' . $data['hot_percentage'] . '%)';
+                            }
 
-                                // Send a notification
-                                Notification::make()
-                                    ->title('Follow Up Added Successfully')
-                                    ->success()
-                                    ->send();
+                            // Update or create the latest activity log description
+                            $latestActivityLog = ActivityLog::where('subject_id', $lead->id)
+                                ->orderByDesc('created_at')
+                                ->first();
+
+                            if ($latestActivityLog) {
+                                $latestActivityLog->update([
+                                    'description' => $followUpDescription,
+                                ]);
+                            } else {
+                                activity()
+                                    ->causedBy(auth()->user())
+                                    ->performedOn($lead)
+                                    ->withProperties(['description' => $followUpDescription]);
+                            }
+
+                            // Send a notification
+                            Notification::make()
+                                ->title('Follow Up Added Successfully')
+                                ->success()
+                                ->send();
                         }),
                     Tables\Actions\Action::make('addAutomation')
                         ->label(__('Add Automation'))

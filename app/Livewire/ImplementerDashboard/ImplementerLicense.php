@@ -258,10 +258,10 @@ class ImplementerLicense extends Component implements HasForms, HasTable
                         ->icon('heroicon-o-check-circle')
                         ->color('success')
                         ->form([
-                            \Filament\Forms\Components\Grid::make(3)
+                            \Filament\Forms\Components\Grid::make(4)
                             ->schema([
                                 \Filament\Forms\Components\DatePicker::make('confirmed_kickoff_date')
-                                    ->label('Confirmed Kick-off Meeting Date')
+                                    ->label('Confirmed Kick-off Date')
                                     ->required()
                                     ->native(false)
                                     ->displayFormat('d M Y')
@@ -287,11 +287,13 @@ class ImplementerLicense extends Component implements HasForms, HasTable
                                         '12' => '12 months',
                                     ])
                                     ->required()
-                                    ->default('1'),
+                                    ->default('1')
+                                    ->columnSpan(1),
 
                                 \Filament\Forms\Components\Select::make('paid_license_years')
-                                    ->label('Paid License Duration')
+                                    ->label('Paid License Years')
                                     ->options([
+                                        '0' => '0 years',
                                         '1' => '1 year',
                                         '2' => '2 years',
                                         '3' => '3 years',
@@ -304,7 +306,28 @@ class ImplementerLicense extends Component implements HasForms, HasTable
                                         '10' => '10 years',
                                     ])
                                     ->required()
-                                    ->default('1'),
+                                    ->default('1')
+                                    ->columnSpan(1),
+
+                                \Filament\Forms\Components\Select::make('paid_license_months')
+                                    ->label('Paid License Months')
+                                    ->options([
+                                        '0' => '0 months',
+                                        '1' => '1 month',
+                                        '2' => '2 months',
+                                        '3' => '3 months',
+                                        '4' => '4 months',
+                                        '5' => '5 months',
+                                        '6' => '6 months',
+                                        '7' => '7 months',
+                                        '8' => '8 months',
+                                        '9' => '9 months',
+                                        '10' => '10 months',
+                                        '11' => '11 months',
+                                    ])
+                                    ->required()
+                                    ->default('0')
+                                    ->columnSpan(1),
                             ]),
                             \Filament\Forms\Components\Section::make('Email Recipients')
                             ->schema([
@@ -445,16 +468,24 @@ class ImplementerLicense extends Component implements HasForms, HasTable
                                 $kickOffDate = Carbon::parse($kickOffDate);
                             }
 
-                            // Handle buffer license duration based on selection type
+                            // Handle buffer license duration
                             $bufferMonths = (int) $data['buffer_months'];
                             $bufferYears = 0;
 
-                            // Handle paid license duration based on selection type
-                            $paidLicenseYears = (int) $data['paid_license_years'];
-                            $paidLicenseMonths = 0;
+                            // Handle paid license duration - now supporting both years and months
+                            $paidLicenseYears = (int) ($data['paid_license_years'] ?? 0);
+                            $paidLicenseMonths = (int) ($data['paid_license_months'] ?? 0);
+
+                            // Validate that at least some paid license duration is specified
+                            if ($paidLicenseYears === 0 && $paidLicenseMonths === 0) {
+                                throw new \Exception('Please specify at least some paid license duration (years or months).');
+                            }
 
                             // Calculate buffer duration in months for display
                             $totalBufferMonths = ($bufferYears * 12) + $bufferMonths;
+
+                            // Calculate total paid duration in months
+                            $totalPaidMonths = ($paidLicenseYears * 12) + $paidLicenseMonths;
 
                             // Calculate dates
                             $bufferEndDate = (clone $kickOffDate)->addMonths($totalBufferMonths);
@@ -472,14 +503,14 @@ class ImplementerLicense extends Component implements HasForms, HasTable
                             // Create a new license certificate record
                             $certificate = \App\Models\LicenseCertificate::create([
                                 'company_name' => $companyName,
-                                'software_handover_id' => $record->id, // Fixed from is_dir to id
+                                'software_handover_id' => $record->id,
                                 'kick_off_date' => $kickOffDate ?? $record->kick_off_meeting ?? now(),
                                 'buffer_license_start' => $kickOffDate,
                                 'buffer_license_end' => $bufferEndDate,
-                                'buffer_months' => $totalBufferMonths, // Store total buffer months
+                                'buffer_months' => $totalBufferMonths,
                                 'paid_license_start' => $paidStartDate,
                                 'paid_license_end' => $paidEndDate,
-                                'paid_months' => ($paidLicenseYears * 12) + $paidLicenseMonths, // Store total paid months
+                                'paid_months' => $totalPaidMonths, // Store total paid months
                                 'next_renewal_date' => $nextRenewalDate,
                                 'license_years' => $paidLicenseYears + ($paidLicenseMonths / 12), // Store license years with decimal for months
                                 'created_by' => auth()->id(),
@@ -522,12 +553,12 @@ class ImplementerLicense extends Component implements HasForms, HasTable
                                         'bufferLicense' => [
                                             'start' => $kickOffDate->format('d M Y'),
                                             'end' => $bufferEndDate->format('d M Y'),
-                                            'duration' => $bufferDuration  // Use the formatted duration that includes both years and months
+                                            'duration' => $bufferDuration
                                         ],
                                         'paidLicense' => [
                                             'start' => $paidStartDate->format('d M Y'),
                                             'end' => $paidEndDate->format('d M Y'),
-                                            'duration' => $paidDuration  // Use the formatted duration that includes both years and months
+                                            'duration' => $paidDuration
                                         ],
                                         'nextRenewal' => $nextRenewalDate->format('d M Y')
                                     ],
@@ -545,7 +576,7 @@ class ImplementerLicense extends Component implements HasForms, HasTable
                                     }
                                 }
 
-                                // Always add implementer email if valid (since checkbox fields are not present in the form)
+                                // Always add implementer email if valid
                                 if ($implementerEmail && filter_var($implementerEmail, FILTER_VALIDATE_EMAIL)) {
                                     $recipients[] = $implementerEmail;
                                 }
@@ -554,9 +585,6 @@ class ImplementerLicense extends Component implements HasForms, HasTable
                                 if ($salespersonEmail && filter_var($salespersonEmail, FILTER_VALIDATE_EMAIL)) {
                                     $recipients[] = $salespersonEmail;
                                 }
-
-                                // // Always include adminx
-                                // $recipients[] = 'admin.timetec.hr@timeteccloud.com';
 
                                 // Get authenticated user's email for sender
                                 $authUser = auth()->user();

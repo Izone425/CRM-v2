@@ -671,6 +671,26 @@ class SoftwareResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
+                Tables\Filters\SelectFilter::make('webinar_training_status')
+                    ->label('Webinar Training Status')
+                    ->options([
+                        'pending' => 'Pending',
+                        'attended' => 'Attended',
+                    ])
+                    ->placeholder('All Webinar Status')
+                    ->query(function (Builder $query, array $data): Builder {
+                        if (!$data['value']) {
+                            return $query;
+                        }
+
+                        return match ($data['value']) {
+                            'pending' => $query->whereNull('webinar_training'),
+                            'attended' => $query->whereNotNull('webinar_training'),
+                            default => $query,
+                        };
+                    })
+                    ->indicator('Webinar Training Status'),
+
                 Tables\Filters\SelectFilter::make('module_configuration')
                     ->label('Module Configuration')
                     ->options([

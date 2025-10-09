@@ -27,6 +27,7 @@ use Illuminate\Support\Facades\DB;
 use Filament\Notifications\Notification;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Columns\BadgeColumn;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\HtmlString;
 use Illuminate\View\View;
 use Livewire\Attributes\On;
@@ -120,6 +121,52 @@ class ImplementerFollowUpToday extends Component implements HasForms, HasTable
             ->defaultPaginationPageOption(5)
             ->paginated([5])
             ->filters([
+                SelectFilter::make('last_followup_email_status')
+                    ->label('Last Follow-up Email Status')
+                    ->options([
+                        'has_email' => 'Has Email',
+                        'no_email' => 'No Email',
+                    ])
+                    ->placeholder('All Follow-ups')
+                    ->query(function (Builder $query, array $data): Builder {
+                        if (!$data['value']) {
+                            return $query;
+                        }
+
+                        return match ($data['value']) {
+                            'has_email' => $query->whereExists(function ($subQuery) {
+                                $subQuery->select(DB::raw(1))
+                                    ->from('implementer_logs as il')
+                                    ->whereColumn('il.subject_id', 'software_handovers.id')
+                                    ->whereRaw('il.id = (
+                                        SELECT MAX(il2.id)
+                                        FROM implementer_logs il2
+                                        WHERE il2.subject_id = software_handovers.id
+                                    )')
+                                    ->whereExists(function ($emailQuery) {
+                                        $emailQuery->select(DB::raw(1))
+                                            ->from('scheduled_emails as se')
+                                            ->whereRaw("se.email_data LIKE CONCAT('%\"implementer_log_id\":', il.id, '%')");
+                                    });
+                            }),
+                            'no_email' => $query->whereExists(function ($subQuery) {
+                                $subQuery->select(DB::raw(1))
+                                    ->from('implementer_logs as il')
+                                    ->whereColumn('il.subject_id', 'software_handovers.id')
+                                    ->whereRaw('il.id = (
+                                        SELECT MAX(il2.id)
+                                        FROM implementer_logs il2
+                                        WHERE il2.subject_id = software_handovers.id
+                                    )')
+                                    ->whereNotExists(function ($emailQuery) {
+                                        $emailQuery->select(DB::raw(1))
+                                            ->from('scheduled_emails as se')
+                                            ->whereRaw("se.email_data LIKE CONCAT('%\"implementer_log_id\":', il.id, '%')");
+                                    });
+                            }),
+                            default => $query,
+                        };
+                    }),
                 // Add this new filter for status
                 SelectFilter::make('status')
                     ->label('Filter by Status')
@@ -232,21 +279,6 @@ class ImplementerFollowUpToday extends Component implements HasForms, HasTable
                 TextColumn::make('status_handover')
                     ->label('Status'),
             ])
-            // ->filters([
-            //     // Filter for Creator
-            //     SelectFilter::make('created_by')
-            //         ->label('Created By')
-            //         ->multiple()
-            //         ->options(User::pluck('name', 'id')->toArray())
-            //         ->placeholder('Select User'),
-
-            //     // Filter by Company Name
-            //     SelectFilter::make('company_name')
-            //         ->label('Company')
-            //         ->searchable()
-            //         ->options(HardwareHandover::distinct()->pluck('company_name', 'company_name')->toArray())
-            //         ->placeholder('Select Company'),
-            // ])
             ->actions([
                 ActionGroup::make([
                     Action::make('view')
@@ -272,77 +304,6 @@ class ImplementerFollowUpToday extends Component implements HasForms, HasTable
                             // Refresh the component after action completes
                             $this->dispatch('refresh-implementer-tables');
                         }),
-                    // Action::make('add_follow_up')
-                    //     ->label('Add Follow-up')
-                    //     ->color('primary')
-                    //     ->icon('heroicon-o-plus')
-                    //     ->form([
-                    //         DatePicker::make('follow_up_date')
-                    //             ->label('Next Follow-up Date')
-                    //             ->default(function() {
-                    //                 $today = now();
-                    //                 $daysUntilNextTuesday = (9 - $today->dayOfWeek) % 7; // 2 is Tuesday, but we add 7 to ensure positive
-                    //                 if ($daysUntilNextTuesday === 0) {
-                    //                     $daysUntilNextTuesday = 7; // If today is Tuesday, we want next Tuesday
-                    //                 }
-                    //                 return $today->addDays($daysUntilNextTuesday);
-                    //             })
-                    //             ->minDate(now()->subDay())
-                    //             ->required(),
-
-                    //         RichEditor::make('notes')
-                    //             ->label('Remarks')
-                    //             ->disableToolbarButtons([
-                    //                 'attachFiles',
-                    //                 'blockquote',
-                    //                 'codeBlock',
-                    //                 'h2',
-                    //                 'h3',
-                    //                 'link',
-                    //                 'redo',
-                    //                 'strike',
-                    //                 'undo',
-                    //             ])
-                    //             ->extraInputAttributes(['style' => 'text-transform: uppercase'])
-                    //             ->afterStateHydrated(fn($state) => Str::upper($state))
-                    //             ->afterStateUpdated(fn($state) => Str::upper($state))
-                    //             ->placeholder('Add your follow-up details here...')
-                    //             ->required()
-                    //     ])
-                    //     ->modalHeading('Add New Follow-up')
-                    //     ->modalWidth('3xl')
-                    //     ->action(function (SoftwareHandover $record, array $data) {
-                    //         if (!$record) {
-                    //             Notification::make()
-                    //                 ->title('Error: Software Handover record not found')
-                    //                 ->danger()
-                    //                 ->send();
-                    //             return;
-                    //         }
-
-                    //         // Update the SoftwareHandover record with follow-up information
-                    //         $record->update([
-                    //             'follow_up_date' => $data['follow_up_date'],
-                    //             'follow_up_counter' => true,
-                    //         ]);
-
-                    //         // Create description for the follow-up
-                    //         $followUpDescription = 'Implementer Follow Up By ' . auth()->user()->name;
-
-                    //         // Create a new implementer_logs entry with reference to SoftwareHandover
-                    //         ImplementerLogs::create([
-                    //             'lead_id' => $record->lead->id,
-                    //             'description' => $followUpDescription,
-                    //             'causer_id' => auth()->id(),
-                    //             'remark' => $data['notes'],
-                    //             'subject_id' => $record->id, // Store the softwarehandover ID
-                    //         ]);
-
-                    //         Notification::make()
-                    //             ->title('Follow-up added successfully')
-                    //             ->success()
-                    //             ->send();
-                    //     }),
                 ])
                 ->button()
                 ->color('warning')
