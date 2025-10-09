@@ -334,6 +334,57 @@ class ImplementerProjectDelay extends Component implements HasForms, HasTable
                                 ->success()
                                 ->send();
                         }),
+                    Action::make('webinar_training')
+                        ->label('Webinar Training')
+                        ->icon('heroicon-o-plus')
+                        ->color('info')
+                        ->visible(function (SoftwareHandover $record) {
+                            // Only show if webinar_training is null (not scheduled yet)
+                            return is_null($record->webinar_training);
+                        })
+                        ->form([
+                            DatePicker::make('webinar_training_date')
+                                ->label('Webinar Training Date')
+                                ->required()
+                                ->native(false)
+                                ->displayFormat('d M Y')
+                                ->default(now())
+                                ->helperText('Select the date for the online webinar training.')
+                                ->closeOnDateSelection(),
+                        ])
+                        ->requiresConfirmation()
+                        ->modalHeading(function (SoftwareHandover $record) {
+                            // Get company name from the software handover record
+                            $companyName = $record->company_name ?? 'Unknown Company';
+
+                            // If company_name is not available in SoftwareHandover, try to get it from Lead
+                            if (empty($companyName) || $companyName === 'Unknown Company') {
+                                if ($record->lead_id) {
+                                    $lead = \App\Models\Lead::find($record->lead_id);
+                                    if ($lead && $lead->companyDetail) {
+                                        $companyName = $lead->companyDetail->company_name ?? 'Unknown Company';
+                                    }
+                                }
+                            }
+
+                            return "Schedule Webinar Training for {$companyName}";
+                        })
+                        ->modalDescription('Are you sure you want to schedule webinar training for this project?')
+                        ->modalSubmitActionLabel('Yes, Schedule Training')
+                        ->action(function (array $data, SoftwareHandover $record) {
+                            $record->webinar_training = $data['webinar_training_date'];
+                            $record->save();
+
+                            // Send notification
+                            \Filament\Notifications\Notification::make()
+                                ->title('Webinar Training Scheduled')
+                                ->body('Training scheduled for ' . \Carbon\Carbon::parse($data['webinar_training_date'])->format('d M Y'))
+                                ->success()
+                                ->send();
+
+                            // Refresh the table
+                            $this->refreshTable();
+                        }),
                     Action::make('mark_as_closed')
                         ->label('Mark as Closed')
                         ->icon('heroicon-o-check-circle')
@@ -387,7 +438,22 @@ class ImplementerProjectDelay extends Component implements HasForms, HasTable
                                 ->afterStateUpdated(fn($state) => Str::upper($state))
                                 ->required()
                         ])
-                        ->modalHeading('Mark Project as Inactive')
+                        ->modalHeading(function (SoftwareHandover $record) {
+                            // Get company name from the software handover record
+                            $companyName = $record->company_name ?? 'Unknown Company';
+
+                            // If company_name is not available in SoftwareHandover, try to get it from Lead
+                            if (empty($companyName) || $companyName === 'Unknown Company') {
+                                if ($record->lead_id) {
+                                    $lead = \App\Models\Lead::find($record->lead_id);
+                                    if ($lead && $lead->companyDetail) {
+                                        $companyName = $lead->companyDetail->company_name ?? 'Unknown Company';
+                                    }
+                                }
+                            }
+
+                            return "Mark Project: {$companyName} as Inactive";
+                        })
                         ->modalDescription('Are you sure you want to mark this project as inactive?')
                         ->modalSubmitActionLabel('Yes, Mark as Inactive')
                         ->action(function (SoftwareHandover $record, array $data) {

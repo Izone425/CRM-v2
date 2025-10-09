@@ -26,6 +26,7 @@ use Illuminate\Support\Facades\DB;
 use Filament\Notifications\Notification;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Columns\BadgeColumn;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\HtmlString;
 use Illuminate\View\View;
 use Livewire\Attributes\On;
@@ -119,6 +120,54 @@ class ImplementerFollowUpFuture extends Component implements HasForms, HasTable
             ->defaultPaginationPageOption(5)
             ->paginated([5])
             ->filters([
+                SelectFilter::make('last_followup_email_status')
+                    ->label('Last Follow-up Email Status')
+                    ->options([
+                        'has_email' => 'Has Email',
+                        'no_email' => 'No Email',
+                    ])
+                    ->placeholder('All Follow-ups')
+                    ->query(function (Builder $query, array $data): Builder {
+                        if (!$data['value']) {
+                            return $query;
+                        }
+
+                        return match ($data['value']) {
+                            'has_email' => $query->whereExists(function ($subQuery) {
+                                $subQuery->select(DB::raw(1))
+                                    ->from('software_handovers as sh')
+                                    ->whereColumn('sh.id', 'software_handovers.id')
+                                    ->whereExists(function ($logQuery) {
+                                        $logQuery->select(DB::raw(1))
+                                            ->from('implementer_logs as il')
+                                            ->whereColumn('il.subject_id', 'sh.id')
+                                            ->whereExists(function ($emailQuery) {
+                                                $emailQuery->select(DB::raw(1))
+                                                    ->from('scheduled_emails as se')
+                                                    ->whereRaw("se.email_data LIKE CONCAT('%\"implementer_log_id\":', il.id, '%')");
+                                            })
+                                            ->orderBy('il.created_at', 'desc')
+                                            ->limit(1);
+                                    });
+                            }),
+                            'no_email' => $query->whereNotExists(function ($subQuery) {
+                                $subQuery->select(DB::raw(1))
+                                    ->from('software_handovers as sh')
+                                    ->whereColumn('sh.id', 'software_handovers.id')
+                                    ->whereExists(function ($logQuery) {
+                                        $logQuery->select(DB::raw(1))
+                                            ->from('implementer_logs as il')
+                                            ->whereColumn('il.subject_id', 'sh.id')
+                                            ->whereExists(function ($emailQuery) {
+                                                $emailQuery->select(DB::raw(1))
+                                                    ->from('scheduled_emails as se')
+                                                    ->whereRaw("se.email_data LIKE CONCAT('%\"implementer_log_id\":', il.id, '%')");
+                                            });
+                                    });
+                            }),
+                            default => $query,
+                        };
+                    }),
                 // Add this new filter for status
                 SelectFilter::make('status')
                     ->label('Filter by Status')

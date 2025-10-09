@@ -868,6 +868,25 @@ class ImplementerActions
             ->color('primary')
             ->icon('heroicon-o-plus')
             ->modalWidth('6xl')
+            ->modalHeading(function (SoftwareHandover $record) {
+                // Get company name
+                $companyName = $record->company_name ?? 'Unknown Company';
+
+                // If company_name is not available in SoftwareHandover, try to get it from Lead
+                if (empty($companyName) || $companyName === 'Unknown Company') {
+                    if ($record->lead_id) {
+                        $lead = \App\Models\Lead::find($record->lead_id);
+                        if ($lead && $lead->companyDetail) {
+                            $companyName = $lead->companyDetail->company_name ?? 'Unknown Company';
+                        }
+                    }
+                }
+
+                // Get current follow-up count for context
+                $currentCount = $record->manual_follow_up_count ?? 0;
+
+                return "Add Follow-up for {$companyName}";
+            })
             ->form([
                 Grid::make(4)
                     ->schema([
@@ -1091,8 +1110,7 @@ class ImplementerActions
                     ->afterStateUpdated(fn($state) => Str::upper($state))
                     ->placeholder('Add your follow-up details here...')
                     ->required()
-            ])
-            ->modalHeading('Add New Follow-up');
+                ]);
     }
 
     /**

@@ -30,6 +30,7 @@ class Lead extends Model
         'categories',
         'stage',
         'lead_status',
+        'hot_percentage',
         'lead_owner',
         'salesperson',
         'follow_up_date',
@@ -281,6 +282,11 @@ class Lead extends Model
     {
         return $this->hasMany(HardwareHandover::class);
     }
+
+    // public function hardwareHandoverV2()
+    // {
+    //     return $this->hasMany(HardwareHandoverV2::class);
+    // }
 
     public function hrdfHandover()
     {

@@ -59,7 +59,7 @@
         </tr>
         <tr>
             <th>Year Purchase</th>
-            <td>{{ str_replace(' and 0 months', '', $emailContent['licenses']['paidLicense']['duration']) }}</td>
+            <td>{{ $emailContent['licenses']['paidLicense']['duration'] }}</td>
         </tr>
         <tr>
             <th>Next Renewal</th>

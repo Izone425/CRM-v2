@@ -2243,8 +2243,12 @@
                                 <div class="overflow-y-auto max-h-40">
                                     @foreach($filteredOpenDelayCompanies as $id => $data)
                                         @if($data['status'] === 'Open')
+                                            @php
+                                                // Get future sessions for this specific company
+                                                $futureSessions = $this->getFutureSessionsForCompany($data['name'], $data['lead_id'] ?? null);
+                                            @endphp
                                             <div
-                                                @click="selected = '{{ $id }}'; open = false"
+                                                @click="selected = '{{ $id }}'; open = false; $wire.set('selectedCompany', '{{ $id }}')"
                                                 :class="{'bg-blue-50': selected == '{{ $id }}'}"
                                                 class="px-3 py-2 cursor-pointer hover:bg-gray-100"
                                             >
@@ -2255,6 +2259,18 @@
                                                 @if(isset($data['system_setting_count']) && $data['system_setting_count'] > 0 && $implementationDemoType === 'SYSTEM SETTING SESSION')
                                                     <div class="text-xs text-gray-500">({{ $data['system_setting_count'] }}/4 System Setting)</div>
                                                 @endif
+
+                                                {{-- <!-- Show future sessions if any -->
+                                                @if(!empty($futureSessions))
+                                                    <div class="p-2 mt-2 text-xs rounded bg-blue-50">
+                                                        <div class="mb-1 font-semibold text-blue-800">FUTURE SESSIONS:</div>
+                                                        @foreach($futureSessions as $index => $session)
+                                                            <div class="leading-tight text-blue-700">
+                                                                {{ $index + 1 }}/ DATE - {{ $session['formatted_date'] }} / DAY - {{ $session['day'] }} / {{ $session['session_name'] }}: {{ $session['time_range'] }}
+                                                            </div>
+                                                        @endforeach
+                                                    </div>
+                                                @endif --}}
                                             </div>
                                         @endif
                                     @endforeach
@@ -2265,8 +2281,12 @@
                                 <div class="overflow-y-auto max-h-40">
                                     @foreach($filteredOpenDelayCompanies as $id => $data)
                                         @if($data['status'] === 'Delay')
+                                            @php
+                                                // Get future sessions for this specific company
+                                                $futureSessions = $this->getFutureSessionsForCompany($data['name'], $data['lead_id'] ?? null);
+                                            @endphp
                                             <div
-                                                @click="selected = '{{ $id }}'; open = false"
+                                                @click="selected = '{{ $id }}'; open = false; $wire.set('selectedCompany', '{{ $id }}')"
                                                 :class="{'bg-blue-50': selected == '{{ $id }}'}"
                                                 class="px-3 py-2 cursor-pointer hover:bg-gray-100"
                                             >
@@ -2277,6 +2297,18 @@
                                                 @if(isset($data['system_setting_count']) && $data['system_setting_count'] > 0 && $implementationDemoType === 'SYSTEM SETTING SESSION')
                                                     <div class="text-xs text-gray-500">({{ $data['system_setting_count'] }}/4 System Setting)</div>
                                                 @endif
+
+                                                {{-- <!-- Show future sessions if any -->
+                                                @if(!empty($futureSessions))
+                                                    <div class="p-2 mt-2 text-xs rounded bg-blue-50">
+                                                        <div class="mb-1 font-semibold text-blue-800">FUTURE SESSIONS:</div>
+                                                        @foreach($futureSessions as $index => $session)
+                                                            <div class="leading-tight text-blue-700">
+                                                                {{ $index + 1 }}/ DATE - {{ $session['formatted_date'] }} / DAY - {{ $session['day'] }} / {{ $session['session_name'] }}: {{ $session['time_range'] }}
+                                                            </div>
+                                                        @endforeach
+                                                    </div>
+                                                @endif --}}
                                             </div>
                                         @endif
                                     @endforeach
@@ -2303,6 +2335,31 @@
                             <span class="form-error">{{ $message }}</span>
                         @enderror
                     </div>
+
+                    @if($selectedCompany)
+                        @php
+                            // Get the selected company data
+                            $selectedCompanyData = collect($filteredOpenDelayCompanies)->get($selectedCompany);
+                            $futureSessions = [];
+
+                            if ($selectedCompanyData) {
+                                $futureSessions = $this->getFutureSessionsForCompany($selectedCompanyData['name'], $selectedCompanyData['lead_id'] ?? null);
+                            }
+                        @endphp
+
+                        @if(!empty($futureSessions))
+                            <div class="p-2 border border-blue-300 rounded bg-blue-50" style="color:red;">
+                                <h4 class="mb-1 text-xs font-semibold text-blue-800">FUTURE SESSIONS FOR {{ strtoupper($selectedCompanyData['name']) }}:</h4>
+                                <div class="space-y-0.5">
+                                    @foreach($futureSessions as $index => $session)
+                                        <div class="text-xs text-blue-700">
+                                            {{ $index + 1 }}/ DATE - {{ $session['formatted_date'] }} / DAY - {{ $session['day'] }} / {{ $session['session_name'] }}: {{ $session['time_range'] }}
+                                        </div>
+                                    @endforeach
+                                </div>
+                            </div>
+                        @endif
+                    @endif
 
                     <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
                         <!-- Demo Type - Left side -->

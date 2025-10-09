@@ -1013,7 +1013,7 @@ class ImplementerCalendar extends Component
                 'company_details.company_name',
                 'software_handovers.id as handover_id',
                 'software_handovers.status_handover as status',
-                'software_handovers.lead_id as lead_id'
+                'software_handovers.lead_id as lead_id' // Make sure this is included
             )
             ->join('software_handovers', 'company_details.lead_id', '=', 'software_handovers.lead_id')
             ->where(function($q) {
@@ -1063,6 +1063,7 @@ class ImplementerCalendar extends Component
                     'name' => $company->company_name,
                     'handover_id' => str_pad($company->handover_id, 6, '0', STR_PAD_LEFT),
                     'status' => $company->status,
+                    'lead_id' => $company->lead_id, // Include this for future session lookup
                     'data_migration_count' => $dataMigrationSessionCount,
                     'system_setting_count' => $systemSettingSessionCount
                 ];
@@ -1602,6 +1603,7 @@ class ImplementerCalendar extends Component
             }
 
             $emails = [];
+            $resignedEmails = []; // Track resigned emails to exclude them
 
             // 1. Get company email from company_details table
             if ($companyDetail && !empty($companyDetail->email)) {
@@ -1625,16 +1627,16 @@ class ImplementerCalendar extends Component
 
                     if (is_array($implementationPics)) {
                         foreach ($implementationPics as $pic) {
-                            // Only include PICs with "Available" status
-                            if (
-                                isset($pic['pic_email_impl']) &&
-                                !empty($pic['pic_email_impl']) &&
-                                isset($pic['status']) &&
-                                $pic['status'] === 'Available'
-                            ) {
+                            if (isset($pic['pic_email_impl']) && !empty($pic['pic_email_impl'])) {
                                 $email = trim($pic['pic_email_impl']);
                                 if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
-                                    $emails[] = $email;
+                                    // Check status - if resigned, add to resigned emails list
+                                    if (isset($pic['status']) && strtolower($pic['status']) === 'resign') {
+                                        $resignedEmails[] = $email;
+                                    } elseif (isset($pic['status']) && $pic['status'] === 'Available') {
+                                        // Only include PICs with "Available" status
+                                        $emails[] = $email;
+                                    }
                                 }
                             }
                         }
@@ -1656,16 +1658,16 @@ class ImplementerCalendar extends Component
 
                     if (is_array($additionalPics)) {
                         foreach ($additionalPics as $pic) {
-                            // Only include PICs with "Available" status
-                            if (
-                                isset($pic['status']) &&
-                                $pic['status'] !== 'Resign' &&
-                                isset($pic['email']) &&
-                                !empty($pic['email'])
-                            ) {
+                            if (isset($pic['email']) && !empty($pic['email'])) {
                                 $email = trim($pic['email']);
                                 if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
-                                    $emails[] = $email;
+                                    // Check status - if resigned, add to resigned emails list
+                                    if (isset($pic['status']) && strtolower($pic['status']) === 'resign') {
+                                        $resignedEmails[] = $email;
+                                    } elseif (isset($pic['status']) && $pic['status'] !== 'Resign') {
+                                        // Only include PICs with non-resigned status
+                                        $emails[] = $email;
+                                    }
                                 }
                             }
                         }
@@ -1695,8 +1697,14 @@ class ImplementerCalendar extends Component
                 }
             }
 
-            // Remove duplicates
+            // Remove duplicates from emails array
             $emails = array_unique($emails);
+
+            // Remove resigned emails from the final emails array
+            $emails = array_diff($emails, $resignedEmails);
+
+            // Re-index the array after filtering
+            $emails = array_values($emails);
 
             // Update required attendees field with all found emails
             $this->requiredAttendees = implode(';', $emails);
@@ -1724,10 +1732,16 @@ class ImplementerCalendar extends Component
                         $emailSources[] = 'Salesperson';
                     }
 
+                    // Show additional info if some emails were excluded due to resignation
+                    $bodyMessage = 'Found ' . count($emails) . ' email addresses from: ' . implode(', ', $emailSources);
+                    if (!empty($resignedEmails)) {
+                        $bodyMessage .= '. Excluded ' . count($resignedEmails) . ' resigned PIC email(s).';
+                    }
+
                     Notification::make()
                         ->title('Attendees loaded successfully')
                         ->success()
-                        ->body('Found ' . count($emails) . ' email addresses from: ' . implode(', ', $emailSources))
+                        ->body($bodyMessage)
                         ->send();
                 }
             }
@@ -2674,5 +2688,155 @@ class ImplementerCalendar extends Component
             ->where('selected_week', $week)
             ->where('status', '!=', 'Cancelled')
             ->exists();
+    }
+
+    public function checkFutureSessions($companyName, $leadId = null)
+    {
+        try {
+            // Get current date for comparison
+            $currentDate = Carbon::now()->format('Y-m-d');
+
+            // Query for future appointments with "New" status for this company
+            $query = \App\Models\ImplementerAppointment::where('status', 'New')
+                ->where('date', '>', $currentDate); // Only future dates
+
+            // Filter by lead_id if available, otherwise by company name in title
+            if ($leadId) {
+                $query->where('lead_id', $leadId);
+            } else {
+                $query->where('title', 'LIKE', '%' . $companyName . '%');
+            }
+
+            $futureAppointments = $query->orderBy('date', 'asc')
+                ->orderBy('start_time', 'asc')
+                ->get();
+
+            if ($futureAppointments->count() > 0) {
+                // Format the future sessions for display
+                $sessionsList = [];
+
+                foreach ($futureAppointments as $index => $appointment) {
+                    $appointmentDate = Carbon::parse($appointment->date);
+                    $startTime = Carbon::parse($appointment->start_time);
+                    $endTime = Carbon::parse($appointment->end_time);
+
+                    // Determine which session this is based on start time
+                    $sessionName = $this->determineSessionName($appointment->start_time, $appointmentDate->format('l'));
+
+                    $sessionInfo = sprintf(
+                        "%s/ DATE - %s / DAY - %s / %s: %s – %s",
+                        ($index + 1),
+                        $appointmentDate->format('j F Y'),
+                        strtoupper($appointmentDate->format('l')),
+                        $sessionName,
+                        $startTime->format('g:iA'),
+                        $endTime->format('g:iA')
+                    );
+
+                    $sessionsList[] = $sessionInfo;
+                }
+
+                // Show notification with future sessions
+                $notificationBody = "FUTURE SESSION:\n" . implode("\n", $sessionsList);
+
+                Notification::make()
+                    ->title('Upcoming Sessions Found')
+                    ->info()
+                    ->body($notificationBody)
+                    ->duration(8000) // Show for 8 seconds
+                    ->send();
+            }
+
+        } catch (\Exception $e) {
+            Log::error("Error checking future sessions: " . $e->getMessage());
+        }
+    }
+
+    private function determineSessionName($startTime, $dayOfWeek)
+    {
+        $time = Carbon::parse($startTime)->format('H:i:s');
+        $dayOfWeek = strtolower($dayOfWeek);
+
+        // Define session mappings based on day and time
+        if ($dayOfWeek === 'friday') {
+            // Friday schedule
+            switch ($time) {
+                case '09:30:00':
+                    return 'SESSION 1';
+                case '11:00:00':
+                    return 'SESSION 2';
+                case '15:00:00':
+                    return 'SESSION 3';
+                case '16:30:00':
+                    return 'SESSION 4';
+                default:
+                    return 'CUSTOM SESSION';
+            }
+        } else {
+            // Monday-Thursday schedule
+            switch ($time) {
+                case '09:30:00':
+                    return 'SESSION 1';
+                case '11:00:00':
+                    return 'SESSION 2';
+                case '14:00:00':
+                    return 'SESSION 3';
+                case '15:30:00':
+                    return 'SESSION 4';
+                case '17:00:00':
+                    return 'SESSION 5';
+                default:
+                    return 'CUSTOM SESSION';
+            }
+        }
+    }
+
+    public function getFutureSessionsForCompany($companyName, $leadId = null)
+    {
+        try {
+            // Get current date for comparison
+            $currentDate = Carbon::now()->format('Y-m-d');
+
+            // Query for future appointments with "New" status for this company
+            $query = \App\Models\ImplementerAppointment::where('status', 'New')
+                ->where('date', '>', $currentDate); // Only future dates
+
+            // Filter by lead_id if available, otherwise by company name in title
+            if ($leadId) {
+                $query->where('lead_id', $leadId);
+            } else {
+                $query->where('title', 'LIKE', '%' . $companyName . '%');
+            }
+
+            $futureAppointments = $query->orderBy('date', 'asc')
+                ->orderBy('start_time', 'asc')
+                ->get();
+
+            $sessionsList = [];
+
+            foreach ($futureAppointments as $appointment) {
+                $appointmentDate = Carbon::parse($appointment->date);
+                $startTime = Carbon::parse($appointment->start_time);
+                $endTime = Carbon::parse($appointment->end_time);
+
+                // Determine which session this is based on start time
+                $sessionName = $this->determineSessionName($appointment->start_time, $appointmentDate->format('l'));
+
+                $sessionsList[] = [
+                    'formatted_date' => $appointmentDate->format('j F Y'),
+                    'day' => strtoupper($appointmentDate->format('l')),
+                    'session_name' => $sessionName,
+                    'time_range' => $startTime->format('g:iA') . ' – ' . $endTime->format('g:iA'),
+                    'type' => $appointment->type ?? 'N/A',
+                    'implementer' => $appointment->implementer ?? 'N/A'
+                ];
+            }
+
+            return $sessionsList;
+
+        } catch (\Exception $e) {
+            Log::error("Error getting future sessions for company: " . $e->getMessage());
+            return [];
+        }
     }
 }
