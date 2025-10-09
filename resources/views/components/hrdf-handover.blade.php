@@ -39,10 +39,7 @@
 
 <style>
     .hrdf-container {
-        padding: 1.5rem;
-        background-color: #ffffff;
         border-radius: 0.5rem;
-        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
     }
 
     .hrdf-grid {
@@ -60,7 +57,7 @@
     .hrdf-column {
         display: flex;
         flex-direction: column;
-        gap: 1rem;
+        gap: 0.5rem;
     }
 
     .hrdf-column-right {
@@ -126,7 +123,7 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: 0.5rem 0;
+        padding: 0.25rem 0;
     }
 
     .hrdf-file-label {
@@ -283,94 +280,118 @@
             justify-content: flex-start;
         }
     }
-
-    /* Alpine.js transition styles */
-    [x-cloak] { display: none !important; }
 </style>
 
-<div class="hrdf-container">
-    <div class="hrdf-grid">
-        <!-- Left Column -->
-        <div class="hrdf-column">
-            <!-- Basic Information -->
-            <div class="hrdf-info-item">
-                <span class="hrdf-label">Company Name:</span>
-                <span class="hrdf-value">{{ $companyDetail->company_name ?? 'N/A' }}</span>
-            </div>
+<div>
+    <div class="hrdf-info-item">
+        <span class="hrdf-label">Company Name:</span>
+        <span class="hrdf-value">{{ $companyDetail->company_name ?? 'N/A' }}</span>
+    </div>
+    <div class="hrdf-container" style="border: 0.1rem solid; padding: 1rem;">
+        <div class="hrdf-grid">
+            <!-- Left Column -->
+            <div class="hrdf-column">
+                <!-- Basic Information -->
+                <div class="hrdf-info-item">
+                    <span class="hrdf-label">HRDF ID:</span>
+                    <span class="hrdf-value">{{ $handoverId }}</span>
+                </div>
 
-            <div class="hrdf-info-item">
-                <span class="hrdf-label">HRDF ID:</span>
-                <span class="hrdf-value">{{ $handoverId }}</span>
-            </div>
+                <hr class="my-6 border-t border-gray-300">
 
-            <div class="hrdf-info-item">
-                <span class="hrdf-label">HRDF Grant ID:</span>
-                <span class="hrdf-value">{{ $record->hrdf_grant_id ?? 'N/A' }}</span>
-            </div>
+                <div class="hrdf-info-item">
+                    <span class="hrdf-label">HRDF Grant ID:</span>
+                    <span class="hrdf-value">{{ $record->hrdf_grant_id ?? 'N/A' }}</span>
+                </div>
 
-            <div class="hrdf-info-item">
-                <span class="hrdf-label">HRDF Claim ID:</span>
-                <span class="hrdf-value">{{ $record->hrdf_claim_id ?? 'N/A' }}</span>
-            </div>
+                <div class="hrdf-info-item">
+                    <span class="hrdf-label">HRDF Claim ID:</span>
+                    <span class="hrdf-value">{{ $record->hrdf_claim_id ?? 'N/A' }}</span>
+                </div>
 
-            <div class="hrdf-info-item">
-                <span class="hrdf-label">AutoCount Invoice No:</span>
-                <span class="hrdf-value">{{ $record->autocount_invoice_number ?? 'N/A' }}</span>
-            </div>
+                <div class="hrdf-info-item">
+                    <span class="hrdf-label">AutoCount Invoice No:</span>
+                    <span class="hrdf-value">{{ $record->autocount_invoice_number ?? 'N/A' }}</span>
+                </div>
 
-            <!-- SalesPerson Remark with Modal -->
-            <div class="hrdf-remark-container" x-data="{ remarkOpen: false }">
-                <span class="hrdf-label">SalesPerson Remark:</span>
-                @if($record->salesperson_remark)
-                    <a href="#"
-                       @click.prevent="remarkOpen = true"
-                       class="hrdf-view-link">
-                        View
-                    </a>
-                @else
-                    <span class="hrdf-not-available">Not Available</span>
-                @endif
+                <hr class="my-6 border-t border-gray-300">
 
-                <!-- SalesPerson Remark Modal -->
-                @if($record->salesperson_remark)
-                <div x-show="remarkOpen"
-                     x-cloak
-                     x-transition
-                     @click.outside="remarkOpen = false"
-                     class="hrdf-modal">
-                    <div class="hrdf-modal-content" @click.away="remarkOpen = false">
-                        <div class="hrdf-modal-header">
-                            <h3 class="hrdf-modal-title">SalesPerson Remark</h3>
-                            <button type="button" @click="remarkOpen = false" class="hrdf-modal-close">
-                                <svg fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
-                                </svg>
-                            </button>
-                        </div>
-                        <div class="hrdf-modal-body">
-                            <div class="hrdf-modal-text">{{ $record->salesperson_remark }}</div>
+                <!-- SalesPerson Remark with Modal -->
+                <div class="hrdf-remark-container" x-data="{ remarkOpen: false }">
+                    <span class="hrdf-label">SalesPerson Remark:</span>
+                    @if($record->salesperson_remark)
+                        <a href="#"
+                        @click.prevent="remarkOpen = true"
+                        class="hrdf-view-link">
+                            View
+                        </a>
+                    @else
+                        <span class="hrdf-not-available">Not Available</span>
+                    @endif
+
+                    <!-- SalesPerson Remark Modal -->
+                    @if($record->salesperson_remark)
+                    <div x-show="remarkOpen"
+                        x-cloak
+                        x-transition
+                        @click.outside="remarkOpen = false"
+                        class="hrdf-modal">
+                        <div class="hrdf-modal-content" @click.away="remarkOpen = false">
+                            <div class="hrdf-modal-header">
+                                <h3 class="hrdf-modal-title">SalesPerson Remark</h3>
+                                <button type="button" @click="remarkOpen = false" class="hrdf-modal-close">
+                                    <svg fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                            <div class="hrdf-modal-body">
+                                <div class="hrdf-modal-text">{{ $record->salesperson_remark }}</div>
+                            </div>
                         </div>
                     </div>
+                    @endif
                 </div>
-                @endif
             </div>
-        </div>
 
-        <!-- Right Column -->
-        <div class="hrdf-column-right">
-            <!-- JD 14 Form Section -->
-            <div class="hrdf-section">
-                <h3 class="hrdf-section-title">JD 14 Form + 3 Days Attendance Logs</h3>
-                <div class="hrdf-file-list">
-                    @for($i = 1; $i <= 4; $i++)
+            <!-- Right Column -->
+            <div class="hrdf-column-right">
+                <!-- JD 14 Form Section -->
+                <div class="hrdf-section">
+                    <h3 class="hrdf-section-title">JD 14 Form + 3 Days Attendance Logs</h3>
+                    <div class="hrdf-file-list">
+                        @for($i = 1; $i <= 4; $i++)
+                            <div class="hrdf-file-item">
+                                <span class="hrdf-file-label">File {{ $i }}:</span>
+                                @if(isset($jd14Files[$i-1]))
+                                    <div class="hrdf-file-actions">
+                                        <a href="{{ Storage::url($jd14Files[$i-1]) }}" target="_blank" class="hrdf-btn hrdf-btn-view">
+                                            View
+                                        </a>
+                                        <a href="{{ Storage::url($jd14Files[$i-1]) }}" download class="hrdf-btn hrdf-btn-download">
+                                            Download
+                                        </a>
+                                    </div>
+                                @else
+                                    <span class="hrdf-not-available">Not Available</span>
+                                @endif
+                            </div>
+                        @endfor
+                    </div>
+                </div>
+
+                <!-- AutoCount Invoice Section -->
+                <div class="hrdf-section">
+                    <h3 class="hrdf-section-title">AutoCount Invoice</h3>
+                    <div class="hrdf-file-list">
                         <div class="hrdf-file-item">
-                            <span class="hrdf-file-label">File {{ $i }}:</span>
-                            @if(isset($jd14Files[$i-1]))
+                            <span class="hrdf-file-label">File 1:</span>
+                            @if(isset($invoiceFiles[0]))
                                 <div class="hrdf-file-actions">
-                                    <a href="{{ Storage::url($jd14Files[$i-1]) }}" target="_blank" class="hrdf-btn hrdf-btn-view">
+                                    <a href="{{ Storage::url($invoiceFiles[0]) }}" target="_blank" class="hrdf-btn hrdf-btn-view">
                                         View
                                     </a>
-                                    <a href="{{ Storage::url($jd14Files[$i-1]) }}" download class="hrdf-btn hrdf-btn-download">
+                                    <a href="{{ Storage::url($invoiceFiles[0]) }}" download class="hrdf-btn hrdf-btn-download">
                                         Download
                                     </a>
                                 </div>
@@ -378,50 +399,28 @@
                                 <span class="hrdf-not-available">Not Available</span>
                             @endif
                         </div>
-                    @endfor
-                </div>
-            </div>
-
-            <!-- AutoCount Invoice Section -->
-            <div class="hrdf-section">
-                <h3 class="hrdf-section-title">AutoCount Invoice</h3>
-                <div class="hrdf-file-list">
-                    <div class="hrdf-file-item">
-                        <span class="hrdf-file-label">File 1:</span>
-                        @if(isset($invoiceFiles[0]))
-                            <div class="hrdf-file-actions">
-                                <a href="{{ Storage::url($invoiceFiles[0]) }}" target="_blank" class="hrdf-btn hrdf-btn-view">
-                                    View
-                                </a>
-                                <a href="{{ Storage::url($invoiceFiles[0]) }}" download class="hrdf-btn hrdf-btn-download">
-                                    Download
-                                </a>
-                            </div>
-                        @else
-                            <span class="hrdf-not-available">Not Available</span>
-                        @endif
                     </div>
                 </div>
-            </div>
 
-            <!-- HRDF Grant Approval Letter Section -->
-            <div class="hrdf-section">
-                <h3 class="hrdf-section-title">HRDF Grant Approval Letter</h3>
-                <div class="hrdf-file-list">
-                    <div class="hrdf-file-item">
-                        <span class="hrdf-file-label">File 1:</span>
-                        @if(isset($grantFiles[0]))
-                            <div class="hrdf-file-actions">
-                                <a href="{{ Storage::url($grantFiles[0]) }}" target="_blank" class="hrdf-btn hrdf-btn-view">
-                                    View
-                                </a>
-                                <a href="{{ Storage::url($grantFiles[0]) }}" download class="hrdf-btn hrdf-btn-download">
-                                    Download
-                                </a>
-                            </div>
-                        @else
-                            <span class="hrdf-not-available">Not Available</span>
-                        @endif
+                <!-- HRDF Grant Approval Letter Section -->
+                <div class="hrdf-section">
+                    <h3 class="hrdf-section-title">HRDF Grant Approval Letter</h3>
+                    <div class="hrdf-file-list">
+                        <div class="hrdf-file-item">
+                            <span class="hrdf-file-label">File 1:</span>
+                            @if(isset($grantFiles[0]))
+                                <div class="hrdf-file-actions">
+                                    <a href="{{ Storage::url($grantFiles[0]) }}" target="_blank" class="hrdf-btn hrdf-btn-view">
+                                        View
+                                    </a>
+                                    <a href="{{ Storage::url($grantFiles[0]) }}" download class="hrdf-btn hrdf-btn-download">
+                                        Download
+                                    </a>
+                                </div>
+                            @else
+                                <span class="hrdf-not-available">Not Available</span>
+                            @endif
+                        </div>
                     </div>
                 </div>
             </div>

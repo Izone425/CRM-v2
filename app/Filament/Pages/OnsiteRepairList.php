@@ -976,6 +976,7 @@ class OnsiteRepairList extends Page implements HasTable
 
                 TextColumn::make('created_date')
                     ->label('Date')
+                    ->alignRight()
                     ->getStateUsing(fn (AdminRepair $record) => $record->created_at?->format('d M Y'))
                     ->sortable(query: function (Builder $query, string $direction): Builder {
                         return $query->orderBy('created_at', $direction);
@@ -983,6 +984,7 @@ class OnsiteRepairList extends Page implements HasTable
 
                 TextColumn::make('created_time')
                     ->label('Time')
+                    ->alignRight()
                     ->getStateUsing(fn (AdminRepair $record) => $record->created_at?->format('h:i A'))
                     ->sortable(query: function (Builder $query, string $direction): Builder {
                         return $query->orderBy('created_at', $direction);
@@ -990,6 +992,7 @@ class OnsiteRepairList extends Page implements HasTable
 
                 TextColumn::make('days_elapsed')
                     ->label('Total Days')
+                    ->alignRight()
                     ->state(function (AdminRepair $record) {
                         if (!$record->created_at) {
                             return '0 days';
@@ -1062,6 +1065,7 @@ class OnsiteRepairList extends Page implements HasTable
                 TextColumn::make('zoho_ticket')
                     ->searchable()
                     ->label('Zoho Ticket')
+                    ->alignRight()
                     ->formatStateUsing(function ($state) {
                         if (!$state) {
                             return null;

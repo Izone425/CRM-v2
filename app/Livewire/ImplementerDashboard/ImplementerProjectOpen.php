@@ -209,21 +209,44 @@ class ImplementerProjectOpen extends Component implements HasForms, HasTable
                             $company = CompanyDetail::where('lead_id', $record->lead_id)->first();
                         }
 
+                        // Get priority and set background color with inline styles
+                        $priority = $record->project_priority ?? 'low'; // Default to low if not set
+                        $priorityStyles = match(strtolower($priority)) {
+                            'high' => 'border: 1px solid rgba(220, 38, 38, 0.3); background-color: #ffeeee;',
+                            'medium' => 'border: 1px solid rgba(217, 119, 6, 0.3); background-color: #fff9f0;',
+                            'low' => 'border: 1px solid rgba(16, 185, 129, 0.3); background-color: #f2fff0;',
+                            default => 'border: 1px solid rgba(16, 185, 129, 0.3); background-color: #f2fff0;'
+                        };
+
+                        // Get dot color based on priority
+                        $dotColor = match(strtolower($priority)) {
+                            'high' => 'rgb(220, 38, 38)',
+                            'medium' => 'rgb(217, 119, 6)',
+                            'low' => 'rgb(16, 185, 129)',
+                            default => 'rgb(16, 185, 129)'
+                        };
+
                         if ($company) {
                             $shortened = strtoupper(Str::limit($company->company_name, 20, '...'));
                             $encryptedId = \App\Classes\Encryptor::encrypt($company->lead_id);
 
-                            return new HtmlString('<a href="' . url('admin/leads/' . $encryptedId) . '"
+                            return new HtmlString('<div style="padding: 8px; border-radius: 4px; ' . $priorityStyles . '">
+                                <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background-color: ' . $dotColor . '; margin-right: 8px; vertical-align: middle;"></span>
+                                <a href="' . url('admin/leads/' . $encryptedId) . '"
                                     target="_blank"
                                     title="' . e($state) . '"
                                     class="inline-block"
                                     style="color:#338cf0;">
                                     ' . $company->company_name . '
-                                </a>');
+                                </a>
+                            </div>');
                         }
 
                         $shortened = strtoupper(Str::limit($state, 20, '...'));
-                        return "<span title='{$state}'>{$state}</span>";
+                        return new HtmlString('<div style="padding: 8px; border-radius: 4px; ' . $priorityStyles . '">
+                            <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background-color: ' . $dotColor . '; margin-right: 8px; vertical-align: middle;"></span>
+                            <span title="' . $state . '">' . $state . '</span>
+                        </div>');
                     })
                     ->html(),
 
@@ -378,6 +401,22 @@ class ImplementerProjectOpen extends Component implements HasForms, HasTable
 
     public function render()
     {
-        return view('livewire.implementer_dashboard.implementer-project-open');
+        return view('livewire.implementer_dashboard.implementer-project-open')
+            ->with('styles', '
+                <style>
+                    .priority-box-high {
+                        border: 1px solid rgba(220, 38, 38, 0.3);
+                        background-color: #ffeeee;
+                    }
+                    .priority-box-medium {
+                        border: 1px solid rgba(217, 119, 6, 0.3);
+                        background-color: #fff9f0;
+                    }
+                    .priority-box-low {
+                        border: 1px solid rgba(16, 185, 129, 0.3);
+                        background-color: #f2fff0;
+                    }
+                </style>
+            ');
     }
 }

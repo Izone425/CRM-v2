@@ -103,7 +103,18 @@ class HrdfNewTable extends Component implements HasForms, HasTable
                         return 'HRDF_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
                     })
                     ->color('primary')
-                    ->weight('bold'),
+                    ->weight('bold')
+                    ->action(
+                        Action::make('viewHandoverDetails')
+                            ->modalHeading(' ')
+                            ->modalWidth('3xl')
+                            ->modalSubmitAction(false)
+                            ->modalCancelAction(false)
+                            ->modalContent(function (HRDFHandover $record): View {
+                                return view('components.hrdf-handover')
+                                    ->with('extraAttributes', ['record' => $record]);
+                            })
+                    ),
 
                 TextColumn::make('submitted_at')
                     ->label('Date Submitted')

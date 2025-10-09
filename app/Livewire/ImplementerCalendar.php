@@ -46,7 +46,7 @@ class ImplementerCalendar extends Component
     public $totalAppointmentsStatus;
 
     // Dropdown
-    public array $status = ["COMPLETED", "NEW", "CANCELLED"];
+    public array $status = ["DONE", "NEW", "CANCELLED"];
     public array $selectedStatus = [];
     public bool $allStatusSelected = true;
 
@@ -400,7 +400,10 @@ class ImplementerCalendar extends Component
             $query->whereIn("implementer", $selectedImplementers);
         }
 
-        // Initialize counters with proper capitalization matching appointmentTypes array
+        // Get all appointments
+        $allAppointments = $query->get();
+
+        // Initialize counters
         $this->totalAppointments = [
             "ALL" => 0,
             "Kick Off Meeting Session" => 0,
@@ -411,34 +414,59 @@ class ImplementerCalendar extends Component
         ];
 
         // Count active appointments (not cancelled)
-        $this->totalAppointments["ALL"] = $query->clone()->where('status', '!=', 'Cancelled')->count();
-        $this->totalAppointmentsStatus["ALL"] = $query->clone()->count();
+        $activeAppointments = $allAppointments->where('status', '!=', 'Cancelled');
+        $this->totalAppointments["ALL"] = $activeAppointments->count();
 
-        // Count by appointment type with proper capitalization
-        $this->totalAppointments["Kick Off Meeting Session"] = $query->clone()
-            ->where('type', 'Kick Off Meeting Session')
-            ->where('status', '!=', 'Cancelled')->count();
+        // Count by appointment type
+        foreach ($activeAppointments as $appointment) {
+            $type = $appointment->type;
+            switch ($type) {
+                case 'KICK OFF MEETING SESSION':
+                    $this->totalAppointments["Kick Off Meeting Session"]++;
+                    break;
+                case 'REVIEW SESSION':
+                    $this->totalAppointments["REVIEW SESSION"]++;
+                    break;
+                case 'DATA MIGRATION SESSION':
+                    $this->totalAppointments["Data Migration Session"]++;
+                    break;
+                case 'SYSTEM SETTING SESSION':
+                    $this->totalAppointments["System Setting Session"]++;
+                    break;
+                case 'WEEKLY FOLLOW UP SESSION':
+                    $this->totalAppointments["Weekly Follow Up Session"]++;
+                    break;
+            }
+        }
 
-        $this->totalAppointments["REVIEW SESSION"] = $query->clone()
-            ->where('type', 'REVIEW SESSION')
-            ->where('status', '!=', 'Cancelled')->count();
+        // Handle status counts with special logic for cancelled appointments
+        $this->totalAppointmentsStatus["NEW"] = $allAppointments->where('status', 'New')->count();
+        $this->totalAppointmentsStatus["DONE"] = $allAppointments->where('status', 'Done')->count();
 
-        $this->totalAppointments["Data Migration Session"] = $query->clone()
-            ->where('type', 'Data Migration Session')
-            ->where('status', '!=', 'Cancelled')->count();
+        // For cancelled appointments, only count those that haven't been replaced
+        $cancelledAppointments = $allAppointments->where('status', 'Cancelled');
+        $actualCancelledCount = 0;
 
-        $this->totalAppointments["System Setting Session"] = $query->clone()
-            ->where('type', 'System Setting Session')
-            ->where('status', '!=', 'Cancelled')->count();
+        foreach ($cancelledAppointments as $cancelled) {
+            // Check if this cancelled appointment's time slot has been replaced
+            $isReplaced = $allAppointments->where('implementer', $cancelled->implementer)
+                ->where('date', $cancelled->date)
+                ->where('start_time', $cancelled->start_time)
+                ->whereIn('status', ['New', 'Done'])
+                ->count() > 0;
 
-        $this->totalAppointments["Weekly Follow Up Session"] = $query->clone()
-            ->where('type', 'Weekly Follow Up Session')
-            ->where('status', '!=', 'Cancelled')->count();
+            // Only count as cancelled if the slot hasn't been replaced
+            if (!$isReplaced) {
+                $actualCancelledCount++;
+            }
+        }
 
-        // Count by status
-        $this->totalAppointmentsStatus["NEW"] = $query->clone()->where('status', 'New')->count();
-        $this->totalAppointmentsStatus["COMPLETED"] = $query->clone()->where('status', 'Completed')->count();
-        $this->totalAppointmentsStatus["CANCELLED"] = $query->clone()->where('status', 'Cancelled')->count();
+        $this->totalAppointmentsStatus["CANCELLED"] = $actualCancelledCount;
+
+        // Update total to include actual cancelled count
+        $this->totalAppointmentsStatus["ALL"] = $this->totalAppointmentsStatus["NEW"] +
+                                            $this->totalAppointmentsStatus["DONE"] +
+                                            $this->totalAppointmentsStatus["CANCELLED"];
     }
 
     private function getWeekDateDays($date = null)
@@ -856,14 +884,14 @@ class ImplementerCalendar extends Component
     public function calculateAppointmentBreakdown()
     {
         $query = DB::table('implementer_appointments')
-            ->where('status', '!=', 'Cancelled')
             ->whereBetween('date', [$this->startDate, $this->endDate]);
 
         if (!empty($this->selectedImplementers)) {
             $query->whereIn('implementer', $this->selectedImplementers);
         }
 
-        $appointments = $query->get();
+        // Get all appointments (including cancelled ones)
+        $allAppointments = $query->get();
 
         $result = [
             'KICK OFF MEETING SESSION' => 0,
@@ -873,9 +901,31 @@ class ImplementerCalendar extends Component
             'WEEKLY FOLLOW UP SESSION' => 0,
         ];
 
-        foreach ($appointments as $appointment) {
-            $type = $appointment->type ?? 'Unknown';
-            $result[$type] = ($result[$type] ?? 0) + 1;
+        // Count non-cancelled appointments first
+        foreach ($allAppointments as $appointment) {
+            if ($appointment->status !== 'Cancelled') {
+                $type = $appointment->type ?? 'Unknown';
+                $result[$type] = ($result[$type] ?? 0) + 1;
+            }
+        }
+
+        // Now handle cancelled appointments
+        $cancelledAppointments = $allAppointments->where('status', 'Cancelled');
+
+        foreach ($cancelledAppointments as $cancelled) {
+            // Check if this cancelled appointment's time slot has been replaced
+            $isReplaced = $allAppointments->where('implementer', $cancelled->implementer)
+                ->where('date', $cancelled->date)
+                ->where('start_time', $cancelled->start_time)
+                ->whereIn('status', ['New', 'Done'])
+                ->count() > 0;
+
+            // Only count as cancelled if the slot hasn't been replaced
+            if (!$isReplaced) {
+                $type = $cancelled->type ?? 'Unknown';
+                // Don't increment the result since we want to show actual active appointments
+                // The cancelled count will be handled separately in totalAppointmentsStatus
+            }
         }
 
         $this->appointmentBreakdown = $result;
@@ -1397,7 +1447,8 @@ class ImplementerCalendar extends Component
                 'selectedCompany',
                 'requiredAttendees',
                 'onsiteRemarks',
-                'selectedOnsiteSessions'
+                'selectedOnsiteSessions',
+                'companySearch'
             ]);
 
         } catch (\Exception $e) {
@@ -1897,7 +1948,7 @@ class ImplementerCalendar extends Component
 
             // Close modals
             $this->showImplementerRequestModal = false;
-            $this->reset(['requestSessionType', 'selectedCompany', 'selectedYear', 'selectedWeek']);
+            $this->reset(['requestSessionType', 'selectedCompany', 'selectedYear', 'selectedWeek', 'companySearch']);
 
         } catch (\Exception $e) {
             Notification::make()
@@ -2312,7 +2363,7 @@ class ImplementerCalendar extends Component
             }
             // Close modals and reset form
             $this->showImplementationSessionModal = false;
-            $this->reset(['selectedCompany', 'appointmentType', 'requiredAttendees', 'remarks', 'implementationDemoType']);
+            $this->reset(['selectedCompany', 'appointmentType', 'requiredAttendees', 'remarks', 'implementationDemoType','companySearch']);
 
             // Refresh the calendar
             $this->dispatch('refresh');
@@ -2352,7 +2403,8 @@ class ImplementerCalendar extends Component
             'selectedCompany',
             'requiredAttendees',
             'onsiteRemarks',
-            'selectedOnsiteSessions'
+            'selectedOnsiteSessions',
+            'companySearch'
         ]);
     }
 
