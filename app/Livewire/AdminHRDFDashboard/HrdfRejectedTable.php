@@ -183,7 +183,7 @@ class HrdfRejectedTable extends Component implements HasForms, HasTable
                         ->label('View Details')
                         ->icon('heroicon-o-eye')
                         ->color('secondary')
-                        ->modalHeading('HRDF Handover Details')
+                        ->modalHeading('')
                         ->modalWidth('3xl')
                         ->modalSubmitAction(false)
                         ->modalCancelAction(false)

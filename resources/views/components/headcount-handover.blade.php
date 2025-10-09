@@ -74,7 +74,7 @@
 
 <style>
     .hc-container {
-        padding: 1.5rem;
+        padding: 1rem;
         background-color: #ffffff;
         border-radius: 0.5rem;
         box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
@@ -363,185 +363,131 @@
     [x-cloak] { display: none !important; }
 </style>
 
-<div class="hc-info-item">
-    <span class="hc-label">Company Name:</span>
-    <span class="hc-value">{{ $companyDetail->company_name ?? 'N/A' }}</span>
-</div>
-<div class="hc-container">
-    <div class="hc-grid">
-        <!-- Left Column -->
-        <div class="hc-column">
-            <!-- Basic Information -->
-            <div class="hc-info-item">
-                <span class="hc-label">Created By:</span>
-                <span class="hc-value">{{ $creator->name ?? 'Unknown' }}</span>
-            </div>
+<div>
+    <div class="hc-info-item">
+        <span class="hc-label">Headcount Handover Details</span><br>
+        <span class="hc-label">Company Name:</span>
+        <span class="hc-value">{{ $companyDetail->company_name ?? 'N/A' }}</span>
+    </div>
+    <div class="hc-container" style="border: 0.1rem solid">
+        <div class="hc-grid">
+            <!-- Left Column -->
+            <div class="hc-column">
+                <!-- Basic Information -->
+                <div class="hc-info-item">
+                    <span class="hc-label">Created By:</span>
+                    <span class="hc-value">{{ $creator->name ?? 'Unknown' }}</span>
+                </div>
 
-            <div class="hc-info-item">
-                <span class="hc-label">Created At:</span>
-                <span class="hc-value">{{ $record->submitted_at ? $record->submitted_at->format('d M Y') : 'N/A' }}</span>
-            </div>
+                <div class="hc-info-item">
+                    <span class="hc-label">Created At:</span>
+                    <span class="hc-value">{{ $record->submitted_at ? $record->submitted_at->format('d M Y') : 'N/A' }}</span>
+                </div>
 
-            <hr class="my-6 border-t border-gray-300">
+                <hr class="my-6 border-t border-gray-300">
 
-            @if($record->status === 'Completed' && $completedBy)
-            <div class="hc-info-item">
-                <span class="hc-label">Completed By:</span>
-                <span class="hc-value">{{ $completedBy->name }}</span>
-            </div>
+                @if($record->status === 'Completed' && $completedBy)
+                <div class="hc-info-item">
+                    <span class="hc-label">Completed By:</span>
+                    <span class="hc-value">{{ $completedBy->name }}</span>
+                </div>
 
-            <div class="hc-info-item">
-                <span class="hc-label">Completed At:</span>
-                <span class="hc-value">{{ $record->completed_at ? $record->completed_at->format('d M Y') : 'N/A' }}</span>
-            </div>
-            @endif
-
-            <hr class="my-6 border-t border-gray-300">
-
-            <!-- SalesPerson Remark with Modal -->
-            <div class="hc-remark-container" x-data="{ remarkOpen: false }">
-                <span class="hc-label">SalesPerson Remark:</span>
-                @if($record->salesperson_remark)
-                    <a href="#"
-                       @click.prevent="remarkOpen = true"
-                       class="hc-view-link">
-                        View
-                    </a>
-                @else
-                    <span class="hc-not-available">Not Available</span>
+                <div class="hc-info-item">
+                    <span class="hc-label">Completed At:</span>
+                    <span class="hc-value">{{ $record->completed_at ? $record->completed_at->format('d M Y') : 'N/A' }}</span>
+                </div>
                 @endif
 
-                <!-- SalesPerson Remark Modal -->
-                @if($record->salesperson_remark)
-                <div x-show="remarkOpen"
-                     x-cloak
-                     x-transition
-                     @click.outside="remarkOpen = false"
-                     class="hc-modal">
-                    <div class="hc-modal-content" @click.away="remarkOpen = false">
-                        <div class="hc-modal-header">
-                            <h3 class="hc-modal-title">SalesPerson Remark</h3>
-                            <button type="button" @click="remarkOpen = false" class="hc-modal-close">
-                                <svg fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
-                                </svg>
-                            </button>
-                        </div>
-                        <div class="hc-modal-body">
-                            <div class="hc-modal-text">{{ $record->salesperson_remark }}</div>
+                <hr class="my-6 border-t border-gray-300">
+
+                <!-- SalesPerson Remark with Modal -->
+                <div class="hc-remark-container" x-data="{ remarkOpen: false }">
+                    <span class="hc-label">SalesPerson Remark:</span>
+                    @if($record->salesperson_remark)
+                        <a href="#"
+                        @click.prevent="remarkOpen = true"
+                        class="hc-view-link">
+                            View
+                        </a>
+                    @else
+                        <span class="hc-not-available">Not Available</span>
+                    @endif
+
+                    <!-- SalesPerson Remark Modal -->
+                    @if($record->salesperson_remark)
+                    <div x-show="remarkOpen"
+                        x-cloak
+                        x-transition
+                        @click.outside="remarkOpen = false"
+                        class="hc-modal">
+                        <div class="hc-modal-content" @click.away="remarkOpen = false">
+                            <div class="hc-modal-header">
+                                <h3 class="hc-modal-title">SalesPerson Remark</h3>
+                                <button type="button" @click="remarkOpen = false" class="hc-modal-close">
+                                    <svg fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                            <div class="hc-modal-body">
+                                <div class="hc-modal-text">{{ $record->salesperson_remark }}</div>
+                            </div>
                         </div>
                     </div>
-                </div>
-                @endif
-            </div>
-        </div>
-
-        <!-- Right Column -->
-        <div class="hc-column-right">
-            <!-- Product PI Section -->
-            <div class="hc-section">
-                <div class="hc-info-item">
-                    <span class="hc-label">Product PI:</span>
-                    @if(count($productPIs) > 0)
-                        <div class="hc-pi-list" style="display: inline; margin-left: 0.5rem;">
-                            @foreach($productPIs as $index => $pi)
-                                <span style="display: inline;">
-                                    @if($index > 0), @endif
-                                    <a href="{{ url('proforma-invoice-v2/' . $pi->id) }}" target="_blank" class="hc-pi-link">
-                                        {{ $pi->pi_reference_no }}
-                                    </a>
-                                </span>
-                            @endforeach
-                        </div>
-                    @else
-                        <span class="hc-not-available">No Product PI selected</span>
                     @endif
                 </div>
             </div>
 
-            <!-- HRDF PI Section -->
-            <div class="hc-section">
-                <div class="hc-info-item">
-                    <span class="hc-label">HRDF PI:</span>
-                    @if(count($hrdfPIs) > 0)
-                        <div class="hc-pi-list" style="display: inline; margin-left: 0.5rem;">
-                            @foreach($hrdfPIs as $index => $pi)
-                                <span class="hc-pi-item" style="display: inline;">
-                                    @if($index > 0), @endif
-                                    <a href="{{ url('proforma-invoice-v2/' . $pi->id) }}" target="_blank" class="hc-pi-link">
-                                        {{ $pi->pi_reference_no }}
-                                    </a>
-                                </span>
-                            @endforeach
-                        </div>
-                    @else
-                        <span class="hc-not-available">No HRDF PI selected</span>
-                    @endif
-                </div>
-            </div>
-
-            <!-- Payment Slip Section -->
-            <div class="hc-section">
-                <h3 class="hc-section-title">Payment Slip</h3>
-                <div class="hc-file-list">
-                    @if(is_array($paymentSlipFiles) && count($paymentSlipFiles) > 0)
-                        @foreach($paymentSlipFiles as $index => $file)
-                            <div class="hc-file-item">
-                                <span class="hc-file-label">File {{ $index + 1 }}:</span>
-                                <div class="hc-file-actions">
-                                    <a href="{{ Storage::url($file) }}" target="_blank" class="hc-btn hc-btn-view">
-                                        View
-                                    </a>
-                                    <a href="{{ Storage::url($file) }}" download class="hc-btn hc-btn-download">
-                                        Download
-                                    </a>
-                                </div>
+            <!-- Right Column -->
+            <div class="hc-column-right">
+                <!-- Product PI Section -->
+                <div class="hc-section">
+                    <div class="hc-info-item">
+                        <span class="hc-label">Product PI:</span>
+                        @if(count($productPIs) > 0)
+                            <div class="hc-pi-list" style="display: inline; margin-left: 0.5rem;">
+                                @foreach($productPIs as $index => $pi)
+                                    <span style="display: inline;">
+                                        @if($index > 0), @endif
+                                        <a href="{{ url('proforma-invoice-v2/' . $pi->id) }}" target="_blank" class="hc-pi-link">
+                                            {{ $pi->pi_reference_no }}
+                                        </a>
+                                    </span>
+                                @endforeach
                             </div>
-                        @endforeach
-                    @else
-                        <div class="hc-file-item">
-                            <span class="hc-file-label">File 1:</span>
-                            <span class="hc-not-available">Not Available</span>
-                        </div>
-                    @endif
+                        @else
+                            <span class="hc-not-available">No Product PI selected</span>
+                        @endif
+                    </div>
                 </div>
-            </div>
 
-            <!-- Confirmation Order Section -->
-            <div class="hc-section">
-                <h3 class="hc-section-title">Confirmation Order</h3>
-                <div class="hc-file-list">
-                    @if(is_array($confirmationOrderFiles) && count($confirmationOrderFiles) > 0)
-                        @foreach($confirmationOrderFiles as $index => $file)
-                            <div class="hc-file-item">
-                                <span class="hc-file-label">File {{ $index + 1 }}:</span>
-                                <div class="hc-file-actions">
-                                    <a href="{{ Storage::url($file) }}" target="_blank" class="hc-btn hc-btn-view">
-                                        View
-                                    </a>
-                                    <a href="{{ Storage::url($file) }}" download class="hc-btn hc-btn-download">
-                                        Download
-                                    </a>
-                                </div>
+                <!-- HRDF PI Section -->
+                <div class="hc-section">
+                    <div class="hc-info-item">
+                        <span class="hc-label">HRDF PI:</span>
+                        @if(count($hrdfPIs) > 0)
+                            <div class="hc-pi-list" style="display: inline; margin-left: 0.5rem;">
+                                @foreach($hrdfPIs as $index => $pi)
+                                    <span class="hc-pi-item" style="display: inline;">
+                                        @if($index > 0), @endif
+                                        <a href="{{ url('proforma-invoice-v2/' . $pi->id) }}" target="_blank" class="hc-pi-link">
+                                            {{ $pi->pi_reference_no }}
+                                        </a>
+                                    </span>
+                                @endforeach
                             </div>
-                        @endforeach
-                    @else
-                        <div class="hc-file-item">
-                            <span class="hc-file-label">File 1:</span>
-                            <span class="hc-not-available">Not Available</span>
-                        </div>
-                    @endif
+                        @else
+                            <span class="hc-not-available">No HRDF PI selected</span>
+                        @endif
+                    </div>
                 </div>
-            </div>
 
-            <!-- Invoice Section -->
-            <div class="hc-section">
-                <h3 class="hc-section-title">Invoice</h3>
-                <div class="hc-file-list">
-                    @if($record->status === 'Completed')
-                        @if(is_array($invoiceFiles) && count($invoiceFiles) > 0)
-                            @foreach($invoiceFiles as $index => $file)
-                                @if($file)
+                <!-- Payment Slip Section -->
+                <div class="hc-section">
+                    <h3 class="hc-section-title">Payment Slip</h3>
+                    <div class="hc-file-list">
+                        @if(is_array($paymentSlipFiles) && count($paymentSlipFiles) > 0)
+                            @foreach($paymentSlipFiles as $index => $file)
                                 <div class="hc-file-item">
                                     <span class="hc-file-label">File {{ $index + 1 }}:</span>
                                     <div class="hc-file-actions">
@@ -553,7 +499,6 @@
                                         </a>
                                     </div>
                                 </div>
-                                @endif
                             @endforeach
                         @else
                             <div class="hc-file-item">
@@ -561,12 +506,70 @@
                                 <span class="hc-not-available">Not Available</span>
                             </div>
                         @endif
-                    @else
-                        <div class="hc-file-item">
-                            <span class="hc-file-label">File 1:</span>
-                            <span class="hc-not-available">Available when completed</span>
-                        </div>
-                    @endif
+                    </div>
+                </div>
+
+                <!-- Confirmation Order Section -->
+                <div class="hc-section">
+                    <h3 class="hc-section-title">Confirmation Order</h3>
+                    <div class="hc-file-list">
+                        @if(is_array($confirmationOrderFiles) && count($confirmationOrderFiles) > 0)
+                            @foreach($confirmationOrderFiles as $index => $file)
+                                <div class="hc-file-item">
+                                    <span class="hc-file-label">File {{ $index + 1 }}:</span>
+                                    <div class="hc-file-actions">
+                                        <a href="{{ Storage::url($file) }}" target="_blank" class="hc-btn hc-btn-view">
+                                            View
+                                        </a>
+                                        <a href="{{ Storage::url($file) }}" download class="hc-btn hc-btn-download">
+                                            Download
+                                        </a>
+                                    </div>
+                                </div>
+                            @endforeach
+                        @else
+                            <div class="hc-file-item">
+                                <span class="hc-file-label">File 1:</span>
+                                <span class="hc-not-available">Not Available</span>
+                            </div>
+                        @endif
+                    </div>
+                </div>
+
+                <!-- Invoice Section -->
+                <div class="hc-section">
+                    <h3 class="hc-section-title">Invoice</h3>
+                    <div class="hc-file-list">
+                        @if($record->status === 'Completed')
+                            @if(is_array($invoiceFiles) && count($invoiceFiles) > 0)
+                                @foreach($invoiceFiles as $index => $file)
+                                    @if($file)
+                                    <div class="hc-file-item">
+                                        <span class="hc-file-label">File {{ $index + 1 }}:</span>
+                                        <div class="hc-file-actions">
+                                            <a href="{{ Storage::url($file) }}" target="_blank" class="hc-btn hc-btn-view">
+                                                View
+                                            </a>
+                                            <a href="{{ Storage::url($file) }}" download class="hc-btn hc-btn-download">
+                                                Download
+                                            </a>
+                                        </div>
+                                    </div>
+                                    @endif
+                                @endforeach
+                            @else
+                                <div class="hc-file-item">
+                                    <span class="hc-file-label">File 1:</span>
+                                    <span class="hc-not-available">Not Available</span>
+                                </div>
+                            @endif
+                        @else
+                            <div class="hc-file-item">
+                                <span class="hc-file-label">File 1:</span>
+                                <span class="hc-not-available">Available when completed</span>
+                            </div>
+                        @endif
+                    </div>
                 </div>
             </div>
         </div>
