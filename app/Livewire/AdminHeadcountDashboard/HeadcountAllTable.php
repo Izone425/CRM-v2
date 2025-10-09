@@ -74,7 +74,7 @@ class HeadcountAllTable extends Component implements HasForms, HasTable
                     ->weight('bold')
                     ->action(
                         Action::make('viewHeadcountHandoverDetails')
-                            ->modalHeading('Headcount Handover Details')
+                            ->modalHeading('')
                             ->modalWidth('3xl')
                             ->modalSubmitAction(false)
                             ->modalCancelAction(false)
@@ -133,7 +133,7 @@ class HeadcountAllTable extends Component implements HasForms, HasTable
                         ->label('View Details')
                         ->icon('heroicon-o-eye')
                         ->color('secondary')
-                        ->modalHeading('Headcount Handover Details')
+                        ->modalHeading('')
                         ->modalWidth('3xl')
                         ->modalSubmitAction(false)
                         ->modalCancelAction(false)

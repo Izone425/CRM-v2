@@ -482,7 +482,9 @@ class QuotationResource extends Resource
                                                     'free_device' => 'Free Device',
                                                     'door_access_package' => 'Door Access Package',
                                                     'door_access_accesories' => 'Door Access Accessories',
-                                                    // Keep other solutions with standard formatting
+                                                    'new_sales_addon' => 'Add On HC (New)',
+                                                    'renewal_sales' => 'Renewal Sales',
+                                                    'renewal_sales_addon' => 'Add On HC (Renewal)',
                                                 ];
 
                                                 // Use custom label if defined, otherwise convert to title case

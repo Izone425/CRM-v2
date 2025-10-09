@@ -284,6 +284,7 @@
 
 <div>
     <div class="hrdf-info-item">
+        <span class="hrdf-label">HRDF Handover Details</span><br>
         <span class="hrdf-label">Company Name:</span>
         <span class="hrdf-value">{{ $companyDetail->company_name ?? 'N/A' }}</span>
     </div>
