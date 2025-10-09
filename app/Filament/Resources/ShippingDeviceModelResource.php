@@ -36,9 +36,9 @@ class ShippingDeviceModelResource extends Resource
                             ->unique(ignoreRecord: true)
                             ->label('Model Name'),
 
-                        Forms\Components\Textarea::make('description')
-                            ->maxLength(65535)
-                            ->columnSpanFull(),
+                        // Forms\Components\Textarea::make('description')
+                        //     ->maxLength(65535)
+                        //     ->columnSpanFull(),
 
                         Forms\Components\Toggle::make('is_active')
                             ->label('Active')
@@ -89,15 +89,6 @@ class ShippingDeviceModelResource extends Resource
                         '0' => 'Inactive',
                     ])
                     ->label('Status'),
-            ])
-            ->actions([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
-            ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
-                ]),
             ]);
     }
 
@@ -112,8 +103,8 @@ class ShippingDeviceModelResource extends Resource
     {
         return [
             'index' => Pages\ListShippingDeviceModels::route('/'),
-            'create' => Pages\CreateShippingDeviceModel::route('/create'),
-            'edit' => Pages\EditShippingDeviceModel::route('/{record}/edit'),
+            // 'create' => Pages\CreateShippingDeviceModel::route('/create'),
+            // 'edit' => Pages\EditShippingDeviceModel::route('/{record}/edit'),
         ];
     }
 }

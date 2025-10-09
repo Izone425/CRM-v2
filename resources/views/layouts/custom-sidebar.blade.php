@@ -1063,6 +1063,43 @@
                             </div>
                         </div>
 
+                        <!-- HRDF Handover Section -->
+                        <div class="menu-block">
+                            <div class="menu-item nested-dropdown-trigger" data-submenu="hrdf-submenu">
+                                <div class="menu-icon-wrapper">
+                                    <i class="bi bi-tools submenu-icon"></i>
+                                </div>
+                                <span class="menu-text">HRDF Handover</span>
+                                <i class="bi bi-chevron-down menu-arrow"></i>
+                            </div>
+
+                            <div class="submenu" id="hrdf-submenu">
+                                <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
+                                    <span class="module-font">HRDF ID</span>
+                                </a>
+                                <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
+                                    <span class="module-font">HRDF Claim Tracker</span>
+                                </a>
+                            </div>
+                        </div>
+
+                        <!-- Headcount Handover Section -->
+                        <div class="menu-block">
+                            <div class="menu-item nested-dropdown-trigger" data-submenu="headcount-submenu">
+                                <div class="menu-icon-wrapper">
+                                    <i class="bi bi-tools submenu-icon"></i>
+                                </div>
+                                <span class="menu-text">Headcount Handover</span>
+                                <i class="bi bi-chevron-down menu-arrow"></i>
+                            </div>
+
+                            <div class="submenu" id="headcount-submenu">
+                                <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
+                                    <span class="module-font">Headcount ID</span>
+                                </a>
+                            </div>
+                        </div>
+
                         <!-- Repair Handover Section -->
                         <div class="menu-block">
                             <div class="menu-item nested-dropdown-trigger" data-submenu="repair-submenu">

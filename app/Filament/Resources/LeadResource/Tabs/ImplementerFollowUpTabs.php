@@ -98,7 +98,29 @@ class ImplementerFollowUpTabs
                                                     3 => '3',
                                                     4 => '4',
                                                 ])
-                                                ->default(1),
+                                                ->default(function ($component) {
+                                                    // Try to get the record from the component's livewire instance
+                                                    try {
+                                                        $livewire = $component->getLivewire();
+                                                        $record = $livewire->getRecord();
+
+                                                        if (!$record) return 1;
+
+                                                        $softwareHandover = SoftwareHandover::where('lead_id', $record->id)
+                                                            ->orderBy('created_at', 'desc')
+                                                            ->first();
+
+                                                        if (!$softwareHandover) return 1;
+
+                                                        $currentCount = $softwareHandover->manual_follow_up_count ?? 0;
+                                                        $nextCount = ($currentCount >= 4) ? 0 : $currentCount + 1;
+
+                                                        return $nextCount;
+                                                    } catch (\Exception $e) {
+                                                        \Illuminate\Support\Facades\Log::error('Error getting follow-up count: ' . $e->getMessage());
+                                                        return 1; // fallback
+                                                    }
+                                                }),
 
                                             Toggle::make('send_email')
                                                 ->label('Send Email?')

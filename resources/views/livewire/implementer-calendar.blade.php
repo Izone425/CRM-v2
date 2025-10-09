@@ -1132,7 +1132,7 @@
                         <h3 class="text-lg font-semibold">Appointment Status</h3>
                         <p class="text-gray-600">Total Appointments: {{ $totalAppointmentsStatus['ALL'] }}</p>
 
-                        @foreach (['NEW' => '#ffff5cbf', 'COMPLETED' => '#71eb71', 'CANCELLED' => '#f86f6f'] as $status => $color)
+                        @foreach (['NEW' => '#ffff5cbf', 'DONE' => '#71eb71', 'CANCELLED' => '#f86f6f'] as $status => $color)
                             @php
                                 $count = $totalAppointmentsStatus[$status] ?? 0;
                                 $percentage = $totalAppointmentsStatus['ALL'] > 0 ? round(($count / $totalAppointmentsStatus['ALL']) * 100, 2) : 0;
@@ -1441,7 +1441,7 @@
 
                                 @if (!$isSessionAppointment)
                                     <div class="available-session-card"
-                                        @if ($appointment->status === 'Completed') style="background-color: var(--bg-demo-green)"
+                                        @if ($appointment->status === 'Done') style="background-color: var(--bg-demo-green)"
                                         @elseif ($appointment->status == 'New') style="background-color: var(--bg-demo-yellow)"
                                         @else style="background-color: var(--bg-demo-red)" @endif
                                         wire:click="showAppointmentDetails({{ $appointment->id ?? 'null' }})">
@@ -1479,7 +1479,7 @@
                                         @if (!$isSessionAppointment && $shownCount < 3)
                                             @php $shownCount++; @endphp
                                             <div class="available-session-card"
-                                                @if ($appointment->status === 'Completed') style="background-color: var(--bg-demo-green)"
+                                                @if ($appointment->status === 'Done') style="background-color: var(--bg-demo-green)"
                                                 @elseif ($appointment->status == 'New') style="background-color: var(--bg-demo-yellow)"
                                                 @else style="background-color: var(--bg-demo-red)" @endif
                                                 wire:click="showAppointmentDetails({{ $appointment->id ?? 'null' }})">
@@ -1556,7 +1556,7 @@
 
                                         @if (!$isSessionAppointment)
                                             <div class="available-session-card"
-                                                @if ($appointment->status === 'Completed') style="background-color: var(--bg-demo-green)"
+                                                @if ($appointment->status === 'Done') style="background-color: var(--bg-demo-green)"
                                                 @elseif ($appointment->status == 'New') style="background-color: var(--bg-demo-yellow)"
                                                 @else style="background-color: var(--bg-demo-red)" @endif
                                                 wire:click="showAppointmentDetails({{ $appointment->id ?? 'null' }})">
