@@ -11,6 +11,7 @@ use App\Filament\Pages\AdminRenewalRawData;
 use App\Filament\Pages\AdminRepairDashboard;
 use App\Filament\Pages\Auth\EditProfile;
 use App\Filament\Pages\Calendar;
+use App\Filament\Pages\CallLogAnalysis;
 use App\Filament\Pages\ChatRoom;
 use App\Filament\Pages\DashboardForm;
 use App\Filament\Pages\DebtorAgingProcessData;
@@ -51,6 +52,7 @@ use App\Filament\Pages\ProjectCategoryOpen;
 use App\Filament\Pages\ProjectPriority;
 use App\Filament\Pages\RankingForm;
 use App\Filament\Pages\RankingFormPage;
+use App\Filament\Pages\RenewalDataAnalysis;
 use App\Filament\Pages\RevenueAnalysis;
 use App\Filament\Pages\RevenueTable;
 use App\Filament\Pages\SalesAdminAnalysisV1;
@@ -115,6 +117,7 @@ use App\Filament\Resources\SparePartResource;
 use App\Filament\Resources\TrainingBookingResource;
 use App\Filament\Widgets\LeadChartWidget;
 use App\Livewire\FutureEnhancement;
+use App\Models\CallLog;
 use Filament\Pages;
 use Filament\Panel;
 use Filament\Widgets;
@@ -143,6 +146,7 @@ use App\Models\Policy;
 use App\Models\Role;
 use App\Models\SparePart;
 use Beta\Microsoft\Graph\Model\Admin;
+use Beta\Microsoft\Graph\Model\Call;
 use Filament\Navigation\NavigationItem;
 
 class AdminPanelProvider extends PanelProvider
@@ -341,6 +345,8 @@ class AdminPanelProvider extends PanelProvider
                 SalesPricingManagement::class,
                 HeadcountHandoverList::class,
                 HrdfHandoverList::class,
+                RenewalDataAnalysis::class,
+                CallLogAnalysis::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([

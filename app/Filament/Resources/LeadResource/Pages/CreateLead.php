@@ -21,6 +21,7 @@ use Ysfkaya\FilamentPhoneInput\PhoneInputNumberType;
 use Ysfkaya\FilamentPhoneInput\Forms\PhoneInput;
 use Ysfkaya\FilamentPhoneInput\Tables\PhoneColumn;
 use App\Models\Lead;
+use Filament\Forms\Components\Grid;
 use Illuminate\Support\Str;
 use Illuminate\Support\HtmlString;
 
@@ -241,6 +242,7 @@ class CreateLead extends CreateRecord
             TextInput::make('company_name')
                 ->label('Company Name')
                 ->required()
+                ->columnSpanFull()
                 // ->reactive()
                 // Replace suffix icon with a clickable search action
                 ->extraInputAttributes(['style' => 'text-transform: uppercase'])
@@ -330,215 +332,205 @@ class CreateLead extends CreateRecord
 
                     return $companyDetail->id;
                 }),
-            TextInput::make('name')
-                ->label('Name')
-                ->required()
-                ->reactive()
-                ->extraInputAttributes(['style' => 'text-transform: uppercase'])
-                ->afterStateHydrated(fn($state) => Str::upper($state))
-                ->afterStateUpdated(fn($state) => Str::upper($state)),
-            TextInput::make('email')
-                ->label('Work Email Address')
-                ->email()
-                ->required()
-                ->suffixAction(
-                    \Filament\Forms\Components\Actions\Action::make('searchEmail')
-                        ->label('Verify')
-                        ->icon('heroicon-o-magnifying-glass')
-                        ->color('primary')
-                        ->action(function ($state, $set, $livewire) {
-                            if (empty($state)) {
-                                $set('email_helper_text', "Please enter an email to verify");
-                                return;
-                            }
+            Grid::make(2)
+            ->schema([
+                TextInput::make('name')
+                    ->label('Name')
+                    ->required()
+                    ->reactive()
+                    ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                    ->afterStateHydrated(fn($state) => Str::upper($state))
+                    ->afterStateUpdated(fn($state) => Str::upper($state)),
+                TextInput::make('email')
+                    ->label('Work Email Address')
+                    ->email()
+                    ->required()
+                    ->suffixAction(
+                        \Filament\Forms\Components\Actions\Action::make('searchEmail')
+                            ->label('Verify')
+                            ->icon('heroicon-o-magnifying-glass')
+                            ->color('primary')
+                            ->action(function ($state, $set, $livewire) {
+                                if (empty($state)) {
+                                    $set('email_helper_text', "Please enter an email to verify");
+                                    return;
+                                }
 
-                            // Show loading state
-                            $set('email_search_loading', true);
+                                // Show loading state
+                                $set('email_search_loading', true);
 
-                            // Use sleep for visual effect
-                            usleep(800000); // 0.8 second delay
+                                // Use sleep for visual effect
+                                usleep(800000); // 0.8 second delay
 
-                            // Check if email already exists in the Lead table
-                            $existingLeadsWithEmail = \App\Models\Lead::where('email', $state)->get();
+                                // Check if email already exists in the Lead table
+                                $existingLeadsWithEmail = \App\Models\Lead::where('email', $state)->get();
 
-                            // If exists, set helper text with found lead details
-                            if ($existingLeadsWithEmail->isNotEmpty()) {
-                                $duplicateInfo = $existingLeadsWithEmail->map(function($lead) {
-                                    $companyName = $lead->companyDetail ? $lead->companyDetail->company_name : 'Unknown Company';
-                                    return "• {$companyName} (Lead ID: " . str_pad($lead->id, 5, '0', STR_PAD_LEFT) . ")";
-                                })->implode("\n");
+                                // If exists, set helper text with found lead details
+                                if ($existingLeadsWithEmail->isNotEmpty()) {
+                                    $duplicateInfo = $existingLeadsWithEmail->map(function($lead) {
+                                        $companyName = $lead->companyDetail ? $lead->companyDetail->company_name : 'Unknown Company';
+                                        return "• {$companyName} (Lead ID: " . str_pad($lead->id, 5, '0', STR_PAD_LEFT) . ")";
+                                    })->implode("\n");
 
-                                // Store as plain string with HTML markup
-                                $set('email_helper_text', '<span style="color:red;">⚠️ This email is already in use:</span><br>' . nl2br(htmlspecialchars($duplicateInfo)));
-                            } else {
-                                // Store as plain string with HTML markup
-                                $set('email_helper_text', '<span style="color:green;">✓ Email is unique</span>');
-                            }
+                                    // Store as plain string with HTML markup
+                                    $set('email_helper_text', '<span style="color:red;">⚠️ This email is already in use:</span><br>' . nl2br(htmlspecialchars($duplicateInfo)));
+                                } else {
+                                    // Store as plain string with HTML markup
+                                    $set('email_helper_text', '<span style="color:green;">✓ Email is unique</span>');
+                                }
 
-                            // Reset loading state
-                            $set('email_search_loading', false);
-                        })
-                )
-                ->helperText(function (callable $get) {
-                    if ($get('email_search_loading')) {
-                        return "Verifying email...";
-                    }
-
-                    // Get the helper text which is now stored as a string with HTML markup
-                    $helperText = $get('email_helper_text');
-
-                    // Convert it to HtmlString only when rendering, not when storing
-                    return $helperText ? new HtmlString($helperText) : null;
-                }),
-            PhoneInput::make('phone')
-                ->label('Phone Number')
-                ->required()
-                ->suffixAction(
-                    \Filament\Forms\Components\Actions\Action::make('searchPhone')
-                        ->label('Verify')
-                        ->icon('heroicon-o-magnifying-glass')
-                        ->color('primary')
-                        ->action(function ($state, $set, $livewire) {
-                            if (empty($state)) {
-                                $set('phone_helper_text', "Please enter a phone number to verify");
-                                return;
-                            }
-
-                            // Show loading state
-                            $set('phone_search_loading', true);
-
-                            // Use sleep for visual effect
-                            usleep(800000); // 0.8 second delay
-
-                            // Remove the "+" symbol from the phone number for searching
-                            $searchPhone = ltrim($state, '+');
-
-                            // Check if phone already exists in the Lead table
-                            $existingLeadsWithPhone = \App\Models\Lead::where('phone', $searchPhone)->get();
-
-                            // If exists, set helper text with found lead details
-                            if ($existingLeadsWithPhone->isNotEmpty()) {
-                                $duplicateInfo = $existingLeadsWithPhone->map(function($lead) {
-                                    $companyName = $lead->companyDetail ? $lead->companyDetail->company_name : 'Unknown Company';
-                                    return "• {$companyName} (Lead ID: " . str_pad($lead->id, 5, '0', STR_PAD_LEFT) . ")";
-                                })->implode("\n");
-
-                                // Store as plain string with HTML markup
-                                $set('phone_helper_text', '<span style="color:red;">⚠️ This phone number is already in use:</span><br>' . nl2br(htmlspecialchars($duplicateInfo)));
-                            } else {
-                                // Store as plain string with HTML markup
-                                $set('phone_helper_text', '<span style="color:green;">✓ Phone number is unique</span>');
-                            }
-
-                            // Reset loading state
-                            $set('phone_search_loading', false);
-                        })
-                )
-                ->helperText(function (callable $get) {
-                    if ($get('phone_search_loading')) {
-                        return "Verifying phone number...";
-                    }
-
-                    // Get the helper text which is now stored as a string with HTML markup
-                    $helperText = $get('phone_helper_text');
-
-                    // Convert it to HtmlString only when rendering, not when storing
-                    return $helperText ? new HtmlString($helperText) : null;
-                })
-                ->dehydrateStateUsing(function ($state) {
-                    // Remove the "+" symbol from the phone number
-                    return ltrim($state, '+');
-                }),
-            Select::make('company_size')
-                ->label('Company Size')
-                ->options([
-                    '1-24' => '1 - 24',
-                    '25-99' => '25 - 99',
-                    '100-500' => '100 - 500',
-                    '501 and Above' => '501 and Above',
-                ])
-                ->required(),
-            Select::make('country')
-                ->label('Country')
-                ->searchable()
-                ->required()
-                ->default('MYS')
-                ->options(function () {
-                    $filePath = storage_path('app/public/json/CountryCodes.json');
-
-                    if (file_exists($filePath)) {
-                        $countriesContent = file_get_contents($filePath);
-                        $countries = json_decode($countriesContent, true);
-
-                        // Map 3-letter country codes to full country names
-                        return collect($countries)->mapWithKeys(function ($country) {
-                            return [$country['Code'] => ucfirst(strtolower($country['Country']))];
-                        })->toArray();
-                    }
-
-                    return [];
-                })
-                ->dehydrateStateUsing(function ($state) {
-                    // Convert the selected code to the full country name
-                    $filePath = storage_path('app/public/json/CountryCodes.json');
-
-                    if (file_exists($filePath)) {
-                        $countriesContent = file_get_contents($filePath);
-                        $countries = json_decode($countriesContent, true);
-
-                        foreach ($countries as $country) {
-                            if ($country['Code'] === $state) {
-                                return ucfirst(strtolower($country['Country'])); // Store the full country name
-                            }
-                        }
-                    }
-
-                    return $state; // Fallback to the original state if mapping fails
-                }),
-
-            Select::make('lead_code')
-                ->label('Lead Source')
-                // ->default(function () {
-                //     $roleId = Auth::user()->role_id;
-                //     return $roleId == 2 ? 'Salesperson Lead' : ($roleId == 1 ? 'Website' : '');
-                // })
-                ->options(function () {
-                    $user = Auth::user();
-
-                    // For other users, get only the lead sources they have access to
-                    $leadSources = LeadSource::all();
-
-                    $accessibleLeadSources = $leadSources->filter(function($leadSource) use ($user) {
-                        // If allowed_users is not set or empty, everyone can access
-                        if (empty($leadSource->allowed_users)) {
-                            return false;  // Change to true if you want unassigned lead sources to be available to everyone
+                                // Reset loading state
+                                $set('email_search_loading', false);
+                            })
+                    )
+                    ->helperText(function (callable $get) {
+                        if ($get('email_search_loading')) {
+                            return "Verifying email...";
                         }
 
-                        // Check if user ID is in the allowed_users array
-                        $allowedUsers = is_array($leadSource->allowed_users)
-                            ? $leadSource->allowed_users
-                            : json_decode($leadSource->allowed_users, true);
+                        // Get the helper text which is now stored as a string with HTML markup
+                        $helperText = $get('email_helper_text');
 
-                        return in_array($user->id, $allowedUsers);
-                    });
+                        // Convert it to HtmlString only when rendering, not when storing
+                        return $helperText ? new HtmlString($helperText) : null;
+                    }),
+                PhoneInput::make('phone')
+                    ->label('Phone Number')
+                    ->required()
+                    ->suffixAction(
+                        \Filament\Forms\Components\Actions\Action::make('searchPhone')
+                            ->label('Verify')
+                            ->icon('heroicon-o-magnifying-glass')
+                            ->color('primary')
+                            ->action(function ($state, $set, $livewire) {
+                                if (empty($state)) {
+                                    $set('phone_helper_text', "Please enter a phone number to verify");
+                                    return;
+                                }
 
-                    return $accessibleLeadSources->pluck('lead_code', 'lead_code')->toArray();
-                })
-                ->searchable()
-                ->required(),
+                                // Show loading state
+                                $set('phone_search_loading', true);
 
-            Select::make('products')
-                ->label('Products')
-                ->multiple()
-                ->options([
-                    'smart_parking' => 'Smart Parking Management (Cashless, LPR, Valet)',
-                    'hr' => 'HR (Attendance, Leave, Claim, Payroll, Hire, Profile)',
-                    'property_management' => 'Property Management (Neighbour, Accounting)',
-                    'security_people_flow' => 'Security & People Flow (Visitor, Access, Patrol, IoT)',
-                    'merchants' => 'i-Merchants (Near Field Commerce, Loyalty Program)',
-                    'smart_city' => 'Smart City',
-                ])
-                ->required(), // Ensure it is stored properly in the database
+                                // Use sleep for visual effect
+                                usleep(800000); // 0.8 second delay
+
+                                // Remove the "+" symbol from the phone number for searching
+                                $searchPhone = ltrim($state, '+');
+
+                                // Check if phone already exists in the Lead table
+                                $existingLeadsWithPhone = \App\Models\Lead::where('phone', $searchPhone)->get();
+
+                                // If exists, set helper text with found lead details
+                                if ($existingLeadsWithPhone->isNotEmpty()) {
+                                    $duplicateInfo = $existingLeadsWithPhone->map(function($lead) {
+                                        $companyName = $lead->companyDetail ? $lead->companyDetail->company_name : 'Unknown Company';
+                                        return "• {$companyName} (Lead ID: " . str_pad($lead->id, 5, '0', STR_PAD_LEFT) . ")";
+                                    })->implode("\n");
+
+                                    // Store as plain string with HTML markup
+                                    $set('phone_helper_text', '<span style="color:red;">⚠️ This phone number is already in use:</span><br>' . nl2br(htmlspecialchars($duplicateInfo)));
+                                } else {
+                                    // Store as plain string with HTML markup
+                                    $set('phone_helper_text', '<span style="color:green;">✓ Phone number is unique</span>');
+                                }
+
+                                // Reset loading state
+                                $set('phone_search_loading', false);
+                            })
+                    )
+                    ->helperText(function (callable $get) {
+                        if ($get('phone_search_loading')) {
+                            return "Verifying phone number...";
+                        }
+
+                        // Get the helper text which is now stored as a string with HTML markup
+                        $helperText = $get('phone_helper_text');
+
+                        // Convert it to HtmlString only when rendering, not when storing
+                        return $helperText ? new HtmlString($helperText) : null;
+                    })
+                    ->dehydrateStateUsing(function ($state) {
+                        // Remove the "+" symbol from the phone number
+                        return ltrim($state, '+');
+                    }),
+                Select::make('company_size')
+                    ->label('Company Size')
+                    ->options([
+                        '1-24' => '1 - 24',
+                        '25-99' => '25 - 99',
+                        '100-500' => '100 - 500',
+                        '501 and Above' => '501 and Above',
+                    ])
+                    ->required(),
+                Select::make('country')
+                    ->label('Country')
+                    ->searchable()
+                    ->required()
+                    ->default('MYS')
+                    ->options(function () {
+                        $filePath = storage_path('app/public/json/CountryCodes.json');
+
+                        if (file_exists($filePath)) {
+                            $countriesContent = file_get_contents($filePath);
+                            $countries = json_decode($countriesContent, true);
+
+                            // Map 3-letter country codes to full country names
+                            return collect($countries)->mapWithKeys(function ($country) {
+                                return [$country['Code'] => ucfirst(strtolower($country['Country']))];
+                            })->toArray();
+                        }
+
+                        return [];
+                    })
+                    ->dehydrateStateUsing(function ($state) {
+                        // Convert the selected code to the full country name
+                        $filePath = storage_path('app/public/json/CountryCodes.json');
+
+                        if (file_exists($filePath)) {
+                            $countriesContent = file_get_contents($filePath);
+                            $countries = json_decode($countriesContent, true);
+
+                            foreach ($countries as $country) {
+                                if ($country['Code'] === $state) {
+                                    return ucfirst(strtolower($country['Country'])); // Store the full country name
+                                }
+                            }
+                        }
+
+                        return $state; // Fallback to the original state if mapping fails
+                    }),
+
+                Select::make('lead_code')
+                    ->label('Lead Source')
+                    // ->default(function () {
+                    //     $roleId = Auth::user()->role_id;
+                    //     return $roleId == 2 ? 'Salesperson Lead' : ($roleId == 1 ? 'Website' : '');
+                    // })
+                    ->options(function () {
+                        $user = Auth::user();
+
+                        // For other users, get only the lead sources they have access to
+                        $leadSources = LeadSource::all();
+
+                        $accessibleLeadSources = $leadSources->filter(function($leadSource) use ($user) {
+                            // If allowed_users is not set or empty, everyone can access
+                            if (empty($leadSource->allowed_users)) {
+                                return false;  // Change to true if you want unassigned lead sources to be available to everyone
+                            }
+
+                            // Check if user ID is in the allowed_users array
+                            $allowedUsers = is_array($leadSource->allowed_users)
+                                ? $leadSource->allowed_users
+                                : json_decode($leadSource->allowed_users, true);
+
+                            return in_array($user->id, $allowedUsers);
+                        });
+
+                        return $accessibleLeadSources->pluck('lead_code', 'lead_code')->toArray();
+                    })
+                    ->searchable()
+                    ->required(),
+            ])
         ];
     }
 }

@@ -1221,7 +1221,8 @@ class ActivityLogRelationManager extends RelationManager
                                             return $record
                                                 && $record->lead
                                                 && in_array(Auth::user()->role_id, [2, 3])
-                                                && $get('status') === 'Hot';
+                                                && $get('status') === 'Hot'
+                                                && $record->lead->stage === 'Follow Up';
                                         })
                                         ->rules([
                                             function (callable $get) {

@@ -588,10 +588,7 @@
         .icon-link[data-section="internal"] .icon { color: #DC2626; /* icon-gradient-11 */ }
         .icon-link[data-section="external"] .icon { color: #C026D3; /* icon-gradient-12 */ }
         .icon-link[data-section="ticketing"] .icon { color: #A855F7; /* icon-gradient-13 */ }
-        .icon-link[data-section="admin-portal-hr-v2"] .icon { color: #8B5CF6; /* icon-gradient-14 */ }
-        .icon-link[data-section="customer-portal-stage1"] .icon { color: #7C3AED; /* icon-gradient-15 */ }
-        .icon-link[data-section="customer-portal-stage2"] .icon { color: #6D28D9; /* icon-gradient-16 */ }
-        .icon-link[data-section="reseller-portal"] .icon { color: #5B21B6; /* icon-gradient-17 */ }
+        .icon-link[data-section="system-portal"] .icon { color: #8B5CF6; /* icon-gradient-14 */ }
         .icon-link[data-section="settings"] .icon { color: #EA580C; /* icon-gradient-18 */ }
     </style>
 
@@ -694,42 +691,12 @@
                     <span class="icon-tooltip">TimeTec HR - External</span>
                 </div>
 
-                @if(auth()->user()->hasRouteAccess('filament.admin.pages.future-enhancement'))
-                    <div class="icon-link" data-section="ticketing">
-                        <div class="icon-wrapper">
-                            <i class="bi bi-ticket-perforated icon"></i>
-                        </div>
-                        <span class="icon-tooltip">Ticketing System</span>
+                <div class="icon-link" data-section="system-portal">
+                    <div class="icon-wrapper">
+                        <i class="bi bi-grid-3x3-gap icon"></i>
                     </div>
-
-                    <div class="icon-link" data-section="admin-portal-hr-v2">
-                        <div class="icon-wrapper">
-                            <i class="bi bi-person-gear icon"></i>
-                        </div>
-                        <span class="icon-tooltip">Admin Portal HR Version 2</span>
-                    </div>
-
-                    <div class="icon-link" data-section="customer-portal-stage1">
-                        <div class="icon-wrapper">
-                            <i class="bi bi-person-circle icon"></i>
-                        </div>
-                        <span class="icon-tooltip">Customer Portal Stage 1</span>
-                    </div>
-
-                    <div class="icon-link" data-section="customer-portal-stage2">
-                        <div class="icon-wrapper">
-                            <i class="bi bi-person-check icon"></i>
-                        </div>
-                        <span class="icon-tooltip">Customer Portal Stage 2</span>
-                    </div>
-
-                    <div class="icon-link" data-section="reseller-portal">
-                        <div class="icon-wrapper">
-                            <i class="bi bi-shop icon"></i>
-                        </div>
-                        <span class="icon-tooltip">Reseller Portal</span>
-                    </div>
-                @endif
+                    <span class="icon-tooltip">System Portal</span>
+                </div>
 
                 <!-- Settings Icon -->
                 @if(auth()->user()->hasAccessToAny([
@@ -1349,6 +1316,9 @@
                             <a href="{{ route('filament.admin.pages.admin-renewal-process-data-usd') }}" class="submenu-item">
                                 <span class="module-font">Process Data - USD</span>
                             </a>
+                            <a href="{{ route('filament.admin.pages.renewal-data-analysis') }}" class="submenu-item">
+                                <span class="module-font">Process Data - Analysis</span>
+                            </a>
                         </div>
                     </div>
 
@@ -1727,114 +1697,109 @@
                 </div>
 
                 <!-- Ticketing System Section -->
-                    <div id="ticketing-section" class="section-content">
-                        <div class="menu-block">
-                            <div class="menu-item nested-dropdown-trigger" data-submenu="ticketing-submenu">
-                                <div class="menu-icon-wrapper">
-                                    <i class="bi bi-ticket-perforated"></i>
-                                </div>
-                                <span class="menu-text">Ticketing System</span>
-                                <i class="bi bi-chevron-down menu-arrow"></i>
+                <div id="ticketing-section" class="section-content">
+                    <div class="menu-block">
+                        <div class="menu-item nested-dropdown-trigger" data-submenu="ticketing-submenu">
+                            <div class="menu-icon-wrapper">
+                                <i class="bi bi-ticket-perforated"></i>
                             </div>
+                            <span class="menu-text">Ticketing System</span>
+                            <i class="bi bi-chevron-down menu-arrow"></i>
+                        </div>
 
-                            <div class="submenu" id="ticketing-submenu">
-                                <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
-                                    <span class="module-font">Raw Data</span>
-                                </a>
-                                <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
-                                    <span class="module-font">Analysis</span>
-                                </a>
+                        <div class="submenu" id="ticketing-submenu">
+                            <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
+                                <span class="module-font">Raw Data</span>
+                            </a>
+                            <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
+                                <span class="module-font">Analysis</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- System Portal Section -->
+                <div id="system-portal-section" class="section-content">
+                    <!-- Admin Portal HR Version 2 -->
+                    <div class="menu-block">
+                        <div class="menu-item nested-dropdown-trigger" data-submenu="admin-portal-hr-v2-submenu">
+                            <div class="menu-icon-wrapper">
+                                <i class="bi bi-person-gear"></i>
                             </div>
+                            <span class="menu-text">Admin Portal HR V2</span>
+                            <i class="bi bi-chevron-down menu-arrow"></i>
+                        </div>
+
+                        <div class="submenu" id="admin-portal-hr-v2-submenu">
+                            <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
+                                <span class="module-font">Raw Data</span>
+                            </a>
+                            <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
+                                <span class="module-font">Analysis</span>
+                            </a>
                         </div>
                     </div>
 
-                    <!-- Admin Portal HR Version 2 Section -->
-                    <div id="admin-portal-hr-v2-section" class="section-content">
-                        <div class="menu-block">
-                            <div class="menu-item nested-dropdown-trigger" data-submenu="admin-portal-hr-v2-submenu">
-                                <div class="menu-icon-wrapper">
-                                    <i class="bi bi-person-gear"></i>
-                                </div>
-                                <span class="menu-text">Admin Portal HR Version 2</span>
-                                <i class="bi bi-chevron-down menu-arrow"></i>
+                    <!-- Customer Portal Stage 1 -->
+                    <div class="menu-block">
+                        <div class="menu-item nested-dropdown-trigger" data-submenu="customer-portal-stage1-submenu">
+                            <div class="menu-icon-wrapper">
+                                <i class="bi bi-person-circle"></i>
                             </div>
+                            <span class="menu-text">Customer Portal Stage 1</span>
+                            <i class="bi bi-chevron-down menu-arrow"></i>
+                        </div>
 
-                            <div class="submenu" id="admin-portal-hr-v2-submenu">
-                                <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
-                                    <span class="module-font">Raw Data</span>
-                                </a>
-                                <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
-                                    <span class="module-font">Analysis</span>
-                                </a>
-                            </div>
+                        <div class="submenu" id="customer-portal-stage1-submenu">
+                            <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
+                                <span class="module-font">Raw Data</span>
+                            </a>
+                            <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
+                                <span class="module-font">Analysis</span>
+                            </a>
                         </div>
                     </div>
 
-                    <!-- Customer Portal Stage 1 Section -->
-                    <div id="customer-portal-stage1-section" class="section-content">
-                        <div class="menu-block">
-                            <div class="menu-item nested-dropdown-trigger" data-submenu="customer-portal-stage1-submenu">
-                                <div class="menu-icon-wrapper">
-                                    <i class="bi bi-person-circle"></i>
-                                </div>
-                                <span class="menu-text">Customer Portal Stage 1</span>
-                                <i class="bi bi-chevron-down menu-arrow"></i>
+                    <!-- Customer Portal Stage 2 -->
+                    <div class="menu-block">
+                        <div class="menu-item nested-dropdown-trigger" data-submenu="customer-portal-stage2-submenu">
+                            <div class="menu-icon-wrapper">
+                                <i class="bi bi-person-check"></i>
                             </div>
+                            <span class="menu-text">Customer Portal Stage 2</span>
+                            <i class="bi bi-chevron-down menu-arrow"></i>
+                        </div>
 
-                            <div class="submenu" id="customer-portal-stage1-submenu">
-                                <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
-                                    <span class="module-font">Raw Data</span>
-                                </a>
-                                <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
-                                    <span class="module-font">Analysis</span>
-                                </a>
-                            </div>
+                        <div class="submenu" id="customer-portal-stage2-submenu">
+                            <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
+                                <span class="module-font">Raw Data</span>
+                            </a>
+                            <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
+                                <span class="module-font">Analysis</span>
+                            </a>
                         </div>
                     </div>
 
-                    <!-- Customer Portal Stage 2 Section -->
-                    <div id="customer-portal-stage2-section" class="section-content">
-                        <div class="menu-block">
-                            <div class="menu-item nested-dropdown-trigger" data-submenu="customer-portal-stage2-submenu">
-                                <div class="menu-icon-wrapper">
-                                    <i class="bi bi-person-check"></i>
-                                </div>
-                                <span class="menu-text">Customer Portal Stage 2</span>
-                                <i class="bi bi-chevron-down menu-arrow"></i>
+                    <!-- Reseller Portal -->
+                    <div class="menu-block">
+                        <div class="menu-item nested-dropdown-trigger" data-submenu="reseller-portal-submenu">
+                            <div class="menu-icon-wrapper">
+                                <i class="bi bi-shop"></i>
                             </div>
+                            <span class="menu-text">Reseller Portal</span>
+                            <i class="bi bi-chevron-down menu-arrow"></i>
+                        </div>
 
-                            <div class="submenu" id="customer-portal-stage2-submenu">
-                                <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
-                                    <span class="module-font">Raw Data</span>
-                                </a>
-                                <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
-                                    <span class="module-font">Analysis</span>
-                                </a>
-                            </div>
+                        <div class="submenu" id="reseller-portal-submenu">
+                            <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
+                                <span class="module-font">Raw Data</span>
+                            </a>
+                            <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
+                                <span class="module-font">Analysis</span>
+                            </a>
                         </div>
                     </div>
-
-                    <!-- Reseller Portal Section -->
-                    <div id="reseller-portal-section" class="section-content">
-                        <div class="menu-block">
-                            <div class="menu-item nested-dropdown-trigger" data-submenu="reseller-portal-submenu">
-                                <div class="menu-icon-wrapper">
-                                    <i class="bi bi-shop"></i>
-                                </div>
-                                <span class="menu-text">Reseller Portal</span>
-                                <i class="bi bi-chevron-down menu-arrow"></i>
-                            </div>
-
-                            <div class="submenu" id="reseller-portal-submenu">
-                                <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
-                                    <span class="module-font">Raw Data</span>
-                                </a>
-                                <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
-                                    <span class="module-font">Analysis</span>
-                                </a>
-                            </div>
-                        </div>
-                    </div>
+                </div>
 
                 <!-- Settings Section -->
                 <div id="settings-section" class="section-content">
