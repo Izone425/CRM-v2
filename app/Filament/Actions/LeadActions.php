@@ -1257,7 +1257,8 @@ class LeadActions
                         ->visible(function (callable $get, ?Lead $record) {
                             return $record
                                 && in_array(Auth::user()->role_id, [2, 3])
-                                && $get('status') === 'Hot';
+                                && $get('status') === 'Hot'
+                                && ($record->stage ?? '') === 'Follow Up';
                         })
                         ->rules([
                             function (callable $get) {
