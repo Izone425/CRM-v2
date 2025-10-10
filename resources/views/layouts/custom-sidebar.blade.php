@@ -14,6 +14,7 @@
             transition: all 0.3s ease;
             background-color: #fff;
             box-shadow: 0px 0px 15px rgba(0, 0, 0, 0.05);
+            overflow: visible; /* Allow tooltips to show outside */
         }
 
         /* Icon sidebar - slim version */
@@ -26,7 +27,7 @@
             flex-direction: column;
             box-shadow: 0px 0px 15px rgba(0, 0, 0, 0.05);
             transition: width 0.3s ease;
-            overflow: hidden;
+            overflow: visible; /* Changed to visible */
             z-index: 1010;
         }
 
@@ -59,18 +60,32 @@
 
         /* Icon sidebar content */
         .icon-content {
-            /* flex: 1; */
+            flex: 1;
             overflow-y: auto;
+            overflow-x: visible; /* Changed to visible */
             padding: 1rem 0.5rem 1rem 0.5rem;
             display: flex;
             flex-direction: column;
-            gap: 0.5rem;
+            gap: clamp(0.5rem, 2vh, 1rem);
+            max-height: calc(100vh - 80px);
+
+            /* Hide scrollbar completely */
             scrollbar-width: none; /* Firefox */
             -ms-overflow-style: none; /* IE and Edge */
         }
-
+        /* Hide webkit scrollbar completely */
         .icon-content::-webkit-scrollbar {
-            display: none; /* Chrome, Safari, Opera */
+            width: 0px;
+            background: transparent;
+            display: none;
+        }
+
+        .icon-content::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .icon-content::-webkit-scrollbar-thumb {
+            background: transparent;
         }
 
         /* Icon section separator */
@@ -86,8 +101,7 @@
             align-items: center;
             justify-content: center;
             width: 100%;
-            padding: 0;
-            height: 44px;
+            height: 48px;
             position: relative;
             border-radius: 8px;
             transition: all 0.2s ease;
@@ -103,8 +117,8 @@
         }
 
         .icon-wrapper {
-            width: 32px;
-            height: 32px;
+            width: 38px;
+            height: 38px;
             border-radius: 8px;
             display: flex;
             align-items: center;
@@ -139,25 +153,53 @@
 
         .icon-tooltip {
             visibility: hidden;
+            position: fixed;
+            left: 70px; /* Position outside the 60px sidebar */
+            top: auto; /* Will be set by JavaScript */
+            transform: translateY(-50%);
+            background-color: #000000;
+            color: #ffffff;
+            text-align: center;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            white-space: nowrap;
+            z-index: 10000; /* High z-index to appear above everything */
+            opacity: 0;
+            transition: opacity 0.1s ease-out, visibility 0.1s ease-out;
+            pointer-events: none;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+        }
+
+        /* Arrow pointing to the icon */
+        .icon-tooltip::before {
+            content: '';
             position: absolute;
             right: 100%;
             top: 50%;
             transform: translateY(-50%);
-            margin-left: 8px;
-            background-color: rgba(55, 65, 81, 0.9);
-            color: white;
-            text-align: center;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 0.7rem;
-            white-space: nowrap;
-            z-index: 10;
-            opacity: 0;
-            transition: opacity 0.2s;
+            border: 6px solid transparent;
+            border-right-color: #000000;
+        }
+
+        /* Enhanced hover effect with positioning */
+        .icon-link {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 48px;
+            position: relative;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+            cursor: pointer;
         }
 
         .icon-link:hover .icon-tooltip {
+            visibility: visible;
             opacity: 1;
+            transition-delay: 0.05s;
         }
 
         /* Expanded sidebar */
@@ -543,9 +585,14 @@
         .icon-link[data-section="support"] .icon { color: #EAB308; /* icon-gradient-8 */ }
         .icon-link[data-section="technician"] .icon { color: #F59E0B; /* icon-gradient-9 */ }
         .icon-link[data-section="marketing"] .icon { color: #F97316; /* icon-gradient-10 */ }
-        .icon-link[data-section="internal"] .icon { color: #DC2626; /* purple color for internal */ }
-        .icon-link[data-section="external"] .icon { color: #C026D3; /* pink color for external */ }
-        .icon-link[data-section="settings"] .icon { color: #EA580C; /* icon-gradient-21 */ }
+        .icon-link[data-section="internal"] .icon { color: #DC2626; /* icon-gradient-11 */ }
+        .icon-link[data-section="external"] .icon { color: #C026D3; /* icon-gradient-12 */ }
+        .icon-link[data-section="ticketing"] .icon { color: #A855F7; /* icon-gradient-13 */ }
+        .icon-link[data-section="admin-portal-hr-v2"] .icon { color: #8B5CF6; /* icon-gradient-14 */ }
+        .icon-link[data-section="customer-portal-stage1"] .icon { color: #7C3AED; /* icon-gradient-15 */ }
+        .icon-link[data-section="customer-portal-stage2"] .icon { color: #6D28D9; /* icon-gradient-16 */ }
+        .icon-link[data-section="reseller-portal"] .icon { color: #5B21B6; /* icon-gradient-17 */ }
+        .icon-link[data-section="settings"] .icon { color: #EA580C; /* icon-gradient-18 */ }
     </style>
 
     <!-- Main Sidebar Container -->
@@ -554,95 +601,135 @@
         <div class="icon-sidebar">
             <!-- Icon Sidebar Header with App Logo -->
             <div class="icon-header">
-                <a href="{{ route('filament.admin.pages.dashboard-form') }}" class="icon-logo" id="expand-sidebar" title="Dashboard">
+                <a href="{{ route('filament.admin.pages.dashboard-form') }}" class="icon-logo" id="expand-sidebar">
                     <i class="bi bi-grid"></i>
+                    <span class="icon-tooltip">Dashboard</span>
                 </a>
             </div>
 
             <div class="icon-content">
                 @if(auth()->user()->role_id == 1 || auth()->user()->role_id == 3)
-                    <div class="icon-link" data-section="salesadmin" title="SalesAdmin">
+                    <div class="icon-link" data-section="salesadmin">
                         <div class="icon-wrapper">
                             <i class="bi bi-people icon"></i>
                         </div>
+                        <span class="icon-tooltip">Sales Admin</span>
                     </div>
                 @endif
 
                 @if(auth()->user()->role_id == 2 || auth()->user()->role_id == 3)
-                    <div class="icon-link" data-section="salesperson" title="Sales Person">
+                    <div class="icon-link" data-section="salesperson">
                         <div class="icon-wrapper">
                             <i class="bi bi-rocket-takeoff icon"></i>
                         </div>
+                        <span class="icon-tooltip">SalesPerson</span>
                     </div>
                 @endif
 
                 @if(auth()->user()->additional_role == 1 || in_array(auth()->user()->role_id, [1,2,3,4,5,6,7,8]))
-                    <div class="icon-link" data-section="handover" title="Handover">
+                    <div class="icon-link" data-section="handover">
                         <div class="icon-wrapper">
                             <i class="bi bi-arrow-left-right icon"></i>
                         </div>
+                        <span class="icon-tooltip">Handover</span>
                     </div>
                 @endif
 
                 @if(auth()->user()->additional_role == 1 || auth()->user()->role_id == 3)
-                    <div class="icon-link" data-section="admin" title="Admin">
+                    <div class="icon-link" data-section="admin">
                         <div class="icon-wrapper">
                             <i class="bi bi-layout-text-window icon"></i>
                         </div>
+                        <span class="icon-tooltip">Admin</span>
                     </div>
                 @endif
 
-                <!-- @if(auth()->user()->hasRouteAccess('filament.admin.pages.future-enhancement') || in_array(auth()->user()->role_id, [6]))
-                    <div class="icon-link" data-section="trainer" title="Trainer">
-                        <div class="icon-wrapper">
-                            <i class="bi bi-mortarboard icon"></i>
-                        </div>
-                    </div>
-                @endif -->
-
                 @if(in_array(auth()->user()->role_id, [3,4,5]) || auth()->user()->id == 43)
-                    <div class="icon-link" data-section="implementer" title="Implementer">
+                    <div class="icon-link" data-section="implementer">
                         <div class="icon-wrapper">
                             <i class="bi bi-person-workspace icon"></i>
                         </div>
+                        <span class="icon-tooltip">Implementer</span>
                     </div>
                 @endif
 
                 @if(auth()->user()->role_id === 8 || auth()->user()->role_id === 3 || auth()->user()->id == 35)
-                    <div class="icon-link" data-section="support" title="Support">
+                    <div class="icon-link" data-section="support">
                         <div class="icon-wrapper">
                             <i class="bi bi-headset icon"></i>
                         </div>
+                        <span class="icon-tooltip">Support</span>
                     </div>
                 @endif
 
                 @if(auth()->user()->role_id == 9 || auth()->user()->role_id == 3)
-                    <div class="icon-link" data-section="technician" title="Technician">
+                    <div class="icon-link" data-section="technician">
                         <div class="icon-wrapper">
                             <i class="bi bi-wrench icon"></i>
                         </div>
+                        <span class="icon-tooltip">Technician</span>
                     </div>
                 @endif
 
                 @if(auth()->user()->hasRouteAccess('filament.admin.pages.marketing-analysis'))
-                    <div class="icon-link" data-section="marketing" title="Marketing">
+                    <div class="icon-link" data-section="marketing">
                         <div class="icon-wrapper">
                             <i class="bi bi-fire icon"></i>
                         </div>
+                        <span class="icon-tooltip">Marketing</span>
                     </div>
                 @endif
 
-                <div class="icon-link" data-section="internal" title="TimeTec HR - Internal">
+                <div class="icon-link" data-section="internal">
                     <div class="icon-wrapper">
                         <i class="bi bi-box-arrow-in-down-right icon"></i>
                     </div>
+                    <span class="icon-tooltip">TimeTec HR - Internal</span>
                 </div>
 
-                <div class="icon-link" data-section="external" title="TimeTec HR - External">
+                <div class="icon-link" data-section="external">
                     <div class="icon-wrapper">
                         <i class="bi bi-box-arrow-up-right icon"></i>
                     </div>
+                    <span class="icon-tooltip">TimeTec HR - External</span>
                 </div>
+
+                @if(auth()->user()->hasRouteAccess('filament.admin.pages.future-enhancement'))
+                    <div class="icon-link" data-section="ticketing">
+                        <div class="icon-wrapper">
+                            <i class="bi bi-ticket-perforated icon"></i>
+                        </div>
+                        <span class="icon-tooltip">Ticketing System</span>
+                    </div>
+
+                    <div class="icon-link" data-section="admin-portal-hr-v2">
+                        <div class="icon-wrapper">
+                            <i class="bi bi-person-gear icon"></i>
+                        </div>
+                        <span class="icon-tooltip">Admin Portal HR Version 2</span>
+                    </div>
+
+                    <div class="icon-link" data-section="customer-portal-stage1">
+                        <div class="icon-wrapper">
+                            <i class="bi bi-person-circle icon"></i>
+                        </div>
+                        <span class="icon-tooltip">Customer Portal Stage 1</span>
+                    </div>
+
+                    <div class="icon-link" data-section="customer-portal-stage2">
+                        <div class="icon-wrapper">
+                            <i class="bi bi-person-check icon"></i>
+                        </div>
+                        <span class="icon-tooltip">Customer Portal Stage 2</span>
+                    </div>
+
+                    <div class="icon-link" data-section="reseller-portal">
+                        <div class="icon-wrapper">
+                            <i class="bi bi-shop icon"></i>
+                        </div>
+                        <span class="icon-tooltip">Reseller Portal</span>
+                    </div>
+                @endif
 
                 <!-- Settings Icon -->
                 @if(auth()->user()->hasAccessToAny([
@@ -653,10 +740,11 @@
                     'filament.admin.resources.resellers.index',
                     'filament.admin.resources.users.index'
                 ]))
-                    <div class="icon-link" data-section="settings" title="Settings">
+                    <div class="icon-link" data-section="settings">
                         <div class="icon-wrapper">
                             <i class="bi bi-gear icon"></i>
                         </div>
+                        <span class="icon-tooltip">Settings</span>
                     </div>
                 @endif
             </div>
@@ -684,7 +772,7 @@
                     <div class="menu-block">
                         <div class="menu-item nested-dropdown-trigger" data-submenu="salesadmin-calendar-submenu">
                             <div class="menu-icon-wrapper">
-                                <i class="bi bi-calendar2-date"></i>
+                                <i class="bi bi-calendar3"></i>
                             </div>
                             <span class="menu-text">Calendar</span>
                             <i class="bi bi-chevron-down menu-arrow"></i>
@@ -707,7 +795,7 @@
                     <div class="menu-block">
                         <div class="menu-item nested-dropdown-trigger" data-submenu="salesadmin-audit-submenu">
                             <div class="menu-icon-wrapper">
-                                <i class="bi bi-list-check"></i>
+                                <i class="bi bi-tags"></i>
                             </div>
                             <span class="menu-text">Audit List</span>
                             <i class="bi bi-chevron-down menu-arrow"></i>
@@ -724,7 +812,7 @@
                     <div class="menu-block">
                         <div class="menu-item nested-dropdown-trigger" data-submenu="salesadmin-prospects-submenu">
                             <div class="menu-icon-wrapper">
-                                <i class="bi bi-whatsapp"></i>
+                                <i class="bi bi-tags"></i>
                             </div>
                             <span class="menu-text">Automation</span>
                             <i class="bi bi-chevron-down menu-arrow"></i>
@@ -746,7 +834,7 @@
                     <div class="menu-block">
                         <div class="menu-item nested-dropdown-trigger" data-submenu="salesadmin-analysis-submenu">
                             <div class="menu-icon-wrapper">
-                                <i class="bi bi-clipboard-data"></i>
+                                <i class="bi bi-tags"></i>
                             </div>
                             <span class="menu-text">Analysis</span>
                             <i class="bi bi-chevron-down menu-arrow"></i>
@@ -774,7 +862,7 @@
                     <div class="menu-block">
                         <div class="menu-item nested-dropdown-trigger" data-submenu="salesadmin-information-submenu">
                             <div class="menu-icon-wrapper">
-                                <i class="bi bi-whatsapp"></i>
+                                <i class="bi bi-tags"></i>
                             </div>
                             <span class="menu-text">Information</span>
                             <i class="bi bi-chevron-down menu-arrow"></i>
@@ -787,13 +875,19 @@
                             <a href="{{ route('filament.admin.pages.sales-admin-closed-deal') }}" class="submenu-item">
                                 <span class="module-font">Sales Admin - Closed Deal</span>
                             </a>
+                            <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
+                                <span class="module-font">Sales Admin - Invoice</span>
+                            </a>
+                            <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
+                                <span class="module-font">Sales Admin - Commission</span>
+                            </a>
                         </div>
                     </div>
 
                     <div class="menu-block">
                         <div class="menu-item nested-dropdown-trigger" data-submenu="leads-submenu">
                             <div class="menu-icon-wrapper">
-                               <i class="bi bi-search"></i>
+                               <i class="bi bi-tags"></i>
                             </div>
                             <span class="menu-text">Leads</span>
                             <i class="bi bi-chevron-down menu-arrow"></i>
@@ -812,33 +906,11 @@
 
                 <!-- SalesPerson Section -->
                 <div id="salesperson-section" class="section-content">
-                    <div class="menu-block">
-                        <div class="menu-item nested-dropdown-trigger" data-submenu="leads-submenu-salesperson">
-                            <div class="menu-icon-wrapper">
-                               <i class="bi bi-person-plus"></i>
-                            </div>
-                            <span class="menu-text">Leads</span>
-                            <i class="bi bi-chevron-down menu-arrow"></i>
-                        </div>
-
-                        <div class="submenu" id="leads-submenu-salesperson">
-                            <a href="{{ route('filament.admin.resources.leads.index') }}" class="submenu-item">
-                                <span class="module-font">All Leads</span>
-                            </a>
-                            <a href="{{ route('filament.admin.pages.search-lead') }}" class="submenu-item">
-                                <span class="module-font">Search Leads</span>
-                            </a>
-                            <a href="{{ route('filament.admin.pages.search-license') }}" class="submenu-item">
-                                <span class="module-font">Search License</span>
-                            </a>
-                        </div>
-                    </div>
-
                     <!-- Calendar Section -->
                     <div class="menu-block">
                         <div class="menu-item nested-dropdown-trigger" data-submenu="calendar-submenu">
                             <div class="menu-icon-wrapper">
-                                <i class="bi bi-calendar-event"></i>
+                                <i class="bi bi-calendar3"></i>
                             </div>
                             <span class="menu-text">Calendar</span>
                             <i class="bi bi-chevron-down menu-arrow"></i>
@@ -859,6 +931,28 @@
                             </a>
                             <a href="{{ route('filament.admin.pages.calendar') }}" class="submenu-item">
                                 <span class="module-font">Department Calendar</span>
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="menu-block">
+                        <div class="menu-item nested-dropdown-trigger" data-submenu="leads-submenu-salesperson">
+                            <div class="menu-icon-wrapper">
+                               <i class="bi bi-tags"></i>
+                            </div>
+                            <span class="menu-text">Leads</span>
+                            <i class="bi bi-chevron-down menu-arrow"></i>
+                        </div>
+
+                        <div class="submenu" id="leads-submenu-salesperson">
+                            <a href="{{ route('filament.admin.resources.leads.index') }}" class="submenu-item">
+                                <span class="module-font">All Leads</span>
+                            </a>
+                            <a href="{{ route('filament.admin.pages.search-lead') }}" class="submenu-item">
+                                <span class="module-font">Search Leads</span>
+                            </a>
+                            <a href="{{ route('filament.admin.pages.search-license') }}" class="submenu-item">
+                                <span class="module-font">Search License</span>
                             </a>
                         </div>
                     </div>
@@ -1100,6 +1194,40 @@
                             </div>
                         </div>
 
+                        <!-- Reseller Handover Section -->
+                        <div class="menu-block">
+                            <div class="menu-item nested-dropdown-trigger" data-submenu="reseller-handover-submenu">
+                                <div class="menu-icon-wrapper">
+                                    <i class="bi bi-tags submenu-icon"></i>
+                                </div>
+                                <span class="menu-text">Reseller Handover</span>
+                                <i class="bi bi-chevron-down menu-arrow"></i>
+                            </div>
+
+                            <div class="submenu" id="reseller-handover-submenu">
+                                <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
+                                    <span class="module-font">Reseller ID</span>
+                                </a>
+                            </div>
+                        </div>
+
+                        <!-- Finance Handover Section -->
+                        <div class="menu-block">
+                            <div class="menu-item nested-dropdown-trigger" data-submenu="finance-handover-submenu">
+                                <div class="menu-icon-wrapper">
+                                    <i class="bi bi-tags submenu-icon"></i>
+                                </div>
+                                <span class="menu-text">Finance Handover</span>
+                                <i class="bi bi-chevron-down menu-arrow"></i>
+                            </div>
+
+                            <div class="submenu" id="finance-handover-submenu">
+                                <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
+                                    <span class="module-font">Finance ID</span>
+                                </a>
+                            </div>
+                        </div>
+
                         <!-- Repair Handover Section -->
                         <div class="menu-block">
                             <div class="menu-item nested-dropdown-trigger" data-submenu="repair-submenu">
@@ -1134,7 +1262,7 @@
                     <div class="menu-block">
                         <div class="menu-item nested-dropdown-trigger" data-submenu="admin-software-submenu">
                             <div class="menu-icon-wrapper">
-                                <i class="bi bi-dot"></i>
+                                <i class="bi bi-tags"></i>
                             </div>
                             <span class="menu-text">Admin - Software</span>
                             <i class="bi bi-chevron-down menu-arrow"></i>
@@ -1151,7 +1279,7 @@
                     <div class="menu-block">
                         <div class="menu-item nested-dropdown-trigger" data-submenu="admin-hardware-submenu">
                             <div class="menu-icon-wrapper">
-                                <i class="bi bi-dot"></i>
+                                <i class="bi bi-tags"></i>
                             </div>
                             <span class="menu-text">Admin - Hardware</span>
                             <i class="bi bi-chevron-down menu-arrow"></i>
@@ -1168,7 +1296,7 @@
                     <div class="menu-block">
                         <div class="menu-item nested-dropdown-trigger" data-submenu="admin-onsite-repair-submenu">
                             <div class="menu-icon-wrapper">
-                                <i class="bi bi-dot"></i>
+                                <i class="bi bi-tags"></i>
                             </div>
                             <span class="menu-text">Admin - OnSite Repair</span>
                             <i class="bi bi-chevron-down menu-arrow"></i>
@@ -1185,7 +1313,7 @@
                     <div class="menu-block">
                         <div class="menu-item nested-dropdown-trigger" data-submenu="admin-inhouse-repair-submenu">
                             <div class="menu-icon-wrapper">
-                                <i class="bi bi-dot"></i>
+                                <i class="bi bi-tags"></i>
                             </div>
                             <span class="menu-text">Admin - InHouse Repair</span>
                             <i class="bi bi-chevron-down menu-arrow"></i>
@@ -1202,7 +1330,7 @@
                     <div class="menu-block">
                         <div class="menu-item nested-dropdown-trigger" data-submenu="admin-renewal-v1-submenu">
                             <div class="menu-icon-wrapper">
-                                <i class="bi bi-dot"></i>
+                                <i class="bi bi-tags"></i>
                             </div>
                             <span class="menu-text">Admin - Renewal v1</span>
                             <i class="bi bi-chevron-down menu-arrow"></i>
@@ -1227,7 +1355,7 @@
                     <div class="menu-block">
                         <div class="menu-item nested-dropdown-trigger" data-submenu="admin-renewal-v2-submenu">
                             <div class="menu-icon-wrapper">
-                                <i class="bi bi-dot"></i>
+                                <i class="bi bi-tags"></i>
                             </div>
                             <span class="menu-text">Admin - Renewal v2</span>
                             <i class="bi bi-chevron-down menu-arrow"></i>
@@ -1244,7 +1372,7 @@
                     <div class="menu-block">
                         <div class="menu-item nested-dropdown-trigger" data-submenu="admin-debtor-submenu">
                             <div class="menu-icon-wrapper">
-                                <i class="bi bi-dot"></i>
+                                <i class="bi bi-tags"></i>
                             </div>
                             <span class="menu-text">Admin - Debtor</span>
                             <i class="bi bi-chevron-down menu-arrow"></i>
@@ -1264,7 +1392,7 @@
                     <div class="menu-block">
                         <div class="menu-item nested-dropdown-trigger" data-submenu="admin-training-submenu">
                             <div class="menu-icon-wrapper">
-                                <i class="bi bi-dot"></i>
+                                <i class="bi bi-tags"></i>
                             </div>
                             <span class="menu-text">Admin - Training</span>
                             <i class="bi bi-chevron-down menu-arrow"></i>
@@ -1281,7 +1409,7 @@
                     <div class="menu-block">
                         <div class="menu-item nested-dropdown-trigger" data-submenu="admin-hrdf-submenu">
                             <div class="menu-icon-wrapper">
-                                <i class="bi bi-dot"></i>
+                                <i class="bi bi-tags"></i>
                             </div>
                             <span class="menu-text">Admin - HRDF</span>
                             <i class="bi bi-chevron-down menu-arrow"></i>
@@ -1298,7 +1426,7 @@
                     <div class="menu-block">
                         <div class="menu-item nested-dropdown-trigger" data-submenu="admin-finance-submenu">
                             <div class="menu-icon-wrapper">
-                                <i class="bi bi-dot"></i>
+                                <i class="bi bi-tags"></i>
                             </div>
                             <span class="menu-text">Admin - Finance</span>
                             <i class="bi bi-chevron-down menu-arrow"></i>
@@ -1315,7 +1443,7 @@
                     <div class="menu-block">
                         <div class="menu-item nested-dropdown-trigger" data-submenu="admin-general-submenu">
                             <div class="menu-icon-wrapper">
-                                <i class="bi bi-dot"></i>
+                                <i class="bi bi-tags"></i>
                             </div>
                             <span class="menu-text">Admin - General</span>
                             <i class="bi bi-chevron-down menu-arrow"></i>
@@ -1336,7 +1464,7 @@
                     <div class="menu-block">
                         <div class="menu-item nested-dropdown-trigger" data-submenu="trainer-dashboard-submenu">
                             <div class="menu-icon-wrapper">
-                                <i class="bi bi-dot"></i>
+                                <i class="bi bi-tags"></i>
                             </div>
                             <span class="menu-text">Training Management</span>
                             <i class="bi bi-chevron-down menu-arrow"></i>
@@ -1376,7 +1504,7 @@
                     <div class="menu-block">
                         <div class="menu-item nested-dropdown-trigger" data-submenu="implementer-information-submenu">
                             <div class="menu-icon-wrapper">
-                                <i class="bi bi-ui-checks-grid"></i>
+                                <i class="bi bi-tags"></i>
                             </div>
                             <span class="menu-text">Implementer - Info</span>
                             <i class="bi bi-chevron-down menu-arrow"></i>
@@ -1397,7 +1525,7 @@
                         <div class="menu-block">
                             <div class="menu-item nested-dropdown-trigger" data-submenu="implementer-audit-list-submenu">
                                 <div class="menu-icon-wrapper">
-                                    <i class="bi bi-ui-checks-grid"></i>
+                                    <i class="bi bi-tags"></i>
                                 </div>
                                 <span class="menu-text">Implementer - Audit List</span>
                                 <i class="bi bi-chevron-down menu-arrow"></i>
@@ -1419,7 +1547,7 @@
                         <div class="menu-block">
                             <div class="menu-item nested-dropdown-trigger" data-submenu="implementer-followup-submenu">
                                 <div class="menu-icon-wrapper">
-                                    <i class="bi bi-ui-checks-grid"></i>
+                                    <i class="bi bi-tags"></i>
                                 </div>
                                 <span class="menu-text">Follow Up Template</span>
                                 <i class="bi bi-chevron-down menu-arrow"></i>
@@ -1440,7 +1568,7 @@
                     <div class="menu-block">
                         <div class="menu-item nested-dropdown-trigger" data-submenu="support-repair-submenu">
                             <div class="menu-icon-wrapper">
-                                <i class="bi bi-dot"></i>
+                                <i class="bi bi-tags"></i>
                             </div>
                             <span class="menu-text">Support Call Log</span>
                             <i class="bi bi-chevron-down menu-arrow"></i>
@@ -1462,7 +1590,7 @@
                     <div class="menu-block">
                         <div class="menu-item nested-dropdown-trigger" data-submenu="support-information-submenu">
                             <div class="menu-icon-wrapper">
-                                <i class="bi bi-dot"></i>
+                                <i class="bi bi-tags"></i>
                             </div>
                             <span class="menu-text">Support Information</span>
                             <i class="bi bi-chevron-down menu-arrow"></i>
@@ -1482,7 +1610,7 @@
                     <div class="menu-block">
                         <div class="menu-item nested-dropdown-trigger" data-submenu="technician-repair-submenu">
                             <div class="menu-icon-wrapper">
-                                <i class="bi bi-dot"></i>
+                                <i class="bi bi-tags"></i>
                             </div>
                             <span class="menu-text">Repair Handover</span>
                             <i class="bi bi-chevron-down menu-arrow"></i>
@@ -1506,7 +1634,7 @@
                     <div class="menu-block">
                         <div class="menu-item nested-dropdown-trigger" data-submenu="technician-door-access-submenu">
                             <div class="menu-icon-wrapper">
-                                <i class="bi bi-dot"></i>
+                                <i class="bi bi-tags"></i>
                             </div>
                             <span class="menu-text">Door Access Handover</span>
                             <i class="bi bi-chevron-down menu-arrow"></i>
@@ -1527,7 +1655,7 @@
                         <div class="menu-block">
                             <div class="menu-item nested-dropdown-trigger" data-submenu="marketing-analysis-submenu">
                                 <div class="menu-icon-wrapper">
-                                    <i class="bi bi-graph-up menu-icon"></i>
+                                    <i class="bi bi-tags"></i>
                                 </div>
                                 <span class="menu-text">Analysis</span>
                                 <i class="bi bi-chevron-down menu-arrow"></i>
@@ -1597,6 +1725,117 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Ticketing System Section -->
+                    <div id="ticketing-section" class="section-content">
+                        <div class="menu-block">
+                            <div class="menu-item nested-dropdown-trigger" data-submenu="ticketing-submenu">
+                                <div class="menu-icon-wrapper">
+                                    <i class="bi bi-ticket-perforated"></i>
+                                </div>
+                                <span class="menu-text">Ticketing System</span>
+                                <i class="bi bi-chevron-down menu-arrow"></i>
+                            </div>
+
+                            <div class="submenu" id="ticketing-submenu">
+                                <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
+                                    <span class="module-font">Raw Data</span>
+                                </a>
+                                <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
+                                    <span class="module-font">Analysis</span>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Admin Portal HR Version 2 Section -->
+                    <div id="admin-portal-hr-v2-section" class="section-content">
+                        <div class="menu-block">
+                            <div class="menu-item nested-dropdown-trigger" data-submenu="admin-portal-hr-v2-submenu">
+                                <div class="menu-icon-wrapper">
+                                    <i class="bi bi-person-gear"></i>
+                                </div>
+                                <span class="menu-text">Admin Portal HR Version 2</span>
+                                <i class="bi bi-chevron-down menu-arrow"></i>
+                            </div>
+
+                            <div class="submenu" id="admin-portal-hr-v2-submenu">
+                                <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
+                                    <span class="module-font">Raw Data</span>
+                                </a>
+                                <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
+                                    <span class="module-font">Analysis</span>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Customer Portal Stage 1 Section -->
+                    <div id="customer-portal-stage1-section" class="section-content">
+                        <div class="menu-block">
+                            <div class="menu-item nested-dropdown-trigger" data-submenu="customer-portal-stage1-submenu">
+                                <div class="menu-icon-wrapper">
+                                    <i class="bi bi-person-circle"></i>
+                                </div>
+                                <span class="menu-text">Customer Portal Stage 1</span>
+                                <i class="bi bi-chevron-down menu-arrow"></i>
+                            </div>
+
+                            <div class="submenu" id="customer-portal-stage1-submenu">
+                                <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
+                                    <span class="module-font">Raw Data</span>
+                                </a>
+                                <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
+                                    <span class="module-font">Analysis</span>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Customer Portal Stage 2 Section -->
+                    <div id="customer-portal-stage2-section" class="section-content">
+                        <div class="menu-block">
+                            <div class="menu-item nested-dropdown-trigger" data-submenu="customer-portal-stage2-submenu">
+                                <div class="menu-icon-wrapper">
+                                    <i class="bi bi-person-check"></i>
+                                </div>
+                                <span class="menu-text">Customer Portal Stage 2</span>
+                                <i class="bi bi-chevron-down menu-arrow"></i>
+                            </div>
+
+                            <div class="submenu" id="customer-portal-stage2-submenu">
+                                <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
+                                    <span class="module-font">Raw Data</span>
+                                </a>
+                                <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
+                                    <span class="module-font">Analysis</span>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Reseller Portal Section -->
+                    <div id="reseller-portal-section" class="section-content">
+                        <div class="menu-block">
+                            <div class="menu-item nested-dropdown-trigger" data-submenu="reseller-portal-submenu">
+                                <div class="menu-icon-wrapper">
+                                    <i class="bi bi-shop"></i>
+                                </div>
+                                <span class="menu-text">Reseller Portal</span>
+                                <i class="bi bi-chevron-down menu-arrow"></i>
+                            </div>
+
+                            <div class="submenu" id="reseller-portal-submenu">
+                                <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
+                                    <span class="module-font">Raw Data</span>
+                                </a>
+                                <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
+                                    <span class="module-font">Analysis</span>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
                 <!-- Settings Section -->
                 <div id="settings-section" class="section-content">
                     @if(auth()->user()->hasAccessToAny([
@@ -1619,7 +1858,7 @@
                         <div class="menu-block">
                             <div class="menu-item nested-dropdown-trigger" data-submenu="settings-system-label-submenu">
                                 <div class="menu-icon-wrapper">
-                                    <i class="bi bi-tag menu-icon"></i>
+                                    <i class="bi bi-tags"></i>
                                 </div>
                                 <span class="menu-text">System Label</span>
                                 <i class="bi bi-chevron-down menu-arrow"></i>
@@ -1700,7 +1939,7 @@
                         <div class="menu-block">
                             <div class="menu-item nested-dropdown-trigger" data-submenu="settings-access-right-submenu">
                                 <div class="menu-icon-wrapper">
-                                    <i class="bi bi-shield-lock menu-icon"></i>
+                                    <i class="bi bi-tags"></i>
                                 </div>
                                 <span class="menu-text">Access Right</span>
                                 <i class="bi bi-chevron-down menu-arrow"></i>
@@ -1735,6 +1974,44 @@
             const iconLinks = document.querySelectorAll('.icon-link');
             const sectionContents = document.querySelectorAll('.section-content');
             const dashboardIcon = document.querySelector('.icon-logo');
+
+            // Enhanced tooltip positioning for all icon links
+            const iconLinksWithTooltips = document.querySelectorAll('.icon-link, .icon-logo');
+
+            iconLinksWithTooltips.forEach(link => {
+                const tooltip = link.querySelector('.icon-tooltip');
+                if (tooltip) {
+                    let isHovering = false;
+
+                    // Function to update tooltip position
+                    function updateTooltipPosition() {
+                        if (isHovering) {
+                            const rect = link.getBoundingClientRect();
+                            tooltip.style.top = (rect.top + (rect.height / 2)) + 'px';
+                            tooltip.style.left = '70px'; // Fixed position outside sidebar
+                        }
+                    }
+
+                    // On mouse enter
+                    link.addEventListener('mouseenter', function() {
+                        isHovering = true;
+                        updateTooltipPosition();
+                    });
+
+                    // On mouse leave
+                    link.addEventListener('mouseleave', function() {
+                        isHovering = false;
+                    });
+
+                    // Update position on scroll (both window and sidebar scroll)
+                    window.addEventListener('scroll', updateTooltipPosition);
+
+                    const iconContent = document.querySelector('.icon-content');
+                    if (iconContent) {
+                        iconContent.addEventListener('scroll', updateTooltipPosition);
+                    }
+                }
+            });
 
             // Function to show a specific section and hide others
             function showSection(sectionId) {

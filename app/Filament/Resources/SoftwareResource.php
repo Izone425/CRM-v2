@@ -34,6 +34,7 @@ use Filament\Forms\Components\FileUpload;
 use Filament\Notifications\Notification;
 use Filament\Support\Colors\Color;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\DB;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
 class SoftwareResource extends Resource
@@ -426,6 +427,22 @@ class SoftwareResource extends Resource
             ->modifyQueryUsing(function ($query) {
                 $query
                     ->where('status', '=', 'Completed')
+                    ->select([
+                        'software_handovers.*',
+                        DB::raw('(
+                            SELECT COUNT(*)
+                            FROM implementer_appointments
+                            WHERE implementer_appointments.software_handover_id = software_handovers.id
+                            AND implementer_appointments.status != "Cancelled"
+                            AND implementer_appointments.type = "REVIEW SESSION"
+                        ) as review_session_count'),
+                        DB::raw('(
+                            SELECT COUNT(*)
+                            FROM implementer_appointments
+                            WHERE implementer_appointments.software_handover_id = software_handovers.id
+                            AND implementer_appointments.status = "Cancelled"
+                        ) as cancel_session_count')
+                    ])
                     ->orderBy('id', 'desc');
 
                 // if (auth()->user()->role_id === 2) {
@@ -526,6 +543,32 @@ class SoftwareResource extends Resource
                 TextColumn::make('implementer')
                     ->label('Implementer')
                     ->toggleable(),
+
+                TextColumn::make('review_session_count')
+                    ->label('Review Sessions')
+                    ->formatStateUsing(function ($state) {
+                        // The $state contains the count from the raw SQL query
+                        if ($state == 0 || is_null($state)) {
+                            return '-';
+                        }
+
+                        // Return the count as a simple number
+                        return (string) $state;
+                    })
+                    ->alignCenter(),
+
+                TextColumn::make('cancel_session_count')
+                    ->label('Cancel Sessions')
+                    ->formatStateUsing(function ($state) {
+                        // The $state contains the count from the raw SQL query
+                        if ($state == 0 || is_null($state)) {
+                            return '-';
+                        }
+
+                        // Return the count as a simple number
+                        return (string) $state;
+                    })
+                    ->alignCenter(),
 
                 TextColumn::make('status_handover')
                     ->label('Status')

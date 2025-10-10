@@ -636,6 +636,43 @@ class ImplementerAppointmentRelationManager extends RelationManager
             ])
             ->actions([
                 ActionGroup::make([
+                    Tables\Actions\Action::make('View Implementer Remark')
+                        ->icon('heroicon-o-chat-bubble-left-ellipsis')
+                        ->color('info')
+                        ->modalHeading('Implementer Remark')
+                        ->modalSubmitAction(false)
+                        ->modalCancelActionLabel('Close')
+                        ->visible(fn (ImplementerAppointment $record) =>
+                            !empty($record->implementer_remark) && $record->status === 'Cancelled'
+                        )
+                        ->modalContent(function (ImplementerAppointment $record) {
+                            if ($record->status === 'Cancelled' && !empty($record->implementer_remark)) {
+                                // Show cancellation remark with context
+                                $cancelledBy = $record->cancelled_by ? User::find($record->cancelled_by)?->name : 'Unknown';
+                                $cancelledAt = $record->cancelled_at ? Carbon::parse($record->cancelled_at)->format('d M Y, g:i A') : 'Unknown';
+
+                                $remarksHtml = '<div class="space-y-4">';
+                                // Cancellation details section
+                                $remarksHtml .= '<div class="p-4 border border-red-200 rounded-lg bg-red-50">';
+                                $remarksHtml .= '<h4 class="mb-2 text-sm font-semibold text-red-800">Cancellation Details</h4>';
+                                $remarksHtml .= '<div class="mb-3 text-sm text-red-700">';
+                                $remarksHtml .= '<div><strong>Cancelled by:</strong> ' . $cancelledBy . '</div>';
+                                $remarksHtml .= '<div><strong>Cancelled at:</strong> ' . $cancelledAt . '</div>';
+                                $remarksHtml .= '</div>';
+                                $remarksHtml .= '<div class="mt-3">';
+                                $remarksHtml .= '<strong class="text-red-800">Reason:</strong>';
+                                $remarksHtml .= '<div class="p-3 mt-1 text-red-800 bg-white border rounded">' . nl2br(e($record->implementer_remark)) . '</div>';
+                                $remarksHtml .= '</div>';
+                                $remarksHtml .= '</div>';
+
+                                $remarksHtml .= '</div>';
+
+                                return new HtmlString($remarksHtml);
+                            }else {
+                                // No implementer remark available
+                                return new HtmlString('<p class="p-4 text-center text-gray-500">No implementer remark available for this appointment.</p>');
+                            }
+                        }),
                     Tables\Actions\Action::make('View Appointment')
                         ->icon('heroicon-o-eye')
                         ->color('success')
@@ -714,7 +751,19 @@ class ImplementerAppointmentRelationManager extends RelationManager
                         )
                         ->label(__('Cancel Appointment'))
                         ->modalHeading('Cancel Implementation Appointment')
+                        ->modalDescription('Please provide a reason for cancelling this appointment.')
+                        ->form([
+                            Textarea::make('implementer_remark')
+                                ->label('CANCELLATION REASON')
+                                ->placeholder('Please explain why you are cancelling this appointment...')
+                                ->required()
+                                ->rows(4)
+                                ->maxLength(1000)
+                                ->helperText('This reason will be recorded and visible to administrators.')
+                                ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()']),
+                        ])
                         ->requiresConfirmation()
+                        ->modalSubmitActionLabel('Cancel Appointment')
                         ->color('danger')
                         ->icon('heroicon-o-x-circle')
                         ->hidden(function() {
@@ -746,9 +795,12 @@ class ImplementerAppointmentRelationManager extends RelationManager
                         ->action(function (array $data, ImplementerAppointment $record) {
                             // Update the Appointment status
                             try {
-                                // Update status to Cancelled
+                                // Update status to Cancelled with implementer remark
                                 $record->status = 'Cancelled';
                                 $record->request_status = 'CANCELLED';
+                                $record->implementer_remark = $data['implementer_remark'] ?? null;
+                                $record->cancelled_by = auth()->id();
+                                $record->cancelled_at = now();
 
                                 // Cancel Teams meeting if exists
                                 if ($record->event_id) {
@@ -831,7 +883,24 @@ class ImplementerAppointmentRelationManager extends RelationManager
 
                                 // Add attendees from the appointment
                                 if ($record->required_attendees) {
-                                    $attendeeEmails = array_map('trim', explode(';', $record->required_attendees));
+                                    // Handle JSON format
+                                    if (is_string($record->required_attendees)) {
+                                        try {
+                                            $attendees = json_decode($record->required_attendees, true);
+                                            if (is_array($attendees)) {
+                                                $attendeeEmails = $attendees;
+                                            } else {
+                                                // Fallback to semicolon-separated string
+                                                $attendeeEmails = array_map('trim', explode(';', $record->required_attendees));
+                                            }
+                                        } catch (\Exception $e) {
+                                            // Fallback to semicolon-separated string
+                                            $attendeeEmails = array_map('trim', explode(';', $record->required_attendees));
+                                        }
+                                    } else {
+                                        $attendeeEmails = is_array($record->required_attendees) ? $record->required_attendees : [];
+                                    }
+
                                     foreach ($attendeeEmails as $email) {
                                         if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
                                             $recipients[] = $email;
@@ -844,7 +913,6 @@ class ImplementerAppointmentRelationManager extends RelationManager
                                 $senderEmail = $authUser->email;
                                 $senderName = $authUser->name;
 
-                                // Prepare email data
                                 $emailData = [
                                     'appointmentType' => $record->type,
                                     'companyName' => $companyName,
@@ -861,6 +929,7 @@ class ImplementerAppointmentRelationManager extends RelationManager
                                         function ($message) use ($recipients, $senderEmail, $senderName, $companyName, $record) {
                                             $message->from($senderEmail, $senderName)
                                                 ->to($recipients)
+                                                ->cc($senderEmail)
                                                 ->subject("CANCELLED: TIMETEC IMPLEMENTER APPOINTMENT | {$record->type} | {$companyName}");
                                         }
                                     );
@@ -870,7 +939,7 @@ class ImplementerAppointmentRelationManager extends RelationManager
                             }
 
                             Notification::make()
-                                ->title('You have cancelled a implementation appointment')
+                                ->title('You have cancelled an implementation appointment')
                                 ->danger()
                                 ->send();
                         }),

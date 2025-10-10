@@ -1,0 +1,8 @@
+{{-- filepath: /var/www/html/timeteccrm/resources/views/filament/pages/headcount-handover-list.blade.php --}}
+<x-filament-panels::page>
+    <div class="space-y-6">
+        <div class="bg-white rounded-lg shadow">
+            {{ $this->table }}
+        </div>
+    </div>
+</x-filament-panels::page>

@@ -320,6 +320,14 @@ class SoftwareHandoverRelationManager extends RelationManager
                         ])
                         ->columns(2)
                         ->required()
+                        ->reactive()
+                        ->afterStateUpdated(function ($state, callable $set) {
+                            // Clear proforma invoice fields when training category changes
+                            $set('product_pi', null);
+                            $set('non_hrdf_inv', null);
+                            $set('hrdf_inv', null);
+                            $set('sw_pi', null);
+                        })
                         ->default(fn (?SoftwareHandover $record = null) => $record?->training_type ?? null),
                 ]),
 
@@ -348,7 +356,7 @@ class SoftwareHandoverRelationManager extends RelationManager
             Section::make('Step 7: Proforma Invoice')
                 ->columnSpan(1) // Ensure it spans one column
                 ->schema([
-                    Grid::make(2)
+                    Grid::make(4)
                         ->schema([
                             Select::make('proforma_invoice_product')
                                 ->required()
@@ -357,53 +365,46 @@ class SoftwareHandoverRelationManager extends RelationManager
                                     $leadId = $livewire->getOwnerRecord()->id;
                                     $currentRecordId = null;
                                     if ($livewire->mountedTableActionRecord) {
-                                        // Check if it's already a model object
                                         if (is_object($livewire->mountedTableActionRecord)) {
                                             $currentRecordId = $livewire->mountedTableActionRecord->id;
                                         } else {
-                                            // If it's a string/ID, use it directly
                                             $currentRecordId = $livewire->mountedTableActionRecord;
                                         }
                                     }
 
-                                    // Get all PI IDs already used in other software handovers for this lead
                                     $usedPiIds = [];
                                     $softwareHandovers = SoftwareHandover::where('lead_id', $leadId)
                                         ->when($currentRecordId, function ($query) use ($currentRecordId) {
-                                            // Exclude current record if we're editing
                                             return $query->where('id', '!=', $currentRecordId);
                                         })
                                         ->get();
 
-                                    // Extract used product PI IDs from all handovers
                                     foreach ($softwareHandovers as $handover) {
                                         $piProduct = $handover->proforma_invoice_product;
                                         if (!empty($piProduct)) {
-                                            // Handle JSON string format
                                             if (is_string($piProduct)) {
                                                 $piIds = json_decode($piProduct, true);
                                                 if (is_array($piIds)) {
                                                     $usedPiIds = array_merge($usedPiIds, $piIds);
                                                 }
-                                            }
-                                            // Handle array format
-                                            elseif (is_array($piProduct)) {
+                                            } elseif (is_array($piProduct)) {
                                                 $usedPiIds = array_merge($usedPiIds, $piProduct);
                                             }
                                         }
                                     }
 
-                                    // Get available product PIs excluding already used ones
                                     return \App\Models\Quotation::where('lead_id', $leadId)
                                         ->where('quotation_type', 'product')
                                         ->where('status', \App\Enums\QuotationStatusEnum::accepted)
-                                        ->whereNotIn('id', array_filter($usedPiIds)) // Filter out null/empty values
+                                        ->whereNotIn('id', array_filter($usedPiIds))
                                         ->pluck('pi_reference_no', 'id')
                                         ->toArray();
                                 })
                                 ->multiple()
                                 ->searchable()
                                 ->preload()
+                                ->visible(fn (callable $get) => $get('training_type') === 'online_webinar_training')
+                                ->required(fn (callable $get) => $get('training_type') === 'online_webinar_training')
                                 ->default(function (?SoftwareHandover $record = null) {
                                     if (!$record || !$record->proforma_invoice_product) {
                                         return [];
@@ -414,8 +415,131 @@ class SoftwareHandoverRelationManager extends RelationManager
                                     return is_array($record->proforma_invoice_product) ? $record->proforma_invoice_product : [];
                                 }),
 
+                            // Software + Hardware PI - visible only for Online HRDF Training
+                            Select::make('software_hardware_pi')
+                                ->required(fn (callable $get) => $get('training_type') === 'online_hrdf_training')
+                                ->label('Software + Hardware')
+                                ->options(function (RelationManager $livewire) {
+                                    $leadId = $livewire->getOwnerRecord()->id;
+                                    $currentRecordId = null;
+                                    if ($livewire->mountedTableActionRecord) {
+                                        if (is_object($livewire->mountedTableActionRecord)) {
+                                            $currentRecordId = $livewire->mountedTableActionRecord->id;
+                                        } else {
+                                            $currentRecordId = $livewire->mountedTableActionRecord;
+                                        }
+                                    }
+
+                                    $usedPiIds = [];
+                                    $softwareHandovers = SoftwareHandover::where('lead_id', $leadId)
+                                        ->when($currentRecordId, function ($query) use ($currentRecordId) {
+                                            return $query->where('id', '!=', $currentRecordId);
+                                        })
+                                        ->get();
+
+                                    foreach ($softwareHandovers as $handover) {
+                                        $fields = ['proforma_invoice_product', 'software_hardware_pi', 'non_hrdf_pi'];
+
+                                        foreach ($fields as $field) {
+                                            $piData = $handover->$field;
+                                            if (!empty($piData)) {
+                                                if (is_string($piData)) {
+                                                    $piIds = json_decode($piData, true);
+                                                    if (is_array($piIds)) {
+                                                        $usedPiIds = array_merge($usedPiIds, $piIds);
+                                                    }
+                                                } elseif (is_array($piData)) {
+                                                    $usedPiIds = array_merge($usedPiIds, $piData);
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    return \App\Models\Quotation::where('lead_id', $leadId)
+                                        ->where('quotation_type', 'product')
+                                        ->where('status', \App\Enums\QuotationStatusEnum::accepted)
+                                        ->whereNotIn('id', array_filter($usedPiIds))
+                                        ->pluck('pi_reference_no', 'id')
+                                        ->toArray();
+                                })
+                                ->multiple()
+                                ->searchable()
+                                ->preload()
+                                ->visible(fn (callable $get) => $get('training_type') === 'online_hrdf_training')
+                                ->default(function (?SoftwareHandover $record = null) {
+                                    if (!$record || !$record->software_hardware_pi) {
+                                        return [];
+                                    }
+                                    if (is_string($record->software_hardware_pi)) {
+                                        return json_decode($record->software_hardware_pi, true) ?? [];
+                                    }
+                                    return is_array($record->software_hardware_pi) ? $record->software_hardware_pi : [];
+                                }),
+
+                            // Non-HRDF PI - visible only for Online HRDF Training
+                            Select::make('non_hrdf_pi')
+                                ->label('Non-HRDF Invoice')
+                                ->options(function (RelationManager $livewire) {
+                                    $leadId = $livewire->getOwnerRecord()->id;
+                                    $currentRecordId = null;
+                                    if ($livewire->mountedTableActionRecord) {
+                                        if (is_object($livewire->mountedTableActionRecord)) {
+                                            $currentRecordId = $livewire->mountedTableActionRecord->id;
+                                        } else {
+                                            $currentRecordId = $livewire->mountedTableActionRecord;
+                                        }
+                                    }
+
+                                    $usedPiIds = [];
+                                    $softwareHandovers = SoftwareHandover::where('lead_id', $leadId)
+                                        ->when($currentRecordId, function ($query) use ($currentRecordId) {
+                                            return $query->where('id', '!=', $currentRecordId);
+                                        })
+                                        ->get();
+
+                                    foreach ($softwareHandovers as $handover) {
+                                        $fields = ['proforma_invoice_product', 'software_hardware_pi', 'non_hrdf_pi'];
+
+                                        foreach ($fields as $field) {
+                                            $piData = $handover->$field;
+                                            if (!empty($piData)) {
+                                                if (is_string($piData)) {
+                                                    $piIds = json_decode($piData, true);
+                                                    if (is_array($piIds)) {
+                                                        $usedPiIds = array_merge($usedPiIds, $piIds);
+                                                    }
+                                                } elseif (is_array($piData)) {
+                                                    $usedPiIds = array_merge($usedPiIds, $piData);
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    return \App\Models\Quotation::where('lead_id', $leadId)
+                                        ->where('quotation_type', 'product')
+                                        ->where('status', \App\Enums\QuotationStatusEnum::accepted)
+                                        ->whereNotIn('id', array_filter($usedPiIds))
+                                        ->pluck('pi_reference_no', 'id')
+                                        ->toArray();
+                                })
+                                ->multiple()
+                                ->searchable()
+                                ->preload()
+                                ->visible(fn (callable $get) => $get('training_type') === 'online_hrdf_training')
+                                ->default(function (?SoftwareHandover $record = null) {
+                                    if (!$record || !$record->non_hrdf_pi) {
+                                        return [];
+                                    }
+                                    if (is_string($record->non_hrdf_pi)) {
+                                        return json_decode($record->non_hrdf_pi, true) ?? [];
+                                    }
+                                    return is_array($record->non_hrdf_pi) ? $record->non_hrdf_pi : [];
+                                }),
+
                             Select::make('proforma_invoice_hrdf')
                                 ->label('HRDF')
+                                ->required(fn (callable $get) => $get('training_type') === 'online_hrdf_training')
+                                ->visible(fn (callable $get) => $get('training_type') === 'online_hrdf_training')
                                 ->options(function (RelationManager $livewire) {
                                     $leadId = $livewire->getOwnerRecord()->id;
                                     $currentRecordId = null;
