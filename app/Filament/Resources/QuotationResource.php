@@ -570,14 +570,37 @@ class QuotationResource extends Resource
                                         }
                                         return false;
                                     }),
-                               TextInput::make('unit_price')
+                                TextInput::make('unit_price')
                                     ->label('Unit Price')
                                     ->numeric()
                                     ->columnSpan([
                                         'md' => 1,
                                     ])
-                                    ->live(debounce:500)
-                                    ->afterStateUpdated(function(?string $state, Forms\Get $get, Forms\Set $set) {
+                                    ->live(debounce: 500)
+                                    ->readOnly(function (Forms\Get $get) {
+                                        $productId = $get('product_id');
+                                        if (!$productId) {
+                                            return false; // Allow editing if no product selected
+                                        }
+
+                                        $product = \App\Models\Product::find($productId);
+
+                                        // Make read-only if product exists and push_to_autocount is false
+                                        return $product && $product->push_to_autocount == '0';
+                                    })
+                                    ->helperText(function (Forms\Get $get) {
+                                        $productId = $get('product_id');
+                                        if (!$productId) {
+                                            return null;
+                                        }
+
+                                        $product = \App\Models\Product::find($productId);
+
+                                        return $product && $product->push_to_autocount == '0'
+                                            ? 'Unit price cannot be modified for this product'
+                                            : null;
+                                    })
+                                    ->afterStateUpdated(function (?string $state, Forms\Get $get, Forms\Set $set) {
                                         // Handle unit price validation directly in afterStateUpdated
                                         $productId = $get('product_id');
                                         if ($productId && $state) {
@@ -589,7 +612,7 @@ class QuotationResource extends Resource
                                                 $set('unit_price', $product->unit_price);
 
                                                 // Show notification to user
-                                                \Filament\Notifications\Notification::make()
+                                                Notification::make()
                                                     ->warning()
                                                     ->title('Price Adjusted')
                                                     ->body("Unit price cannot be lower than the product's base price ({$product->unit_price})")

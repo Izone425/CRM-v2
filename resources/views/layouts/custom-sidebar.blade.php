@@ -1018,7 +1018,7 @@
                         <div class="menu-block">
                             <div class="menu-item nested-dropdown-trigger" data-submenu="software-submenu">
                                 <div class="menu-icon-wrapper">
-                                    <i class="bi bi-laptop"></i>
+                                    <i class="bi bi-tags"></i>
                                 </div>
                                 <span class="menu-text">Software Handover</span>
                                 <i class="bi bi-chevron-down menu-arrow"></i>
@@ -1041,7 +1041,7 @@
                         <div class="menu-block">
                             <div class="menu-item nested-dropdown-trigger" data-submenu="hardware-submenu">
                                 <div class="menu-icon-wrapper">
-                                    <i class="bi bi-box-seam submenu-icon"></i>
+                                    <i class="bi bi-tags submenu-icon"></i>
                                 </div>
                                 <span class="menu-text">Hardware Handover</span>
                                 <i class="bi bi-chevron-down menu-arrow"></i>
@@ -1067,7 +1067,7 @@
                         <div class="menu-block">
                             <div class="menu-item nested-dropdown-trigger" data-submenu="hrdf-submenu">
                                 <div class="menu-icon-wrapper">
-                                    <i class="bi bi-tools submenu-icon"></i>
+                                    <i class="bi bi-tags submenu-icon"></i>
                                 </div>
                                 <span class="menu-text">HRDF Handover</span>
                                 <i class="bi bi-chevron-down menu-arrow"></i>
@@ -1087,7 +1087,7 @@
                         <div class="menu-block">
                             <div class="menu-item nested-dropdown-trigger" data-submenu="headcount-submenu">
                                 <div class="menu-icon-wrapper">
-                                    <i class="bi bi-tools submenu-icon"></i>
+                                    <i class="bi bi-tags submenu-icon"></i>
                                 </div>
                                 <span class="menu-text">Headcount Handover</span>
                                 <i class="bi bi-chevron-down menu-arrow"></i>
@@ -1104,7 +1104,7 @@
                         <div class="menu-block">
                             <div class="menu-item nested-dropdown-trigger" data-submenu="repair-submenu">
                                 <div class="menu-icon-wrapper">
-                                    <i class="bi bi-tools submenu-icon"></i>
+                                    <i class="bi bi-tags submenu-icon"></i>
                                 </div>
                                 <span class="menu-text">Repair Handover</span>
                                 <i class="bi bi-chevron-down menu-arrow"></i>

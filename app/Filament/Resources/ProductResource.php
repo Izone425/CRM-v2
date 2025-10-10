@@ -76,7 +76,7 @@ class ProductResource extends Resource
                     ]),
                 RichEditor::make('description'),
                 TextInput::make('unit_price')
-                        ->label('Cost (RM)'),
+                    ->label('Cost (RM)'),
                 Grid::make(4)
                     ->schema([
                     Toggle::make('taxable')
@@ -94,6 +94,20 @@ class ProductResource extends Resource
                         ->inline(false)
                         ->default(true),
                     ]),
+                Select::make('is_commission')
+                    ->label('Commission Type')
+                    ->options([
+                        'yes' => 'Yes',
+                        'no' => 'No',
+                        'margin' => 'Margin',
+                    ])
+                    ->default('no')
+                    ->required()
+                    ->helperText('Select the commission type for this product.'),
+                Toggle::make('push_to_autocount')
+                    ->label('Push To AutoCount?')
+                    ->inline(false)
+                    ->default(true),
                 TextInput::make('subscription_period')
                     ->label('Subscription Period (Months)')
                     ->numeric()
@@ -167,9 +181,6 @@ class ProductResource extends Resource
             ->columns([
                 TextColumn::make('sort_order')->label('Order')->sortable(),
                 TextColumn::make('code')->width(100),
-                TextColumn::make('package_group')
-                    ->label('Package Group')
-                    ->sortable(),
                 TextColumn::make('package_sort_order')
                     ->label('Pkg Order')
                     ->sortable()
@@ -222,14 +233,124 @@ class ProductResource extends Resource
                             ->modalWidth(MaxWidth::Large)
                             ->icon('heroicon-o-eye')
                     ),
-                TextColumn::make('unit_price')->label('Cost (RM)')->width(100),
-                TextColumn::make('subscription_period')->label('Sub Period (Months)')->width(150),
+                TextColumn::make('unit_price')->label('RM')->width(100),
+                TextColumn::make('subscription_period')->label('Months')->width(150),
+                TextColumn::make('is_commission')
+                    ->label('Commission')
+                    ->badge()
+                    ->formatStateUsing(function ($state) {
+                        return match($state) {
+                            'yes' => 'Yes',
+                            'no' => 'No',
+                            'margin' => 'Margin',
+                            default => 'No'
+                        };
+                    })
+                    ->color(function ($state) {
+                        return match($state) {
+                            'yes' => 'success',  // Green
+                            'no' => 'danger',    // Red
+                            'margin' => 'primary', // Blue (default primary color)
+                            default => 'gray'
+                        };
+                    })
+                    ->width(100),
+                ToggleColumn::make('push_to_autocount')->label('Push To AutoCount?')->width(100)->disabled(fn() => auth()->user()->role_id != 3),
                 ToggleColumn::make('taxable')->label('Taxable?')->width(100)->disabled(fn() => auth()->user()->role_id != 3),
                 ToggleColumn::make('is_active')->label('Is Active?')->width(100)->disabled(fn() => auth()->user()->role_id != 3),
                 ToggleColumn::make('editable')->label('Editable?')->width(100)->disabled(fn() => auth()->user()->role_id != 3),
-                ToggleColumn::make('minimum_price')->label('Minimum Price?')->width(100)->disabled(fn() => auth()->user()->role_id != 3),
+                ToggleColumn::make('minimum_price')->label('Minimum?')->width(100)->disabled(fn() => auth()->user()->role_id != 3),
             ])
             ->filters([
+                Filter::make('solution')
+                    ->form([
+                        Select::make('solution')
+                            ->label('Solution Types')
+                            ->multiple()
+                            ->options([
+                                'software' => 'Software',
+                                'hardware' => 'Hardware',
+                                'hrdf' => 'HRDF',
+                                'other' => 'Other',
+                                'free_device' => 'Free Device',
+                                'installation' => 'Installation',
+                                'door_access_package' => 'Door Access Package',
+                                'door_access_accesories' => 'Door Access Accesories',
+                                'new_sales' => 'New Sales',
+                                'new_sales_addon' => 'New Sales Add On',
+                                'renewal_sales' => 'Renewal Sales',
+                                'renewal_sales_addon' => 'Renewal Sales Add On',
+                            ])
+                            ->searchable()
+                            ->placeholder('Select solution types to filter')
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query->when(
+                            !empty($data['solution']),
+                            fn (Builder $query): Builder => $query->whereIn('solution', $data['solution'])
+                        );
+                    })
+                    ->indicateUsing(function (array $data): ?string {
+                        if (empty($data['solution'])) {
+                            return null;
+                        }
+
+                        $solutionLabels = [
+                            'software' => 'Software',
+                            'hardware' => 'Hardware',
+                            'hrdf' => 'HRDF',
+                            'other' => 'Other',
+                            'free_device' => 'Free Device',
+                            'installation' => 'Installation',
+                            'door_access_package' => 'Door Access Package',
+                            'door_access_accesories' => 'Door Access Accesories',
+                            'new_sales' => 'New Sales',
+                            'new_sales_addon' => 'New Sales Add On',
+                            'renewal_sales' => 'Renewal Sales',
+                            'renewal_sales_addon' => 'Renewal Sales Add On',
+                        ];
+
+                        $selectedLabels = collect($data['solution'])
+                            ->map(fn ($solution) => $solutionLabels[$solution] ?? $solution)
+                            ->implode(', ');
+
+                        return "Solution: {$selectedLabels}";
+                    }),
+                Filter::make('is_commission')
+                    ->form([
+                        Select::make('is_commission')
+                            ->label('Commission Type')
+                            ->multiple()
+                            ->options([
+                                'yes' => 'Yes',
+                                'no' => 'No',
+                                'margin' => 'Margin',
+                            ])
+                            ->placeholder('Select commission types to filter')
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query->when(
+                            !empty($data['is_commission']),
+                            fn (Builder $query): Builder => $query->whereIn('is_commission', $data['is_commission'])
+                        );
+                    })
+                    ->indicateUsing(function (array $data): ?string {
+                        if (empty($data['is_commission'])) {
+                            return null;
+                        }
+
+                        $commissionLabels = [
+                            'yes' => 'Yes',
+                            'no' => 'No',
+                            'margin' => 'Margin',
+                        ];
+
+                        $selectedLabels = collect($data['is_commission'])
+                            ->map(fn ($commission) => $commissionLabels[$commission] ?? $commission)
+                            ->implode(', ');
+
+                        return "Commission: {$selectedLabels}";
+                    }),
                 Filter::make('package_group')
                     ->form([
                         Select::make('package_group')
