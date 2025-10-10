@@ -21,7 +21,9 @@ class Product extends Model
         'editable',
         'minimum_price',
         'is_active',
-        'sort_order'
+        'sort_order',
+        'is_commission',
+        'push_to_autocount',
     ];
 
     public function scopeActive(Builder $query, bool $value=true): Builder
