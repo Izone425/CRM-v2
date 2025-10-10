@@ -98,6 +98,10 @@ class ImplementerCalendar extends Component
     public $implementerCompanies = [];
     public $skipEmailAndTeams = false;
 
+    public $showCancellationModal = false;
+    public $implementer_remark = '';
+    public $appointmentToCancel = null;
+
     public function mount()
     {
         // Load all implementers
@@ -153,9 +157,31 @@ class ImplementerCalendar extends Component
 
     public function cancelAppointment($appointmentId)
     {
-        $appointment = \App\Models\ImplementerAppointment::find($appointmentId);
+        $this->appointmentToCancel = \App\Models\ImplementerAppointment::find($appointmentId);
 
-        if (!$appointment) {
+        if (!$this->appointmentToCancel) {
+            Notification::make()
+                ->title('Appointment not found')
+                ->danger()
+                ->send();
+            return;
+        }
+
+        $this->implementer_remark = '';
+        $this->showCancellationModal = true;
+    }
+
+    public function confirmCancelAppointment()
+    {
+        $this->validate([
+            'implementer_remark' => 'required|string|min:5|max:500',
+        ], [
+            'implementer_remark.required' => 'Please provide a reason for cancellation',
+            'implementer_remark.min' => 'Cancellation reason must be at least 5 characters',
+            'implementer_remark.max' => 'Cancellation reason cannot exceed 500 characters',
+        ]);
+
+        if (!$this->appointmentToCancel) {
             Notification::make()
                 ->title('Appointment not found')
                 ->danger()
@@ -164,15 +190,19 @@ class ImplementerCalendar extends Component
         }
 
         try {
-            // Update status to Cancelled
-            $appointment->status = 'Cancelled';
-            $appointment->request_status = 'CANCELLED';
+            // Update status to Cancelled and add implementer remark
+            $this->appointmentToCancel->status = 'Cancelled';
+            $this->appointmentToCancel->request_status = 'CANCELLED';
+            $this->appointmentToCancel->implementer_remark = $this->implementer_remark;
+            $this->appointmentToCancel->cancelled_by = auth()->user()->id;
+            $this->appointmentToCancel->cancelled_at = now();
+
             // Cancel Teams meeting if exists
-            if ($appointment->event_id) {
-                $eventId = $appointment->event_id;
+            if ($this->appointmentToCancel->event_id) {
+                $eventId = $this->appointmentToCancel->event_id;
 
                 // Get implementer's email instead of using organizer_email
-                $implementer = User::where('name', $appointment->implementer)->first();
+                $implementer = User::where('name', $this->appointmentToCancel->implementer)->first();
 
                 if ($implementer && $implementer->email) {
                     $implementerEmail = $implementer->email;
@@ -207,7 +237,7 @@ class ImplementerCalendar extends Component
                 } else {
                     Log::error('Failed to cancel Teams meeting: Implementer email not found', [
                         'event_id' => $eventId,
-                        'implementer_name' => $appointment->implementer
+                        'implementer_name' => $this->appointmentToCancel->implementer
                     ]);
 
                     Notification::make()
@@ -218,18 +248,21 @@ class ImplementerCalendar extends Component
                 }
             }
 
-            $appointment->save();
+            $this->appointmentToCancel->save();
 
             // Send email notification about cancellation
-            $this->sendCancellationEmail($appointment);
+            $this->sendCancellationEmail($this->appointmentToCancel);
 
             Notification::make()
                 ->title('Appointment cancelled successfully')
                 ->success()
+                ->body('Cancellation reason has been recorded')
                 ->send();
 
-            // Close modal and refresh calendar
+            // Close modals and refresh calendar
+            $this->closeCancellationModal();
             $this->closeAppointmentDetails();
+
         } catch (\Exception $e) {
             Notification::make()
                 ->title('Error cancelling appointment')
@@ -237,6 +270,13 @@ class ImplementerCalendar extends Component
                 ->danger()
                 ->send();
         }
+    }
+
+    public function closeCancellationModal()
+    {
+        $this->showCancellationModal = false;
+        $this->implementer_remark = '';
+        $this->appointmentToCancel = null;
     }
 
     private function sendCancellationEmail($appointment)

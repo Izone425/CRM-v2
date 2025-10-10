@@ -34,6 +34,9 @@ class ImplementerAppointment extends Model
         'meeting_link',
         'causer_id',
         'software_handover_id',
+        'cancelled_by',
+        'cancelled_at',
+        'implementer_remark',
     ];
 
     protected $casts = [

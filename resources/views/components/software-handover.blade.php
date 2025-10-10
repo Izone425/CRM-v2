@@ -10,9 +10,13 @@
     // Format the company name with color highlight
     $companyName = $record->company_name ?? 'Software Handover';
 
-    // Get PI details for Product PI only
+    // Get PI details based on training type
     $productPIs = [];
+    $softwareHardwarePIs = [];
+    $nonHrdfPIs = [];
+    $hrdfPIs = [];
 
+    // Handle Product PI for Online Webinar Training
     if ($record->proforma_invoice_product) {
         $productPiIds = is_string($record->proforma_invoice_product)
             ? json_decode($record->proforma_invoice_product, true)
@@ -20,6 +24,39 @@
 
         if (is_array($productPiIds)) {
             $productPIs = App\Models\Quotation::whereIn('id', $productPiIds)->get();
+        }
+    }
+
+    // Handle Software + Hardware PI for Online HRDF Training
+    if ($record->software_hardware_pi) {
+        $swHardwarePiIds = is_string($record->software_hardware_pi)
+            ? json_decode($record->software_hardware_pi, true)
+            : $record->software_hardware_pi;
+
+        if (is_array($swHardwarePiIds)) {
+            $softwareHardwarePIs = App\Models\Quotation::whereIn('id', $swHardwarePiIds)->get();
+        }
+    }
+
+    // Handle Non-HRDF PI for Online HRDF Training
+    if ($record->non_hrdf_pi) {
+        $nonHrdfPiIds = is_string($record->non_hrdf_pi)
+            ? json_decode($record->non_hrdf_pi, true)
+            : $record->non_hrdf_pi;
+
+        if (is_array($nonHrdfPiIds)) {
+            $nonHrdfPIs = App\Models\Quotation::whereIn('id', $nonHrdfPiIds)->get();
+        }
+    }
+
+    // Handle HRDF PI for both training types
+    if ($record->proforma_invoice_hrdf) {
+        $hrdfPiIds = is_string($record->proforma_invoice_hrdf)
+            ? json_decode($record->proforma_invoice_hrdf, true)
+            : $record->proforma_invoice_hrdf;
+
+        if (is_array($hrdfPiIds)) {
+            $hrdfPIs = App\Models\Quotation::whereIn('id', $hrdfPiIds)->get();
         }
     }
 @endphp
@@ -205,23 +242,84 @@
     <hr class="sw-separator">
 
     <!-- Product PI Section -->
-    <div class="sw-info-item">
-        <span class="sw-label">Product PI:</span>
-        @if(count($productPIs) > 0)
-            <div class="sw-pi-list">
-                @foreach($productPIs as $index => $pi)
-                    <span class="sw-pi-item">
-                        @if($index > 0), @endif
-                        <a href="{{ url('proforma-invoice-v2/' . $pi->id) }}" target="_blank" class="sw-link">
-                            {{ $pi->pi_reference_no }}
-                        </a>
-                    </span>
-                @endforeach
-            </div>
-        @else
-            <span class="sw-not-available">No Product PI selected</span>
-        @endif
-    </div>
+    @if($record->training_type === 'online_webinar_training')
+        <!-- Online Webinar Training - Show Product PI -->
+        <div class="sw-info-item">
+            <span class="sw-label">Product PI:</span>
+            @if(count($productPIs) > 0)
+                <div class="sw-pi-list">
+                    @foreach($productPIs as $index => $pi)
+                        <span class="sw-pi-item">
+                            @if($index > 0), @endif
+                            <a href="{{ url('proforma-invoice-v2/' . $pi->id) }}" target="_blank" class="sw-link">
+                                {{ $pi->pi_reference_no }}
+                            </a>
+                        </span>
+                    @endforeach
+                </div>
+            @else
+                <span class="sw-not-available">No Product PI selected</span>
+            @endif
+        </div>
+    @elseif($record->training_type === 'online_hrdf_training')
+        <!-- Online HRDF Training - Show Software+Hardware and HRDF PI only -->
+        <div class="sw-info-item">
+            <span class="sw-label">Software + Hardware PI:</span>
+            @if(count($softwareHardwarePIs) > 0)
+                <div class="sw-pi-list">
+                    @foreach($softwareHardwarePIs as $index => $pi)
+                        <span class="sw-pi-item">
+                            @if($index > 0), @endif
+                            <a href="{{ url('proforma-invoice-v2/' . $pi->id) }}" target="_blank" class="sw-link">
+                                {{ $pi->pi_reference_no }}
+                            </a>
+                        </span>
+                    @endforeach
+                </div>
+            @else
+                <span class="sw-not-available">No Software + Hardware PI selected</span>
+            @endif
+        </div>
+
+        <!-- HRDF PI for Online HRDF Training -->
+        <div class="sw-info-item">
+            <span class="sw-label">HRDF PI:</span>
+            @if(count($hrdfPIs) > 0)
+                <div class="sw-pi-list">
+                    @foreach($hrdfPIs as $index => $pi)
+                        <span class="sw-pi-item">
+                            @if($index > 0), @endif
+                            <a href="{{ url('proforma-invoice/' . $pi->id) }}" target="_blank" class="sw-link">
+                                {{ $pi->pi_reference_no }}
+                            </a>
+                        </span>
+                    @endforeach
+                </div>
+            @else
+                <span class="sw-not-available">No HRDF PI selected</span>
+            @endif
+        </div>
+
+    @else
+        <!-- Default behavior for other training types -->
+        <div class="sw-info-item">
+            <span class="sw-label">Product PI:</span>
+            @if(count($productPIs) > 0)
+                <div class="sw-pi-list">
+                    @foreach($productPIs as $index => $pi)
+                        <span class="sw-pi-item">
+                            @if($index > 0), @endif
+                            <a href="{{ url('proforma-invoice-v2/' . $pi->id) }}" target="_blank" class="sw-link">
+                                {{ $pi->pi_reference_no }}
+                            </a>
+                        </span>
+                    @endforeach
+                </div>
+            @else
+                <span class="sw-not-available">No Product PI selected</span>
+            @endif
+        </div>
+    @endif
 
     <div class="sw-info-item">
         <span class="sw-label">Invoice Attachment:</span>

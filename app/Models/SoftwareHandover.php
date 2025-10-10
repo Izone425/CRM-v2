@@ -84,6 +84,9 @@ class SoftwareHandover extends Model
         'manual_follow_up_count',
         'follow_up_date',
         'follow_up_counter',
+
+        'non_hrdf_pi',
+        'software_hardware_pi',
     ];
 
     protected $casts = [
@@ -115,6 +118,9 @@ class SoftwareHandover extends Model
         'new_attachment_file' => 'array',
         'implementation_pics' => 'array',
         'remarks' => 'array',
+
+        'non_hrdf_pi' => 'array',
+        'software_hardware_pi' => 'array',
     ];
 
     /**

@@ -544,76 +544,220 @@
                 </tr>
             </thead>
             <tbody>
-                <tr>
-                    <td>Proforma Invoice (Product)</td>
-                    <td>
-                        @if(isset($softwareHandover->proforma_invoice_product) && !empty($softwareHandover->proforma_invoice_product))
-                            @php
-                                $productInvoiceFiles = is_string($softwareHandover->proforma_invoice_product)
-                                    ? json_decode($softwareHandover->proforma_invoice_product, true)
-                                    : $softwareHandover->proforma_invoice_product;
-
-                                if (!is_array($productInvoiceFiles)) {
-                                    $productInvoiceFiles = [];
-                                }
-                            @endphp
-
-                            @foreach($productInvoiceFiles as $index => $file)
+                @if($softwareHandover->training_type === 'online_webinar_training')
+                    <!-- Online Webinar Training - Show Product and HRDF -->
+                    <tr>
+                        <td>Proforma Invoice (Product)</td>
+                        <td>
+                            @if(isset($softwareHandover->proforma_invoice_product) && !empty($softwareHandover->proforma_invoice_product))
                                 @php
-                                    $fileName = basename($file);
-                                    $publicUrl = url('proforma-invoice-v2/' . $file);
-                                @endphp
-                                <div style="margin-bottom: 4px;">
-                                    <a href="{{ $publicUrl }}" target="_blank" style="color: #0066cc; text-decoration: underline;">
-                                        Product Invoice {{ $index + 1 }}
-                                    </a>
-                                </div>
-                            @endforeach
+                                    $productInvoiceFiles = is_string($softwareHandover->proforma_invoice_product)
+                                        ? json_decode($softwareHandover->proforma_invoice_product, true)
+                                        : $softwareHandover->proforma_invoice_product;
 
-                            @if(empty($productInvoiceFiles))
+                                    if (!is_array($productInvoiceFiles)) {
+                                        $productInvoiceFiles = [];
+                                    }
+                                @endphp
+
+                                @foreach($productInvoiceFiles as $index => $file)
+                                    @php
+                                        $fileName = basename($file);
+                                        $publicUrl = url('proforma-invoice-v2/' . $file);
+                                    @endphp
+                                    <div style="margin-bottom: 4px;">
+                                        <a href="{{ $publicUrl }}" target="_blank" style="color: #0066cc; text-decoration: underline;">
+                                            Product Invoice {{ $index + 1 }}
+                                        </a>
+                                    </div>
+                                @endforeach
+
+                                @if(empty($productInvoiceFiles))
+                                    <span style="font-style: italic; color: #777;">No files</span>
+                                @endif
+                            @else
                                 <span style="font-style: italic; color: #777;">No files</span>
                             @endif
-                        @else
-                            <span style="font-style: italic; color: #777;">No files</span>
-                        @endif
-                    </td>
-                </tr>
-
-                <!-- Proforma Invoice Files (HRDF) -->
-                <tr>
-                    <td>Proforma Invoice (HRDF)</td>
-                    <td>
-                        @if(isset($softwareHandover->proforma_invoice_hrdf) && !empty($softwareHandover->proforma_invoice_hrdf))
-                            @php
-                                $hrdfInvoiceFiles = is_string($softwareHandover->proforma_invoice_hrdf)
-                                    ? json_decode($softwareHandover->proforma_invoice_hrdf, true)
-                                    : $softwareHandover->proforma_invoice_hrdf;
-
-                                if (!is_array($hrdfInvoiceFiles)) {
-                                    $hrdfInvoiceFiles = [];
-                                }
-                            @endphp
-
-                            @foreach($hrdfInvoiceFiles as $index => $file)
+                        </td>
+                    </tr>
+                @elseif($softwareHandover->training_type === 'online_hrdf_training')
+                    <!-- Online HRDF Training - Show Software+Hardware, Non-HRDF, and HRDF PI -->
+                    <tr>
+                        <td>Software + Hardware (From Product PI)</td>
+                        <td>
+                            @if(isset($softwareHandover->software_hardware_pi) && !empty($softwareHandover->software_hardware_pi))
                                 @php
-                                    $fileName = basename($file);
-                                    $publicUrl = url('proforma-invoice/' . $file);
-                                @endphp
-                                <div style="margin-bottom: 4px;">
-                                    <a href="{{ $publicUrl }}" target="_blank" style="color: #0066cc; text-decoration: underline;">
-                                        HRDF Invoice {{ $index + 1 }}
-                                    </a>
-                                </div>
-                            @endforeach
+                                    $swHardwareFiles = is_string($softwareHandover->software_hardware_pi)
+                                        ? json_decode($softwareHandover->software_hardware_pi, true)
+                                        : $softwareHandover->software_hardware_pi;
 
-                            @if(empty($hrdfInvoiceFiles))
+                                    if (!is_array($swHardwareFiles)) {
+                                        $swHardwareFiles = [];
+                                    }
+                                @endphp
+
+                                @foreach($swHardwareFiles as $index => $file)
+                                    @php
+                                        $fileName = basename($file);
+                                        $publicUrl = url('proforma-invoice-v2/' . $file);
+                                    @endphp
+                                    <div style="margin-bottom: 4px;">
+                                        <a href="{{ $publicUrl }}" target="_blank" style="color: #0066cc; text-decoration: underline;">
+                                            SW+HW Proforma Invoice  {{ $index + 1 }}
+                                        </a>
+                                    </div>
+                                @endforeach
+
+                                @if(empty($swHardwareFiles))
+                                    <span style="font-style: italic; color: #777;">No files</span>
+                                @endif
+                            @else
                                 <span style="font-style: italic; color: #777;">No files</span>
                             @endif
-                        @else
-                            <span style="font-style: italic; color: #777;">No files</span>
-                        @endif
-                    </td>
-                </tr>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td>Non-HRDF Invoice (From Product PI)</td>
+                        <td>
+                            @if(isset($softwareHandover->non_hrdf_pi) && !empty($softwareHandover->non_hrdf_pi))
+                                @php
+                                    $nonHrdfFiles = is_string($softwareHandover->non_hrdf_pi)
+                                        ? json_decode($softwareHandover->non_hrdf_pi, true)
+                                        : $softwareHandover->non_hrdf_pi;
+
+                                    if (!is_array($nonHrdfFiles)) {
+                                        $nonHrdfFiles = [];
+                                    }
+                                @endphp
+
+                                @foreach($nonHrdfFiles as $index => $file)
+                                    @php
+                                        $fileName = basename($file);
+                                        $publicUrl = url('proforma-invoice-v2/' . $file);
+                                    @endphp
+                                    <div style="margin-bottom: 4px;">
+                                        <a href="{{ $publicUrl }}" target="_blank" style="color: #0066cc; text-decoration: underline;">
+                                            Non-HRDF Invoice {{ $index + 1 }}
+                                        </a>
+                                    </div>
+                                @endforeach
+
+                                @if(empty($nonHrdfFiles))
+                                    <span style="font-style: italic; color: #777;">No files</span>
+                                @endif
+                            @else
+                                <span style="font-style: italic; color: #777;">No files</span>
+                            @endif
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td>HRDF Invoice (From HRDF PI)</td>
+                        <td>
+                            @if(isset($softwareHandover->proforma_invoice_hrdf) && !empty($softwareHandover->proforma_invoice_hrdf))
+                                @php
+                                    $hrdfInvoiceFiles = is_string($softwareHandover->proforma_invoice_hrdf)
+                                        ? json_decode($softwareHandover->proforma_invoice_hrdf, true)
+                                        : $softwareHandover->proforma_invoice_hrdf;
+
+                                    if (!is_array($hrdfInvoiceFiles)) {
+                                        $hrdfInvoiceFiles = [];
+                                    }
+                                @endphp
+
+                                @foreach($hrdfInvoiceFiles as $index => $file)
+                                    @php
+                                        $fileName = basename($file);
+                                        $publicUrl = url('proforma-invoice/' . $file);
+                                    @endphp
+                                    <div style="margin-bottom: 4px;">
+                                        <a href="{{ $publicUrl }}" target="_blank" style="color: #0066cc; text-decoration: underline;">
+                                            HRDF Invoice {{ $index + 1 }}
+                                        </a>
+                                    </div>
+                                @endforeach
+
+                                @if(empty($hrdfInvoiceFiles))
+                                    <span style="font-style: italic; color: #777;">No files</span>
+                                @endif
+                            @else
+                                <span style="font-style: italic; color: #777;">No files</span>
+                            @endif
+                        </td>
+                    </tr>
+                @else
+                    <!-- Default behavior for other training types -->
+                    <tr>
+                        <td>Proforma Invoice (Product)</td>
+                        <td>
+                            @if(isset($softwareHandover->proforma_invoice_product) && !empty($softwareHandover->proforma_invoice_product))
+                                @php
+                                    $productInvoiceFiles = is_string($softwareHandover->proforma_invoice_product)
+                                        ? json_decode($softwareHandover->proforma_invoice_product, true)
+                                        : $softwareHandover->proforma_invoice_product;
+
+                                    if (!is_array($productInvoiceFiles)) {
+                                        $productInvoiceFiles = [];
+                                    }
+                                @endphp
+
+                                @foreach($productInvoiceFiles as $index => $file)
+                                    @php
+                                        $fileName = basename($file);
+                                        $publicUrl = url('proforma-invoice-v2/' . $file);
+                                    @endphp
+                                    <div style="margin-bottom: 4px;">
+                                        <a href="{{ $publicUrl }}" target="_blank" style="color: #0066cc; text-decoration: underline;">
+                                            Product Invoice {{ $index + 1 }}
+                                        </a>
+                                    </div>
+                                @endforeach
+
+                                @if(empty($productInvoiceFiles))
+                                    <span style="font-style: italic; color: #777;">No files</span>
+                                @endif
+                            @else
+                                <span style="font-style: italic; color: #777;">No files</span>
+                            @endif
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td>Proforma Invoice (HRDF)</td>
+                        <td>
+                            @if(isset($softwareHandover->proforma_invoice_hrdf) && !empty($softwareHandover->proforma_invoice_hrdf))
+                                @php
+                                    $hrdfInvoiceFiles = is_string($softwareHandover->proforma_invoice_hrdf)
+                                        ? json_decode($softwareHandover->proforma_invoice_hrdf, true)
+                                        : $softwareHandover->proforma_invoice_hrdf;
+
+                                    if (!is_array($hrdfInvoiceFiles)) {
+                                        $hrdfInvoiceFiles = [];
+                                    }
+                                @endphp
+
+                                @foreach($hrdfInvoiceFiles as $index => $file)
+                                    @php
+                                        $fileName = basename($file);
+                                        $publicUrl = url('proforma-invoice/' . $file);
+                                    @endphp
+                                    <div style="margin-bottom: 4px;">
+                                        <a href="{{ $publicUrl }}" target="_blank" style="color: #0066cc; text-decoration: underline;">
+                                            HRDF Invoice {{ $index + 1 }}
+                                        </a>
+                                    </div>
+                                @endforeach
+
+                                @if(empty($hrdfInvoiceFiles))
+                                    <span style="font-style: italic; color: #777;">No files</span>
+                                @endif
+                            @else
+                                <span style="font-style: italic; color: #777;">No files</span>
+                            @endif
+                        </td>
+                    </tr>
+                @endif
             </tbody>
         </table>
     </div>

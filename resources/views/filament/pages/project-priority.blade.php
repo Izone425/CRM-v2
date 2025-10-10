@@ -467,7 +467,7 @@
                                             $company = is_array($companyData) ? $companyData['name'] : $companyData;
                                             $encryptedId = is_array($companyData) ? $companyData['encrypted_id'] : null;
                                             $url = $encryptedId ? url('admin/leads/' . $encryptedId) : '#';
-                                            $shortened = strtoupper(\Illuminate\Support\Str::limit($company, 25, '...'));
+                                            $shortened = strtoupper(\Illuminate\Support\Str::limit($company, 40, '...'));
                                         @endphp
 
                                         <div class="company-item">

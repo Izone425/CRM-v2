@@ -2055,7 +2055,7 @@
 <!-- Appointment Details Modal -->
 @if($showAppointmentDetailsModal)
     <div class="modal-overlay" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-        <div class="modal-container" x-data="{ showConfirmation: false }">
+        <div class="modal-container">
             <div class="modal-body">
                 <h3 class="modal-title">
                     Implementation Session Details
@@ -2116,50 +2116,98 @@
                                 <p class="form-display-text">{{ $currentAppointment->remarks }}</p>
                             </div>
                         @endif
-                    </div>
 
-                    <!-- Cancellation Confirmation - show when showConfirmation is true -->
-                    <div x-show="showConfirmation"
-                        class="fixed inset-0 z-50 flex items-center justify-center"
-                        style="background-color: rgba(0, 0, 0, 0.5);">
-                        <div class="w-full max-w-md p-6 mx-auto bg-white rounded-lg shadow-xl"
-                            @click.away="showConfirmation = false">
-                            <div class="flex items-center justify-between mb-4">
-                                <h3 class="text-lg font-bold text-red-700">Confirm Cancellation</h3>
-                                <button @click="showConfirmation = false" class="text-gray-500 hover:text-gray-700">
-                                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
-                                    </svg>
-                                </button>
-                            </div>
-
-                            <div class="p-4 mb-4 border border-red-300 rounded-md bg-red-50">
-                                <div class="flex">
-                                    <div class="flex-shrink-0">
-                                        <svg class="w-5 h-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
-                                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zm-1 9a1 1 0 01-1-1V8a1 1 0 112 0v6a1 1 0 01-1 1z" clip-rule="evenodd"></path>
-                                        </svg>
-                                    </div>
-                                    <div class="ml-3">
-                                        <p class="text-sm text-red-700">
-                                            Are you sure you want to cancel this appointment?
+                        @if($currentAppointment->status === 'Cancelled' && $currentAppointment->implementer_remark)
+                            <div class="form-group">
+                                <label class="form-label">Cancellation Reason</label>
+                                <div class="p-3 border border-red-200 rounded-md bg-red-50">
+                                    <p class="text-red-700">{{ $currentAppointment->implementer_remark }}</p>
+                                    @if($currentAppointment->cancelled_at)
+                                        <p class="mt-1 text-xs text-red-600">
+                                            Cancelled on {{ \Carbon\Carbon::parse($currentAppointment->cancelled_at)->format('d M Y, g:i A') }}
                                         </p>
-                                        <p class="mt-2 text-sm text-red-600">
-                                            This action cannot be undone and will send cancellation notifications to all attendees.
-                                        </p>
-                                    </div>
+                                    @endif
                                 </div>
                             </div>
+                        @endif
+                    </div>
+                </div>
+            </div>
 
-                            <div class="flex justify-end gap-3 mt-5">
-                                <button @click="showConfirmation = false" type="button"
-                                    class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                                    Keep Appointment
-                                </button>
-                                <button wire:click="cancelAppointment({{ $currentAppointment->id }})" type="button"
-                                    class="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
-                                    Yes, Cancel Appointment
-                                </button>
+            <div class="modal-footer">
+                @if($currentAppointment && $currentAppointment->status !== 'Cancelled')
+                <button wire:click="cancelAppointment({{ $currentAppointment->id }})" type="button" class="btn"
+                    style="background-color: #ef4444; color: white;">
+                    Cancel Session
+                </button>
+                @endif
+                <button wire:click="closeAppointmentDetails" type="button" class="btn btn-secondary">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+@endif
+
+@if($showCancellationModal)
+    <div class="modal-overlay" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="modal-container">
+            <div class="modal-body">
+                <h3 class="text-red-700 modal-title">
+                    Cancel Appointment
+                </h3>
+
+                @if($appointmentToCancel)
+                    <div class="p-4 mb-4 border border-red-300 rounded-md bg-red-50">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <svg class="w-5 h-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zm-1 9a1 1 0 01-1-1V8a1 1 0 112 0v6a1 1 0 01-1 1z" clip-rule="evenodd"></path>
+                                </svg>
+                            </div>
+                            <div class="ml-3">
+                                <h4 class="text-sm font-medium text-red-800">Appointment Details</h4>
+                                <div class="mt-2 text-sm text-red-700">
+                                    <p><strong>Company:</strong> {{ $appointmentToCancel->company_name ?? $appointmentToCancel->title ?? 'N/A' }}</p>
+                                    <p><strong>Type:</strong> {{ $appointmentToCancel->type }}</p>
+                                    <p><strong>Date:</strong> {{ \Carbon\Carbon::parse($appointmentToCancel->date)->format('j F Y') }}</p>
+                                    <p><strong>Time:</strong> {{ \Carbon\Carbon::parse($appointmentToCancel->start_time)->format('g:i A') }} - {{ \Carbon\Carbon::parse($appointmentToCancel->end_time)->format('g:i A') }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                @endif
+
+                <div class="modal-form">
+                    <div class="form-group">
+                        <label for="implementer_remark" class="form-label">Reason for Cancellation <span class="text-red-600">*</span></label>
+                        <textarea
+                            wire:model="implementer_remark"
+                            id="implementer_remark"
+                            class="form-textarea"
+                            rows="4"
+                            placeholder="Please provide a detailed reason for cancelling this appointment..."
+                            maxlength="500"
+                        ></textarea>
+                        <div class="mt-1 text-xs text-right text-gray-500">
+                            {{ strlen($implementer_remark) }}/500 characters
+                        </div>
+                        @error('implementer_remark')
+                            <span class="form-error">{{ $message }}</span>
+                        @enderror
+                    </div>
+
+                    <div class="p-3 border border-yellow-200 rounded-md bg-yellow-50">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <svg class="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                                </svg>
+                            </div>
+                            <div class="ml-3">
+                                <p class="text-sm text-yellow-700">
+                                    <strong>Important:</strong> This action will cancel the appointment and send notifications to all attendees. If there's a Teams meeting associated with this appointment, it will also be cancelled.
+                                </p>
                             </div>
                         </div>
                     </div>
@@ -2167,14 +2215,19 @@
             </div>
 
             <div class="modal-footer">
-                @if($currentAppointment && $currentAppointment->status !== 'Cancelled')
-                <button @click="showConfirmation = true" type="button" class="btn"
-                    style="background-color: #ef4444; color: white;">
-                    Cancel Session
+                <button wire:click="confirmCancelAppointment" type="button" class="btn"
+                    style="background-color: #ef4444; color: white;" wire:loading.attr="disabled">
+                    <span wire:loading.remove wire:target="confirmCancelAppointment">Confirm Cancellation</span>
+                    <span wire:loading wire:target="confirmCancelAppointment">
+                        <svg class="inline-block w-4 h-4 mr-2 -ml-1 text-white animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Cancelling...
+                    </span>
                 </button>
-                @endif
-                <button wire:click="closeAppointmentDetails" type="button" class="btn btn-secondary">
-                    Close
+                <button wire:click="closeCancellationModal" type="button" class="btn btn-secondary">
+                    Keep Appointment
                 </button>
             </div>
         </div>

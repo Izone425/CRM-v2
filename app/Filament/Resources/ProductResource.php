@@ -74,9 +74,32 @@ class ProductResource extends Resource
                         'renewal_sales' => 'Renewal Sales',
                         'renewal_sales_addon' => 'Renewal Sales Add On',
                     ]),
-                RichEditor::make('description'),
-                TextInput::make('unit_price')
-                    ->label('Cost (RM)'),
+                Grid::make(2)
+                ->schema([
+                    RichEditor::make('description')
+                        ->columnSpan(1),
+                    Grid::make(1)
+                        ->schema([
+                            TextInput::make('unit_price')
+                                ->label('Cost (RM)'),
+                            Select::make('is_commission')
+                                ->label('Commission Type')
+                                ->options([
+                                'yes' => 'Yes',
+                                'no' => 'No',
+                                'margin' => 'Margin',
+                                ])
+                                ->default('no')
+                                ->required()
+                                ->helperText('Select the commission type for this product.'),
+                            Toggle::make('push_to_autocount')
+                                ->label('Push To AutoCount?')
+                                ->inline(false)
+                                ->default(true),
+                        ])
+                        ->columnSpan(1)
+                ]),
+
                 Grid::make(4)
                     ->schema([
                     Toggle::make('taxable')
@@ -94,20 +117,6 @@ class ProductResource extends Resource
                         ->inline(false)
                         ->default(true),
                     ]),
-                Select::make('is_commission')
-                    ->label('Commission Type')
-                    ->options([
-                        'yes' => 'Yes',
-                        'no' => 'No',
-                        'margin' => 'Margin',
-                    ])
-                    ->default('no')
-                    ->required()
-                    ->helperText('Select the commission type for this product.'),
-                Toggle::make('push_to_autocount')
-                    ->label('Push To AutoCount?')
-                    ->inline(false)
-                    ->default(true),
                 TextInput::make('subscription_period')
                     ->label('Subscription Period (Months)')
                     ->numeric()
@@ -256,10 +265,10 @@ class ProductResource extends Resource
                     })
                     ->width(100),
                 ToggleColumn::make('push_to_autocount')->label('Push To AutoCount?')->width(100)->disabled(fn() => auth()->user()->role_id != 3),
-                ToggleColumn::make('taxable')->label('Taxable?')->width(100)->disabled(fn() => auth()->user()->role_id != 3),
-                ToggleColumn::make('is_active')->label('Is Active?')->width(100)->disabled(fn() => auth()->user()->role_id != 3),
-                ToggleColumn::make('editable')->label('Editable?')->width(100)->disabled(fn() => auth()->user()->role_id != 3),
-                ToggleColumn::make('minimum_price')->label('Minimum?')->width(100)->disabled(fn() => auth()->user()->role_id != 3),
+                ToggleColumn::make('taxable')->label('Tax')->width(100)->disabled(fn() => auth()->user()->role_id != 3),
+                ToggleColumn::make('is_active')->label('Active')->width(100)->disabled(fn() => auth()->user()->role_id != 3),
+                ToggleColumn::make('editable')->label('Edit')->width(100)->disabled(fn() => auth()->user()->role_id != 3),
+                ToggleColumn::make('minimum_price')->label('Min')->width(100)->disabled(fn() => auth()->user()->role_id != 3),
             ])
             ->filters([
                 Filter::make('solution')
