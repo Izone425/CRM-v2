@@ -111,7 +111,31 @@ class QuotationResource extends Resource
                             )
                             ->preload()
                             ->required()
-                            ->live(debounce: 550),
+                            ->live(debounce: 550)
+                            ->afterStateUpdated(function ($state, Forms\Set $set) {
+                                if ($state) {
+                                    $lead = Lead::find($state);
+                                    if ($lead && $lead->eInvoiceDetail) {
+                                        // Auto-set currency from e-invoice details
+                                        $currency = $lead->eInvoiceDetail->currency ?? 'MYR';
+                                        info("Setting currency to: " . $currency); // ✅ Debug log
+                                        $set('currency', $currency);
+
+                                        // Set SST rate based on currency
+                                        if ($currency === 'USD') {
+                                            $set('sst_rate', 0);
+                                        } else {
+                                            $set('sst_rate', Setting::where('name', 'sst_rate')->first()->value);
+                                        }
+
+                                        // ✅ Force recalculation after currency change
+                                        self::recalculateAllRowsFromParent(
+                                            fn($key) => $key === 'currency' ? $currency : null,
+                                            $set
+                                        );
+                                    }
+                                }
+                            }),
                         Select::make('subsidiary_id')
                             ->label('Use Subsidiary Details')
                             ->options(function (Forms\Get $get) {
@@ -166,15 +190,19 @@ class QuotationResource extends Resource
                             })
                             ->required()
                             ->disabled(fn () => auth()->user()?->role_id == 2),
-                        Select::make('currency')
-                            ->placeholder('Select a currency')
-                            ->options([
-                                'MYR' => 'Malaysian Ringgit (MYR)',
-                                'USD' => 'U.S. Dollar',
-                            ])
-                            ->default('MYR')
+                        Hidden::make('currency')
+                            ->default(function (Forms\Get $get) {
+                                $leadId = $get('lead_id');
+                                if ($leadId) {
+                                    $lead = Lead::find($leadId);
+                                    info($lead?->eInvoiceDetail?->currency);
+                                    // Get currency from lead's e-invoice details, fallback to MYR
+                                    return $lead?->eInvoiceDetail?->currency ?? 'MYR';
+                                }
+                                return 'MYR';
+                            })
                             ->required()
-                            ->live()  // Make sure it's marked as live to react immediately
+                            ->live()
                             ->afterStateUpdated(function (string $state, Forms\Get $get, Forms\Set $set) {
                                 // When USD is selected, set SST rate to 0
                                 if ($state === 'USD') {
@@ -186,6 +214,23 @@ class QuotationResource extends Resource
 
                                 // Recalculate all totals after changing the SST rate
                                 self::recalculateAllRowsFromParent($get, $set);
+                            })
+                            ->reactive() // Keep reactive for when lead_id changes
+                            ->afterStateHydrated(function (Forms\Set $set, Forms\Get $get, $state) {
+                                // Auto-set currency when lead is selected
+                                $leadId = $get('lead_id');
+                                if ($leadId && !$state) {
+                                    $lead = Lead::find($leadId);
+                                    $currency = $lead?->eInvoiceDetail?->currency ?? 'MYR';
+                                    $set('currency', $currency);
+
+                                    // Set SST rate based on currency
+                                    if ($currency === 'USD') {
+                                        $set('sst_rate', 0);
+                                    } else {
+                                        $set('sst_rate', Setting::where('name', 'sst_rate')->first()->value);
+                                    }
+                                }
                             }),
 
                         Select::make('quotation_type')
@@ -682,7 +727,10 @@ class QuotationResource extends Resource
                                             : null;
                                     })
                                     ->dehydrated(true)
-                                    ->afterStateUpdated(fn(?string $state, Forms\Get $get, Forms\Set $set) => self::recalculateAllRows($get, $set))
+                                    ->afterStateUpdated(fn(?string $state, Forms\Get $get, Forms\Set $set) => self::recalculateAllRows($get, $set)),
+
+                                Hidden::make('tax_code')
+                                    ->dehydrated(true),
                             ])
                             ->deleteAction(fn(Actions\Action $action) => $action->requiresConfirmation())
                             ->afterStateUpdated(fn(Forms\Get $get, Forms\Set $set) => self::updateFields(null, $get, $set, null))
@@ -1384,23 +1432,31 @@ class QuotationResource extends Resource
 
             $subtotal += $totalBeforeTax;
 
-            // Tax
+            // Tax and Tax Code logic
             $taxAmount = 0;
-            if ($currency === 'MYR') {
-                // Determine if this item should be taxed
-                $shouldTax = match ($taxationCategory) {
-                    'default' => $product?->taxable,
-                    'all_taxable' => true,
-                    'all_non_taxable' => false,
-                    default => $product?->taxable,
-                };
+            $taxCode = null;
 
-                if ($shouldTax) {
+            // Determine if this item should be taxed
+            $shouldTax = match ($taxationCategory) {
+                'default' => $product?->taxable,
+                'all_taxable' => true,
+                'all_non_taxable' => false,
+                default => $product?->taxable,
+            };
+
+            if ($shouldTax) {
+                if ($currency === 'MYR') {
                     $sstRate = $get('../../sst_rate');
                     $taxAmount = $totalBeforeTax * ($sstRate / 100);
                     $totalTax += $taxAmount;
+                    $taxCode = 'SV-8'; // ✅ Set tax code for MYR taxable items
+                } elseif ($currency === 'USD') {
+                    // For USD, we typically don't apply SST, but set tax code if needed
+                    $taxCode = 'NTS'; // ✅ Set tax code for USD taxable items
                 }
             }
+
+            $set("../../items.{$index}.tax_code", $taxCode);
 
             // Preserve manually edited descriptions
             $currentDescription = $get("../../items.{$index}.description") ?? '';
@@ -1605,23 +1661,32 @@ class QuotationResource extends Resource
             }
 
             $subtotal += $total_before_tax;
-            // Calculate taxation amount
-            $taxation_amount = 0;
-            if ($currency === 'MYR') {
-                // Determine if this item should be taxed
-                $shouldTax = match ($taxationCategory) {
-                    'default' => $product?->taxable,
-                    'all_taxable' => true,
-                    'all_non_taxable' => false,
-                    default => $product?->taxable,
-                };
 
-                if ($shouldTax) {
+            // Calculate taxation amount and tax code
+            $taxation_amount = 0;
+            $taxCode = null;
+
+            // Determine if this item should be taxed
+            $shouldTax = match ($taxationCategory) {
+                'default' => $product?->taxable,
+                'all_taxable' => true,
+                'all_non_taxable' => false,
+                default => $product?->taxable,
+            };
+
+            if ($shouldTax) {
+                if ($currency === 'MYR') {
                     $sstRate = $get('sst_rate');
                     $taxation_amount = $total_before_tax * ($sstRate / 100);
                     $totalTax += $taxation_amount;
+                    $taxCode = 'SV-8'; // ✅ Set tax code for MYR taxable items
+                } elseif ($currency === 'USD') {
+                    // For USD, we typically don't apply SST, but set tax code if needed
+                    $taxCode = 'NTS'; // ✅ Set tax code for USD taxable items
                 }
             }
+
+            $set("items.{$index}.tax_code", $taxCode);
 
             $currentDescription = $get("items.{$index}.description") ?? '';
 

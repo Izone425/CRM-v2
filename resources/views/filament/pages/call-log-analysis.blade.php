@@ -13,7 +13,7 @@
         .analysis-header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            padding: 1.5rem;
+            padding: 1rem;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -45,27 +45,22 @@
             color: white;
         }
 
-        .refresh-button {
+        .date-input {
             background: rgba(255,255,255,0.2);
             border: 1px solid rgba(255,255,255,0.3);
             border-radius: 6px;
             color: white;
             padding: 0.5rem 1rem;
             font-size: 0.875rem;
-            cursor: pointer;
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
         }
 
-        .refresh-button:hover {
-            background: rgba(255,255,255,0.3);
+        .date-input::-webkit-calendar-picker-indicator {
+            filter: invert(1);
         }
 
         /* Custom Chart Styles */
         .custom-chart-container {
-            padding: 2rem;
+            padding: 1rem;
             background: #f8fafc;
         }
 
@@ -73,7 +68,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 2rem;
+            margin-bottom: 1rem;
             padding: 1rem;
             background: white;
             border-radius: 8px;
@@ -93,7 +88,7 @@
 
         .svg-chart {
             width: 100%;
-            height: 400px;
+            height: 450px;
             background: white;
             border-radius: 8px;
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
@@ -120,17 +115,25 @@
             stroke-width: 2.5;
             stroke-linecap: round;
             stroke-linejoin: round;
+            transition: opacity 0.3s ease;
         }
 
         .data-point {
             r: 4;
             stroke: white;
             stroke-width: 2;
+            transition: opacity 0.3s ease;
         }
 
         .data-point:hover {
             r: 6;
             stroke-width: 3;
+        }
+
+        .data-line.hidden,
+        .data-point.hidden {
+            opacity: 0;
+            pointer-events: none;
         }
 
         .tooltip {
@@ -150,7 +153,7 @@
             display: flex;
             flex-wrap: wrap;
             gap: 1.5rem;
-            padding: 1.5rem;
+            padding: 1rem;
             background: white;
             border-top: 1px solid #e2e8f0;
             justify-content: center;
@@ -163,26 +166,42 @@
             font-size: 0.875rem;
             font-weight: 500;
             color: #4a5568;
+            cursor: pointer;
+            transition: opacity 0.3s ease;
+            user-select: none;
+        }
+
+        .legend-item:hover {
+            opacity: 0.8;
+        }
+
+        .legend-item.inactive {
+            opacity: 0.4;
+        }
+
+        .legend-item.inactive .legend-color {
+            background-color: #9ca3af !important;
         }
 
         .legend-color {
             width: 20px;
             height: 3px;
             border-radius: 2px;
+            transition: background-color 0.3s ease;
         }
 
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 1rem;
-            padding: 1.5rem;
+            padding: 1rem;
             background: #f7fafc;
         }
 
         .stat-card {
             background: white;
             border-radius: 8px;
-            padding: 1.5rem;
+            padding: 1rem;
             text-align: center;
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
             transition: transform 0.2s;
@@ -193,7 +212,7 @@
         }
 
         .stat-value {
-            font-size: 2rem;
+            font-size: 1.5rem;
             font-weight: 700;
             color: #2d3748;
             margin-bottom: 0.5rem;
@@ -281,15 +300,8 @@
             y: 0,
             content: ''
         },
-
-        async refreshData() {
-            this.loading = true;
-            try {
-                await $wire.loadAnalysisData();
-            } finally {
-                this.loading = false;
-            }
-        },
+        moduleHiddenDatasets: {},
+        supportHiddenDatasets: {},
 
         showTooltip(event, content) {
             this.tooltip = {
@@ -302,6 +314,50 @@
 
         hideTooltip() {
             this.tooltip.visible = false;
+        },
+
+        toggleModuleDataset(index) {
+            this.moduleHiddenDatasets[index] = !this.moduleHiddenDatasets[index];
+            this.updateChartVisibility('module', index);
+        },
+
+        toggleSupportDataset(index) {
+            this.supportHiddenDatasets[index] = !this.supportHiddenDatasets[index];
+            this.updateChartVisibility('support', index);
+        },
+
+        updateChartVisibility(chartType, index) {
+            const isHidden = chartType === 'module' ? this.moduleHiddenDatasets[index] : this.supportHiddenDatasets[index];
+
+            // Update line visibility
+            const line = document.querySelector(`#${chartType}-chart .data-line-${index}`);
+            if (line) {
+                if (isHidden) {
+                    line.classList.add('hidden');
+                } else {
+                    line.classList.remove('hidden');
+                }
+            }
+
+            // Update points visibility
+            const points = document.querySelectorAll(`#${chartType}-chart .data-point-${index}`);
+            points.forEach(point => {
+                if (isHidden) {
+                    point.classList.add('hidden');
+                } else {
+                    point.classList.remove('hidden');
+                }
+            });
+
+            // Update legend item appearance
+            const legendItem = document.querySelector(`#${chartType}-legend .legend-item-${index}`);
+            if (legendItem) {
+                if (isHidden) {
+                    legendItem.classList.add('inactive');
+                } else {
+                    legendItem.classList.remove('inactive');
+                }
+            }
         }
     }">
 
@@ -326,22 +382,31 @@
                     Analysis by Module
                 </h2>
                 <div class="filter-container">
-                    <select wire:model.live="selectedYear" class="filter-select">
+                    <select wire:model.live="dateRange" class="filter-select">
+                        @foreach($this->getDateRangeOptions() as $value => $label)
+                            <option value="{{ $value }}">{{ $label }}</option>
+                        @endforeach
+                    </select>
+
+                    <!-- Custom Date Range Inputs -->
+                    <div x-show="$wire.dateRange === 'custom_range'" class="flex items-center gap-2">
+                        <input type="date" wire:model.live="startDate" class="date-input" />
+                        <span class="text-white">to</span>
+                        <input type="date" wire:model.live="endDate" class="date-input" />
+                    </div>
+
+                    <!-- Month/Year selectors for current_month option -->
+                    <select wire:model.live="selectedYear" class="filter-select" x-show="$wire.dateRange === 'current_month'">
                         @foreach($this->getAvailableYears() as $year)
                             <option value="{{ $year }}">{{ $year }}</option>
                         @endforeach
                     </select>
 
-                    <select wire:model.live="selectedMonth" class="filter-select">
+                    <select wire:model.live="selectedMonth" class="filter-select" x-show="$wire.dateRange === 'current_month'">
                         @foreach($this->getAvailableMonths() as $value => $label)
                             <option value="{{ $value }}">{{ $label }}</option>
                         @endforeach
                     </select>
-
-                    <button @click="refreshData()" :disabled="loading" class="refresh-button">
-                        <i class="fas fa-sync-alt" :class="{'fa-spin': loading}"></i>
-                        Refresh
-                    </button>
                 </div>
             </div>
 
@@ -349,7 +414,7 @@
                 <div class="chart-header">
                     <div class="chart-title">Module Support Trends</div>
                     <div class="chart-period">
-                        {{ \Carbon\Carbon::create($selectedYear, $selectedMonth)->format('F Y') }}
+                        {{ $this->getFormattedDateRange() }}
                     </div>
                 </div>
 
@@ -375,7 +440,7 @@
                         $colors = ['#10B981', '#3B82F6', '#F59E0B', '#EF4444', '#8B5CF6', '#6B7280'];
                     @endphp
 
-                    <svg class="svg-chart" viewBox="0 0 {{ $chartWidth }} {{ $chartHeight }}" preserveAspectRatio="xMidYMid meet">
+                    <svg id="module-chart" class="svg-chart" viewBox="0 0 {{ $chartWidth }} {{ $chartHeight }}" preserveAspectRatio="xMidYMid meet">
                         <!-- Grid lines -->
                         @for($i = 0; $i <= 8; $i++)
                             @php $y = $padding + ($plotHeight * $i / 8); @endphp
@@ -388,10 +453,13 @@
                         <!-- X-axis date labels -->
                         @if(!empty($moduleAnalysisData['dates']))
                             @foreach($moduleAnalysisData['dates'] as $index => $date)
-                                @if($index % 3 == 0) {{-- Show every 3rd date to avoid crowding --}}
+                                @if($index % max(1, floor(count($moduleAnalysisData['dates']) / 10)) == 0) {{-- Dynamic spacing based on date range --}}
                                     @php
                                         $x = $padding + ($stepX * $index);
                                         $formattedDate = \Carbon\Carbon::parse($date)->format('j');
+                                        if (count($moduleAnalysisData['dates']) <= 7) {
+                                            $formattedDate = \Carbon\Carbon::parse($date)->format('M j');
+                                        }
                                     @endphp
                                     <text x="{{ $x }}" y="{{ $chartHeight - 20 }}" class="axis-text" text-anchor="middle">{{ $formattedDate }}</text>
                                 @endif
@@ -417,7 +485,7 @@
                                 @endphp
 
                                 <!-- Line -->
-                                <path d="{{ $pathData }}" class="data-line" stroke="{{ $color }}" />
+                                <path d="{{ $pathData }}" class="data-line data-line-{{ $datasetIndex }}" stroke="{{ $color }}" />
 
                                 <!-- Points -->
                                 @foreach($dataset['data'] as $pointIndex => $value)
@@ -426,7 +494,7 @@
                                         $y = $chartHeight - $padding - (($value / $maxValue) * $plotHeight);
                                         $dateLabel = isset($moduleAnalysisData['dates'][$pointIndex]) ? \Carbon\Carbon::parse($moduleAnalysisData['dates'][$pointIndex])->format('M j') : '';
                                     @endphp
-                                    <circle cx="{{ $x }}" cy="{{ $y }}" class="data-point"
+                                    <circle cx="{{ $x }}" cy="{{ $y }}" class="data-point data-point-{{ $datasetIndex }}"
                                             fill="{{ $color }}"
                                             @mouseenter="showTooltip($event, '{{ $dataset['label'] }}<br>{{ $dateLabel }}: {{ $value }} calls')"
                                             @mouseleave="hideTooltip()" />
@@ -435,9 +503,9 @@
                         @endforeach
                     </svg>
 
-                    <div class="legend-container">
+                    <div id="module-legend" class="legend-container">
                         @foreach($moduleAnalysisData['datasets'] as $index => $dataset)
-                            <div class="legend-item">
+                            <div class="legend-item legend-item-{{ $index }}" @click="toggleModuleDataset({{ $index }})">
                                 <div class="legend-color" style="background-color: {{ $colors[$index % count($colors)] }}"></div>
                                 <span>{{ $dataset['label'] }}</span>
                             </div>
@@ -503,22 +571,31 @@
                     Analysis by Phone Call (Support Staff)
                 </h2>
                 <div class="filter-container">
-                    <select wire:model.live="selectedYear" class="filter-select">
+                    <select wire:model.live="dateRange" class="filter-select">
+                        @foreach($this->getDateRangeOptions() as $value => $label)
+                            <option value="{{ $value }}">{{ $label }}</option>
+                        @endforeach
+                    </select>
+
+                    <!-- Custom Date Range Inputs -->
+                    <div x-show="$wire.dateRange === 'custom_range'" class="flex items-center gap-2">
+                        <input type="date" wire:model.live="startDate" class="date-input" />
+                        <span class="text-white">to</span>
+                        <input type="date" wire:model.live="endDate" class="date-input" />
+                    </div>
+
+                    <!-- Month/Year selectors for current_month option -->
+                    <select wire:model.live="selectedYear" class="filter-select" x-show="$wire.dateRange === 'current_month'">
                         @foreach($this->getAvailableYears() as $year)
                             <option value="{{ $year }}">{{ $year }}</option>
                         @endforeach
                     </select>
 
-                    <select wire:model.live="selectedMonth" class="filter-select">
+                    <select wire:model.live="selectedMonth" class="filter-select" x-show="$wire.dateRange === 'current_month'">
                         @foreach($this->getAvailableMonths() as $value => $label)
                             <option value="{{ $value }}">{{ $label }}</option>
                         @endforeach
                     </select>
-
-                    <button @click="refreshData()" :disabled="loading" class="refresh-button">
-                        <i class="fas fa-sync-alt" :class="{'fa-spin': loading}"></i>
-                        Refresh
-                    </button>
                 </div>
             </div>
 
@@ -535,12 +612,12 @@
                                 }
                             }
                         @endphp
-                        <span class="incoming-stat">{{ $totalIncomingCalls }} Incoming</span>
+                        <span class="incoming-stat">{{ $totalIncomingCalls }} Calls</span>
                         <span class="mx-3">•</span>
                         <span class="outgoing-stat">{{ count($supportAnalysisData['staff'] ?? []) }} Support Staff</span>
                     </div>
                     <div class="chart-period">
-                        Last {{ count($supportAnalysisData['dates'] ?? []) }} Days
+                        {{ $this->getFormattedDateRange() }}
                     </div>
                 </div>
 
@@ -557,7 +634,7 @@
                         $supportColors = ['#10B981', '#3B82F6', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#14B8A6', '#F97316'];
                     @endphp
 
-                    <svg class="svg-chart" viewBox="0 0 {{ $chartWidth }} {{ $chartHeight }}" preserveAspectRatio="xMidYMid meet">
+                    <svg id="support-chart" class="svg-chart" viewBox="0 0 {{ $chartWidth }} {{ $chartHeight }}" preserveAspectRatio="xMidYMid meet">
                         <!-- Grid lines -->
                         @for($i = 0; $i <= 8; $i++)
                             @php $y = $padding + ($plotHeight * $i / 8); @endphp
@@ -570,10 +647,13 @@
                         <!-- X-axis date labels -->
                         @if(!empty($supportAnalysisData['dates']))
                             @foreach($supportAnalysisData['dates'] as $index => $date)
-                                @if($index % 3 == 0)
+                                @if($index % max(1, floor(count($supportAnalysisData['dates']) / 10)) == 0)
                                     @php
                                         $x = $padding + ($stepX * $index);
                                         $formattedDate = \Carbon\Carbon::parse($date)->format('j');
+                                        if (count($supportAnalysisData['dates']) <= 7) {
+                                            $formattedDate = \Carbon\Carbon::parse($date)->format('M j');
+                                        }
                                     @endphp
                                     <text x="{{ $x }}" y="{{ $chartHeight - 20 }}" class="axis-text" text-anchor="middle">{{ $formattedDate }}</text>
                                 @endif
@@ -599,7 +679,7 @@
                                 @endphp
 
                                 <!-- Line -->
-                                <path d="{{ $pathData }}" class="data-line" stroke="{{ $color }}" />
+                                <path d="{{ $pathData }}" class="data-line data-line-{{ $datasetIndex }}" stroke="{{ $color }}" />
 
                                 <!-- Points -->
                                 @foreach($dataset['data'] as $pointIndex => $value)
@@ -608,7 +688,7 @@
                                         $y = $chartHeight - $padding - (($value / $maxSupportValue) * $plotHeight);
                                         $dateLabel = isset($supportAnalysisData['dates'][$pointIndex]) ? \Carbon\Carbon::parse($supportAnalysisData['dates'][$pointIndex])->format('M j') : '';
                                     @endphp
-                                    <circle cx="{{ $x }}" cy="{{ $y }}" class="data-point"
+                                    <circle cx="{{ $x }}" cy="{{ $y }}" class="data-point data-point-{{ $datasetIndex }}"
                                             fill="{{ $color }}"
                                             @mouseenter="showTooltip($event, '{{ $dataset['label'] }}<br>{{ $dateLabel }}: {{ $value }} calls')"
                                             @mouseleave="hideTooltip()" />
@@ -617,9 +697,9 @@
                         @endforeach
                     </svg>
 
-                    <div class="legend-container">
+                    <div id="support-legend" class="legend-container">
                         @foreach($supportAnalysisData['datasets'] as $index => $dataset)
-                            <div class="legend-item">
+                            <div class="legend-item legend-item-{{ $index }}" @click="toggleSupportDataset({{ $index }})">
                                 <div class="legend-color" style="background-color: {{ $supportColors[$index % count($supportColors)] }}"></div>
                                 <span>{{ $dataset['label'] }}</span>
                             </div>

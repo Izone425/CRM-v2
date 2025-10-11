@@ -4,21 +4,22 @@
     $companyDetails = [
         // First row - 3 columns
         ['label' => 'Company Name', 'value' => $lead->companyDetail->company_name ?? '-'],
-        ['label' => 'Company Address 1', 'value' => $lead->companyDetail->company_address1 ?? '-'],
-        ['label' => 'New Reg No.', 'value' => $lead->companyDetail->reg_no_new ?? '-'],
-        ['label' => 'Company Address 2', 'value' => $lead->companyDetail->company_address2 ?? '-'],
-        ['label' => 'Industry', 'value' => $lead->companyDetail->industry ?? '-'],
+        ['label' => 'Company Size', 'value' => $lead->getCompanySizeLabelAttribute() ?? '-'],
+        // ['label' => 'Company Address 1', 'value' => $lead->companyDetail->company_address1 ?? '-'],
+        // ['label' => 'New Reg No.', 'value' => $lead->companyDetail->reg_no_new ?? '-'],
+        // ['label' => 'Company Address 2', 'value' => $lead->companyDetail->company_address2 ?? '-'],
+        // ['label' => 'Industry', 'value' => $lead->companyDetail->industry ?? '-'],
 
-        // Second row - 3 columns
-        // Combined Postcode and State in one cell (side by side)
-        [
-            'label' => 'Location',
-            'value' => [
-                ['label' => 'Postcode', 'value' => $lead->companyDetail->postcode ?? '-'],
-                ['label' => 'State', 'value' => $lead->companyDetail->state ?? '-']
-            ],
-            'combined' => true
-        ],
+        // // Second row - 3 columns
+        // // Combined Postcode and State in one cell (side by side)
+        // [
+        //     'label' => 'Location',
+        //     'value' => [
+        //         ['label' => 'Postcode', 'value' => $lead->companyDetail->postcode ?? '-'],
+        //         ['label' => 'State', 'value' => $lead->companyDetail->state ?? '-']
+        //     ],
+        //     'combined' => true
+        // ],
     ];
 
     // Split into rows with a max of 3 items per row

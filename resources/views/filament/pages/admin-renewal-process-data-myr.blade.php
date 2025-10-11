@@ -287,7 +287,7 @@
                         </svg>
                     </div>
                     <div class="renewal-details">
-                        <dt class="renewal-title">Renewal Forecast (60 Days)</dt>
+                        <dt class="renewal-title">Renewal Forecast (90 Days)</dt>
                         <dd>
                             <div class="renewal-subtitle">Total Company: {{ $renewalForecastStats['total_companies'] }}</div>
                             <div class="renewal-subtitle">

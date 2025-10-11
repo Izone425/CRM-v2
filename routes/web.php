@@ -8,6 +8,7 @@ use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\CustomerActivationController;
 use App\Http\Controllers\CustomerAuthController;
 use App\Http\Controllers\GenerateHardwareHandoverPdfController;
+use App\Http\Controllers\GenerateHardwareHandoverV2PdfController;
 use App\Http\Controllers\GenerateProformaInvoicePdfController;
 use App\Http\Controllers\GenerateQuotationPdfController;
 use App\Http\Controllers\GenerateSoftwareHandoverPdfController;
@@ -60,8 +61,16 @@ Route::get('hardware-handover/{hardwareHandover}/pdf', GenerateHardwareHandoverP
     ->name('hardware-handover.pdf')
     ->middleware(['auth']);
 
+Route::get('hardware-handover-v2/{hardwareHandover}/pdf', GenerateHardwareHandoverV2PdfController::class)
+    ->name('hardware-handover-v2.pdf')
+    ->middleware(['auth']);
+
 Route::get('/software-handover/export-customer/{lead}', [App\Http\Controllers\SoftwareHandoverExportController::class, 'exportCustomerCSV'])
     ->name('software-handover.export-customer')
+    ->middleware(['auth']);
+
+Route::get('/einvoice/export/{lead}', [App\Http\Controllers\EInvoiceExportController::class, 'exportEInvoiceDetails'])
+    ->name('einvoice.export')
     ->middleware(['auth']);
 
 Route::get('/demo-request/{lead_code}', function ($lead_code) {

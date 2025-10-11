@@ -9,14 +9,14 @@
             ->where('subject_id', $lead->id ?? null)
             ->first())->causer)->name ?? '-'],
         ['label' => 'Lead Created On', 'value' => isset($lead->created_at) ? $lead->created_at->format('d M Y, H:i') : '-'],
-        ['label' => 'Company Size', 'value' => $lead->getCompanySizeLabelAttribute() ?? '-'],
+        // ['label' => 'Company Size', 'value' => $lead->getCompanySizeLabelAttribute() ?? '-'],
     ];
 
     // Split into rows with a max of 2 items per row
     $rows = array_chunk($leadDetails, 2);
 @endphp
 
-<div style="display: grid; grid-template-columns: repeat(1, minmax(0, 1fr)); gap: 24px;"
+<div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 24px;"
      class="grid grid-cols-1 gap-6">
 
     @foreach ($rows as $row)

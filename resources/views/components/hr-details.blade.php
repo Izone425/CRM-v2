@@ -9,7 +9,7 @@
     ];
 @endphp
 
-<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px;"
+<div style="display: grid; grid-template-columns: repeat(1, minmax(0, 1fr)); gap: 24px;"
      class="grid grid-cols-4 gap-6">
 
     @foreach ($personDetails as $item)

@@ -545,7 +545,7 @@ class SoftwareResource extends Resource
                     ->toggleable(),
 
                 TextColumn::make('review_session_count')
-                    ->label('Review Sessions')
+                    ->label('Review')
                     ->formatStateUsing(function ($state) {
                         // The $state contains the count from the raw SQL query
                         if ($state == 0 || is_null($state)) {
@@ -555,10 +555,11 @@ class SoftwareResource extends Resource
                         // Return the count as a simple number
                         return (string) $state;
                     })
-                    ->alignCenter(),
+                    ->alignCenter()
+                    ->toggleable(),
 
                 TextColumn::make('cancel_session_count')
-                    ->label('Cancel Sessions')
+                    ->label('Cancel')
                     ->formatStateUsing(function ($state) {
                         // The $state contains the count from the raw SQL query
                         if ($state == 0 || is_null($state)) {
@@ -568,7 +569,8 @@ class SoftwareResource extends Resource
                         // Return the count as a simple number
                         return (string) $state;
                     })
-                    ->alignCenter(),
+                    ->alignCenter()
+                    ->toggleable(),
 
                 TextColumn::make('status_handover')
                     ->label('Status')

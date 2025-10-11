@@ -22,7 +22,7 @@ class HrdfHandoverList extends Page implements HasTable
     use InteractsWithTable;
 
     protected static ?string $navigationIcon = 'heroicon-o-document-text';
-
+    protected static ?string $title = 'HRDF Handover List';
     protected static string $view = 'filament.pages.hrdf-handover-list';
     protected static ?string $slug = 'hrdf-id';
 

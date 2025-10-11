@@ -575,21 +575,19 @@
         }
 
         .icon-link[data-section="dashboard"] .icon { color: #6366F1; /* icon-gradient-1 */ }
-        .icon-link[data-section="handover"] .icon { color: #0EA5E9; /* icon-gradient-2 */ }
-        .icon-link[data-section="hrcalendar"] .icon { color: #0EA5E9; /* icon-gradient-2 */ }
-        .icon-link[data-section="salesadmin"] .icon { color: #06B6D4; /* icon-gradient-3 */ }
-        .icon-link[data-section="salesperson"] .icon { color: #14B8A6; /* icon-gradient-4 */ }
-        .icon-link[data-section="admin"] .icon { color: #10B981; /* icon-gradient-5 */ }
-        .icon-link[data-section="trainer"] .icon { color: #22C55E; /* icon-gradient-6 */ }
-        .icon-link[data-section="implementer"] .icon { color: #84CC16; /* icon-gradient-7 */ }
-        .icon-link[data-section="support"] .icon { color: #EAB308; /* icon-gradient-8 */ }
-        .icon-link[data-section="technician"] .icon { color: #F59E0B; /* icon-gradient-9 */ }
-        .icon-link[data-section="marketing"] .icon { color: #F97316; /* icon-gradient-10 */ }
-        .icon-link[data-section="internal"] .icon { color: #DC2626; /* icon-gradient-11 */ }
-        .icon-link[data-section="external"] .icon { color: #C026D3; /* icon-gradient-12 */ }
-        .icon-link[data-section="ticketing"] .icon { color: #A855F7; /* icon-gradient-13 */ }
-        .icon-link[data-section="system-portal"] .icon { color: #8B5CF6; /* icon-gradient-14 */ }
-        .icon-link[data-section="settings"] .icon { color: #EA580C; /* icon-gradient-18 */ }
+        .icon-link[data-section="salesadmin"] .icon { color: #0EA5E9; /* icon-gradient-2 */ }
+        .icon-link[data-section="salesperson"] .icon { color: #06B6D4; /* icon-gradient-3 */ }
+        .icon-link[data-section="handover"] .icon { color: #14B8A6; /* icon-gradient-4 */ }
+        .icon-link[data-section="ticketing"] .icon { color: #10B981; /* icon-gradient-5 */ }
+        .icon-link[data-section="system-portal"] .icon { color: #22C55E; /* icon-gradient-6 */ }
+        .icon-link[data-section="admin"] .icon { color: #84CC16; /* icon-gradient-7 */ }
+        .icon-link[data-section="implementer"] .icon { color: #EAB308; /* icon-gradient-8 */ }
+        .icon-link[data-section="support"] .icon { color: #F59E0B; /* icon-gradient-9 */ }
+        .icon-link[data-section="technician"] .icon { color: #F97316; /* icon-gradient-10 */ }
+        .icon-link[data-section="marketing"] .icon { color: #DC2626; /* icon-gradient-11 */ }
+        .icon-link[data-section="internal"] .icon { color: #C026D3; /* icon-gradient-12 */ }
+        .icon-link[data-section="external"] .icon { color: #A855F7; /* icon-gradient-13 */ }
+        .icon-link[data-section="settings"] .icon { color: #8B5CF6; /* icon-gradient-14 */ }
     </style>
 
     <!-- Main Sidebar Container -->
@@ -631,6 +629,20 @@
                         <span class="icon-tooltip">Handover</span>
                     </div>
                 @endif
+
+                <div class="icon-link" data-section="ticketing">
+                    <div class="icon-wrapper">
+                        <i class="bi bi-ticket-perforated icon"></i>
+                    </div>
+                    <span class="icon-tooltip">Ticketing</span>
+                </div>
+
+                <div class="icon-link" data-section="system-portal">
+                    <div class="icon-wrapper">
+                        <i class="bi bi-grid-3x3-gap icon"></i>
+                    </div>
+                    <span class="icon-tooltip">System Portal</span>
+                </div>
 
                 @if(auth()->user()->additional_role == 1 || auth()->user()->role_id == 3)
                     <div class="icon-link" data-section="admin">
@@ -689,13 +701,6 @@
                         <i class="bi bi-box-arrow-up-right icon"></i>
                     </div>
                     <span class="icon-tooltip">TimeTec HR - External</span>
-                </div>
-
-                <div class="icon-link" data-section="system-portal">
-                    <div class="icon-wrapper">
-                        <i class="bi bi-grid-3x3-gap icon"></i>
-                    </div>
-                    <span class="icon-tooltip">System Portal</span>
                 </div>
 
                 <!-- Settings Icon -->
@@ -1135,7 +1140,7 @@
                             </div>
 
                             <div class="submenu" id="hrdf-submenu">
-                                <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
+                                <a href="{{ route('filament.admin.pages.hrdf-id') }}" class="submenu-item">
                                     <span class="module-font">HRDF ID</span>
                                 </a>
                                 <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
@@ -1155,7 +1160,7 @@
                             </div>
 
                             <div class="submenu" id="headcount-submenu">
-                                <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
+                                <a href="{{ route('filament.admin.pages.headcount-id') }}" class="submenu-item">
                                     <span class="module-font">Headcount ID</span>
                                 </a>
                             </div>
@@ -1701,7 +1706,7 @@
                     <div class="menu-block">
                         <div class="menu-item nested-dropdown-trigger" data-submenu="ticketing-submenu">
                             <div class="menu-icon-wrapper">
-                                <i class="bi bi-ticket-perforated"></i>
+                                <i class="bi bi-tags"></i>
                             </div>
                             <span class="menu-text">Ticketing System</span>
                             <i class="bi bi-chevron-down menu-arrow"></i>
@@ -1724,7 +1729,7 @@
                     <div class="menu-block">
                         <div class="menu-item nested-dropdown-trigger" data-submenu="admin-portal-hr-v2-submenu">
                             <div class="menu-icon-wrapper">
-                                <i class="bi bi-person-gear"></i>
+                                <i class="bi bi-tags"></i>
                             </div>
                             <span class="menu-text">Admin Portal HR V2</span>
                             <i class="bi bi-chevron-down menu-arrow"></i>
@@ -1744,7 +1749,7 @@
                     <div class="menu-block">
                         <div class="menu-item nested-dropdown-trigger" data-submenu="customer-portal-stage1-submenu">
                             <div class="menu-icon-wrapper">
-                                <i class="bi bi-person-circle"></i>
+                                <i class="bi bi-tags"></i>
                             </div>
                             <span class="menu-text">Customer Portal Stage 1</span>
                             <i class="bi bi-chevron-down menu-arrow"></i>
@@ -1764,7 +1769,7 @@
                     <div class="menu-block">
                         <div class="menu-item nested-dropdown-trigger" data-submenu="customer-portal-stage2-submenu">
                             <div class="menu-icon-wrapper">
-                                <i class="bi bi-person-check"></i>
+                                <i class="bi bi-tags"></i>
                             </div>
                             <span class="menu-text">Customer Portal Stage 2</span>
                             <i class="bi bi-chevron-down menu-arrow"></i>
@@ -1784,7 +1789,7 @@
                     <div class="menu-block">
                         <div class="menu-item nested-dropdown-trigger" data-submenu="reseller-portal-submenu">
                             <div class="menu-icon-wrapper">
-                                <i class="bi bi-shop"></i>
+                                <i class="bi bi-tags"></i>
                             </div>
                             <span class="menu-text">Reseller Portal</span>
                             <i class="bi bi-chevron-down menu-arrow"></i>

@@ -22,6 +22,7 @@ class QuotationDetail extends Model
         'total_before_tax',
         'total_after_tax',
         'sort_order',
+        'tax_code',
     ];
 
     public function quotation(): BelongsTo
