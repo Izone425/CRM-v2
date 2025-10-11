@@ -93,7 +93,7 @@ class ProductResource extends Resource
                                 ->required()
                                 ->helperText('Select the commission type for this product.'),
                             Toggle::make('push_to_autocount')
-                                ->label('Push To AutoCount?')
+                                ->label('Push to A/C')
                                 ->inline(false)
                                 ->default(true),
                         ])
@@ -264,7 +264,7 @@ class ProductResource extends Resource
                         };
                     })
                     ->width(100),
-                ToggleColumn::make('push_to_autocount')->label('Push To AutoCount?')->width(100)->disabled(fn() => auth()->user()->role_id != 3),
+                ToggleColumn::make('push_to_autocount')->label('Push to A/C')->width(100)->disabled(fn() => auth()->user()->role_id != 3),
                 ToggleColumn::make('taxable')->label('Tax')->width(100)->disabled(fn() => auth()->user()->role_id != 3),
                 ToggleColumn::make('is_active')->label('Active')->width(100)->disabled(fn() => auth()->user()->role_id != 3),
                 ToggleColumn::make('editable')->label('Edit')->width(100)->disabled(fn() => auth()->user()->role_id != 3),

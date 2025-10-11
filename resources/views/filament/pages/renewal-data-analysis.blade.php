@@ -678,6 +678,127 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Forecast Next Three Months - MYR -->
+            <div class="forecast-section">
+                <div class="forecast-header">
+                    <div class="forecast-title">Forecast Next Three Months (MYR)</div>
+                    <div class="forecast-subtitle">{{ \Carbon\Carbon::now()->addMonths(3)->startOfMonth()->format('j F Y') }} – {{ \Carbon\Carbon::now()->addMonths(3)->endOfMonth()->format('j F Y') }}</div>
+                </div>
+                <div class="renewal-dashboard-grid">
+                    <!-- New -->
+                    <div class="renewal-card">
+                        <div class="renewal-card-content">
+                            <div class="renewal-card-layout">
+                                <div class="renewal-icon-container purple">
+                                    <svg class="renewal-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                                    </svg>
+                                </div>
+                                <div class="renewal-details">
+                                    <dt class="renewal-title">New</dt>
+                                    <dd>
+                                        <div class="renewal-subtitle">Total Company: {{ $this->getAnalysisForecastMyr('next_three_months')['new']['total_companies'] }}</div>
+                                        <div class="renewal-subtitle">
+                                            Via Reseller: {{ $this->getAnalysisForecastMyr('next_three_months')['new']['total_via_reseller'] }}
+                                            (RM {{ number_format($this->getAnalysisForecastMyr('next_three_months')['new']['total_via_reseller_amount'] ?? 0, 2) }})
+                                        </div>
+                                        <div class="renewal-subtitle">
+                                            Via End User: {{ $this->getAnalysisForecastMyr('next_three_months')['new']['total_via_end_user'] }}
+                                            (RM {{ number_format($this->getAnalysisForecastMyr('next_three_months')['new']['total_via_end_user_amount'] ?? 0, 2) }})
+                                        </div>
+                                        <div class="renewal-amount purple">RM {{ number_format($this->getAnalysisForecastMyr('next_three_months')['new']['total_amount'], 2) }}</div>
+                                    </dd>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Pending Confirmation -->
+                    <div class="renewal-card">
+                        <div class="renewal-card-content">
+                            <div class="renewal-card-layout">
+                                <div class="renewal-icon-container orange">
+                                    <svg class="renewal-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                </div>
+                                <div class="renewal-details">
+                                    <dt class="renewal-title">Pending Confirmation</dt>
+                                    <dd>
+                                        <div class="renewal-subtitle">Total Company: {{ $this->getAnalysisForecastMyr('next_three_months')['pending_confirmation']['total_companies'] }}</div>
+                                        <div class="renewal-subtitle">
+                                            Via Reseller: {{ $this->getAnalysisForecastMyr('next_three_months')['pending_confirmation']['total_via_reseller'] }}
+                                            (RM {{ number_format($this->getAnalysisForecastMyr('next_three_months')['pending_confirmation']['total_via_reseller_amount'] ?? 0, 2) }})
+                                        </div>
+                                        <div class="renewal-subtitle">
+                                            Via End User: {{ $this->getAnalysisForecastMyr('next_three_months')['pending_confirmation']['total_via_end_user'] }}
+                                            (RM {{ number_format($this->getAnalysisForecastMyr('next_three_months')['pending_confirmation']['total_via_end_user_amount'] ?? 0, 2) }})
+                                        </div>
+                                        <div class="renewal-amount orange">RM {{ number_format($this->getAnalysisForecastMyr('next_three_months')['pending_confirmation']['total_amount'], 2) }}</div>
+                                    </dd>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Renewal Forecast -->
+                    <div class="renewal-card">
+                        <div class="renewal-card-content">
+                            <div class="renewal-card-layout">
+                                <div class="renewal-icon-container blue">
+                                    <svg class="renewal-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                                    </svg>
+                                </div>
+                                <div class="renewal-details">
+                                    <dt class="renewal-title">Renewal Forecast</dt>
+                                    <dd>
+                                        <div class="renewal-subtitle">Total Company: {{ $this->getAnalysisForecastMyr('next_three_months')['renewal_forecast']['total_companies'] }}</div>
+                                        <div class="renewal-subtitle">
+                                            Via Reseller: {{ $this->getAnalysisForecastMyr('next_three_months')['renewal_forecast']['total_via_reseller'] }}
+                                            (RM {{ number_format($this->getAnalysisForecastMyr('next_three_months')['renewal_forecast']['total_via_reseller_amount'] ?? 0, 2) }})
+                                        </div>
+                                        <div class="renewal-subtitle">
+                                            Via End User: {{ $this->getAnalysisForecastMyr('next_three_months')['renewal_forecast']['total_via_end_user'] }}
+                                            (RM {{ number_format($this->getAnalysisForecastMyr('next_three_months')['renewal_forecast']['total_via_end_user_amount'] ?? 0, 2) }})
+                                        </div>
+                                        <div class="renewal-amount blue">RM {{ number_format($this->getAnalysisForecastMyr('next_three_months')['renewal_forecast']['total_amount'], 2) }}</div>
+                                    </dd>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Pending Payment -->
+                    <div class="renewal-card">
+                        <div class="renewal-card-content">
+                            <div class="renewal-card-layout">
+                                <div class="renewal-icon-container red">
+                                    <svg class="renewal-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                </div>
+                                <div class="renewal-details">
+                                    <dt class="renewal-title">Pending Payment</dt>
+                                    <dd>
+                                        <div class="renewal-subtitle">Total Company: {{ $this->getAnalysisForecastMyr('next_three_months')['pending_payment']['total_companies'] }}</div>
+                                        <div class="renewal-subtitle">
+                                            Via Reseller: {{ $this->getAnalysisForecastMyr('next_three_months')['pending_payment']['total_via_reseller'] }}
+                                            (RM {{ number_format($this->getAnalysisForecastMyr('next_three_months')['pending_payment']['total_via_reseller_amount'] ?? 0, 2) }})
+                                        </div>
+                                        <div class="renewal-subtitle">
+                                            Via End User: {{ $this->getAnalysisForecastMyr('next_three_months')['pending_payment']['total_via_end_user'] }}
+                                            (RM {{ number_format($this->getAnalysisForecastMyr('next_three_months')['pending_payment']['total_via_end_user_amount'] ?? 0, 2) }})
+                                        </div>
+                                        <div class="renewal-amount red">RM {{ number_format($this->getAnalysisForecastMyr('next_three_months')['pending_payment']['total_amount'], 2) }}</div>
+                                    </dd>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- USD Analysis Content -->
@@ -1038,6 +1159,127 @@
                                             (${{ number_format($this->getAnalysisForecastUsd('next_two_months')['pending_payment']['total_via_end_user_amount'] ?? 0, 2) }})
                                         </div>
                                         <div class="renewal-amount red">${{ number_format($this->getAnalysisForecastUsd('next_two_months')['pending_payment']['total_amount'], 2) }}</div>
+                                    </dd>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Forecast Next Three Months - USD -->
+            <div class="forecast-section">
+                <div class="forecast-header usd">
+                    <div class="forecast-title">Forecast Next Three Months (USD)</div>
+                    <div class="forecast-subtitle">{{ \Carbon\Carbon::now()->addMonths(3)->startOfMonth()->format('j F Y') }} – {{ \Carbon\Carbon::now()->addMonths(3)->endOfMonth()->format('j F Y') }}</div>
+                </div>
+                <div class="renewal-dashboard-grid">
+                    <!-- New -->
+                    <div class="renewal-card">
+                        <div class="renewal-card-content">
+                            <div class="renewal-card-layout">
+                                <div class="renewal-icon-container purple">
+                                    <svg class="renewal-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                                    </svg>
+                                </div>
+                                <div class="renewal-details">
+                                    <dt class="renewal-title">New</dt>
+                                    <dd>
+                                        <div class="renewal-subtitle">Total Company: {{ $this->getAnalysisForecastUsd('next_three_months')['new']['total_companies'] }}</div>
+                                        <div class="renewal-subtitle">
+                                            Via Reseller: {{ $this->getAnalysisForecastUsd('next_three_months')['new']['total_via_reseller'] }}
+                                            (${{ number_format($this->getAnalysisForecastUsd('next_three_months')['new']['total_via_reseller_amount'] ?? 0, 2) }})
+                                        </div>
+                                        <div class="renewal-subtitle">
+                                            Via End User: {{ $this->getAnalysisForecastUsd('next_three_months')['new']['total_via_end_user'] }}
+                                            (${{ number_format($this->getAnalysisForecastUsd('next_three_months')['new']['total_via_end_user_amount'] ?? 0, 2) }})
+                                        </div>
+                                        <div class="renewal-amount purple">${{ number_format($this->getAnalysisForecastUsd('next_three_months')['new']['total_amount'], 2) }}</div>
+                                    </dd>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Pending Confirmation -->
+                    <div class="renewal-card">
+                        <div class="renewal-card-content">
+                            <div class="renewal-card-layout">
+                                <div class="renewal-icon-container orange">
+                                    <svg class="renewal-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                </div>
+                                <div class="renewal-details">
+                                    <dt class="renewal-title">Pending Confirmation</dt>
+                                    <dd>
+                                        <div class="renewal-subtitle">Total Company: {{ $this->getAnalysisForecastUsd('next_three_months')['pending_confirmation']['total_companies'] }}</div>
+                                        <div class="renewal-subtitle">
+                                            Via Reseller: {{ $this->getAnalysisForecastUsd('next_three_months')['pending_confirmation']['total_via_reseller'] }}
+                                            (${{ number_format($this->getAnalysisForecastUsd('next_three_months')['pending_confirmation']['total_via_reseller_amount'] ?? 0, 2) }})
+                                        </div>
+                                        <div class="renewal-subtitle">
+                                            Via End User: {{ $this->getAnalysisForecastUsd('next_three_months')['pending_confirmation']['total_via_end_user'] }}
+                                            (${{ number_format($this->getAnalysisForecastUsd('next_three_months')['pending_confirmation']['total_via_end_user_amount'] ?? 0, 2) }})
+                                        </div>
+                                        <div class="renewal-amount orange">${{ number_format($this->getAnalysisForecastUsd('next_three_months')['pending_confirmation']['total_amount'], 2) }}</div>
+                                    </dd>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Renewal Forecast -->
+                    <div class="renewal-card">
+                        <div class="renewal-card-content">
+                            <div class="renewal-card-layout">
+                                <div class="renewal-icon-container blue">
+                                    <svg class="renewal-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                                    </svg>
+                                </div>
+                                <div class="renewal-details">
+                                    <dt class="renewal-title">Renewal Forecast</dt>
+                                    <dd>
+                                        <div class="renewal-subtitle">Total Company: {{ $this->getAnalysisForecastUsd('next_three_months')['renewal_forecast']['total_companies'] }}</div>
+                                        <div class="renewal-subtitle">
+                                            Via Reseller: {{ $this->getAnalysisForecastUsd('next_three_months')['renewal_forecast']['total_via_reseller'] }}
+                                            (${{ number_format($this->getAnalysisForecastUsd('next_three_months')['renewal_forecast']['total_via_reseller_amount'] ?? 0, 2) }})
+                                        </div>
+                                        <div class="renewal-subtitle">
+                                            Via End User: {{ $this->getAnalysisForecastUsd('next_three_months')['renewal_forecast']['total_via_end_user'] }}
+                                            (${{ number_format($this->getAnalysisForecastUsd('next_three_months')['renewal_forecast']['total_via_end_user_amount'] ?? 0, 2) }})
+                                        </div>
+                                        <div class="renewal-amount blue">${{ number_format($this->getAnalysisForecastUsd('next_three_months')['renewal_forecast']['total_amount'], 2) }}</div>
+                                    </dd>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Pending Payment -->
+                    <div class="renewal-card">
+                        <div class="renewal-card-content">
+                            <div class="renewal-card-layout">
+                                <div class="renewal-icon-container red">
+                                    <svg class="renewal-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                </div>
+                                <div class="renewal-details">
+                                    <dt class="renewal-title">Pending Payment</dt>
+                                    <dd>
+                                        <div class="renewal-subtitle">Total Company: {{ $this->getAnalysisForecastUsd('next_three_months')['pending_payment']['total_companies'] }}</div>
+                                        <div class="renewal-subtitle">
+                                            Via Reseller: {{ $this->getAnalysisForecastUsd('next_three_months')['pending_payment']['total_via_reseller'] }}
+                                            (${{ number_format($this->getAnalysisForecastUsd('next_three_months')['pending_payment']['total_via_reseller_amount'] ?? 0, 2) }})
+                                        </div>
+                                        <div class="renewal-subtitle">
+                                            Via End User: {{ $this->getAnalysisForecastUsd('next_three_months')['pending_payment']['total_via_end_user'] }}
+                                            (${{ number_format($this->getAnalysisForecastUsd('next_three_months')['pending_payment']['total_via_end_user_amount'] ?? 0, 2) }})
+                                        </div>
+                                        <div class="renewal-amount red">${{ number_format($this->getAnalysisForecastUsd('next_three_months')['pending_payment']['total_amount'], 2) }}</div>
                                     </dd>
                                 </div>
                             </div>

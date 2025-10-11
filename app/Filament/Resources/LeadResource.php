@@ -11,6 +11,7 @@ use App\Filament\Resources\LeadResource\Pages;
 use App\Filament\Resources\LeadResource\RelationManagers\ActivityLogRelationManager;
 use App\Filament\Resources\LeadResource\RelationManagers\DemoAppointmentRelationManager;
 use App\Filament\Resources\LeadResource\RelationManagers\HardwareHandoverRelationManager;
+use App\Filament\Resources\LeadResource\RelationManagers\HardwareHandoverV2RelationManager;
 use App\Filament\Resources\LeadResource\RelationManagers\HeadcountHandoverRelationManager;
 use App\Filament\Resources\LeadResource\RelationManagers\HHTableRelationManager;
 use App\Filament\Resources\LeadResource\RelationManagers\HRDFHandoverRelationManager;
@@ -153,7 +154,7 @@ class LeadResource extends Resource
 
         // Add ALL the missing tab definitions
         if (in_array('prospect_pic_details', $activeTabs)) {
-            $tabs[] = Tabs\Tab::make('Prospect PICs')
+            $tabs[] = Tabs\Tab::make('HR Details')
                 ->schema(ProspectPICTabs::getSchema());
         }
 
@@ -168,12 +169,12 @@ class LeadResource extends Resource
         }
 
         if (in_array('prospect_details', $activeTabs)) {
-            $tabs[] = Tabs\Tab::make('Prospect Details')
+            $tabs[] = Tabs\Tab::make('Lead')
                 ->schema(ProspectDetailsTabs::getSchema());
         }
 
         if (in_array('subscriber_details', $activeTabs)) {
-            $tabs[] = Tabs\Tab::make('Subscriber Details')
+            $tabs[] = Tabs\Tab::make('Subscriber')
                 ->schema(SubscriberDetailsTabs::getSchema());
         }
 
@@ -1302,7 +1303,7 @@ class LeadResource extends Resource
             RenewalQuotationRelationManager::class,
             HRDFHandoverRelationManager::class,
             HeadcountHandoverRelationManager::class,
-            // HardwareHandoverV2RelationManager::class,
+            HardwareHandoverV2RelationManager::class,
         ];
     }
 

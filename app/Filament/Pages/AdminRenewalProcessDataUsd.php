@@ -92,7 +92,7 @@ class RenewalDataUsd extends Model
 
             if (! $startDate || ! $endDate) {
                 $startDate = $today;
-                $endDate = Carbon::now()->addDays(60)->format('Y-m-d');
+                $endDate = Carbon::now()->addDays(90)->format('Y-m-d');
             }
 
             $query = DB::connection('frontenddb')->table('crm_expiring_license')
@@ -135,7 +135,7 @@ class RenewalDataUsd extends Model
 
             if (! $startDate || ! $endDate) {
                 $startDate = $today;
-                $endDate = Carbon::now()->addDays(60)->format('Y-m-d');
+                $endDate = Carbon::now()->addDays(90)->format('Y-m-d');
             }
 
             $query = DB::connection('frontenddb')->table('crm_expiring_license')
@@ -276,9 +276,9 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
         // Get current filters (if any) or use defaults
         if (! $startDate || ! $endDate) {
             $today = Carbon::now()->format('Y-m-d');
-            $next60Days = Carbon::now()->addDays(60)->format('Y-m-d');
+            $next90Days = Carbon::now()->addDays(90)->format('Y-m-d');
             $startDate = $today;
-            $endDate = $next60Days;
+            $endDate = $next90Days;
         }
 
         // Load data for each box with date filtering
@@ -308,9 +308,9 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
             // Set default date range if not provided
             if (!$startDate || !$endDate) {
                 $today = Carbon::now()->format('Y-m-d');
-                $next60Days = Carbon::now()->addDays(60)->format('Y-m-d');
+                $next90Days = Carbon::now()->addDays(90)->format('Y-m-d');
                 $startDate = $today;
-                $endDate = $next60Days;
+                $endDate = $next90Days;
             }
 
             // Get renewals with new status that fall within date range
@@ -405,9 +405,9 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
             // Set default date range if not provided
             if (!$startDate || !$endDate) {
                 $today = Carbon::now()->format('Y-m-d');
-                $next60Days = Carbon::now()->addDays(60)->format('Y-m-d');
+                $next90Days = Carbon::now()->addDays(90)->format('Y-m-d');
                 $startDate = $today;
-                $endDate = $next60Days;
+                $endDate = $next90Days;
             }
 
             // Get renewals with pending_confirmation status that fall within date range
@@ -688,9 +688,9 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
             // Set default date range if not provided
             if (!$startDate || !$endDate) {
                 $today = Carbon::now()->format('Y-m-d');
-                $next60Days = Carbon::now()->addDays(60)->format('Y-m-d');
+                $next90Days = Carbon::now()->addDays(90)->format('Y-m-d');
                 $startDate = $today;
-                $endDate = $next60Days;
+                $endDate = $next90Days;
             }
 
             // Get renewals with completed_renewal status that fall within date range
@@ -971,16 +971,16 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                             ->placeholder('Select expiry date range')
                             ->default(function () {
                                 $today = Carbon::now()->format('d/m/Y');
-                                $next60Days = Carbon::now()->addDays(60)->format('d/m/Y');
+                                $next90Days = Carbon::now()->addDays(90)->format('d/m/Y');
 
-                                return $today.' - '.$next60Days;
+                                return $today.' - '.$next90Days;
                             }),
                     ])
                     ->query(function (Builder $query, array $data) {
                         if (empty($data['date_range'])) {
-                            // Default behavior: Apply 60-day limit except for pending_payment renewals
+                            // Default behavior: Apply 90-day limit except for pending_payment renewals
                             $today = Carbon::now()->format('Y-m-d');
-                            $next60Days = Carbon::now()->addDays(60)->format('Y-m-d');
+                            $next90Days = Carbon::now()->addDays(90)->format('Y-m-d');
 
                             // Get company IDs with pending_payment status
                             $pendingPaymentCompanyIds = Renewal::where('renewal_progress', 'pending_payment')
@@ -988,14 +988,14 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                                 ->toArray();
 
                             if (!empty($pendingPaymentCompanyIds)) {
-                                // Apply date filter: within 60 days OR pending_payment status
-                                $query->where(function ($q) use ($today, $next60Days, $pendingPaymentCompanyIds) {
-                                    $q->whereBetween('f_expiry_date', [$today, $next60Days])
+                                // Apply date filter: within 90 days OR pending_payment status
+                                $query->where(function ($q) use ($today, $next90Days, $pendingPaymentCompanyIds) {
+                                    $q->whereBetween('f_expiry_date', [$today, $next90Days])
                                     ->orWhereIn('f_company_id', $pendingPaymentCompanyIds);
                                 });
                             } else {
-                                // No pending_payment renewals, apply normal 60-day filter
-                                $query->whereBetween('f_expiry_date', [$today, $next60Days]);
+                                // No pending_payment renewals, apply normal 90-day filter
+                                $query->whereBetween('f_expiry_date', [$today, $next90Days]);
                             }
                         } else {
                             try {
@@ -1025,7 +1025,7 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                             } catch (\Exception $e) {
                                 Log::error('Date filter error: '.$e->getMessage());
                                 $today = Carbon::now()->format('Y-m-d');
-                                $next60Days = Carbon::now()->addDays(60)->format('Y-m-d');
+                                $next90Days = Carbon::now()->addDays(90)->format('Y-m-d');
 
                                 // Fallback with pending_payment exception
                                 $pendingPaymentCompanyIds = Renewal::where('renewal_progress', 'pending_payment')
@@ -1033,12 +1033,12 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                                     ->toArray();
 
                                 if (!empty($pendingPaymentCompanyIds)) {
-                                    $query->where(function ($q) use ($today, $next60Days, $pendingPaymentCompanyIds) {
-                                        $q->whereBetween('f_expiry_date', [$today, $next60Days])
+                                    $query->where(function ($q) use ($today, $next90Days, $pendingPaymentCompanyIds) {
+                                        $q->whereBetween('f_expiry_date', [$today, $next90Days])
                                         ->orWhereIn('f_company_id', $pendingPaymentCompanyIds);
                                     });
                                 } else {
-                                    $query->whereBetween('f_expiry_date', [$today, $next60Days]);
+                                    $query->whereBetween('f_expiry_date', [$today, $next90Days]);
                                 }
                             }
                         }
@@ -1057,8 +1057,8 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                         return 'Expiry: '.
                             Carbon::now()->format('j M Y').
                             ' → '.
-                            Carbon::now()->addDays(60)->format('j M Y').
-                            ' (Default 60 days + Pending Payment)';
+                            Carbon::now()->addDays(90)->format('j M Y').
+                            ' (Default 90 days + Pending Payment)';
                     }),
 
                 SelectFilter::make('renewal_progress')

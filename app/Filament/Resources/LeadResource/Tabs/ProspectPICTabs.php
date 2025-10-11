@@ -22,25 +22,21 @@ class ProspectPICTabs
             Grid::make(1)
                 ->schema([
                     // Primary PIC Section (from Company Details)
-                    Section::make('Primary Contact Person')
-                        ->description('Main person in-charge from company details')
-                        ->icon('heroicon-o-user')
+                    Section::make('Primary HR Details')
                         ->schema([
                             // Display primary PIC in a custom view
                             View::make('components.primary-pic-card')
                         ]),
 
-                    // Additional Prospect PICs Section
-                    Section::make('Additional Prospect Contacts')
-                        ->description('Additional persons in charge for this prospect')
-                        ->icon('heroicon-o-users')
+                    // Secondary HR Details Section
+                    Section::make('Secondary HR Details')
                         ->schema([
                             // Display saved prospect PICs in a card view
                             View::make('components.prospect-pic-cards')
                         ])
                         ->headerActions([
                             Action::make('add_prospect_pic')
-                                ->label('Add New Contact')
+                                ->label('+ HR Details')
                                 ->color('primary')
                                 ->modalWidth('5xl')
                                 ->form([

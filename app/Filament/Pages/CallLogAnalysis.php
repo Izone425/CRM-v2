@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Cache;
 
 class CallLogAnalysis extends Page
 {
-    protected static ?string $title = 'Call Log Analysis';
+    protected static ?string $title = '';
 
     protected static ?string $navigationLabel = 'Call Log Analysis';
 
@@ -24,13 +24,23 @@ class CallLogAnalysis extends Page
 
     public $selectedYear;
     public $selectedMonth;
+    public $dateRange = 'custom_range';
+    public $startDate;
+    public $endDate;
     public $moduleAnalysisData = [];
     public $supportAnalysisData = [];
 
     public function mount(): void
     {
+        // Default to current year and month
         $this->selectedYear = date('Y');
         $this->selectedMonth = date('m');
+
+        // Default date range: 1 month ago to today
+        $this->startDate = Carbon::today()->subMonth()->format('Y-m-d');
+        $this->endDate = Carbon::today()->format('Y-m-d');
+        $this->dateRange = 'custom_range';
+
         $this->loadAnalysisData();
     }
 
@@ -44,20 +54,69 @@ class CallLogAnalysis extends Page
         $this->loadAnalysisData();
     }
 
+    public function updatedDateRange()
+    {
+        // Update date range when predefined options are selected
+        switch ($this->dateRange) {
+            case 'last_2_days':
+                $this->startDate = Carbon::yesterday()->format('Y-m-d');
+                $this->endDate = Carbon::today()->format('Y-m-d');
+                break;
+            case 'last_7_days':
+                $this->startDate = Carbon::today()->subDays(6)->format('Y-m-d');
+                $this->endDate = Carbon::today()->format('Y-m-d');
+                break;
+            case 'last_30_days':
+                $this->startDate = Carbon::today()->subDays(29)->format('Y-m-d');
+                $this->endDate = Carbon::today()->format('Y-m-d');
+                break;
+            case 'current_month':
+                $this->startDate = Carbon::create($this->selectedYear, $this->selectedMonth, 1)->format('Y-m-d');
+                $this->endDate = Carbon::create($this->selectedYear, $this->selectedMonth, 1)->endOfMonth()->format('Y-m-d');
+                break;
+        }
+        $this->loadAnalysisData();
+    }
+
+    public function updatedStartDate()
+    {
+        if ($this->startDate && $this->endDate) {
+            $this->dateRange = 'custom_range';
+            $this->loadAnalysisData();
+        }
+    }
+
+    public function updatedEndDate()
+    {
+        if ($this->startDate && $this->endDate) {
+            $this->dateRange = 'custom_range';
+            $this->loadAnalysisData();
+        }
+    }
+
     public function loadAnalysisData()
     {
         $this->moduleAnalysisData = $this->getModuleAnalysis();
         $this->supportAnalysisData = $this->getSupportAnalysis();
     }
 
+    protected function getDateRange()
+    {
+        // Always use custom start and end dates
+        return [
+            'start' => Carbon::parse($this->startDate)->startOfDay(),
+            'end' => Carbon::parse($this->endDate)->endOfDay()
+        ];
+    }
+
     protected function getModuleAnalysis()
     {
-        $cacheKey = "module_analysis_{$this->selectedYear}_{$this->selectedMonth}";
+        $dateRange = $this->getDateRange();
+        $cacheKey = "module_analysis_custom_" . $dateRange['start']->format('Y-m-d') . '_' . $dateRange['end']->format('Y-m-d');
 
-        return Cache::remember($cacheKey, 300, function () {
-            // Get date range for the selected month/year
-            $startDate = Carbon::create($this->selectedYear, $this->selectedMonth, 1)->startOfMonth();
-            $endDate = $startDate->copy()->endOfMonth();
+        return Cache::remember($cacheKey, 300, function () use ($dateRange) {
+            $startDate = $dateRange['start'];
+            $endDate = $dateRange['end'];
 
             // Get all categories for mapping
             $categories = CallCategory::where('tier', 1)->get();
@@ -72,7 +131,7 @@ class CallLogAnalysis extends Page
             $receptionExtension = PhoneExtension::where('extension', '100')
                 ->value('extension') ?? '100';
 
-            // Generate all dates in the month
+            // Generate all dates in the range
             $dates = [];
             $currentDate = $startDate->copy();
             while ($currentDate <= $endDate) {
@@ -117,8 +176,14 @@ class CallLogAnalysis extends Page
             foreach ($categories as $category) {
                 $moduleName = $this->mapCategoryToModule($category->name);
                 if (!isset($moduleMapping[$moduleName])) {
+                    if (!isset($moduleMapping['Others']['categories'])) {
+                        $moduleMapping['Others']['categories'] = [];
+                    }
                     $moduleMapping['Others']['categories'][] = $category->id;
                 } else {
+                    if (!isset($moduleMapping[$moduleName]['categories'])) {
+                        $moduleMapping[$moduleName]['categories'] = [];
+                    }
                     $moduleMapping[$moduleName]['categories'][] = $category->id;
                 }
             }
@@ -162,12 +227,12 @@ class CallLogAnalysis extends Page
 
     protected function getSupportAnalysis()
     {
-        $cacheKey = "support_analysis_{$this->selectedYear}_{$this->selectedMonth}";
+        $dateRange = $this->getDateRange();
+        $cacheKey = "support_analysis_custom_" . $dateRange['start']->format('Y-m-d') . '_' . $dateRange['end']->format('Y-m-d');
 
-        return Cache::remember($cacheKey, 300, function () {
-            // Get date range for the selected month/year
-            $startDate = Carbon::create($this->selectedYear, $this->selectedMonth, 1)->startOfMonth();
-            $endDate = $startDate->copy()->endOfMonth();
+        return Cache::remember($cacheKey, 300, function () use ($dateRange) {
+            $startDate = $dateRange['start'];
+            $endDate = $dateRange['end'];
 
             // Get support staff
             $supportStaff = PhoneExtension::with('user')
@@ -175,7 +240,7 @@ class CallLogAnalysis extends Page
                 ->where('is_active', true)
                 ->get();
 
-            // Generate all dates in the month
+            // Generate all dates in the range
             $dates = [];
             $currentDate = $startDate->copy();
             while ($currentDate <= $endDate) {
@@ -246,6 +311,33 @@ class CallLogAnalysis extends Page
 
             return $result;
         });
+    }
+
+    public function getDateRangeOptions()
+    {
+        return [
+            'custom_range' => 'Custom Range',
+            'last_2_days' => 'Last 2 Days',
+            'last_7_days' => 'Last 7 Days',
+            'last_30_days' => 'Last 30 Days',
+            'current_month' => 'Current Month'
+        ];
+    }
+
+    public function getFormattedDateRange()
+    {
+        if ($this->startDate && $this->endDate) {
+            $start = Carbon::parse($this->startDate);
+            $end = Carbon::parse($this->endDate);
+
+            if ($start->isSameDay($end)) {
+                return $start->format('M j, Y');
+            } else {
+                return $start->format('M j') . ' - ' . $end->format('M j, Y');
+            }
+        }
+
+        return 'Select Date Range';
     }
 
     protected function mapCategoryToModule($categoryName)

@@ -34,13 +34,13 @@ class ProspectDetailsTabs
         return [
             Tabs::make('Prospect Details')
                 ->tabs([
-                    Tabs\Tab::make('Lead')
+                    Tabs\Tab::make('Marketing')
                         ->schema(LeadTabs::getSchema()),
 
                     Tabs\Tab::make('Company')
                         ->schema(CompanyTabs::getSchema()),
 
-                    Tabs\Tab::make('Prospect PICs')
+                    Tabs\Tab::make('HR Details')
                         ->schema(ProspectPICTabs::getSchema()),
 
                     Tabs\Tab::make('Refer & Earn')

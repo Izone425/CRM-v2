@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Filament\Pages;
 
 use App\Models\Renewal;
@@ -88,6 +87,11 @@ class RenewalDataAnalysis extends Page
                 case 'next_two_months':
                     $startDate = $today->copy()->addMonths(2)->startOfMonth()->format('Y-m-d');
                     $endDate = $today->copy()->addMonths(2)->endOfMonth()->format('Y-m-d');
+                    break;
+
+                case 'next_three_months':
+                    $startDate = $today->copy()->addMonths(3)->startOfMonth()->format('Y-m-d');
+                    $endDate = $today->copy()->addMonths(3)->endOfMonth()->format('Y-m-d');
                     break;
 
                 default:

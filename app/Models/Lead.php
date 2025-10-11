@@ -283,10 +283,10 @@ class Lead extends Model
         return $this->hasMany(HardwareHandover::class);
     }
 
-    // public function hardwareHandoverV2()
-    // {
-    //     return $this->hasMany(HardwareHandoverV2::class);
-    // }
+    public function hardwareHandoverV2()
+    {
+        return $this->hasMany(HardwareHandoverV2::class);
+    }
 
     public function hrdfHandover()
     {
