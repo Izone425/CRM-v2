@@ -34,9 +34,6 @@ class ProspectDetailsTabs
         return [
             Tabs::make('Prospect Details')
                 ->tabs([
-                    Tabs\Tab::make('Marketing')
-                        ->schema(LeadTabs::getSchema()),
-
                     Tabs\Tab::make('Company')
                         ->schema(CompanyTabs::getSchema()),
 
@@ -45,6 +42,9 @@ class ProspectDetailsTabs
 
                     Tabs\Tab::make('Refer & Earn')
                         ->schema(ReferEarnTabs::getSchema()),
+
+                    Tabs\Tab::make('Marketing')
+                        ->schema(LeadTabs::getSchema()),
                 ])
                 ->columnSpan(2)
                 ->visible(function ($livewire) {

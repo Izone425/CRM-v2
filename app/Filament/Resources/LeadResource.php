@@ -10,6 +10,7 @@ use App\Filament\Actions\LeadActions;
 use App\Filament\Resources\LeadResource\Pages;
 use App\Filament\Resources\LeadResource\RelationManagers\ActivityLogRelationManager;
 use App\Filament\Resources\LeadResource\RelationManagers\DemoAppointmentRelationManager;
+use App\Filament\Resources\LeadResource\RelationManagers\FinanceHandoverRelationManager;
 use App\Filament\Resources\LeadResource\RelationManagers\HardwareHandoverRelationManager;
 use App\Filament\Resources\LeadResource\RelationManagers\HardwareHandoverV2RelationManager;
 use App\Filament\Resources\LeadResource\RelationManagers\HeadcountHandoverRelationManager;
@@ -60,6 +61,7 @@ use App\Filament\Resources\LeadResource\Tabs\TicketingTabs;
 use App\Models\Lead;
 use App\Models\Renewal;
 use Carbon\Carbon;
+use Fiber;
 use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
@@ -169,7 +171,7 @@ class LeadResource extends Resource
         }
 
         if (in_array('prospect_details', $activeTabs)) {
-            $tabs[] = Tabs\Tab::make('Lead')
+            $tabs[] = Tabs\Tab::make('Prospect')
                 ->schema(ProspectDetailsTabs::getSchema());
         }
 
@@ -1304,6 +1306,7 @@ class LeadResource extends Resource
             HRDFHandoverRelationManager::class,
             HeadcountHandoverRelationManager::class,
             HardwareHandoverV2RelationManager::class,
+            FinanceHandoverRelationManager::class,
         ];
     }
 

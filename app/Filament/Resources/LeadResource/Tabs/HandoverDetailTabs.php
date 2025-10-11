@@ -69,7 +69,9 @@ class HandoverDetailTabs
 
                     Tabs\Tab::make('Finance Handover')
                         ->schema([
-
+                            \Njxqlus\Filament\Components\Forms\RelationManager::make()
+                                ->manager(\App\Filament\Resources\LeadResource\RelationManagers\FinanceHandoverRelationManager::class
+                            ),
                         ]),
 
                     Tabs\Tab::make('Reseller Handover')

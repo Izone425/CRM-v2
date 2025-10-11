@@ -299,6 +299,11 @@ class Lead extends Model
         return $this->hasMany(HeadcountHandover::class);
     }
 
+    public function financeHandover()
+    {
+        return $this->hasMany(FinanceHandover::class);
+    }
+
     public function reseller(): HasOne
     {
         return $this->hasOne(Reseller::class);
@@ -329,6 +334,34 @@ class Lead extends Model
     {
         return $this->belongsTo(User::class, 'salesperson');
     }
+
+    public function getSalespersonUser()
+    {
+        if (!$this->salesperson) {
+            return null;
+        }
+
+        // If salesperson is stored as user ID
+        if (is_numeric($this->salesperson)) {
+            return User::find($this->salesperson);
+        }
+
+        // If salesperson is stored as name, search by name
+        return User::where('name', $this->salesperson)->first();
+    }
+
+    public function getSalespersonEmail()
+    {
+        $user = $this->getSalespersonUser();
+        return $user ? $user->email : null;
+    }
+
+    // You can also add this as an accessor for easier access
+    public function getSalespersonEmailAttribute()
+    {
+        return $this->getSalespersonEmail();
+    }
+
     // public function getDealAmountAttribute()
     // {
     //     return $this->quotations->sum(function ($quotation) {

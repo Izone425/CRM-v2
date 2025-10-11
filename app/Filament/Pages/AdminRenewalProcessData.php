@@ -197,6 +197,73 @@ class AdminRenewalProcessData extends Page implements HasTable
                 return $baseQuery;
             })
             ->filters([
+                Filter::make('expiry_date_range')
+                    ->form([
+                        DatePicker::make('expiry_from')
+                            ->label('Expiry From')
+                            ->placeholder('Select start date')
+                            ->displayFormat('d/m/Y')
+                            ->format('Y-m-d')
+                            ->default(Carbon::now()->format('Y-m-d')), // Default to today
+
+                        DatePicker::make('expiry_until')
+                            ->label('Expiry Until')
+                            ->placeholder('Select end date')
+                            ->displayFormat('d/m/Y')
+                            ->format('Y-m-d')
+                            ->default(Carbon::now()->addMonths(3)->format('Y-m-d')), // Default to 3 months from now
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query
+                            ->when(
+                                $data['expiry_from'],
+                                function (Builder $query, $date): Builder {
+                                    // Filter at the row level before aggregation
+                                    $subQuery = RenewalData::query()
+                                        ->select('f_company_id')
+                                        ->whereRaw('f_expiry_date >= ?', [$date])
+                                        ->whereRaw('f_expiry_date >= ?', [Carbon::now()->format('Y-m-d')])
+                                        ->distinct();
+
+                                    // Apply product filtering to subquery
+                                    RenewalData::applyProductFilter($subQuery);
+
+                                    return $query->whereIn('f_company_id', $subQuery);
+                                }
+                            )
+                            ->when(
+                                $data['expiry_until'],
+                                function (Builder $query, $date): Builder {
+                                    // Filter at the row level before aggregation
+                                    $subQuery = RenewalData::query()
+                                        ->select('f_company_id')
+                                        ->whereRaw('f_expiry_date <= ?', [$date])
+                                        ->whereRaw('f_expiry_date >= ?', [Carbon::now()->format('Y-m-d')])
+                                        ->distinct();
+
+                                    // Apply product filtering to subquery
+                                    RenewalData::applyProductFilter($subQuery);
+
+                                    return $query->whereIn('f_company_id', $subQuery);
+                                }
+                            );
+                    })
+                    ->indicateUsing(function (array $data): array {
+                        $indicators = [];
+
+                        if ($data['expiry_from']) {
+                            $indicators[] = Indicator::make('Expiry from: ' . Carbon::parse($data['expiry_from'])->format('d M Y'))
+                                ->removeField('expiry_from');
+                        }
+
+                        if ($data['expiry_until']) {
+                            $indicators[] = Indicator::make('Expiry until: ' . Carbon::parse($data['expiry_until'])->format('d M Y'))
+                                ->removeField('expiry_until');
+                        }
+
+                        return $indicators;
+                    }),
+
                 SelectFilter::make('f_name')
                     ->label('Products')
                     ->multiple()
