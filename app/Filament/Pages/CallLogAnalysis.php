@@ -46,12 +46,24 @@ class CallLogAnalysis extends Page
 
     public function updatedSelectedYear()
     {
+        if ($this->dateRange === 'current_month') {
+            $this->updateCurrentMonthDates();
+        }
         $this->loadAnalysisData();
     }
 
     public function updatedSelectedMonth()
     {
+        if ($this->dateRange === 'current_month') {
+            $this->updateCurrentMonthDates();
+        }
         $this->loadAnalysisData();
+    }
+
+    private function updateCurrentMonthDates()
+    {
+        $this->startDate = Carbon::create($this->selectedYear, $this->selectedMonth, 1)->format('Y-m-d');
+        $this->endDate = Carbon::create($this->selectedYear, $this->selectedMonth, 1)->endOfMonth()->format('Y-m-d');
     }
 
     public function updatedDateRange()
@@ -361,11 +373,19 @@ class CallLogAnalysis extends Page
 
     public function getAvailableYears()
     {
-        return CallLog::selectRaw('YEAR(started_at) as year')
+        $years = CallLog::selectRaw('YEAR(started_at) as year')
             ->distinct()
             ->orderByDesc('year')
             ->pluck('year')
             ->toArray();
+
+        // Ensure current year is included even if no data exists
+        if (!in_array(date('Y'), $years)) {
+            $years[] = date('Y');
+            rsort($years);
+        }
+
+        return $years;
     }
 
     public function getAvailableMonths()

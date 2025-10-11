@@ -847,7 +847,7 @@
                             <a href="{{ route('filament.admin.pages.sales-admin-closed-deal') }}" class="submenu-item">
                                 <span class="module-font">Sales Admin - Closed Deal</span>
                             </a>
-                            <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
+                            <a href="{{ route('filament.admin.pages.sales-admin-invoices') }}" class="submenu-item">
                                 <span class="module-font">Sales Admin - Invoice</span>
                             </a>
                             <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
@@ -1553,7 +1553,7 @@
                             <a href="{{ route('filament.admin.pages.call-logs') }}" class="submenu-item">
                                 <span class="module-font">Call Log - List</span>
                             </a>
-                            <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
+                            <a href="{{ route('filament.admin.pages.call-log-analysis') }}" class="submenu-item">
                                 <span class="module-font">Call Log - Analysis</span>
                             </a>
                             <a href="{{ route('filament.admin.resources.call-categories.index') }}" class="submenu-item">

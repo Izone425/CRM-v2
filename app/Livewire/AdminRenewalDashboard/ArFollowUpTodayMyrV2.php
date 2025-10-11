@@ -83,7 +83,7 @@ class ArFollowUpTodayMyrV2 extends Component implements HasForms, HasTable
             ->select('f_company_id')
             ->where('f_currency', 'MYR')
             ->whereDate('f_expiry_date', '>=', today())
-            ->whereDate('f_expiry_date', '<=', today()->addDays(60))
+            ->whereDate('f_expiry_date', '<=', today()->addDays(90))
             ->distinct()
             ->pluck('f_company_id')
             ->flatMap(function($id) {

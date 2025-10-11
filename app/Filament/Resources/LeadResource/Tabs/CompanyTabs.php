@@ -104,6 +104,7 @@ class CompanyTabs
                                                             '501 and Above' => '501 and Above',
                                                         ])
                                                         ->required()
+                                                        ->visible(fn () => in_array(auth()->user()->role_id, [1, 3]))
                                                         ->default(fn ($record) => $record->company_size ?? 'Unknown'),                                                 ]);
 
                                             return $schema;
@@ -664,23 +665,23 @@ class CompanyTabs
                                 ->extraAttributes([
                                     'style' => 'background-color: #fff5f5; border: dashed; border-color: #feb2b2;'
                                 ])
-                                ->visible(function (Lead $lead) {
-                                    // Admin role always has access
-                                    if (auth()->user()->role_id === 3 || auth()->user()->role_id === 5) {
-                                        return true;
-                                    }
+                                // ->visible(function (Lead $lead) {
+                                //     // Admin role always has access
+                                //     if (auth()->user()->role_id === 3 || auth()->user()->role_id === 5) {
+                                //         return true;
+                                //     }
 
-                                    // Check if current user is the implementer for this lead
-                                    $latestHandover = $lead->softwareHandover()
-                                        ->orderBy('created_at', 'desc')
-                                        ->first();
+                                //     // Check if current user is the implementer for this lead
+                                //     $latestHandover = $lead->softwareHandover()
+                                //         ->orderBy('created_at', 'desc')
+                                //         ->first();
 
-                                    if ($latestHandover && strtolower($latestHandover->implementer) === strtolower(auth()->user()->name)) {
-                                        return true;
-                                    }
+                                //     if ($latestHandover && strtolower($latestHandover->implementer) === strtolower(auth()->user()->name)) {
+                                //         return true;
+                                //     }
 
-                                    return false;
-                                })
+                                //     return false;
+                                // })
                                 ->headerActions([
                                     Action::make('edit_project_info')
                                         ->label('Edit')

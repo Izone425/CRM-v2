@@ -52,16 +52,14 @@ class SubscriberDetailsTabs
                                 $lead->eInvoiceDetail !== null
                             ),
                         Action::make('edit_e_invoice')
-                            ->label('Edit E-Invoice Details')
+                            ->label('Edit')
                             ->icon('heroicon-o-pencil')
                             ->color('primary')
                             ->modal()
                             ->modalHeading('Edit E-Invoice Details')
-                            ->modalDescription('Update the e-invoice information for this lead')
                             ->modalWidth('4xl')
                             ->form([
                                 Section::make('Company Information')
-                                    ->description('Basic company details for e-invoice generation')
                                     ->schema([
                                         Grid::make(2)
                                             ->schema([
@@ -114,7 +112,6 @@ class SubscriberDetailsTabs
 
                                                 TextInput::make('tax_identification_number')
                                                     ->label('Tax Identification Number')
-                                                    ->required()
                                                     ->maxLength(255),
 
                                                 Select::make('business_category')
@@ -132,20 +129,41 @@ class SubscriberDetailsTabs
                                                 TextInput::make('address_1')
                                                     ->label('Address 1')
                                                     ->required()
+                                                    ->default(function ($record) {
+                                                        // First try eInvoiceDetail, then companyDetail
+                                                        return $record->eInvoiceDetail->address_1 ??
+                                                            $record->companyDetail->company_address1 ?? '';
+                                                    })
                                                     ->maxLength(255),
 
                                                 TextInput::make('address_2')
                                                     ->label('Address 2')
+                                                    ->default(function ($record) {
+                                                        // First try eInvoiceDetail, then companyDetail
+                                                        return $record->eInvoiceDetail->address_2 ??
+                                                            $record->companyDetail->company_address2 ?? '';
+                                                    })
                                                     ->maxLength(255),
 
                                                 TextInput::make('postcode')
                                                     ->label('Postcode')
                                                     ->required()
+                                                    ->default(function ($record) {
+                                                        // First try eInvoiceDetail, then companyDetail
+                                                        return $record->eInvoiceDetail->postcode ??
+                                                            $record->companyDetail->postcode ?? '';
+                                                    })
                                                     ->maxLength(10),
 
                                                 TextInput::make('city')
                                                     ->label('City')
                                                     ->required()
+                                                    ->default(function ($record) {
+                                                        // First try eInvoiceDetail, then companyDetail, then lead city
+                                                        return $record->eInvoiceDetail->city ??
+                                                            $record->companyDetail->city ??
+                                                            $record->city ?? '';
+                                                    })
                                                     ->maxLength(255),
 
                                                 Select::make('state')
@@ -378,6 +396,7 @@ class SubscriberDetailsTabs
                             ->fillForm(function ($record) {
                                 // Pre-fill the form with existing e-invoice data
                                 $eInvoiceDetail = $record->eInvoiceDetail;
+                                $companyDetail = $record->companyDetail;
 
                                 if ($eInvoiceDetail) {
                                     $data = $eInvoiceDetail->toArray();
@@ -391,22 +410,49 @@ class SubscriberDetailsTabs
                                         $data['state'] = self::getStateCode($data['state']);
                                     }
 
+                                    // Fill missing data from companyDetail if available
+                                    if ($companyDetail) {
+                                        $data['company_name'] = $data['company_name'] ?? $companyDetail->company_name ?? $record->name ?? '';
+                                        $data['business_register_number'] = $data['business_register_number'] ?? $companyDetail->reg_no_new ?? '';
+                                        $data['address_1'] = $data['address_1'] ?? $companyDetail->company_address1 ?? '';
+                                        $data['address_2'] = $data['address_2'] ?? $companyDetail->company_address2 ?? '';
+                                        $data['postcode'] = $data['postcode'] ?? $companyDetail->postcode ?? '';
+                                        $data['city'] = $data['city'] ?? $companyDetail->city ?? $record->city ?? '';
+                                    }
+
                                     return $data;
+                                }
+
+                                // If no eInvoiceDetail exists, use companyDetail as primary source
+                                $data = [];
+
+                                if ($companyDetail) {
+                                    $data['company_name'] = $companyDetail->company_name ?? $record->name ?? '';
+                                    $data['business_register_number'] = $companyDetail->reg_no_new ?? '';
+                                    $data['address_1'] = $companyDetail->company_address1 ?? '';
+                                    $data['address_2'] = $companyDetail->company_address2 ?? '';
+                                    $data['postcode'] = $companyDetail->postcode ?? '';
+                                    $data['city'] = $companyDetail->city ?? $record->city ?? '';
+                                    $data['state'] = $companyDetail->state ? self::getStateCode($companyDetail->state) : '10';
+                                } else {
+                                    // Fallback to lead data if no companyDetail
+                                    $data['company_name'] = $record->name ?? '';
+                                    $data['city'] = $record->city ?? '';
                                 }
 
                                 // Determine defaults based on lead's country
                                 $leadCountryCode = $record->country ? self::getCountryCode($record->country) : 'MYS';
                                 $isLocalBusiness = $leadCountryCode === 'MYS';
 
-                                // Return default values if no e-invoice detail exists
-                                return [
-                                    'business_category' => 'business',
-                                    'currency' => $isLocalBusiness ? 'MYR' : 'USD',
-                                    'business_type' => $isLocalBusiness ? 'local_business' : 'foreign_business',
-                                    'state' => $isLocalBusiness ? '10' : '17', // Selangor for Malaysia, Not Applicable for others
-                                    'country' => $leadCountryCode,
-                                    'billing_category' => 'billing_to_subscriber',
-                                ];
+                                // Set business defaults
+                                $data['business_category'] = 'business';
+                                $data['currency'] = $isLocalBusiness ? 'MYR' : 'USD';
+                                $data['business_type'] = $isLocalBusiness ? 'local_business' : 'foreign_business';
+                                $data['state'] = $data['state'] ?? ($isLocalBusiness ? '10' : '17'); // Selangor for Malaysia, Not Applicable for others
+                                $data['country'] = $leadCountryCode;
+                                $data['billing_category'] = 'billing_to_subscriber';
+
+                                return $data;
                             })
                             ->action(function ($record, array $data) {
                                 // Update or create e-invoice details

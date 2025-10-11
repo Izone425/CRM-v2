@@ -1,40 +1,84 @@
-<!-- filepath: /var/www/html/timeteccrm/resources/views/components/einvoice-details-card.blade.php -->
+{{-- filepath: /var/www/html/timeteccrm/resources/views/components/einvoice-details-card.blade.php --}}
 @php
     $record = $this->record;
     $eInvoiceDetail = $record->eInvoiceDetail;
+    $companyDetail = $record->companyDetail;
+
+    // Helper function to get value with fallback
+    $getValue = function($eInvoiceValue, $companyValue = null) {
+        if ($eInvoiceValue) {
+            return $eInvoiceValue;
+        }
+        if ($companyValue) {
+            return $companyValue;
+        }
+        return '-';
+    };
+
+    $eInvoiceDetails = [
+        // Company Information - fallback to companyDetail
+        ['label' => 'Company Name', 'value' => $getValue($eInvoiceDetail->company_name ?? null, $companyDetail->company_name ?? null)],
+        ['label' => 'Business Register Number', 'value' => $getValue($eInvoiceDetail->business_register_number ?? null, $companyDetail->reg_no_new ?? null)],
+        ['label' => 'Tax Identification Number', 'value' => $eInvoiceDetail->tax_identification_number ?? '-'],
+        ['label' => 'Business Category', 'value' => $eInvoiceDetail && $eInvoiceDetail->business_category ? ucfirst(str_replace('_', ' ', $eInvoiceDetail->business_category)) : '-'],
+
+        // Add separator marker
+        ['separator' => true],
+
+        // Address Information - fallback to companyDetail
+        ['label' => 'Address 1', 'value' => $getValue($eInvoiceDetail->address_1 ?? null, $companyDetail->company_address1 ?? null)],
+        ['label' => 'Address 2', 'value' => $getValue($eInvoiceDetail->address_2 ?? null, $companyDetail->company_address2 ?? null)],
+        ['label' => 'City', 'value' => $getValue($eInvoiceDetail->city ?? null, $companyDetail->city ?? null)],
+        ['label' => 'Postcode', 'value' => $getValue($eInvoiceDetail->postcode ?? null, $companyDetail->postcode ?? null)],
+        ['label' => 'State', 'value' => $getValue($eInvoiceDetail->state ?? null, $companyDetail->state ?? null)],
+['label' => 'Country', 'value' => $getValue($eInvoiceDetail->country ?? null, $record->country ?? null)],
+        // Add separator marker
+        ['separator' => true],
+
+        // Business Configuration
+        ['label' => 'Currency', 'value' => $eInvoiceDetail->currency ?? '-'],
+        ['label' => 'Business Type', 'value' => $eInvoiceDetail && $eInvoiceDetail->business_type ? ucfirst(str_replace('_', ' ', $eInvoiceDetail->business_type)) : '-'],
+        ['label' => 'MSIC Code', 'value' => $eInvoiceDetail->msic_code ?? '-'],
+        ['label' => 'Billing Category', 'value' => $eInvoiceDetail && $eInvoiceDetail->billing_category ? ucfirst(str_replace('_', ' ', $eInvoiceDetail->billing_category)) : '-'],
+    ];
+
+    // Group items with separators handled
+    $processedItems = [];
+    $currentRow = [];
+
+    foreach ($eInvoiceDetails as $item) {
+        if (isset($item['separator'])) {
+            // If we have items in current row, add them
+            if (!empty($currentRow)) {
+                $processedItems[] = ['type' => 'row', 'items' => $currentRow];
+                $currentRow = [];
+            }
+            // Add separator
+            $processedItems[] = ['type' => 'separator'];
+        } else {
+            $currentRow[] = $item;
+            // If we have 2 items, create a row
+            if (count($currentRow) == 2) {
+                $processedItems[] = ['type' => 'row', 'items' => $currentRow];
+                $currentRow = [];
+            }
+        }
+    }
+
+    // Add any remaining items
+    if (!empty($currentRow)) {
+        $processedItems[] = ['type' => 'row', 'items' => $currentRow];
+    }
 @endphp
 
-@if($eInvoiceDetail)
-    @php
-        $eInvoiceDetails = [
-            // Company Information
-            ['label' => 'Company Name', 'value' => $eInvoiceDetail->company_name ?? '-'],
-            ['label' => 'Business Register Number', 'value' => $eInvoiceDetail->business_register_number ?? '-'],
-            ['label' => 'Tax Identification Number', 'value' => $eInvoiceDetail->tax_identification_number ?? '-'],
-            ['label' => 'Business Category', 'value' => $eInvoiceDetail->business_category ? ucfirst(str_replace('_', ' ', $eInvoiceDetail->business_category)) : '-'],
-
-            // Address Information
-            ['label' => 'Address 1', 'value' => $eInvoiceDetail->address_1 ?? '-'],
-            ['label' => 'Address 2', 'value' => $eInvoiceDetail->address_2 ?? '-'],
-            ['label' => 'City', 'value' => $eInvoiceDetail->city ?? '-'],
-            ['label' => 'Postcode', 'value' => $eInvoiceDetail->postcode ?? '-'],
-            ['label' => 'State', 'value' => $eInvoiceDetail->state ?? '-'],
-            ['label' => 'Country', 'value' => $eInvoiceDetail->country ?? '-'],
-
-            // Business Configuration
-            ['label' => 'Currency', 'value' => $eInvoiceDetail->currency ?? '-'],
-            ['label' => 'Business Type', 'value' => $eInvoiceDetail->business_type ? ucfirst(str_replace('_', ' ', $eInvoiceDetail->business_type)) : '-'],
-            ['label' => 'MSIC Code', 'value' => $eInvoiceDetail->msic_code ?? '-'],
-            ['label' => 'Billing Category', 'value' => $eInvoiceDetail->billing_category ? ucfirst(str_replace('_', ' ', $eInvoiceDetail->billing_category)) : '-'],
-        ];
-
-        // Chunk into rows of 2 for 2-column layout
-        $rows = array_chunk($eInvoiceDetails, 2);
-    @endphp
-
-    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px;" class="grid grid-cols-2 gap-6">
-        @foreach ($rows as $row)
-            @foreach ($row as $item)
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px;" class="grid grid-cols-2 gap-6">
+    @foreach ($processedItems as $processedItem)
+        @if ($processedItem['type'] === 'separator')
+            <div style="grid-column: 1 / -1;">
+                <hr class="border-gray-200 dark:border-gray-700">
+            </div>
+        @else
+            @foreach ($processedItem['items'] as $item)
                 <div style="--col-span-default: span 1 / span 1;" class="col-[--col-span-default]">
                     <div data-field-wrapper="" class="fi-fo-field-wrp">
                         <div class="grid gap-y-2">
@@ -54,14 +98,6 @@
                     </div>
                 </div>
             @endforeach
-        @endforeach
-    </div>
-@else
-    <div class="py-12 text-center">
-        <svg class="w-12 h-12 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-        </svg>
-        <h3 class="mb-2 text-lg font-medium text-gray-900">No E-Invoice Details</h3>
-        <p class="text-sm text-gray-500">Click "Edit E-Invoice Details" to add e-invoice information for this lead.</p>
-    </div>
-@endif
+        @endif
+    @endforeach
+</div>

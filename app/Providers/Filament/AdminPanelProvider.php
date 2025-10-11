@@ -60,6 +60,7 @@ use App\Filament\Pages\SalesAdminAnalysisV2;
 use App\Filament\Pages\SalesAdminAnalysisV3;
 use App\Filament\Pages\SalesAdminAnalysisV4;
 use App\Filament\Pages\SalesAdminClosedDeal;
+use App\Filament\Pages\SalesAdminInvoice;
 use App\Filament\Pages\SalesDebtor;
 use App\Filament\Pages\SalesForecast;
 use App\Filament\Pages\SalesForecastSummary;
@@ -347,6 +348,7 @@ class AdminPanelProvider extends PanelProvider
                 HrdfHandoverList::class,
                 RenewalDataAnalysis::class,
                 CallLogAnalysis::class,
+                SalesAdminInvoice::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([

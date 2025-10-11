@@ -83,7 +83,7 @@ class ArFollowUpAllUsdV2 extends Component implements HasForms, HasTable
             ->select('f_company_id')
             ->where('f_currency', 'USD')
             ->whereDate('f_expiry_date', '>=', today())
-            ->whereDate('f_expiry_date', '<=', today()->addDays(60))
+            ->whereDate('f_expiry_date', '<=', today()->addDays(90))
             ->distinct()
             ->pluck('f_company_id')
             ->flatMap(function($id) {
@@ -128,7 +128,7 @@ class ArFollowUpAllUsdV2 extends Component implements HasForms, HasTable
                 ->table('crm_expiring_license')
                 ->where('f_company_id', $companyId)
                 ->where('f_expiry_date', '>=', $today)
-                ->whereDate('f_expiry_date', '<=', today()->addDays(60))
+                ->whereDate('f_expiry_date', '<=', today()->addDays(90))
                 ->where('f_currency', 'USD')
                 ->whereNotIn('f_name', [
                     'TimeTec VMS Corporate (1 Floor License)',

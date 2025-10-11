@@ -85,7 +85,7 @@ class AutoMappingRenewalCommand extends Command
     protected function getCompaniesNeedingMapping()
     {
         $today = Carbon::now()->format('Y-m-d');
-        $next60Days = Carbon::now()->addDays(60)->format('Y-m-d');
+        $next90Days = Carbon::now()->addDays(90)->format('Y-m-d');
 
         // Get companies from crm_expiring_license that don't exist in renewal table
         $query = DB::connection('frontenddb')->table('crm_expiring_license')
@@ -95,7 +95,7 @@ class AutoMappingRenewalCommand extends Command
                 DB::raw('MIN(f_expiry_date) as earliest_expiry'),
                 DB::raw('COUNT(*) as license_count')
             ])
-            ->whereBetween('f_expiry_date', [$today, $next60Days])
+            ->whereBetween('f_expiry_date', [$today, $next90Days])
             ->whereRaw('f_expiry_date >= ?', [$today]);
 
         // Apply product exclusions
