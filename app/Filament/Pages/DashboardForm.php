@@ -96,6 +96,7 @@ class DashboardForm extends Page
             'MainAdminDashboard',
             'SoftwareAdmin',
             'HardwareAdmin',
+            'HardwareAdminV2',
             'AdminRepair',
             'Training',
             'Finance',

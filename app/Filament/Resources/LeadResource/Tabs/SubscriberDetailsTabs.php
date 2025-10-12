@@ -39,18 +39,18 @@ class SubscriberDetailsTabs
             ->schema([
                 Section::make('E-Invoice Information')
                     ->headerActions([
-                        Action::make('export_to_excel')
-                            ->label('Export to Excel')
-                            ->icon('heroicon-o-document-arrow-down')
-                            ->color('success')
-                            ->url(function ($record) {
-                                return route('einvoice.export', ['lead' => Encryptor::encrypt($record->id)]);
-                            })
-                            ->openUrlInNewTab()
-                            ->visible(fn (Lead $lead) =>
-                                // Show export button only if e-invoice details exist
-                                $lead->eInvoiceDetail !== null
-                            ),
+                        // Action::make('export_to_excel')
+                        //     ->label('Export to Excel')
+                        //     ->icon('heroicon-o-document-arrow-down')
+                        //     ->color('success')
+                        //     ->url(function ($record) {
+                        //         return route('einvoice.export', ['lead' => Encryptor::encrypt($record->id)]);
+                        //     })
+                        //     ->openUrlInNewTab()
+                        //     ->visible(fn (Lead $lead) =>
+                        //         // Show export button only if e-invoice details exist
+                        //         $lead->eInvoiceDetail !== null
+                        //     ),
                         Action::make('edit_e_invoice')
                             ->label('Edit')
                             ->icon('heroicon-o-pencil')

@@ -1,8 +1,10 @@
 <?php
+// filepath: /var/www/html/timeteccrm/app/Console/Commands/SyncHandoversStatus.php
 
 namespace App\Console\Commands;
 
 use App\Models\HardwareHandover;
+use App\Models\HardwareHandoverV2;
 use App\Models\SoftwareHandover;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
@@ -21,7 +23,7 @@ class SyncHandoversStatus extends Command
      *
      * @var string
      */
-    protected $description = 'Sync hardware handovers status based on software handover migration status';
+    protected $description = 'Sync hardware handovers status based on invoice type and software handover migration status';
 
     /**
      * Execute the console command.
@@ -29,41 +31,64 @@ class SyncHandoversStatus extends Command
     public function handle()
     {
         Log::info('Starting handover synchronization...');
-        $count = 0;
+        $singleInvoiceCount = 0;
+        $combinedInvoiceCount = 0;
 
-        // Get all completed software handovers with data migrated = true
-        $migratedSoftwareHandovers = SoftwareHandover::where('data_migrated', true)
-            ->whereNotNull('completed_at')
-            ->whereNotNull('lead_id')
+        // Handle Single Invoice Type - Direct to Pending Payment
+        $singleInvoiceHandovers = HardwareHandoverV2::where('status', 'Pending Migration')
+            ->where('invoice_type', 'single')
             ->get();
 
-        Log::info('Found ' . $migratedSoftwareHandovers->count() . ' migrated software handovers');
+        Log::info('Found ' . $singleInvoiceHandovers->count() . ' single invoice handovers in Pending Migration');
 
-        // For each migrated software handover, check related hardware handovers
-        foreach ($migratedSoftwareHandovers as $softwareHandover) {
-            // First, get the latest hardware handover for this lead
-            $latestHandover = HardwareHandover::where('lead_id', $softwareHandover->lead_id)
-                ->orderBy('created_at', 'desc')
+        foreach ($singleInvoiceHandovers as $handover) {
+            $handover->update([
+                'status' => 'Pending Payment',
+                'payment_pending_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            $singleInvoiceCount++;
+            $this->info("Updated single invoice hardware handover #{$handover->id} directly to Pending Payment");
+        }
+
+        // Handle Combined Invoice Type - Check Software Handover Migration
+        $combinedInvoiceHandovers = HardwareHandoverV2::where('status', 'Pending Migration')
+            ->where('invoice_type', 'combined')
+            ->get();
+
+        Log::info('Found ' . $combinedInvoiceHandovers->count() . ' combined invoice handovers in Pending Migration');
+
+        foreach ($combinedInvoiceHandovers as $handover) {
+            // Check if related software handover is migrated
+            $migratedSoftwareHandover = SoftwareHandover::where('lead_id', $handover->lead_id)
+                ->where('data_migrated', true)
+                ->whereNotNull('completed_at')
                 ->first();
 
-            // Skip if no hardware handover exists
-            if (!$latestHandover) {
-                continue;
-            }
-
-            // Only proceed if the latest handover has 'Pending Migration' status
-            if ($latestHandover->status === 'Pending Migration') {
-                $latestHandover->update([
-                    'status' => 'Completed Migration',
-                    'completed_at' => now(),
+            if ($migratedSoftwareHandover) {
+                $handover->update([
+                    'status' => 'Pending Payment',
+                    'payment_pending_at' => now(),
+                    'completed_migration_at' => now(),
                     'updated_at' => now(),
                 ]);
 
-                $count++;
-                $this->info("Updated latest hardware handover #{$latestHandover->id} for lead #{$softwareHandover->lead_id}");
+                $combinedInvoiceCount++;
+                $this->info("Updated combined invoice hardware handover #{$handover->id} to Pending Payment (software migrated)");
+            } else {
+                $this->line("Combined invoice hardware handover #{$handover->id} waiting for software migration");
             }
         }
+        $totalCount = $singleInvoiceCount + $combinedInvoiceCount;
 
-        Log::info("Sync completed. Updated $count hardware handovers.");
+        $this->info("=== Sync Summary ===");
+        $this->info("Single invoice handovers updated: {$singleInvoiceCount}");
+        $this->info("Combined invoice handovers updated: {$combinedInvoiceCount}");
+        $this->info("Total handovers updated: {$totalCount}");
+
+        Log::info("Sync completed. Updated {$totalCount} hardware handovers. Single: {$singleInvoiceCount}, Combined: {$combinedInvoiceCount}");
+
+        return Command::SUCCESS;
     }
 }

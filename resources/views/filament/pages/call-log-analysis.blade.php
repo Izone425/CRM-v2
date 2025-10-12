@@ -290,30 +290,84 @@
                 height: 300px;
             }
         }
+
+        .chart-tooltip {
+            position: fixed;
+            background: rgba(0,0,0,0.9);
+            color: white;
+            padding: 0.75rem;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            pointer-events: none;
+            z-index: 9999;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+            white-space: nowrap;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .chart-tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: rgba(0,0,0,0.9) transparent transparent transparent;
+        }
     </style>
 
     <div x-data="{
         loading: false,
-        tooltip: {
-            visible: false,
-            x: 0,
-            y: 0,
-            content: ''
-        },
         moduleHiddenDatasets: {},
         supportHiddenDatasets: {},
 
         showTooltip(event, content) {
-            this.tooltip = {
-                visible: true,
-                x: event.clientX + 10,
-                y: event.clientY - 10,
-                content: content
-            };
+            // Remove any existing tooltip
+            const existingTooltip = document.querySelector('.chart-tooltip');
+            if (existingTooltip) {
+                existingTooltip.remove();
+            }
+
+            // Create new tooltip
+            const tooltip = document.createElement('div');
+            tooltip.className = 'chart-tooltip';
+            tooltip.innerHTML = content;
+            document.body.appendChild(tooltip);
+
+            // Get the SVG circle position
+            const circle = event.target;
+            const svg = circle.closest('svg');
+
+            // Use SVG's built-in coordinate transformation
+            const pt = svg.createSVGPoint();
+            pt.x = parseFloat(circle.getAttribute('cx'));
+            pt.y = parseFloat(circle.getAttribute('cy'));
+
+            // Transform SVG coordinates to screen coordinates
+            const screenCTM = svg.getScreenCTM();
+            const transformedPt = pt.matrixTransform(screenCTM);
+
+            // Position tooltip exactly above the point
+            tooltip.style.position = 'fixed';
+            tooltip.style.left = transformedPt.x + 'px';
+            tooltip.style.top = (transformedPt.y - 10) + 'px';
+            tooltip.style.transform = 'translateX(-50%) translateY(-100%)';
+            tooltip.style.opacity = '1';
         },
 
         hideTooltip() {
-            this.tooltip.visible = false;
+            const tooltip = document.querySelector('.chart-tooltip');
+            if (tooltip) {
+                tooltip.style.opacity = '0';
+                setTimeout(() => {
+                    if (tooltip.parentNode) {
+                        tooltip.parentNode.removeChild(tooltip);
+                    }
+                }, 200);
+            }
         },
 
         toggleModuleDataset(index) {
@@ -360,19 +414,6 @@
             }
         }
     }">
-
-        <!-- Tooltip -->
-        <div class="tooltip"
-             x-show="tooltip.visible"
-             x-transition:enter="transition ease-out duration-200"
-             x-transition:enter-start="opacity-0"
-             x-transition:enter-end="opacity-100"
-             x-transition:leave="transition ease-in duration-150"
-             x-transition:leave-start="opacity-100"
-             x-transition:leave-end="opacity-0"
-             :style="`left: ${tooltip.x}px; top: ${tooltip.y}px; opacity: ${tooltip.visible ? 1 : 0}`"
-             x-html="tooltip.content">
-        </div>
 
         <!-- Analysis by Module -->
         <div class="analysis-container">
