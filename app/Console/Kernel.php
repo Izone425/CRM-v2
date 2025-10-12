@@ -41,6 +41,8 @@ class Kernel extends ConsoleKernel
 
         $schedule->command('handovers:sync')->everyThirtyMinutes();
 
+        $schedule->command('handovers:process-full-payment-hardware-handover')->everyThirtyMinutes();
+
         $schedule->command('overtime:send-reminders')->weeklyOn(4, '16:00'); // Runs Thursday at 4:00 PM
 
         $schedule->command('overtime:send-reminders')->weeklyOn(5, '16:00'); // Runs Friday at 4:00 PM

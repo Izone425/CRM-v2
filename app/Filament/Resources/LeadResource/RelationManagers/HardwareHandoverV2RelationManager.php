@@ -478,7 +478,7 @@ class HardwareHandoverV2RelationManager extends RelationManager
                         }),
                 ]),
 
-            Section::make('Step 8: Proforma Invoice')
+            Section::make('Step 7: Proforma Invoice')
                 ->columnSpan(1) // Ensure it spans one column
                 ->schema([
                     Grid::make(2)
@@ -594,7 +594,7 @@ class HardwareHandoverV2RelationManager extends RelationManager
                         ])
                 ]),
 
-            Section::make('Step 9: Attachment')
+            Section::make('Step 8: Attachment')
                 ->columnSpan(1) // Ensure it spans one column
                 ->schema([
                     Grid::make(2)

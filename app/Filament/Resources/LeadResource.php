@@ -215,21 +215,20 @@ class LeadResource extends Resource
                 ->schema(ImplementerAppointmentTabs::getSchema());
         }
 
-        // UNCOMMENT AND FIX THESE TABS
-        if (in_array('data_file', $activeTabs)) {
-            $tabs[] = Tabs\Tab::make('Data Files')
-                ->schema(DataFileTabs::getSchema());
-        }
+        // if (in_array('data_file', $activeTabs)) {
+        //     $tabs[] = Tabs\Tab::make('Data Files')
+        //         ->schema(DataFileTabs::getSchema());
+        // }
 
-        if (in_array('implementer_service_form', $activeTabs)) {
-            $tabs[] = Tabs\Tab::make('Service Form')
-                ->schema(ImplementerServiceFormTabs::getSchema());
-        }
+        // if (in_array('implementer_service_form', $activeTabs)) {
+        //     $tabs[] = Tabs\Tab::make('Service Form')
+        //         ->schema(ImplementerServiceFormTabs::getSchema());
+        // }
 
-        if (in_array('other_form', $activeTabs)) {
-            $tabs[] = Tabs\Tab::make('Other Form')
-                ->schema(OtherFormTabs::getSchema());
-        }
+        // if (in_array('other_form', $activeTabs)) {
+        //     $tabs[] = Tabs\Tab::make('Other Form')
+        //         ->schema(OtherFormTabs::getSchema());
+        // }
 
         if (in_array('ar_details', $activeTabs)) {
             $tabs[] = Tabs\Tab::make('Renewal Details')
@@ -302,10 +301,10 @@ class LeadResource extends Resource
                 ->schema(RepairAppointmentTabs::getSchema());
         }
 
-        if (in_array('ticketing', $activeTabs)) {
-            $tabs[] = Tabs\Tab::make('Ticketing')
-                ->schema(TicketingTabs::getSchema());
-        }
+        // if (in_array('ticketing', $activeTabs)) {
+        //     $tabs[] = Tabs\Tab::make('Ticketing')
+        //         ->schema(TicketingTabs::getSchema());
+        // }
 
         // Ensure at least one tab is always shown
         if (empty($tabs)) {

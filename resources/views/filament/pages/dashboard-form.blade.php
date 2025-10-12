@@ -130,8 +130,8 @@
                                         font-weight: bold;
                                         border: none;
                                         border-radius: 20px;
-                                        background: {{ in_array($currentDashboard, ['MainAdminDashboard', 'SoftwareAdmin', 'HardwareAdmin', 'AdminRepair', 'AdminRenewalv1', 'AdminRenewalv2', 'AdminHRDF', 'AdminHeadcount']) ? '#431fa1' : 'transparent' }};
-                                        color: {{ in_array($currentDashboard, ['MainAdminDashboard', 'SoftwareAdmin', 'HardwareAdmin', 'AdminRepair', 'AdminRenewalv1', 'AdminRenewalv2', 'AdminHRDF', 'AdminHeadcount']) ? '#ffffff' : '#555' }};
+                                        background: {{ in_array($currentDashboard, ['MainAdminDashboard', 'SoftwareAdmin', 'HardwareAdmin', 'HardwareAdminV2', 'AdminRepair', 'AdminRenewalv1', 'AdminRenewalv2', 'AdminHRDF', 'AdminHeadcount']) ? '#431fa1' : 'transparent' }};
+                                        color: {{ in_array($currentDashboard, ['MainAdminDashboard', 'SoftwareAdmin', 'HardwareAdmin', 'HardwareAdminV2', 'AdminRepair', 'AdminRenewalv1', 'AdminRenewalv2', 'AdminHRDF', 'AdminHeadcount']) ? '#ffffff' : '#555' }};
                                         cursor: pointer;
                                         display: flex;
                                         align-items: center;
@@ -211,6 +211,22 @@
                                         "
                                     >
                                         Admin - Hardware
+                                    </button>
+
+                                    <button
+                                        wire:click="toggleDashboard('HardwareAdminV2')"
+                                        style="
+                                            display: block;
+                                            width: 100%;
+                                            padding: 10px 16px;
+                                            text-align: left;
+                                            border: none;
+                                            background: {{ $currentDashboard === 'HardwareAdminV2' ? '#f3f3f3' : 'white' }};
+                                            cursor: pointer;
+                                            font-size: 14px;
+                                        "
+                                    >
+                                        Admin - Hardware V2
                                     </button>
 
                                     <button
@@ -325,6 +341,8 @@
                             @include('filament.pages.softwarehandover')
                         @elseif ($currentDashboard === 'HardwareAdmin')
                             @include('filament.pages.hardwarehandover')
+                        @elseif ($currentDashboard === 'HardwareAdminV2')
+                            @include('filament.pages.hardwarehandoverv2')
                         @elseif ($currentDashboard === 'AdminRepair')
                             @include('filament.pages.adminrepair')
                         @endif
@@ -660,8 +678,8 @@
                                                 font-weight: bold;
                                                 border: none;
                                                 border-radius: 20px;
-                                                background: {{ in_array($currentDashboard, ['MainAdminDashboard','SoftwareAdmin', 'HardwareAdmin', 'AdminRepair', 'AdminRenewalv1', 'AdminRenewalv2', 'AdminHRDF', 'AdminHeadcount']) ? '#431fa1' : 'transparent' }};
-                                                color: {{ in_array($currentDashboard, ['MainAdminDashboard','SoftwareAdmin', 'HardwareAdmin', 'AdminRepair', 'AdminRenewalv1', 'AdminRenewalv2', 'AdminHRDF', 'AdminHeadcount']) ? '#ffffff' : '#555' }};
+                                                background: {{ in_array($currentDashboard, ['MainAdminDashboard','SoftwareAdmin', 'HardwareAdmin', 'HardwareAdminV2', 'AdminRepair', 'AdminRenewalv1', 'AdminRenewalv2', 'AdminHRDF', 'AdminHeadcount']) ? '#431fa1' : 'transparent' }};
+                                                color: {{ in_array($currentDashboard, ['MainAdminDashboard','SoftwareAdmin', 'HardwareAdmin', 'HardwareAdminV2', 'AdminRepair', 'AdminRenewalv1', 'AdminRenewalv2', 'AdminHRDF', 'AdminHeadcount']) ? '#ffffff' : '#555' }};
                                                 cursor: pointer;
                                                 display: flex;
                                                 align-items: center;
@@ -754,6 +772,36 @@
                                                 "
                                             >
                                                 <span>Admin - Hardware</span>
+                                                @if($adminHardwareTotal > 0)
+                                                    <span style="
+                                                        background: #ef4444;
+                                                        color: white;
+                                                        border-radius: 12px;
+                                                        padding: 2px 8px;
+                                                        font-size: 12px;
+                                                        font-weight: bold;
+                                                        min-width: 20px;
+                                                        text-align: center;
+                                                    ">{{ $adminHardwareTotal }}</span>
+                                                @endif
+                                            </button>
+
+                                            <button
+                                                wire:click="toggleDashboard('HardwareAdminV2')"
+                                                style="
+                                                    display: flex;
+                                                    justify-content: space-between;
+                                                    align-items: center;
+                                                    width: 100%;
+                                                    padding: 10px 16px;
+                                                    text-align: left;
+                                                    border: none;
+                                                    background: {{ $currentDashboard === 'HardwareAdminV2' ? '#f3f3f3' : 'white' }};
+                                                    cursor: pointer;
+                                                    font-size: 14px;
+                                                "
+                                            >
+                                                <span>Admin - Hardware V2</span>
                                                 @if($adminHardwareTotal > 0)
                                                     <span style="
                                                         background: #ef4444;
@@ -975,8 +1023,8 @@
                                             font-weight: bold;
                                             border: none;
                                             border-radius: 20px;
-                                            background: {{ in_array($currentDashboard, ['MainAdminDashboard','SoftwareAdmin', 'HardwareAdmin', 'AdminRepair', 'AdminRenewalv1', 'AdminRenewalv2', 'AdminHRDF', 'AdminHeadcount']) ? '#431fa1' : 'transparent' }};
-                                            color: {{ in_array($currentDashboard, ['SoftwareAdmin', 'HardwareAdmin', 'AdminRepair', 'AdminRenewalv1', 'AdminRenewalv2', 'AdminHRDF', 'AdminHeadcount']) ? '#ffffff' : '#555' }};
+                                            background: {{ in_array($currentDashboard, ['MainAdminDashboard','SoftwareAdmin', 'HardwareAdmin', 'HardwareAdminV2', 'AdminRepair', 'AdminRenewalv1', 'AdminRenewalv2', 'AdminHRDF', 'AdminHeadcount']) ? '#431fa1' : 'transparent' }};
+                                            color: {{ in_array($currentDashboard, ['SoftwareAdmin', 'HardwareAdmin', 'HardwareAdminV2', 'AdminRepair', 'AdminRenewalv1', 'AdminRenewalv2', 'AdminHRDF', 'AdminHeadcount']) ? '#ffffff' : '#555' }};
                                             cursor: pointer;
                                             display: flex;
                                             align-items: center;
@@ -1056,6 +1104,22 @@
                                             "
                                         >
                                             Admin - Hardware
+                                        </button>
+
+                                        <button
+                                            wire:click="toggleDashboard('HardwareAdmin')"
+                                            style="
+                                                display: block;
+                                                width: 100%;
+                                                padding: 10px 16px;
+                                                text-align: left;
+                                                border: none;
+                                                background: {{ $currentDashboard === 'HardwareAdminV2' ? '#f3f3f3' : 'white' }};
+                                                cursor: pointer;
+                                                font-size: 14px;
+                                            "
+                                        >
+                                            Admin - Hardware V2
                                         </button>
 
                                         <button
@@ -1214,6 +1278,8 @@
                             {{-- @include('filament.pages.admindebtor') --}}
                         @elseif ($currentDashboard === 'HardwareAdmin')
                             @include('filament.pages.hardwarehandover')
+                        @elseif ($currentDashboard === 'HardwareAdminV2')
+                            @include('filament.pages.hardwarehandoverv2')
                         @elseif ($currentDashboard === 'Trainer')
                             {{-- @include('filament.pages.trainer') --}}
                         @elseif ($currentDashboard === 'Implementer')

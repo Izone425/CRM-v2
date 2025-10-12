@@ -60,12 +60,12 @@ class HandoverDetailTabs
                                 ->manager(\App\Filament\Resources\LeadResource\RelationManagers\HeadcountHandoverRelationManager::class
                             ),
                         ]),
-                    // Tabs\Tab::make('Hardware Handover V2')
-                    //     ->schema([
-                    //         \Njxqlus\Filament\Components\Forms\RelationManager::make()
-                    //             ->manager(\App\Filament\Resources\LeadResource\RelationManagers\HardwareHandoverV2RelationManager::class
-                    //         ),
-                    //     ]),
+                    Tabs\Tab::make('Hardware Handover V2')
+                        ->schema([
+                            \Njxqlus\Filament\Components\Forms\RelationManager::make()
+                                ->manager(\App\Filament\Resources\LeadResource\RelationManagers\HardwareHandoverV2RelationManager::class
+                            ),
+                        ]),
 
                     Tabs\Tab::make('Finance Handover')
                         ->schema([

@@ -193,7 +193,7 @@ class ProjectAnalysis extends Page
             'BARI' => 'Muhammad Khoirul Bariah',
             'Ummu Najwa Fajrina' => 'Ummu Najwa Fajrina',
             'Noor Syazana' => 'Noor Syazana',
-            'SYAZWAN' => 'Ahmad Syazwan',
+            'Ahmad Syazwan' => 'Ahmad Syazwan',
             'ADZZIM' => 'Adzzim Bin Kassim',
             'AZRUL' => 'Azrul Nizam'
         ];
@@ -310,7 +310,7 @@ class ProjectAnalysis extends Page
             'BARI' => 'Muhammad Khoirul Bariah',
             'Ummu Najwa Fajrina' => 'Ummu Najwa Fajrina',
             'Noor Syazana' => 'Noor Syazana',
-            'SYAZWAN' => 'Ahmad Syazwan',
+            'Ahmad Syazwan' => 'Ahmad Syazwan',
             'ADZZIM' => 'Adzzim Bin Kassim',
             'AZRUL' => 'Azrul Nizam'
         ];
