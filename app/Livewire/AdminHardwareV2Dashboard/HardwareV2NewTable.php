@@ -449,6 +449,31 @@ class HardwareV2NewTable extends Component implements HasForms, HasTable
                                         ->default(0),
                                 ]),
 
+                            // Add a hidden field to validate total devices
+                            TextInput::make('device_validation')
+                                ->hidden()
+                                ->default('validate')
+                                ->rules([
+                                    function () {
+                                        return function (string $attribute, $value, \Closure $fail) {
+                                            // Get all device quantities from the form data
+                                            $formData = request()->all();
+                                            
+                                            $totalDevices = 
+                                                ($formData['tc10_quantity'] ?? 0) +
+                                                ($formData['tc20_quantity'] ?? 0) +
+                                                ($formData['face_id5_quantity'] ?? 0) +
+                                                ($formData['face_id6_quantity'] ?? 0) +
+                                                ($formData['time_beacon_quantity'] ?? 0) +
+                                                ($formData['nfc_tag_quantity'] ?? 0);
+
+                                            if ($totalDevices == 0) {
+                                                $fail('At least one device quantity must be greater than 0.');
+                                            }
+                                        };
+                                    }
+                                ]),
+
                             TextInput::make('sales_order_number')
                                 ->label('Sales Order Number')
                                 ->required()
@@ -482,6 +507,24 @@ class HardwareV2NewTable extends Component implements HasForms, HasTable
                                 ->helperText('Sales order numbers must be unique across all hardware handovers.'),
                         ])
                         ->action(function (HardwareHandoverV2 $record, array $data): void {
+                            // Validate at least one device quantity is entered
+                            $totalDevices = 
+                                ($data['tc10_quantity'] ?? 0) +
+                                ($data['tc20_quantity'] ?? 0) +
+                                ($data['face_id5_quantity'] ?? 0) +
+                                ($data['face_id6_quantity'] ?? 0) +
+                                ($data['time_beacon_quantity'] ?? 0) +
+                                ($data['nfc_tag_quantity'] ?? 0);
+
+                            if ($totalDevices == 0) {
+                                Notification::make()
+                                    ->title('Validation Error')
+                                    ->body('At least one device quantity must be greater than 0.')
+                                    ->danger()
+                                    ->send();
+                                return;
+                            }
+
                             // Get implementer information
                             $implementerName = $record->implementer ?? null;
 

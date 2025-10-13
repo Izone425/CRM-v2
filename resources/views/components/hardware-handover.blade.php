@@ -119,7 +119,6 @@
     }
 
     .hw-view-link {
-        margin-left: 0.5rem;
         font-weight: 500;
         color: #2563eb;
         text-decoration: none;
@@ -572,54 +571,112 @@
                         </div>
                     @endif
                 @elseif($record->installation_type === 'self_pick_up')
-                    <div class="hw-info-item">
-                        <span class="hw-label">Pickup Address:</span>
-                        <span class="hw-value">{{ $category2['pickup_address'] ?? '-' }}</span>
-                    </div>
+                    <div class="hw-remark-container" x-data="{ pickupAddressOpen: false }">
+                        <span class="hw-label">Pickup Details:</span>
+                        <a href="#" @click.prevent="pickupAddressOpen = true" class="hw-view-link">View</a>
 
-                    @if(!empty($category2['customer_forecast_pickup_date']))
-                        <div class="hw-info-item">
-                            <span class="hw-label">Customer Forecast Pickup Date:</span>
-                            <span class="hw-value">{{ \Carbon\Carbon::parse($category2['customer_forecast_pickup_date'])->format('d M Y') }}</span>
-                        </div>
-                    @endif
+                        <div x-show="pickupAddressOpen" x-cloak x-transition @click.outside="pickupAddressOpen = false" class="hw-modal">
+                            <div class="hw-modal-content" @click.away="pickupAddressOpen = false">
+                                <div class="hw-modal-header">
+                                    <h3 class="hw-modal-title">Self Pickup Details</h3>
+                                    <button type="button" @click="pickupAddressOpen = false" class="hw-modal-close">
+                                        <svg fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                                        </svg>
+                                    </button>
+                                </div>
+                                <div class="hw-modal-body">
+                                    <!-- Pickup Address -->
+                                    @if(!empty($category2['pickup_address']))
+                                        <div style="margin-bottom: 1.5rem; padding: 0.75rem; border: 1px solid #e5e7eb; border-radius: 0.375rem; background-color: #f8fafc;">
+                                            <h4 style="margin: 0 0 0.5rem 0; font-weight: 600; color: #1f2937;">Pickup Address:</h4>
+                                            <div style="white-space: pre-line; color: #374151;">{{ $category2['pickup_address'] }}</div>
+                                        </div>
+                                    @endif
 
-                    @if(!empty($category2['self_pickup_date']))
-                        <div class="hw-info-item">
-                            <span class="hw-label">Self Pickup Date:</span>
-                            <span class="hw-value">{{ \Carbon\Carbon::parse($category2['self_pickup_date'])->format('d M Y') }}</span>
-                        </div>
-                    @endif
+                                    <!-- Pickup Information Table -->
+                                    <table class="hw-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Information</th>
+                                                <th>Details</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <!-- Customer Forecast Pickup Date -->
+                                            <tr>
+                                                <td><strong>Customer Forecast Pickup Date:</strong></td>
+                                                <td>
+                                                    @if(!empty($category2['customer_forecast_pickup_date']))
+                                                        {{ \Carbon\Carbon::parse($category2['customer_forecast_pickup_date'])->format('d M Y') }}
+                                                    @else
+                                                        <span class="hw-not-available">Not Available</span>
+                                                    @endif
+                                                </td>
+                                            </tr>
 
-                    @if(!empty($category2['delivery_order']))
-                        <div class="hw-info-item">
-                            <span class="hw-label">Delivery Order:</span>
-                            <a href="{{ url('storage/' . $category2['delivery_order']) }}" target="_blank" class="hw-view-link">
-                                View Document
-                            </a>
-                        </div>
-                    @endif
+                                            <!-- Self Pickup Date -->
+                                            <tr>
+                                                <td><strong>Self Pickup Date:</strong></td>
+                                                <td>
+                                                    @if(!empty($category2['self_pickup_date']))
+                                                        {{ \Carbon\Carbon::parse($category2['self_pickup_date'])->format('d M Y') }}
+                                                    @else
+                                                        <span class="hw-not-available">Not Available</span>
+                                                    @endif
+                                                </td>
+                                            </tr>
 
-                    @if(!empty($category2['self_pickup_remark']))
-                        <div class="hw-info-item">
-                            <span class="hw-label">Self Pickup Remark:</span>
-                            <div class="hw-value" style="margin-top: 0.5rem; padding: 0.75rem; border: 1px solid #e5e7eb; border-radius: 0.375rem; background-color: #f9fafb;">
-                                {{ $category2['self_pickup_remark'] }}
+                                            <!-- Delivery Order -->
+                                            <tr>
+                                                <td><strong>Delivery Order:</strong></td>
+                                                <td>
+                                                    @if(!empty($category2['delivery_order']))
+                                                        <a href="{{ url('storage/' . $category2['delivery_order']) }}" target="_blank" class="hw-view-link">
+                                                            View Document
+                                                        </a>
+                                                    @else
+                                                        <span class="hw-not-available">Not Available</span>
+                                                    @endif
+                                                </td>
+                                            </tr>
+
+                                            <!-- Self Pickup Remark -->
+                                            <tr>
+                                                <td><strong>Self Pickup Remark:</strong></td>
+                                                <td>
+                                                    @if(!empty($category2['self_pickup_remark']))
+                                                        <div style="max-height: 100px; overflow-y: auto; white-space: pre-line;">
+                                                            {{ $category2['self_pickup_remark'] }}
+                                                        </div>
+                                                    @else
+                                                        <span class="hw-not-available">Not Available</span>
+                                                    @endif
+                                                </td>
+                                            </tr>
+
+                                            <!-- Self Pickup Status -->
+                                            <tr>
+                                                <td><strong>Self Pickup Status:</strong></td>
+                                                <td>
+                                                    @if(isset($category2['self_pickup_completed']) && $category2['self_pickup_completed'])
+                                                        <span style="color: #059669; font-weight: 600;">Completed</span>
+                                                        @if(!empty($category2['self_pickup_completed_at']))
+                                                            <small style="color: #6b7280;">
+                                                                ({{ \Carbon\Carbon::parse($category2['self_pickup_completed_at'])->format('d M Y H:i') }})
+                                                            </small>
+                                                        @endif
+                                                    @else
+                                                        <span style="color: #d97706; font-weight: 600;">Pending</span>
+                                                    @endif
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
                         </div>
-                    @endif
-
-                    @if(isset($category2['self_pickup_completed']) && $category2['self_pickup_completed'])
-                        <div class="hw-info-item">
-                            <span class="hw-label">Self Pickup Status:</span>
-                            <span class="hw-value" style="color: #059669; font-weight: 600;">Completed</span>
-                            @if(!empty($category2['self_pickup_completed_at']))
-                                <span class="hw-value">
-                                    ({{ \Carbon\Carbon::parse($category2['self_pickup_completed_at'])->format('d M Y H:i') }})
-                                </span>
-                            @endif
-                        </div>
-                    @endif
+                    </div>
                 @elseif($record->installation_type === 'internal_installation')
                     @php
                         $installer = isset($category2['installer']) ? \App\Models\Installer::find($category2['installer']) : null;
