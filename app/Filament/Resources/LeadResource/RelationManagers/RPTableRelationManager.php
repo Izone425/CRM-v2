@@ -52,7 +52,7 @@ class RPTableRelationManager extends RelationManager
                     })
                     ->action(
                         Action::make('viewRepairDetails')
-                            ->modalHeading(' ')
+                            ->modalHeading(false)
                             ->modalWidth('3xl')
                             ->modalSubmitAction(false)
                             ->modalCancelAction(false)

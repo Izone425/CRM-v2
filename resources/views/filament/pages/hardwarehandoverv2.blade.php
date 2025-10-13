@@ -430,7 +430,9 @@
         <div class="group-column">
             <div class="group-container">
                 <!-- Group: Total -->
-                <div class="group-box group-total">
+                <div class="group-box group-total"
+                     :class="{'selected': selectedGroup === 'total'}"
+                     @click="setSelectedGroup('total')">
                     <div class="group-title">Hardware Handover</div>
                     <div class="group-count">{{ $totalCount }}</div>
                 </div>
@@ -479,6 +481,17 @@
 
         <!-- Right content area -->
         <div class="content-column">
+            <!-- Total -->
+            <div class="category-container" x-show="selectedGroup === 'total'">
+                <div class="stat-box new-task"
+                     :class="{'selected': selectedStat === 'total-handover'}"
+                     @click="setSelectedStat('total-handover')">
+                    <div class="stat-info">
+                        <div class="stat-label">All Task</div>
+                    </div>
+                    <div class="stat-count">{{ $totalCount }}</div>
+                </div>
+            </div>
             <!-- INITIAL STAGE Categories -->
             <div class="category-container" x-show="selectedGroup === 'initial-stage'">
                 <div class="stat-box new-task"
@@ -632,6 +645,10 @@
                 <div class="hint-message" x-show="selectedGroup === null || selectedStat === null" x-transition>
                     <h3 x-text="selectedGroup === null ? 'Select a stage to continue' : 'Select a category to view data'"></h3>
                     <p x-text="selectedGroup === null ? 'Click on any of the stage boxes to see categories' : 'Click on any of the category boxes to display the corresponding information'"></p>
+                </div>
+
+                <div x-show="selectedStat === 'total-handover'" x-transition>
+                    @livewire('admin-hardware-v2-dashboard.hardware-v2-all-table')
                 </div>
 
                 <!-- Initial Stage Tables -->

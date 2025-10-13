@@ -426,7 +426,7 @@ class HeadcountHandoverRelationManager extends RelationManager
                     ->weight('bold')
                     ->action(
                         Action::make('viewHeadcountHandoverDetails')
-                            ->modalHeading('')
+                            ->modalHeading(false)
                             ->modalWidth('3xl')
                             ->modalSubmitAction(false)
                             ->modalCancelAction(false)
@@ -465,7 +465,7 @@ class HeadcountHandoverRelationManager extends RelationManager
                         ->label('View Details')
                         ->icon('heroicon-o-eye')
                         ->color('secondary')
-                        ->modalHeading('')
+                        ->modalHeading(false)
                         ->modalWidth('3xl')
                         ->modalSubmitAction(false)
                         ->modalCancelAction(false)

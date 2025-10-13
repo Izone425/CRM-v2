@@ -195,7 +195,7 @@ class SoftwareAttachmentResource extends Resource
                     ->weight('bold')
                     ->action(
                         Action::make('viewHandoverDetails')
-                            ->modalHeading(' ')
+                            ->modalHeading(false)
                             ->modalWidth('md')
                             ->modalSubmitAction(false)
                             ->modalCancelAction(false)
@@ -346,7 +346,7 @@ class SoftwareAttachmentResource extends Resource
                         ->label('View')
                         ->icon('heroicon-o-eye')
                         ->color('secondary')
-                        ->modalHeading(' ')
+                        ->modalHeading(false)
                         ->modalWidth('md')
                         ->modalSubmitAction(false)
                         ->modalCancelAction(false)

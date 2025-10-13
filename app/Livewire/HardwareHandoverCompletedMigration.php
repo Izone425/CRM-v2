@@ -146,7 +146,7 @@ class HardwareHandoverCompletedMigration extends Component implements HasForms, 
                     ->weight('bold')
                     ->action(
                         Action::make('viewHandoverDetails')
-                            ->modalHeading(' ')
+                            ->modalHeading(false)
                             ->modalWidth('6xl')
                             ->modalSubmitAction(false)
                             ->modalCancelAction(false)
@@ -250,7 +250,7 @@ class HardwareHandoverCompletedMigration extends Component implements HasForms, 
                         ->label('View')
                         ->icon('heroicon-o-eye')
                         ->color('secondary')
-                        ->modalHeading(' ')
+                        ->modalHeading(false)
                         ->modalWidth('6xl')
                         ->modalSubmitAction(false)
                         ->modalCancelAction(false)

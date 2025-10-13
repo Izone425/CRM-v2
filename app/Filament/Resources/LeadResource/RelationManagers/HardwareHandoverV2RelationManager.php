@@ -132,9 +132,16 @@ class HardwareHandoverV2RelationManager extends RelationManager
                                 ->schema([
                                     TextInput::make('pic_name')
                                         ->required()
-                                        ->extraInputAttributes(['style' => 'text-transform: uppercase'])
-                                        ->afterStateHydrated(fn($state) => Str::upper($state))
-                                        ->afterStateUpdated(fn($state) => Str::upper($state))
+                                        ->extraAlpineAttributes([
+                                            'x-on:input' => '
+                                                const start = $el.selectionStart;
+                                                const end = $el.selectionEnd;
+                                                const value = $el.value;
+                                                $el.value = value.toUpperCase();
+                                                $el.setSelectionRange(start, end);
+                                            '
+                                        ])
+                                        ->dehydrateStateUsing(fn ($state) => strtoupper($state))
                                         ->label('Name'),
                                     TextInput::make('pic_phone')
                                         ->required()
@@ -262,12 +269,13 @@ class HardwareHandoverV2RelationManager extends RelationManager
                                         ->rows(3)
                                         ->extraInputAttributes(['style' => 'text-transform: uppercase'])
                                         ->afterStateHydrated(fn($state) => Str::upper($state))
-                                        ->afterStateUpdated(fn($state) => Str::upper($state)),
+                                        ->afterStateUpdated(fn($state) => Str::upper($state))
+                                        ->default("ADDRESS:\nDEVICE MODEL:\nTOTAL UNIT:"),
                                     ])
                                 ->itemLabel(function (array $state): ?string {
                                     static $counter = 0;
                                     $counter++;
-                                    return 'Courier Address ' . $counter;
+                                    return 'External Courier Address ' . $counter;
                                 })
                                 ->addActionLabel('Add Another Address')
                                 ->maxItems(10)
@@ -306,6 +314,12 @@ class HardwareHandoverV2RelationManager extends RelationManager
                                                 ($owner->state ?? '');
                                         }
                                     }
+
+                                    return [
+                                        [
+                                            'address' => "ADDRESS: " . strtoupper($defaultAddress) . "\nDEVICE MODEL:\nTOTAL UNIT:",
+                                        ]
+                                    ];
                                 })
                                 ->visible(fn(callable $get) => $get('installation_type') === 'external_installation')
                                 ->columnSpanFull(),
@@ -948,7 +962,7 @@ class HardwareHandoverV2RelationManager extends RelationManager
                     ->weight('bold')
                     ->action(
                         Action::make('viewHandoverDetails')
-                            ->modalHeading(' ')
+                            ->modalHeading(false)
                             ->modalWidth('6xl')
                             ->modalSubmitAction(false)
                             ->modalCancelAction(false)
@@ -1001,7 +1015,7 @@ class HardwareHandoverV2RelationManager extends RelationManager
                         ->label('View')
                         ->icon('heroicon-o-eye')
                         ->color('secondary')
-                        ->modalHeading(' ')
+                        ->modalHeading(false)
                         ->modalWidth('6xl')
                         ->modalSubmitAction(false)
                         ->modalCancelAction(false)
@@ -1140,12 +1154,10 @@ class HardwareHandoverV2RelationManager extends RelationManager
         // Check if any essential company details are missing
         $requiredFields = [
             'company_name',
-            'industry',
             'contact_no',
             'email',
             'name',
             'position',
-            'reg_no_new',
             'state',
             'postcode',
             'company_address1',

@@ -172,7 +172,7 @@ class ImplementerMigrationCompleted extends Component implements HasForms, HasTa
                     ->weight('bold')
                     ->action(
                         Action::make('viewHandoverDetails')
-                            ->modalHeading(' ')
+                            ->modalHeading(false)
                             ->modalWidth('md')
                             ->modalSubmitAction(false)
                             ->modalCancelAction(false)
@@ -242,7 +242,7 @@ class ImplementerMigrationCompleted extends Component implements HasForms, HasTa
                         ->label('View')
                         ->icon('heroicon-o-eye')
                         ->color('secondary')
-                        ->modalHeading(' ')
+                        ->modalHeading(false)
                         ->modalWidth('md')
                         ->modalSubmitAction(false)
                         ->modalCancelAction(false)

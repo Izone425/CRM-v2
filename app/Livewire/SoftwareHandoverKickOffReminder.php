@@ -169,7 +169,7 @@ class SoftwareHandoverKickOffReminder extends Component implements HasForms, Has
                     ->weight('bold')
                     ->action(
                         Action::make('viewHandoverDetails')
-                            ->modalHeading(' ')
+                            ->modalHeading(false)
                             ->modalWidth('md')
                             ->modalSubmitAction(false)
                             ->modalCancelAction(false)

@@ -139,7 +139,7 @@ class HardwareHandoverCompletedInstallation extends Component implements HasForm
                     ->weight('bold')
                     ->action(
                         Action::make('viewHandoverDetails')
-                            ->modalHeading(' ')
+                            ->modalHeading(false)
                             ->modalWidth('6xl')
                             ->modalSubmitAction(false)
                             ->modalCancelAction(false)
@@ -224,7 +224,7 @@ class HardwareHandoverCompletedInstallation extends Component implements HasForm
                         ->label('View')
                         ->icon('heroicon-o-eye')
                         ->color('secondary')
-                        ->modalHeading(' ')
+                        ->modalHeading(false)
                         ->modalWidth('6xl')
                         ->modalSubmitAction(false)
                         ->modalCancelAction(false)

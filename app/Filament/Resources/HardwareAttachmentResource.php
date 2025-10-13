@@ -194,7 +194,7 @@ class HardwareAttachmentResource extends Resource
                     ->weight('bold')
                     ->action(
                         Action::make('viewHandoverDetails')
-                            ->modalHeading(' ')
+                            ->modalHeading(false)
                             ->modalWidth('6xl')
                             ->modalSubmitAction(false)
                             ->modalCancelAction(false)
@@ -299,7 +299,7 @@ class HardwareAttachmentResource extends Resource
                         ->label('View')
                         ->icon('heroicon-o-eye')
                         ->color('secondary')
-                        ->modalHeading(' ')
+                        ->modalHeading(false)
                         ->modalWidth('6xl')
                         ->modalSubmitAction(false)
                         ->modalCancelAction(false)

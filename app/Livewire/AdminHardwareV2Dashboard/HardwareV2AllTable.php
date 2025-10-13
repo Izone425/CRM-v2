@@ -44,10 +44,9 @@ use Illuminate\Support\HtmlString;
 use Illuminate\View\View;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Filament\Tables\Actions\Action;
-use Illuminate\Support\Facades\Artisan;
 use Livewire\Attributes\On;
 
-class HardwareV2PendingPaymentTable extends Component implements HasForms, HasTable
+class HardwareV2AllTable extends Component implements HasForms, HasTable
 {
     use InteractsWithTable;
     use InteractsWithForms;
@@ -95,20 +94,23 @@ class HardwareV2PendingPaymentTable extends Component implements HasForms, HasTa
 
     public function getNewHardwareHandovers()
     {
-        return HardwareHandoverV2::query()
-            ->whereIn('status', ['Pending Payment'])
-            // ->where('created_at', '<', Carbon::today()) // Only those created before today
-            ->orderBy('created_at', 'asc') // Oldest first since they're the most overdue
-            ->with(['lead', 'lead.companyDetail', 'creator']);
+        $query = HardwareHandoverV2::query();
+
+        $query->orderByRaw("CASE
+            WHEN status = 'New' THEN 1
+            WHEN status = 'Approved' THEN 2
+            WHEN status = 'Pending Migration' THEN 3
+            WHEN status = 'Pending Stock' THEN 4
+            ELSE 5
+        END")
+        ->orderBy('created_at', 'desc');
+
+        return $query;
     }
 
     public function getHardwareHandoverCount()
     {
-        $query = HardwareHandoverV2::query()
-            ->whereIn('status', ['Pending Payment'])
-            // ->where('created_at', '<', Carbon::today()) // Only those created before today
-            ->orderBy('created_at', 'asc') // Oldest first since they're the most overdue
-            ->with(['lead', 'lead.companyDetail', 'creator']);
+        $query = HardwareHandoverV2::query();
 
         return $query->count();
     }
@@ -122,45 +124,6 @@ class HardwareV2PendingPaymentTable extends Component implements HasForms, HasTa
             ->emptyState(fn () => view('components.empty-state-question'))
             ->defaultPaginationPageOption(10)
             ->paginated([10, 25, 50])
-            ->headerActions([
-                Action::make('processFullPayment')
-                    ->label('Process Data')
-                    ->icon('heroicon-o-credit-card')
-                    ->color('success')
-                    ->visible(fn () => auth()->user()->role_id !== 2) // Hide for salesperson role
-                    ->action(function () {
-                        try {
-                            // Run the artisan command
-                            Artisan::call('handovers:process-full-payment-hardware-handover');
-                            $output = Artisan::output();
-
-                            // Refresh the table
-                            $this->resetTable();
-                            $this->lastRefreshTime = now()->format('Y-m-d H:i:s');
-
-                            // Show success notification
-                            Notification::make()
-                                ->title('Full Payment Processing Completed')
-                                ->body('Hardware handovers with full payment have been processed successfully.')
-                                ->success()
-                                ->duration(5000)
-                                ->send();
-
-                        } catch (\Exception $e) {
-                            // Show error notification
-                            Notification::make()
-                                ->title('Processing Failed')
-                                ->body('An error occurred while processing full payments: ' . $e->getMessage())
-                                ->danger()
-                                ->duration(10000)
-                                ->send();
-                        }
-                    })
-                    ->requiresConfirmation()
-                    ->modalHeading('Process Full Payment Hardware Handovers')
-                    ->modalDescription('This will process all hardware handovers with full payment status and update their installation status. Are you sure you want to continue?')
-                    ->modalSubmitActionLabel('Process Now')
-            ])
             ->filters([
                 SelectFilter::make('status')
                     ->label('Filter by Status')
@@ -302,82 +265,12 @@ class HardwareV2PendingPaymentTable extends Component implements HasForms, HasTa
                             return view('components.hardware-handover')
                                 ->with('extraAttributes', ['record' => $record]);
                         }),
-
-                    Action::make('approve')
-                        ->label('Approve')
-                        ->icon('heroicon-o-check-circle')
-                        ->color('success')
-                        ->visible(fn (HardwareHandoverV2 $record): bool =>
-                            $record->status === 'New' && auth()->user()->role_id !== 2
-                        )
-                        ->action(function (HardwareHandoverV2 $record): void {
-                            $record->update([
-                                'status' => 'Approved',
-                                'approved_at' => now(),
-                                'approved_by' => auth()->id(),
-                            ]);
-
-                            Notification::make()
-                                ->title('Hardware Handover approved')
-                                ->success()
-                                ->send();
-                        })
-                        ->requiresConfirmation(),
-
-                    Action::make('pending_migration')
-                        ->label('Pending Migration')
-                        ->icon('heroicon-o-arrow-path')
-                        ->color('warning')
-                        ->visible(fn (HardwareHandoverV2 $record): bool =>
-                            in_array($record->status, ['Approved', 'Pending Stock']) && auth()->user()->role_id !== 2
-                        )
-                        ->action(function (HardwareHandoverV2 $record): void {
-                            $record->update([
-                                'status' => 'Pending Migration',
-                                'migration_pending_at' => now(),
-                            ]);
-
-                            Notification::make()
-                                ->title('Status updated to Pending Migration')
-                                ->success()
-                                ->send();
-                        })
-                        ->requiresConfirmation(),
-
-                    Action::make('mark_rejected')
-                        ->label('Reject')
-                        ->icon('heroicon-o-x-circle')
-                        ->color('danger')
-                        ->visible(fn (HardwareHandoverV2 $record): bool =>
-                            $record->status === 'New' && auth()->user()->role_id !== 2
-                        )
-                        ->form([
-                            Textarea::make('reject_reason')
-                                ->label('Reason for Rejection')
-                                ->required()
-                                ->placeholder('Please provide a reason for rejecting this handover')
-                                ->maxLength(500)
-                        ])
-                        ->action(function (HardwareHandoverV2 $record, array $data): void {
-                            $record->update([
-                                'status' => 'Rejected',
-                                'reject_reason' => $data['reject_reason'],
-                                'rejected_at' => now(),
-                                'rejected_by' => auth()->id(),
-                            ]);
-
-                            Notification::make()
-                                ->title('Hardware Handover rejected')
-                                ->danger()
-                                ->send();
-                        })
-                        ->requiresConfirmation(false),
                 ])->button()
             ]);
     }
 
     public function render()
     {
-        return view('livewire.admin-hardware-v2-dashboard.hardware-v2-pending-payment-table');
+        return view('livewire.admin-hardware-v2-dashboard.hardware-v2-all-table');
     }
 }

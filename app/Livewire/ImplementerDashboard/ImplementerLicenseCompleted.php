@@ -173,7 +173,7 @@ class ImplementerLicenseCompleted extends Component implements HasForms, HasTabl
                     ->weight('bold')
                     ->action(
                         Action::make('viewHandoverDetails')
-                            ->modalHeading(' ')
+                            ->modalHeading(false)
                             ->modalWidth('md')
                             ->modalSubmitAction(false)
                             ->modalCancelAction(false)
@@ -243,7 +243,7 @@ class ImplementerLicenseCompleted extends Component implements HasForms, HasTabl
                         ->label('View')
                         ->icon('heroicon-o-eye')
                         ->color('secondary')
-                        ->modalHeading(' ')
+                        ->modalHeading(false)
                         ->modalWidth('md')
                         ->modalSubmitAction(false)
                         ->modalCancelAction(false)

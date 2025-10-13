@@ -302,7 +302,7 @@ class SupportCallLog extends Page implements HasTable
                         ->visible(function (CallLog $record) {
                             return $record->task_status === 'Completed';
                         })
-                        ->modalHeading('')
+                        ->modalHeading(false)
                         ->modalContent(function (CallLog $record) {
                             return Infolist::make()
                                 ->record($record)
