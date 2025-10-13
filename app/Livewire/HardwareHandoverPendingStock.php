@@ -141,7 +141,7 @@ class HardwareHandoverPendingStock extends Component implements HasForms, HasTab
                     ->action(
                         Action::make('viewHandoverDetails')
                             ->modalHeading(' ')
-                            ->modalWidth('md')
+                            ->modalWidth('6xl')
                             ->modalSubmitAction(false)
                             ->modalCancelAction(false)
                             ->modalContent(function (HardwareHandover $record): View {
@@ -254,7 +254,7 @@ class HardwareHandoverPendingStock extends Component implements HasForms, HasTab
                         ->icon('heroicon-o-eye')
                         ->color('secondary')
                         ->modalHeading(' ')
-                        ->modalWidth('md')
+                        ->modalWidth('6xl')
                         ->modalSubmitAction(false)
                         ->modalCancelAction(false)
                         // Use a callback function instead of arrow function for more control
@@ -287,7 +287,7 @@ class HardwareHandoverPendingStock extends Component implements HasForms, HasTab
                             return !($softwareHandover->data_migrated && $softwareHandover->completed_at);
                         })
                         ->modalHeading('Pending Migration Confirmation')
-                        ->modalWidth('lg')
+                        ->modalWidth('6xl')
                         ->form([
                             Grid::make(3)
                                 ->schema([

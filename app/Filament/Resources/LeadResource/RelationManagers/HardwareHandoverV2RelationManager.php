@@ -803,7 +803,7 @@ class HardwareHandoverV2RelationManager extends RelationManager
                 })
                 ->slideOver()
                 ->modalSubmitActionLabel('Submit')
-                ->modalHeading('Add Hardware Handover')
+                ->modalHeading('Hardware Handover')
                 ->modalWidth(MaxWidth::FourExtraLarge)
                 ->form($this->defaultForm())
                 ->action(function (array $data): void { // CREATE HARDWARE HANDOVER
@@ -949,7 +949,7 @@ class HardwareHandoverV2RelationManager extends RelationManager
                     ->action(
                         Action::make('viewHandoverDetails')
                             ->modalHeading(' ')
-                            ->modalWidth('lg')
+                            ->modalWidth('6xl')
                             ->modalSubmitAction(false)
                             ->modalCancelAction(false)
                             ->modalContent(function (HardwareHandoverV2 $record): View {
@@ -1002,7 +1002,7 @@ class HardwareHandoverV2RelationManager extends RelationManager
                         ->icon('heroicon-o-eye')
                         ->color('secondary')
                         ->modalHeading(' ')
-                        ->modalWidth('lg')
+                        ->modalWidth('6xl')
                         ->modalSubmitAction(false)
                         ->modalCancelAction(false)
                         // ->visible(fn(HardwareHandoverV2 $record): bool => in_array($record->status, ['New', 'Completed', 'Pending Migration', 'Pending Stock']))

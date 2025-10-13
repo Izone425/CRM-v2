@@ -30,30 +30,40 @@
         display: flex;
         flex-direction: column;
         justify-content: center;
-        align-items: center;
         margin-bottom: 15px;
         width: 100%;
-        min-width: 150px;
-        text-align: center;
+        text-align: center; /* Changed from center to left */
         max-height: 82px;
         max-width: 220px;
     }
 
     .group-box:hover {
-        transform: translateY(-3px);
         background-color: #f9fafb;
+        transform: translateX(3px);
     }
 
     .group-box.selected {
         background-color: #f9fafb;
-        transform: translateY(-5px);
+        transform: translateX(5px);
         box-shadow: 0 4px 8px rgba(0,0,0,0.1);
     }
+
+    .group-info {
+        display: flex;
+        flex-direction: column;
+    }
+
 
     .group-title {
         font-size: 15px;
         font-weight: 600;
         margin-bottom: 8px;
+        text-align: left;
+    }
+
+    .group-desc {
+        font-size: 12px;
+        color: #6b7280;
     }
 
     .group-count {

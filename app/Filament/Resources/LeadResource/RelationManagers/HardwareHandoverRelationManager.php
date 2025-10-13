@@ -964,7 +964,7 @@ class HardwareHandoverRelationManager extends RelationManager
                     ->action(
                         Action::make('viewHandoverDetails')
                             ->modalHeading(' ')
-                            ->modalWidth('lg')
+                            ->modalWidth('6xl')
                             ->modalSubmitAction(false)
                             ->modalCancelAction(false)
                             ->modalContent(function (HardwareHandover $record): View {
@@ -1093,7 +1093,7 @@ class HardwareHandoverRelationManager extends RelationManager
                         ->icon('heroicon-o-eye')
                         ->color('secondary')
                         ->modalHeading(' ')
-                        ->modalWidth('lg')
+                        ->modalWidth('6xl')
                         ->modalSubmitAction(false)
                         ->modalCancelAction(false)
                         // ->visible(fn(HardwareHandover $record): bool => in_array($record->status, ['New', 'Completed', 'Pending Migration', 'Pending Stock']))

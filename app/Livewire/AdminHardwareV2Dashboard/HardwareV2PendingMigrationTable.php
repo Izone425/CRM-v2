@@ -44,6 +44,7 @@ use Illuminate\Support\HtmlString;
 use Illuminate\View\View;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Filament\Tables\Actions\Action;
+use Illuminate\Support\Facades\Artisan;
 use Livewire\Attributes\On;
 
 class HardwareV2PendingMigrationTable extends Component implements HasForms, HasTable
@@ -121,6 +122,45 @@ class HardwareV2PendingMigrationTable extends Component implements HasForms, Has
             ->emptyState(fn () => view('components.empty-state-question'))
             ->defaultPaginationPageOption(10)
             ->paginated([10, 25, 50])
+            ->headerActions([
+                Action::make('syncHandoversStatus')
+                    ->label('Process Data')
+                    ->icon('heroicon-o-arrow-path-rounded-square')
+                    ->color('success')
+                    ->visible(fn () => auth()->user()->role_id !== 2) // Hide for salesperson role
+                    ->action(function () {
+                        try {
+                            // Run the artisan command
+                            Artisan::call('handovers:sync');
+                            $output = Artisan::output();
+
+                            // Refresh the table
+                            $this->resetTable();
+                            $this->lastRefreshTime = now()->format('Y-m-d H:i:s');
+
+                            // Show success notification
+                            Notification::make()
+                                ->title('Handovers Sync Completed')
+                                ->body('Hardware handovers have been synchronized successfully based on invoice type and migration status.')
+                                ->success()
+                                ->duration(5000)
+                                ->send();
+
+                        } catch (\Exception $e) {
+                            // Show error notification
+                            Notification::make()
+                                ->title('Sync Failed')
+                                ->body('An error occurred while syncing handovers: ' . $e->getMessage())
+                                ->danger()
+                                ->duration(10000)
+                                ->send();
+                        }
+                    })
+                    ->requiresConfirmation()
+                    ->modalHeading('Sync Handovers Status')
+                    ->modalDescription('This will sync hardware handovers status based on invoice type and software handover migration status. Single invoices will move to Pending Payment, and combined invoices will only move if related software is migrated. Are you sure you want to continue?')
+                    ->modalSubmitActionLabel('Sync Now')
+            ])
             ->filters([
                 SelectFilter::make('status')
                     ->label('Filter by Status')
