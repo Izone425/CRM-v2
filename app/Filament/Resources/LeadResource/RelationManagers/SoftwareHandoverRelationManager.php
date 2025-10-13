@@ -893,7 +893,7 @@ class SoftwareHandoverRelationManager extends RelationManager
                     ->action(
                         Action::make('viewHandoverDetails')
                             ->modalHeading(false)
-                            ->modalWidth('md')
+                            ->modalWidth('6xl')
                             ->modalSubmitAction(false)
                             ->modalCancelAction(false)
                             ->modalContent(function (SoftwareHandover $record): View {
@@ -939,7 +939,7 @@ class SoftwareHandoverRelationManager extends RelationManager
                         ->icon('heroicon-o-eye')
                         ->color('secondary')
                         ->modalHeading(false)
-                        ->modalWidth('md')
+                        ->modalWidth('6xl')
                         ->modalSubmitAction(false)
                         ->modalCancelAction(false)
                         ->visible(fn (SoftwareHandover $record): bool => in_array($record->status, ['New', 'Completed', 'Approved']))

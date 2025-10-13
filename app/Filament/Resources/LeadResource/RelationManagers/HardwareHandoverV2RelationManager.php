@@ -611,9 +611,8 @@ class HardwareHandoverV2RelationManager extends RelationManager
             Section::make('Step 8: Attachment')
                 ->columnSpan(1) // Ensure it spans one column
                 ->schema([
-                    Grid::make(2)
+                    Grid::make(3)
                         ->schema([
-
                             FileUpload::make('confirmation_order_file')
                                 ->label('Upload Confirmation Order')
                                 ->disk('public')
@@ -657,7 +656,21 @@ class HardwareHandoverV2RelationManager extends RelationManager
                                 ->maxFiles(1)
                                 ->openable()
                                 ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
-                                ->openable()
+                                ->rules([
+                                    function () {
+                                        return function (string $attribute, $value, \Closure $fail) {
+                                            $formData = request()->all();
+                                            
+                                            $hasPaymentSlip = !empty($value);
+                                            $hasHrdfGrant = !empty($formData['hrdf_grant_file']);
+                                            
+                                            // Require at least one of the two files
+                                            if (!$hasPaymentSlip && !$hasHrdfGrant) {
+                                                $fail('Either Payment Slip or HRDF Grant Approval Letter must be uploaded.');
+                                            }
+                                        };
+                                    }
+                                ])
                                 ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
                                     // Get lead ID from ownerRecord
                                     $leadId = $this->getOwnerRecord()->id;
@@ -682,33 +695,6 @@ class HardwareHandoverV2RelationManager extends RelationManager
                                     return is_array($record->payment_slip_file) ? $record->payment_slip_file : [];
                                 }),
 
-                            FileUpload::make('invoice_file')
-                                ->label('Upload Invoice')
-                                ->disk('public')
-                                ->directory('handovers/invoices')
-                                ->visibility('public')
-                                ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
-                                ->multiple()
-                                ->maxFiles(10)
-                                ->openable()
-                                ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
-                                    $companyName = Str::slug($get('company_name') ?? 'invoice');
-                                    $date = now()->format('Y-m-d');
-                                    $random = Str::random(5);
-                                    $extension = $file->getClientOriginalExtension();
-
-                                    return "{$companyName}-invoice-{$date}-{$random}.{$extension}";
-                                })
-                                ->default(function (?HardwareHandoverV2 $record) {
-                                    if (!$record || !$record->invoice_file) {
-                                        return [];
-                                    }
-                                    if (is_string($record->invoice_file)) {
-                                        return json_decode($record->invoice_file, true) ?? [];
-                                    }
-                                    return is_array($record->invoice_file) ? $record->invoice_file : [];
-                                }),
-
                             FileUpload::make('hrdf_grant_file')
                                 ->label('Upload HRDF Grant Approval Letter')
                                 ->disk('public')
@@ -718,7 +704,21 @@ class HardwareHandoverV2RelationManager extends RelationManager
                                 ->maxFiles(10)
                                 ->openable()
                                 ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
-                                ->openable()
+                                ->rules([
+                                    function () {
+                                        return function (string $attribute, $value, \Closure $fail) {
+                                            $formData = request()->all();
+                                            
+                                            $hasPaymentSlip = !empty($formData['payment_slip_file']);
+                                            $hasHrdfGrant = !empty($value);
+                                            
+                                            // Require at least one of the two files
+                                            if (!$hasPaymentSlip && !$hasHrdfGrant) {
+                                                $fail('Either Payment Slip or HRDF Grant Approval Letter must be uploaded.');
+                                            }
+                                        };
+                                    }
+                                ])
                                 ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
                                     // Get lead ID from ownerRecord
                                     $leadId = $this->getOwnerRecord()->id;
@@ -747,6 +747,34 @@ class HardwareHandoverV2RelationManager extends RelationManager
                                     return is_array($record->hrdf_grant_file) ? $record->hrdf_grant_file : [];
                                 }),
 
+                            FileUpload::make('invoice_file')
+                                ->label('Upload Invoice TimeTec Penang')
+                                ->disk('public')
+                                ->directory('handovers/invoices')
+                                ->visibility('public')
+                                ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
+                                ->multiple()
+                                ->maxFiles(10)
+                                ->openable()
+                                ->visible(fn() => in_array(auth()->id(), [1, 25])) // Only show for user ID 1 and 25
+                                ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
+                                    $companyName = Str::slug($get('company_name') ?? 'invoice');
+                                    $date = now()->format('Y-m-d');
+                                    $random = Str::random(5);
+                                    $extension = $file->getClientOriginalExtension();
+
+                                    return "{$companyName}-invoice-{$date}-{$random}.{$extension}";
+                                })
+                                ->default(function (?HardwareHandoverV2 $record) {
+                                    if (!$record || !$record->invoice_file) {
+                                        return [];
+                                    }
+                                    if (is_string($record->invoice_file)) {
+                                        return json_decode($record->invoice_file, true) ?? [];
+                                    }
+                                    return is_array($record->invoice_file) ? $record->invoice_file : [];
+                                }),
+
                             FileUpload::make('reseller_quotation_file')
                                 ->label('Upload Reseller Quotation')
                                 ->disk('public')
@@ -756,6 +784,8 @@ class HardwareHandoverV2RelationManager extends RelationManager
                                 ->maxFiles(5)
                                 ->openable()
                                 ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
+                                ->visible(fn(callable $get) => $get('installation_type') === 'external_installation') 
+                                ->required(fn(callable $get) => $get('installation_type') === 'external_installation') 
                                 ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
                                     // Get lead ID from ownerRecord
                                     $leadId = $this->getOwnerRecord()->id;
@@ -822,6 +852,18 @@ class HardwareHandoverV2RelationManager extends RelationManager
                 ->form($this->defaultForm())
                 ->action(function (array $data): void { // CREATE HARDWARE HANDOVER
 
+                    $hasPaymentSlip = !empty($data['payment_slip_file']);
+                    $hasHrdfGrant = !empty($data['hrdf_grant_file']);
+                    
+                    if (!$hasPaymentSlip && !$hasHrdfGrant) {
+                        Notification::make()
+                            ->title('Validation Error')
+                            ->body('Either Payment Slip or HRDF Grant Approval Letter must be uploaded.')
+                            ->danger()
+                            ->send();
+                        return;
+                    }
+                    
                     $data['created_by'] = auth()->id();
                     $data['lead_id'] = $this->getOwnerRecord()->id;
                     $data['status'] = 'New';

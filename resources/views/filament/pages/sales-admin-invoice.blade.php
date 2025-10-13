@@ -154,12 +154,12 @@
                     <div class="stat-name">{{ $salesperson }}</div>
 
                     <div class="stat-row">
-                        <span class="stat-label">Jaja:</span>
+                        <span class="stat-label">JJ:</span>
                         <span class="stat-value jaja-value">RM {{ number_format($jajaAmount, 2) }}</span>
                     </div>
 
                     <div class="stat-row">
-                        <span class="stat-label">Sheena:</span>
+                        <span class="stat-label">SN:</span>
                         <span class="stat-value sheena-value">RM {{ number_format($sheenaAmount, 2) }}</span>
                     </div>
 

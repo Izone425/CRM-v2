@@ -630,8 +630,7 @@ class QuotationResource extends Resource
 
                                         $product = \App\Models\Product::find($productId);
 
-                                        // Make read-only if product exists and push_to_autocount is false
-                                        return $product && $product->push_to_autocount == '0';
+                                        return $product && $product->amount_editable == false;
                                     })
                                     ->helperText(function (Forms\Get $get) {
                                         $productId = $get('product_id');
@@ -641,7 +640,7 @@ class QuotationResource extends Resource
 
                                         $product = \App\Models\Product::find($productId);
 
-                                        return $product && $product->push_to_autocount == '0'
+                                        return $product && $product->amount_editable == false
                                             ? 'Unit price cannot be modified for this product'
                                             : null;
                                     })
@@ -1092,6 +1091,7 @@ class QuotationResource extends Resource
                                 ->previewable(false)
                                 ->preserveFilenames()
                                 ->disk('public')
+                                ->required()
                                 ->directory('confirmation_orders')
                         ])
                         ->action(

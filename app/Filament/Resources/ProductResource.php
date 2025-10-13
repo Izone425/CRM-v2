@@ -57,22 +57,31 @@ class ProductResource extends Resource
             ->schema([
                 TextInput::make('code')
                     ->required(fn (Page $livewire) => ($livewire instanceof CreateRecord))
-                    ->disabledOn('edit'),
+                    ->disabledOn('edit')
+                    ->rules([
+                        function ($record) {
+                            return [
+                                'required',
+                                Rule::unique('products', 'code')->ignore($record?->id),
+                            ];
+                        }
+                    ])
+                    ->validationMessages([
+                        'unique' => 'This product code already exists. Please use a different code.',
+                    ])
+                    ->helperText('Product codes must be unique across all products.'),
+
                 Select::make('solution')
                     ->placeholder('Select a solution')
+                    ->live() // Make it reactive for other fields
                     ->options([
                         'software' => 'Software',
                         'hardware' => 'Hardware',
                         'hrdf' => 'HRDF',
                         'other' => 'Other',
-                        'free_device' => 'Free Device',
                         'installation' => 'Installation',
                         'door_access_package' => 'Door Access Package',
                         'door_access_accesories' => 'Door Access Accesories',
-                        'new_sales' => 'New Sales',
-                        'new_sales_addon' => 'New Sales Add On',
-                        'renewal_sales' => 'Renewal Sales',
-                        'renewal_sales_addon' => 'Renewal Sales Add On',
                     ]),
                 Grid::make(2)
                 ->schema([
@@ -93,12 +102,52 @@ class ProductResource extends Resource
                                 ->required()
                                 ->helperText('Select the commission type for this product.'),
                             Toggle::make('push_to_autocount')
-                                ->label('Push to A/C')
+                                ->label('Push to A/C (Legacy)')
                                 ->inline(false)
-                                ->default(true),
+                                ->default(true)
+                                ->helperText('Legacy field - will be replaced by Push Invoice/Push SO'),
                         ])
                         ->columnSpan(1)
                 ]),
+
+                // New AutoCount Integration Section
+                Grid::make(3)
+                    ->schema([
+                        Toggle::make('push_to_autocount')
+                            ->label('Push Invoice')
+                            ->inline(false)
+                            ->default(false)
+                            ->helperText('Product code will go to AutoCount - Invoice')
+                            ->live()
+                            ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                // If Push Invoice is turned ON, turn OFF Push SO
+                                if ($state) {
+                                    $set('push_so', false);
+                                }
+                            }),
+
+                        Toggle::make('push_so')
+                            ->label('Push SO')
+                            ->inline(false)
+                            ->default(false)
+                            ->helperText('Product code will go to AutoCount - Sales Order')
+                            ->live()
+                            ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                // If Push SO is turned ON, turn OFF Push Invoice
+                                if ($state) {
+                                    $set('push_to_autocount', false);
+                                }
+                            }),
+
+                        Toggle::make('push_sw')
+                            ->label('Push SW')
+                            ->inline(false)
+                            ->default(false)
+                            ->helperText('Product code will go to Admin Portal + Admin Renewal')
+                            ->visible(fn (callable $get) => $get('solution') === 'software')
+                            ->disabled(fn (callable $get) => $get('solution') !== 'software'),
+                    ])
+                    ->columnSpanFull(),
 
                 Grid::make(4)
                     ->schema([
@@ -117,6 +166,13 @@ class ProductResource extends Resource
                         ->inline(false)
                         ->default(true),
                     ]),
+
+                Toggle::make('amount_editable')
+                    ->label('Amount Editable')
+                    ->inline(false)
+                    ->default(true)
+                    ->helperText('If ON: Salesperson can enter the amount. If OFF: Salesperson cannot enter the amount'),
+
                 TextInput::make('subscription_period')
                     ->label('Subscription Period (Months)')
                     ->numeric()
@@ -187,15 +243,32 @@ class ProductResource extends Resource
             // ->reorderable('sort_order')
             ->defaultSort('sort_order')
             ->recordUrl(false)
+            ->defaultPaginationPageOption(50)
+            ->paginated([50])
+            ->paginationPageOptions([50, 100])
             ->columns([
                 TextColumn::make('sort_order')->label('Order')->sortable(),
                 TextColumn::make('code')->width(100),
                 TextColumn::make('package_sort_order')
                     ->label('Pkg Order')
                     ->sortable()
-                    ->visible(fn ($record) => !empty($record->package_group))
+                    ->visible(fn ($record) => $record && !empty($record->package_group)) // Add null check
                     ->width(80),
-                TextColumn::make('solution')->width(100),
+                TextColumn::make('solution')
+                    ->width(100)
+                    ->formatStateUsing(function (?string $state): string {
+                        $solutionMap = [
+                            'software' => 'SOFTWARE',
+                            'hardware' => 'HARDWARE',
+                            'hrdf' => 'HRDF',
+                            'other' => 'OTHER',
+                            'installation' => 'INSTALLATION',
+                            'door_access_package' => 'DOOR ACCESS PACKAGE',
+                            'door_access_accesories' => 'DOOR ACCESS ACCESSORIES',
+                        ];
+
+                        return $solutionMap[$state] ?? strtoupper($state ?? '');
+                    }),               
                 TextColumn::make('description')
                     ->html()
                     ->width(500)
@@ -245,7 +318,7 @@ class ProductResource extends Resource
                 TextColumn::make('unit_price')->label('RM')->width(100),
                 TextColumn::make('subscription_period')->label('Months')->width(150),
                 TextColumn::make('is_commission')
-                    ->label('Commission')
+                    ->label('Comm')
                     ->badge()
                     ->formatStateUsing(function ($state) {
                         return match($state) {
@@ -264,12 +337,47 @@ class ProductResource extends Resource
                         };
                     })
                     ->width(100),
-                ToggleColumn::make('push_to_autocount')->label('Push to A/C')->width(100)->disabled(fn() => auth()->user()->role_id != 3),
+
+                // New AutoCount Integration Columns
+                ToggleColumn::make('push_to_autocount')
+                    ->label('Push Inv')
+                    ->width(100)
+                    ->disabled(fn() => auth()->user()->role_id != 3)
+                    ->afterStateUpdated(function ($record, $state) {
+                        // If Push Invoice is turned ON, turn OFF Push SO
+                        if ($state) {
+                            $record->update(['push_so' => false]);
+                        }
+                    }),
+
+                ToggleColumn::make('push_so')
+                    ->label('Push SO')
+                    ->width(100)
+                    ->disabled(fn() => auth()->user()->role_id != 3)
+                    ->afterStateUpdated(function ($record, $state) {
+                        // If Push SO is turned ON, turn OFF Push Invoice
+                        if ($state) {
+                            $record->update(['push_to_autocount' => false]);
+                        }
+                    }),
+
+                ToggleColumn::make('push_sw')
+                    ->label('Push SW')
+                    ->width(100)
+                    ->disabled(fn() => auth()->user()->role_id != 3),
+
+                ToggleColumn::make('amount_editable')
+                    ->label('Amount Editable')
+                    ->width(100)
+                    ->disabled(fn() => auth()->user()->role_id != 3),
+
+                // Legacy column (keep for backwards compatibility)
                 ToggleColumn::make('taxable')->label('Tax')->width(100)->disabled(fn() => auth()->user()->role_id != 3),
                 ToggleColumn::make('is_active')->label('Active')->width(100)->disabled(fn() => auth()->user()->role_id != 3),
                 ToggleColumn::make('editable')->label('Edit')->width(100)->disabled(fn() => auth()->user()->role_id != 3),
                 ToggleColumn::make('minimum_price')->label('Min')->width(100)->disabled(fn() => auth()->user()->role_id != 3),
             ])
+            // ...existing filters and actions...
             ->filters([
                 Filter::make('solution')
                     ->form([
@@ -281,14 +389,9 @@ class ProductResource extends Resource
                                 'hardware' => 'Hardware',
                                 'hrdf' => 'HRDF',
                                 'other' => 'Other',
-                                'free_device' => 'Free Device',
                                 'installation' => 'Installation',
                                 'door_access_package' => 'Door Access Package',
                                 'door_access_accesories' => 'Door Access Accesories',
-                                'new_sales' => 'New Sales',
-                                'new_sales_addon' => 'New Sales Add On',
-                                'renewal_sales' => 'Renewal Sales',
-                                'renewal_sales_addon' => 'Renewal Sales Add On',
                             ])
                             ->searchable()
                             ->placeholder('Select solution types to filter')
@@ -325,6 +428,39 @@ class ProductResource extends Resource
 
                         return "Solution: {$selectedLabels}";
                     }),
+
+                // Add new filters for the new columns
+                Filter::make('autocount_integration')
+                    ->form([
+                        Select::make('integration_type')
+                            ->label('AutoCount Integration')
+                            ->options([
+                                'push_to_autocount' => 'Push Invoice',
+                                'push_so' => 'Push SO',
+                                'push_sw' => 'Push SW (Software only)',
+                            ])
+                            ->placeholder('Select integration type')
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query->when(
+                            !empty($data['integration_type']),
+                            fn (Builder $query): Builder => $query->where($data['integration_type'], true)
+                        );
+                    })
+                    ->indicateUsing(function (array $data): ?string {
+                        if (empty($data['integration_type'])) {
+                            return null;
+                        }
+
+                        $labels = [
+                            'push_to_autocount' => 'Push Invoice',
+                            'push_so' => 'Push SO',
+                            'push_sw' => 'Push SW',
+                        ];
+
+                        return "Integration: {$labels[$data['integration_type']]}";
+                    }),
+
                 Filter::make('is_commission')
                     ->form([
                         Select::make('is_commission')
@@ -360,26 +496,6 @@ class ProductResource extends Resource
 
                         return "Commission: {$selectedLabels}";
                     }),
-                Filter::make('package_group')
-                    ->form([
-                        Select::make('package_group')
-                            ->options([
-                                'Package 1' => 'Package 1',
-                                'Package 2' => 'Package 2',
-                                'Package 3' => 'Package 3',
-                            ])
-                            ->searchable()
-                    ])
-                    ->query(function (Builder $query, array $data) {
-                        return $query->when($data['package_group'], fn ($q) => $q->where('package_group', $data['package_group']));
-                    }),
-                Filter::make('code')
-                    ->form([
-                        Select::make('code')
-                            ->options(fn(Product $product, ProductService $productService): array => $productService->getCode($product))
-                            ->searchable()
-                    ])
-                    ->query(fn(Builder $query, array $data, ProductService $productService): Builder => $productService->filterByCode($query, $data)),
             ], layout: FiltersLayout::AboveContent)
             ->actions([
                 Tables\Actions\EditAction::make()

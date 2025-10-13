@@ -24,6 +24,8 @@ class Product extends Model
         'sort_order',
         'is_commission',
         'push_to_autocount',
+        'push_so',
+        'push_sw'
     ];
 
     public function scopeActive(Builder $query, bool $value=true): Builder
