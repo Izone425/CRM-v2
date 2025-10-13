@@ -390,6 +390,7 @@ class QuotationRelationManager extends RelationManager
                                 ->previewable(false)
                                 ->preserveFilenames()
                                 ->disk('public')
+                                ->required()
                                 ->directory('confirmation_orders')
                         ])
                         ->action(

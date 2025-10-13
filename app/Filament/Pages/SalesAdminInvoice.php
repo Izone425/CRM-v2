@@ -50,8 +50,15 @@ class SalesAdminInvoice extends Page implements HasTable
     // Helper method to get payment status for an invoice
     protected function getPaymentStatusForInvoice(string $invoiceNo): string
     {
-        // Get the total invoice amount for this invoice number
-        $totalInvoiceAmount = Invoice::where('invoice_no', $invoiceNo)->sum('invoice_amount');
+        // Get the total invoice amount for this invoice number (only positive amounts)
+        $totalInvoiceAmount = Invoice::where('invoice_no', $invoiceNo)
+            ->where('invoice_amount', '>', 0) // Only consider positive amounts
+            ->sum('invoice_amount');
+
+        // If total amount is 0 or less, don't process
+        if ($totalInvoiceAmount <= 0) {
+            return 'N/A';
+        }
 
         // Look for this invoice in debtor_agings table
         $debtorAging = DB::table('debtor_agings')
@@ -77,6 +84,7 @@ class SalesAdminInvoice extends Page implements HasTable
         return 'UnPaid';
     }
 
+
     public function loadSalespersonData(): void
     {
         $today = Carbon::today();
@@ -85,9 +93,10 @@ class SalesAdminInvoice extends Page implements HasTable
         $allYearEnd = $today; // Today
 
         foreach (static::$salespersonUserIds as $salespersonName => $userId) {
-            // Get invoices for this salesperson
+            // Get invoices for this salesperson (only positive amounts)
             $invoiceNos = Invoice::query()
                 ->where('salesperson', $salespersonName)
+                ->where('invoice_amount', '>', 0) // Only positive amounts
                 ->whereBetween('invoice_date', [$allYearStart, $allYearEnd])
                 ->distinct('invoice_no')
                 ->pluck('invoice_no');
@@ -96,16 +105,20 @@ class SalesAdminInvoice extends Page implements HasTable
             $sheenaAmount = 0;
 
             foreach ($invoiceNos as $invoiceNo) {
-                // Calculate total invoice amount for this invoice
-                $totalInvoiceAmount = Invoice::where('invoice_no', $invoiceNo)->sum('invoice_amount');
+                // Calculate total invoice amount for this invoice (only positive amounts)
+                $totalInvoiceAmount = Invoice::where('invoice_no', $invoiceNo)
+                    ->where('invoice_amount', '>', 0)
+                    ->sum('invoice_amount');
+                
                 $paymentStatus = $this->getPaymentStatusForInvoice($invoiceNo);
 
                 // Get the invoice to check sales admin (lead_owner)
-                $invoice = Invoice::where('invoice_no', $invoiceNo)->first();
+                $invoice = Invoice::where('invoice_no', $invoiceNo)
+                    ->where('invoice_amount', '>', 0)
+                    ->first();
 
-                // You'll need to determine how to get the sales admin info
-                // For now, I'll assume you have a way to get this from the invoice or related lead
-                // This is a placeholder - you'll need to adjust based on your data structure
+                if (!$invoice) continue;
+
                 $salesAdmin = $this->getSalesAdminFromInvoice($invoice);
 
                 if ($salesAdmin === 'JAJA') {
@@ -125,7 +138,7 @@ class SalesAdminInvoice extends Page implements HasTable
             ];
         }
     }
-
+    
     // Helper method to determine sales admin from invoice
     // You'll need to implement this based on your data structure
     protected function getSalesAdminFromInvoice($invoice): string
@@ -146,7 +159,14 @@ class SalesAdminInvoice extends Page implements HasTable
             ->heading('Invoices')
             ->columns([
                 Tables\Columns\TextColumn::make('salesperson')
-                    ->label('Salesperson')
+                    ->label('SalesPerson')
+                    ->sortable(),
+
+                Tables\Columns\TextColumn::make('sales_admin')
+                    ->label('Sales Admin')
+                    ->getStateUsing(function (Invoice $record): string {
+                        return $this->getSalesAdminFromInvoice($record);
+                    })
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('company_name')
@@ -155,8 +175,8 @@ class SalesAdminInvoice extends Page implements HasTable
                     ->searchable(),
 
                 Tables\Columns\TextColumn::make('invoice_date')
-                    ->label('Date')
-                    ->dateTime('d M Y')
+                    ->label('Invoice Date')
+                    ->dateTime('d F Y')
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('invoice_no')
@@ -169,7 +189,9 @@ class SalesAdminInvoice extends Page implements HasTable
                     ->money('MYR')
                     ->sortable()
                     ->getStateUsing(function (Invoice $record): float {
-                        return Invoice::where('invoice_no', $record->invoice_no)->sum('invoice_amount');
+                        return Invoice::where('invoice_no', $record->invoice_no)
+                            ->where('invoice_amount', '>', 0)
+                            ->sum('invoice_amount');
                     })
                     ->summarize([
                         Tables\Columns\Summarizers\Summarizer::make()
@@ -179,7 +201,9 @@ class SalesAdminInvoice extends Page implements HasTable
                                 $grandTotal = 0;
 
                                 foreach ($groupedResults as $record) {
-                                    $grandTotal += Invoice::where('invoice_no', $record->invoice_no)->sum('invoice_amount');
+                                    $grandTotal += Invoice::where('invoice_no', $record->invoice_no)
+                                        ->where('invoice_amount', '>', 0)
+                                        ->sum('invoice_amount');
                                 }
 
                                 return 'RM ' . number_format($grandTotal, 2);
@@ -211,7 +235,9 @@ class SalesAdminInvoice extends Page implements HasTable
                     DB::raw('SUM(invoice_amount) as total_invoice_amount')
                 ])
                 ->whereIn('salesperson', $allowedSalespersons)
+                ->where('invoice_amount', '>', 0) // Only show invoices with amount > 0
                 ->groupBy('invoice_no', 'salesperson', 'invoice_date', 'company_name')
+                ->havingRaw('SUM(invoice_amount) > 0') // Ensure grouped total is also > 0
                 ->orderBy('invoice_date', 'desc');
 
                 if (Auth::check() && Auth::user()->role_id === 2) {
