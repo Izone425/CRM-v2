@@ -56,6 +56,16 @@
             ->count();
 
         $adminTotal = $adminSoftwareTotal + $adminHardwareTotal + $adminHeadcountTotal + $adminHrdfTotal;
+
+        $newTaskCount = app(\App\Livewire\AdminHardwareV2Dashboard\HardwareV2NewTable::class)
+            ->getNewHardwareHandovers()
+            ->count();
+
+        $pendingStockCount = app(\App\Livewire\AdminHardwareV2Dashboard\HardwareV2PendingStockTable::class)
+            ->getNewHardwareHandovers()
+            ->count();
+
+        $initialStageTotal = $newTaskCount + $pendingStockCount;
     @endphp
 
     <div
@@ -812,7 +822,7 @@
                                                         font-weight: bold;
                                                         min-width: 20px;
                                                         text-align: center;
-                                                    ">{{ $adminHardwareTotal }}</span>
+                                                    ">{{ $initialStageTotal }}</span>
                                                 @endif
                                             </button>
 

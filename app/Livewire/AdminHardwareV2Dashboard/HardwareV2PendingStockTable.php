@@ -105,23 +105,11 @@ class HardwareV2PendingStockTable extends Component implements HasForms, HasTabl
 
     public function getHardwareHandoverCount()
     {
-        $query = HardwareHandoverV2::query();
-
-        if ($this->selectedUser === 'all-salespersons') {
-            $query->whereIn('status', ['New', 'Approved', 'Pending Migration', 'Pending Stock']);
-            $salespersonIds = User::where('role_id', 2)->pluck('id');
-            $query->whereHas('lead', function ($leadQuery) use ($salespersonIds) {
-                $leadQuery->whereIn('salesperson', $salespersonIds);
-            });
-        } elseif (is_numeric($this->selectedUser)) {
-            $query->whereIn('status', ['New', 'Approved', 'Pending Migration', 'Pending Stock']);
-            $selectedUser = $this->selectedUser;
-            $query->whereHas('lead', function ($leadQuery) use ($selectedUser) {
-                $leadQuery->where('salesperson', $selectedUser);
-            });
-        } else {
-            $query->whereIn('status', ['New', 'Approved', 'Pending Migration', 'Pending Stock']);
-        }
+        $query = HardwareHandoverV2::query()
+            ->whereIn('status', ['Pending Stock'])
+            // ->where('created_at', '<', Carbon::today()) // Only those created before today
+            ->orderBy('created_at', 'asc') // Oldest first since they're the most overdue
+            ->with(['lead', 'lead.companyDetail', 'creator']);
 
         return $query->count();
     }

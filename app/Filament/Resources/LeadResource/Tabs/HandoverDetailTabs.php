@@ -40,12 +40,12 @@ class HandoverDetailTabs
                             ),
                         ]),
 
-                    Tabs\Tab::make('Hardware Handover')
-                        ->schema([
-                            \Njxqlus\Filament\Components\Forms\RelationManager::make()
-                                ->manager(\App\Filament\Resources\LeadResource\RelationManagers\HardwareHandoverRelationManager::class
-                            ),
-                        ]),
+                    // Tabs\Tab::make('Hardware Handover')
+                    //     ->schema([
+                    //         \Njxqlus\Filament\Components\Forms\RelationManager::make()
+                    //             ->manager(\App\Filament\Resources\LeadResource\RelationManagers\HardwareHandoverRelationManager::class
+                    //         ),
+                    //     ]),
 
                     Tabs\Tab::make('HRDF Handover')
                         ->schema([
@@ -65,7 +65,11 @@ class HandoverDetailTabs
                             \Njxqlus\Filament\Components\Forms\RelationManager::make()
                                 ->manager(\App\Filament\Resources\LeadResource\RelationManagers\HardwareHandoverV2RelationManager::class
                             ),
-                        ]),
+                        ])
+                        ->visible(function ($livewire) {
+                            $user = auth()->user();
+                            return $user->role_id === 3;
+                        }),
 
                     Tabs\Tab::make('Finance Handover')
                         ->schema([

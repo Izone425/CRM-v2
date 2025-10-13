@@ -147,7 +147,7 @@ class HardwareHandoverCompletedMigration extends Component implements HasForms, 
                     ->action(
                         Action::make('viewHandoverDetails')
                             ->modalHeading(' ')
-                            ->modalWidth('md')
+                            ->modalWidth('6xl')
                             ->modalSubmitAction(false)
                             ->modalCancelAction(false)
                             ->modalContent(function (HardwareHandover $record): View {
@@ -251,7 +251,7 @@ class HardwareHandoverCompletedMigration extends Component implements HasForms, 
                         ->icon('heroicon-o-eye')
                         ->color('secondary')
                         ->modalHeading(' ')
-                        ->modalWidth('md')
+                        ->modalWidth('6xl')
                         ->modalSubmitAction(false)
                         ->modalCancelAction(false)
                         // Use a callback function instead of arrow function for more control

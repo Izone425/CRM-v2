@@ -255,134 +255,134 @@ class ImplementerMigration extends Component implements HasForms, HasTable
                             ->with('extraAttributes', ['record' => $record]);
                         }),
 
-                    Action::make('mark_as_migrated')
-                        ->label('Complete Migration')
-                        ->icon('heroicon-o-check-circle')
-                        ->color('success')
-                        ->requiresConfirmation()
-                        ->modalHeading("Mark as Migration Completed")
-                        ->modalDescription('Are you sure you want to mark this handover as migration completed? This will complete the software handover process and update the associated hardware handover.')
-                        ->modalSubmitActionLabel('Yes, Mark as Migration Completed')
-                        ->modalCancelActionLabel('No, Cancel')
-                        ->action(function (SoftwareHandover $record): void {
-                            // Get the implementer info
-                            $implementer = \App\Models\User::where('name', $record->implementer)->first();
-                            $implementerEmail = $implementer?->email ?? null;
+                    // Action::make('mark_as_migrated')
+                    //     ->label('Complete Migration')
+                    //     ->icon('heroicon-o-check-circle')
+                    //     ->color('success')
+                    //     ->requiresConfirmation()
+                    //     ->modalHeading("Mark as Migration Completed")
+                    //     ->modalDescription('Are you sure you want to mark this handover as migration completed? This will complete the software handover process and update the associated hardware handover.')
+                    //     ->modalSubmitActionLabel('Yes, Mark as Migration Completed')
+                    //     ->modalCancelActionLabel('No, Cancel')
+                    //     ->action(function (SoftwareHandover $record): void {
+                    //         // Get the implementer info
+                    //         $implementer = \App\Models\User::where('name', $record->implementer)->first();
+                    //         $implementerEmail = $implementer?->email ?? null;
 
-                            // Get the salesperson info
-                            $salespersonId = $record->lead->salesperson ?? null;
-                            $salesperson = \App\Models\User::find($salespersonId);
-                            $salespersonEmail = $salesperson?->email ?? null;
-                            $salespersonName = $salesperson?->name ?? 'Unknown Salesperson';
+                    //         // Get the salesperson info
+                    //         $salespersonId = $record->lead->salesperson ?? null;
+                    //         $salesperson = \App\Models\User::find($salespersonId);
+                    //         $salespersonEmail = $salesperson?->email ?? null;
+                    //         $salespersonName = $salesperson?->name ?? 'Unknown Salesperson';
 
-                            // Get the company name
-                            $companyName = $record->company_name ?? $record->lead->companyDetail->company_name ?? 'Unknown Company';
+                    //         // Get the company name
+                    //         $companyName = $record->company_name ?? $record->lead->companyDetail->company_name ?? 'Unknown Company';
 
-                            // Update the software handover record
-                            $record->update([
-                                // 'completed_at' => now(),
-                                'data_migrated' => true
-                            ]);
+                    //         // Update the software handover record
+                    //         $record->update([
+                    //             // 'completed_at' => now(),
+                    //             'data_migrated' => true
+                    //         ]);
 
-                            // Update the associated hardware handover
-                            if ($record->lead_id) {
-                                // Find the latest hardware handover for the same lead
-                                $hardwareHandover = HardwareHandover::where('lead_id', $record->lead_id)
-                                    ->where('status', 'Pending Migration')
-                                    ->orderBy('created_at', 'desc')
-                                    ->first();
+                    //         // Update the associated hardware handover
+                    //         if ($record->lead_id) {
+                    //             // Find the latest hardware handover for the same lead
+                    //             $hardwareHandover = HardwareHandover::where('lead_id', $record->lead_id)
+                    //                 ->where('status', 'Pending Migration')
+                    //                 ->orderBy('created_at', 'desc')
+                    //                 ->first();
 
-                                // If found, update its status to 'Completed'
-                                if ($hardwareHandover) {
-                                    $hardwareHandover->update([
-                                        'status' => 'Completed Migration',
-                                        // 'completed_at' => now(),
-                                        'updated_at' => now(),
-                                    ]);
+                    //             // If found, update its status to 'Completed'
+                    //             if ($hardwareHandover) {
+                    //                 $hardwareHandover->update([
+                    //                     'status' => 'Completed Migration',
+                    //                     // 'completed_at' => now(),
+                    //                     'updated_at' => now(),
+                    //                 ]);
 
-                                    // Log the hardware handover update
-                                    \Illuminate\Support\Facades\Log::info("Hardware handover #{$hardwareHandover->id} marked as Completed from software handover migration completion", [
-                                        'software_handover_id' => $record->id,
-                                        'lead_id' => $record->lead_id,
-                                        'hardware_handover_id' => $hardwareHandover->id,
-                                        'updated_by' => auth()->user()->name,
-                                    ]);
+                    //                 // Log the hardware handover update
+                    //                 \Illuminate\Support\Facades\Log::info("Hardware handover #{$hardwareHandover->id} marked as Completed from software handover migration completion", [
+                    //                     'software_handover_id' => $record->id,
+                    //                     'lead_id' => $record->lead_id,
+                    //                     'hardware_handover_id' => $hardwareHandover->id,
+                    //                     'updated_by' => auth()->user()->name,
+                    //                 ]);
 
-                                    // Show additional success notification for hardware handover
-                                    Notification::make()
-                                        ->title("Hardware handover #{$hardwareHandover->id} updated")
-                                        ->success()
-                                        ->body("The associated hardware handover has been marked as completed.")
-                                        ->send();
+                    //                 // Show additional success notification for hardware handover
+                    //                 Notification::make()
+                    //                     ->title("Hardware handover #{$hardwareHandover->id} updated")
+                    //                     ->success()
+                    //                     ->body("The associated hardware handover has been marked as completed.")
+                    //                     ->send();
 
-                                    // Emit event to refresh hardware handover tables
-                                    $this->dispatch('refresh-hardwarehandover-tables');
-                                }
-                            }
+                    //                 // Emit event to refresh hardware handover tables
+                    //                 $this->dispatch('refresh-hardwarehandover-tables');
+                    //             }
+                    //         }
 
-                            // Format the handover ID properly
-                            $handoverId = 'SW_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+                    //         // Format the handover ID properly
+                    //         $handoverId = 'SW_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
 
-                            // Get the handover PDF URL
-                            $handoverFormUrl = $record->handover_pdf ? url('storage/' . $record->handover_pdf) : null;
+                    //         // Get the handover PDF URL
+                    //         $handoverFormUrl = $record->handover_pdf ? url('storage/' . $record->handover_pdf) : null;
 
-                            // Send email notification
-                            try {
-                                $viewName = 'emails.implementer_migrated';
+                    //         // Send email notification
+                    //         try {
+                    //             $viewName = 'emails.implementer_migrated';
 
-                                // Create email content structure
-                                $emailContent = [
-                                    'implementer' => [
-                                        'name' => $record->implementer,
-                                    ],
-                                    'company' => [
-                                        'name' => $companyName,
-                                    ],
-                                    'salesperson' => [
-                                        'name' => $salespersonName,
-                                    ],
-                                    'handover_id' => $handoverId,
-                                ];
+                    //             // Create email content structure
+                    //             $emailContent = [
+                    //                 'implementer' => [
+                    //                     'name' => $record->implementer,
+                    //                 ],
+                    //                 'company' => [
+                    //                     'name' => $companyName,
+                    //                 ],
+                    //                 'salesperson' => [
+                    //                     'name' => $salespersonName,
+                    //                 ],
+                    //                 'handover_id' => $handoverId,
+                    //             ];
 
-                                // Initialize recipients array
-                                $recipients = [];
+                    //             // Initialize recipients array
+                    //             $recipients = [];
 
-                                // Add implementer email if valid
-                                if ($implementerEmail && filter_var($implementerEmail, FILTER_VALIDATE_EMAIL)) {
-                                    $recipients[] = $implementerEmail;
-                                }
+                    //             // Add implementer email if valid
+                    //             if ($implementerEmail && filter_var($implementerEmail, FILTER_VALIDATE_EMAIL)) {
+                    //                 $recipients[] = $implementerEmail;
+                    //             }
 
-                                // Add salesperson email if valid
-                                if ($salespersonEmail && filter_var($salespersonEmail, FILTER_VALIDATE_EMAIL)) {
-                                    $recipients[] = $salespersonEmail;
-                                }
+                    //             // Add salesperson email if valid
+                    //             if ($salespersonEmail && filter_var($salespersonEmail, FILTER_VALIDATE_EMAIL)) {
+                    //                 $recipients[] = $salespersonEmail;
+                    //             }
 
-                                // Get authenticated user's email for sender
-                                $authUser = auth()->user();
-                                $senderEmail = $authUser->email;
-                                $senderName = $authUser->name;
+                    //             // Get authenticated user's email for sender
+                    //             $authUser = auth()->user();
+                    //             $senderEmail = $authUser->email;
+                    //             $senderName = $authUser->name;
 
-                                // Send email with template and custom subject format
-                                if (count($recipients) > 0) {
-                                    \Illuminate\Support\Facades\Mail::send($viewName, ['emailContent' => $emailContent], function ($message) use ($recipients, $senderEmail, $senderName, $handoverId, $companyName) {
-                                        $message->from($senderEmail, $senderName)
-                                            ->to($recipients)
-                                            ->subject("COMPLETED USER DATA MIGRATION | TIMETEC HR | {$companyName}");
-                                    });
+                    //             // Send email with template and custom subject format
+                    //             if (count($recipients) > 0) {
+                    //                 \Illuminate\Support\Facades\Mail::send($viewName, ['emailContent' => $emailContent], function ($message) use ($recipients, $senderEmail, $senderName, $handoverId, $companyName) {
+                    //                     $message->from($senderEmail, $senderName)
+                    //                         ->to($recipients)
+                    //                         ->subject("COMPLETED USER DATA MIGRATION | TIMETEC HR | {$companyName}");
+                    //                 });
 
-                                    \Illuminate\Support\Facades\Log::info("License activation email sent successfully from {$senderEmail} to: " . implode(', ', $recipients));
-                                }
-                            } catch (\Exception $e) {
-                                // Log error but don't stop the process
-                                \Illuminate\Support\Facades\Log::error("Email sending failed for software handover #{$record->id}: {$e->getMessage()}");
-                            }
+                    //                 \Illuminate\Support\Facades\Log::info("License activation email sent successfully from {$senderEmail} to: " . implode(', ', $recipients));
+                    //             }
+                    //         } catch (\Exception $e) {
+                    //             // Log error but don't stop the process
+                    //             \Illuminate\Support\Facades\Log::error("Email sending failed for software handover #{$record->id}: {$e->getMessage()}");
+                    //         }
 
-                            Notification::make()
-                                ->title('License has been activated successfully')
-                                ->success()
-                                ->body('Software handover has been marked as completed.')
-                                ->send();
-                        })
+                    //         Notification::make()
+                    //             ->title('License has been activated successfully')
+                    //             ->success()
+                    //             ->body('Software handover has been marked as completed.')
+                    //             ->send();
+                    //     })
                 ])
                 ->button()
                 ->color('warning')

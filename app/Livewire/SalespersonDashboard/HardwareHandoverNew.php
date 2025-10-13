@@ -264,7 +264,7 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
                     ->action(
                         Action::make('viewHandoverDetails')
                             ->modalHeading(' ')
-                            ->modalWidth('md')
+                            ->modalWidth('6xl')
                             ->modalSubmitAction(false)
                             ->modalCancelAction(false)
                             ->modalContent(function (HardwareHandover $record): View {
@@ -354,7 +354,7 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
                         ->icon('heroicon-o-eye')
                         ->color('secondary')
                         ->modalHeading(' ')
-                        ->modalWidth('md')
+                        ->modalWidth('6xl')
                         ->modalSubmitAction(false)
                         ->modalCancelAction(false)
                         // ->visible(fn (HardwareHandover $record): bool => in_array($record->status, ['New', 'Completed', 'Approved']))
@@ -838,7 +838,7 @@ class HardwareHandoverNew extends Component implements HasForms, HasTable
                         ->icon('heroicon-o-exclamation-triangle')
                         ->color('warning')
                         ->modalHeading('Pending Stock Confirmation')
-                        ->modalWidth('lg')
+                        ->modalWidth('6xl')
                         ->form([
                             Grid::make(3)
                                 ->schema([

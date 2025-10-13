@@ -44,6 +44,7 @@ use Illuminate\Support\HtmlString;
 use Illuminate\View\View;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Filament\Tables\Actions\Action;
+use Illuminate\Support\Facades\Artisan;
 use Livewire\Attributes\On;
 
 class HardwareV2PendingPaymentTable extends Component implements HasForms, HasTable
@@ -121,6 +122,45 @@ class HardwareV2PendingPaymentTable extends Component implements HasForms, HasTa
             ->emptyState(fn () => view('components.empty-state-question'))
             ->defaultPaginationPageOption(10)
             ->paginated([10, 25, 50])
+            ->headerActions([
+                Action::make('processFullPayment')
+                    ->label('Process Data')
+                    ->icon('heroicon-o-credit-card')
+                    ->color('success')
+                    ->visible(fn () => auth()->user()->role_id !== 2) // Hide for salesperson role
+                    ->action(function () {
+                        try {
+                            // Run the artisan command
+                            Artisan::call('handovers:process-full-payment-hardware-handover');
+                            $output = Artisan::output();
+
+                            // Refresh the table
+                            $this->resetTable();
+                            $this->lastRefreshTime = now()->format('Y-m-d H:i:s');
+
+                            // Show success notification
+                            Notification::make()
+                                ->title('Full Payment Processing Completed')
+                                ->body('Hardware handovers with full payment have been processed successfully.')
+                                ->success()
+                                ->duration(5000)
+                                ->send();
+
+                        } catch (\Exception $e) {
+                            // Show error notification
+                            Notification::make()
+                                ->title('Processing Failed')
+                                ->body('An error occurred while processing full payments: ' . $e->getMessage())
+                                ->danger()
+                                ->duration(10000)
+                                ->send();
+                        }
+                    })
+                    ->requiresConfirmation()
+                    ->modalHeading('Process Full Payment Hardware Handovers')
+                    ->modalDescription('This will process all hardware handovers with full payment status and update their installation status. Are you sure you want to continue?')
+                    ->modalSubmitActionLabel('Process Now')
+            ])
             ->filters([
                 SelectFilter::make('status')
                     ->label('Filter by Status')
