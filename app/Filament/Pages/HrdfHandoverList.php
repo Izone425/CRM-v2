@@ -48,7 +48,7 @@ class HrdfHandoverList extends Page implements HasTable
                     ->weight('bold')
                     ->action(
                         Action::make('viewHandoverDetails')
-                            ->modalHeading(' ')
+                            ->modalHeading(false)
                             ->modalWidth('3xl')
                             ->modalSubmitAction(false)
                             ->modalCancelAction(false)

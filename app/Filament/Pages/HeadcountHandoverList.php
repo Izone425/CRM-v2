@@ -44,7 +44,7 @@ class HeadcountHandoverList extends Page implements HasTable
                     ->weight('bold')
                     ->action(
                         Action::make('viewHeadcountHandoverDetails')
-                            ->modalHeading('')
+                            ->modalHeading(false)
                             ->modalWidth('3xl')
                             ->modalSubmitAction(false)
                             ->modalCancelAction(false)

@@ -75,7 +75,6 @@ class HardwareHandoverV2 extends Model
         'new_attachment_file' => 'array',
         'invoice_file' => 'array',
         'sales_order_file' => 'array',
-        'remarks' => 'array',
         'related_software_handovers' => 'array',
         'admin_remarks' => 'array',
         'reseller_quotation_file' => 'array',
@@ -114,35 +113,35 @@ class HardwareHandoverV2 extends Model
      * @param mixed $value
      * @return void
      */
-    public function setRemarksAttribute($value)
-    {
-        if (is_array($value)) {
-            // If it's an array, uppercase each element's content
-            foreach ($value as $key => $item) {
-                if (isset($item['remark']) && is_string($item['remark'])) {
-                    $value[$key]['remark'] = strtoupper($item['remark']);
-                }
-            }
-            $this->attributes['remarks'] = json_encode($value);
-        } else if (is_string($value)) {
-            // If it's already JSON string
-            if ($this->isJson($value)) {
-                $decodedValue = json_decode($value, true);
-                foreach ($decodedValue as $key => $item) {
-                    if (isset($item['remark']) && is_string($item['remark'])) {
-                        $decodedValue[$key]['remark'] = strtoupper($item['remark']);
-                    }
-                }
-                $this->attributes['remarks'] = json_encode($decodedValue);
-            } else {
-                // If it's a plain string, just uppercase it
-                $this->attributes['remarks'] = strtoupper($value);
-            }
-        } else {
-            // Otherwise, just set it as is
-            $this->attributes['remarks'] = $value;
-        }
-    }
+    // public function setRemarksAttribute($value)
+    // {
+    //     if (is_array($value)) {
+    //         // If it's an array, uppercase each element's content
+    //         foreach ($value as $key => $item) {
+    //             if (isset($item['remark']) && is_string($item['remark'])) {
+    //                 $value[$key]['remark'] = strtoupper($item['remark']);
+    //             }
+    //         }
+    //         $this->attributes['remarks'] = json_encode($value);
+    //     } else if (is_string($value)) {
+    //         // If it's already JSON string
+    //         if ($this->isJson($value)) {
+    //             $decodedValue = json_decode($value, true);
+    //             foreach ($decodedValue as $key => $item) {
+    //                 if (isset($item['remark']) && is_string($item['remark'])) {
+    //                     $decodedValue[$key]['remark'] = strtoupper($item['remark']);
+    //                 }
+    //             }
+    //             $this->attributes['remarks'] = json_encode($decodedValue);
+    //         } else {
+    //             // If it's a plain string, just uppercase it
+    //             $this->attributes['remarks'] = strtoupper($value);
+    //         }
+    //     } else {
+    //         // Otherwise, just set it as is
+    //         $this->attributes['remarks'] = $value;
+    //     }
+    // }
 
     /**
      * Check if a string is valid JSON

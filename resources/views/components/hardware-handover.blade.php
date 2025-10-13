@@ -14,6 +14,8 @@
     $companyDetail = $record->lead->companyDetail ?? null;
     $lead = $record->lead ?? null;
 
+    $invoiceData = $record->invoice_data ? (is_string($record->invoice_data) ? json_decode($record->invoice_data, true) : $record->invoice_data) : [];
+
     // Get Product PI details
     $productPIs = [];
     if ($record->proforma_invoice_product) {
@@ -26,21 +28,32 @@
         }
     }
 
+    $hrdfPIs = [];
+    if ($record->proforma_invoice_hrdf) {
+        $hrdfPiIds = is_string($record->proforma_invoice_hrdf)
+            ? json_decode($record->proforma_invoice_hrdf, true)
+            : $record->proforma_invoice_hrdf;
+
+        if (is_array($hrdfPiIds)) {
+            $hrdfPIs = App\Models\Quotation::whereIn('id', $hrdfPiIds)->get();
+        }
+    }
+
     // Get files
     $invoiceFiles = $record->invoice_file ? (is_string($record->invoice_file) ? json_decode($record->invoice_file, true) : $record->invoice_file) : [];
     $salesOrderFiles = $record->sales_order_file ? (is_string($record->sales_order_file) ? json_decode($record->sales_order_file, true) : $record->sales_order_file) : [];
     $confirmationFiles = $record->confirmation_order_file ? (is_string($record->confirmation_order_file) ? json_decode($record->confirmation_order_file, true) : $record->confirmation_order_file) : [];
     $paymentFiles = $record->payment_slip_file ? (is_string($record->payment_slip_file) ? json_decode($record->payment_slip_file, true) : $record->payment_slip_file) : [];
     $hrdfFiles = $record->hrdf_grant_file ? (is_string($record->hrdf_grant_file) ? json_decode($record->hrdf_grant_file, true) : $record->hrdf_grant_file) : [];
-    $videoFiles = $record->video_files ? (is_string($record->video_files) ? json_decode($record->video_files, true) : $record->video_files) : [];
+    $resellerFiles = $record->reseller_quotation_file ? (is_string($record->reseller_quotation_file) ? json_decode($record->reseller_quotation_file, true) : $record->reseller_quotation_file) : [];
 
     // Get parsed data
     $contactDetails = is_string($record->contact_detail) ? json_decode($record->contact_detail, true) : $record->contact_detail;
     if (!is_array($contactDetails)) $contactDetails = [];
 
     $category2 = is_string($record->category2) ? json_decode($record->category2, true) : $record->category2;
-    $remarks = is_string($record->remarks) ? json_decode($record->remarks, true) : $record->remarks;
-    if (!is_array($remarks)) $remarks = [];
+
+    $remarks = $record->remarks;
 
     $adminRemarks = is_string($record->admin_remarks) ? json_decode($record->admin_remarks, true) : $record->admin_remarks;
     if (!is_array($adminRemarks)) $adminRemarks = [];
@@ -95,10 +108,6 @@
         gap: 0.5rem;
     }
 
-    .hw-info-item {
-        margin-bottom: 0.5rem;
-    }
-
     .hw-label {
         font-weight: 600;
         color: #1f2937;
@@ -107,10 +116,6 @@
     .hw-value {
         margin-left: 0.5rem;
         color: #374151;
-    }
-
-    .hw-remark-container {
-        margin-bottom: 0.5rem;
     }
 
     .hw-view-link {
@@ -129,10 +134,6 @@
         margin-left: 0.5rem;
         font-style: italic;
         color: #6b7280;
-    }
-
-    .hw-section {
-        margin-bottom: 0.5rem;
     }
 
     .hw-section-title {
@@ -417,11 +418,58 @@
                     <span class="hw-label">Invoice Type:</span>
                     <span class="hw-value">
                         @if($record->invoice_type === 'combined')
-                            Combined Invoice (Hardware + Software)
+                            Combined Invoice
                         @else
-                            Single Invoice (Hardware Only)
+                            Single Invoice
                         @endif
                     </span>
+                </div>
+
+                <!-- Contact Details -->
+                <div class="hw-remark-container" x-data="{ contactOpen: false }">
+                    <span class="hw-label">Contact Details:</span>
+                    @if(count($contactDetails) > 0)
+                        <a href="#" @click.prevent="contactOpen = true" class="hw-view-link">View</a>
+                    @else
+                        <span class="hw-not-available">Not Available</span>
+                    @endif
+
+                    @if(count($contactDetails) > 0)
+                    <div x-show="contactOpen" x-cloak x-transition @click.outside="contactOpen = false" class="hw-modal">
+                        <div class="hw-modal-content" @click.away="contactOpen = false">
+                            <div class="hw-modal-header">
+                                <h3 class="hw-modal-title">Contact Details</h3>
+                                <button type="button" @click="contactOpen = false" class="hw-modal-close">
+                                    <svg fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                            <div class="hw-modal-body">
+                                <table class="hw-table">
+                                    <thead>
+                                        <tr>
+                                            <th>No.</th>
+                                            <th>Name</th>
+                                            <th>HP Number</th>
+                                            <th>Email Address</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach($contactDetails as $index => $contact)
+                                            <tr>
+                                                <td>{{ $index + 1 }}</td>
+                                                <td>{{ $contact['pic_name'] ?? '-' }}</td>
+                                                <td>{{ $contact['pic_phone'] ?? '-' }}</td>
+                                                <td>{{ $contact['pic_email'] ?? '-' }}</td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    @endif
                 </div>
 
                 @if($record->invoice_type === 'combined' && count($relatedHandovers) > 0)
@@ -728,13 +776,13 @@
 
                     @if(isset($category2['external_courier_addresses']) && is_array($category2['external_courier_addresses']) && count($category2['external_courier_addresses']) > 0)
                         <div class="hw-remark-container" x-data="{ externalCourierOpen: false }">
-                            <span class="hw-label">External Courier Addresses:</span>
+                            <span class="hw-label">External Courier Address:</span>
                             <a href="#" @click.prevent="externalCourierOpen = true" class="hw-view-link">View</a>
 
                             <div x-show="externalCourierOpen" x-cloak x-transition @click.outside="externalCourierOpen = false" class="hw-modal">
                                 <div class="hw-modal-content" @click.away="externalCourierOpen = false">
                                     <div class="hw-modal-header">
-                                        <h3 class="hw-modal-title">External Courier Addresses</h3>
+                                        <h3 class="hw-modal-title">External Courier Address</h3>
                                         <button type="button" @click="externalCourierOpen = false" class="hw-modal-close">
                                             <svg fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
                                                 <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
@@ -799,12 +847,16 @@
                     @endif
                 @endif
 
-                {{-- <!-- Remarks -->
-                @if(count($remarks) > 0)
+                <!-- Remarks -->
                 <div class="hw-remark-container" x-data="{ remarkOpen: false }">
-                    <span class="hw-label">Remarks:</span>
-                    <a href="#" @click.prevent="remarkOpen = true" class="hw-view-link">View</a>
+                    <span class="hw-label">Remark Details:</span>
+                    @if($remarks && trim($remarks) !== '')
+                        <a href="#" @click.prevent="remarkOpen = true" class="hw-view-link">View</a>
+                    @else
+                        <span class="hw-not-available">Not Available ({{ $remarks ? 'Empty: "' . $remarks . '"' : 'NULL' }})</span>
+                    @endif
 
+                    @if($remarks && trim($remarks) !== '')
                     <div x-show="remarkOpen" x-cloak x-transition @click.outside="remarkOpen = false" class="hw-modal">
                         <div class="hw-modal-content" @click.away="remarkOpen = false">
                             <div class="hw-modal-header">
@@ -817,31 +869,13 @@
                             </div>
                             <div class="hw-modal-body">
                                 <div class="hw-modal-text">
-                                    @foreach($remarks as $index => $rmk)
-                                        <div style="margin-bottom: 1rem;">
-                                            <strong>Remark {{ $index + 1 }}:</strong><br>
-                                            {{ is_array($rmk) ? ($rmk['remark'] ?? '') : $rmk }}
-                                            @if(isset($rmk['attachments']) && !empty($rmk['attachments']))
-                                                @php
-                                                    $attachments = is_string($rmk['attachments']) ? json_decode($rmk['attachments'], true) : $rmk['attachments'];
-                                                    if (!is_array($attachments)) $attachments = [];
-                                                @endphp
-                                                <div style="margin-top: 0.5rem;">
-                                                    @foreach($attachments as $attIndex => $attachment)
-                                                        <a href="{{ url('storage/' . $attachment) }}" target="_blank" class="hw-btn hw-btn-view" style="margin-right: 0.25rem;">
-                                                            Attachment {{ $attIndex + 1 }}
-                                                        </a>
-                                                    @endforeach
-                                                </div>
-                                            @endif
-                                        </div>
-                                    @endforeach
+                                    {{ $remarks }}
                                 </div>
                             </div>
                         </div>
                     </div>
+                    @endif
                 </div>
-                @endif --}}
 
                 <!-- Admin Remarks -->
                 @if(count($adminRemarks) > 0)
@@ -910,52 +944,125 @@
                     @endif
                 </div>
 
-                <!-- Contact Details -->
-                <div class="hw-remark-container" x-data="{ contactOpen: false }">
-                    <span class="hw-label">Contact Details:</span>
-                    @if(count($contactDetails) > 0)
-                        <a href="#" @click.prevent="contactOpen = true" class="hw-view-link">View</a>
+                <!-- HRDF PI -->
+                <div class="hw-info-item">
+                    <span class="hw-label">HRDF PI:</span>
+                    @if(count($hrdfPIs) > 0)
+                        <span class="hw-value">
+                            @foreach($hrdfPIs as $index => $pi)
+                                @if($index > 0), @endif
+                                <a href="{{ url('proforma-invoice-v2/' . $pi->id) }}" target="_blank" class="hw-view-link">
+                                    {{ $pi->pi_reference_no }}
+                                </a>
+                            @endforeach
+                        </span>
                     @else
-                        <span class="hw-not-available">Not Available</span>
-                    @endif
-
-                    @if(count($contactDetails) > 0)
-                    <div x-show="contactOpen" x-cloak x-transition @click.outside="contactOpen = false" class="hw-modal">
-                        <div class="hw-modal-content" @click.away="contactOpen = false">
-                            <div class="hw-modal-header">
-                                <h3 class="hw-modal-title">Contact Details</h3>
-                                <button type="button" @click="contactOpen = false" class="hw-modal-close">
-                                    <svg fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
-                                    </svg>
-                                </button>
-                            </div>
-                            <div class="hw-modal-body">
-                                <table class="hw-table">
-                                    <thead>
-                                        <tr>
-                                            <th>No.</th>
-                                            <th>Name</th>
-                                            <th>HP Number</th>
-                                            <th>Email Address</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @foreach($contactDetails as $index => $contact)
-                                            <tr>
-                                                <td>{{ $index + 1 }}</td>
-                                                <td>{{ $contact['pic_name'] ?? '-' }}</td>
-                                                <td>{{ $contact['pic_phone'] ?? '-' }}</td>
-                                                <td>{{ $contact['pic_email'] ?? '-' }}</td>
-                                            </tr>
-                                        @endforeach
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
+                        <span class="hw-not-available">No Product PI selected</span>
                     @endif
                 </div>
+
+                <hr class="my-6 border-t border-gray-300">
+                <!-- Confirmation Order Files Section -->
+                <div class="hw-section">
+                    <div class="hw-info-item">
+                        <span class="hw-label">Confirmation Order:</span>
+                        @php $hasConfirmationFiles = false; @endphp
+                        @for($i = 1; $i <= 4; $i++)
+                            @if(isset($confirmationFiles[$i-1]))
+                                @if($hasConfirmationFiles) / @endif
+                                <a href="{{ url('storage/' . $confirmationFiles[$i-1]) }}" target="_blank" class="hw-view-link">
+                                    File {{ $i }}
+                                </a>
+                                @php $hasConfirmationFiles = true; @endphp
+                            @endif
+                        @endfor
+                        @if(!$hasConfirmationFiles)
+                            <span class="hw-not-available">Not Available</span>
+                        @endif
+                    </div>
+                </div>
+
+                <!-- Payment Slip Files Section -->
+                <div class="hw-section">
+                    <div class="hw-info-item">
+                        <span class="hw-label">Payment Slip:</span>
+                        @php $hasPaymentFiles = false; @endphp
+                        @for($i = 1; $i <= 4; $i++)
+                            @if(isset($paymentFiles[$i-1]))
+                                @if($hasPaymentFiles) / @endif
+                                <a href="{{ url('storage/' . $paymentFiles[$i-1]) }}" target="_blank" class="hw-view-link">
+                                    File {{ $i }}
+                                </a>
+                                @php $hasPaymentFiles = true; @endphp
+                            @endif
+                        @endfor
+                        @if(!$hasPaymentFiles)
+                            <span class="hw-not-available">Not Available</span>
+                        @endif
+                    </div>
+                </div>
+
+                <!-- Invoice Files Section -->
+                <div class="hw-section">
+                    <div class="hw-info-item">
+                        <span class="hw-label">Invoice TimeTec Penang:</span>
+                        @php $hasInvoiceFiles = false; @endphp
+                        @for($i = 1; $i <= 4; $i++)
+                            @if(isset($invoiceFiles[$i-1]))
+                                @if($hasInvoiceFiles) / @endif
+                                <a href="{{ url('storage/' . $invoiceFiles[$i-1]) }}" target="_blank" class="hw-view-link">
+                                    File {{ $i }}
+                                </a>
+                                @php $hasInvoiceFiles = true; @endphp
+                            @endif
+                        @endfor
+                        @if(!$hasInvoiceFiles)
+                            <span class="hw-not-available">Not Available</span>
+                        @endif
+                    </div>
+                </div>
+
+                <!-- HRDF Grant Files Section -->
+                <div class="hw-section">
+                    <div class="hw-info-item">
+                        <span class="hw-label">HRDF Grant:</span>
+                        @php $hasHrdfFiles = false; @endphp
+                        @for($i = 1; $i <= 4; $i++)
+                            @if(isset($hrdfFiles[$i-1]))
+                                @if($hasHrdfFiles) / @endif
+                                <a href="{{ url('storage/' . $hrdfFiles[$i-1]) }}" target="_blank" class="hw-view-link">
+                                    File {{ $i }}
+                                </a>
+                                @php $hasHrdfFiles = true; @endphp
+                            @endif
+                        @endfor
+                        @if(!$hasHrdfFiles)
+                            <span class="hw-not-available">Not Available</span>
+                        @endif
+                    </div>
+                </div>
+
+                <!-- Reseller Quotation Section -->
+                <div class="hw-section">
+                    <div class="hw-info-item">
+                        <span class="hw-label">Reseller Quotation:</span>
+                        @php $hasResellerFiles = false; @endphp
+                        @for($i = 1; $i <= 4; $i++)
+                            @if(isset($resellerFiles[$i-1]))
+                                @if($hasResellerFiles) / @endif
+                                <a href="{{ url('storage/' . $resellerFiles[$i-1]) }}" target="_blank" class="hw-view-link">
+                                    File {{ $i }}
+                                </a>
+                                @php $hasResellerFiles = true; @endphp
+                            @endif
+                        @endfor
+                        @if(!$hasResellerFiles)
+                            <span class="hw-not-available">Not Available</span>
+                        @endif
+                    </div>
+                </div>
+
+                <hr class="my-6 border-t border-gray-300">
 
                 <!-- Device Inventory -->
                 <div class="hw-remark-container" x-data="{ deviceOpen: false }">
@@ -1021,123 +1128,67 @@
                         </div>
                     </div>
                 </div>
+
                 <hr class="my-6 border-t border-gray-300">
-                <!-- Invoice Files Section -->
-                <div class="hw-section">
-                    <div class="hw-info-item">
-                        <span class="hw-label">Invoice Files:</span>
-                        @php $hasInvoiceFiles = false; @endphp
-                        @for($i = 1; $i <= 4; $i++)
-                            @if(isset($invoiceFiles[$i-1]))
-                                @if($hasInvoiceFiles) / @endif
-                                <a href="{{ url('storage/' . $invoiceFiles[$i-1]) }}" target="_blank" class="hw-view-link">
-                                    File {{ $i }}
-                                </a>
-                                @php $hasInvoiceFiles = true; @endphp
-                            @endif
-                        @endfor
-                        @if(!$hasInvoiceFiles)
-                            <span class="hw-not-available">Not Available</span>
-                        @endif
-                    </div>
-                </div>
 
-                <!-- Sales Order Files Section -->
-                <div class="hw-section">
-                    <div class="hw-info-item">
-                        <span class="hw-label">Sales Order Files:</span>
-                        @php $hasSalesFiles = false; @endphp
-                        @for($i = 1; $i <= 4; $i++)
-                            @if(isset($salesOrderFiles[$i-1]))
-                                @if($hasSalesFiles) / @endif
-                                <a href="{{ url('storage/' . $salesOrderFiles[$i-1]) }}" target="_blank" class="hw-view-link">
-                                    File {{ $i }}
-                                </a>
-                                @php $hasSalesFiles = true; @endphp
-                            @endif
-                        @endfor
-                        @if(!$hasSalesFiles)
-                            <span class="hw-not-available">Not Available</span>
-                        @endif
-                    </div>
-                </div>
+                @if(is_array($invoiceData) && count($invoiceData) > 0)
+                <div class="hw-remark-container" x-data="{ invoiceDataOpen: false }">
+                    <span class="hw-label">Invoice Details:</span>
+                    <a href="#" @click.prevent="invoiceDataOpen = true" class="hw-view-link">View</a>
 
-                <!-- Confirmation Order Files Section -->
-                <div class="hw-section">
-                    <div class="hw-info-item">
-                        <span class="hw-label">Confirmation Order Files:</span>
-                        @php $hasConfirmationFiles = false; @endphp
-                        @for($i = 1; $i <= 4; $i++)
-                            @if(isset($confirmationFiles[$i-1]))
-                                @if($hasConfirmationFiles) / @endif
-                                <a href="{{ url('storage/' . $confirmationFiles[$i-1]) }}" target="_blank" class="hw-view-link">
-                                    File {{ $i }}
-                                </a>
-                                @php $hasConfirmationFiles = true; @endphp
-                            @endif
-                        @endfor
-                        @if(!$hasConfirmationFiles)
-                            <span class="hw-not-available">Not Available</span>
-                        @endif
+                    <div x-show="invoiceDataOpen" x-cloak x-transition @click.outside="invoiceDataOpen = false" class="hw-modal">
+                        <div class="hw-modal-content" @click.away="invoiceDataOpen = false">
+                            <div class="hw-modal-header">
+                                <h3 class="hw-modal-title">Invoice Data</h3>
+                                <button type="button" @click="invoiceDataOpen = false" class="hw-modal-close">
+                                    <svg fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                            <div class="hw-modal-body">
+                                <table class="hw-table">
+                                    <thead>
+                                        <tr>
+                                            <th>No.</th>
+                                            <th>Invoice Number</th>
+                                            <th>Payment Status</th>
+                                            <th>Invoice File</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach($invoiceData as $index => $invoice)
+                                            <tr>
+                                                <td>{{ $index + 1 }}</td>
+                                                <td>{{ $invoice['invoice_no'] ?? '-' }}</td>
+                                                <td>
+                                                    @if(isset($invoice['payment_status']))
+                                                        <span style="color: {{ $invoice['payment_status'] === 'Full Payment' ? '#059669' : ($invoice['payment_status'] === 'Partial Payment' ? '#d97706' : '#dc2626') }}; font-weight: 600;">
+                                                            {{ $invoice['payment_status'] }}
+                                                        </span>
+                                                    @else
+                                                        -
+                                                    @endif
+                                                </td>
+                                                <td>
+                                                    @if(!empty($invoice['invoice_file']))
+                                                        <a href="{{ url('storage/' . $invoice['invoice_file']) }}" target="_blank" class="hw-view-link">
+                                                            View Invoice
+                                                        </a>
+                                                    @else
+                                                        -
+                                                    @endif
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
                     </div>
                 </div>
-
-                <!-- Payment Slip Files Section -->
-                <div class="hw-section">
-                    <div class="hw-info-item">
-                        <span class="hw-label">Payment Slip Files:</span>
-                        @php $hasPaymentFiles = false; @endphp
-                        @for($i = 1; $i <= 4; $i++)
-                            @if(isset($paymentFiles[$i-1]))
-                                @if($hasPaymentFiles) / @endif
-                                <a href="{{ url('storage/' . $paymentFiles[$i-1]) }}" target="_blank" class="hw-view-link">
-                                    File {{ $i }}
-                                </a>
-                                @php $hasPaymentFiles = true; @endphp
-                            @endif
-                        @endfor
-                        @if(!$hasPaymentFiles)
-                            <span class="hw-not-available">Not Available</span>
-                        @endif
-                    </div>
-                </div>
-
-                <!-- HRDF Grant Files Section -->
-                <div class="hw-section">
-                    <div class="hw-info-item">
-                        <span class="hw-label">HRDF Grant Files:</span>
-                        @php $hasHrdfFiles = false; @endphp
-                        @for($i = 1; $i <= 4; $i++)
-                            @if(isset($hrdfFiles[$i-1]))
-                                @if($hasHrdfFiles) / @endif
-                                <a href="{{ url('storage/' . $hrdfFiles[$i-1]) }}" target="_blank" class="hw-view-link">
-                                    File {{ $i }}
-                                </a>
-                                @php $hasHrdfFiles = true; @endphp
-                            @endif
-                        @endfor
-                        @if(!$hasHrdfFiles)
-                            <span class="hw-not-available">Not Available</span>
-                        @endif
-                    </div>
-                </div>
-
-                <!-- Video Files Section -->
-                @if(is_array($videoFiles) && count($videoFiles) > 0)
-                <div class="hw-section">
-                    <div class="hw-info-item">
-                        <span class="hw-label">Video Files:</span>
-                        @foreach($videoFiles as $index => $file)
-                            @if($index > 0) / @endif
-                            <a href="{{ url('storage/' . $file) }}" target="_blank" class="hw-view-link">
-                                Video {{ $index + 1 }}
-                            </a>
-                        @endforeach
-                    </div>
-                </div>
+                <hr class="my-6 border-t border-gray-300">
                 @endif
-
-                <hr class="my-6 border-t border-gray-300">
 
                 <div class="hw-export-container">
                     <a href="{{ route('software-handover.export-customer', ['lead' => \App\Classes\Encryptor::encrypt($record->lead_id)]) }}"

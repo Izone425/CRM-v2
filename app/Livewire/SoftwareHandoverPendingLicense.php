@@ -176,7 +176,7 @@ class SoftwareHandoverPendingLicense extends Component implements HasForms, HasT
                     ->weight('bold')
                     ->action(
                         Action::make('viewHandoverDetails')
-                            ->modalHeading(' ')
+                            ->modalHeading(false)
                             ->modalWidth('md')
                             ->modalSubmitAction(false)
                             ->modalCancelAction(false)

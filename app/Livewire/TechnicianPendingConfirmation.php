@@ -160,7 +160,7 @@ class TechnicianPendingConfirmation extends Component implements HasForms, HasTa
                     })
                     ->action(
                         Action::make('viewRepairDetails')
-                            ->modalHeading(' ')
+                            ->modalHeading(false)
                             ->modalWidth('3xl')
                             ->modalSubmitAction(false)
                             ->modalCancelAction(false)
@@ -239,7 +239,7 @@ class TechnicianPendingConfirmation extends Component implements HasForms, HasTa
                     // View detail action
                     Action::make('view')
                         ->icon('heroicon-o-eye')
-                        ->modalHeading(' ')
+                        ->modalHeading(false)
                         ->modalWidth('3xl')
                         ->modalSubmitAction(false)
                         ->modalCancelAction(false)

@@ -126,15 +126,19 @@ class HardwareV2CompletedExternalInstallationTable extends Component implements 
                     ->label('Filter by Status')
                     ->options([
                         'New' => 'New',
-                        'Approved' => 'Approved',
+                        'Rejected' => 'Rejected',
                         'Pending Stock' => 'Pending Stock',
                         'Pending Migration' => 'Pending Migration',
-                        'Completed Migration' => 'Completed Migration',
                         'Pending Payment' => 'Pending Payment',
-                        'Completed: Internal Installation' => 'Completed: Internal Installation',
-                        'Completed: External Installation' => 'Completed: External Installation',
+                        'Pending: Courier' => 'Pending: Courier',
                         'Completed: Courier' => 'Completed: Courier',
-                        'Completed: Self Pick Up' => 'Completed: Self Pick Up',
+                        'Pending Admin: Self Pick-Up' => 'Pending Admin: Self Pick-Up',
+                        'Pending Customer: Self Pick-Up' => 'Pending Customer: Self Pick-Up',
+                        'Completed: Self Pick-Up' => 'Completed: Self Pick-Up',
+                        'Pending: External Installation' => 'Pending: External Installation',
+                        'Completed: External Installation' => 'Completed: External Installation',
+                        'Pending: Internal Installation' => 'Pending: Internal Installation',
+                        'Completed: Internal Installation' => 'Completed: Internal Installation',
                     ])
                     ->placeholder('All Statuses')
                     ->multiple(),
@@ -181,7 +185,7 @@ class HardwareV2CompletedExternalInstallationTable extends Component implements 
                     ->weight('bold')
                     ->action(
                         Action::make('viewHandoverDetails')
-                            ->modalHeading(' ')
+                            ->modalHeading(false)
                             ->modalWidth('6xl')
                             ->modalSubmitAction(false)
                             ->modalCancelAction(false)
@@ -203,9 +207,6 @@ class HardwareV2CompletedExternalInstallationTable extends Component implements 
                         return User::find($salespersonId)?->name ?? '-';
                     }),
 
-                TextColumn::make('implementer')
-                    ->label('Implementer'),
-
                 TextColumn::make('lead.companyDetail.company_name')
                     ->label('Company Name')
                     ->searchable()
@@ -225,7 +226,7 @@ class HardwareV2CompletedExternalInstallationTable extends Component implements 
                     ->html(),
 
                 TextColumn::make('invoice_type')
-                    ->label('Invoice Type')
+                    ->label('Category 1')
                     ->formatStateUsing(fn (string $state): string => match($state) {
                         'single' => 'Single Invoice',
                         'combined' => 'Combined Invoice',
@@ -253,7 +254,7 @@ class HardwareV2CompletedExternalInstallationTable extends Component implements 
                         ->label('View Details')
                         ->icon('heroicon-o-eye')
                         ->color('secondary')
-                        ->modalHeading('Hardware Handover Details')
+                        ->modalHeading(false)
                         ->modalWidth('6xl')
                         ->modalSubmitAction(false)
                         ->modalCancelAction(false)

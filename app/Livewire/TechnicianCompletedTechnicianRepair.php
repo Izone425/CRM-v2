@@ -161,7 +161,7 @@ class TechnicianCompletedTechnicianRepair extends Component implements HasForms,
                     })
                     ->action(
                         Action::make('viewRepairDetails')
-                            ->modalHeading(' ')
+                            ->modalHeading(false)
                             ->modalWidth('3xl')
                             ->modalSubmitAction(false)
                             ->modalCancelAction(false)
@@ -249,7 +249,7 @@ class TechnicianCompletedTechnicianRepair extends Component implements HasForms,
                     // View detail action
                     Action::make('view')
                         ->icon('heroicon-o-eye')
-                        ->modalHeading(' ')
+                        ->modalHeading(false)
                         ->modalWidth('3xl')
                         ->modalSubmitAction(false)
                         ->modalCancelAction(false)

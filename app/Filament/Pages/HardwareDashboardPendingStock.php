@@ -143,7 +143,7 @@ class HardwareDashboardPendingStock extends Page implements HasTable
                     })
                     ->action(
                         Action::make('viewHandoverDetails')
-                            ->modalHeading(' ')
+                            ->modalHeading(false)
                             ->modalWidth('6xl')
                             ->modalSubmitAction(false)
                             ->modalCancelAction(false)

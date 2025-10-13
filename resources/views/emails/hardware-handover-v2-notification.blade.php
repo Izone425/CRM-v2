@@ -16,11 +16,9 @@
 
         <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 15px 0;">
             <p style="margin: 5px 0;"><strong>Hardware Handover ID:</strong> {{ $handoverId }}</p>
-            <p style="margin: 5px 0;"><strong>Hardware Handover Form:</strong>
-                <a href="{{ $handoverFormUrl }}" style="color: #3498db; text-decoration: underline;">Click Here</a>
-            </p>
             <p style="margin: 5px 0;"><strong>Company Name:</strong> {{ $companyName }}</p>
             <p style="margin: 5px 0;"><strong>SalesPerson Name:</strong> {{ $salespersonName }}</p>
+            <p style="margin: 5px 0;"><strong>Updated by:</strong> {{ $updatedByName }}</p>
         </div>
 
         <h3 style="color: #2c3e50; margin-top: 25px; margin-bottom: 15px;">Invoice Details:</h3>

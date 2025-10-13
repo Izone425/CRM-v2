@@ -892,7 +892,7 @@ class SoftwareHandoverRelationManager extends RelationManager
                     ->weight('bold')
                     ->action(
                         Action::make('viewHandoverDetails')
-                            ->modalHeading(' ')
+                            ->modalHeading(false)
                             ->modalWidth('md')
                             ->modalSubmitAction(false)
                             ->modalCancelAction(false)
@@ -938,7 +938,7 @@ class SoftwareHandoverRelationManager extends RelationManager
                         ->label('View')
                         ->icon('heroicon-o-eye')
                         ->color('secondary')
-                        ->modalHeading(' ')
+                        ->modalHeading(false)
                         ->modalWidth('md')
                         ->modalSubmitAction(false)
                         ->modalCancelAction(false)
@@ -1075,7 +1075,6 @@ class SoftwareHandoverRelationManager extends RelationManager
         // Check if any essential company details are missing
         $requiredFields = [
             'company_name',
-            'industry',
             'contact_no',
             'email',
             'name',

@@ -189,7 +189,7 @@ class ImplementerSequenceMedium extends Component implements HasForms, HasTable
                     ->weight('bold')
                     ->action(
                         Action::make('viewHandoverDetails')
-                            ->modalHeading(' ')
+                            ->modalHeading(false)
                             ->modalWidth('md')
                             ->modalSubmitAction(false)
                             ->modalCancelAction(false)
@@ -264,7 +264,7 @@ class ImplementerSequenceMedium extends Component implements HasForms, HasTable
                         ->label('View')
                         ->icon('heroicon-o-eye')
                         ->color('secondary')
-                        ->modalHeading(' ')
+                        ->modalHeading(false)
                         ->modalWidth('md')
                         ->modalSubmitAction(false)
                         ->modalCancelAction(false)

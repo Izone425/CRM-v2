@@ -501,7 +501,7 @@ class AdminRepairResource extends Resource
                     Action::make('viewRepairDetails')
                         ->label('View')
                         ->icon('heroicon-o-eye')
-                        ->modalHeading(' ')
+                        ->modalHeading(false)
                         ->modalWidth('3xl')
                         ->modalSubmitAction(false)
                         ->modalCancelAction(false)

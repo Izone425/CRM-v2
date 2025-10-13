@@ -72,22 +72,23 @@ class ImplementerFollowUpTabs
                                     return self::canEditFollowUp($record);
                                 })
                                 ->modalWidth('6xl')
-                                ->modalHeading(function (SoftwareHandover $record) {
+                                ->modalHeading(function (Lead $record) {
                                     // Get company name
-                                    $companyName = $record->company_name ?? 'Unknown Company';
+                                    $companyName = 'Unknown Company';
 
-                                    // If company_name is not available in SoftwareHandover, try to get it from Lead
-                                    if (empty($companyName) || $companyName === 'Unknown Company') {
-                                        if ($record->lead_id) {
-                                            $lead = \App\Models\Lead::find($record->lead_id);
-                                            if ($lead && $lead->companyDetail) {
-                                                $companyName = $lead->companyDetail->company_name ?? 'Unknown Company';
-                                            }
+                                    // Try to get company name from Lead's companyDetail first
+                                    if ($record->companyDetail && $record->companyDetail->company_name) {
+                                        $companyName = $record->companyDetail->company_name;
+                                    } else {
+                                        // If not available in Lead, try to get it from SoftwareHandover
+                                        $softwareHandover = \App\Models\SoftwareHandover::where('lead_id', $record->id)
+                                            ->orderBy('created_at', 'desc')
+                                            ->first();
+
+                                        if ($softwareHandover && $softwareHandover->company_name) {
+                                            $companyName = $softwareHandover->company_name;
                                         }
                                     }
-
-                                    // Get current follow-up count for context
-                                    $currentCount = $record->manual_follow_up_count ?? 0;
 
                                     return "Add Follow-up for {$companyName}";
                                 })
