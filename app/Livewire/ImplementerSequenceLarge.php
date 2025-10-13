@@ -190,7 +190,7 @@ class ImplementerSequenceLarge extends Component implements HasForms, HasTable
                     ->action(
                         Action::make('viewHandoverDetails')
                             ->modalHeading(false)
-                            ->modalWidth('md')
+                            ->modalWidth('6xl')
                             ->modalSubmitAction(false)
                             ->modalCancelAction(false)
                             ->modalContent(function (SoftwareHandover $record): View {
