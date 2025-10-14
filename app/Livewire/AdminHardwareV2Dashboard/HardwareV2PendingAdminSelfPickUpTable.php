@@ -187,7 +187,7 @@ class HardwareV2PendingAdminSelfPickUpTable extends Component implements HasForm
                     ->action(
                         Action::make('viewHandoverDetails')
                             ->modalHeading(false)
-                            ->modalWidth('6xl')
+                            ->modalWidth('4xl')
                             ->modalSubmitAction(false)
                             ->modalCancelAction(false)
                             ->modalContent(function (HardwareHandoverV2 $record): View {
@@ -227,11 +227,11 @@ class HardwareV2PendingAdminSelfPickUpTable extends Component implements HasForm
                     ->html(),
 
                 TextColumn::make('installation_type')
-                    ->label('Category 1')
+                    ->label('Type')
                     ->formatStateUsing(fn (string $state): string => match($state) {
                         'external_installation' => 'External Installation',
                         'internal_installation' => 'Internal Installation',
-                        'self_pick_up' => 'Self Pick-Up',
+                        'self_pick_up' => 'Pick-Up',
                         'courier' => 'Courier',
                         default => ucfirst($state ?? 'Unknown')
                     }),
@@ -258,7 +258,7 @@ class HardwareV2PendingAdminSelfPickUpTable extends Component implements HasForm
                         ->icon('heroicon-o-eye')
                         ->color('secondary')
                         ->modalHeading(false)
-                        ->modalWidth('6xl')
+                        ->modalWidth('4xl')
                         ->modalSubmitAction(false)
                         ->modalCancelAction(false)
                         ->modalContent(function (HardwareHandoverV2 $record): View {
@@ -273,12 +273,11 @@ class HardwareV2PendingAdminSelfPickUpTable extends Component implements HasForm
                         ->modalWidth('md')
                         ->form([
                             DatePicker::make('customer_forecast_pickup_date')
-                                ->label('Customer Forecast Pick-up Date')
+                                ->label('Estimation Pick-Up Date')
                                 ->required()
                                 ->native(false)
                                 ->displayFormat('d/m/Y')
-                                ->minDate(now()) // Cannot set date in the past
-                                ->default(now()->addDays(3)) // Default to 3 days from now
+                                ->minDate(today())
                                 ->live(),
                         ])
                         ->action(function (HardwareHandoverV2 $record, array $data): void {

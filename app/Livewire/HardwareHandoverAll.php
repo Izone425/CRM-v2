@@ -2280,7 +2280,7 @@ class HardwareHandoverAll extends Component implements HasForms, HasTable
                                                         'courier' => 'Courier',
                                                         'internal_installation' => 'Internal Installation',
                                                         'external_installation' => 'External Installation',
-                                                        'self_pick_up' => 'Self Pick-up',
+                                                        'self_pick_up' => 'Pick-Up',
                                                         default => 'Not Selected'
                                                     };
 

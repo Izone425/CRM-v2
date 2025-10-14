@@ -152,7 +152,17 @@ class HardwareHandoverV2RelationManager extends RelationManager
                                     TextInput::make('pic_email')
                                         ->required()
                                         ->label('Email Address')
-                                        ->email(),
+                                        ->email()
+                                        ->extraAlpineAttributes([
+                                            'x-on:input' => '
+                                                const start = $el.selectionStart;
+                                                const end = $el.selectionEnd;
+                                                const value = $el.value;
+                                                $el.value = value.toLowerCase();
+                                                $el.setSelectionRange(start, end);
+                                            '
+                                        ])
+                                        ->dehydrateStateUsing(fn ($state) => strtolower($state)),
                                 ]),
                         ])
                         ->itemLabel(function (array $state): ?string {
@@ -180,7 +190,7 @@ class HardwareHandoverV2RelationManager extends RelationManager
                 ]),
 
 
-            Section::make('Step 4: Installation Type')
+            Section::make('Step 4: Installation Type 1')
                 ->schema([
                     Forms\Components\Radio::make('installation_type')
                         ->label('')
@@ -188,7 +198,7 @@ class HardwareHandoverV2RelationManager extends RelationManager
                             'courier' => 'Courier',
                             'internal_installation' => 'Internal Installation',
                             'external_installation' => 'External Installation',
-                            'self_pick_up' => 'Self Pick-Up',
+                            'self_pick_up' => 'Pick-Up',
                         ])
                         // ->inline()
                         ->live(debounce: 500)
@@ -208,7 +218,7 @@ class HardwareHandoverV2RelationManager extends RelationManager
                         ->required(),
                 ]),
 
-            Section::make('Step 5: Category 2')
+            Section::make('Step 5: Installation Type 2')
                 ->schema([
                     Forms\Components\Placeholder::make('installation_type_helper')
                         ->label('')
@@ -426,7 +436,7 @@ class HardwareHandoverV2RelationManager extends RelationManager
             Section::make('Step 6: Remark Details')
                 ->schema([
                     Textarea::make('remarks')
-                        ->label('Remarks')
+                        ->label(false)
                         ->placeholder('Enter remark here')
                         ->autosize()
                         ->rows(3)
@@ -923,7 +933,7 @@ class HardwareHandoverV2RelationManager extends RelationManager
                     ->action(
                         Action::make('viewHandoverDetails')
                             ->modalHeading(false)
-                            ->modalWidth('6xl')
+                            ->modalWidth('4xl')
                             ->modalSubmitAction(false)
                             ->modalCancelAction(false)
                             ->modalContent(function (HardwareHandoverV2 $record): View {
@@ -941,7 +951,7 @@ class HardwareHandoverV2RelationManager extends RelationManager
                             'courier' => 'Courier',
                             'internal_installation' => 'Internal Installation',
                             'external_installation' => 'External Installation',
-                            'self_pick_up' => 'Self Pick-Up',
+                            'self_pick_up' => 'Pick-Up',
                             default => ucfirst($state),
                         };
                     }),
@@ -976,7 +986,7 @@ class HardwareHandoverV2RelationManager extends RelationManager
                         ->icon('heroicon-o-eye')
                         ->color('secondary')
                         ->modalHeading(false)
-                        ->modalWidth('6xl')
+                        ->modalWidth('4xl')
                         ->modalSubmitAction(false)
                         ->modalCancelAction(false)
                         // ->visible(fn(HardwareHandoverV2 $record): bool => in_array($record->status, ['New', 'Completed', 'Pending Migration', 'Pending Stock']))

@@ -179,7 +179,7 @@ class HardwareHandoverRelationManager extends RelationManager
                             'courier' => 'Courier',
                             'internal_installation' => 'Internal Installation',
                             'external_installation' => 'External Installation',
-                            'self_pick_up' => 'Self Pick-Up',
+                            'self_pick_up' => 'Pick-Up',
                         ])
                         // ->inline()
                         ->live(debounce: 500)
@@ -894,7 +894,7 @@ class HardwareHandoverRelationManager extends RelationManager
                             'courier' => 'Courier',
                             'internal_installation' => 'Internal Installation',
                             'external_installation' => 'External Installation',
-                            'self_pick_up' => 'Self Pick-Up',
+                            'self_pick_up' => 'Pick-Up',
                             default => ucfirst($state),
                         };
                     }),

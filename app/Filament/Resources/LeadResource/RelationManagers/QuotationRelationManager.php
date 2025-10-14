@@ -382,20 +382,9 @@ class QuotationRelationManager extends RelationManager
                         ->openUrlInNewTab(),
                     Tables\Actions\Action::make('Accept')
                         ->icon('heroicon-o-clipboard-document-check')
-                        ->form([
-                            FileUpload::make('attachment')
-                                ->label('Upload Confirmation Order Document')
-                                ->acceptedFileTypes(['application/pdf','image/jpg','image/jpeg'])
-                                ->uploadingMessage('Uploading document...')
-                                ->previewable(false)
-                                ->preserveFilenames()
-                                ->disk('public')
-                                ->required()
-                                ->directory('confirmation_orders')
-                        ])
+                        ->requiresConfirmation()
                         ->action(
                             function (Quotation $quotation, QuotationService $quotationService, array $data) {
-                                $quotation->confirmation_order_document = $data['attachment'];
                                 $quotation->pi_reference_no = $quotationService->update_pi_reference_no($quotation);
                                 $quotation->status = QuotationStatusEnum::accepted;
                                 $quotation->save();

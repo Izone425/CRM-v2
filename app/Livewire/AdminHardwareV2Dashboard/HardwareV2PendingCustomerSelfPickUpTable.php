@@ -187,7 +187,7 @@ class HardwareV2PendingCustomerSelfPickUpTable extends Component implements HasF
                     ->action(
                         Action::make('viewHandoverDetails')
                             ->modalHeading(false)
-                            ->modalWidth('6xl')
+                            ->modalWidth('4xl')
                             ->modalSubmitAction(false)
                             ->modalCancelAction(false)
                             ->modalContent(function (HardwareHandoverV2 $record): View {
@@ -227,11 +227,11 @@ class HardwareV2PendingCustomerSelfPickUpTable extends Component implements HasF
                     ->html(),
 
                 TextColumn::make('installation_type')
-                    ->label('Category 1')
+                    ->label('Type')
                     ->formatStateUsing(fn (string $state): string => match($state) {
                         'external_installation' => 'External Installation',
                         'internal_installation' => 'Internal Installation',
-                        'self_pick_up' => 'Self Pick-Up',
+                        'self_pick_up' => 'Pick-Up',
                         'courier' => 'Courier',
                         default => ucfirst($state ?? 'Unknown')
                     }),
@@ -258,7 +258,7 @@ class HardwareV2PendingCustomerSelfPickUpTable extends Component implements HasF
                         ->icon('heroicon-o-eye')
                         ->color('secondary')
                         ->modalHeading(false)
-                        ->modalWidth('6xl')
+                        ->modalWidth('4xl')
                         ->modalSubmitAction(false)
                         ->modalCancelAction(false)
                         ->modalContent(function (HardwareHandoverV2 $record): View {
@@ -270,45 +270,15 @@ class HardwareV2PendingCustomerSelfPickUpTable extends Component implements HasF
                         ->icon('heroicon-o-check-circle')
                         ->color('success')
                         ->modalHeading(false)
-                        ->modalWidth('3xl')
+                        ->modalWidth('md')
                         ->form([
-                            Grid::make(2)
-                                ->schema([
-                                    DatePicker::make('self_pickup_date')
-                                        ->label('Completed Pick-Up Date')
-                                        ->required()
-                                        ->native(false)
-                                        ->displayFormat('d/m/Y')
-                                        ->maxDate(now()) // Cannot set future date
-                                        ->default(now())
-                                        ->columnSpan(1),
-
-                                    // FileUpload::make('delivery_order')
-                                    //     ->label('Delivery Order')
-                                    //     ->directory('hardware-delivery-orders')
-                                    //     ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
-                                    //     ->maxSize(10240) // 10MB max
-                                    //     ->required()
-                                    //     ->columnSpan(1),
-                                ]),
-
-                            // Textarea::make('self_pickup_remark')
-                            //     ->label('Self Pick-up Remark')
-                            //     ->placeholder('Optional remarks about the self pick-up (e.g., Who collected, any special notes)')
-                            //     ->maxLength(500)
-                            //     ->rows(4)
-                            //     ->columnSpanFull()
-                            //     ->helperText('Optional notes about the self pick-up process')
-                            //     ->extraAlpineAttributes([
-                            //         'x-on:input' => '
-                            //             const start = $el.selectionStart;
-                            //             const end = $el.selectionEnd;
-                            //             const value = $el.value;
-                            //             $el.value = value.toUpperCase();
-                            //             $el.setSelectionRange(start, end);
-                            //         '
-                            //     ])
-                            //     ->dehydrateStateUsing(fn ($state) => strtoupper($state)),
+                            DatePicker::make('self_pickup_date')
+                                ->label('Completed Pick-Up Date')
+                                ->required()
+                                ->native(false)
+                                ->displayFormat('d/m/Y')
+                                ->minDate(today())
+                                ->columnSpan(1),
                         ])
                         ->action(function (HardwareHandoverV2 $record, array $data): void {
                             try {
@@ -322,7 +292,6 @@ class HardwareV2PendingCustomerSelfPickUpTable extends Component implements HasF
 
                                 // Add self pick-up completion data to category2
                                 $existingCategory2['self_pickup_date'] = $data['self_pickup_date'];
-                                $existingCategory2['delivery_order'] = $data['delivery_order'];
                                 $existingCategory2['self_pickup_remark'] = $data['self_pickup_remark'] ?? '';
 
                                 // Add completion metadata
@@ -335,13 +304,6 @@ class HardwareV2PendingCustomerSelfPickUpTable extends Component implements HasF
                                     'category2' => json_encode($existingCategory2),
                                     'status' => 'Completed: Self Pick-Up',
                                     'completed_at' => now(),
-                                ]);
-
-                                Log::info("Self pick-up completed for handover {$record->id}", [
-                                    'user_id' => auth()->id(),
-                                    'self_pickup_date' => $data['self_pickup_date'],
-                                    'delivery_order' => $data['delivery_order'],
-                                    'self_pickup_remark' => $data['self_pickup_remark'] ?? '',
                                 ]);
 
                                 Notification::make()
