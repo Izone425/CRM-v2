@@ -2,7 +2,7 @@
 
 namespace App\Filament\Pages;
 
-use App\Models\HardwareHandover;
+use App\Models\HardwareHandoverV2;
 use App\Models\User;
 use Carbon\Carbon;
 use Filament\Pages\Page;
@@ -35,8 +35,7 @@ class HardwareDashboardAll extends Page implements HasTable
 
     public function getTableQuery(): Builder
     {
-        $query = HardwareHandover::query()
-            ->whereIn('status', ['Completed', 'Pending Stock', 'Pending Migration', 'Completed: Installation', 'Completed: Courier', 'Completed Migration'])
+        $query = HardwareHandoverV2::query()
             ->orderBy('created_at', 'desc');
 
         // if (auth()->user()->role_id === 2) {
@@ -51,8 +50,7 @@ class HardwareDashboardAll extends Page implements HasTable
 
     public function getDeviceCount(string $columnName): int
     {
-        $query = HardwareHandover::query()
-            ->whereIn('status', ['Completed', 'Pending Stock', 'Pending Migration', 'Completed: Installation', 'Completed: Courier', 'Completed Migration']);
+        $query = HardwareHandoverV2::query();
 
         // Apply salesperson filter for sales users
         // if (auth()->user()->role_id === 2) {
@@ -68,16 +66,8 @@ class HardwareDashboardAll extends Page implements HasTable
 
     public function getHandoverCountByStatus(string $status): int
     {
-        $query = HardwareHandover::query()
+        $query = HardwareHandoverV2::query()
             ->where('status', $status);
-
-        // Apply salesperson filter for sales users
-        // if (auth()->user()->role_id === 2) {
-        //     $userId = auth()->id();
-        //     $query->whereHas('lead', function ($leadQuery) use ($userId) {
-        //         $leadQuery->where('salesperson', $userId);
-        //     });
-        // }
 
         return $query->count();
     }
@@ -89,15 +79,7 @@ class HardwareDashboardAll extends Page implements HasTable
      */
     public function getTotalHandoverCount(): int
     {
-        $query = HardwareHandover::query();
-
-        // Apply salesperson filter for sales users
-        // if (auth()->user()->role_id === 2) {
-        //     $userId = auth()->id();
-        //     $query->whereHas('lead', function ($leadQuery) use ($userId) {
-        //         $leadQuery->where('salesperson', $userId);
-        //     });
-        // }
+        $query = HardwareHandoverV2::query();
 
         return $query->count();
     }
@@ -106,14 +88,7 @@ class HardwareDashboardAll extends Page implements HasTable
     {
         return $table
             ->query(
-                HardwareHandover::query()
-                    ->whereIn('status', ['Completed', 'Pending Stock', 'Pending Migration', 'Completed: Installation', 'Completed: Courier', 'Completed Migration'])
-                    // ->when(auth()->user()->role_id === 2, function ($query) {
-                    //     $userId = auth()->id();
-                    //     $query->whereHas('lead', function ($leadQuery) use ($userId) {
-                    //         $leadQuery->where('salesperson', $userId);
-                    //     });
-                    // })
+                HardwareHandoverV2::query()
                     ->orderBy('created_at', 'desc')
             )
             ->defaultPaginationPageOption(50)
@@ -121,7 +96,7 @@ class HardwareDashboardAll extends Page implements HasTable
             ->columns([
                 TextColumn::make('id')
                     ->label('ID')
-                    ->formatStateUsing(function ($state, HardwareHandover $record) {
+                    ->formatStateUsing(function ($state, HardwareHandoverV2 $record) {
                         // If no state (ID) is provided, return a fallback
                         if (!$state) {
                             return 'Unknown';
@@ -149,7 +124,7 @@ class HardwareDashboardAll extends Page implements HasTable
                             ->modalWidth('6xl')
                             ->modalSubmitAction(false)
                             ->modalCancelAction(false)
-                            ->modalContent(function (HardwareHandover $record): View {
+                            ->modalContent(function (HardwareHandoverV2 $record): View {
                                 return view('components.hardware-handover')
                                     ->with('extraAttributes', ['record' => $record]);
                             })
@@ -189,7 +164,7 @@ class HardwareDashboardAll extends Page implements HasTable
 
                 TextColumn::make('lead.salesperson')
                     ->label('SalesPerson')
-                    ->getStateUsing(function (HardwareHandover $record) {
+                    ->getStateUsing(function (HardwareHandoverV2 $record) {
                         $lead = $record->lead;
                         if (!$lead) {
                             return '-';
@@ -236,30 +211,6 @@ class HardwareDashboardAll extends Page implements HasTable
                     ->label('NFC TAG')
                     ->numeric(0)
                     ->toggleable(isToggledHiddenByDefault: true),
-
-                TextColumn::make('created_at')
-                    ->label('Date Submit')
-                    ->date('d M Y')
-                    ->sortable()
-                    ->toggleable(),
-
-                TextColumn::make('pending_stock_at')
-                    ->label(new HtmlString('Date<br>Pending Stock'))
-                    ->date('d M Y')
-                    ->sortable()
-                    ->toggleable(),
-
-                TextColumn::make('pending_migration_at')
-                    ->label(new HtmlString('Date<br>Pending Migration'))
-                    ->date('d M Y')
-                    ->sortable()
-                    ->toggleable(),
-
-                TextColumn::make('completed_at')
-                    ->label(new HtmlString('Date<br>Completed'))
-                    ->date('d M Y')
-                    ->sortable()
-                    ->toggleable(),
             ])
             ->filters([
                 // Existing Date Range Filter
@@ -407,7 +358,7 @@ class HardwareDashboardAll extends Page implements HasTable
                 SelectFilter::make('implementer')
                     ->label('Implementer')
                     ->options(function () {
-                        return HardwareHandover::whereNotNull('implementer')
+                        return HardwareHandoverV2::whereNotNull('implementer')
                             ->where('implementer', '!=', '')
                             ->distinct()
                             ->pluck('implementer', 'implementer')

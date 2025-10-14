@@ -2,7 +2,7 @@
 
 namespace App\Filament\Pages;
 
-use App\Models\HardwareHandover;
+use App\Models\HardwareHandoverV2;
 use App\Models\User;
 use Carbon\Carbon;
 use Filament\Pages\Page;
@@ -35,7 +35,7 @@ class HardwareDashboardPendingStock extends Page implements HasTable
 
     public function getTableQuery(): Builder
     {
-        $query = HardwareHandover::query()
+        $query = HardwareHandoverV2::query()
             ->whereIn('status', ['Pending Stock'])
             ->orderBy('created_at', 'desc');
 
@@ -51,7 +51,7 @@ class HardwareDashboardPendingStock extends Page implements HasTable
 
     public function getDeviceCount(string $columnName): int
     {
-        $query = HardwareHandover::query()
+        $query = HardwareHandoverV2::query()
             ->whereIn('status', ['Pending Stock']);
 
         // Apply salesperson filter for sales users
@@ -68,7 +68,7 @@ class HardwareDashboardPendingStock extends Page implements HasTable
 
     public function getHandoverCountByStatus(string $status): int
     {
-        $query = HardwareHandover::query()
+        $query = HardwareHandoverV2::query()
             ->where('status', $status);
 
         // Apply salesperson filter for sales users
@@ -89,7 +89,7 @@ class HardwareDashboardPendingStock extends Page implements HasTable
      */
     public function getTotalHandoverCount(): int
     {
-        $query = HardwareHandover::query();
+        $query = HardwareHandoverV2::query();
 
         // Apply salesperson filter for sales users
         // if (auth()->user()->role_id === 2) {
@@ -106,7 +106,7 @@ class HardwareDashboardPendingStock extends Page implements HasTable
     {
         return $table
             ->query(
-                HardwareHandover::query()
+                HardwareHandoverV2::query()
                     ->whereIn('status', ['Pending Stock'])
                     // ->when(auth()->user()->role_id === 2, function ($query) {
                     //     $userId = auth()->id();
@@ -119,7 +119,7 @@ class HardwareDashboardPendingStock extends Page implements HasTable
             ->columns([
                 TextColumn::make('id')
                     ->label('ID')
-                    ->formatStateUsing(function ($state, HardwareHandover $record) {
+                    ->formatStateUsing(function ($state, HardwareHandoverV2 $record) {
                         // If no state (ID) is provided, return a fallback
                         if (!$state) {
                             return 'Unknown';
@@ -147,7 +147,7 @@ class HardwareDashboardPendingStock extends Page implements HasTable
                             ->modalWidth('6xl')
                             ->modalSubmitAction(false)
                             ->modalCancelAction(false)
-                            ->modalContent(function (HardwareHandover $record): View {
+                            ->modalContent(function (HardwareHandoverV2 $record): View {
                                 return view('components.hardware-handover')
                                     ->with('extraAttributes', ['record' => $record]);
                             })
@@ -187,7 +187,7 @@ class HardwareDashboardPendingStock extends Page implements HasTable
 
                 TextColumn::make('lead.salesperson')
                     ->label('SalesPerson')
-                    ->getStateUsing(function (HardwareHandover $record) {
+                    ->getStateUsing(function (HardwareHandoverV2 $record) {
                         $lead = $record->lead;
                         if (!$lead) {
                             return '-';
@@ -405,7 +405,7 @@ class HardwareDashboardPendingStock extends Page implements HasTable
                 SelectFilter::make('implementer')
                     ->label('Implementer')
                     ->options(function () {
-                        return HardwareHandover::whereNotNull('implementer')
+                        return HardwareHandoverV2::whereNotNull('implementer')
                             ->where('implementer', '!=', '')
                             ->distinct()
                             ->pluck('implementer', 'implementer')

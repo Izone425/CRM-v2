@@ -169,6 +169,15 @@ class HardwareV2NewTable extends Component implements HasForms, HasTable
             ->defaultPaginationPageOption(10)
             ->paginated([10, 25, 50])
             ->filters([
+                SelectFilter::make('invoice_type')
+                    ->label('Filter by Invoice Type')
+                    ->options([
+                        'single' => 'Single Invoice',
+                        'combined' => 'Combined Invoice',
+                    ])
+                    ->placeholder('All Invoice Types')
+                    ->multiple(),
+
                 SelectFilter::make('status')
                     ->label('Filter by Status')
                     ->options([
