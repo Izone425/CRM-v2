@@ -226,11 +226,13 @@ class HardwareV2PendingExternalInstallationTable extends Component implements Ha
                     })
                     ->html(),
 
-                TextColumn::make('invoice_type')
+                TextColumn::make('installation_type')
                     ->label('Category 1')
                     ->formatStateUsing(fn (string $state): string => match($state) {
-                        'single' => 'Single Invoice',
-                        'combined' => 'Combined Invoice',
+                        'external_installation' => 'External Installation',
+                        'internal_installation' => 'Internal Installation',
+                        'self_pick_up' => 'Self Pick-Up',
+                        'courier' => 'Courier',
                         default => ucfirst($state ?? 'Unknown')
                     }),
 
@@ -322,8 +324,17 @@ class HardwareV2PendingExternalInstallationTable extends Component implements Ha
                                                             ->label('External Courier Tracking Number')
                                                             ->required()
                                                             ->placeholder('Enter tracking number (e.g., TT123456789MY)')
-                                                            ->maxLength(255)
-                                                            ->helperText('Courier tracking/reference number'),
+                                                            ->extraAlpineAttributes([
+                                                                'x-on:input' => '
+                                                                    const start = $el.selectionStart;
+                                                                    const end = $el.selectionEnd;
+                                                                    const value = $el.value;
+                                                                    $el.value = value.toUpperCase();
+                                                                    $el.setSelectionRange(start, end);
+                                                                '
+                                                            ])
+                                                            ->dehydrateStateUsing(fn ($state) => strtoupper($state))
+                                                            ->maxLength(255),
                                                     ]),
 
                                                 FileUpload::make('external_courier_document')
@@ -400,7 +411,7 @@ class HardwareV2PendingExternalInstallationTable extends Component implements Ha
 
                                 // Add completion metadata (optional - for tracking purposes)
                                 $existingCategory2['external_courier_completed'] = true;
-                                $existingCategory2['external_courier_completed_at'] = now()->toISOString();
+                                $existingCategory2['external_courier_completed_at'] = now();
                                 $existingCategory2['external_courier_completed_by'] = auth()->id();
 
                                 // Update the record with merged category2 data and new status

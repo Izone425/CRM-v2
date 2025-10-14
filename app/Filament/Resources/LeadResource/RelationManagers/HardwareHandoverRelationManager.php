@@ -390,93 +390,16 @@ class HardwareHandoverRelationManager extends RelationManager
 
             Section::make('Step 6: Remark Details')
                 ->schema([
-                    Forms\Components\Repeater::make('remarks')
+                    Textarea::make('remarks')
                         ->label('Remarks')
-                        ->hiddenLabel(true)
-                        ->schema([
-                            Grid::make(2)
-                                ->schema([
-                                    Textarea::make('remark')
-                                        ->extraInputAttributes(['style' => 'text-transform: uppercase'])
-                                        ->afterStateHydrated(fn($state) => Str::upper($state))
-                                        ->afterStateUpdated(fn($state) => Str::upper($state))
-                                        ->hiddenLabel(true)
-                                        ->label(function (Forms\Get $get, ?string $state, $livewire) {
-                                            // Get the current array key from the state path
-                                            $statePath = $livewire->getFormStatePath();
-                                            $matches = [];
-                                            if (preg_match('/remarks\.(\d+)\./', $statePath, $matches)) {
-                                                $index = (int) $matches[1];
-                                                return 'Remark ' . ($index + 1);
-                                            }
-
-                                            return 'Remark';
-                                        })
-                                        ->placeholder('Enter remark here')
-                                        ->autosize()
-                                        ->rows(3),
-
-                                    FileUpload::make('attachments')
-                                        ->hiddenLabel(true)
-                                        ->disk('public')
-                                        ->directory('handovers/remark_attachments')
-                                        ->visibility('public')
-                                        ->multiple()
-                                        ->maxFiles(3)
-                                        ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'])
-                                        ->openable()
-                                        ->downloadable()
-                                        ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
-                                            // Get lead ID from ownerRecord
-                                            $leadId = $this->getOwnerRecord()->id;
-                                            // Format ID with prefix (250) and padding
-                                            $formattedId = '250' . str_pad($leadId, 3, '0', STR_PAD_LEFT);
-                                            // Get extension
-                                            $extension = $file->getClientOriginalExtension();
-
-                                            // Generate a unique identifier (timestamp) to avoid overwriting files
-                                            $timestamp = now()->format('YmdHis');
-                                            $random = rand(1000, 9999);
-
-                                            return "{$formattedId}-HW-REMARK-{$timestamp}-{$random}.{$extension}";
-                                        }),
-                                ])
-                        ])
-                        ->itemLabel(fn() => __('Remark') . ' ' . ++self::$indexRepeater2)
-                        ->addActionLabel('Add Remark')
-                        ->maxItems(5)
-                        ->defaultItems(1)
+                        ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                        ->afterStateHydrated(fn($state) => Str::upper($state))
+                        ->afterStateUpdated(fn($state) => Str::upper($state))
+                        ->placeholder('Enter remark here')
+                        ->autosize()
+                        ->rows(3)
                         ->default(function (?HardwareHandover $record) {
-                            if ($record && $record->remarks) {
-                                // If it's a string, decode it
-                                if (is_string($record->remarks)) {
-                                    $decoded = json_decode($record->remarks, true);
-
-                                    // Process each remark to handle its attachments
-                                    if (is_array($decoded)) {
-                                        foreach ($decoded as $key => $remark) {
-                                            // Decode the attachments if they're stored as JSON string
-                                            if (isset($remark['attachments']) && is_string($remark['attachments'])) {
-                                                $decoded[$key]['attachments'] = json_decode($remark['attachments'], true);
-                                            }
-                                        }
-                                        return $decoded;
-                                    }
-                                    return [];
-                                }
-
-                                // If it's already an array, return it but process attachments
-                                if (is_array($record->remarks)) {
-                                    $remarks = $record->remarks;
-                                    foreach ($remarks as $key => $remark) {
-                                        if (isset($remark['attachments']) && is_string($remark['attachments'])) {
-                                            $remarks[$key]['attachments'] = json_decode($remark['attachments'], true);
-                                        }
-                                    }
-                                    return $remarks;
-                                }
-                            }
-                            return [];
+                            return $record?->remarks ?? '';
                         }),
                 ]),
 
@@ -841,17 +764,6 @@ class HardwareHandoverRelationManager extends RelationManager
                         $data['category2'] = json_encode([]);
                     }
 
-                    if (isset($data['remarks']) && is_array($data['remarks'])) {
-                        foreach ($data['remarks'] as $key => $remark) {
-                            // Encode the attachments array for each remark
-                            if (isset($remark['attachments']) && is_array($remark['attachments'])) {
-                                $data['remarks'][$key]['attachments'] = json_encode($remark['attachments']);
-                            }
-                        }
-                        // Encode the entire remarks structure
-                        $data['remarks'] = json_encode($data['remarks']);
-                    }
-
                     // Handle file array encodings
                     if (isset($data['confirmation_order_file']) && is_array($data['confirmation_order_file'])) {
                         $data['confirmation_order_file'] = json_encode($data['confirmation_order_file']);
@@ -1162,17 +1074,6 @@ class HardwareHandoverRelationManager extends RelationManager
 
                             if (isset($data['video_files']) && is_array($data['video_files'])) {
                                 $data['video_files'] = json_encode($data['video_files']);
-                            }
-
-                            if (isset($data['remarks']) && is_array($data['remarks'])) {
-                                foreach ($data['remarks'] as $key => $remark) {
-                                    // Encode the attachments array for each remark
-                                    if (isset($remark['attachments']) && is_array($remark['attachments'])) {
-                                        $data['remarks'][$key]['attachments'] = json_encode($remark['attachments']);
-                                    }
-                                }
-                                // Encode the entire remarks structure
-                                $data['remarks'] = json_encode($data['remarks']);
                             }
 
                             // Update the record

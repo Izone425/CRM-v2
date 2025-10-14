@@ -16,6 +16,8 @@ use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\Checkbox;
+use Filament\Forms\Get;
+use Filament\Forms\Set;
 use Filament\Notifications\Notification;
 use Filament\Support\Enums\ActionSize;
 use Filament\Support\Enums\Alignment;
@@ -178,7 +180,7 @@ class HardwareHandoverV2RelationManager extends RelationManager
                 ]),
 
 
-            Section::make('Step 4: Category 1')
+            Section::make('Step 4: Installation Type')
                 ->schema([
                     Forms\Components\Radio::make('installation_type')
                         ->label('')
@@ -267,9 +269,16 @@ class HardwareHandoverV2RelationManager extends RelationManager
                                         ->label('ADDRESS:')
                                         ->required()
                                         ->rows(3)
-                                        ->extraInputAttributes(['style' => 'text-transform: uppercase'])
-                                        ->afterStateHydrated(fn($state) => Str::upper($state))
-                                        ->afterStateUpdated(fn($state) => Str::upper($state))
+                                        ->extraAlpineAttributes([
+                                            'x-on:input' => '
+                                                const start = $el.selectionStart;
+                                                const end = $el.selectionEnd;
+                                                const value = $el.value;
+                                                $el.value = value.toUpperCase();
+                                                $el.setSelectionRange(start, end);
+                                            '
+                                        ])
+                                        ->dehydrateStateUsing(fn ($state) => strtoupper($state))
                                         ->default("ADDRESS:\nDEVICE MODEL:\nTOTAL UNIT:"),
                                     ])
                                 ->itemLabel(function (array $state): ?string {
@@ -330,9 +339,16 @@ class HardwareHandoverV2RelationManager extends RelationManager
                                         ->label('ADDRESS:')
                                         ->required()
                                         ->rows(3)
-                                        ->extraInputAttributes(['style' => 'text-transform: uppercase'])
-                                        ->afterStateHydrated(fn($state) => Str::upper($state))
-                                        ->afterStateUpdated(fn($state) => Str::upper($state))
+                                        ->extraAlpineAttributes([
+                                            'x-on:input' => '
+                                                const start = $el.selectionStart;
+                                                const end = $el.selectionEnd;
+                                                const value = $el.value;
+                                                $el.value = value.toUpperCase();
+                                                $el.setSelectionRange(start, end);
+                                            '
+                                        ])
+                                        ->dehydrateStateUsing(fn ($state) => strtoupper($state))
                                         ->default("ADDRESS:\nDEVICE MODEL:\nTOTAL UNIT:"),
                                     ])
                                 ->itemLabel(function (array $state): ?string {
@@ -390,9 +406,16 @@ class HardwareHandoverV2RelationManager extends RelationManager
                                 ->label('Pickup Address')
                                 ->required()
                                 ->rows(2)
-                                ->extraInputAttributes(['style' => 'text-transform: uppercase'])
-                                ->afterStateHydrated(fn($state) => Str::upper($state))
-                                ->afterStateUpdated(fn($state) => Str::upper($state))
+                                ->extraAlpineAttributes([
+                                    'x-on:input' => '
+                                        const start = $el.selectionStart;
+                                        const end = $el.selectionEnd;
+                                        const value = $el.value;
+                                        $el.value = value.toUpperCase();
+                                        $el.setSelectionRange(start, end);
+                                    '
+                                ])
+                                ->dehydrateStateUsing(fn ($state) => strtoupper($state))
                                 ->default(function (?HardwareHandoverV2 $record = null) {
                                     return 'TimeTec Cloud @ PFCC, Puchong Selangor';
                                 })
@@ -402,93 +425,23 @@ class HardwareHandoverV2RelationManager extends RelationManager
 
             Section::make('Step 6: Remark Details')
                 ->schema([
-                    Forms\Components\Repeater::make('remarks')
+                    Textarea::make('remarks')
                         ->label('Remarks')
-                        ->hiddenLabel(true)
-                        ->schema([
-                            Grid::make(2)
-                                ->schema([
-                                    Textarea::make('remark')
-                                        ->extraInputAttributes(['style' => 'text-transform: uppercase'])
-                                        ->afterStateHydrated(fn($state) => Str::upper($state))
-                                        ->afterStateUpdated(fn($state) => Str::upper($state))
-                                        ->hiddenLabel(true)
-                                        ->label(function (Forms\Get $get, ?string $state, $livewire) {
-                                            // Get the current array key from the state path
-                                            $statePath = $livewire->getFormStatePath();
-                                            $matches = [];
-                                            if (preg_match('/remarks\.(\d+)\./', $statePath, $matches)) {
-                                                $index = (int) $matches[1];
-                                                return 'Remark ' . ($index + 1);
-                                            }
-
-                                            return 'Remark';
-                                        })
-                                        ->placeholder('Enter remark here')
-                                        ->autosize()
-                                        ->rows(3),
-
-                                    FileUpload::make('attachments')
-                                        ->hiddenLabel(true)
-                                        ->disk('public')
-                                        ->directory('handovers/remark_attachments')
-                                        ->visibility('public')
-                                        ->multiple()
-                                        ->maxFiles(3)
-                                        ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'])
-                                        ->openable()
-                                        ->downloadable()
-                                        ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
-                                            // Get lead ID from ownerRecord
-                                            $leadId = $this->getOwnerRecord()->id;
-                                            // Format ID with prefix (250) and padding
-                                            $formattedId = '250' . str_pad($leadId, 3, '0', STR_PAD_LEFT);
-                                            // Get extension
-                                            $extension = $file->getClientOriginalExtension();
-
-                                            // Generate a unique identifier (timestamp) to avoid overwriting files
-                                            $timestamp = now()->format('YmdHis');
-                                            $random = rand(1000, 9999);
-
-                                            return "{$formattedId}-HW-REMARK-{$timestamp}-{$random}.{$extension}";
-                                        }),
-                                ])
+                        ->placeholder('Enter remark here')
+                        ->autosize()
+                        ->rows(3)
+                        ->extraAlpineAttributes([
+                            'x-on:input' => '
+                                const start = $el.selectionStart;
+                                const end = $el.selectionEnd;
+                                const value = $el.value;
+                                $el.value = value.toUpperCase();
+                                $el.setSelectionRange(start, end);
+                            '
                         ])
-                        ->itemLabel(fn() => __('Remark') . ' ' . ++self::$indexRepeater2)
-                        ->addActionLabel('Add Remark')
-                        ->maxItems(5)
-                        ->defaultItems(1)
+                        ->dehydrateStateUsing(fn ($state) => strtoupper($state))
                         ->default(function (?HardwareHandoverV2 $record) {
-                            if ($record && $record->remarks) {
-                                // If it's a string, decode it
-                                if (is_string($record->remarks)) {
-                                    $decoded = json_decode($record->remarks, true);
-
-                                    // Process each remark to handle its attachments
-                                    if (is_array($decoded)) {
-                                        foreach ($decoded as $key => $remark) {
-                                            // Decode the attachments if they're stored as JSON string
-                                            if (isset($remark['attachments']) && is_string($remark['attachments'])) {
-                                                $decoded[$key]['attachments'] = json_decode($remark['attachments'], true);
-                                            }
-                                        }
-                                        return $decoded;
-                                    }
-                                    return [];
-                                }
-
-                                // If it's already an array, return it but process attachments
-                                if (is_array($record->remarks)) {
-                                    $remarks = $record->remarks;
-                                    foreach ($remarks as $key => $remark) {
-                                        if (isset($remark['attachments']) && is_string($remark['attachments'])) {
-                                            $remarks[$key]['attachments'] = json_decode($remark['attachments'], true);
-                                        }
-                                    }
-                                    return $remarks;
-                                }
-                            }
-                            return [];
+                            return $record?->remarks ?? '';
                         }),
                 ]),
 
@@ -649,40 +602,34 @@ class HardwareHandoverV2RelationManager extends RelationManager
                             FileUpload::make('payment_slip_file')
                                 ->label('Upload Payment Slip')
                                 ->disk('public')
-                                ->live(debounce: 500)
+                                ->live()
                                 ->directory('handovers/payment_slips')
                                 ->visibility('public')
                                 ->multiple()
                                 ->maxFiles(1)
                                 ->openable()
                                 ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
-                                ->rules([
-                                    function () {
-                                        return function (string $attribute, $value, \Closure $fail) {
-                                            $formData = request()->all();
-                                            
-                                            $hasPaymentSlip = !empty($value);
-                                            $hasHrdfGrant = !empty($formData['hrdf_grant_file']);
-                                            
-                                            // Require at least one of the two files
-                                            if (!$hasPaymentSlip && !$hasHrdfGrant) {
-                                                $fail('Either Payment Slip or HRDF Grant Approval Letter must be uploaded.');
-                                            }
-                                        };
-                                    }
-                                ])
-                                ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
-                                    // Get lead ID from ownerRecord
-                                    $leadId = $this->getOwnerRecord()->id;
-                                    // Format ID with prefix (250) and padding
-                                    $formattedId = '250' . str_pad($leadId, 3, '0', STR_PAD_LEFT);
-                                    // Get extension
-                                    $extension = $file->getClientOriginalExtension();
+                                ->required(function (Get $get) {
+                                    // Check if HRDF grant has actual files
+                                    $hrdfGrantFiles = $get('hrdf_grant_file');
+                                    $hasHrdfGrant = is_array($hrdfGrantFiles) && count($hrdfGrantFiles) > 0 && !empty(array_filter($hrdfGrantFiles));
 
-                                    // Generate a unique identifier (timestamp) to avoid overwriting files
+                                    // Only required if HRDF grant is empty
+                                    return !$hasHrdfGrant;
+                                })
+                                ->validationMessages([
+                                    'required' => 'Either Payment Slip or HRDF Grant Approval Letter must be uploaded.',
+                                ])
+                                ->afterStateUpdated(function (Get $get, Set $set, $component) {
+                                    // Trigger validation on hrdf_grant_file when payment_slip_file changes
+                                    $component->getContainer()->getComponent('hrdf_grant_file')?->validate();
+                                })
+                                ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
+                                    $leadId = $this->getOwnerRecord()->id;
+                                    $formattedId = '250' . str_pad($leadId, 3, '0', STR_PAD_LEFT);
+                                    $extension = $file->getClientOriginalExtension();
                                     $timestamp = now()->format('YmdHis');
                                     $random = rand(1000, 9999);
-
                                     return "{$formattedId}-HW-PAYMENT-{$timestamp}-{$random}.{$extension}";
                                 })
                                 ->default(function (?HardwareHandoverV2 $record) {
@@ -698,43 +645,37 @@ class HardwareHandoverV2RelationManager extends RelationManager
                             FileUpload::make('hrdf_grant_file')
                                 ->label('Upload HRDF Grant Approval Letter')
                                 ->disk('public')
+                                ->live()
                                 ->directory('handovers/hrdf_grant')
                                 ->visibility('public')
                                 ->multiple()
                                 ->maxFiles(10)
                                 ->openable()
                                 ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
-                                ->rules([
-                                    function () {
-                                        return function (string $attribute, $value, \Closure $fail) {
-                                            $formData = request()->all();
-                                            
-                                            $hasPaymentSlip = !empty($formData['payment_slip_file']);
-                                            $hasHrdfGrant = !empty($value);
-                                            
-                                            // Require at least one of the two files
-                                            if (!$hasPaymentSlip && !$hasHrdfGrant) {
-                                                $fail('Either Payment Slip or HRDF Grant Approval Letter must be uploaded.');
-                                            }
-                                        };
-                                    }
-                                ])
-                                ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
-                                    // Get lead ID from ownerRecord
-                                    $leadId = $this->getOwnerRecord()->id;
-                                    // Format ID with prefix (250) and padding
-                                    $formattedId = '250' . str_pad($leadId, 3, '0', STR_PAD_LEFT);
-                                    // Get extension
-                                    $extension = $file->getClientOriginalExtension();
+                                ->required(function (Get $get) {
+                                    // Check if payment slip has actual files
+                                    $paymentSlipFiles = $get('payment_slip_file');
+                                    $hasPaymentSlip = is_array($paymentSlipFiles) && count($paymentSlipFiles) > 0 && !empty(array_filter($paymentSlipFiles));
 
-                                    // Generate a unique identifier (timestamp) to avoid overwriting files
+                                    // Only required if payment slip is empty
+                                    return !$hasPaymentSlip;
+                                })
+                                ->validationMessages([
+                                    'required' => 'Either Payment Slip or HRDF Grant Approval Letter must be uploaded.',
+                                ])
+                                ->afterStateUpdated(function (Get $get, Set $set, $component) {
+                                    // Trigger validation on payment_slip_file when hrdf_grant_file changes
+                                    $component->getContainer()->getComponent('payment_slip_file')?->validate();
+                                })
+                                ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
+                                    $leadId = $this->getOwnerRecord()->id;
+                                    $formattedId = '250' . str_pad($leadId, 3, '0', STR_PAD_LEFT);
+                                    $extension = $file->getClientOriginalExtension();
                                     $timestamp = now()->format('YmdHis');
                                     $random = rand(1000, 9999);
-
                                     return "{$formattedId}-HW-HRDF-{$timestamp}-{$random}.{$extension}";
                                 })
                                 ->afterStateUpdated(function () {
-                                    // Reset the counter after the upload is complete
                                     session()->forget('hrdf_upload_count');
                                 })
                                 ->default(function (?HardwareHandoverV2 $record) {
@@ -784,8 +725,8 @@ class HardwareHandoverV2RelationManager extends RelationManager
                                 ->maxFiles(5)
                                 ->openable()
                                 ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
-                                ->visible(fn(callable $get) => $get('installation_type') === 'external_installation') 
-                                ->required(fn(callable $get) => $get('installation_type') === 'external_installation') 
+                                ->visible(fn(callable $get) => $get('installation_type') === 'external_installation')
+                                ->required(fn(callable $get) => $get('installation_type') === 'external_installation')
                                 ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
                                     // Get lead ID from ownerRecord
                                     $leadId = $this->getOwnerRecord()->id;
@@ -852,18 +793,6 @@ class HardwareHandoverV2RelationManager extends RelationManager
                 ->form($this->defaultForm())
                 ->action(function (array $data): void { // CREATE HARDWARE HANDOVER
 
-                    $hasPaymentSlip = !empty($data['payment_slip_file']);
-                    $hasHrdfGrant = !empty($data['hrdf_grant_file']);
-                    
-                    if (!$hasPaymentSlip && !$hasHrdfGrant) {
-                        Notification::make()
-                            ->title('Validation Error')
-                            ->body('Either Payment Slip or HRDF Grant Approval Letter must be uploaded.')
-                            ->danger()
-                            ->send();
-                        return;
-                    }
-                    
                     $data['created_by'] = auth()->id();
                     $data['lead_id'] = $this->getOwnerRecord()->id;
                     $data['status'] = 'New';
@@ -877,17 +806,6 @@ class HardwareHandoverV2RelationManager extends RelationManager
                         $data['category2'] = json_encode($data['category2']);
                     } else {
                         $data['category2'] = json_encode([]);
-                    }
-
-                    if (isset($data['remarks']) && is_array($data['remarks'])) {
-                        foreach ($data['remarks'] as $key => $remark) {
-                            // Encode the attachments array for each remark
-                            if (isset($remark['attachments']) && is_array($remark['attachments'])) {
-                                $data['remarks'][$key]['attachments'] = json_encode($remark['attachments']);
-                            }
-                        }
-                        // Encode the entire remarks structure
-                        $data['remarks'] = json_encode($data['remarks']);
                     }
 
                     // Handle file array encodings
@@ -1127,17 +1045,6 @@ class HardwareHandoverV2RelationManager extends RelationManager
 
                             if (isset($data['video_files']) && is_array($data['video_files'])) {
                                 $data['video_files'] = json_encode($data['video_files']);
-                            }
-
-                            if (isset($data['remarks']) && is_array($data['remarks'])) {
-                                foreach ($data['remarks'] as $key => $remark) {
-                                    // Encode the attachments array for each remark
-                                    if (isset($remark['attachments']) && is_array($remark['attachments'])) {
-                                        $data['remarks'][$key]['attachments'] = json_encode($remark['attachments']);
-                                    }
-                                }
-                                // Encode the entire remarks structure
-                                $data['remarks'] = json_encode($data['remarks']);
                             }
 
                             // Update the record

@@ -578,7 +578,6 @@
                         <div x-show="pickupAddressOpen" x-cloak x-transition @click.outside="pickupAddressOpen = false" class="hw-modal">
                             <div class="hw-modal-content" @click.away="pickupAddressOpen = false">
                                 <div class="hw-modal-header">
-                                    <h3 class="hw-modal-title">Self Pickup Details</h3>
                                     <button type="button" @click="pickupAddressOpen = false" class="hw-modal-close">
                                         <svg fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
                                             <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
@@ -603,9 +602,9 @@
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            <!-- Customer Forecast Pickup Date -->
+                                            <!-- Estimation Pick-Up Date -->
                                             <tr>
-                                                <td><strong>Customer Forecast Pickup Date:</strong></td>
+                                                <td><strong>Estimation Pick-Up Date:</strong></td>
                                                 <td>
                                                     @if(!empty($category2['customer_forecast_pickup_date']))
                                                         {{ \Carbon\Carbon::parse($category2['customer_forecast_pickup_date'])->format('d M Y') }}
@@ -615,9 +614,9 @@
                                                 </td>
                                             </tr>
 
-                                            <!-- Self Pickup Date -->
+                                            <!-- Completed Pick-Up Date -->
                                             <tr>
-                                                <td><strong>Self Pickup Date:</strong></td>
+                                                <td><strong>Completed Pick-Up Date:</strong></td>
                                                 <td>
                                                     @if(!empty($category2['self_pickup_date']))
                                                         {{ \Carbon\Carbon::parse($category2['self_pickup_date'])->format('d M Y') }}
@@ -627,7 +626,7 @@
                                                 </td>
                                             </tr>
 
-                                            <!-- Delivery Order -->
+                                            {{-- <!-- Delivery Order -->
                                             <tr>
                                                 <td><strong>Delivery Order:</strong></td>
                                                 <td>
@@ -653,11 +652,11 @@
                                                         <span class="hw-not-available">Not Available</span>
                                                     @endif
                                                 </td>
-                                            </tr>
+                                            </tr> --}}
 
                                             <!-- Self Pickup Status -->
                                             <tr>
-                                                <td><strong>Self Pickup Status:</strong></td>
+                                                <td><strong>Status:</strong></td>
                                                 <td>
                                                     @if(isset($category2['self_pickup_completed']) && $category2['self_pickup_completed'])
                                                         <span style="color: #059669; font-weight: 600;">Completed</span>
@@ -687,7 +686,7 @@
                     </div>
 
                     @if(isset($category2['installation_appointments']) && is_array($category2['installation_appointments']) && count($category2['installation_appointments']) > 0)
-                        <div class="hw-info-item">
+                        {{-- <div class="hw-info-item">
                             <span class="hw-label">Installation Appointments:</span>
                             <div class="hw-value">
                                 @foreach($category2['installation_appointments'] as $index => $appointment)
@@ -813,7 +812,7 @@
                                 <span class="hw-label">Appointment Status:</span>
                                 <span class="hw-value" style="color: #059669; font-weight: 600;">All Appointments Scheduled</span>
                             </div>
-                        @endif
+                        @endif --}}
 
                         @if(!empty($category2['completion_date']))
                             <div class="hw-info-item">
@@ -907,13 +906,42 @@
                 <!-- Remarks -->
                 <div class="hw-remark-container" x-data="{ remarkOpen: false }">
                     <span class="hw-label">Remark Details:</span>
-                    @if($remarks && trim($remarks) !== '')
+                    @php
+                        // Handle both old JSON format and new simple string format
+                        $hasRemarks = false;
+                        $parsedRemarks = [];
+
+                        if ($remarks) {
+                            // Check if it's already an array (from database casting)
+                            if (is_array($remarks)) {
+                                if (count($remarks) > 0) {
+                                    // Already decoded array format
+                                    $parsedRemarks = $remarks;
+                                    $hasRemarks = true;
+                                }
+                            } elseif (is_string($remarks)) {
+                                // Try to decode as JSON first (old format)
+                                $jsonDecoded = json_decode($remarks, true);
+                                if (json_last_error() === JSON_ERROR_NONE && is_array($jsonDecoded) && count($jsonDecoded) > 0) {
+                                    // Old format: JSON array of remarks
+                                    $parsedRemarks = $jsonDecoded;
+                                    $hasRemarks = true;
+                                } elseif (trim($remarks) !== '') {
+                                    // New format: simple string
+                                    $parsedRemarks = [['remark' => $remarks, 'user_name' => null, 'created_at' => null, 'attachments' => null]];
+                                    $hasRemarks = true;
+                                }
+                            }
+                        }
+                    @endphp
+
+                    @if($hasRemarks)
                         <a href="#" @click.prevent="remarkOpen = true" class="hw-view-link">View</a>
                     @else
-                        <span class="hw-not-available">Not Available ({{ $remarks ? 'Empty: "' . $remarks . '"' : 'NULL' }})</span>
+                        <span class="hw-not-available">Not Available</span>
                     @endif
 
-                    @if($remarks && trim($remarks) !== '')
+                    @if($hasRemarks)
                     <div x-show="remarkOpen" x-cloak x-transition @click.outside="remarkOpen = false" class="hw-modal">
                         <div class="hw-modal-content" @click.away="remarkOpen = false">
                             <div class="hw-modal-header">
@@ -926,7 +954,59 @@
                             </div>
                             <div class="hw-modal-body">
                                 <div class="hw-modal-text">
-                                    {{ $remarks }}
+                                    @foreach($parsedRemarks as $index => $remarkData)
+                                        <div style="margin-bottom: 1.5rem; padding: 0.75rem; border: 1px solid #e5e7eb; border-radius: 0.375rem; background-color: #f9fafb;">
+                                            @if(count($parsedRemarks) > 1)
+                                                <div style="margin-bottom: 0.75rem;">
+                                                    <strong>Remark {{ $index + 1 }}:</strong>
+                                                </div>
+                                            @endif
+
+                                            <!-- Remark Content -->
+                                            <div style="margin-bottom: 0.75rem; white-space: pre-line; line-height: 1.6;">
+                                                {{ $remarkData['remark'] ?? '' }}
+                                            </div>
+
+                                            <!-- Metadata (only for old format) -->
+                                            @if(isset($remarkData['user_name']) || isset($remarkData['created_at']))
+                                                <div style="margin-bottom: 0.75rem; padding-top: 0.5rem; border-top: 1px solid #e5e7eb; font-size: 0.875rem; color: #6b7280;">
+                                                    @if(!empty($remarkData['user_name']))
+                                                        <div><strong>Created by:</strong> {{ $remarkData['user_name'] }}</div>
+                                                    @endif
+                                                    @if(!empty($remarkData['created_at']))
+                                                        <div><strong>Created at:</strong> {{ \Carbon\Carbon::parse($remarkData['created_at'])->format('d M Y H:i') }}</div>
+                                                    @endif
+                                                </div>
+                                            @endif
+
+                                            <!-- Attachments (only for old format) -->
+                                            @if(!empty($remarkData['attachments']))
+                                                <div style="margin-top: 0.75rem;">
+                                                    <strong style="font-size: 0.875rem; color: #374151;">Attachments:</strong>
+                                                    <div style="margin-top: 0.25rem;">
+                                                        @php
+                                                            $attachments = is_string($remarkData['attachments'])
+                                                                ? json_decode($remarkData['attachments'], true)
+                                                                : (is_array($remarkData['attachments']) ? $remarkData['attachments'] : []);
+                                                        @endphp
+                                                        @if(is_array($attachments) && count($attachments) > 0)
+                                                            @foreach($attachments as $attachmentIndex => $attachment)
+                                                                <a href="{{ url('storage/' . $attachment) }}"
+                                                                   target="_blank"
+                                                                   class="hw-btn hw-btn-view"
+                                                                   style="margin-right: 0.5rem; margin-bottom: 0.25rem; display: inline-block;">
+                                                                    <svg style="width: 1rem; height: 1rem; margin-right: 0.25rem; display: inline;" fill="currentColor" viewBox="0 0 20 20">
+                                                                        <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                                                                    </svg>
+                                                                    File {{ $attachmentIndex + 1 }}
+                                                                </a>
+                                                            @endforeach
+                                                        @endif
+                                                    </div>
+                                                </div>
+                                            @endif
+                                        </div>
+                                    @endforeach
                                 </div>
                             </div>
                         </div>
@@ -1129,7 +1209,6 @@
                     <div x-show="deviceOpen" x-cloak x-transition @click.outside="deviceOpen = false" class="hw-modal">
                         <div class="hw-modal-content" @click.away="deviceOpen = false">
                             <div class="hw-modal-header">
-                                <h3 class="hw-modal-title">Device Inventory</h3>
                                 <button type="button" @click="deviceOpen = false" class="hw-modal-close">
                                     <svg fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
                                         <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>

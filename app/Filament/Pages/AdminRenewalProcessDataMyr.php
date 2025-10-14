@@ -1735,7 +1735,7 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
 
                                 // Add new log entry
                                 $newLogEntry = [
-                                    'timestamp' => now()->toISOString(),
+                                    'timestamp' => now(),
                                     'action' => 'follow_up_completed',
                                     'previous_status' => $existingRenewal ? $existingRenewal->renewal_progress : null,
                                     'new_status' => 'pending_confirmation',
@@ -1799,7 +1799,7 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
 
                                 // Add new log entry
                                 $newLogEntry = [
-                                    'timestamp' => now()->toISOString(),
+                                    'timestamp' => now(),
                                     'action' => 'payment_completed',
                                     'previous_status' => $existingRenewal ? $existingRenewal->renewal_progress : null,
                                     'new_status' => 'completed_renewal',
@@ -1866,7 +1866,7 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
 
                                 // Add new log entry
                                 $newLogEntry = [
-                                    'timestamp' => now()->toISOString(),
+                                    'timestamp' => now(),
                                     'action' => 'invoice_requested',
                                     'previous_status' => $existingRenewal ? $existingRenewal->renewal_progress : null,
                                     'new_status' => 'pending_payment',
@@ -1933,7 +1933,7 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
 
                     //             // Add new log entry
                     //             $newLogEntry = [
-                    //                 'timestamp' => now()->toISOString(),
+                    //                 'timestamp' => now(),
                     //                 'action' => 'hrdf_claim_initiated',
                     //                 'previous_status' => $existingRenewal ? $existingRenewal->renewal_progress : null,
                     //                 'new_status' => 'pending_payment',
@@ -2000,7 +2000,7 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
 
                     //             // Add new log entry
                     //             $newLogEntry = [
-                    //                 'timestamp' => now()->toISOString(),
+                    //                 'timestamp' => now(),
                     //                 'action' => 'renewal_terminated',
                     //                 'previous_status' => $existingRenewal ? $existingRenewal->renewal_progress : null,
                     //                 'new_status' => 'terminated',
@@ -2079,7 +2079,7 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
 
                                         // Add new log entry
                                         $newLogEntry = [
-                                            'timestamp' => now()->toISOString(),
+                                            'timestamp' => now(),
                                             'action' => 'batch_completion',
                                             'previous_status' => $renewal->renewal_progress,
                                             'new_status' => 'completed_renewal',
@@ -2111,7 +2111,7 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
                                             'company_name' => $record->f_company_name,
                                             'renewal_progress' => 'completed_renewal',
                                             'progress_history' => json_encode([[
-                                                'timestamp' => now()->toISOString(),
+                                                'timestamp' => now(),
                                                 'action' => 'batch_completion',
                                                 'previous_status' => null,
                                                 'new_status' => 'completed_renewal',
