@@ -226,11 +226,13 @@ class HardwareV2PendingCustomerSelfPickUpTable extends Component implements HasF
                     })
                     ->html(),
 
-                TextColumn::make('invoice_type')
+                TextColumn::make('installation_type')
                     ->label('Category 1')
                     ->formatStateUsing(fn (string $state): string => match($state) {
-                        'single' => 'Single Invoice',
-                        'combined' => 'Combined Invoice',
+                        'external_installation' => 'External Installation',
+                        'internal_installation' => 'Internal Installation',
+                        'self_pick_up' => 'Self Pick-Up',
+                        'courier' => 'Courier',
                         default => ucfirst($state ?? 'Unknown')
                     }),
 
@@ -264,55 +266,49 @@ class HardwareV2PendingCustomerSelfPickUpTable extends Component implements HasF
                                 ->with('extraAttributes', ['record' => $record]);
                         }),
                     Action::make('complete_self_pickup')
-                        ->label('Complete Self Pick-up')
+                        ->label('Complete the Task')
                         ->icon('heroicon-o-check-circle')
                         ->color('success')
-                        ->modalHeading('Complete the Task')
+                        ->modalHeading(false)
                         ->modalWidth('3xl')
                         ->form([
-                            Section::make('Self Pick-up Details')
-                                ->description('Complete the self pick-up process by filling in the required details')
+                            Grid::make(2)
                                 ->schema([
-                                    Grid::make(2)
-                                        ->schema([
-                                            DatePicker::make('self_pickup_date')
-                                                ->label('Self Pick-up Date')
-                                                ->required()
-                                                ->native(false)
-                                                ->displayFormat('d/m/Y')
-                                                ->maxDate(now()) // Cannot set future date
-                                                ->helperText('Select the actual date when customer picked up the hardware')
-                                                ->default(now())
-                                                ->columnSpan(1),
+                                    DatePicker::make('self_pickup_date')
+                                        ->label('Completed Pick-Up Date')
+                                        ->required()
+                                        ->native(false)
+                                        ->displayFormat('d/m/Y')
+                                        ->maxDate(now()) // Cannot set future date
+                                        ->default(now())
+                                        ->columnSpan(1),
 
-                                            FileUpload::make('delivery_order')
-                                                ->label('Delivery Order')
-                                                ->directory('hardware-delivery-orders')
-                                                ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
-                                                ->maxSize(10240) // 10MB max
-                                                ->required()
-                                                ->helperText('Upload delivery order document (PDF, JPG, PNG - max 10MB)')
-                                                ->columnSpan(1),
-                                        ]),
-
-                                    Textarea::make('self_pickup_remark')
-                                        ->label('Self Pick-up Remark')
-                                        ->placeholder('Optional remarks about the self pick-up (e.g., Who collected, any special notes)')
-                                        ->maxLength(500)
-                                        ->rows(4)
-                                        ->columnSpanFull()
-                                        ->helperText('Optional notes about the self pick-up process')
-                                        ->extraAlpineAttributes([
-                                            'x-on:input' => '
-                                                const start = $el.selectionStart;
-                                                const end = $el.selectionEnd;
-                                                const value = $el.value;
-                                                $el.value = value.toUpperCase();
-                                                $el.setSelectionRange(start, end);
-                                            '
-                                        ])
-                                        ->dehydrateStateUsing(fn ($state) => strtoupper($state)),
+                                    // FileUpload::make('delivery_order')
+                                    //     ->label('Delivery Order')
+                                    //     ->directory('hardware-delivery-orders')
+                                    //     ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
+                                    //     ->maxSize(10240) // 10MB max
+                                    //     ->required()
+                                    //     ->columnSpan(1),
                                 ]),
+
+                            // Textarea::make('self_pickup_remark')
+                            //     ->label('Self Pick-up Remark')
+                            //     ->placeholder('Optional remarks about the self pick-up (e.g., Who collected, any special notes)')
+                            //     ->maxLength(500)
+                            //     ->rows(4)
+                            //     ->columnSpanFull()
+                            //     ->helperText('Optional notes about the self pick-up process')
+                            //     ->extraAlpineAttributes([
+                            //         'x-on:input' => '
+                            //             const start = $el.selectionStart;
+                            //             const end = $el.selectionEnd;
+                            //             const value = $el.value;
+                            //             $el.value = value.toUpperCase();
+                            //             $el.setSelectionRange(start, end);
+                            //         '
+                            //     ])
+                            //     ->dehydrateStateUsing(fn ($state) => strtoupper($state)),
                         ])
                         ->action(function (HardwareHandoverV2 $record, array $data): void {
                             try {
@@ -331,7 +327,7 @@ class HardwareV2PendingCustomerSelfPickUpTable extends Component implements HasF
 
                                 // Add completion metadata
                                 $existingCategory2['self_pickup_completed'] = true;
-                                $existingCategory2['self_pickup_completed_at'] = now()->toISOString();
+                                $existingCategory2['self_pickup_completed_at'] = now();
                                 $existingCategory2['self_pickup_completed_by'] = auth()->id();
 
                                 // Update the record with category2 data and new status

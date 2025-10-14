@@ -272,11 +272,13 @@ class HardwareV2NewTable extends Component implements HasForms, HasTable
                     })
                     ->html(),
 
-                TextColumn::make('invoice_type')
+                TextColumn::make('installation_type')
                     ->label('Category 1')
                     ->formatStateUsing(fn (string $state): string => match($state) {
-                        'single' => 'Single Invoice',
-                        'combined' => 'Combined Invoice',
+                        'external_installation' => 'External Installation',
+                        'internal_installation' => 'Internal Installation',
+                        'self_pick_up' => 'Self Pick-Up',
+                        'courier' => 'Courier',
                         default => ucfirst($state ?? 'Unknown')
                     }),
 
@@ -416,63 +418,190 @@ class HardwareV2NewTable extends Component implements HasForms, HasTable
                                         ->label('TC10')
                                         ->numeric()
                                         ->minValue(0)
-                                        ->default(0),
+                                        ->default(0)
+                                        ->live()
+                                        ->rules([
+                                            function (Get $get) {
+                                                return function (string $attribute, $value, \Closure $fail) use ($get) {
+                                                    $totalDevices =
+                                                        ((int) ($get('tc10_quantity') ?? 0)) +
+                                                        ((int) ($get('tc20_quantity') ?? 0)) +
+                                                        ((int) ($get('face_id5_quantity') ?? 0)) +
+                                                        ((int) ($get('face_id6_quantity') ?? 0)) +
+                                                        ((int) ($get('time_beacon_quantity') ?? 0)) +
+                                                        ((int) ($get('nfc_tag_quantity') ?? 0));
+
+                                                    if ($totalDevices === 0) {
+                                                        $fail('At least one device quantity must be greater than 0.');
+                                                    }
+                                                };
+                                            }
+                                        ])
+                                        ->afterStateUpdated(function (Get $get, Set $set, $component) {
+                                            // Trigger validation on all quantity fields when any changes
+                                            $component->getContainer()->getComponent('tc20_quantity')?->validate();
+                                            $component->getContainer()->getComponent('face_id5_quantity')?->validate();
+                                            $component->getContainer()->getComponent('face_id6_quantity')?->validate();
+                                            $component->getContainer()->getComponent('time_beacon_quantity')?->validate();
+                                            $component->getContainer()->getComponent('nfc_tag_quantity')?->validate();
+                                        }),
 
                                     TextInput::make('face_id5_quantity')
                                         ->label('FACE ID 5')
                                         ->numeric()
                                         ->minValue(0)
-                                        ->default(0),
+                                        ->default(0)
+                                        ->live()
+                                        ->rules([
+                                            function (Get $get) {
+                                                return function (string $attribute, $value, \Closure $fail) use ($get) {
+                                                    $totalDevices =
+                                                        ((int) ($get('tc10_quantity') ?? 0)) +
+                                                        ((int) ($get('tc20_quantity') ?? 0)) +
+                                                        ((int) ($get('face_id5_quantity') ?? 0)) +
+                                                        ((int) ($get('face_id6_quantity') ?? 0)) +
+                                                        ((int) ($get('time_beacon_quantity') ?? 0)) +
+                                                        ((int) ($get('nfc_tag_quantity') ?? 0));
+
+                                                    if ($totalDevices === 0) {
+                                                        $fail('At least one device quantity must be greater than 0.');
+                                                    }
+                                                };
+                                            }
+                                        ])
+                                        ->afterStateUpdated(function (Get $get, Set $set, $component) {
+                                            $component->getContainer()->getComponent('tc10_quantity')?->validate();
+                                            $component->getContainer()->getComponent('tc20_quantity')?->validate();
+                                            $component->getContainer()->getComponent('face_id6_quantity')?->validate();
+                                            $component->getContainer()->getComponent('time_beacon_quantity')?->validate();
+                                            $component->getContainer()->getComponent('nfc_tag_quantity')?->validate();
+                                        }),
 
                                     TextInput::make('time_beacon_quantity')
                                         ->label('TIME BEACON')
                                         ->numeric()
                                         ->minValue(0)
-                                        ->default(0),
+                                        ->default(0)
+                                        ->live()
+                                        ->rules([
+                                            function (Get $get) {
+                                                return function (string $attribute, $value, \Closure $fail) use ($get) {
+                                                    $totalDevices =
+                                                        ((int) ($get('tc10_quantity') ?? 0)) +
+                                                        ((int) ($get('tc20_quantity') ?? 0)) +
+                                                        ((int) ($get('face_id5_quantity') ?? 0)) +
+                                                        ((int) ($get('face_id6_quantity') ?? 0)) +
+                                                        ((int) ($get('time_beacon_quantity') ?? 0)) +
+                                                        ((int) ($get('nfc_tag_quantity') ?? 0));
+
+                                                    if ($totalDevices === 0) {
+                                                        $fail('At least one device quantity must be greater than 0.');
+                                                    }
+                                                };
+                                            }
+                                        ])
+                                        ->afterStateUpdated(function (Get $get, Set $set, $component) {
+                                            $component->getContainer()->getComponent('tc10_quantity')?->validate();
+                                            $component->getContainer()->getComponent('tc20_quantity')?->validate();
+                                            $component->getContainer()->getComponent('face_id5_quantity')?->validate();
+                                            $component->getContainer()->getComponent('face_id6_quantity')?->validate();
+                                            $component->getContainer()->getComponent('nfc_tag_quantity')?->validate();
+                                        }),
 
                                     TextInput::make('tc20_quantity')
                                         ->label('TC20')
                                         ->numeric()
                                         ->minValue(0)
-                                        ->default(0),
+                                        ->default(0)
+                                        ->live()
+                                        ->rules([
+                                            function (Get $get) {
+                                                return function (string $attribute, $value, \Closure $fail) use ($get) {
+                                                    $totalDevices =
+                                                        ((int) ($get('tc10_quantity') ?? 0)) +
+                                                        ((int) ($get('tc20_quantity') ?? 0)) +
+                                                        ((int) ($get('face_id5_quantity') ?? 0)) +
+                                                        ((int) ($get('face_id6_quantity') ?? 0)) +
+                                                        ((int) ($get('time_beacon_quantity') ?? 0)) +
+                                                        ((int) ($get('nfc_tag_quantity') ?? 0));
+
+                                                    if ($totalDevices === 0) {
+                                                        $fail('At least one device quantity must be greater than 0.');
+                                                    }
+                                                };
+                                            }
+                                        ])
+                                        ->afterStateUpdated(function (Get $get, Set $set, $component) {
+                                            $component->getContainer()->getComponent('tc10_quantity')?->validate();
+                                            $component->getContainer()->getComponent('face_id5_quantity')?->validate();
+                                            $component->getContainer()->getComponent('face_id6_quantity')?->validate();
+                                            $component->getContainer()->getComponent('time_beacon_quantity')?->validate();
+                                            $component->getContainer()->getComponent('nfc_tag_quantity')?->validate();
+                                        }),
 
                                     TextInput::make('face_id6_quantity')
                                         ->label('FACE ID 6')
                                         ->numeric()
                                         ->minValue(0)
-                                        ->default(0),
+                                        ->default(0)
+                                        ->live()
+                                        ->rules([
+                                            function (Get $get) {
+                                                return function (string $attribute, $value, \Closure $fail) use ($get) {
+                                                    $totalDevices =
+                                                        ((int) ($get('tc10_quantity') ?? 0)) +
+                                                        ((int) ($get('tc20_quantity') ?? 0)) +
+                                                        ((int) ($get('face_id5_quantity') ?? 0)) +
+                                                        ((int) ($get('face_id6_quantity') ?? 0)) +
+                                                        ((int) ($get('time_beacon_quantity') ?? 0)) +
+                                                        ((int) ($get('nfc_tag_quantity') ?? 0));
+
+                                                    if ($totalDevices === 0) {
+                                                        $fail('At least one device quantity must be greater than 0.');
+                                                    }
+                                                };
+                                            }
+                                        ])
+                                        ->afterStateUpdated(function (Get $get, Set $set, $component) {
+                                            $component->getContainer()->getComponent('tc10_quantity')?->validate();
+                                            $component->getContainer()->getComponent('tc20_quantity')?->validate();
+                                            $component->getContainer()->getComponent('face_id5_quantity')?->validate();
+                                            $component->getContainer()->getComponent('time_beacon_quantity')?->validate();
+                                            $component->getContainer()->getComponent('nfc_tag_quantity')?->validate();
+                                        }),
 
                                     TextInput::make('nfc_tag_quantity')
                                         ->label('NFC TAG')
                                         ->numeric()
                                         ->minValue(0)
-                                        ->default(0),
-                                ]),
+                                        ->default(0)
+                                        ->live()
+                                        ->rules([
+                                            function (Get $get) {
+                                                return function (string $attribute, $value, \Closure $fail) use ($get) {
+                                                    $totalDevices =
+                                                        ((int) ($get('tc10_quantity') ?? 0)) +
+                                                        ((int) ($get('tc20_quantity') ?? 0)) +
+                                                        ((int) ($get('face_id5_quantity') ?? 0)) +
+                                                        ((int) ($get('face_id6_quantity') ?? 0)) +
+                                                        ((int) ($get('time_beacon_quantity') ?? 0)) +
+                                                        ((int) ($get('nfc_tag_quantity') ?? 0));
 
-                            // Add a hidden field to validate total devices
-                            TextInput::make('device_validation')
-                                ->hidden()
-                                ->default('validate')
-                                ->rules([
-                                    function () {
-                                        return function (string $attribute, $value, \Closure $fail) {
-                                            // Get all device quantities from the form data
-                                            $formData = request()->all();
-                                            
-                                            $totalDevices = 
-                                                ($formData['tc10_quantity'] ?? 0) +
-                                                ($formData['tc20_quantity'] ?? 0) +
-                                                ($formData['face_id5_quantity'] ?? 0) +
-                                                ($formData['face_id6_quantity'] ?? 0) +
-                                                ($formData['time_beacon_quantity'] ?? 0) +
-                                                ($formData['nfc_tag_quantity'] ?? 0);
-
-                                            if ($totalDevices == 0) {
-                                                $fail('At least one device quantity must be greater than 0.');
+                                                    if ($totalDevices === 0) {
+                                                        $fail('At least one device quantity must be greater than 0.');
+                                                    }
+                                                };
                                             }
-                                        };
-                                    }
-                                ]),
+                                        ])
+                                        ->afterStateUpdated(function (Get $get, Set $set, $component) {
+                                            $component->getContainer()->getComponent('tc10_quantity')?->validate();
+                                            $component->getContainer()->getComponent('tc20_quantity')?->validate();
+                                            $component->getContainer()->getComponent('face_id5_quantity')?->validate();
+                                            $component->getContainer()->getComponent('face_id6_quantity')?->validate();
+                                            $component->getContainer()->getComponent('time_beacon_quantity')?->validate();
+                                        }),
+                                ])
+                                ->columnSpanFull(),
 
                             TextInput::make('sales_order_number')
                                 ->label('Sales Order Number')
@@ -490,6 +619,7 @@ class HardwareV2NewTable extends Component implements HasForms, HasTable
                                 ->dehydrateStateUsing(fn ($state) => strtoupper($state))
                                 ->maxLength(100)
                                 ->rules([
+                                    'required',
                                     function () {
                                         return function (string $attribute, $value, \Closure $fail) {
                                             if (!$value) return;
@@ -504,27 +634,10 @@ class HardwareV2NewTable extends Component implements HasForms, HasTable
                                         };
                                     }
                                 ])
-                                ->helperText('Sales order numbers must be unique across all hardware handovers.'),
+                                ->helperText('Sales order numbers must be unique across all hardware handovers.')
+                                ->columnSpanFull(),
                         ])
                         ->action(function (HardwareHandoverV2 $record, array $data): void {
-                            // Validate at least one device quantity is entered
-                            $totalDevices = 
-                                ($data['tc10_quantity'] ?? 0) +
-                                ($data['tc20_quantity'] ?? 0) +
-                                ($data['face_id5_quantity'] ?? 0) +
-                                ($data['face_id6_quantity'] ?? 0) +
-                                ($data['time_beacon_quantity'] ?? 0) +
-                                ($data['nfc_tag_quantity'] ?? 0);
-
-                            if ($totalDevices == 0) {
-                                Notification::make()
-                                    ->title('Validation Error')
-                                    ->body('At least one device quantity must be greater than 0.')
-                                    ->danger()
-                                    ->send();
-                                return;
-                            }
-
                             // Get implementer information
                             $implementerName = $record->implementer ?? null;
 
@@ -539,14 +652,16 @@ class HardwareV2NewTable extends Component implements HasForms, HasTable
                                 }
                             }
 
+                            $salesOrderNumber = strtoupper($data['sales_order_number']);
+
                             $updateData = [
-                                'sales_order_number' => $data['sales_order_number'],
-                                'tc10_quantity' => $data['tc10_quantity'],
-                                'tc20_quantity' => $data['tc20_quantity'],
-                                'face_id5_quantity' => $data['face_id5_quantity'],
-                                'face_id6_quantity' => $data['face_id6_quantity'],
-                                'time_beacon_quantity' => $data['time_beacon_quantity'],
-                                'nfc_tag_quantity' => $data['nfc_tag_quantity'],
+                                'sales_order_number' => $salesOrderNumber,
+                                'tc10_quantity' => (int) $data['tc10_quantity'],
+                                'tc20_quantity' => (int) $data['tc20_quantity'],
+                                'face_id5_quantity' => (int) $data['face_id5_quantity'],
+                                'face_id6_quantity' => (int) $data['face_id6_quantity'],
+                                'time_beacon_quantity' => (int) $data['time_beacon_quantity'],
+                                'nfc_tag_quantity' => (int) $data['nfc_tag_quantity'],
                                 'implementer' => $implementerName,
                                 'pending_stock_at' => now(),
                                 'approved_at' => now(),
@@ -559,7 +674,7 @@ class HardwareV2NewTable extends Component implements HasForms, HasTable
                             Notification::make()
                                 ->title('Hardware Handover accepted with Pending Stock')
                                 ->success()
-                                ->body('Sales Order: ' . $data['sales_order_number'] . ' - Status updated to Pending Stock')
+                                ->body('Sales Order: ' . $salesOrderNumber . ' - Status updated to Pending Stock')
                                 ->send();
                         })
                         ->requiresConfirmation()
@@ -568,6 +683,20 @@ class HardwareV2NewTable extends Component implements HasForms, HasTable
                         ),
                 ])->button()
             ]);
+    }
+
+    private function validateDeviceQuantities(Get $get, Set $set): void
+    {
+        $totalDevices =
+            ((int) $get('tc10_quantity')) +
+            ((int) $get('tc20_quantity')) +
+            ((int) $get('face_id5_quantity')) +
+            ((int) $get('face_id6_quantity')) +
+            ((int) $get('time_beacon_quantity')) +
+            ((int) $get('nfc_tag_quantity'));
+
+        // Set a validation state that can be used by the form
+        $set('device_total_validation', $totalDevices > 0 ? 'valid' : 'invalid');
     }
 
     public function render()

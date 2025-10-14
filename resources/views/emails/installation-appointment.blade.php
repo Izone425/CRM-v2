@@ -89,11 +89,6 @@
 </head>
 <body>
     <div class="container">
-        <div class="header">
-            <div class="logo">TIMETEC</div>
-            <div>Onsite Installation Appointment</div>
-        </div>
-
         <div class="content">
             <div class="greeting">
                 <strong>Dear Customer</strong><br>
@@ -108,7 +103,7 @@
                     <span class="label">Technician Name:</span> {{ $technician_name }}
                 </div>
                 <div class="info-row">
-                    <span class="label">Technician Hp Number:</span> {{ $technician_phone ?: 'To be provided' }}
+                    <span class="label">Technician Hp Number:</span> {{ $technician_phone ?: '017-380 4549' }}
                 </div>
             </div>
 

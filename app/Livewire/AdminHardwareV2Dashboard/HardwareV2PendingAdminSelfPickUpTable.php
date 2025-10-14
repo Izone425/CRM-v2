@@ -226,11 +226,13 @@ class HardwareV2PendingAdminSelfPickUpTable extends Component implements HasForm
                     })
                     ->html(),
 
-                TextColumn::make('invoice_type')
+                TextColumn::make('installation_type')
                     ->label('Category 1')
                     ->formatStateUsing(fn (string $state): string => match($state) {
-                        'single' => 'Single Invoice',
-                        'combined' => 'Combined Invoice',
+                        'external_installation' => 'External Installation',
+                        'internal_installation' => 'Internal Installation',
+                        'self_pick_up' => 'Self Pick-Up',
+                        'courier' => 'Courier',
                         default => ucfirst($state ?? 'Unknown')
                     }),
 
@@ -264,25 +266,20 @@ class HardwareV2PendingAdminSelfPickUpTable extends Component implements HasForm
                                 ->with('extraAttributes', ['record' => $record]);
                         }),
                     Action::make('set_pickup_date')
-                        ->label('Complete Admin Task')
+                        ->label('Complete the Task')
                         ->icon('heroicon-o-calendar-days')
                         ->color('warning')
-                        ->modalHeading('Set Customer Forecast Pick-up Date')
+                        ->modalHeading(false)
                         ->modalWidth('md')
                         ->form([
-                            Section::make('Customer Pick-up Schedule')
-                                ->description('Set the forecast date for customer self pick-up')
-                                ->schema([
-                                    DatePicker::make('customer_forecast_pickup_date')
-                                        ->label('Customer Forecast Pick-up Date')
-                                        ->required()
-                                        ->native(false)
-                                        ->displayFormat('d/m/Y')
-                                        ->minDate(now()) // Cannot set date in the past
-                                        ->helperText('Select the expected date when customer will pick up the hardware')
-                                        ->default(now()->addDays(3)) // Default to 3 days from now
-                                        ->live(),
-                                ]),
+                            DatePicker::make('customer_forecast_pickup_date')
+                                ->label('Customer Forecast Pick-up Date')
+                                ->required()
+                                ->native(false)
+                                ->displayFormat('d/m/Y')
+                                ->minDate(now()) // Cannot set date in the past
+                                ->default(now()->addDays(3)) // Default to 3 days from now
+                                ->live(),
                         ])
                         ->action(function (HardwareHandoverV2 $record, array $data): void {
                             try {
@@ -296,7 +293,7 @@ class HardwareV2PendingAdminSelfPickUpTable extends Component implements HasForm
 
                                 // Add pickup date information to category2
                                 $existingCategory2['customer_forecast_pickup_date'] = $data['customer_forecast_pickup_date'];
-                                $existingCategory2['pickup_date_set_at'] = now()->toISOString();
+                                $existingCategory2['pickup_date_set_at'] = now();
                                 $existingCategory2['pickup_date_set_by'] = auth()->id();
 
                                 // Update the record with category2 data and change status

@@ -227,11 +227,13 @@ class HardwareV2PendingStockTable extends Component implements HasForms, HasTabl
                     })
                     ->html(),
 
-                TextColumn::make('invoice_type')
+                TextColumn::make('installation_type')
                     ->label('Category 1')
                     ->formatStateUsing(fn (string $state): string => match($state) {
-                        'single' => 'Single Invoice',
-                        'combined' => 'Combined Invoice',
+                        'external_installation' => 'External Installation',
+                        'internal_installation' => 'Internal Installation',
+                        'self_pick_up' => 'Self Pick-Up',
+                        'courier' => 'Courier',
                         default => ucfirst($state ?? 'Unknown')
                     }),
 
@@ -311,7 +313,7 @@ class HardwareV2PendingStockTable extends Component implements HasForms, HasTabl
                                                             $duplicateCount = 0;
 
                                                             foreach ($allInvoices as $index => $invoice) {
-                                                                if (isset($invoice['invoice_no']) && 
+                                                                if (isset($invoice['invoice_no']) &&
                                                                     strtoupper($invoice['invoice_no']) === $upperValue) {
                                                                     $duplicateCount++;
                                                                 }
@@ -331,7 +333,7 @@ class HardwareV2PendingStockTable extends Component implements HasForms, HasTabl
                                                         $duplicateCount = 0;
 
                                                         foreach ($allInvoices as $invoice) {
-                                                            if (isset($invoice['invoice_no']) && 
+                                                            if (isset($invoice['invoice_no']) &&
                                                                 strtoupper($invoice['invoice_no']) === $currentValue) {
                                                                 $duplicateCount++;
                                                             }
@@ -348,14 +350,14 @@ class HardwareV2PendingStockTable extends Component implements HasForms, HasTabl
                                                             ->whereNotNull('invoice_data')
                                                             ->get()
                                                             ->filter(function ($handover) use ($currentValue) {
-                                                                $invoiceData = is_string($handover->invoice_data) 
-                                                                    ? json_decode($handover->invoice_data, true) 
+                                                                $invoiceData = is_string($handover->invoice_data)
+                                                                    ? json_decode($handover->invoice_data, true)
                                                                     : $handover->invoice_data;
-                                                                
+
                                                                 if (!is_array($invoiceData)) return false;
-                                                                
+
                                                                 foreach ($invoiceData as $invoice) {
-                                                                    if (isset($invoice['invoice_no']) && 
+                                                                    if (isset($invoice['invoice_no']) &&
                                                                         strtoupper($invoice['invoice_no']) === $currentValue) {
                                                                         return true;
                                                                     }
@@ -422,7 +424,7 @@ class HardwareV2PendingStockTable extends Component implements HasForms, HasTabl
                                                     $error = $get('invoice_validation_error');
                                                     return $error ? ['style' => 'border-color: #ef4444;'] : [];
                                                 }),
-                                                
+
                                             FileUpload::make('invoice_file')
                                                 ->label('Invoice PDF')
                                                 ->directory('hardware-handover-invoices')
@@ -461,20 +463,20 @@ class HardwareV2PendingStockTable extends Component implements HasForms, HasTabl
                             // Check for duplicates in existing hardware handovers
                             foreach ($data['invoices'] as $invoice) {
                                 $invoiceNo = strtoupper($invoice['invoice_no']);
-                                
+
                                 // Check if this invoice number exists in other hardware handovers
                                 $existingHandover = HardwareHandoverV2::where('id', '!=', $record->id)
                                     ->whereNotNull('invoice_data')
                                     ->get()
                                     ->filter(function ($handover) use ($invoiceNo) {
-                                        $invoiceData = is_string($handover->invoice_data) 
-                                            ? json_decode($handover->invoice_data, true) 
+                                        $invoiceData = is_string($handover->invoice_data)
+                                            ? json_decode($handover->invoice_data, true)
                                             : $handover->invoice_data;
-                                        
+
                                         if (!is_array($invoiceData)) return false;
-                                        
+
                                         foreach ($invoiceData as $existingInvoice) {
-                                            if (isset($existingInvoice['invoice_no']) && 
+                                            if (isset($existingInvoice['invoice_no']) &&
                                                 strtoupper($existingInvoice['invoice_no']) === $invoiceNo) {
                                                 return true;
                                             }

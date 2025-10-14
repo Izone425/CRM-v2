@@ -226,11 +226,13 @@ class HardwareV2PendingCourierTable extends Component implements HasForms, HasTa
                     })
                     ->html(),
 
-                TextColumn::make('invoice_type')
+                TextColumn::make('installation_type')
                     ->label('Category 1')
                     ->formatStateUsing(fn (string $state): string => match($state) {
-                        'single' => 'Single Invoice',
-                        'combined' => 'Combined Invoice',
+                        'external_installation' => 'External Installation',
+                        'internal_installation' => 'Internal Installation',
+                        'self_pick_up' => 'Self Pick-Up',
+                        'courier' => 'Courier',
                         default => ucfirst($state ?? 'Unknown')
                     }),
 
@@ -275,27 +277,6 @@ class HardwareV2PendingCourierTable extends Component implements HasForms, HasTa
                             $courierAddresses = $this->getCourierAddresses($record);
 
                             return [
-                                Section::make('Courier Information')
-                                    ->description("Total Courier Addresses: " . count($courierAddresses))
-                                    ->collapsible()
-                                    ->schema([
-                                        // Display the addresses for reference
-                                        Grid::make(1)
-                                            ->schema([
-                                                Textarea::make('addresses_summary')
-                                                    ->label('Courier Addresses Summary')
-                                                    ->default(function () use ($courierAddresses) {
-                                                        return collect($courierAddresses)->map(function ($address, $index) {
-                                                            return "Address " . ($index + 1) . ":\n" . $address['address'];
-                                                        })->join("\n\n");
-                                                    })
-                                                    ->disabled()
-                                                    ->rows(max(3, count($courierAddresses) * 2))
-                                                    ->columnSpanFull()
-                                                    ->helperText('These are the courier addresses that need delivery details'),
-                                            ]),
-                                    ]),
-
                                 Section::make('Courier Details')
                                     ->description('Fill courier information for each address')
                                     ->schema([
@@ -307,7 +288,7 @@ class HardwareV2PendingCourierTable extends Component implements HasForms, HasTa
                                                         Textarea::make('address_info')
                                                             ->label('Courier Address')
                                                             ->disabled()
-                                                            ->rows(3)
+                                                            ->rows(5)
                                                             ->columnSpanFull()
                                                             ->helperText('This address information is for reference'),
 
@@ -316,15 +297,23 @@ class HardwareV2PendingCourierTable extends Component implements HasForms, HasTa
                                                             ->required()
                                                             ->native(false)
                                                             ->displayFormat('d/m/Y')
-                                                            ->helperText('Select the courier delivery date'),
+                                                            ->minDate(now()->subDays(7)),
 
                                                         TextInput::make('courier_tracking')
                                                             ->label('Courier Tracking Number')
                                                             ->required()
                                                             ->placeholder('Enter tracking number (e.g., TT123456789MY)')
-                                                            ->maxLength(255)
-                                                            ->helperText('Courier tracking/reference number (alphanumeric)')
-                                                            ->rule('regex:/^[a-zA-Z0-9]+$/'),
+                                                            ->extraAlpineAttributes([
+                                                                'x-on:input' => '
+                                                                    const start = $el.selectionStart;
+                                                                    const end = $el.selectionEnd;
+                                                                    const value = $el.value;
+                                                                    $el.value = value.toUpperCase();
+                                                                    $el.setSelectionRange(start, end);
+                                                                '
+                                                            ])
+                                                            ->dehydrateStateUsing(fn ($state) => strtoupper($state))
+                                                            ->maxLength(255),
                                                     ]),
 
                                                 FileUpload::make('courier_document')
@@ -399,7 +388,7 @@ class HardwareV2PendingCourierTable extends Component implements HasForms, HasTa
 
                                 // Add completion metadata to category2
                                 $existingCategory2['courier_completed'] = true;
-                                $existingCategory2['courier_completed_at'] = now()->toISOString();
+                                $existingCategory2['courier_completed_at'] = now();
                                 $existingCategory2['courier_completed_by'] = auth()->id();
 
                                 // Update the record with merged category data and new status

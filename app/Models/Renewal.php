@@ -99,7 +99,7 @@ class Renewal extends Model
             'from' => $from,
             'to' => $to,
             'reason' => $reason,
-            'changed_at' => now()->toISOString(),
+            'changed_at' => now(),
             'changed_by' => auth()->user()?->name ?? 'System',
         ];
         $this->update(['progress_history' => $history]);

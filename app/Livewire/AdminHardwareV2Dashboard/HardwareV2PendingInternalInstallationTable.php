@@ -231,11 +231,13 @@ class HardwareV2PendingInternalInstallationTable extends Component implements Ha
                     })
                     ->html(),
 
-                TextColumn::make('invoice_type')
+                TextColumn::make('installation_type')
                     ->label('Category 1')
                     ->formatStateUsing(fn (string $state): string => match($state) {
-                        'single' => 'Single Invoice',
-                        'combined' => 'Combined Invoice',
+                        'external_installation' => 'External Installation',
+                        'internal_installation' => 'Internal Installation',
+                        'self_pick_up' => 'Self Pick-Up',
+                        'courier' => 'Courier',
                         default => ucfirst($state ?? 'Unknown')
                     }),
 
@@ -269,7 +271,8 @@ class HardwareV2PendingInternalInstallationTable extends Component implements Ha
                                 ->with('extraAttributes', ['record' => $record]);
                         }),
                     Action::make('book_installation_appointment')
-                        ->label('Book Installation Appointment')
+                        ->label('OnSite Installation')
+                        ->icon('heroicon-o-check-circle')
                         ->color('success')
                         ->modalHeading('Book Installation Appointment')
                         ->modalWidth('7xl')
@@ -335,31 +338,31 @@ class HardwareV2PendingInternalInstallationTable extends Component implements Ha
                                             ->schema([
                                                 TextInput::make('tc10_remaining')
                                                     ->label('TC10 Remaining')
-                                                    ->default($deviceQuantities['tc10'] - $totalAllocated['tc10'])
+                                                    ->default($deviceQuantities['tc10'] ? ($deviceQuantities['tc10'] - $totalAllocated['tc10']) : 'N/A')
                                                     ->disabled()
                                                     ->suffix('units')
-                                                    ->extraAttributes(['style' => 'color: #f59e0b; font-weight: bold;']),
+                                                    ->extraAttributes(['style' => 'background-color: #22c55e; color: white; font-weight: bold;']),
 
                                                 TextInput::make('face_id5_remaining')
                                                     ->label('Face ID 5 Remaining')
-                                                    ->default($deviceQuantities['face_id5'] - $totalAllocated['face_id5'])
+                                                    ->default($deviceQuantities['face_id5'] ? ($deviceQuantities['face_id5'] - $totalAllocated['face_id5']) : 'N/A')
                                                     ->disabled()
                                                     ->suffix('units')
-                                                    ->extraAttributes(['style' => 'color: #f59e0b; font-weight: bold;']),
+                                                    ->extraAttributes(['style' => 'background-color: #22c55e; color: white; font-weight: bold;']),
 
                                                 TextInput::make('tc20_remaining')
                                                     ->label('TC20 Remaining')
                                                     ->default($deviceQuantities['tc20'] ? ($deviceQuantities['tc20'] - $totalAllocated['tc20']) : 'N/A')
                                                     ->disabled()
                                                     ->suffix($deviceQuantities['tc20'] ? 'units' : '')
-                                                    ->extraAttributes(['style' => 'color: #f59e0b; font-weight: bold;']),
+                                                    ->extraAttributes(['style' => 'background-color: #22c55e; color: white; font-weight: bold;']),
 
                                                 TextInput::make('face_id6_remaining')
                                                     ->label('Face ID 6 Remaining')
                                                     ->default($deviceQuantities['face_id6'] ? ($deviceQuantities['face_id6'] - $totalAllocated['face_id6']) : 'N/A')
                                                     ->disabled()
                                                     ->suffix($deviceQuantities['face_id6'] ? 'units' : '')
-                                                    ->extraAttributes(['style' => 'color: #f59e0b; font-weight: bold;']),
+                                                    ->extraAttributes(['style' => 'background-color: #22c55e; color: white; font-weight: bold;']),
                                             ]),
                                     ])
                                     ->collapsible(),
@@ -463,64 +466,127 @@ class HardwareV2PendingInternalInstallationTable extends Component implements Ha
                                                                     ->label('START TIME')
                                                                     ->required()
                                                                     ->seconds(false)
-                                                                    ->reactive()
-                                                                    ->default(function ($record = null) {
-                                                                        if ($record) {
-                                                                            return $record->start_time;
-                                                                        }
-                                                                        // Round up to the next 30-minute interval
+                                                                    ->live()
+                                                                    ->default(function () {
+                                                                        // Get current time
                                                                         $now = Carbon::now();
-                                                                        return $now->addMinutes(30 - ($now->minute % 30))->format('H:i');
+
+                                                                        // Define business hours
+                                                                        $businessStart = Carbon::today()->setHour(9)->setMinute(0)->setSecond(0);
+                                                                        $businessEnd = Carbon::today()->setHour(18)->setMinute(0)->setSecond(0);
+
+                                                                        // If before business hours, return 9am
+                                                                        if ($now->lt($businessStart)) {
+                                                                            return '09:00';
+                                                                        }
+
+                                                                        // If after business hours, return 9am next day
+                                                                        if ($now->gt($businessEnd)) {
+                                                                            return '09:00';
+                                                                        }
+
+                                                                        // Otherwise round to next 30 min interval within business hours
+                                                                        $rounded = $now->copy()->addMinutes(30 - ($now->minute % 30))->setSecond(0);
+
+                                                                        // If rounded time is after business hours, return 9am next day
+                                                                        if ($rounded->gt($businessEnd)) {
+                                                                            return '09:00';
+                                                                        }
+
+                                                                        return $rounded->format('H:i');
                                                                     })
                                                                     ->datalist(function (callable $get) {
                                                                         $user = Auth::user();
-                                                                        $date = $get('date');
+                                                                        $date = $get('appointment_date');
 
-                                                                        if ($get('mode') === 'custom') {
-                                                                            return [];
-                                                                        }
+                                                                        // Get current time for reference
+                                                                        $currentTime = Carbon::now();
+                                                                        $currentTimeString = $currentTime->format('H:i');
 
-                                                                        $times = [];
-                                                                        $startTime = Carbon::now()->addMinutes(30 - (Carbon::now()->minute % 30))->setSeconds(0);
+                                                                        // Generate all possible time slots in business hours (9am-6pm)
+                                                                        $allTimes = [];
 
                                                                         if ($user && in_array($user->role_id, [9]) && $date) {
-                                                                            // Fetch all booked appointments as full models
+                                                                            // Fetch all booked appointments
                                                                             $appointments = RepairAppointment::where('technician', $user->id)
                                                                                 ->whereDate('date', $date)
                                                                                 ->whereIn('status', ['New', 'Completed'])
                                                                                 ->get(['start_time', 'end_time']);
 
-                                                                            for ($i = 0; $i < 48; $i++) {
+                                                                            // Generate all possible time slots
+                                                                            $startTime = Carbon::createFromTime(9, 0, 0);
+                                                                            $endTime = Carbon::createFromTime(18, 0, 0);
+
+                                                                            // Generate time slots from 9am to 6pm
+                                                                            while ($startTime < $endTime) {
                                                                                 $slotStart = $startTime->copy();
                                                                                 $slotEnd = $startTime->copy()->addMinutes(30);
                                                                                 $formattedTime = $slotStart->format('H:i');
 
+                                                                                // Check if slot is already booked
                                                                                 $isBooked = $appointments->contains(function ($appointment) use ($slotStart, $slotEnd) {
                                                                                     $apptStart = Carbon::createFromFormat('H:i:s', $appointment->start_time);
                                                                                     $apptEnd = Carbon::createFromFormat('H:i:s', $appointment->end_time);
 
-                                                                                    // Check if the slot overlaps with the appointment
                                                                                     return $slotStart->lt($apptEnd) && $slotEnd->gt($apptStart);
                                                                                 });
 
                                                                                 if (!$isBooked) {
-                                                                                    $times[] = $formattedTime;
+                                                                                    $allTimes[] = $formattedTime;
                                                                                 }
 
                                                                                 $startTime->addMinutes(30);
                                                                             }
                                                                         } else {
-                                                                            for ($i = 0; $i < 48; $i++) {
-                                                                                $times[] = $startTime->format('H:i');
+                                                                            // Generate all possible time slots without checking for booked slots
+                                                                            $startTime = Carbon::createFromTime(8, 0, 0);
+                                                                            $endTime = Carbon::createFromTime(18, 30, 0);
+
+                                                                            while ($startTime < $endTime) {
+                                                                                $allTimes[] = $startTime->format('H:i');
                                                                                 $startTime->addMinutes(30);
                                                                             }
                                                                         }
 
-                                                                        return $times;
+                                                                        // Sort times based on proximity to current time in a circular manner
+                                                                        usort($allTimes, function($a, $b) use ($currentTimeString) {
+                                                                            $aTime = Carbon::createFromFormat('H:i', $a);
+                                                                            $bTime = Carbon::createFromFormat('H:i', $b);
+                                                                            $currentTime = Carbon::createFromFormat('H:i', $currentTimeString);
+
+                                                                            // If current time is after business hours, consider 9am as the reference
+                                                                            if ($currentTime->format('H') >= 18) {
+                                                                                return $aTime <=> $bTime; // Just sort by normal time order starting from 9am
+                                                                            }
+
+                                                                            // For times after current time, they come first and are sorted by proximity to current
+                                                                            if ($aTime >= $currentTime && $bTime >= $currentTime) {
+                                                                                return $aTime <=> $bTime;
+                                                                            }
+
+                                                                            // For times before current time, they come after times that are after current
+                                                                            if ($aTime < $currentTime && $bTime < $currentTime) {
+                                                                                return $aTime <=> $bTime;
+                                                                            }
+
+                                                                            // If one is after and one is before current time, the after one comes first
+                                                                            return $bTime >= $currentTime ? 1 : -1;
+                                                                        });
+
+                                                                        return $allTimes;
                                                                     })
                                                                     ->afterStateUpdated(function ($state, callable $set, callable $get) {
-                                                                        if ($get('mode') === 'auto' && $state) {
-                                                                            $set('end_time', Carbon::parse($state)->addHour()->format('H:i'));
+                                                                        // Automatically set end time to start time + 1 hour
+                                                                        if ($state) {
+                                                                            $endTime = Carbon::parse($state)->addHour();
+
+                                                                            // Cap end time at 6:30pm
+                                                                            $maxEndTime = Carbon::createFromTime(18, 30, 0);
+                                                                            if ($endTime->gt($maxEndTime)) {
+                                                                                $endTime = $maxEndTime;
+                                                                            }
+
+                                                                            $set('end_time', $endTime->format('H:i'));
                                                                         }
                                                                     }),
 
@@ -528,33 +594,63 @@ class HardwareV2PendingInternalInstallationTable extends Component implements Ha
                                                                     ->label('END TIME')
                                                                     ->required()
                                                                     ->seconds(false)
-                                                                    ->reactive()
-                                                                    ->default(function ($record = null, callable $get) {
-                                                                        if ($record) {
-                                                                            return $record->end_time;
+                                                                    ->live()
+                                                                    ->default(function (callable $get) {
+                                                                        // Get start time from form first
+                                                                        $startTime = $get('start_time');
+                                                                        if ($startTime) {
+                                                                            $endTime = Carbon::parse($startTime)->addHour();
+
+                                                                            // Cap end time at 6:30pm
+                                                                            $maxEndTime = Carbon::createFromTime(18, 30, 0);
+                                                                            if ($endTime->gt($maxEndTime)) {
+                                                                                $endTime = $maxEndTime;
+                                                                            }
+
+                                                                            return $endTime->format('H:i');
                                                                         }
-                                                                        $startTime = Carbon::now()->addMinutes(30 - (Carbon::now()->minute % 30));
-                                                                        return $startTime->addHour()->format('H:i');
+
+                                                                        // Fallback: current time + 1 hour with business hour constraints
+                                                                        $now = Carbon::now();
+                                                                        $businessStart = Carbon::today()->setHour(9)->setMinute(0);
+                                                                        $businessEnd = Carbon::today()->setHour(18)->setMinute(30);
+
+                                                                        if ($now->lt($businessStart)) {
+                                                                            return '10:00'; // 9am + 1 hour
+                                                                        }
+
+                                                                        if ($now->gt($businessEnd->copy()->subHour())) {
+                                                                            return '10:00'; // Next day 9am + 1 hour
+                                                                        }
+
+                                                                        $defaultStart = $now->copy()->addMinutes(30 - ($now->minute % 30));
+                                                                        $defaultEnd = $defaultStart->copy()->addHour();
+
+                                                                        if ($defaultEnd->gt($businessEnd)) {
+                                                                            $defaultEnd = $businessEnd;
+                                                                        }
+
+                                                                        return $defaultEnd->format('H:i');
                                                                     })
                                                                     ->datalist(function (callable $get) {
                                                                         $user = Auth::user();
-                                                                        $date = $get('date');
-
-                                                                        if ($get('mode') === 'custom') {
-                                                                            return [];
-                                                                        }
+                                                                        $date = $get('appointment_date');
 
                                                                         $times = [];
-                                                                        $startTime = Carbon::now()->addMinutes(30 - (Carbon::now()->minute % 30));
 
                                                                         if ($user && in_array($user->role_id, [9]) && $date) {
                                                                             // Fetch booked time slots for this technician on the selected date
                                                                             $bookedAppointments = RepairAppointment::where('technician', $user->id)
                                                                                 ->whereDate('date', $date)
+                                                                                ->whereIn('status', ['New', 'Completed'])
                                                                                 ->pluck('end_time', 'start_time')
                                                                                 ->toArray();
 
-                                                                            for ($i = 0; $i < 48; $i++) {
+                                                                            // Generate time slots from 9:30am to 6:30pm (end times)
+                                                                            $startTime = Carbon::createFromTime(9, 30, 0);
+                                                                            $endTime = Carbon::createFromTime(18, 30, 0);
+
+                                                                            while ($startTime <= $endTime) {
                                                                                 $formattedTime = $startTime->format('H:i');
 
                                                                                 // Check if time is booked
@@ -569,22 +665,35 @@ class HardwareV2PendingInternalInstallationTable extends Component implements Ha
                                                                                 $startTime->addMinutes(30);
                                                                             }
                                                                         } else {
-                                                                            // Default available slots
-                                                                            for ($i = 0; $i < 48; $i++) {
+                                                                            // Default available slots (9:30am to 6:30pm for end times)
+                                                                            $startTime = Carbon::createFromTime(9, 30, 0);
+                                                                            $endTime = Carbon::createFromTime(18, 30, 0);
+
+                                                                            while ($startTime <= $endTime) {
                                                                                 $times[] = $startTime->format('H:i');
                                                                                 $startTime->addMinutes(30);
                                                                             }
                                                                         }
 
                                                                         return $times;
-                                                                    }),
-                                                                ]),
+                                                                    })
+                                                            ]),
 
                                                         Grid::make(2)
                                                             ->schema([
                                                                 TextInput::make('pic_name')
                                                                     ->label('PIC Name')
                                                                     ->required()
+                                                                    ->extraAlpineAttributes([
+                                                                        'x-on:input' => '
+                                                                            const start = $el.selectionStart;
+                                                                            const end = $el.selectionEnd;
+                                                                            const value = $el.value;
+                                                                            $el.value = value.toUpperCase();
+                                                                            $el.setSelectionRange(start, end);
+                                                                        '
+                                                                    ])
+                                                                    ->dehydrateStateUsing(fn ($state) => strtoupper($state))
                                                                     ->maxLength(255),
 
                                                                 TextInput::make('pic_phone')
@@ -604,6 +713,16 @@ class HardwareV2PendingInternalInstallationTable extends Component implements Ha
                                                             ->label('Installation Address')
                                                             ->required()
                                                             ->rows(3)
+                                                            ->extraAlpineAttributes([
+                                                                'x-on:input' => '
+                                                                    const start = $el.selectionStart;
+                                                                    const end = $el.selectionEnd;
+                                                                    const value = $el.value;
+                                                                    $el.value = value.toUpperCase();
+                                                                    $el.setSelectionRange(start, end);
+                                                                '
+                                                            ])
+                                                            ->dehydrateStateUsing(fn ($state) => strtoupper($state))
                                                             ->columnSpanFull(),
 
                                                         Textarea::make('installation_remark')
@@ -640,10 +759,6 @@ class HardwareV2PendingInternalInstallationTable extends Component implements Ha
                                             ->schema([
                                                 Grid::make(6)
                                                     ->schema([
-                                                        TextInput::make('appointment_name')
-                                                            ->label('Appointment')
-                                                            ->disabled(),
-
                                                         TextInput::make('tc10_allocated')
                                                             ->label('TC10')
                                                             ->disabled()
@@ -779,7 +894,7 @@ class HardwareV2PendingInternalInstallationTable extends Component implements Ha
                                             'installation_remark' => strtoupper($installation['installation_remark'] ?? ''),
                                         ],
                                         'appointment_status' => 'Scheduled',
-                                        'created_at' => now()->toISOString(),
+                                        'created_at' => now(),
                                         'created_by' => auth()->id(),
                                     ];
 
@@ -822,7 +937,7 @@ class HardwareV2PendingInternalInstallationTable extends Component implements Ha
                                 if ($allDevicesAllocated) {
                                     $existingCategory2['all_devices_allocated'] = true;
                                     $existingCategory2['all_appointments_scheduled'] = true;
-                                    $existingCategory2['completion_date'] = now()->toISOString();
+                                    $existingCategory2['completion_date'] = now();
 
                                     $record->update([
                                         'category2' => json_encode($existingCategory2),
@@ -921,7 +1036,8 @@ class HardwareV2PendingInternalInstallationTable extends Component implements Ha
             $recipients = [
                 'admin.timetec.hr@timeteccloud.com', // Admin
                 $installation['pic_email'] ?? null,  // Customer
-                'izzuddin@timeteccloud.com'
+                'izzuddin@timeteccloud.com',
+                $lead->getSalespersonEmail() ?? null,  // Salesperson
             ];
 
             // Filter out null emails
