@@ -3,7 +3,7 @@
 namespace App\Livewire\SalespersonDashboard;
 
 use App\Filament\Filters\SortFilter;
-use App\Models\HardwareHandover;
+use App\Models\HardwareHandoverV2;
 use App\Models\User;
 use Filament\Tables\Actions\Action;
 use Filament\Tables\Table;
@@ -31,10 +31,12 @@ class HardwareHandoverCompleted extends Component implements HasForms, HasTable
 
     public $selectedUser;
     public $lastRefreshTime;
+    public $currentDashboard;
 
-    public function mount()
+    public function mount($currentDashboard = null)
     {
         $this->lastRefreshTime = now()->format('Y-m-d H:i:s');
+        $this->currentDashboard = $currentDashboard;
     }
 
     public function refreshTable()
@@ -55,60 +57,99 @@ class HardwareHandoverCompleted extends Component implements HasForms, HasTable
         $this->lastRefreshTime = now()->format('Y-m-d H:i:s');
     }
 
-    #[On('updateTablesForUser')] // Listen for updates
+    #[On('updateTablesForUser')]
     public function updateTablesForUser($selectedUser)
     {
         $this->selectedUser = $selectedUser;
-        session(['selectedUser' => $selectedUser]); // Store for consistency
-
-        $this->resetTable(); // Refresh the table
+        session(['selectedUser' => $selectedUser]);
+        $this->resetTable();
     }
 
     public function getOverdueHardwareHandovers()
     {
         $this->selectedUser = $this->selectedUser ?? session('selectedUser') ?? auth()->id();
 
-        $query = HardwareHandover::query()
-            ->whereIn('status', ['Completed: Installation', 'Completed: Courier', 'Completed Migration']);
+        $query = HardwareHandoverV2::query()
+            ->whereIn('status', [
+                'Completed: Self Pick-Up',
+                'Completed: Internal Installation',
+                'Completed: External Installation',
+                'Completed: Courier'
+            ]);
 
-        // Apply normal salesperson filtering for other roles
         if ($this->selectedUser === 'all-salespersons') {
-            // Keep as is - show all salespersons' handovers
-            // $salespersonIds = User::where('role_id', 2)->pluck('id');
-            // $query->whereHas('lead', function ($leadQuery) use ($salespersonIds) {
-            //     $leadQuery->whereIn('salesperson', $salespersonIds);
-            // });
+            $salespersonIds = User::where('role_id', 2)->pluck('id');
+            $query->whereHas('lead', function ($leadQuery) use ($salespersonIds) {
+                $leadQuery->whereIn('salesperson', $salespersonIds);
+            });
         } elseif (is_numeric($this->selectedUser)) {
-            // Validate that the selected user exists and is a salesperson
             $userExists = User::where('id', $this->selectedUser)->where('role_id', 2)->exists();
 
             if ($userExists) {
-                $selectedUser = $this->selectedUser; // Create a local variable
+                $selectedUser = $this->selectedUser;
                 $query->whereHas('lead', function ($leadQuery) use ($selectedUser) {
                     $leadQuery->where('salesperson', $selectedUser);
                 });
             } else {
-                // Invalid user ID or not a salesperson, fall back to default
                 $query->whereHas('lead', function ($leadQuery) {
                     $leadQuery->where('salesperson', auth()->id());
                 });
             }
         } else {
             if (auth()->user()->role_id === 2) {
-                // Salespersons (role_id 2) can only see their own records
                 $userId = auth()->id();
                 $query->whereHas('lead', function ($leadQuery) use ($userId) {
                     $leadQuery->where('salesperson', $userId);
                 });
-            } else {
-
             }
         }
 
-        $query->orderBy('created_at', 'asc') // Oldest first since they're the most overdue
+        $query->orderBy('created_at', 'desc')
             ->with(['lead', 'lead.companyDetail', 'creator']);
 
         return $query;
+    }
+
+    public function getHardwareHandoverCount()
+    {
+        $this->selectedUser = $this->selectedUser ?? session('selectedUser') ?? auth()->id();
+
+        $query = HardwareHandoverV2::query()
+            ->whereIn('status', [
+                'Completed: Self Pick-Up',
+                'Completed: Internal Installation',
+                'Completed: External Installation',
+                'Completed: Courier'
+            ]);
+
+        if ($this->selectedUser === 'all-salespersons') {
+            $salespersonIds = User::where('role_id', 2)->pluck('id');
+            $query->whereHas('lead', function ($leadQuery) use ($salespersonIds) {
+                $leadQuery->whereIn('salesperson', $salespersonIds);
+            });
+        } elseif (is_numeric($this->selectedUser)) {
+            $userExists = User::where('id', $this->selectedUser)->where('role_id', 2)->exists();
+
+            if ($userExists) {
+                $selectedUser = $this->selectedUser;
+                $query->whereHas('lead', function ($leadQuery) use ($selectedUser) {
+                    $leadQuery->where('salesperson', $selectedUser);
+                });
+            } else {
+                $query->whereHas('lead', function ($leadQuery) {
+                    $leadQuery->where('salesperson', auth()->id());
+                });
+            }
+        } else {
+            if (auth()->user()->role_id === 2) {
+                $userId = auth()->id();
+                $query->whereHas('lead', function ($leadQuery) use ($userId) {
+                    $leadQuery->where('salesperson', $userId);
+                });
+            }
+        }
+
+        return $query->count();
     }
 
     public function table(Table $table): Table
@@ -116,33 +157,27 @@ class HardwareHandoverCompleted extends Component implements HasForms, HasTable
         return $table
             ->poll('300s')
             ->query($this->getOverdueHardwareHandovers())
-            ->defaultSort('created_at', 'asc')
+            ->defaultSort('created_at', 'desc')
             ->emptyState(fn () => view('components.empty-state-question'))
             ->defaultPaginationPageOption(5)
             ->paginated([5])
             ->filters([
-                // Add this new filter for status
                 SelectFilter::make('status')
                     ->label('Filter by Status')
                     ->options([
-                        'New' => 'New',
-                        'Rejected' => 'Rejected',
-                        'Pending Stock' => 'Pending Stock',
-                        'Pending Migration' => 'Pending Migration',
-                        'Completed Migration' => 'Completed Migration',
-                        'Pending Payment' => 'Pending Payment',
+                        'Completed: Self Pick-Up' => 'Completed: Self Pick-Up',
                         'Completed: Internal Installation' => 'Completed: Internal Installation',
                         'Completed: External Installation' => 'Completed: External Installation',
                         'Completed: Courier' => 'Completed: Courier',
-                        'Completed: Self Pick Up' => 'Completed: Self Pick Up',
                     ])
-                    ->placeholder('All Statuses')
+                    ->placeholder('All Completed Statuses')
                     ->multiple(),
+
                 SelectFilter::make('salesperson')
                     ->label('Filter by Salesperson')
                     ->options(function () {
                         return User::where('role_id', '2')
-                            ->whereNot('id',15) // Exclude Testing Account
+                            ->whereNot('id',15)
                             ->pluck('name', 'name')
                             ->toArray();
                     })
@@ -162,21 +197,23 @@ class HardwareHandoverCompleted extends Component implements HasForms, HasTable
                 SortFilter::make("sort_by"),
             ])
             ->columns([
-                TextColumn::make('handover_pdf')
+                TextColumn::make('id')
                     ->label('ID')
-                    ->formatStateUsing(function ($state) {
-                        // If handover_pdf is null, return a placeholder
+                    ->formatStateUsing(function ($state, HardwareHandoverV2 $record) {
                         if (!$state) {
-                            return '-';
+                            return 'Unknown';
                         }
 
-                        // Extract just the filename without extension
-                        $filename = basename($state, '.pdf');
+                        // For handover_pdf, extract filename
+                        if ($record->handover_pdf) {
+                            $filename = basename($record->handover_pdf, '.pdf');
+                            return $filename;
+                        }
 
-                        // Return just the formatted ID part
-                        return $filename;
+                        // Format ID with HW_250 prefix and pad with zeros
+                        return 'HW_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
                     })
-                    ->color('primary') // Makes it visually appear as a link
+                    ->color('primary')
                     ->weight('bold')
                     ->action(
                         Action::make('viewHandoverDetails')
@@ -184,7 +221,7 @@ class HardwareHandoverCompleted extends Component implements HasForms, HasTable
                             ->modalWidth('6xl')
                             ->modalSubmitAction(false)
                             ->modalCancelAction(false)
-                            ->modalContent(function (HardwareHandover $record): View {
+                            ->modalContent(function (HardwareHandoverV2 $record): View {
                                 return view('components.hardware-handover')
                                     ->with('extraAttributes', ['record' => $record]);
                             })
@@ -192,7 +229,7 @@ class HardwareHandoverCompleted extends Component implements HasForms, HasTable
 
                 TextColumn::make('lead.salesperson')
                     ->label('SalesPerson')
-                    ->getStateUsing(function (HardwareHandover $record) {
+                    ->getStateUsing(function (HardwareHandoverV2 $record) {
                         $lead = $record->lead;
                         if (!$lead) {
                             return '-';
@@ -212,7 +249,7 @@ class HardwareHandoverCompleted extends Component implements HasForms, HasTable
                     ->searchable()
                     ->formatStateUsing(function ($state, $record) {
                         $fullName = $state ?? 'N/A';
-                        $shortened = strtoupper(Str::limit($fullName, 25, '...'));
+                        $shortened = strtoupper(Str::limit($fullName, 30, '...'));
                         $encryptedId = \App\Classes\Encryptor::encrypt($record->lead->id);
 
                         return '<a href="' . url('admin/leads/' . $encryptedId) . '"
@@ -220,7 +257,7 @@ class HardwareHandoverCompleted extends Component implements HasForms, HasTable
                                     title="' . e($fullName) . '"
                                     class="inline-block"
                                     style="color:#338cf0;">
-                                    ' . $fullName . '
+                                    ' . $shortened . '
                                 </a>';
                     })
                     ->html(),
@@ -237,28 +274,13 @@ class HardwareHandoverCompleted extends Component implements HasForms, HasTable
                 TextColumn::make('status')
                     ->label('Status')
                     ->formatStateUsing(fn (string $state): HtmlString => match ($state) {
-                        'Draft' => new HtmlString('<span style="color: orange;">Draft</span>'),
-                        'New' => new HtmlString('<span style="color: blue;">New</span>'),
-                        'Approved' => new HtmlString('<span style="color: green;">Approved</span>'),
-                        'Rejected' => new HtmlString('<span style="color: red;">Rejected</span>'),
-                        default => new HtmlString('<span>' . ucfirst($state) . '</span>'),
+                        'Completed: Self Pick-Up' => new HtmlString('<span style="color: green;">Completed: Self Pick-Up</span>'),
+                        'Completed: Internal Installation' => new HtmlString('<span style="color: green;">Completed: Internal Installation</span>'),
+                        'Completed: External Installation' => new HtmlString('<span style="color: green;">Completed: External Installation</span>'),
+                        'Completed: Courier' => new HtmlString('<span style="color: green;">Completed: Courier</span>'),
+                        default => new HtmlString('<span style="color: green;">' . ucfirst($state) . '</span>'),
                     }),
             ])
-            // ->filters([
-            //     // Filter for Creator
-            //     SelectFilter::make('created_by')
-            //         ->label('Created By')
-            //         ->multiple()
-            //         ->options(User::pluck('name', 'id')->toArray())
-            //         ->placeholder('Select User'),
-
-            //     // Filter by Company Name
-            //     SelectFilter::make('company_name')
-            //         ->label('Company')
-            //         ->searchable()
-            //         ->options(HardwareHandover::distinct()->pluck('company_name', 'company_name')->toArray())
-            //         ->placeholder('Select Company'),
-            // ])
             ->actions([
                 ActionGroup::make([
                     Action::make('view')
@@ -269,16 +291,13 @@ class HardwareHandoverCompleted extends Component implements HasForms, HasTable
                         ->modalWidth('6xl')
                         ->modalSubmitAction(false)
                         ->modalCancelAction(false)
-                        // Use a callback function instead of arrow function for more control
-                        ->modalContent(function (HardwareHandover $record): View {
-
-                            // Return the view with the record using $this->record pattern
+                        ->modalContent(function (HardwareHandoverV2 $record): View {
                             return view('components.hardware-handover')
                             ->with('extraAttributes', ['record' => $record]);
                         }),
                 ])
                 ->button()
-                ->color('warning')
+                ->color('success')
                 ->label('Actions')
             ]);
     }

@@ -1,11 +1,12 @@
 <?php
-// filepath: /var/www/html/timeteccrm/app/Console/Commands/ProcessPaidHandovers.php
 
 namespace App\Console\Commands;
 
 use App\Models\HardwareHandoverV2;
+use App\Models\Invoice;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 
 class ProcessFullPaymentHardwareHandover extends Command
 {
@@ -48,11 +49,20 @@ class ProcessFullPaymentHardwareHandover extends Command
                     continue;
                 }
 
-                // Check if all invoices have "Full Payment" status
+                // Check if all invoices have "Full Payment" status using the same logic as InvoicesTable
                 $allFullyPaid = true;
                 foreach ($invoiceData as $invoice) {
-                    if (!isset($invoice['payment_status']) || $invoice['payment_status'] !== 'Full Payment') {
+                    if (!isset($invoice['invoice_no'])) {
+                        $this->warn("Missing invoice_no in handover #{$handover->id}");
                         $allFullyPaid = false;
+                        break;
+                    }
+
+                    $paymentStatus = $this->getPaymentStatusForInvoice($invoice['invoice_no']);
+
+                    if ($paymentStatus !== 'Full Payment') {
+                        $allFullyPaid = false;
+                        $this->line("Handover #{$handover->id} - Invoice {$invoice['invoice_no']} has status: {$paymentStatus}");
                         break;
                     }
                 }
@@ -93,6 +103,50 @@ class ProcessFullPaymentHardwareHandover extends Command
         Log::info("Paid handovers processing completed. Processed {$processedCount} handovers.");
 
         return Command::SUCCESS;
+    }
+
+    /**
+     * Get payment status for an invoice using the same logic as InvoicesTable
+     */
+    private function getPaymentStatusForInvoice(string $invoiceNo): string
+    {
+        try {
+            // Get the total invoice amount for this invoice number
+            $totalInvoiceAmount = Invoice::where('invoice_no', $invoiceNo)->sum('invoice_amount');
+
+            if ($totalInvoiceAmount <= 0) {
+                $this->warn("Invoice {$invoiceNo} not found in invoices table or has zero amount");
+                return 'UnPaid';
+            }
+
+            // Look for this invoice in debtor_agings table
+            $debtorAging = DB::table('debtor_agings')
+                ->where('invoice_number', $invoiceNo)
+                ->first();
+
+            // If no matching record in debtor_agings or outstanding is 0
+            if (!$debtorAging || (float)$debtorAging->outstanding === 0.0) {
+                return 'Full Payment';
+            }
+
+            // If outstanding equals total invoice amount
+            if ((float)$debtorAging->outstanding === (float)$totalInvoiceAmount) {
+                return 'UnPaid';
+            }
+
+            // If outstanding is less than invoice amount but greater than 0
+            if ((float)$debtorAging->outstanding < (float)$totalInvoiceAmount && (float)$debtorAging->outstanding > 0) {
+                return 'Partial Payment';
+            }
+
+            // Fallback (shouldn't normally reach here)
+            return 'UnPaid';
+
+        } catch (\Exception $e) {
+            $this->error("Error checking payment status for invoice {$invoiceNo}: " . $e->getMessage());
+            Log::error("Error checking payment status for invoice {$invoiceNo}: " . $e->getMessage());
+            return 'UnPaid';
+        }
     }
 
     /**
