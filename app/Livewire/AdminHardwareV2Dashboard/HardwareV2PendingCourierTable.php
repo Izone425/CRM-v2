@@ -187,7 +187,7 @@ class HardwareV2PendingCourierTable extends Component implements HasForms, HasTa
                     ->action(
                         Action::make('viewHandoverDetails')
                             ->modalHeading(false)
-                            ->modalWidth('6xl')
+                            ->modalWidth('4xl')
                             ->modalSubmitAction(false)
                             ->modalCancelAction(false)
                             ->modalContent(function (HardwareHandoverV2 $record): View {
@@ -227,11 +227,11 @@ class HardwareV2PendingCourierTable extends Component implements HasForms, HasTa
                     ->html(),
 
                 TextColumn::make('installation_type')
-                    ->label('Category 1')
+                    ->label('Type')
                     ->formatStateUsing(fn (string $state): string => match($state) {
                         'external_installation' => 'External Installation',
                         'internal_installation' => 'Internal Installation',
-                        'self_pick_up' => 'Self Pick-Up',
+                        'self_pick_up' => 'Pick-Up',
                         'courier' => 'Courier',
                         default => ucfirst($state ?? 'Unknown')
                     }),
@@ -258,7 +258,7 @@ class HardwareV2PendingCourierTable extends Component implements HasForms, HasTa
                         ->icon('heroicon-o-eye')
                         ->color('secondary')
                         ->modalHeading(false)
-                        ->modalWidth('6xl')
+                        ->modalWidth('4xl')
                         ->modalSubmitAction(false)
                         ->modalCancelAction(false)
                         ->modalContent(function (HardwareHandoverV2 $record): View {
@@ -270,67 +270,36 @@ class HardwareV2PendingCourierTable extends Component implements HasForms, HasTa
                         ->label('Complete Courier')
                         ->icon('heroicon-o-truck')
                         ->color('warning')
-                        ->modalHeading('Courier Details')
+                        ->modalHeading(false)
                         ->modalWidth('3xl')
+                        ->closeModalByClickingAway(false)
                         ->form(function (HardwareHandoverV2 $record) {
                             // Get courier addresses from category data
                             $courierAddresses = $this->getCourierAddresses($record);
 
                             return [
-                                Section::make('Courier Details')
-                                    ->description('Fill courier information for each address')
+                                Repeater::make('courier_details')
+                                    ->label(false)
                                     ->schema([
-                                        Repeater::make('courier_details')
-                                            ->label('Courier Details for Each Address')
+                                        Grid::make(2)
                                             ->schema([
-                                                Grid::make(2)
-                                                    ->schema([
-                                                        Textarea::make('address_info')
-                                                            ->label('Courier Address')
-                                                            ->disabled()
-                                                            ->rows(5)
-                                                            ->columnSpanFull()
-                                                            ->helperText('This address information is for reference'),
-
-                                                        DatePicker::make('courier_date')
-                                                            ->label('Courier Date')
-                                                            ->required()
-                                                            ->native(false)
-                                                            ->displayFormat('d/m/Y')
-                                                            ->minDate(now()->subDays(7)),
-
-                                                        TextInput::make('courier_tracking')
-                                                            ->label('Courier Tracking Number')
-                                                            ->required()
-                                                            ->placeholder('Enter tracking number (e.g., TT123456789MY)')
-                                                            ->extraAlpineAttributes([
-                                                                'x-on:input' => '
-                                                                    const start = $el.selectionStart;
-                                                                    const end = $el.selectionEnd;
-                                                                    const value = $el.value;
-                                                                    $el.value = value.toUpperCase();
-                                                                    $el.setSelectionRange(start, end);
-                                                                '
-                                                            ])
-                                                            ->dehydrateStateUsing(fn ($state) => strtoupper($state))
-                                                            ->maxLength(255),
-                                                    ]),
-
-                                                FileUpload::make('courier_document')
-                                                    ->label('Courier Document')
-                                                    ->directory('hardware-courier-docs')
-                                                    ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
-                                                    ->maxSize(10240) // 10MB max
-                                                    ->required()
-                                                    ->helperText('Upload courier receipt/document (PDF, JPG, PNG - max 10MB)')
+                                                Textarea::make('address_info')
+                                                    ->label('Courier Address')
+                                                    ->disabled()
+                                                    ->rows(5)
                                                     ->columnSpanFull(),
 
-                                                Textarea::make('courier_remark')
-                                                    ->label('Courier Remark')
-                                                    ->placeholder('Optional remarks about the courier delivery (e.g., Special instructions, delivery notes)')
-                                                    ->maxLength(500)
-                                                    ->rows(3)
-                                                    ->columnSpanFull()
+                                                DatePicker::make('courier_date')
+                                                    ->label('Courier Date')
+                                                    ->required()
+                                                    ->native(false)
+                                                    ->displayFormat('d/m/Y')
+                                                    ->minDate(now()->subDays(7)->startOfDay()),
+
+                                                TextInput::make('courier_tracking')
+                                                    ->label('GDEX Tracking Number')
+                                                    ->required()
+                                                    ->placeholder('Enter tracking number')
                                                     ->extraAlpineAttributes([
                                                         'x-on:input' => '
                                                             const start = $el.selectionStart;
@@ -340,29 +309,66 @@ class HardwareV2PendingCourierTable extends Component implements HasForms, HasTa
                                                             $el.setSelectionRange(start, end);
                                                         '
                                                     ])
-                                                    ->dehydrateStateUsing(fn ($state) => strtoupper($state)),
-                                            ])
-                                            ->defaultItems(count($courierAddresses))
-                                            ->minItems(count($courierAddresses))
-                                            ->maxItems(count($courierAddresses))
-                                            ->addable(false)
-                                            ->deletable(false)
-                                            ->reorderable(false)
-                                            ->collapsible()
-                                            ->itemLabel(fn (array $state): ?string =>
-                                                isset($state['address_info'])
-                                                    ? 'Address ' . ((int)filter_var($state['address_info'], FILTER_SANITIZE_NUMBER_INT) ?: 1)
-                                                    : 'Courier Address'
-                                            )
-                                            ->default(function () use ($courierAddresses) {
-                                                return collect($courierAddresses)->map(function ($address, $index) {
-                                                    return [
-                                                        'address_info' => "Address " . ($index + 1) . ":\n" . $address['address']
-                                                    ];
-                                                })->toArray();
-                                            })
-                                            ->columnSpanFull(),
-                                    ]),
+                                                    ->dehydrateStateUsing(fn ($state) => strtoupper($state))
+                                                    ->maxLength(255)
+                                                    ->rules([
+                                                        function () {
+                                                            return function (string $attribute, $value, \Closure $fail) {
+                                                                if (!empty($value)) {
+                                                                    $upperValue = strtoupper($value);
+
+                                                                    $exists = HardwareHandoverV2::whereNotNull('category2')
+                                                                        ->get()
+                                                                        ->contains(function ($record) use ($upperValue) {
+                                                                            $category2 = json_decode($record->category2, true);
+
+                                                                            if (is_array($category2) && isset($category2['courier_addresses'])) {
+                                                                                foreach ($category2['courier_addresses'] as $address) {
+                                                                                    if (isset($address['courier_tracking']) &&
+                                                                                        strtoupper($address['courier_tracking']) === $upperValue) {
+                                                                                        return true;
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                            return false;
+                                                                        });
+
+                                                                    if ($exists) {
+                                                                        $fail('This courier tracking number is already in use. Please enter a different tracking number.');
+                                                                    }
+                                                                }
+                                                            };
+                                                        }
+                                                    ]),
+                                            ]),
+                                    ])
+                                    ->defaultItems(count($courierAddresses))
+                                    ->minItems(count($courierAddresses))
+                                    ->maxItems(count($courierAddresses))
+                                    ->addable(false)
+                                    ->deletable(false)
+                                    ->reorderable(false)
+                                    ->collapsible()
+                                    ->itemLabel(function (array $state): ?string {
+                                        // Get the current item index from the state or use a counter
+                                        static $counter = 0;
+
+                                        // Reset counter if we're starting fresh
+                                        if (empty($state)) {
+                                            $counter = 0;
+                                        }
+
+                                        $counter++;
+                                        return 'Address ' . $counter;
+                                    })
+                                    ->default(function () use ($courierAddresses) {
+                                        return collect($courierAddresses)->map(function ($address, $index) {
+                                            return [
+                                                'address_info' => "Address " . ($index + 1) . ":\n" . $address['address']
+                                            ];
+                                        })->toArray();
+                                    })
+                                    ->columnSpanFull(),
                             ];
                         })
                         ->action(function (HardwareHandoverV2 $record, array $data): void {
@@ -380,8 +386,6 @@ class HardwareV2PendingCourierTable extends Component implements HasForms, HasTa
                                             // Add courier fields to the existing address object
                                             $existingCategory2['courier_addresses'][$index]['courier_date'] = $courierData['courier_date'];
                                             $existingCategory2['courier_addresses'][$index]['courier_tracking'] = $courierData['courier_tracking'];
-                                            $existingCategory2['courier_addresses'][$index]['courier_document'] = $courierData['courier_document'];
-                                            $existingCategory2['courier_addresses'][$index]['courier_remark'] = $courierData['courier_remark'] ?? '';
                                         }
                                     }
                                 }
@@ -396,12 +400,6 @@ class HardwareV2PendingCourierTable extends Component implements HasForms, HasTa
                                     'category2' => json_encode($existingCategory2),
                                     'status' => 'Completed: Courier',
                                     'completed_at' => now(),
-                                ]);
-
-                                Log::info("Courier completed for handover {$record->id}", [
-                                    'user_id' => auth()->id(),
-                                    'courier_details_count' => count($data['courier_details']),
-                                    'updated_addresses' => count($existingCategory2['courier_addresses'] ?? []),
                                 ]);
 
                                 Notification::make()

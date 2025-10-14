@@ -245,6 +245,14 @@ class HRDFHandoverRelationManager extends RelationManager
                                         $el.setSelectionRange(start, end);
                                     '
                                 ])
+                                ->default(function (?HRDFHandover $record = null) {
+                                    // If editing existing record, return the saved value
+                                    if ($record && $record->hrdf_grant_id) {
+                                        return $record->hrdf_grant_id;
+                                    }
+
+                                    return null;
+                                })
                                 ->dehydrateStateUsing(fn ($state) => strtoupper($state))
                                 ->unique(HRDFHandover::class, 'hrdf_grant_id', ignoreRecord: true)
                                 ->validationMessages([
@@ -268,6 +276,14 @@ class HRDFHandoverRelationManager extends RelationManager
                                         $el.setSelectionRange(start, end);
                                     '
                                 ])
+                                ->default(function (?HRDFHandover $record = null) {
+                                    // If editing existing record, return the saved value
+                                    if ($record && $record->autocount_invoice_number) {
+                                        return $record->autocount_invoice_number;
+                                    }
+
+                                    return null;
+                                })
                                 ->dehydrateStateUsing(fn ($state) => strtoupper($state))
                                 ->validationMessages([
                                     'required' => 'AutoCount Invoice Number is required.',
@@ -489,7 +505,7 @@ class HRDFHandoverRelationManager extends RelationManager
                         ->label('Edit HRDF Handover')
                         ->icon('heroicon-o-pencil')
                         ->color('warning')
-                        ->modalSubmitActionLabel('Save Changes')
+                        ->modalSubmitActionLabel('Submit')
                         ->visible(fn (HRDFHandover $record): bool => in_array($record->status, ['Draft']))
                         ->modalWidth(MaxWidth::FourExtraLarge)
                         ->slideOver()
@@ -501,6 +517,9 @@ class HRDFHandoverRelationManager extends RelationManager
                                     $data[$field] = json_encode($data[$field]);
                                 }
                             }
+
+                            $data['status'] = 'New';
+                            $data['submitted_at'] = now();
 
                             // Update the record
                             $record->update($data);

@@ -226,7 +226,7 @@ class HardwareV2PendingMigrationTable extends Component implements HasForms, Has
                     ->action(
                         Action::make('viewHandoverDetails')
                             ->modalHeading(false)
-                            ->modalWidth('6xl')
+                            ->modalWidth('4xl')
                             ->modalSubmitAction(false)
                             ->modalCancelAction(false)
                             ->modalContent(function (HardwareHandoverV2 $record): View {
@@ -266,11 +266,11 @@ class HardwareV2PendingMigrationTable extends Component implements HasForms, Has
                     ->html(),
 
                 TextColumn::make('installation_type')
-                    ->label('Category 1')
+                    ->label('Type')
                     ->formatStateUsing(fn (string $state): string => match($state) {
                         'external_installation' => 'External Installation',
                         'internal_installation' => 'Internal Installation',
-                        'self_pick_up' => 'Self Pick-Up',
+                        'self_pick_up' => 'Pick-Up',
                         'courier' => 'Courier',
                         default => ucfirst($state ?? 'Unknown')
                     }),
@@ -297,7 +297,7 @@ class HardwareV2PendingMigrationTable extends Component implements HasForms, Has
                         ->icon('heroicon-o-eye')
                         ->color('secondary')
                         ->modalHeading(false)
-                        ->modalWidth('6xl')
+                        ->modalWidth('4xl')
                         ->modalSubmitAction(false)
                         ->modalCancelAction(false)
                         ->modalContent(function (HardwareHandoverV2 $record): View {

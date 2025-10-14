@@ -187,7 +187,7 @@ class HardwareV2PendingExternalInstallationTable extends Component implements Ha
                     ->action(
                         Action::make('viewHandoverDetails')
                             ->modalHeading(false)
-                            ->modalWidth('6xl')
+                            ->modalWidth('4xl')
                             ->modalSubmitAction(false)
                             ->modalCancelAction(false)
                             ->modalContent(function (HardwareHandoverV2 $record): View {
@@ -227,11 +227,11 @@ class HardwareV2PendingExternalInstallationTable extends Component implements Ha
                     ->html(),
 
                 TextColumn::make('installation_type')
-                    ->label('Category 1')
+                    ->label('Type')
                     ->formatStateUsing(fn (string $state): string => match($state) {
                         'external_installation' => 'External Installation',
                         'internal_installation' => 'Internal Installation',
-                        'self_pick_up' => 'Self Pick-Up',
+                        'self_pick_up' => 'Pick-Up',
                         'courier' => 'Courier',
                         default => ucfirst($state ?? 'Unknown')
                     }),
@@ -258,7 +258,7 @@ class HardwareV2PendingExternalInstallationTable extends Component implements Ha
                         ->icon('heroicon-o-eye')
                         ->color('secondary')
                         ->modalHeading(false)
-                        ->modalWidth('6xl')
+                        ->modalWidth('4xl')
                         ->modalSubmitAction(false)
                         ->modalCancelAction(false)
                         ->modalContent(function (HardwareHandoverV2 $record): View {
@@ -270,88 +270,44 @@ class HardwareV2PendingExternalInstallationTable extends Component implements Ha
                         ->label('External Courier')
                         ->icon('heroicon-o-truck')
                         ->color('warning')
-                        ->modalHeading('External Courier Details')
+                        ->modalHeading(function (HardwareHandoverV2 $record) {
+                            // Get company name from the lead relationship
+                            $companyName = 'Unknown Company';
+
+                            if ($record->lead && $record->lead->companyDetail && $record->lead->companyDetail->company_name) {
+                                $companyName = $record->lead->companyDetail->company_name;
+                            }
+
+                            return $companyName;
+                        })
                         ->modalWidth('3xl')
                         ->form(function (HardwareHandoverV2 $record) {
                             // Get external addresses from category 2
                             $externalAddresses = $this->getExternalAddresses($record);
 
                             return [
-                                Section::make('External Installation Information')
-                                    ->description("Total External Addresses: " . count($externalAddresses))
-                                    ->collapsible()
+                                Repeater::make('external_courier_details')
+                                    ->label(false)
                                     ->schema([
-                                        // Display the addresses for reference
-                                        Grid::make(1)
+                                        Grid::make(2)
                                             ->schema([
-                                                Textarea::make('addresses_summary')
-                                                    ->label('External Addresses Summary')
-                                                    ->default(function () use ($externalAddresses) {
-                                                        return collect($externalAddresses)->map(function ($address, $index) {
-                                                            return "Address " . ($index + 1) . ":\n" . $address['address'];
-                                                        })->join("\n\n");
-                                                    })
+                                                Textarea::make('address_info')
+                                                    ->label('Installation Address')
                                                     ->disabled()
-                                                    ->rows(max(3, count($externalAddresses) * 2))
-                                                    ->columnSpanFull()
-                                                    ->helperText('These are the external addresses that need courier details'),
-                                            ]),
-                                    ]),
-
-                                Section::make('Courier Details')
-                                    ->description('Fill courier information for each external address')
-                                    ->schema([
-                                        Repeater::make('external_courier_details')
-                                            ->label('Courier Details for Each Address')
-                                            ->schema([
-                                                Grid::make(2)
-                                                    ->schema([
-                                                        Textarea::make('address_info')
-                                                            ->label('Installation Address')
-                                                            ->disabled()
-                                                            ->rows(3)
-                                                            ->columnSpanFull()
-                                                            ->helperText('This address information is for reference'),
-
-                                                        DatePicker::make('external_courier_date')
-                                                            ->label('External Courier Date')
-                                                            ->required()
-                                                            ->native(false)
-                                                            ->displayFormat('d/m/Y')
-                                                            ->helperText('Select the courier delivery date'),
-
-                                                        TextInput::make('external_courier_tracking')
-                                                            ->label('External Courier Tracking Number')
-                                                            ->required()
-                                                            ->placeholder('Enter tracking number (e.g., TT123456789MY)')
-                                                            ->extraAlpineAttributes([
-                                                                'x-on:input' => '
-                                                                    const start = $el.selectionStart;
-                                                                    const end = $el.selectionEnd;
-                                                                    const value = $el.value;
-                                                                    $el.value = value.toUpperCase();
-                                                                    $el.setSelectionRange(start, end);
-                                                                '
-                                                            ])
-                                                            ->dehydrateStateUsing(fn ($state) => strtoupper($state))
-                                                            ->maxLength(255),
-                                                    ]),
-
-                                                FileUpload::make('external_courier_document')
-                                                    ->label('External Courier Document')
-                                                    ->directory('hardware-external-courier-docs')
-                                                    ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
-                                                    ->maxSize(10240) // 10MB max
-                                                    ->required()
-                                                    ->helperText('Upload courier receipt/document (PDF, JPG, PNG - max 10MB)')
+                                                    ->rows(3)
                                                     ->columnSpanFull(),
 
-                                                Textarea::make('external_courier_remark')
-                                                    ->label('External Courier Remark')
-                                                    ->placeholder('Optional remarks about the courier delivery (e.g., Special instructions, delivery notes)')
-                                                    ->maxLength(500)
-                                                    ->rows(3)
-                                                    ->columnSpanFull()
+                                                DatePicker::make('external_courier_date')
+                                                    ->label('External Courier Date')
+                                                    ->required()
+                                                    ->native(false)
+                                                    ->displayFormat('d/m/Y')
+                                                    ->minDate(today()->subDays(7)->startOfDay()),
+
+                                                TextInput::make('external_courier_tracking')
+                                                    ->label('GDEX Tracking Number')
+                                                    ->required()
+                                                    ->placeholder('Enter tracking number (e.g., TT123456789MY)')
                                                     ->extraAlpineAttributes([
                                                         'x-on:input' => '
                                                             const start = $el.selectionStart;
@@ -361,29 +317,97 @@ class HardwareV2PendingExternalInstallationTable extends Component implements Ha
                                                             $el.setSelectionRange(start, end);
                                                         '
                                                     ])
-                                                    ->dehydrateStateUsing(fn ($state) => strtoupper($state)),
-                                            ])
-                                            ->defaultItems(count($externalAddresses))
-                                            ->minItems(count($externalAddresses))
-                                            ->maxItems(count($externalAddresses))
-                                            ->addable(false)
-                                            ->deletable(false)
-                                            ->reorderable(false)
-                                            ->collapsible()
-                                            ->itemLabel(fn (array $state): ?string =>
-                                                isset($state['address_info'])
-                                                    ? 'Address ' . ((int)filter_var($state['address_info'], FILTER_SANITIZE_NUMBER_INT) ?: 1)
-                                                    : 'External Installation'
-                                            )
-                                            ->default(function () use ($externalAddresses) {
-                                                return collect($externalAddresses)->map(function ($address, $index) {
-                                                    return [
-                                                        'address_info' => "Address " . ($index + 1) . ":\n" . $address['address']
-                                                    ];
-                                                })->toArray();
-                                            })
-                                            ->columnSpanFull(),
-                                    ]),
+                                                    ->dehydrateStateUsing(fn ($state) => strtoupper($state))
+                                                    ->maxLength(255)
+                                                    ->rules([
+                                                        function () {
+                                                            return function (string $attribute, $value, \Closure $fail) {
+                                                                if (!empty($value)) {
+                                                                    $upperValue = strtoupper($value);
+
+                                                                    // Check for duplicates in database - both courier and external courier tracking
+                                                                    $existsInDb = HardwareHandoverV2::whereNotNull('category2')
+                                                                        ->get()
+                                                                        ->contains(function ($record) use ($upperValue) {
+                                                                            $category2 = json_decode($record->category2, true);
+
+                                                                            if (is_array($category2)) {
+                                                                                // Check regular courier_addresses for courier_tracking
+                                                                                if (isset($category2['courier_addresses'])) {
+                                                                                    foreach ($category2['courier_addresses'] as $address) {
+                                                                                        if (isset($address['courier_tracking']) &&
+                                                                                            strtoupper($address['courier_tracking']) === $upperValue) {
+                                                                                            return true;
+                                                                                        }
+                                                                                    }
+                                                                                }
+
+                                                                                // Check external_courier_addresses for external_courier_tracking
+                                                                                if (isset($category2['external_courier_addresses'])) {
+                                                                                    foreach ($category2['external_courier_addresses'] as $address) {
+                                                                                        if (isset($address['external_courier_tracking']) &&
+                                                                                            strtoupper($address['external_courier_tracking']) === $upperValue) {
+                                                                                            return true;
+                                                                                        }
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                            return false;
+                                                                        });
+
+                                                                    if ($existsInDb) {
+                                                                        $fail('This courier tracking number is already in use (either as regular courier or external courier). Please enter a different tracking number.');
+                                                                        return;
+                                                                    }
+
+                                                                    // Check for duplicates within current form data
+                                                                    $formData = request()->input('external_courier_details', []);
+                                                                    $trackingNumbers = array_map(function($item) {
+                                                                        return isset($item['external_courier_tracking']) ? strtoupper($item['external_courier_tracking']) : null;
+                                                                    }, $formData);
+
+                                                                    // Remove empty values
+                                                                    $trackingNumbers = array_filter($trackingNumbers);
+
+                                                                    // Count occurrences of this tracking number
+                                                                    $occurrences = array_count_values($trackingNumbers);
+
+                                                                    if (isset($occurrences[$upperValue]) && $occurrences[$upperValue] > 1) {
+                                                                        $fail('This tracking number is already used in another address field. Each address must have a unique tracking number.');
+                                                                    }
+                                                                }
+                                                            };
+                                                        }
+                                                    ]),
+                                            ]),
+                                    ])
+                                    ->defaultItems(count($externalAddresses))
+                                    ->minItems(count($externalAddresses))
+                                    ->maxItems(count($externalAddresses))
+                                    ->addable(false)
+                                    ->deletable(false)
+                                    ->reorderable(false)
+                                    ->collapsible()
+                                    ->itemLabel(function (array $state): ?string {
+                                        // Get the current item index from the state or use a counter
+                                        static $counter = 0;
+
+                                        // Reset counter if we're starting fresh
+                                        if (empty($state)) {
+                                            $counter = 0;
+                                        }
+
+                                        $counter++;
+                                        return 'Address ' . $counter;
+                                    })
+                                    ->default(function () use ($externalAddresses) {
+                                        return collect($externalAddresses)->map(function ($address, $index) {
+                                            return [
+                                                'address_info' => "Address " . ($index + 1) . ":\n" . $address['address']
+                                            ];
+                                        })->toArray();
+                                    })
+                                    ->columnSpanFull(),
                             ];
                         })
                         ->action(function (HardwareHandoverV2 $record, array $data): void {
@@ -403,8 +427,6 @@ class HardwareV2PendingExternalInstallationTable extends Component implements Ha
                                             // Add courier fields to the existing address object
                                             $existingCategory2['external_courier_addresses'][$index]['external_courier_date'] = $courierData['external_courier_date'];
                                             $existingCategory2['external_courier_addresses'][$index]['external_courier_tracking'] = $courierData['external_courier_tracking'];
-                                            $existingCategory2['external_courier_addresses'][$index]['external_courier_document'] = $courierData['external_courier_document'];
-                                            $existingCategory2['external_courier_addresses'][$index]['external_courier_remark'] = $courierData['external_courier_remark'] ?? '';
                                         }
                                     }
                                 }
@@ -419,12 +441,6 @@ class HardwareV2PendingExternalInstallationTable extends Component implements Ha
                                     'category2' => json_encode($existingCategory2),
                                     'status' => 'Completed: External Installation',
                                     'completed_at' => now(),
-                                ]);
-
-                                Log::info("External courier completed for handover {$record->id}", [
-                                    'user_id' => auth()->id(),
-                                    'courier_details_count' => count($data['external_courier_details']),
-                                    'updated_addresses' => count($existingCategory2['external_courier_addresses'] ?? []),
                                 ]);
 
                                 Notification::make()

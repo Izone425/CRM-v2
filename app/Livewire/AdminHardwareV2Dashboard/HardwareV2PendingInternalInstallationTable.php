@@ -192,7 +192,7 @@ class HardwareV2PendingInternalInstallationTable extends Component implements Ha
                     ->action(
                         Action::make('viewHandoverDetails')
                             ->modalHeading(false)
-                            ->modalWidth('6xl')
+                            ->modalWidth('4xl')
                             ->modalSubmitAction(false)
                             ->modalCancelAction(false)
                             ->modalContent(function (HardwareHandoverV2 $record): View {
@@ -232,11 +232,11 @@ class HardwareV2PendingInternalInstallationTable extends Component implements Ha
                     ->html(),
 
                 TextColumn::make('installation_type')
-                    ->label('Category 1')
+                    ->label('Type')
                     ->formatStateUsing(fn (string $state): string => match($state) {
                         'external_installation' => 'External Installation',
                         'internal_installation' => 'Internal Installation',
-                        'self_pick_up' => 'Self Pick-Up',
+                        'self_pick_up' => 'Pick-Up',
                         'courier' => 'Courier',
                         default => ucfirst($state ?? 'Unknown')
                     }),
@@ -263,7 +263,7 @@ class HardwareV2PendingInternalInstallationTable extends Component implements Ha
                         ->icon('heroicon-o-eye')
                         ->color('secondary')
                         ->modalHeading(false)
-                        ->modalWidth('6xl')
+                        ->modalWidth('4xl')
                         ->modalSubmitAction(false)
                         ->modalCancelAction(false)
                         ->modalContent(function (HardwareHandoverV2 $record): View {
@@ -274,8 +274,8 @@ class HardwareV2PendingInternalInstallationTable extends Component implements Ha
                         ->label('OnSite Installation')
                         ->icon('heroicon-o-check-circle')
                         ->color('success')
-                        ->modalHeading('Book Installation Appointment')
-                        ->modalWidth('7xl')
+                        ->modalHeading('OnSite Installation')
+                        ->modalWidth('4xl')
                         ->form(function (HardwareHandoverV2 $record) {
                             // Get device quantities from the record
                             $deviceQuantities = [
@@ -305,25 +305,25 @@ class HardwareV2PendingInternalInstallationTable extends Component implements Ha
                             }
 
                             return [
-                                Section::make('Device Installation Overview')
+                                Section::make('Device Installation: Pending')
                                     ->schema([
                                         Grid::make(4)
                                             ->schema([
                                                 TextInput::make('tc10_total')
                                                     ->label('TC10 Total')
-                                                    ->default($deviceQuantities['tc10'])
+                                                    ->default($deviceQuantities['tc10'] ?: 'N/A')
                                                     ->disabled()
-                                                    ->suffix('units'),
-
-                                                TextInput::make('face_id5_total')
-                                                    ->label('Face ID 5 Total')
-                                                    ->default($deviceQuantities['face_id5'])
-                                                    ->disabled()
-                                                    ->suffix('units'),
+                                                    ->suffix($deviceQuantities['tc20'] ? 'units' : ''),
 
                                                 TextInput::make('tc20_total')
                                                     ->label('TC20 Total')
                                                     ->default($deviceQuantities['tc20'] ?: 'N/A')
+                                                    ->disabled()
+                                                    ->suffix($deviceQuantities['tc20'] ? 'units' : ''),
+
+                                                TextInput::make('face_id5_total')
+                                                    ->label('Face ID 5 Total')
+                                                    ->default($deviceQuantities['face_id5'] ?: 'N/A')
                                                     ->disabled()
                                                     ->suffix($deviceQuantities['tc20'] ? 'units' : ''),
 
@@ -340,37 +340,79 @@ class HardwareV2PendingInternalInstallationTable extends Component implements Ha
                                                     ->label('TC10 Remaining')
                                                     ->default($deviceQuantities['tc10'] ? ($deviceQuantities['tc10'] - $totalAllocated['tc10']) : 'N/A')
                                                     ->disabled()
-                                                    ->suffix('units')
-                                                    ->extraAttributes(['style' => 'background-color: #22c55e; color: white; font-weight: bold;']),
-
-                                                TextInput::make('face_id5_remaining')
-                                                    ->label('Face ID 5 Remaining')
-                                                    ->default($deviceQuantities['face_id5'] ? ($deviceQuantities['face_id5'] - $totalAllocated['face_id5']) : 'N/A')
-                                                    ->disabled()
-                                                    ->suffix('units')
-                                                    ->extraAttributes(['style' => 'background-color: #22c55e; color: white; font-weight: bold;']),
+                                                    ->extraAttributes(['style' => 'background-color: #e8ec11ff; color: white; font-weight: bold;']),
 
                                                 TextInput::make('tc20_remaining')
                                                     ->label('TC20 Remaining')
                                                     ->default($deviceQuantities['tc20'] ? ($deviceQuantities['tc20'] - $totalAllocated['tc20']) : 'N/A')
                                                     ->disabled()
-                                                    ->suffix($deviceQuantities['tc20'] ? 'units' : '')
-                                                    ->extraAttributes(['style' => 'background-color: #22c55e; color: white; font-weight: bold;']),
+                                                    ->extraAttributes(['style' => 'background-color: #e8ec11ff; color: white; font-weight: bold;']),
+
+                                                TextInput::make('face_id5_remaining')
+                                                    ->label('Face ID 5 Remaining')
+                                                    ->default($deviceQuantities['face_id5'] ? ($deviceQuantities['face_id5'] - $totalAllocated['face_id5']) : 'N/A')
+                                                    ->disabled()
+                                                    ->extraAttributes(['style' => 'background-color: #e8ec11ff; color: white; font-weight: bold;']),
 
                                                 TextInput::make('face_id6_remaining')
                                                     ->label('Face ID 6 Remaining')
                                                     ->default($deviceQuantities['face_id6'] ? ($deviceQuantities['face_id6'] - $totalAllocated['face_id6']) : 'N/A')
                                                     ->disabled()
-                                                    ->suffix($deviceQuantities['face_id6'] ? 'units' : '')
-                                                    ->extraAttributes(['style' => 'background-color: #22c55e; color: white; font-weight: bold;']),
+                                                    ->extraAttributes(['style' => 'background-color: #e8ec11ff; color: white; font-weight: bold;']),
                                             ]),
                                     ])
                                     ->collapsible(),
 
-                                Section::make('Device Allocation & Appointments')
+                                Section::make('Device Installation: Completed')
+                                    ->schema([
+                                        Repeater::make('existing_appointments')
+                                            ->label(false)
+                                            ->schema([
+                                                Grid::make(4)
+                                                    ->schema([
+                                                        TextInput::make('tc10_allocated')
+                                                            ->label('TC10')
+                                                            ->disabled()
+                                                            ->extraAttributes(['style' => 'background-color: #22c55e; color: white; font-weight: bold;']),
+
+                                                        TextInput::make('tc20_allocated')
+                                                            ->label('TC20')
+                                                            ->disabled()
+                                                            ->extraAttributes(['style' => 'background-color: #22c55e; color: white; font-weight: bold;']),
+
+                                                        TextInput::make('face_id5_allocated')
+                                                            ->label('Face ID 5')
+                                                            ->disabled()
+                                                            ->extraAttributes(['style' => 'background-color: #22c55e; color: white; font-weight: bold;']),
+
+                                                        TextInput::make('face_id6_allocated')
+                                                            ->label('Face ID 6')
+                                                            ->disabled()
+                                                            ->extraAttributes(['style' => 'background-color: #22c55e; color: white; font-weight: bold;']),
+                                                    ]),
+                                            ])
+                                            ->default(array_map(function($appointment) {
+                                                return [
+                                                    'appointment_name' => $appointment['appointment_name'] ?? 'Unknown',
+                                                    'tc10_allocated' => ($appointment['device_allocation']['tc10_units'] ?? 0) == 0 ? 'N/A' : ($appointment['device_allocation']['tc10_units'] ?? 0),
+                                                    'face_id5_allocated' => ($appointment['device_allocation']['face_id5_units'] ?? 0) == 0 ? 'N/A' : ($appointment['device_allocation']['face_id5_units'] ?? 0),
+                                                    'tc20_allocated' => ($appointment['device_allocation']['tc20_units'] ?? 0) == 0 ? 'N/A' : ($appointment['device_allocation']['tc20_units'] ?? 0),
+                                                    'face_id6_allocated' => ($appointment['device_allocation']['face_id6_units'] ?? 0) == 0 ? 'N/A' : ($appointment['device_allocation']['face_id6_units'] ?? 0),
+                                                    'status' => $appointment['appointment_status'] ?? 'Scheduled',
+                                                ];
+                                            }, $existingAppointments))
+                                            ->addable(false)
+                                            ->deletable(false)
+                                            ->reorderable(false)
+                                            ->columnSpanFull()
+                                            ->visible(fn () => !empty($existingAppointments)),
+                                    ])
+                                    ->visible(fn () => !empty($existingAppointments)),
+
+                                Section::make('Device Allocation & OnSite Installation')
                                     ->schema([
                                         Repeater::make('installations')
-                                            ->label('Installation Appointments')
+                                            ->label(false)
                                             ->schema([
                                                 Section::make('Device Allocation')
                                                     ->schema([
@@ -381,16 +423,7 @@ class HardwareV2PendingInternalInstallationTable extends Component implements Ha
                                                                     ->numeric()
                                                                     ->default(0)
                                                                     ->minValue(0)
-                                                                    ->live()
-                                                                    ->afterStateUpdated(function ($state, $get, $set) use ($deviceQuantities, $totalAllocated) {
-                                                                        $this->validateAllocation($get, $set, $deviceQuantities, $totalAllocated);
-                                                                    }),
-
-                                                                TextInput::make('face_id5_units')
-                                                                    ->label('Face ID 5 Units')
-                                                                    ->numeric()
-                                                                    ->default(0)
-                                                                    ->minValue(0)
+                                                                    ->disabled($deviceQuantities['tc10'] == 0)
                                                                     ->live()
                                                                     ->afterStateUpdated(function ($state, $get, $set) use ($deviceQuantities, $totalAllocated) {
                                                                         $this->validateAllocation($get, $set, $deviceQuantities, $totalAllocated);
@@ -407,6 +440,17 @@ class HardwareV2PendingInternalInstallationTable extends Component implements Ha
                                                                         $this->validateAllocation($get, $set, $deviceQuantities, $totalAllocated);
                                                                     }),
 
+                                                                TextInput::make('face_id5_units')
+                                                                    ->label('Face ID 5 Units')
+                                                                    ->numeric()
+                                                                    ->default(0)
+                                                                    ->minValue(0)
+                                                                    ->disabled($deviceQuantities['face_id5'] == 0)
+                                                                    ->live()
+                                                                    ->afterStateUpdated(function ($state, $get, $set) use ($deviceQuantities, $totalAllocated) {
+                                                                        $this->validateAllocation($get, $set, $deviceQuantities, $totalAllocated);
+                                                                    }),
+
                                                                 TextInput::make('face_id6_units')
                                                                     ->label('Face ID 6 Units')
                                                                     ->numeric()
@@ -418,39 +462,20 @@ class HardwareV2PendingInternalInstallationTable extends Component implements Ha
                                                                         $this->validateAllocation($get, $set, $deviceQuantities, $totalAllocated);
                                                                     }),
                                                             ]),
-                                                    ])
-                                                    ->collapsible(),
+                                                    ]),
 
-                                                Section::make('Appointment Details')
+                                                Section::make('OnSite Installation')
                                                     ->schema([
                                                         Grid::make(3)
                                                             ->schema([
-                                                                Select::make('demo_type')
-                                                                    ->label('Demo Type')
-                                                                    ->options([
-                                                                        'NEW INSTALLATION' => 'NEW INSTALLATION',
-                                                                    ])
-                                                                    ->default('NEW INSTALLATION')
-                                                                    ->disabled()
-                                                                    ->required(),
+                                                                \Filament\Forms\Components\Hidden::make('demo_type')
+                                                                    ->default('NEW INSTALLATION'),
 
-                                                                Select::make('appointment_type')
-                                                                    ->label('Appointment Type')
-                                                                    ->options([
-                                                                        'ONSITE' => 'ONSITE',
-                                                                    ])
-                                                                    ->default('ONSITE')
-                                                                    ->disabled()
-                                                                    ->required(),
+                                                                \Filament\Forms\Components\Hidden::make('appointment_type')
+                                                                    ->default('ONSITE'),
 
-                                                                Select::make('technician')
-                                                                    ->label('Technician')
-                                                                    ->options([
-                                                                        'KHAIRUL IZZUDIN' => 'KHAIRUL IZZUDIN',
-                                                                    ])
-                                                                    ->default('KHAIRUL IZZUDIN')
-                                                                    ->disabled()
-                                                                    ->required(),
+                                                                \Filament\Forms\Components\Hidden::make('technician')
+                                                                    ->default('KHAIRUL IZZUDIN'),
                                                             ]),
 
                                                         Grid::make(3)
@@ -679,7 +704,7 @@ class HardwareV2PendingInternalInstallationTable extends Component implements Ha
                                                                     })
                                                             ]),
 
-                                                        Grid::make(2)
+                                                        Grid::make(3)
                                                             ->schema([
                                                                 TextInput::make('pic_name')
                                                                     ->label('PIC Name')
@@ -701,18 +726,18 @@ class HardwareV2PendingInternalInstallationTable extends Component implements Ha
                                                                     ->required()
                                                                     ->tel()
                                                                     ->maxLength(255),
-                                                            ]),
 
-                                                        TextInput::make('pic_email')
-                                                            ->label('PIC Email')
-                                                            ->required()
-                                                            ->email()
-                                                            ->maxLength(255),
+                                                                TextInput::make('pic_email')
+                                                                    ->label('PIC Email')
+                                                                    ->required()
+                                                                    ->email()
+                                                                    ->maxLength(255),
+                                                            ]),
 
                                                         Textarea::make('installation_address')
                                                             ->label('Installation Address')
                                                             ->required()
-                                                            ->rows(3)
+                                                            ->rows(2)
                                                             ->extraAlpineAttributes([
                                                                 'x-on:input' => '
                                                                     const start = $el.selectionStart;
@@ -727,9 +752,8 @@ class HardwareV2PendingInternalInstallationTable extends Component implements Ha
 
                                                         Textarea::make('installation_remark')
                                                             ->label('Installation Remark')
-                                                            ->placeholder('Optional remarks about the installation')
                                                             ->maxLength(500)
-                                                            ->rows(3)
+                                                            ->rows(2)
                                                             ->columnSpanFull()
                                                             ->extraAlpineAttributes([
                                                                 'x-on:input' => '
@@ -741,66 +765,15 @@ class HardwareV2PendingInternalInstallationTable extends Component implements Ha
                                                                 '
                                                             ])
                                                             ->dehydrateStateUsing(fn ($state) => strtoupper($state)),
-                                                    ])
-                                                    ->collapsible(),
+                                                    ]),
                                             ])
                                             ->defaultItems(1)
-                                            ->addActionLabel('Add Another Installation')
+                                            ->addActionLabel('Add OnSite Installation')
                                             ->columnSpanFull()
                                             ->reorderable(false)
                                             ->collapsible()
-                                            ->cloneable(),
+                                            ->deletable(false),
                                     ]),
-
-                                Section::make('Existing Appointments')
-                                    ->schema([
-                                        Repeater::make('existing_appointments')
-                                            ->label('Created Appointments')
-                                            ->schema([
-                                                Grid::make(6)
-                                                    ->schema([
-                                                        TextInput::make('tc10_allocated')
-                                                            ->label('TC10')
-                                                            ->disabled()
-                                                            ->suffix('units'),
-
-                                                        TextInput::make('face_id5_allocated')
-                                                            ->label('Face ID 5')
-                                                            ->disabled()
-                                                            ->suffix('units'),
-
-                                                        TextInput::make('tc20_allocated')
-                                                            ->label('TC20')
-                                                            ->disabled()
-                                                            ->suffix('units'),
-
-                                                        TextInput::make('face_id6_allocated')
-                                                            ->label('Face ID 6')
-                                                            ->disabled()
-                                                            ->suffix('units'),
-
-                                                        TextInput::make('status')
-                                                            ->label('Status')
-                                                            ->disabled(),
-                                                    ]),
-                                            ])
-                                            ->default(array_map(function($appointment) {
-                                                return [
-                                                    'appointment_name' => $appointment['appointment_name'] ?? 'Unknown',
-                                                    'tc10_allocated' => $appointment['device_allocation']['tc10_units'] ?? 0,
-                                                    'face_id5_allocated' => $appointment['device_allocation']['face_id5_units'] ?? 0,
-                                                    'tc20_allocated' => $appointment['device_allocation']['tc20_units'] ?? 0,
-                                                    'face_id6_allocated' => $appointment['device_allocation']['face_id6_units'] ?? 0,
-                                                    'status' => $appointment['appointment_status'] ?? 'Scheduled',
-                                                ];
-                                            }, $existingAppointments))
-                                            ->addable(false)
-                                            ->deletable(false)
-                                            ->reorderable(false)
-                                            ->columnSpanFull()
-                                            ->visible(fn () => !empty($existingAppointments)),
-                                    ])
-                                    ->visible(fn () => !empty($existingAppointments)),
                             ];
                         })
                         ->action(function (HardwareHandoverV2 $record, array $data): void {
@@ -988,7 +961,7 @@ class HardwareV2PendingInternalInstallationTable extends Component implements Ha
                                     ->send();
                             }
                         })
-                        ->modalSubmitActionLabel('Create All Appointments')
+                        ->modalSubmitActionLabel('Create')
                         ->visible(fn (HardwareHandoverV2 $record): bool =>
                             $record->status === 'Pending: Internal Installation' && auth()->user()->role_id !== 2
                         ),

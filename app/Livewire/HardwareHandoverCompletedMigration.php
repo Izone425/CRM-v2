@@ -198,7 +198,7 @@ class HardwareHandoverCompletedMigration extends Component implements HasForms, 
                             'courier' => 'Courier',
                             'internal_installation' => 'Internal Installation',
                             'external_installation' => 'External Installation',
-                            'self_pick_up' => 'Self Pick-up',
+                            'self_pick_up' => 'Pick-Up',
                             default => ucfirst($state),
                         };
                     })
@@ -1253,7 +1253,7 @@ class HardwareHandoverCompletedMigration extends Component implements HasForms, 
                                                     'courier' => 'Courier',
                                                     'internal_installation' => 'Internal Installation',
                                                     'external_installation' => 'External Installation',
-                                                    'self_pick_up' => 'Self Pick-up',
+                                                    'self_pick_up' => 'Pick-Up',
                                                     default => 'Not Selected'
                                                 };
 

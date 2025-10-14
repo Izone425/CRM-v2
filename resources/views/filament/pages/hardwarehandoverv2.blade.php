@@ -457,7 +457,7 @@
                 <div class="group-box group-self-pickup"
                      :class="{'selected': selectedGroup === 'self-pickup'}"
                      @click="setSelectedGroup('self-pickup')">
-                    <div class="group-title">Self Pick-Up</div>
+                    <div class="group-title">Pick-Up</div>
                     <div class="group-count">{{ $selfPickupTotal }}</div>
                 </div>
 
@@ -567,8 +567,7 @@
                      :class="{'selected': selectedStat === 'pending-admin-pickup'}"
                      @click="setSelectedStat('pending-admin-pickup')">
                     <div class="stat-info">
-                        <div class="stat-label">Pending Admin:</div>
-                        <div class="stat-label">Self Pick-Up</div>
+                        <div class="stat-label">Pending Admin: Pick-Up</div>
                     </div>
                     <div class="stat-count">{{ $pendingAdminPickupCount }}</div>
                 </div>
@@ -577,8 +576,7 @@
                      :class="{'selected': selectedStat === 'pending-customer-pickup'}"
                      @click="setSelectedStat('pending-customer-pickup')">
                     <div class="stat-info">
-                        <div class="stat-label">Pending Customer:</div>
-                        <div class="stat-label">Self Pick-Up</div>
+                        <div class="stat-label">Pending Customer: Pick-Up</div>
                     </div>
                     <div class="stat-count">{{ $pendingCustomerPickupCount }}</div>
                 </div>
@@ -587,7 +585,7 @@
                      :class="{'selected': selectedStat === 'completed-pickup'}"
                      @click="setSelectedStat('completed-pickup')">
                     <div class="stat-info">
-                        <div class="stat-label">Completed: Self Pick-Up</div>
+                        <div class="stat-label">Completed: Pick-Up</div>
                     </div>
                     <div class="stat-count">{{ $completedPickupCount }}</div>
                 </div>

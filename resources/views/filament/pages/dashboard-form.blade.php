@@ -208,22 +208,6 @@
                                     </button>
 
                                     <button
-                                        wire:click="toggleDashboard('HardwareAdmin')"
-                                        style="
-                                            display: block;
-                                            width: 100%;
-                                            padding: 10px 16px;
-                                            text-align: left;
-                                            border: none;
-                                            background: {{ $currentDashboard === 'HardwareAdmin' ? '#f3f3f3' : 'white' }};
-                                            cursor: pointer;
-                                            font-size: 14px;
-                                        "
-                                    >
-                                        Admin - Hardware
-                                    </button>
-
-                                    <button
                                         wire:click="toggleDashboard('HardwareAdminV2')"
                                         style="
                                             display: block;
@@ -767,36 +751,6 @@
                                             </button>
 
                                             <button
-                                                wire:click="toggleDashboard('HardwareAdmin')"
-                                                style="
-                                                    display: flex;
-                                                    justify-content: space-between;
-                                                    align-items: center;
-                                                    width: 100%;
-                                                    padding: 10px 16px;
-                                                    text-align: left;
-                                                    border: none;
-                                                    background: {{ $currentDashboard === 'HardwareAdmin' ? '#f3f3f3' : 'white' }};
-                                                    cursor: pointer;
-                                                    font-size: 14px;
-                                                "
-                                            >
-                                                <span>Admin - Hardware</span>
-                                                @if($adminHardwareTotal > 0)
-                                                    <span style="
-                                                        background: #ef4444;
-                                                        color: white;
-                                                        border-radius: 12px;
-                                                        padding: 2px 8px;
-                                                        font-size: 12px;
-                                                        font-weight: bold;
-                                                        min-width: 20px;
-                                                        text-align: center;
-                                                    ">{{ $adminHardwareTotal }}</span>
-                                                @endif
-                                            </button>
-
-                                            <button
                                                 wire:click="toggleDashboard('HardwareAdminV2')"
                                                 style="
                                                     display: flex;
@@ -812,7 +766,7 @@
                                                 "
                                             >
                                                 <span>Admin - Hardware V2</span>
-                                                @if($adminHardwareTotal > 0)
+                                                @if($initialStageTotal > 0)
                                                     <span style="
                                                         background: #ef4444;
                                                         color: white;
@@ -1108,22 +1062,6 @@
                                                 padding: 10px 16px;
                                                 text-align: left;
                                                 border: none;
-                                                background: {{ $currentDashboard === 'HardwareAdmin' ? '#f3f3f3' : 'white' }};
-                                                cursor: pointer;
-                                                font-size: 14px;
-                                            "
-                                        >
-                                            Admin - Hardware
-                                        </button>
-
-                                        <button
-                                            wire:click="toggleDashboard('HardwareAdmin')"
-                                            style="
-                                                display: block;
-                                                width: 100%;
-                                                padding: 10px 16px;
-                                                text-align: left;
-                                                border: none;
                                                 background: {{ $currentDashboard === 'HardwareAdminV2' ? '#f3f3f3' : 'white' }};
                                                 cursor: pointer;
                                                 font-size: 14px;
@@ -1286,8 +1224,6 @@
                             @include('filament.pages.softwarehandover')
                         @elseif ($currentDashboard === 'Debtor')
                             {{-- @include('filament.pages.admindebtor') --}}
-                        @elseif ($currentDashboard === 'HardwareAdmin')
-                            @include('filament.pages.hardwarehandover')
                         @elseif ($currentDashboard === 'HardwareAdminV2')
                             @include('filament.pages.hardwarehandoverv2')
                         @elseif ($currentDashboard === 'Trainer')

@@ -188,7 +188,7 @@ class HardwareV2PendingStockTable extends Component implements HasForms, HasTabl
                     ->action(
                         Action::make('viewHandoverDetails')
                             ->modalHeading(false)
-                            ->modalWidth('6xl')
+                            ->modalWidth('4xl')
                             ->modalSubmitAction(false)
                             ->modalCancelAction(false)
                             ->modalContent(function (HardwareHandoverV2 $record): View {
@@ -228,11 +228,11 @@ class HardwareV2PendingStockTable extends Component implements HasForms, HasTabl
                     ->html(),
 
                 TextColumn::make('installation_type')
-                    ->label('Category 1')
+                    ->label('Type')
                     ->formatStateUsing(fn (string $state): string => match($state) {
                         'external_installation' => 'External Installation',
                         'internal_installation' => 'Internal Installation',
-                        'self_pick_up' => 'Self Pick-Up',
+                        'self_pick_up' => 'Pick-Up',
                         'courier' => 'Courier',
                         default => ucfirst($state ?? 'Unknown')
                     }),
@@ -259,7 +259,7 @@ class HardwareV2PendingStockTable extends Component implements HasForms, HasTabl
                         ->icon('heroicon-o-eye')
                         ->color('secondary')
                         ->modalHeading(false)
-                        ->modalWidth('6xl')
+                        ->modalWidth('4xl')
                         ->modalSubmitAction(false)
                         ->modalCancelAction(false)
                         ->modalContent(function (HardwareHandoverV2 $record): View {
@@ -270,7 +270,7 @@ class HardwareV2PendingStockTable extends Component implements HasForms, HasTabl
                         ->label('Create Invoice')
                         ->icon('heroicon-o-document-plus')
                         ->color('success')
-                        ->modalHeading('Create Invoice for Hardware Handover')
+                        ->modalHeading(false)
                         ->modalWidth('3xl')
                         ->form([
                             Repeater::make('invoices')
@@ -443,10 +443,10 @@ class HardwareV2PendingStockTable extends Component implements HasForms, HasTabl
                                         ->dehydrated(false),
                                 ])
                                 ->addActionLabel('Add Another Invoice')
+                                ->reorderable(false)
                                 ->defaultItems(1)
                                 ->minItems(1)
-                                ->maxItems(5)
-                                ->collapsible(),
+                                ->maxItems(5),
                         ])
                         ->action(function (HardwareHandoverV2 $record, array $data): void {
                             // First check for duplicates within the form data

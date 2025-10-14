@@ -233,7 +233,7 @@ class HardwareV2NewTable extends Component implements HasForms, HasTable
                     ->action(
                         Action::make('viewHandoverDetails')
                             ->modalHeading(false)
-                            ->modalWidth('6xl')
+                            ->modalWidth('4xl')
                             ->modalSubmitAction(false)
                             ->modalCancelAction(false)
                             ->modalContent(function (HardwareHandoverV2 $record): View {
@@ -273,11 +273,11 @@ class HardwareV2NewTable extends Component implements HasForms, HasTable
                     ->html(),
 
                 TextColumn::make('installation_type')
-                    ->label('Category 1')
+                    ->label('Type')
                     ->formatStateUsing(fn (string $state): string => match($state) {
                         'external_installation' => 'External Installation',
                         'internal_installation' => 'Internal Installation',
-                        'self_pick_up' => 'Self Pick-Up',
+                        'self_pick_up' => 'Pick-Up',
                         'courier' => 'Courier',
                         default => ucfirst($state ?? 'Unknown')
                     }),
@@ -304,7 +304,7 @@ class HardwareV2NewTable extends Component implements HasForms, HasTable
                         ->icon('heroicon-o-eye')
                         ->color('secondary')
                         ->modalHeading(false)
-                        ->modalWidth('6xl')
+                        ->modalWidth('4xl')
                         ->modalSubmitAction(false)
                         ->modalCancelAction(false)
                         ->modalContent(function (HardwareHandoverV2 $record): View {
@@ -409,8 +409,8 @@ class HardwareV2NewTable extends Component implements HasForms, HasTable
                         ->label('Create Sales Order')
                         ->icon('heroicon-o-archive-box')
                         ->color('warning')
-                        ->modalHeading('Accept with Pending Stock')
-                        ->modalWidth('lg')
+                        ->modalHeading(false)
+                        ->modalWidth('2xl')
                         ->form([
                             Grid::make(3)
                                 ->schema([
@@ -634,7 +634,6 @@ class HardwareV2NewTable extends Component implements HasForms, HasTable
                                         };
                                     }
                                 ])
-                                ->helperText('Sales order numbers must be unique across all hardware handovers.')
                                 ->columnSpanFull(),
                         ])
                         ->action(function (HardwareHandoverV2 $record, array $data): void {
@@ -677,7 +676,6 @@ class HardwareV2NewTable extends Component implements HasForms, HasTable
                                 ->body('Sales Order: ' . $salesOrderNumber . ' - Status updated to Pending Stock')
                                 ->send();
                         })
-                        ->requiresConfirmation()
                         ->visible(fn (HardwareHandoverV2 $record): bool =>
                             $record->status === 'New' && auth()->user()->role_id !== 2
                         ),

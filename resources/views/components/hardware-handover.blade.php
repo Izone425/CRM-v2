@@ -216,7 +216,7 @@
     .hw-modal-content {
         position: relative;
         width: 100%;
-        max-width: 80rem;
+        max-width: 55rem;
         padding: 1.5rem;
         margin: auto;
         background-color: white;
@@ -368,10 +368,15 @@
             grid-template-columns: 1fr;
         }
     }
+
+    .hw-status-red {
+        color: #dc2626;
+        font-weight: 600;
+    }
 </style>
 
 <div>
-    <div class="hw-info-item">
+    <div class="hw-info-item" style="margin-bottom: 1rem;">
         <span class="hw-label">Hardware Handover Details</span><br>
         <span class="hw-label">Company Name:</span>
         <span class="hw-value">{{ $companyDetail->company_name ?? 'N/A' }}</span>
@@ -390,17 +395,7 @@
 
                 <div class="hw-info-item">
                     <span class="hw-label">Status:</span>
-                    @if($record->status == 'Approved')
-                        <span class="hw-status-approved hw-value">{{ $record->status }}</span>
-                    @elseif($record->status == 'Rejected')
-                        <span class="hw-status-rejected hw-value">{{ $record->status }}</span>
-                    @elseif($record->status == 'Draft')
-                        <span class="hw-status-draft hw-value">{{ $record->status }}</span>
-                    @elseif($record->status == 'New')
-                        <span class="hw-status-new hw-value">{{ $record->status }}</span>
-                    @else
-                        <span class="hw-value">{{ $record->status ?? '-' }}</span>
-                    @endif
+                    <span class="hw-status-red hw-value">{{ $record->status ?? '-' }}</span>
                 </div>
 
                 <div class="hw-info-item">
@@ -513,13 +508,13 @@
 
                     @if(count($courierAddresses) > 0)
                         <div class="hw-remark-container" x-data="{ courierOpen: false }">
-                            <span class="hw-label">Courier Addresses:</span>
+                            <span class="hw-label">Courier Address:</span>
                             <a href="#" @click.prevent="courierOpen = true" class="hw-view-link">View</a>
 
                             <div x-show="courierOpen" x-cloak x-transition @click.outside="courierOpen = false" class="hw-modal">
                                 <div class="hw-modal-content" @click.away="courierOpen = false">
                                     <div class="hw-modal-header">
-                                        <h3 class="hw-modal-title">Courier Addresses</h3>
+                                        <h3 class="hw-modal-title">Courier Address</h3>
                                         <button type="button" @click="courierOpen = false" class="hw-modal-close">
                                             <svg fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
                                                 <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
@@ -533,9 +528,20 @@
                                                     <th>No.</th>
                                                     <th>Address</th>
                                                     <th>Courier Date</th>
-                                                    <th>Tracking Number</th>
-                                                    <th>Remark</th>
-                                                    <th>Document</th>
+                                                    <th>GDEX Tracking Number</th>
+                                                    @php
+                                                        $hasRemarksOrDocuments = false;
+                                                        foreach($courierAddresses as $courierData) {
+                                                            if (!empty($courierData['courier_remark']) || !empty($courierData['courier_document'])) {
+                                                                $hasRemarksOrDocuments = true;
+                                                                break;
+                                                            }
+                                                        }
+                                                    @endphp
+                                                    @if($hasRemarksOrDocuments)
+                                                        <th>Remark</th>
+                                                        <th>Document</th>
+                                                    @endif
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -545,22 +551,24 @@
                                                         <td>{!! nl2br(e($courierData['address'] ?? '-')) !!}</td>
                                                         <td>
                                                             @if(!empty($courierData['courier_date']))
-                                                                {{ \Carbon\Carbon::parse($courierData['courier_date'])->format('d M Y') }}
+                                                                {{ \Carbon\Carbon::parse($courierData['courier_date'])->format('d F Y') }}
                                                             @else
                                                                 -
                                                             @endif
                                                         </td>
                                                         <td>{{ $courierData['courier_tracking'] ?? '-' }}</td>
-                                                        <td>{{ $courierData['courier_remark'] ?? '-' }}</td>
-                                                        <td>
-                                                            @if(!empty($courierData['courier_document']))
-                                                                <a href="{{ url('storage/' . $courierData['courier_document']) }}" target="_blank" class="hw-view-link">
-                                                                    View Document
-                                                                </a>
-                                                            @else
-                                                                -
-                                                            @endif
-                                                        </td>
+                                                        @if($hasRemarksOrDocuments)
+                                                            <td>{{ $courierData['courier_remark'] ?? '-' }}</td>
+                                                            <td>
+                                                                @if(!empty($courierData['courier_document']))
+                                                                    <a href="{{ url('storage/' . $courierData['courier_document']) }}" target="_blank" class="hw-view-link">
+                                                                        View Document
+                                                                    </a>
+                                                                @else
+                                                                    -
+                                                                @endif
+                                                            </td>
+                                                        @endif
                                                     </tr>
                                                 @endforeach
                                             </tbody>
@@ -607,7 +615,7 @@
                                                 <td><strong>Estimation Pick-Up Date:</strong></td>
                                                 <td>
                                                     @if(!empty($category2['customer_forecast_pickup_date']))
-                                                        {{ \Carbon\Carbon::parse($category2['customer_forecast_pickup_date'])->format('d M Y') }}
+                                                        {{ \Carbon\Carbon::parse($category2['customer_forecast_pickup_date'])->format('d F Y') }}
                                                     @else
                                                         <span class="hw-not-available">Not Available</span>
                                                     @endif
@@ -619,54 +627,9 @@
                                                 <td><strong>Completed Pick-Up Date:</strong></td>
                                                 <td>
                                                     @if(!empty($category2['self_pickup_date']))
-                                                        {{ \Carbon\Carbon::parse($category2['self_pickup_date'])->format('d M Y') }}
+                                                        {{ \Carbon\Carbon::parse($category2['self_pickup_date'])->format('d F Y') }}
                                                     @else
                                                         <span class="hw-not-available">Not Available</span>
-                                                    @endif
-                                                </td>
-                                            </tr>
-
-                                            {{-- <!-- Delivery Order -->
-                                            <tr>
-                                                <td><strong>Delivery Order:</strong></td>
-                                                <td>
-                                                    @if(!empty($category2['delivery_order']))
-                                                        <a href="{{ url('storage/' . $category2['delivery_order']) }}" target="_blank" class="hw-view-link">
-                                                            View Document
-                                                        </a>
-                                                    @else
-                                                        <span class="hw-not-available">Not Available</span>
-                                                    @endif
-                                                </td>
-                                            </tr>
-
-                                            <!-- Self Pickup Remark -->
-                                            <tr>
-                                                <td><strong>Self Pickup Remark:</strong></td>
-                                                <td>
-                                                    @if(!empty($category2['self_pickup_remark']))
-                                                        <div style="max-height: 100px; overflow-y: auto; white-space: pre-line;">
-                                                            {{ $category2['self_pickup_remark'] }}
-                                                        </div>
-                                                    @else
-                                                        <span class="hw-not-available">Not Available</span>
-                                                    @endif
-                                                </td>
-                                            </tr> --}}
-
-                                            <!-- Self Pickup Status -->
-                                            <tr>
-                                                <td><strong>Status:</strong></td>
-                                                <td>
-                                                    @if(isset($category2['self_pickup_completed']) && $category2['self_pickup_completed'])
-                                                        <span style="color: #059669; font-weight: 600;">Completed</span>
-                                                        @if(!empty($category2['self_pickup_completed_at']))
-                                                            <small style="color: #6b7280;">
-                                                                ({{ \Carbon\Carbon::parse($category2['self_pickup_completed_at'])->format('d M Y H:i') }})
-                                                            </small>
-                                                        @endif
-                                                    @else
-                                                        <span style="color: #d97706; font-weight: 600;">Pending</span>
                                                     @endif
                                                 </td>
                                             </tr>
@@ -813,13 +776,6 @@
                                 <span class="hw-value" style="color: #059669; font-weight: 600;">All Appointments Scheduled</span>
                             </div>
                         @endif --}}
-
-                        @if(!empty($category2['completion_date']))
-                            <div class="hw-info-item">
-                                <span class="hw-label">Completion Date:</span>
-                                <span class="hw-value">{{ \Carbon\Carbon::parse($category2['completion_date'])->format('d M Y H:i') }}</span>
-                            </div>
-                        @endif
                     @endif
                 @elseif($record->installation_type === 'external_installation')
                     @php
@@ -852,9 +808,20 @@
                                                     <th>No.</th>
                                                     <th>Address</th>
                                                     <th>Courier Date</th>
-                                                    <th>Tracking Number</th>
-                                                    <th>Remark</th>
-                                                    <th>Document</th>
+                                                    <th>GDEX Tracking Number</th>
+                                                    @php
+                                                        $hasRemarksOrDocuments = false;
+                                                        foreach($category2['external_courier_addresses'] as $courierData) {  // ✅ Correct variable
+                                                            if (!empty($courierData['external_courier_remark']) || !empty($courierData['external_courier_document'])) {
+                                                                $hasRemarksOrDocuments = true;
+                                                                break;
+                                                            }
+                                                        }
+                                                    @endphp
+                                                    @if($hasRemarksOrDocuments)
+                                                        <th>Remark</th>
+                                                        <th>Document</th>
+                                                    @endif
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -864,22 +831,24 @@
                                                         <td>{!! nl2br(e($courierData['address'] ?? '-')) !!}</td>
                                                         <td>
                                                             @if(!empty($courierData['external_courier_date']))
-                                                                {{ \Carbon\Carbon::parse($courierData['external_courier_date'])->format('d M Y') }}
+                                                                {{ \Carbon\Carbon::parse($courierData['external_courier_date'])->format('d F Y') }}
                                                             @else
                                                                 -
                                                             @endif
                                                         </td>
                                                         <td>{{ $courierData['external_courier_tracking'] ?? '-' }}</td>
-                                                        <td>{{ $courierData['external_courier_remark'] ?? '-' }}</td>
-                                                        <td>
-                                                            @if(!empty($courierData['external_courier_document']))
-                                                                <a href="{{ url('storage/' . $courierData['external_courier_document']) }}" target="_blank" class="hw-view-link">
-                                                                    View Document
-                                                                </a>
-                                                            @else
-                                                                -
-                                                            @endif
-                                                        </td>
+                                                        @if($hasRemarksOrDocuments)
+                                                            <td>{{ $courierData['external_courier_remark'] ?? '-' }}</td>
+                                                            <td>
+                                                                @if(!empty($courierData['external_courier_document']))
+                                                                    <a href="{{ url('storage/' . $courierData['external_courier_document']) }}" target="_blank" class="hw-view-link">
+                                                                        View Document
+                                                                    </a>
+                                                                @else
+                                                                    -
+                                                                @endif
+                                                            </td>
+                                                        @endif
                                                     </tr>
                                                 @endforeach
                                             </tbody>
@@ -888,18 +857,6 @@
                                 </div>
                             </div>
                         </div>
-
-                        @if(isset($category2['external_courier_completed']) && $category2['external_courier_completed'])
-                            <div class="hw-info-item">
-                                <span class="hw-label">External Courier Status:</span>
-                                <span class="hw-value" style="color: #059669; font-weight: 600;">Completed</span>
-                                @if(!empty($category2['external_courier_completed_at']))
-                                    <span class="hw-value">
-                                        ({{ \Carbon\Carbon::parse($category2['external_courier_completed_at'])->format('d M Y H:i') }})
-                                    </span>
-                                @endif
-                            </div>
-                        @endif
                     @endif
                 @endif
 
@@ -1077,7 +1034,7 @@
                             @endforeach
                         </span>
                     @else
-                        <span class="hw-not-available">No Product PI selected</span>
+                        <span class="hw-not-available">No Available</span>
                     @endif
                 </div>
 
@@ -1094,7 +1051,7 @@
                             @endforeach
                         </span>
                     @else
-                        <span class="hw-not-available">No Product PI selected</span>
+                        <span class="hw-not-available">No Available</span>
                     @endif
                 </div>
 
@@ -1139,26 +1096,6 @@
                     </div>
                 </div>
 
-                <!-- Invoice Files Section -->
-                <div class="hw-section">
-                    <div class="hw-info-item">
-                        <span class="hw-label">Invoice TimeTec Penang:</span>
-                        @php $hasInvoiceFiles = false; @endphp
-                        @for($i = 1; $i <= 4; $i++)
-                            @if(isset($invoiceFiles[$i-1]))
-                                @if($hasInvoiceFiles) / @endif
-                                <a href="{{ url('storage/' . $invoiceFiles[$i-1]) }}" target="_blank" class="hw-view-link">
-                                    File {{ $i }}
-                                </a>
-                                @php $hasInvoiceFiles = true; @endphp
-                            @endif
-                        @endfor
-                        @if(!$hasInvoiceFiles)
-                            <span class="hw-not-available">Not Available</span>
-                        @endif
-                    </div>
-                </div>
-
                 <!-- HRDF Grant Files Section -->
                 <div class="hw-section">
                     <div class="hw-info-item">
@@ -1178,6 +1115,8 @@
                         @endif
                     </div>
                 </div>
+
+                <hr class="my-6 border-t border-gray-300">
 
                 <!-- Reseller Quotation Section -->
                 <div class="hw-section">
@@ -1199,73 +1138,158 @@
                     </div>
                 </div>
 
-                <hr class="my-6 border-t border-gray-300">
-
-                <!-- Device Inventory -->
-                <div class="hw-remark-container" x-data="{ deviceOpen: false }">
-                    <span class="hw-label">SO & Device Inventory:</span>
-                    <a href="#" @click.prevent="deviceOpen = true" class="hw-view-link">View</a>
-
-                    <div x-show="deviceOpen" x-cloak x-transition @click.outside="deviceOpen = false" class="hw-modal">
-                        <div class="hw-modal-content" @click.away="deviceOpen = false">
-                            <div class="hw-modal-header">
-                                <button type="button" @click="deviceOpen = false" class="hw-modal-close">
-                                    <svg fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
-                                    </svg>
-                                </button>
-                            </div>
-                            <div class="hw-modal-body">
-                                <!-- Sales Order Number -->
-                                @if(!empty($record->sales_order_number))
-                                    <div style="margin-bottom: 1.5rem; padding: 0.75rem; border: 1px solid #e5e7eb; border-radius: 0.375rem; background-color: #f8fafc;">
-                                        <strong>Sales Order Number:</strong> {{ $record->sales_order_number }}
-                                    </div>
-                                @endif
-
-                                <table class="hw-table">
-                                    <thead>
-                                        <tr>
-                                            <th>Product</th>
-                                            <th>Quantity</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @php
-                                            $hasDevices = false;
-                                            $deviceTypes = [
-                                                'tc10' => ['quantity' => $record->tc10_quantity ?? 0, 'name' => 'TC10'],
-                                                'tc20' => ['quantity' => $record->tc20_quantity ?? 0, 'name' => 'TC20'],
-                                                'face_id5' => ['quantity' => $record->face_id5_quantity ?? 0, 'name' => 'FACE ID5'],
-                                                'face_id6' => ['quantity' => $record->face_id6_quantity ?? 0, 'name' => 'FACE ID6'],
-                                                'time_beacon' => ['quantity' => $record->time_beacon_quantity ?? 0, 'name' => 'TIME BEACON'],
-                                                'nfc_tag' => ['quantity' => $record->nfc_tag_quantity ?? 0, 'name' => 'NFC TAG']
-                                            ];
-                                        @endphp
-
-                                        @foreach($deviceTypes as $deviceKey => $deviceInfo)
-                                            @if($deviceInfo['quantity'] > 0)
-                                                @php $hasDevices = true; @endphp
-                                                <tr>
-                                                    <td>{{ $deviceInfo['name'] }}</td>
-                                                    <td>{{ $deviceInfo['quantity'] }}</td>
-                                                </tr>
-                                            @endif
-                                        @endforeach
-
-                                        @if(!$hasDevices)
-                                            <tr>
-                                                <td colspan="2" style="text-align: center; font-style: italic; color: #6b7280;">No devices available</td>
-                                            </tr>
-                                        @endif
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
+                <!-- Invoice Files Section -->
+                <div class="hw-section">
+                    <div class="hw-info-item">
+                        <span class="hw-label">Invoice TimeTec Penang:</span>
+                        @php $hasInvoiceFiles = false; @endphp
+                        @for($i = 1; $i <= 4; $i++)
+                            @if(isset($invoiceFiles[$i-1]))
+                                @if($hasInvoiceFiles) / @endif
+                                <a href="{{ url('storage/' . $invoiceFiles[$i-1]) }}" target="_blank" class="hw-view-link">
+                                    File {{ $i }}
+                                </a>
+                                @php $hasInvoiceFiles = true; @endphp
+                            @endif
+                        @endfor
+                        @if(!$hasInvoiceFiles)
+                            <span class="hw-not-available">Not Available</span>
+                        @endif
                     </div>
                 </div>
 
                 <hr class="my-6 border-t border-gray-300">
+
+                @if(!empty($record->sales_order_number))
+                    <!-- Device Inventory -->
+                    <div class="hw-remark-container" x-data="{ deviceOpen: false }">
+                        <span class="hw-label">Sales Order:</span>
+                        <a href="#" @click.prevent="deviceOpen = true" class="hw-view-link">View</a>
+
+                        <div x-show="deviceOpen" x-cloak x-transition @click.outside="deviceOpen = false" class="hw-modal">
+                            <div class="hw-modal-content" @click.away="deviceOpen = false">
+                                <div class="hw-modal-header">
+                                    <button type="button" @click="deviceOpen = false" class="hw-modal-close">
+                                        <svg fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                                        </svg>
+                                    </button>
+                                </div>
+                                <div class="hw-modal-body">
+                                    <!-- Sales Order Number -->
+                                    @if(!empty($record->sales_order_number))
+                                        <div style="margin-bottom: 1.5rem; padding: 0.75rem; border: 1px solid #e5e7eb; border-radius: 0.375rem; background-color: #f8fafc;">
+                                            <strong>Sales Order Number:</strong> {{ $record->sales_order_number }}
+                                        </div>
+                                    @endif
+
+                                    <table class="hw-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Product</th>
+                                                <th>Quantity</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @php
+                                                $hasDevices = false;
+                                                $deviceTypes = [
+                                                    'tc10' => ['quantity' => $record->tc10_quantity ?? 0, 'name' => 'TC10'],
+                                                    'tc20' => ['quantity' => $record->tc20_quantity ?? 0, 'name' => 'TC20'],
+                                                    'face_id5' => ['quantity' => $record->face_id5_quantity ?? 0, 'name' => 'FACE ID5'],
+                                                    'face_id6' => ['quantity' => $record->face_id6_quantity ?? 0, 'name' => 'FACE ID6'],
+                                                    'time_beacon' => ['quantity' => $record->time_beacon_quantity ?? 0, 'name' => 'TIME BEACON'],
+                                                    'nfc_tag' => ['quantity' => $record->nfc_tag_quantity ?? 0, 'name' => 'NFC TAG']
+                                                ];
+                                            @endphp
+
+                                            @foreach($deviceTypes as $deviceKey => $deviceInfo)
+                                                @if($deviceInfo['quantity'] > 0)
+                                                    @php $hasDevices = true; @endphp
+                                                    <tr>
+                                                        <td>{{ $deviceInfo['name'] }}</td>
+                                                        <td>{{ $deviceInfo['quantity'] }}</td>
+                                                    </tr>
+                                                @endif
+                                            @endforeach
+
+                                            @if(!$hasDevices)
+                                                <tr>
+                                                    <td colspan="2" style="text-align: center; font-style: italic; color: #6b7280;">No devices available</td>
+                                                </tr>
+                                            @endif
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="hw-remark-container" x-data="{ deviceOpen: false }">
+                        <span class="hw-label">Device Inventory:</span>
+                        <a href="#" @click.prevent="deviceOpen = true" class="hw-view-link">View</a>
+
+                        <div x-show="deviceOpen" x-cloak x-transition @click.outside="deviceOpen = false" class="hw-modal">
+                            <div class="hw-modal-content" @click.away="deviceOpen = false">
+                                <div class="hw-modal-header">
+                                    <button type="button" @click="deviceOpen = false" class="hw-modal-close">
+                                        <svg fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                                        </svg>
+                                    </button>
+                                </div>
+                                <div class="hw-modal-body">
+                                    <!-- Sales Order Number -->
+                                    @if(!empty($record->sales_order_number))
+                                        <div style="margin-bottom: 1.5rem; padding: 0.75rem; border: 1px solid #e5e7eb; border-radius: 0.375rem; background-color: #f8fafc;">
+                                            <strong>Sales Order Number:</strong> {{ $record->sales_order_number }}
+                                        </div>
+                                    @endif
+
+                                    <table class="hw-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Product</th>
+                                                <th>Quantity</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @php
+                                                $hasDevices = false;
+                                                $deviceTypes = [
+                                                    'tc10' => ['quantity' => $record->tc10_quantity ?? 0, 'name' => 'TC10'],
+                                                    'tc20' => ['quantity' => $record->tc20_quantity ?? 0, 'name' => 'TC20'],
+                                                    'face_id5' => ['quantity' => $record->face_id5_quantity ?? 0, 'name' => 'FACE ID5'],
+                                                    'face_id6' => ['quantity' => $record->face_id6_quantity ?? 0, 'name' => 'FACE ID6'],
+                                                    'time_beacon' => ['quantity' => $record->time_beacon_quantity ?? 0, 'name' => 'TIME BEACON'],
+                                                    'nfc_tag' => ['quantity' => $record->nfc_tag_quantity ?? 0, 'name' => 'NFC TAG']
+                                                ];
+                                            @endphp
+
+                                            @foreach($deviceTypes as $deviceKey => $deviceInfo)
+                                                @if($deviceInfo['quantity'] > 0)
+                                                    @php $hasDevices = true; @endphp
+                                                    <tr>
+                                                        <td>{{ $deviceInfo['name'] }}</td>
+                                                        <td>{{ $deviceInfo['quantity'] }}</td>
+                                                    </tr>
+                                                @endif
+                                            @endforeach
+
+                                            @if(!$hasDevices)
+                                                <tr>
+                                                    <td colspan="2" style="text-align: center; font-style: italic; color: #6b7280;">No devices available</td>
+                                                </tr>
+                                            @endif
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr class="my-6 border-t border-gray-300">
+                @endif
 
                 @if(is_array($invoiceData) && count($invoiceData) > 0)
                 <div class="hw-remark-container" x-data="{ invoiceDataOpen: false }">
@@ -1275,7 +1299,7 @@
                     <div x-show="invoiceDataOpen" x-cloak x-transition @click.outside="invoiceDataOpen = false" class="hw-modal">
                         <div class="hw-modal-content" @click.away="invoiceDataOpen = false">
                             <div class="hw-modal-header">
-                                <h3 class="hw-modal-title">Invoice Data</h3>
+                                <h3 class="hw-modal-title">Invoice Details</h3>
                                 <button type="button" @click="invoiceDataOpen = false" class="hw-modal-close">
                                     <svg fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
                                         <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
