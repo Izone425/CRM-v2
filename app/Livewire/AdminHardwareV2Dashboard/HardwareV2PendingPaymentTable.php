@@ -626,7 +626,16 @@ class HardwareV2PendingPaymentTable extends Component implements HasForms, HasTa
                         ->color('warning')
                         ->visible(fn(): bool => in_array(auth()->id(), [1, 14]))
                         ->requiresConfirmation()
-                        ->modalHeading('Bypass Payment Confirmation')
+                        ->modalHeading(function (HardwareHandoverV2 $record) {
+                            // Get company name from the lead relationship
+                            $companyName = 'Unknown Company';
+
+                            if ($record->lead && $record->lead->companyDetail && $record->lead->companyDetail->company_name) {
+                                $companyName = $record->lead->companyDetail->company_name;
+                            }
+
+                            return 'Bypass Payment - ' . $companyName;
+                        })
                         ->modalDescription(fn (HardwareHandoverV2 $record): string =>
                             "Are you sure you want to bypass payment for this hardware handover? " .
                             "This will move it directly to the next status based on installation type: " .
@@ -698,6 +707,35 @@ class HardwareV2PendingPaymentTable extends Component implements HasForms, HasTa
                         }),
                 ])->button()
             ]);
+    }
+
+    protected function getPaymentStatusForInvoice(string $invoiceNo): string
+    {
+        // Get the total invoice amount for this invoice number
+        $totalInvoiceAmount = \App\Models\Invoice::where('invoice_no', $invoiceNo)->sum('invoice_amount');
+
+        // Look for this invoice in debtor_agings table
+        $debtorAging = DB::table('debtor_agings')
+            ->where('invoice_number', $invoiceNo)
+            ->first();
+
+        // If no matching record in debtor_agings or outstanding is 0
+        if (!$debtorAging || (float)$debtorAging->outstanding === 0.0) {
+            return 'Full Payment';
+        }
+
+        // If outstanding equals total invoice amount
+        if ((float)$debtorAging->outstanding === (float)$totalInvoiceAmount) {
+            return 'UnPaid';
+        }
+
+        // If outstanding is less than invoice amount but greater than 0
+        if ((float)$debtorAging->outstanding < (float)$totalInvoiceAmount && (float)$debtorAging->outstanding > 0) {
+            return 'Partial Payment';
+        }
+
+        // Fallback (shouldn't normally reach here)
+        return 'UnPaid';
     }
 
     public function render()

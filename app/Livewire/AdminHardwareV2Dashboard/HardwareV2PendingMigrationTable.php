@@ -7,6 +7,7 @@ use App\Classes\Encryptor;
 use App\Filament\Filters\SortFilter;
 use App\Http\Controllers\GenerateHardwareHandoverPdfController;
 use App\Models\HardwareHandoverV2;
+use App\Models\Invoice;
 use App\Models\Lead;
 use App\Models\User;
 use App\Services\CategoryService;
@@ -318,7 +319,16 @@ class HardwareV2PendingMigrationTable extends Component implements HasForms, Has
                         ->label('Create Invoice')
                         ->icon('heroicon-o-document-plus')
                         ->color('success')
-                        ->modalHeading(false)
+                        ->modalHeading(function (HardwareHandoverV2 $record) {
+                            // Get company name from the lead relationship
+                            $companyName = 'Unknown Company';
+
+                            if ($record->lead && $record->lead->companyDetail && $record->lead->companyDetail->company_name) {
+                                $companyName = $record->lead->companyDetail->company_name;
+                            }
+
+                            return 'Create Invoice - ' . $companyName;
+                        })
                         ->modalWidth('3xl')
                         ->visible(fn (HardwareHandoverV2 $record): bool =>
                             $record->status === 'Pending Migration' &&
@@ -591,7 +601,6 @@ class HardwareV2PendingMigrationTable extends Component implements HasForms, Has
                             // Route based on invoice type
                             if ($record->invoice_type === 'single') {
                                 $record->update([
-                                    'status' => 'Pending Payment',
                                     'migration_pending_at' => now(),
                                 ]);
 
@@ -599,7 +608,6 @@ class HardwareV2PendingMigrationTable extends Component implements HasForms, Has
                                 $bodyMessage = 'Single invoice type automatically routed to migration.';
                             } elseif ($record->invoice_type === 'combined') {
                                 $record->update([
-                                    'status' => 'Pending Migration',
                                     'payment_pending_at' => now(),
                                 ]);
 
@@ -621,6 +629,43 @@ class HardwareV2PendingMigrationTable extends Component implements HasForms, Has
                         })
                 ])->button()
             ]);
+    }
+
+    // Helper method to get payment status for an invoice
+    protected function getPaymentStatusForInvoice(string $invoiceNo): string
+    {
+        // Get the total invoice amount for this invoice number (only positive amounts)
+        $totalInvoiceAmount = Invoice::where('invoice_no', $invoiceNo)
+            ->where('invoice_amount', '>', 0) // Only consider positive amounts
+            ->sum('invoice_amount');
+
+        // If total amount is 0 or less, don't process
+        if ($totalInvoiceAmount <= 0) {
+            return 'N/A';
+        }
+
+        // Look for this invoice in debtor_agings table
+        $debtorAging = DB::table('debtor_agings')
+            ->where('invoice_number', $invoiceNo)
+            ->first();
+
+        // If no matching record in debtor_agings or outstanding is 0
+        if (!$debtorAging || (float)$debtorAging->outstanding === 0.0) {
+            return 'Full Payment';
+        }
+
+        // If outstanding equals total invoice amount
+        if ((float)$debtorAging->outstanding === (float)$totalInvoiceAmount) {
+            return 'UnPaid';
+        }
+
+        // If outstanding is less than invoice amount but greater than 0
+        if ((float)$debtorAging->outstanding < (float)$totalInvoiceAmount && (float)$debtorAging->outstanding > 0) {
+            return 'Partial Payment';
+        }
+
+        // Fallback (shouldn't normally reach here)
+        return 'UnPaid';
     }
 
     public function render()

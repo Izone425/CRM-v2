@@ -279,7 +279,16 @@ class HardwareV2PendingStockTable extends Component implements HasForms, HasTabl
                         ->label('Create Invoice')
                         ->icon('heroicon-o-document-plus')
                         ->color('success')
-                        ->modalHeading(false)
+                        ->modalHeading(function (HardwareHandoverV2 $record) {
+                            // Get company name from the lead relationship
+                            $companyName = 'Unknown Company';
+
+                            if ($record->lead && $record->lead->companyDetail && $record->lead->companyDetail->company_name) {
+                                $companyName = $record->lead->companyDetail->company_name;
+                            }
+
+                            return 'Create Invoice - ' . $companyName;
+                        })
                         ->modalWidth('3xl')
                         ->form([
                             Repeater::make('invoices')

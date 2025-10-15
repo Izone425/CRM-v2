@@ -55,8 +55,6 @@
             ->getNewHrdfHandovers()
             ->count();
 
-        $adminTotal = $adminSoftwareTotal + $adminHardwareTotal + $adminHeadcountTotal + $adminHrdfTotal;
-
         $newTaskCount = app(\App\Livewire\AdminHardwareV2Dashboard\HardwareV2NewTable::class)
             ->getNewHardwareHandovers()
             ->count();
@@ -66,6 +64,8 @@
             ->count();
 
         $initialStageTotal = $newTaskCount + $pendingStockCount;
+
+        $adminTotal = $adminSoftwareTotal + $adminHeadcountTotal + $adminHrdfTotal + $initialStageTotal;
     @endphp
 
     <div
@@ -159,7 +159,7 @@
                                     right: 0;
                                     bottom: -10px;
                                     background: transparent;
-                                    z-index: 999;
+                                    z-index: 10;
                                 "></div>
 
                                 <div class="admin-dropdown-content" style="
@@ -704,7 +704,7 @@
                                             right: 0;
                                             bottom: -10px;
                                             background: transparent;
-                                            z-index: 999;
+                                            z-index: 10;
                                         "></div>
 
                                         <div class="admin-dropdown-content" style="
@@ -1006,7 +1006,7 @@
                                         right: 0;
                                         bottom: -10px;
                                         background: transparent;
-                                        z-index: 999;
+                                        z-index: 10;
                                     "></div>
 
                                     <div class="admin-dropdown-content" style="
@@ -1015,7 +1015,7 @@
                                         background-color: white;
                                         min-width: 200px;
                                         box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
-                                        z-index: 1000;
+                                        z-index: 10;
                                         border-radius: 6px;
                                         overflow: hidden;
                                         top: 100%; /* Position at the bottom of the button */

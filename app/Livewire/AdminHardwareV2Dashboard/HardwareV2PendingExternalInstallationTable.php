@@ -287,7 +287,7 @@ class HardwareV2PendingExternalInstallationTable extends Component implements Ha
                                 $companyName = $record->lead->companyDetail->company_name;
                             }
 
-                            return $companyName;
+                            return 'External Courier - ' . $companyName;
                         })
                         ->modalWidth('3xl')
                         ->form(function (HardwareHandoverV2 $record) {
@@ -366,23 +366,6 @@ class HardwareV2PendingExternalInstallationTable extends Component implements Ha
 
                                                                     if ($existsInDb) {
                                                                         $fail('This courier tracking number is already in use (either as regular courier or external courier). Please enter a different tracking number.');
-                                                                        return;
-                                                                    }
-
-                                                                    // Check for duplicates within current form data
-                                                                    $formData = request()->input('external_courier_details', []);
-                                                                    $trackingNumbers = array_map(function($item) {
-                                                                        return isset($item['external_courier_tracking']) ? strtoupper($item['external_courier_tracking']) : null;
-                                                                    }, $formData);
-
-                                                                    // Remove empty values
-                                                                    $trackingNumbers = array_filter($trackingNumbers);
-
-                                                                    // Count occurrences of this tracking number
-                                                                    $occurrences = array_count_values($trackingNumbers);
-
-                                                                    if (isset($occurrences[$upperValue]) && $occurrences[$upperValue] > 1) {
-                                                                        $fail('This tracking number is already used in another address field. Each address must have a unique tracking number.');
                                                                     }
                                                                 }
                                                             };
@@ -421,6 +404,37 @@ class HardwareV2PendingExternalInstallationTable extends Component implements Ha
                         })
                         ->action(function (HardwareHandoverV2 $record, array $data): void {
                             try {
+                                // Check for duplicates within current form data
+                                $trackingNumbers = [];
+                                foreach ($data['external_courier_details'] as $detail) {
+                                    if (isset($detail['external_courier_tracking']) && !empty($detail['external_courier_tracking'])) {
+                                        $upperValue = strtoupper($detail['external_courier_tracking']);
+                                        $trackingNumbers[] = $upperValue;
+                                    }
+                                }
+
+                                // Check for duplicates
+                                $duplicates = array_count_values($trackingNumbers);
+                                $duplicateFound = false;
+                                $duplicateNumber = '';
+
+                                foreach ($duplicates as $trackingNumber => $count) {
+                                    if ($count > 1) {
+                                        $duplicateFound = true;
+                                        $duplicateNumber = $trackingNumber;
+                                        break;
+                                    }
+                                }
+
+                                if ($duplicateFound) {
+                                    Notification::make()
+                                        ->title('Duplicate Tracking Numbers')
+                                        ->body("Tracking number '{$duplicateNumber}' is used multiple times. Each address must have a unique tracking number.")
+                                        ->danger()
+                                        ->send();
+                                    return;
+                                }
+
                                 // Get existing category2 data
                                 $existingCategory2 = $record->category2 ? json_decode($record->category2, true) : [];
 
