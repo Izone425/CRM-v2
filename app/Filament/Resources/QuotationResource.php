@@ -555,16 +555,17 @@ class QuotationResource extends Resource
                                     ->reactive()
                                     ->afterStateUpdated(function (?string $state, Forms\Get $get, Forms\Set $set) {
                                         if ($state) {
-                                            $product = Product::find($state); // 🛠 Fetch Product from DB
+                                            $product = Product::find($state);
 
                                             if ($product) {
-                                                $set('unit_price', $product->unit_price); // Set unit price from DB
-                                                $set('description', $product->description); // Set description from DB
+                                                $set('unit_price', $product->unit_price);
+                                                $set('description', $product->description);
+                                                $set('convert_pi', $product->convert_pi); // Add this line
 
                                                 if ($product->solution === 'software') {
-                                                    $set('subscription_period', $product->subscription_period); // ✨ Set subscription period from DB
+                                                    $set('subscription_period', $product->subscription_period);
                                                 } else {
-                                                    $set('subscription_period', null); // Not needed for hardware/hrdf
+                                                    $set('subscription_period', null);
                                                 }
                                             }
 
@@ -729,6 +730,9 @@ class QuotationResource extends Resource
                                     ->afterStateUpdated(fn(?string $state, Forms\Get $get, Forms\Set $set) => self::recalculateAllRows($get, $set)),
 
                                 Hidden::make('tax_code')
+                                    ->dehydrated(true),
+
+                                Hidden::make('convert_pi')
                                     ->dehydrated(true),
                             ])
                             ->deleteAction(fn(Actions\Action $action) => $action->requiresConfirmation())
@@ -1445,6 +1449,10 @@ class QuotationResource extends Resource
                 }
             }
 
+            if ($product) {
+                $set("../../items.{$index}.convert_pi", $product->convert_pi);
+            }
+
             $set("../../items.{$index}.tax_code", $taxCode);
 
             // Preserve manually edited descriptions
@@ -1616,6 +1624,10 @@ class QuotationResource extends Resource
             if (array_key_exists('product_id',$item)) {
                 $product_id = $item['product_id'];
                 $product = Product::find($product_id);
+
+                if ($product) {
+                    $set("items.{$index}.convert_pi", $product->convert_pi);
+                }
             }
 
             $set("items.{$index}.quantity",$get("num_of_participant") ?? 0);

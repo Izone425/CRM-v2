@@ -20,7 +20,7 @@
         ['label' => 'Company Name', 'value' => $getValue($eInvoiceDetail->company_name ?? null, $companyDetail->company_name ?? null)],
         ['label' => 'Business Register Number', 'value' => $getValue($eInvoiceDetail->business_register_number ?? null, $companyDetail->reg_no_new ?? null)],
         ['label' => 'Tax Identification Number', 'value' => $eInvoiceDetail->tax_identification_number ?? '-'],
-        ['label' => 'Business Category', 'value' => $eInvoiceDetail && $eInvoiceDetail->business_category ? ucfirst(str_replace('_', ' ', $eInvoiceDetail->business_category)) : '-'],
+        ['label' => 'MSIC Code', 'value' => $eInvoiceDetail->msic_code ?? '-'],
 
         // Add separator marker
         ['separator' => true],
@@ -31,14 +31,14 @@
         ['label' => 'City', 'value' => $getValue($eInvoiceDetail->city ?? null, $companyDetail->city ?? null)],
         ['label' => 'Postcode', 'value' => $getValue($eInvoiceDetail->postcode ?? null, $companyDetail->postcode ?? null)],
         ['label' => 'State', 'value' => $getValue($eInvoiceDetail->state ?? null, $companyDetail->state ?? null)],
-['label' => 'Country', 'value' => $getValue($eInvoiceDetail->country ?? null, $record->country ?? null)],
+        ['label' => 'Country', 'value' => $getValue($eInvoiceDetail->country ?? null, $record->country ?? null)],
         // Add separator marker
         ['separator' => true],
 
         // Business Configuration
         ['label' => 'Currency', 'value' => $eInvoiceDetail->currency ?? '-'],
         ['label' => 'Business Type', 'value' => $eInvoiceDetail && $eInvoiceDetail->business_type ? ucfirst(str_replace('_', ' ', $eInvoiceDetail->business_type)) : '-'],
-        ['label' => 'MSIC Code', 'value' => $eInvoiceDetail->msic_code ?? '-'],
+        ['label' => 'Business Category', 'value' => $eInvoiceDetail && $eInvoiceDetail->business_category ? ucfirst(str_replace('_', ' ', $eInvoiceDetail->business_category)) : '-'],
         ['label' => 'Billing Category', 'value' => $eInvoiceDetail && $eInvoiceDetail->billing_category ? ucfirst(str_replace('_', ' ', $eInvoiceDetail->billing_category)) : '-'],
     ];
 

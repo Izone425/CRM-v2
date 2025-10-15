@@ -477,7 +477,6 @@ class HardwareV2PendingPaymentTable extends Component implements HasForms, HasTa
                                                 ->directory('hardware-handover-invoices')
                                                 ->acceptedFileTypes(['application/pdf'])
                                                 ->maxSize(10240)
-                                                ->required()
                                         ]),
 
                                     // Hidden fields to store validation data
@@ -493,7 +492,7 @@ class HardwareV2PendingPaymentTable extends Component implements HasForms, HasTa
                                 ->reorderable(false)
                                 ->defaultItems(1)
                                 ->minItems(1)
-                                ->maxItems(5),
+                                ->maxItems(10),
                         ])
                         ->action(function (HardwareHandoverV2 $record, array $data): void {
                             // First check for duplicates within the form data

@@ -503,7 +503,7 @@ class HardwareV2PendingMigrationTable extends Component implements HasForms, Has
                                 ->reorderable(false)
                                 ->defaultItems(1)
                                 ->minItems(1)
-                                ->maxItems(5),
+                                ->maxItems(10),
                         ])
                         ->action(function (HardwareHandoverV2 $record, array $data): void {
                             // First check for duplicates within the form data
