@@ -121,8 +121,8 @@ class HardwareV2PendingMigrationTable extends Component implements HasForms, Has
             ->query($this->getNewHardwareHandovers())
             ->defaultSort('created_at', 'desc')
             ->emptyState(fn () => view('components.empty-state-question'))
-            ->defaultPaginationPageOption(10)
-            ->paginated([10, 25, 50])
+            ->defaultPaginationPageOption(5)
+            ->paginated([5])
             ->headerActions([
                 Action::make('syncHandoversStatus')
                     ->label('Process Data')
