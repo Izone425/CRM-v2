@@ -189,7 +189,35 @@ class QuotationResource extends Resource
                                 return auth()->user()?->id === 5 ? 'RENEWAL SALES' : 'NEW SALES';
                             })
                             ->required()
-                            ->disabled(fn () => auth()->user()?->role_id == 2),
+                            ->disabled(fn () => auth()->user()?->role_id == 2)
+                            ->live() // Add this to make it reactive
+                            ->afterStateUpdated(function (?string $state, Forms\Get $get, Forms\Set $set) {
+                                // If quotation type is hrdf, update the items based on sales type
+                                if ($get('quotation_type') === 'hrdf') {
+                                    if ($state === 'RENEWAL SALES') {
+                                        // Use product IDs 105, 106, 107 for renewal sales
+                                        $items = collect([
+                                            ['product_id' => 105],
+                                            ['product_id' => 106],
+                                            ['product_id' => 107],
+                                        ])->mapWithKeys(fn ($item) => [
+                                            (string) \Illuminate\Support\Str::uuid() => $item
+                                        ])->toArray();
+                                    } else {
+                                        // Use default product IDs 16, 17, 18 for new sales
+                                        $items = collect([
+                                            ['product_id' => 16],
+                                            ['product_id' => 17],
+                                            ['product_id' => 18],
+                                        ])->mapWithKeys(fn ($item) => [
+                                            (string) \Illuminate\Support\Str::uuid() => $item
+                                        ])->toArray();
+                                    }
+
+                                    $set('items', $items);
+                                    QuotationResource::recalculateAllRowsFromParent($get, $set);
+                                }
+                            }),
                         Hidden::make('currency')
                             ->default(function (Forms\Get $get) {
                                 $leadId = $get('lead_id');
@@ -246,14 +274,28 @@ class QuotationResource extends Resource
                             ->afterStateUpdated(function (?string $state, Forms\Get $get, Forms\Set $set) {
                                 if ($state === 'hrdf') {
                                     $unitPrice = $get('unit_price') ?? 0;
+                                    $salesType = $get('sales_type'); // Get the sales type
 
-                                    $items = collect([
-                                        ['product_id' => 16],
-                                        ['product_id' => 17],
-                                        ['product_id' => 18],
-                                    ])->mapWithKeys(fn ($item) => [
-                                        (string) \Illuminate\Support\Str::uuid() => $item
-                                    ])->toArray();
+                                    // Check if sales type is RENEWAL SALES
+                                    if ($salesType === 'RENEWAL SALES') {
+                                        // Use product IDs 105, 106, 107 for renewal sales
+                                        $items = collect([
+                                            ['product_id' => 105],
+                                            ['product_id' => 106],
+                                            ['product_id' => 107],
+                                        ])->mapWithKeys(fn ($item) => [
+                                            (string) \Illuminate\Support\Str::uuid() => $item
+                                        ])->toArray();
+                                    } else {
+                                        // Use default product IDs 16, 17, 18 for new sales
+                                        $items = collect([
+                                            ['product_id' => 16],
+                                            ['product_id' => 17],
+                                            ['product_id' => 18],
+                                        ])->mapWithKeys(fn ($item) => [
+                                            (string) \Illuminate\Support\Str::uuid() => $item
+                                        ])->toArray();
+                                    }
 
                                     $set('items', $items);
 
