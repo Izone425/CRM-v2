@@ -303,24 +303,42 @@ class HeadcountHandoverRelationManager extends RelationManager
     {
         $leadStatus = $this->getOwnerRecord()->lead_status ?? '';
         $isCompanyDetailsIncomplete = $this->isCompanyDetailsIncomplete();
+        $hasRequiredProducts = $this->hasRequiredProductsInFinalQuotation();
 
         return [
             // Action 1: Warning notification when requirements are not met
             Tables\Actions\Action::make('HeadcountHandoverWarning')
-                ->label('Add Headcount Handover')
-                ->icon('heroicon-o-plus')
-                ->color('gray')
-                ->visible(function () use ($leadStatus, $isCompanyDetailsIncomplete) {
-                    return $leadStatus !== 'Closed' || $isCompanyDetailsIncomplete;
-                })
-                ->action(function () {
-                    Notification::make()
-                        ->warning()
-                        ->title('Action Required')
-                        ->body('Please close the lead and complete the company details before proceeding with the headcount handover.')
-                        ->persistent()
-                        ->send();
-                }),
+            ->label('Add Headcount Handover')
+            ->icon('heroicon-o-plus')
+            ->color('gray')
+            ->visible(function () use ($leadStatus, $isCompanyDetailsIncomplete, $hasRequiredProducts) {
+                return $leadStatus !== 'Closed' || $isCompanyDetailsIncomplete || !$hasRequiredProducts;
+            })
+            ->action(function () use ($hasRequiredProducts) {
+                $body = 'Please ';
+                $reasons = [];
+
+                if ($this->getOwnerRecord()->lead_status !== 'Closed') {
+                    $reasons[] = 'close the lead';
+                }
+
+                if ($this->isCompanyDetailsIncomplete()) {
+                    $reasons[] = 'complete the company details';
+                }
+
+                if (!$hasRequiredProducts) {
+                    $reasons[] = 'ensure you have at least one final quotation with required products (114, 115, 116, 117, 118, 108, 120, 121)';
+                }
+
+                $body .= implode(', ', $reasons) . ' before proceeding with the headcount handover.';
+
+                Notification::make()
+                    ->warning()
+                    ->title('Action Required')
+                    ->body($body)
+                    ->persistent()
+                    ->send();
+            }),
 
             // Action 2: Actual form when requirements are met
             Tables\Actions\Action::make('AddHeadcountHandover')
@@ -626,5 +644,28 @@ class HeadcountHandoverRelationManager extends RelationManager
 
         // No gaps found, return next ID after max
         return $maxId + 1;
+    }
+
+    protected function hasRequiredProductsInFinalQuotation(): bool
+    {
+        $lead = $this->getOwnerRecord();
+        $requiredProductIds = [114, 115, 116, 117, 118, 108, 120, 121];
+
+        // Get all final quotations for this lead
+        $finalQuotations = Quotation::where('lead_id', $lead->id)
+            ->where('mark_as_final', true)
+            ->with('items')
+            ->get();
+
+        // Check if any final quotation has the required product IDs
+        foreach ($finalQuotations as $quotation) {
+            foreach ($quotation->items as $item) {
+                if (in_array($item->product_id, $requiredProductIds)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 }

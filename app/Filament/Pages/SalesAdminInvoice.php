@@ -109,7 +109,7 @@ class SalesAdminInvoice extends Page implements HasTable
                 $totalInvoiceAmount = Invoice::where('invoice_no', $invoiceNo)
                     ->where('invoice_amount', '>', 0)
                     ->sum('invoice_amount');
-                
+
                 $paymentStatus = $this->getPaymentStatusForInvoice($invoiceNo);
 
                 // Get the invoice to check sales admin (lead_owner)
@@ -138,17 +138,11 @@ class SalesAdminInvoice extends Page implements HasTable
             ];
         }
     }
-    
-    // Helper method to determine sales admin from invoice
-    // You'll need to implement this based on your data structure
+
     protected function getSalesAdminFromInvoice($invoice): string
     {
-        // This is a placeholder implementation
-        // You'll need to adjust this based on how you can determine the sales admin
-        // Maybe through a relationship with leads or quotations
-
-        // For now, returning a random assignment - replace with your logic
-        return collect(['JAJA', 'SHEENA'])->random();
+        // Show the actual value from database, even if it's null/empty
+        return $invoice->sales_admin ?: 'Unassigned';
     }
 
     public function table(Table $table): Table
@@ -164,9 +158,6 @@ class SalesAdminInvoice extends Page implements HasTable
 
                 Tables\Columns\TextColumn::make('sales_admin')
                     ->label('Sales Admin')
-                    ->getStateUsing(function (Invoice $record): string {
-                        return $this->getSalesAdminFromInvoice($record);
-                    })
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('company_name')
@@ -229,15 +220,16 @@ class SalesAdminInvoice extends Page implements HasTable
                 $query = $query->select([
                     DB::raw('MIN(id) as id'),
                     'salesperson',
+                    'sales_admin', // Add this line to include sales_admin in the GROUP BY
                     'invoice_no',
                     'invoice_date',
                     'company_name',
                     DB::raw('SUM(invoice_amount) as total_invoice_amount')
                 ])
                 ->whereIn('salesperson', $allowedSalespersons)
-                ->where('invoice_amount', '>', 0) // Only show invoices with amount > 0
-                ->groupBy('invoice_no', 'salesperson', 'invoice_date', 'company_name')
-                ->havingRaw('SUM(invoice_amount) > 0') // Ensure grouped total is also > 0
+                ->where('invoice_amount', '>', 0)
+                ->groupBy('invoice_no', 'salesperson', 'sales_admin', 'invoice_date', 'company_name') // Add sales_admin here
+                ->havingRaw('SUM(invoice_amount) > 0')
                 ->orderBy('invoice_date', 'desc');
 
                 if (Auth::check() && Auth::user()->role_id === 2) {
@@ -254,6 +246,46 @@ class SalesAdminInvoice extends Page implements HasTable
                 return $query;
             })
             ->filters([
+                SelectFilter::make('sales_admin')
+                    ->label('Sales Admin')
+                    ->options(function () {
+                        $allowedSalespersons = array_keys(static::$salespersonUserIds);
+
+                        try {
+                            return Invoice::query()
+                                ->select('sales_admin')
+                                ->distinct()
+                                ->whereIn('salesperson', $allowedSalespersons)
+                                ->where('invoice_amount', '>', 0)
+                                ->orderBy('sales_admin')
+                                ->get()
+                                ->mapWithKeys(function ($item) {
+                                    $value = $item->sales_admin ?: 'Unassigned';
+                                    $key = $item->sales_admin ?: '';
+                                    return [$key => $value];
+                                })
+                                ->toArray();
+                        } catch (\Exception $e) {
+                            return [];
+                        }
+                    })
+                    ->query(function (Builder $query, array $data): Builder {
+                        if (empty($data['value']) && $data['value'] !== '') {
+                            return $query;
+                        }
+
+                        if ($data['value'] === '') {
+                            // Filter for unassigned (null or empty sales_admin)
+                            return $query->where(function ($q) {
+                                $q->whereNull('sales_admin')
+                                ->orWhere('sales_admin', '');
+                            });
+                        }
+
+                        // Filter for specific sales_admin value
+                        return $query->where('sales_admin', $data['value']);
+                    }),
+
                 SelectFilter::make('payment_status')
                     ->label('Payment Status')
                     ->options([
