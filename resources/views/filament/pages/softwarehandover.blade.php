@@ -315,7 +315,7 @@
 
     // Calculate combined counts for groups
     $allTaskCount = $newCount + $draftRejectedCount + $pendingKickOffCount + $pendingLicenseCount + $completedCount;
-    $newTaskGroupCount = $newCount + $draftRejectedCount;
+    $newTaskGroupCount = $newCount;
     $pendingTaskGroupCount = $pendingKickOffCount + $pendingLicenseCount;
 @endphp
 

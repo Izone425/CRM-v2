@@ -187,7 +187,17 @@ class SoftwareHandoverRelationManager extends RelationManager
                                 TextInput::make('pic_email_impl')
                                     ->label('Email Address')
                                     ->required()
-                                    ->email(),
+                                    ->email()
+                                    ->extraAlpineAttributes([
+                                        'x-on:input' => '
+                                            const start = $el.selectionStart;
+                                            const end = $el.selectionEnd;
+                                            const value = $el.value;
+                                            $el.value = value.toLowerCase();
+                                            $el.setSelectionRange(start, end);
+                                        '
+                                    ])
+                                    ->dehydrateStateUsing(fn ($state) => strtolower($state)),
                             ]),
                         ])
                         ->addActionLabel('Add PIC')

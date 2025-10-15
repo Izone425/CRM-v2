@@ -278,7 +278,6 @@ class HardwareV2PendingAdminSelfPickUpTable extends Component implements HasForm
                         ->label('Complete the Task')
                         ->icon('heroicon-o-calendar-days')
                         ->color('warning')
-                        ->modalHeading(false)
                         ->modalWidth('md')
                         ->form([
                             DatePicker::make('customer_forecast_pickup_date')
@@ -289,6 +288,16 @@ class HardwareV2PendingAdminSelfPickUpTable extends Component implements HasForm
                                 ->minDate(today())
                                 ->live(),
                         ])
+                        ->modalHeading(function (HardwareHandoverV2 $record) {
+                            // Get company name from the lead relationship
+                            $companyName = 'Unknown Company';
+
+                            if ($record->lead && $record->lead->companyDetail && $record->lead->companyDetail->company_name) {
+                                $companyName = $record->lead->companyDetail->company_name;
+                            }
+
+                            return 'Complete Admin Pick-Up - ' . $companyName;
+                        })
                         ->action(function (HardwareHandoverV2 $record, array $data): void {
                             try {
                                 // Get existing category2 data

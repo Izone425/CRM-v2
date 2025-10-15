@@ -283,7 +283,16 @@ class HardwareV2PendingInternalInstallationTable extends Component implements Ha
                         ->label('OnSite Installation')
                         ->icon('heroicon-o-check-circle')
                         ->color('success')
-                        ->modalHeading('OnSite Installation')
+                        ->modalHeading(function (HardwareHandoverV2 $record) {
+                            // Get company name from the lead relationship
+                            $companyName = 'Unknown Company';
+
+                            if ($record->lead && $record->lead->companyDetail && $record->lead->companyDetail->company_name) {
+                                $companyName = $record->lead->companyDetail->company_name;
+                            }
+
+                            return 'OnSite Installation - ' . $companyName;
+                        })
                         ->modalWidth('4xl')
                         ->form(function (HardwareHandoverV2 $record) {
                             // Get device quantities from the record

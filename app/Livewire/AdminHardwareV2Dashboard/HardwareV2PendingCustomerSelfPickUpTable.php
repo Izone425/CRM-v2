@@ -278,8 +278,17 @@ class HardwareV2PendingCustomerSelfPickUpTable extends Component implements HasF
                         ->label('Complete the Task')
                         ->icon('heroicon-o-check-circle')
                         ->color('success')
-                        ->modalHeading(false)
                         ->modalWidth('md')
+                        ->modalHeading(function (HardwareHandoverV2 $record) {
+                            // Get company name from the lead relationship
+                            $companyName = 'Unknown Company';
+
+                            if ($record->lead && $record->lead->companyDetail && $record->lead->companyDetail->company_name) {
+                                $companyName = $record->lead->companyDetail->company_name;
+                            }
+
+                            return 'Complete Customer Pick-Up - ' . $companyName;
+                        })
                         ->form([
                             DatePicker::make('self_pickup_date')
                                 ->label('Completed Pick-Up Date')

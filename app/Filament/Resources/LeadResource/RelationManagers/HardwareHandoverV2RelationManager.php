@@ -222,7 +222,7 @@ class HardwareHandoverV2RelationManager extends RelationManager
                 ->schema([
                     Forms\Components\Placeholder::make('installation_type_helper')
                         ->label('')
-                        ->content('Please select any option Category 1 at Step 4 to see the relevant fields.')
+                        ->content('Please select any option Installation Type 1 at Step 4 to see the relevant fields.')
                         ->visible(fn(callable $get) => empty($get('installation_type')))
                         ->inlineLabel(),
 

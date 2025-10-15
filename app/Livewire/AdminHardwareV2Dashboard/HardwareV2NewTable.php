@@ -321,80 +321,27 @@ class HardwareV2NewTable extends Component implements HasForms, HasTable
                                 ->with('extraAttributes', ['record' => $record]);
                         }),
 
-                    // Action::make('accept')
-                    //     ->label('Accept')
-                    //     ->icon('heroicon-o-check-circle')
-                    //     ->color('success')
-                    //     ->visible(fn (HardwareHandoverV2 $record): bool =>
-                    //         $record->status === 'New' && auth()->user()->role_id !== 2
-                    //     )
-                    //     ->action(function (HardwareHandoverV2 $record): void {
-                    //         // Condition 1: Check invoice type and route accordingly
-                    //         if ($record->invoice_type === 'single') {
-                    //             // Single invoice goes to Pending Migration
-                    //             $record->update([
-                    //                 'status' => 'Pending Migration',
-                    //                 'approved_at' => now(),
-                    //                 'approved_by' => auth()->id(),
-                    //                 'migration_pending_at' => now(),
-                    //             ]);
-
-                    //             Notification::make()
-                    //                 ->title('Hardware Handover accepted and moved to Pending Migration')
-                    //                 ->body('Single invoice type automatically routed to migration.')
-                    //                 ->success()
-                    //                 ->send();
-                    //         } elseif ($record->invoice_type === 'combined') {
-                    //             // Combined invoice goes to Pending Payment
-                    //             $record->update([
-                    //                 'status' => 'Pending Payment',
-                    //                 'approved_at' => now(),
-                    //                 'approved_by' => auth()->id(),
-                    //                 'payment_pending_at' => now(),
-                    //             ]);
-
-                    //             Notification::make()
-                    //                 ->title('Hardware Handover accepted and moved to Pending Payment')
-                    //                 ->body('Combined invoice type routed to payment processing.')
-                    //                 ->success()
-                    //                 ->send();
-                    //         } else {
-                    //             // Default fallback to Approved status
-                    //             $record->update([
-                    //                 'status' => 'Approved',
-                    //                 'approved_at' => now(),
-                    //                 'approved_by' => auth()->id(),
-                    //             ]);
-
-                    //             Notification::make()
-                    //                 ->title('Hardware Handover approved')
-                    //                 ->success()
-                    //                 ->send();
-                    //         }
-                    //     })
-                    //     ->requiresConfirmation()
-                    //     ->modalHeading('Accept Hardware Handover')
-                    //     ->modalDescription(function (HardwareHandoverV2 $record) {
-                    //         if ($record->invoice_type === 'single') {
-                    //             return 'This single invoice will be automatically moved to Pending Migration after acceptance.';
-                    //         } elseif ($record->invoice_type === 'combined') {
-                    //             return 'This combined invoice will be automatically moved to Pending Payment after acceptance.';
-                    //         }
-                    //         return 'Are you sure you want to accept this hardware handover?';
-                    //     }),
-
                     Action::make('reject')
                         ->label('Reject')
                         ->icon('heroicon-o-x-circle')
                         ->color('danger')
+                        ->modalHeading(function (HardwareHandoverV2 $record) {
+                            // Get company name from the lead relationship
+                            $companyName = 'Unknown Company';
+
+                            if ($record->lead && $record->lead->companyDetail && $record->lead->companyDetail->company_name) {
+                                $companyName = $record->lead->companyDetail->company_name;
+                            }
+
+                            return 'Reject Handover - ' . $companyName;
+                        })
                         ->visible(fn (HardwareHandoverV2 $record): bool =>
                             $record->status === 'New' && auth()->user()->role_id !== 2
                         )
                         ->form([
                             Textarea::make('reject_reason')
-                                ->label('Reason for Rejection')
+                                ->label('Reason')
                                 ->required()
-                                ->placeholder('Please provide a detailed reason for rejecting this handover')
                                 ->maxLength(500)
                                 ->helperText('This reason will be visible to the salesperson.')
                         ])
@@ -418,8 +365,17 @@ class HardwareV2NewTable extends Component implements HasForms, HasTable
                         ->label('Create Sales Order')
                         ->icon('heroicon-o-archive-box')
                         ->color('warning')
-                        ->modalHeading(false)
                         ->modalWidth('2xl')
+                        ->modalHeading(function (HardwareHandoverV2 $record) {
+                            // Get company name from the lead relationship
+                            $companyName = 'Unknown Company';
+
+                            if ($record->lead && $record->lead->companyDetail && $record->lead->companyDetail->company_name) {
+                                $companyName = $record->lead->companyDetail->company_name;
+                            }
+
+                            return 'Create Sales Order - ' . $companyName;
+                        })
                         ->form([
                             Grid::make(3)
                                 ->schema([
