@@ -28,6 +28,7 @@ use Illuminate\Validation\Rule;
 use Filament\Forms\Components\Grid;
 use Filament\Support\Enums\MaxWidth;
 use Filament\Tables\Actions\Action;
+use Illuminate\Support\HtmlString;
 
 class ProductResource extends Resource
 {
@@ -55,184 +56,193 @@ class ProductResource extends Resource
     {
         return $form
             ->schema([
-                TextInput::make('code')
-                    ->required(fn (Page $livewire) => ($livewire instanceof CreateRecord))
-                    ->disabledOn('edit')
-                    ->rules([
-                        function ($record) {
-                            return [
-                                'required',
-                                Rule::unique('products', 'code')->ignore($record?->id),
-                            ];
-                        }
-                    ])
-                    ->validationMessages([
-                        'unique' => 'This product code already exists. Please use a different code.',
-                    ])
-                    ->helperText('Product codes must be unique across all products.'),
-
-                Select::make('solution')
-                    ->placeholder('Select a solution')
-                    ->live() // Make it reactive for other fields
-                    ->options([
-                        'software' => 'Software',
-                        'hardware' => 'Hardware',
-                        'hrdf' => 'HRDF',
-                        'other' => 'Other',
-                        'installation' => 'Installation',
-                        'door_access_package' => 'Door Access Package',
-                        'door_access_accesories' => 'Door Access Accesories',
-                    ]),
                 Grid::make(2)
-                ->schema([
-                    RichEditor::make('description')
-                        ->columnSpan(1),
-                    Grid::make(1)
-                        ->schema([
-                            TextInput::make('unit_price')
-                                ->label('Cost (RM)'),
-                            Select::make('is_commission')
-                                ->label('Commission Type')
-                                ->options([
-                                'yes' => 'Yes',
-                                'no' => 'No',
-                                'margin' => 'Margin',
-                                ])
-                                ->default('no')
-                                ->required()
-                                ->helperText('Select the commission type for this product.'),
-                            Toggle::make('push_to_autocount')
-                                ->label('Push to A/C (Legacy)')
-                                ->inline(false)
-                                ->default(true)
-                                ->helperText('Legacy field - will be replaced by Push Invoice/Push SO'),
-                        ])
-                        ->columnSpan(1)
-                ]),
-
-                // New AutoCount Integration Section
-                Grid::make(3)
                     ->schema([
-                        Toggle::make('push_to_autocount')
-                            ->label('Push Invoice')
-                            ->inline(false)
-                            ->default(false)
-                            ->helperText('Product code will go to AutoCount - Invoice')
-                            ->live()
-                            ->afterStateUpdated(function ($state, callable $set, callable $get) {
-                                // If Push Invoice is turned ON, turn OFF Push SO
-                                if ($state) {
-                                    $set('push_so', false);
-                                }
-                            }),
+                        Grid::make(1)
+                            ->schema([
+                                TextInput::make('code')
+                                    ->required(fn (Page $livewire) => ($livewire instanceof CreateRecord))
+                                    ->disabledOn('edit')
+                                    ->rules([
+                                        function ($record) {
+                                            return [
+                                                'required',
+                                                Rule::unique('products', 'code')->ignore($record?->id),
+                                            ];
+                                        }
+                                    ])
+                                    ->validationMessages([
+                                        'unique' => 'This product code already exists. Please use a different code.',
+                                    ])
+                                    ->helperText('Product codes must be unique across all products.'),
 
-                        Toggle::make('push_so')
-                            ->label('Push SO')
-                            ->inline(false)
-                            ->default(false)
-                            ->helperText('Product code will go to AutoCount - Sales Order')
-                            ->live()
-                            ->afterStateUpdated(function ($state, callable $set, callable $get) {
-                                // If Push SO is turned ON, turn OFF Push Invoice
-                                if ($state) {
-                                    $set('push_to_autocount', false);
-                                }
-                            }),
+                                RichEditor::make('description')
+                                    ->columnSpan(1),
 
-                        Toggle::make('push_sw')
-                            ->label('Push SW')
-                            ->inline(false)
-                            ->default(false)
-                            ->helperText('Product code will go to Admin Portal + Admin Renewal')
-                            ->visible(fn (callable $get) => $get('solution') === 'software')
-                            ->disabled(fn (callable $get) => $get('solution') !== 'software'),
-                    ])
-                    ->columnSpanFull(),
+                                Grid::make(2)
+                                    ->schema([
+                                        Grid::make(1)
+                                            ->schema([
+                                                Toggle::make('is_active')
+                                                    ->label('Is Active?')
+                                                    ->inline(false),
 
-                Grid::make(4)
-                    ->schema([
-                    Toggle::make('taxable')
-                        ->label('Taxable?')
-                        ->inline(false),
-                    Toggle::make('is_active')
-                        ->label('Is Active?')
-                        ->inline(false),
-                    Toggle::make('editable')
-                        ->label('Editable?')
-                        ->inline(false)
-                        ->default(true),
-                    Toggle::make('minimum_price')
-                        ->label('Minimum Price?')
-                        ->inline(false)
-                        ->default(true),
+                                                Toggle::make('convert_pi')
+                                                    ->label('Convert PI')
+                                                    ->inline(false)
+                                                    ->default(false),
+
+                                                Toggle::make('push_to_autocount')
+                                                    ->label('Push Invoice')
+                                                    ->inline(false)
+                                                    ->default(false)
+                                                    ->live()
+                                                    ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                                        // If Push Invoice is turned ON, turn OFF Push SO
+                                                        if ($state) {
+                                                            $set('push_so', false);
+                                                        }
+                                                    }),
+
+                                                Toggle::make('push_so')
+                                                    ->label('Push S/Order')
+                                                    ->inline(false)
+                                                    ->default(false)
+                                                    ->live()
+                                                    ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                                        // If Push SO is turned ON, turn OFF Push Invoice
+                                                        if ($state) {
+                                                            $set('push_to_autocount', false);
+                                                        }
+                                                    }),
+
+                                                Toggle::make('push_sw')
+                                                    ->label('Push S/Ware')
+                                                    ->inline(false)
+                                                    ->default(false)
+                                                    ->visible(fn (callable $get) => $get('solution') === 'software')
+                                                    ->disabled(fn (callable $get) => $get('solution') !== 'software'),
+                                            ])
+                                            ->columnSpan(1),
+                                        Grid::make(1)
+                                            ->schema([
+                                                Toggle::make('amount_editable')
+                                                    ->label('Edit Amount')
+                                                    ->inline(false)
+                                                    ->default(true),
+
+                                                Toggle::make('editable')
+                                                    ->label('Edit Description')
+                                                    ->inline(false)
+                                                    ->default(true),
+
+                                                Toggle::make('taxable')
+                                                    ->label('Tax')
+                                                    ->inline(false),
+
+                                                Toggle::make('minimum_price')
+                                                    ->label('Minimum Price')
+                                                    ->inline(false)
+                                                    ->default(true),
+                                            ])
+                                            ->columnSpan(1),
+                                    ]),
+                            ])->columnSpan(1),
+
+                        Grid::make(1)
+                            ->schema([
+                                Select::make('solution')
+                                    ->placeholder('Select a solution')
+                                    ->live() // Make it reactive for other fields
+                                    ->options([
+                                        'software' => 'Software',
+                                        'hardware' => 'Hardware',
+                                        'hrdf' => 'HRDF',
+                                        'other' => 'Other',
+                                        'installation' => 'Installation',
+                                        'door_access_package' => 'Door Access Package',
+                                        'door_access_accesories' => 'Door Access Accesories',
+                                    ]),
+
+                                TextInput::make('unit_price')
+                                    ->label('Cost (RM)'),
+
+                                Select::make('is_commission')
+                                    ->label('Comm')
+                                    ->options([
+                                        'yes' => 'Yes',
+                                        'no' => 'No',
+                                        'margin' => 'Margin',
+                                    ])
+                                    ->default('no')
+                                    ->required()
+                                    ->helperText('Select the commission type for this product.'),
+
+                                TextInput::make('sort_order')
+                                    ->label('Sort Order')
+                                    ->numeric()
+                                    ->default(function ($record) {
+                                        // If editing, use existing value
+                                        if ($record?->sort_order) return $record->sort_order;
+
+                                        // If creating, return max sort_order within the same solution + 1
+                                        $solution = request()->input('data.solution') ?? $record?->solution;
+                                        return Product::where('solution', $solution)->max('sort_order') + 1;
+                                    })
+                                    ->helperText('Lower numbers appear first in dropdowns.')
+                                    ->rules(function ($record) {
+                                        return [
+                                            Rule::unique('products', 'sort_order')
+                                                ->ignore($record?->id)
+                                                ->where(function ($query) use ($record) {
+                                                    $solution = request()->input('data.solution') ?? $record?->solution;
+                                                    $query->where('solution', $solution);
+                                                }),
+                                        ];
+                                    })
+                                    ->validationMessages([
+                                        'unique' => 'This sort order is already in use for this solution type.',
+                                    ]),
+
+                                TextInput::make('subscription_period')
+                                    ->label('Subscription Period (Months)')
+                                    ->numeric()
+                                    ->nullable()
+                                    ->helperText('Enter the subscription period in months, if applicable.'),
+
+                                Select::make('package_group')
+                                    ->label('Package Group')
+                                    ->placeholder('Select a group')
+                                    ->options([
+                                        'Package 1' => 'Package 1',
+                                        'Package 2' => 'Package 2',
+                                        'Package 3' => 'Package 3',
+                                        'Other' => 'Other',
+                                    ])
+                                    ->searchable()
+                                    ->nullable()
+                                    ->helperText('Used to group products into predefined package groups.'),
+
+                                TextInput::make('package_sort_order')
+                                    ->label('Package Sort Order')
+                                    ->numeric()
+                                    ->nullable()
+                                    ->helperText('Sort order within this package group. Lower numbers appear first.')
+                                    ->rules(function ($record) {
+                                        return [
+                                            Rule::unique('products', 'package_sort_order')
+                                                ->ignore($record?->id)
+                                                ->where(function ($query) use ($record) {
+                                                    $package = request()->input('data.package_group') ?? $record?->package_group;
+                                                    return $query->where('package_group', $package);
+                                                }),
+                                        ];
+                                    })
+                                    ->validationMessages([
+                                        'unique' => 'This sort order is already in use for this package group.',
+                                    ]),
+                            ])->columnSpan(1),
                     ]),
-
-                Toggle::make('amount_editable')
-                    ->label('Amount Editable')
-                    ->inline(false)
-                    ->default(true)
-                    ->helperText('If ON: Salesperson can enter the amount. If OFF: Salesperson cannot enter the amount'),
-
-                TextInput::make('subscription_period')
-                    ->label('Subscription Period (Months)')
-                    ->numeric()
-                    ->nullable()
-                    ->helperText('Enter the subscription period in months, if applicable.'),
-                Select::make('package_group')
-                    ->label('Package Group')
-                    ->placeholder('Select a group')
-                    ->options([
-                        'Package 1' => 'Package 1',
-                        'Package 2' => 'Package 2',
-                        'Package 3' => 'Package 3',
-                        'Other' => 'Other',
-                    ])
-                    ->searchable()
-                    ->nullable()
-                    ->helperText('Used to group products into predefined package groups.'),
-                TextInput::make('package_sort_order')
-                    ->label('Package Sort Order')
-                    ->numeric()
-                    ->nullable()
-                    ->helperText('Sort order within this package group. Lower numbers appear first.')
-                    ->rules(function ($record) {
-                        return [
-                            Rule::unique('products', 'package_sort_order')
-                                ->ignore($record?->id)
-                                ->where(function ($query) use ($record) {
-                                    $package = request()->input('data.package_group') ?? $record?->package_group;
-                                    return $query->where('package_group', $package);
-                                }),
-                        ];
-                    })
-                    ->validationMessages([
-                        'unique' => 'This sort order is already in use for this package group.',
-                    ]),
-                TextInput::make('sort_order')
-                    ->label('Sort Order')
-                    ->numeric()
-                    ->default(function ($record) {
-                        // If editing, use existing value
-                        if ($record?->sort_order) return $record->sort_order;
-
-                        // If creating, return max sort_order within the same solution + 1
-                        $solution = request()->input('data.solution') ?? $record?->solution;
-                        return Product::where('solution', $solution)->max('sort_order') + 1;
-                    })
-                    ->helperText('Lower numbers appear first in dropdowns.')
-                    ->rules(function ($record) {
-                        return [
-                            Rule::unique('products', 'sort_order')
-                                ->ignore($record?->id)
-                                ->where(function ($query) use ($record) {
-                                    $solution = request()->input('data.solution') ?? $record?->solution;
-                                    $query->where('solution', $solution);
-                                }),
-                        ];
-                    })
-                    ->validationMessages([
-                        'unique' => 'This sort order is already in use for this solution type.',
-                    ])
             ])
             ->columns(2);
     }
@@ -268,7 +278,8 @@ class ProductResource extends Resource
                         ];
 
                         return $solutionMap[$state] ?? strtoupper($state ?? '');
-                    }),               
+                    })
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('description')
                     ->html()
                     ->width(500)
@@ -314,9 +325,46 @@ class ProductResource extends Resource
                             ->modalCancelActionLabel('Close')
                             ->modalWidth(MaxWidth::Large)
                             ->icon('heroicon-o-eye')
-                    ),
+                    )
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('unit_price')->label('RM')->width(100),
                 TextColumn::make('subscription_period')->label('Months')->width(150),
+
+                ToggleColumn::make('is_active')->label('Active')->width(100)->disabled(fn() => auth()->user()->role_id != 3),
+
+                ToggleColumn::make('convert_pi')
+                    ->label(new HtmlString('Convert<br>to PI'))
+                    ->width(100)
+                    ->disabled(fn() => auth()->user()->role_id != 3),
+
+                // New AutoCount Integration Columns
+                ToggleColumn::make('push_to_autocount')
+                    ->label(new HtmlString('Push<br>Invoice'))
+                    ->width(100)
+                    ->disabled(fn() => auth()->user()->role_id != 3)
+                    ->afterStateUpdated(function ($record, $state) {
+                        // If Push Invoice is turned ON, turn OFF Push SO
+                        if ($state) {
+                            $record->update(['push_so' => false]);
+                        }
+                    }),
+
+                ToggleColumn::make('push_so')
+                    ->label(new HtmlString('Push<br>S/Order'))
+                    ->width(100)
+                    ->disabled(fn() => auth()->user()->role_id != 3)
+                    ->afterStateUpdated(function ($record, $state) {
+                        // If Push SO is turned ON, turn OFF Push Invoice
+                        if ($state) {
+                            $record->update(['push_to_autocount' => false]);
+                        }
+                    }),
+
+                ToggleColumn::make('push_sw')
+                    ->label(new HtmlString('Push<br>S/Ware'))
+                    ->width(100)
+                    ->disabled(fn() => auth()->user()->role_id != 3),
+
                 TextColumn::make('is_commission')
                     ->label('Comm')
                     ->badge()
@@ -338,43 +386,15 @@ class ProductResource extends Resource
                     })
                     ->width(100),
 
-                // New AutoCount Integration Columns
-                ToggleColumn::make('push_to_autocount')
-                    ->label('Push Inv')
-                    ->width(100)
-                    ->disabled(fn() => auth()->user()->role_id != 3)
-                    ->afterStateUpdated(function ($record, $state) {
-                        // If Push Invoice is turned ON, turn OFF Push SO
-                        if ($state) {
-                            $record->update(['push_so' => false]);
-                        }
-                    }),
-
-                ToggleColumn::make('push_so')
-                    ->label('Push SO')
-                    ->width(100)
-                    ->disabled(fn() => auth()->user()->role_id != 3)
-                    ->afterStateUpdated(function ($record, $state) {
-                        // If Push SO is turned ON, turn OFF Push Invoice
-                        if ($state) {
-                            $record->update(['push_to_autocount' => false]);
-                        }
-                    }),
-
-                ToggleColumn::make('push_sw')
-                    ->label('Push SW')
-                    ->width(100)
-                    ->disabled(fn() => auth()->user()->role_id != 3),
-
                 ToggleColumn::make('amount_editable')
-                    ->label('Amount Editable')
+                    ->label(new HtmlString('Edit<br>Amount'))
                     ->width(100)
                     ->disabled(fn() => auth()->user()->role_id != 3),
+
+                ToggleColumn::make('editable')->label(new HtmlString('Edit<br>Details'))->width(100)->disabled(fn() => auth()->user()->role_id != 3),
 
                 // Legacy column (keep for backwards compatibility)
                 ToggleColumn::make('taxable')->label('Tax')->width(100)->disabled(fn() => auth()->user()->role_id != 3),
-                ToggleColumn::make('is_active')->label('Active')->width(100)->disabled(fn() => auth()->user()->role_id != 3),
-                ToggleColumn::make('editable')->label('Edit')->width(100)->disabled(fn() => auth()->user()->role_id != 3),
                 ToggleColumn::make('minimum_price')->label('Min')->width(100)->disabled(fn() => auth()->user()->role_id != 3),
             ])
             // ...existing filters and actions...
@@ -382,7 +402,7 @@ class ProductResource extends Resource
                 Filter::make('solution')
                     ->form([
                         Select::make('solution')
-                            ->label('Solution Types')
+                            ->label('Solution')
                             ->multiple()
                             ->options([
                                 'software' => 'Software',
@@ -394,7 +414,6 @@ class ProductResource extends Resource
                                 'door_access_accesories' => 'Door Access Accesories',
                             ])
                             ->searchable()
-                            ->placeholder('Select solution types to filter')
                     ])
                     ->query(function (Builder $query, array $data): Builder {
                         return $query->when(
@@ -439,7 +458,6 @@ class ProductResource extends Resource
                                 'push_so' => 'Push SO',
                                 'push_sw' => 'Push SW (Software only)',
                             ])
-                            ->placeholder('Select integration type')
                     ])
                     ->query(function (Builder $query, array $data): Builder {
                         return $query->when(
@@ -464,14 +482,13 @@ class ProductResource extends Resource
                 Filter::make('is_commission')
                     ->form([
                         Select::make('is_commission')
-                            ->label('Commission Type')
+                            ->label('Commission')
                             ->multiple()
                             ->options([
                                 'yes' => 'Yes',
                                 'no' => 'No',
                                 'margin' => 'Margin',
                             ])
-                            ->placeholder('Select commission types to filter')
                     ])
                     ->query(function (Builder $query, array $data): Builder {
                         return $query->when(

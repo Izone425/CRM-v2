@@ -37,7 +37,7 @@ class SubscriberDetailsTabs
         return [
             Grid::make(4)
             ->schema([
-                Section::make('E-Invoice Information')
+                Section::make('E-Invoice Details')
                     ->headerActions([
                         // Action::make('export_to_excel')
                         //     ->label('Export to Excel')
@@ -107,18 +107,47 @@ class SubscriberDetailsTabs
 
                                                 TextInput::make('business_register_number')
                                                     ->label('New Business Register Number')
+                                                    ->extraAlpineAttributes([
+                                                        'x-on:input' => '
+                                                            const start = $el.selectionStart;
+                                                            const end = $el.selectionEnd;
+                                                            const value = $el.value;
+                                                            $el.value = value.toUpperCase();
+                                                            $el.setSelectionRange(start, end);
+                                                        '
+                                                    ])
+                                                    ->dehydrateStateUsing(fn ($state) => strtoupper($state))
                                                     ->required()
                                                     ->maxLength(255),
 
                                                 TextInput::make('tax_identification_number')
                                                     ->label('Tax Identification Number')
+                                                    ->extraAlpineAttributes([
+                                                        'x-on:input' => '
+                                                            const start = $el.selectionStart;
+                                                            const end = $el.selectionEnd;
+                                                            const value = $el.value;
+                                                            $el.value = value.toUpperCase();
+                                                            $el.setSelectionRange(start, end);
+                                                        '
+                                                    ])
+                                                    ->dehydrateStateUsing(fn ($state) => strtoupper($state))
                                                     ->maxLength(255),
 
-                                                Select::make('business_category')
-                                                    ->label('Business Category')
-                                                    ->options(EInvoiceDetail::getBusinessCategoryOptions())
-                                                    ->default('business')
-                                                    ->required(),
+                                                TextInput::make('msic_code')
+                                                    ->label('MSIC Code')
+                                                    ->extraAlpineAttributes([
+                                                        'x-on:input' => '
+                                                            $el.value = $el.value.replace(/[^0-9]/g, "");
+                                                        '
+                                                    ])
+                                                    ->rules(['regex:/^[0-9]+$/'])
+                                                    ->default(function ($record) {
+                                                        // First try eInvoiceDetail, then companyDetail
+                                                        return $record->eInvoiceDetail->postcode ??
+                                                            $record->companyDetail->postcode ?? '';
+                                                    })
+                                                    ->maxLength(5),
                                             ]),
                                     ]),
 
@@ -134,6 +163,16 @@ class SubscriberDetailsTabs
                                                         return $record->eInvoiceDetail->address_1 ??
                                                             $record->companyDetail->company_address1 ?? '';
                                                     })
+                                                    ->extraAlpineAttributes([
+                                                        'x-on:input' => '
+                                                            const start = $el.selectionStart;
+                                                            const end = $el.selectionEnd;
+                                                            const value = $el.value;
+                                                            $el.value = value.toUpperCase();
+                                                            $el.setSelectionRange(start, end);
+                                                        '
+                                                    ])
+                                                    ->dehydrateStateUsing(fn ($state) => strtoupper($state))
                                                     ->maxLength(255),
 
                                                 TextInput::make('address_2')
@@ -143,17 +182,33 @@ class SubscriberDetailsTabs
                                                         return $record->eInvoiceDetail->address_2 ??
                                                             $record->companyDetail->company_address2 ?? '';
                                                     })
+                                                    ->extraAlpineAttributes([
+                                                        'x-on:input' => '
+                                                            const start = $el.selectionStart;
+                                                            const end = $el.selectionEnd;
+                                                            const value = $el.value;
+                                                            $el.value = value.toUpperCase();
+                                                            $el.setSelectionRange(start, end);
+                                                        '
+                                                    ])
+                                                    ->dehydrateStateUsing(fn ($state) => strtoupper($state))
                                                     ->maxLength(255),
 
                                                 TextInput::make('postcode')
                                                     ->label('Postcode')
                                                     ->required()
+                                                    ->extraAlpineAttributes([
+                                                        'x-on:input' => '
+                                                            $el.value = $el.value.replace(/[^0-9]/g, "");
+                                                        '
+                                                    ])
+                                                    ->rules(['regex:/^[0-9]+$/'])
                                                     ->default(function ($record) {
                                                         // First try eInvoiceDetail, then companyDetail
                                                         return $record->eInvoiceDetail->postcode ??
                                                             $record->companyDetail->postcode ?? '';
                                                     })
-                                                    ->maxLength(10),
+                                                    ->maxLength(5),
 
                                                 TextInput::make('city')
                                                     ->label('City')
@@ -164,6 +219,16 @@ class SubscriberDetailsTabs
                                                             $record->companyDetail->city ??
                                                             $record->city ?? '';
                                                     })
+                                                    ->extraAlpineAttributes([
+                                                        'x-on:input' => '
+                                                            const start = $el.selectionStart;
+                                                            const end = $el.selectionEnd;
+                                                            const value = $el.value;
+                                                            $el.value = value.toUpperCase();
+                                                            $el.setSelectionRange(start, end);
+                                                        '
+                                                    ])
+                                                    ->dehydrateStateUsing(fn ($state) => strtoupper($state))
                                                     ->maxLength(255),
 
                                                 Select::make('state')
@@ -301,13 +366,15 @@ class SubscriberDetailsTabs
                                             ]),
                                     ]),
 
-                                Section::make('Business Configuration')
+                                Section::make('Business Information')
                                     ->schema([
                                         Grid::make(2)
                                             ->schema([
                                                 Select::make('currency')
                                                     ->label('Currency')
                                                     ->options(EInvoiceDetail::getCurrencyOptions())
+                                                    ->disabled()
+                                                    ->dehydrated(true)
                                                     ->default(function ($get, $record) {
                                                         // First try to get from form state (when country changes)
                                                         $country = $get('country');
@@ -344,6 +411,8 @@ class SubscriberDetailsTabs
                                                 Select::make('business_type')
                                                     ->label('Business Type')
                                                     ->options(EInvoiceDetail::getBusinessTypeOptions())
+                                                    ->disabled()
+                                                    ->dehydrated(true)
                                                     ->default(function ($get, $record) {
                                                         // First try to get from form state (when country changes)
                                                         $country = $get('country');
@@ -377,13 +446,11 @@ class SubscriberDetailsTabs
                                                     })
                                                     ->required(),
 
-                                                TextInput::make('msic_code')
-                                                    ->label('MSIC Code')
-                                                    ->numeric()
-                                                    ->maxLength(5)
-                                                    ->minLength(1)
-                                                    ->helperText('Maximum 5 digits')
-                                                    ->rules(['regex:/^\d{1,5}$/']),
+                                                Select::make('business_category')
+                                                    ->label('Business Category')
+                                                    ->options(EInvoiceDetail::getBusinessCategoryOptions())
+                                                    ->default('business')
+                                                    ->required(),
 
                                                 Select::make('billing_category')
                                                     ->label('Billing Category')

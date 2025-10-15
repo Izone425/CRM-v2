@@ -158,7 +158,9 @@
                 $totalBeforeTax = 0;
                 $totalAfterTax = 0;
                 $totalTax = 0;
-                $sortedItems = $quotation->items->sortBy('sort_order');
+                $sortedItems = $quotation->items->sortBy('sort_order')->filter(function($item) {
+                    return $item->convert_pi == true;
+                });
             @endphp
             @foreach($sortedItems as $item)
             @php

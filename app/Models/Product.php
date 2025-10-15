@@ -24,6 +24,7 @@ class Product extends Model
         'sort_order',
         'is_commission',
         'push_to_autocount',
+        'convert_pi',
         'push_so',
         'push_sw'
     ];
