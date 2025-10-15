@@ -120,8 +120,8 @@ class HardwareV2PendingAdminSelfPickUpTable extends Component implements HasForm
             ->query($this->getNewHardwareHandovers())
             ->defaultSort('created_at', 'desc')
             ->emptyState(fn () => view('components.empty-state-question'))
-            ->defaultPaginationPageOption(10)
-            ->paginated([10, 25, 50])
+            ->defaultPaginationPageOption(5)
+            ->paginated([5])
             ->filters([
                 SelectFilter::make('invoice_type')
                     ->label('Filter by Invoice Type')
