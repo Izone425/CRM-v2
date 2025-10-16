@@ -243,11 +243,33 @@ class CreateLead extends CreateRecord
                 ->label('Company Name')
                 ->required()
                 ->columnSpanFull()
-                // ->reactive()
-                // Replace suffix icon with a clickable search action
                 ->extraInputAttributes(['style' => 'text-transform: uppercase'])
                 ->afterStateHydrated(fn($state) => Str::upper($state))
                 ->afterStateUpdated(fn($state) => Str::upper($state))
+                ->rule(function () {
+                    return function (string $attribute, $value, \Closure $fail) {
+                        if (empty($value)) {
+                            return;
+                        }
+
+                        // Get base company name without SDN BHD suffix
+                        $baseCompanyName = preg_replace('/ SDN\.? BHD\.?$/i', '', strtoupper(trim($value)));
+
+                        // Check if company with similar name already exists
+                        $existingCompanies = \App\Models\CompanyDetail::where(function($query) use ($baseCompanyName) {
+                            // Check for exact match
+                            $query->whereRaw('UPPER(TRIM(company_name)) = ?', [$baseCompanyName])
+                                // Check for match with SDN BHD variations
+                                ->orWhereRaw('UPPER(TRIM(company_name)) = ?', [$baseCompanyName . ' SDN BHD'])
+                                ->orWhereRaw('UPPER(TRIM(company_name)) = ?', [$baseCompanyName . ' SDN. BHD.'])
+                                ->orWhereRaw('UPPER(TRIM(company_name)) = ?', [$baseCompanyName . ' SENDIRIAN BERHAD']);
+                        })->exists();
+
+                        if ($existingCompanies) {
+                            $fail('This company name already exists in the system. Please check for existing leads before creating a new one.');
+                        }
+                    };
+                })
                 ->suffixAction(
                     \Filament\Forms\Components\Actions\Action::make('searchCompanies')
                         ->label('Search')
@@ -266,21 +288,17 @@ class CreateLead extends CreateRecord
                             usleep(1000000); // 1 second delay
 
                             // Check if company with similar name already exists
-                            $baseCompanyName = preg_replace('/ SDN\.? BHD\.?$/i', '', $state);
-                            $existingCompanies = \App\Models\CompanyDetail::where('company_name', 'LIKE', $baseCompanyName . '%')
-                                ->get();
+                            $baseCompanyName = preg_replace('/ SDN\.? BHD\.?$/i', '', strtoupper(trim($state)));
 
-                            // To this to find any occurrence of the search term:
-                            $searchTerm = trim(preg_replace('/ SDN\.? BHD\.?$/i', '', $state));
-                            $existingCompanies = \App\Models\CompanyDetail::where(function($query) use ($searchTerm) {
-                                // Try exact match
-                                $query->where('company_name', $searchTerm)
-                                // Or name starts with search term
-                                ->orWhere('company_name', 'LIKE', $searchTerm . '%')
-                                // Or name contains search term
-                                ->orWhere('company_name', 'LIKE', '%' . $searchTerm . '%');
-                            })
-                            ->get();
+                            $existingCompanies = \App\Models\CompanyDetail::where(function($query) use ($baseCompanyName) {
+                                // Check for exact match and variations
+                                $query->whereRaw('UPPER(TRIM(company_name)) = ?', [$baseCompanyName])
+                                    ->orWhereRaw('UPPER(TRIM(company_name)) = ?', [$baseCompanyName . ' SDN BHD'])
+                                    ->orWhereRaw('UPPER(TRIM(company_name)) = ?', [$baseCompanyName . ' SDN. BHD.'])
+                                    ->orWhereRaw('UPPER(TRIM(company_name)) = ?', [$baseCompanyName . ' SENDIRIAN BERHAD'])
+                                    // Also check if the input contains any existing company as substring
+                                    ->orWhere('company_name', 'LIKE', '%' . $baseCompanyName . '%');
+                            })->get();
 
                             // If exists, set helper text with found company details
                             if ($existingCompanies->isNotEmpty()) {
@@ -290,7 +308,7 @@ class CreateLead extends CreateRecord
                                 })->implode("\n");
 
                                 // Store as plain string with HTML markup instead of HtmlString object
-                                $set('company_name_helper_text', '<span style="color:red;">⚠️ Similar companies already exist:</span><br>' . nl2br(htmlspecialchars($duplicateInfo)));
+                                $set('company_name_helper_text', '<span style="color:red;">⚠️ Similar companies already exist - Lead creation will be blocked:</span><br>' . nl2br(htmlspecialchars($duplicateInfo)));
                             } else {
                                 // Store as plain string with HTML markup
                                 $set('company_name_helper_text', '<span style="color:green;">✓ No similar companies found</span>');
@@ -311,7 +329,6 @@ class CreateLead extends CreateRecord
                     // Convert it to HtmlString only when rendering, not when storing
                     return $helperText ? new HtmlString($helperText) : null;
                 })
-                // Make sure you have this in your component's properties
                 ->dehydrateStateUsing(function ($state, $set, $get) {
                     // Fix: Assign the result of strtoupper back to $state
                     $state = strtoupper(trim($state));
@@ -332,6 +349,7 @@ class CreateLead extends CreateRecord
 
                     return $companyDetail->id;
                 }),
+
             Grid::make(2)
             ->schema([
                 TextInput::make('name')

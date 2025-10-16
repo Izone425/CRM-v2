@@ -1,118 +1,452 @@
 <?php
-
-namespace App\Livewire;
+namespace App\Filament\Pages;
 
 use App\Models\Invoice;
+use App\Models\User;
+use Filament\Forms;
+use Filament\Forms\Form;
+use Filament\Pages\Page;
+use Filament\Tables;
 use Filament\Tables\Table;
-use Filament\Forms\Contracts\HasForms;
-use Filament\Tables\Contracts\HasTable;
-use Filament\Forms\Concerns\InteractsWithForms;
-use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Select;
-use Filament\Forms\Components\DatePicker;
-use Livewire\Component;
-use Livewire\Attributes\On;
+use Filament\Tables\Contracts\HasTable;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Filters\Filter;
 use Carbon\Carbon;
 
-class InvoiceTable extends Component implements HasForms, HasTable
+class InvoicesTable extends Page implements HasTable
 {
-    use InteractsWithTable, InteractsWithForms;
+    use InteractsWithTable;
 
-    public $selectedUser;
-    public $selectedMonth;
+    protected static ?string $navigationIcon = 'heroicon-o-document-text';
+    protected static ?string $navigationLabel = 'Invoices';
+    protected static ?string $navigationGroup = 'Finance';
+    protected static ?string $title = '';
+    protected static ?int $navigationSort = 30;
 
-    #[On('updateTablesForUser')]
-    public function updateTablesForUser($selectedUser, $selectedMonth)
+    protected static string $view = 'filament.pages.invoices-table';
+    protected static ?string $slug = 'invoices';
+
+    // Map of salesperson names to their user IDs - Only these 7 will be shown
+    protected static $salespersonUserIds = [
+        'MUIM' => 6,
+        'YASMIN' => 7,
+        'FARHANAH' => 8,
+        'JOSHUA' => 9,
+        'AZIZ' => 10,
+        'BARI' => 11,
+        'VINCE' => 12,
+    ];
+
+    public $summaryData = [];
+
+    public function mount(): void
     {
-        $this->selectedUser = $selectedUser === "" ? null : $selectedUser;
-        $this->selectedMonth = $selectedMonth === "" ? null : $selectedMonth;
-
-        session(['selectedUser' => $this->selectedUser]);
-        session(['selectedMonth' => $this->selectedMonth]);
-
-        $this->resetTable();
+        $this->loadSummaryData();
     }
 
-    protected function getFilteredInvoicesQuery()
+    // Helper method to get payment status for an invoice
+    // protected function getPaymentStatusForInvoice(string $invoiceNo): string
+    // {
+    //     // Get the total invoice amount for this invoice number
+    //     $totalInvoiceAmount = Invoice::where('invoice_no', $invoiceNo)->sum('invoice_amount');
+
+    //     // Look for this invoice in debtor_agings table
+    //     $debtorAging = DB::table('debtor_agings')
+    //         ->where('invoice_number', $invoiceNo)
+    //         ->first();
+
+    //     // If no matching record in debtor_agings or outstanding is 0
+    //     if (!$debtorAging || (float)$debtorAging->outstanding === 0.0) {
+    //         return 'Full Payment';
+    //     }
+
+    //     // If outstanding equals total invoice amount
+    //     if ((float)$debtorAging->outstanding === (float)$totalInvoiceAmount) {
+    //         return 'UnPaid';
+    //     }
+
+    //     // If outstanding is less than invoice amount but greater than 0
+    //     if ((float)$debtorAging->outstanding < (float)$totalInvoiceAmount && (float)$debtorAging->outstanding > 0) {
+    //         return 'Partial Payment';
+    //     }
+
+    //     // Fallback (shouldn't normally reach here)
+    //     return 'UnPaid';
+    // }
+
+    protected function getPaymentStatusForInvoice(string $invoiceNo): string
     {
-        $this->selectedUser = $this->selectedUser ?? session('selectedUser', null);
-        $this->selectedMonth = $this->selectedMonth ?? session('selectedMonth', null);
+        // Look for this invoice in debtor_agings table
+        $debtorAging = DB::table('debtor_agings')
+            ->where('invoice_number', $invoiceNo)
+            ->first();
 
-        $query = Invoice::query();
-
-        if ($this->selectedUser !== null) {
-            $query->where('salesperson', $this->selectedUser);
+        // If no matching record in debtor_agings, assume fully paid
+        if (!$debtorAging) {
+            return 'Full Payment';
         }
 
-        if ($this->selectedMonth !== null) {
-            $query->whereMonth('invoice_date', Carbon::parse($this->selectedMonth)->month)
-                  ->whereYear('invoice_date', Carbon::parse($this->selectedMonth)->year);
+        $outstanding = (float)$debtorAging->outstanding;
+        $invoiceAmount = (float)$debtorAging->invoice_amount;
+
+        // Apply the same logic as your SQL CASE statement
+        if ($outstanding == 0) {
+            return 'Full Payment'; // 'fully paid'
+        } elseif ($outstanding < $invoiceAmount) {
+            return 'Partial Payment'; // 'partial paid'
+        } elseif ($outstanding == $invoiceAmount) {
+            return 'UnPaid'; // 'unpaid'
         }
 
-        return $query;
+        // Fallback (shouldn't normally reach here)
+        return 'UnPaid';
+    }
+
+    public function loadSummaryData(): void
+    {
+        $today = Carbon::today();
+        $currentYear = $today->year;
+        $currentMonth = $today->month;
+
+        // Determine date ranges based on current date
+        $allYearStart = Carbon::create($currentYear - 1, 1, 1); // Previous year January 1st
+        $allYearEnd = $today; // Today
+
+        $currentYearStart = Carbon::create($currentYear, 1, 1); // Current year January 1st
+        $currentYearEnd = $today; // Today
+
+        $currentMonthStart = Carbon::create($currentYear, $currentMonth, 1); // Current month 1st
+        $currentMonthEnd = $today; // Today
+
+        // Get allowed salespersons based on user role
+        $allowedSalespersons = $this->getAllowedSalespersons();
+
+        // Calculate summary data
+        $this->summaryData = [
+            'all_year' => $this->calculateSummaryStats($allYearStart, $allYearEnd, $allowedSalespersons),
+            'current_year' => $this->calculateSummaryStats($currentYearStart, $currentYearEnd, $allowedSalespersons),
+            'current_month' => $this->calculateSummaryStats($currentMonthStart, $currentMonthEnd, $allowedSalespersons),
+            'hrdf_all_year' => $this->calculateSummaryStats($allYearStart, $allYearEnd, $allowedSalespersons, 'EHIN'),
+            'product_all_year' => $this->calculateSummaryStats($allYearStart, $allYearEnd, $allowedSalespersons, 'EPIN'),
+        ];
+    }
+
+    protected function getAllowedSalespersons(): array
+    {
+        $allowedSalespersons = array_keys(static::$salespersonUserIds);
+
+        // Filter for individual salespersons to see only their own data
+        if (Auth::check() && Auth::user()->role_id === 2) {
+            $userId = Auth::id();
+            $salespersonName = array_search($userId, static::$salespersonUserIds);
+
+            if ($salespersonName) {
+                return [$salespersonName];
+            } else {
+                return []; // No results if user not in mapping
+            }
+        }
+
+        return $allowedSalespersons;
+    }
+
+    protected function calculateSummaryStats(Carbon $startDate, Carbon $endDate, array $allowedSalespersons, string $invoicePrefix = null): array
+    {
+        if (empty($allowedSalespersons)) {
+            return [
+                'full_payment_amount' => 0,
+                'partial_payment_amount' => 0,
+                'unpaid_amount' => 0,
+                'total_amount' => 0,
+            ];
+        }
+
+        // Get invoice totals first
+        $invoiceTotals = DB::table('invoices')
+            ->select('invoice_no', DB::raw('SUM(invoice_amount) as total_amount'))
+            ->whereIn('salesperson', $allowedSalespersons)
+            ->whereBetween('invoice_date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
+            ->when($invoicePrefix, function ($query, $prefix) {
+                return $query->where('invoice_no', 'like', $prefix . '%');
+            })
+            ->groupBy('invoice_no')
+            ->get();
+
+        if ($invoiceTotals->isEmpty()) {
+            return [
+                'full_payment_amount' => 0,
+                'partial_payment_amount' => 0,
+                'unpaid_amount' => 0,
+                'total_amount' => 0,
+            ];
+        }
+
+        // Get payment status for all invoices
+        $invoiceNos = $invoiceTotals->pluck('invoice_no')->toArray();
+        $debtorAgings = DB::table('debtor_agings')
+            ->whereIn('invoice_number', $invoiceNos)
+            ->get()
+            ->keyBy('invoice_number');
+
+        $stats = [
+            'full_payment_amount' => 0,
+            'partial_payment_amount' => 0,
+            'unpaid_amount' => 0,
+            'total_amount' => 0,
+        ];
+
+        foreach ($invoiceTotals as $invoice) {
+            $amount = (float)$invoice->total_amount;
+            $stats['total_amount'] += $amount;
+
+            $debtorAging = $debtorAgings->get($invoice->invoice_no);
+
+            // Determine payment status using debtor_agings
+            if (!$debtorAging || (float)$debtorAging->outstanding == 0) {
+                $stats['full_payment_amount'] += $amount;
+            } elseif ((float)$debtorAging->outstanding < (float)$debtorAging->invoice_amount) {
+                $stats['partial_payment_amount'] += $amount;
+            } else {
+                $stats['unpaid_amount'] += $amount;
+            }
+        }
+
+        return $stats;
     }
 
     public function table(Table $table): Table
     {
         return $table
-            ->poll('10s')
-            ->query($this->getFilteredInvoicesQuery())
-            ->defaultSort('invoice_date', 'desc')
-            ->heading('Invoice')
+            ->query(Invoice::query())
+            ->defaultPaginationPageOption(50)
+            ->heading('Invoices')
             ->columns([
-                TextColumn::make('id')
-                    ->label('ID')
-                    ->rowIndex(),
-                TextColumn::make('company_name')->label('COMPANY NAME')->sortable()->searchable(),
-                TextColumn::make('amount')
-                    ->label('AMOUNT')
+                Tables\Columns\TextColumn::make('salesperson')
+                    ->label('Salesperson')
+                    ->sortable(),
+
+                Tables\Columns\TextColumn::make('company_name')
+                    ->label('Company')
                     ->sortable()
-                    ->formatStateUsing(fn ($state) => 'RM ' . number_format($state, 2)),
-                TextColumn::make('invoice_no')->label('INVOICE NO')->sortable(),
-                TextColumn::make('invoice_date')
-                    ->label('INVOICE DATE')
+                    ->searchable(),
+
+                Tables\Columns\TextColumn::make('invoice_date')
+                    ->label('Date')
+                    ->dateTime('d M Y')
+                    ->sortable(),
+
+                Tables\Columns\TextColumn::make('invoice_no')
+                    ->label('Invoice Number')
+                    ->searchable()
+                    ->sortable(),
+
+                Tables\Columns\TextColumn::make('total_amount')
+                    ->label('Local Subtotal')
+                    ->money('MYR')
                     ->sortable()
-                    ->dateTime('d M Y'),
+                    ->getStateUsing(function (Invoice $record): float {
+                        // Calculate the sum for this invoice_no
+                        return Invoice::where('invoice_no', $record->invoice_no)->sum('invoice_amount');
+                    })
+                    ->summarize([
+                        Tables\Columns\Summarizers\Summarizer::make()
+                            ->label('Grand Total')
+                            ->using(function ($query) {
+                                // Get the grouped results
+                                $groupedResults = $query->get();
+                                $grandTotal = 0;
+
+                                // Calculate total for each unique invoice
+                                foreach ($groupedResults as $record) {
+                                    $grandTotal += Invoice::where('invoice_no', $record->invoice_no)->sum('invoice_amount');
+                                }
+
+                                return 'RM ' . number_format($grandTotal, 2);
+                            }),
+                    ]),
+
+                Tables\Columns\BadgeColumn::make('payment_status')
+                    ->label('Payment Status')
+                    ->colors([
+                        'danger' => 'UnPaid',
+                        'warning' => 'Partial Payment',
+                        'success' => 'Full Payment',
+                    ])
+                    ->getStateUsing(function (Invoice $record): string {
+                        return $this->getPaymentStatusForInvoice($record->invoice_no);
+                    })
+                    ->sortable()
+            ])
+            ->defaultSort('invoice_date', 'desc')
+            ->modifyQueryUsing(function (Builder $query) {
+                // Only show invoices from the 7 specified salespersons
+                $allowedSalespersons = array_keys(static::$salespersonUserIds);
+
+                $query = $query->select([
+                    DB::raw('MIN(id) as id'),
+                    'salesperson',
+                    'invoice_no',
+                    'invoice_date',
+                    'company_name',
+                    DB::raw('SUM(invoice_amount) as total_invoice_amount')
+                ])
+                ->whereIn('salesperson', $allowedSalespersons)
+                ->groupBy('invoice_no', 'salesperson', 'invoice_date', 'company_name')
+                ->orderBy('invoice_date', 'desc');
+
+                // Additional filter for individual salespersons to see only their own data
+                if (Auth::check() && Auth::user()->role_id === 2) {
+                    $userId = Auth::id();
+
+                    // Find the salesperson name that corresponds to the current user ID
+                    $salespersonName = array_search($userId, static::$salespersonUserIds);
+
+                    if ($salespersonName) {
+                        // Filter invoices to only show those belonging to this salesperson
+                        $query->where('salesperson', $salespersonName);
+                    } else {
+                        // If the user ID is not in our mapping, don't show any results
+                        $query->where('id', 0); // This will return no results
+                    }
+                }
+
+                return $query;
+            })
+            ->filters([
+                SelectFilter::make('payment_status')
+                    ->label('Payment Status')
+                    ->options([
+                        'UnPaid' => 'UnPaid',
+                        'Partial Payment' => 'Partial Payment',
+                        'Full Payment' => 'Full Payment',
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        if (empty($data['value'])) {
+                            return $query;
+                        }
+
+                        $targetStatus = $data['value'];
+                        $allowedSalespersons = array_keys(static::$salespersonUserIds);
+
+                        // Get all invoices that match the target payment status
+                        $matchingInvoiceNos = collect();
+
+                        $allInvoices = Invoice::query()
+                            ->whereIn('salesperson', $allowedSalespersons)
+                            ->select('invoice_no')
+                            ->distinct()
+                            ->pluck('invoice_no');
+
+                        foreach ($allInvoices as $invoiceNo) {
+                            $paymentStatus = $this->getPaymentStatusForInvoice($invoiceNo);
+                            if ($paymentStatus === $targetStatus) {
+                                $matchingInvoiceNos->push($invoiceNo);
+                            }
+                        }
+
+                        // Filter the main query to only include matching invoice numbers
+                        return $query->whereIn('invoice_no', $matchingInvoiceNos->toArray());
+                    }),
+
+                SelectFilter::make('invoice_type')
+                    ->label('Invoice Type')
+                    ->options([
+                        'EPIN' => 'Product Invoice (EPIN)',
+                        'EHIN' => 'HRDF Invoice (EHIN)',
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query
+                            ->when(
+                                $data['value'],
+                                function (Builder $query, $prefix): Builder {
+                                    return $query->where('invoice_no', 'like', $prefix . '%');
+                                }
+                            );
+                    }),
+                SelectFilter::make('salesperson')
+                    ->label('Salesperson')
+                    ->options(function () {
+                        // Only show the 7 specified salespersons in the filter
+                        $allowedSalespersons = array_keys(static::$salespersonUserIds);
+
+                        try {
+                            return Invoice::query()
+                                ->select('salesperson')
+                                ->distinct()
+                                ->whereNotNull('salesperson')
+                                ->where('salesperson', '!=', '')
+                                ->whereIn('salesperson', $allowedSalespersons)
+                                ->orderBy('salesperson')
+                                ->pluck('salesperson', 'salesperson')
+                                ->toArray();
+                        } catch (\Exception $e) {
+                            // In case of database error, return empty array
+                            return [];
+                        }
+                    })
+                    ->visible(fn () => Auth::check() && Auth::user()->role_id === 3),
+
+                SelectFilter::make('year')
+                    ->label('Year')
+                    ->options(function () {
+                        $allowedSalespersons = array_keys(static::$salespersonUserIds);
+
+                        return Invoice::selectRaw('YEAR(invoice_date) as year')
+                            ->whereIn('salesperson', $allowedSalespersons)
+                            ->distinct()
+                            ->orderBy('year', 'desc')
+                            ->pluck('year', 'year')
+                            ->toArray();
+                    })
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query
+                            ->when(
+                                $data['value'],
+                                fn (Builder $query, $year): Builder => $query->whereYear('invoice_date', $year)
+                            );
+                    }),
+
+                SelectFilter::make('month')
+                    ->label('Month')
+                    ->options([
+                        '1' => 'January',
+                        '2' => 'February',
+                        '3' => 'March',
+                        '4' => 'April',
+                        '5' => 'May',
+                        '6' => 'June',
+                        '7' => 'July',
+                        '8' => 'August',
+                        '9' => 'September',
+                        '10' => 'October',
+                        '11' => 'November',
+                        '12' => 'December',
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query
+                            ->when(
+                                $data['value'],
+                                fn (Builder $query, $month): Builder => $query->whereMonth('invoice_date', $month)
+                            );
+                    }),
             ])
             ->actions([
-                \Filament\Tables\Actions\Action::make('edit')
-                    ->label('Edit')
-                    ->form([
-                        TextInput::make('company_name')->required(),
-                        TextInput::make('amount')->numeric()->required(),
-                        TextInput::make('invoice_no')->required(),
-                        DatePicker::make('invoice_date')->required(),
-                    ])
-                    ->action(fn ($record, $data) => $record->update($data)),
-                \Filament\Tables\Actions\DeleteAction::make(),
+                // Tables\Actions\Action::make('generate_invoice_pdf')
+                //     ->label('Generate PDF')
+                //     ->hiddenLabel()
+                //     ->tooltip('Generate PDF for this invoice')
+                //     ->url(fn (Invoice $record): string => route('invoices.generate_pdf', ['invoice_no' => $record->invoice_no]))
+                //     ->icon('heroicon-o-document')
+                //     ->button()
+                //     ->openUrlInNewTab()
+                //     ->color('success')
+                //     ->visible(fn() => auth('web')->user()->id == 45),
             ])
-            ->headerActions([
-                \Filament\Tables\Actions\Action::make('create')
-                    ->label('Create New Invoice')
-                    ->form([
-                        TextInput::make('company_name')->required(),
-                        TextInput::make('amount')->numeric()->required(),
-                        TextInput::make('invoice_no')->required(),
-                        DatePicker::make('invoice_date')->required(),
-                    ])
-                    ->action(function ($data) {
-                        Invoice::create([
-                            'company_name' => $data['company_name'],
-                            'amount' => $data['amount'],
-                            'invoice_no' => $data['invoice_no'],
-                            'invoice_date' => $data['invoice_date'],
-                            'salesperson' => auth()->user()->id, // Record salesperson automatically
-                        ]);
-                    })
-                    ->visible(auth()->user()->role_id == 2), // Only for role_id = 2
-            ]);
-    }
-
-    public function render()
-    {
-        return view('livewire.invoice-table');
+            ->bulkActions([]);
     }
 }

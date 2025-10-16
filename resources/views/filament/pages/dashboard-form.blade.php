@@ -220,7 +220,7 @@
                                             font-size: 14px;
                                         "
                                     >
-                                        Admin - Hardware V2
+                                        Admin - Hardware v2
                                     </button>
 
                                     <button
@@ -765,7 +765,7 @@
                                                     font-size: 14px;
                                                 "
                                             >
-                                                <span>Admin - Hardware V2</span>
+                                                <span>Admin - Hardware v2</span>
                                                 @if($initialStageTotal > 0)
                                                     <span style="
                                                         background: #ef4444;
@@ -1067,7 +1067,7 @@
                                                 font-size: 14px;
                                             "
                                         >
-                                            Admin - Hardware V2
+                                            Admin - Hardware v2
                                         </button>
 
                                         <button

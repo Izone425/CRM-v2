@@ -256,6 +256,29 @@ class HardwareV2PendingStockTable extends Component implements HasForms, HasTabl
                         default => new HtmlString('<span>' . ucfirst($state) . '</span>'),
                     }),
 
+                TextColumn::make('sales_order_status')
+                    ->label('SO Status')
+                    ->formatStateUsing(function ($state, HardwareHandoverV2 $record) {
+                        if (!$record->sales_order_number) {
+                            return '-';
+                        }
+
+                        $status = $state ?? 'Unknown';
+                        $lastCheck = $record->last_status_check
+                            ? $record->last_status_check->format('d M H:i')
+                            : 'Never';
+
+                        return new HtmlString("
+                            <div class='text-sm'>
+                                <div class='font-medium'>{$status}</div>
+                                <div class='text-xs text-gray-500'>SO: {$record->sales_order_number}</div>
+                                <div class='text-xs text-gray-400'>Updated: {$lastCheck}</div>
+                            </div>
+                        ");
+                    })
+                    ->searchable(['sales_order_number', 'sales_order_status'])
+                    ->sortable(),
+
                 TextColumn::make('created_at')
                     ->label('Created Date')
                     ->dateTime('d M Y H:i')

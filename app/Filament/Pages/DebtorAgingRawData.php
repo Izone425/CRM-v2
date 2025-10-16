@@ -60,6 +60,7 @@ class DebtorAgingRawData extends Page implements HasTable
     public $filterCurrency = [];
     public $filterSupport = [];
     public $filterDecimalPlaces = 2; // NO3: Default 2 decimal places
+    public $filterInvoiceAgeDays = null;
 
     public function mount(): void
     {
@@ -145,6 +146,11 @@ class DebtorAgingRawData extends Page implements HasTable
             $this->applyDebtorAgingFilter($query, $this->filterDebtorAging);
         }
 
+        // Add invoice age days filter here
+        if ($this->filterInvoiceAgeDays) {
+            $this->applyInvoiceAgeDaysFilter($query, $this->filterInvoiceAgeDays);
+        }
+
         // Apply date filters if set
         if ($this->filterInvoiceDateFrom) {
             $query->whereDate('invoice_date', '>=', $this->filterInvoiceDateFrom);
@@ -195,6 +201,34 @@ class DebtorAgingRawData extends Page implements HasTable
                 break;
             case '5_plus_months':
                 $query->whereRaw('TIMESTAMPDIFF(MONTH, aging_date, ?) >= 5', [$now]);
+                break;
+        }
+    }
+
+    protected function applyInvoiceAgeDaysFilter($query, $daysFilter)
+    {
+        $today = Carbon::now()->startOfDay();
+
+        switch ($daysFilter) {
+            case '30_days':
+                // Show invoices between 30 days ago and today
+                $cutoffDate = $today->copy()->subDays(30);
+                $query->whereBetween('invoice_date', [$cutoffDate, $today]);
+                break;
+            case '60_days':
+                // Show invoices between 60 days ago and today
+                $cutoffDate = $today->copy()->subDays(60);
+                $query->whereBetween('invoice_date', [$cutoffDate, $today]);
+                break;
+            case '90_days':
+                // Show invoices between 90 days ago and today
+                $cutoffDate = $today->copy()->subDays(90);
+                $query->whereBetween('invoice_date', [$cutoffDate, $today]);
+                break;
+            case '120_days':
+                // Show invoices between 120 days ago and today
+                $cutoffDate = $today->copy()->subDays(120);
+                $query->whereBetween('invoice_date', [$cutoffDate, $today]);
                 break;
         }
     }
@@ -567,6 +601,29 @@ class DebtorAgingRawData extends Page implements HasTable
                             $this->loadData();
 
                             return $query->whereMonth('invoice_date', $data['value']);
+                        }),
+
+                    SelectFilter::make('invoice_age_days')
+                        ->options([
+                            '30_days' => '30 Days',
+                            '60_days' => '60 Days',
+                            '90_days' => '90 Days',
+                            '120_days' => '120 Days',
+                        ])
+                        ->label('Invoice Age')
+                        ->placeholder('All Invoice Ages')
+                        ->query(function (Builder $query, array $data) {
+                            if (empty($data['value'])) {
+                                $this->filterInvoiceAgeDays = null;
+                                $this->loadData(); // Refresh stats
+                                return $query;
+                            }
+
+                            $this->filterInvoiceAgeDays = $data['value'];
+                            $this->loadData(); // Refresh stats
+
+                            $this->applyInvoiceAgeDaysFilter($query, $data['value']);
+                            return $query;
                         }),
                 ])
                 ->filtersFormColumns(3)

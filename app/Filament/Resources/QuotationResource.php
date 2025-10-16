@@ -185,8 +185,8 @@ class QuotationResource extends Resource
                                 'RENEWAL SALES' => 'RENEWAL SALES',
                             ])
                             ->default(function () {
-                                // If user ID is 5, default to RENEWAL SALES, otherwise NEW SALES
-                                return auth()->user()?->id === 5 ? 'RENEWAL SALES' : 'NEW SALES';
+                                // If user ID is 4 or 5, default to RENEWAL SALES, otherwise NEW SALES
+                                return in_array(auth()->user()?->id, [4, 5]) ? 'RENEWAL SALES' : 'NEW SALES';
                             })
                             ->required()
                             ->disabled(fn () => auth()->user()?->role_id == 2)
