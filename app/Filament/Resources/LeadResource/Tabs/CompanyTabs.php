@@ -190,7 +190,7 @@ class CompanyTabs
                                             // Then check if lead owner exists or salesperson exists
                                             (!is_null($lead->lead_owner) || (is_null($lead->lead_owner) && !is_null($lead->salesperson)))
                                         )
-                                        ->modalHeading('Edit on Person In-Charge') // Modal heading
+                                        ->modalHeading('Edit HR Details') // Modal heading
                                         ->modalSubmitActionLabel('Save Changes') // Modal button text
                                         ->form([ // Define the form fields to show in the modal
                                             TextInput::make('name')
@@ -661,6 +661,10 @@ class CompanyTabs
                                     Action::make('edit_utm_details')
                                         ->label('Edit') // Modal buttonF
                                         ->icon('heroicon-o-pencil')
+                                        ->visible(function ($record) {
+                                            return (auth()->user()?->role_id === 1 && !is_null($record->lead_owner) && !is_null($record->salesperson)
+                                            || auth()->user()?->role_id === 3);
+                                        })
                                 ])
                                 ->extraAttributes([
                                     'style' => 'background-color: #fff5f5; border: dashed; border-color: #feb2b2;'
@@ -682,68 +686,68 @@ class CompanyTabs
 
                                 //     return false;
                                 // })
-                                ->headerActions([
-                                    Action::make('edit_project_info')
-                                        ->label('Edit')
-                                        ->visible(false)
-                                        ->modalHeading('Edit Project Information')
-                                        ->modalSubmitActionLabel('Save Changes')
-                                        ->form([
-                                            Select::make('status_handover')
-                                                ->label('Project Status')
-                                                ->options([
-                                                    'InActive' => 'InActive',
-                                                    'Closed' => 'Closed',
-                                                ])
-                                                ->default(fn ($record) => $record->softwareHandover()->latest('created_at')->first()?->status_handover ?? 'Open')
-                                                ->reactive()
-                                                ->required(),
+                                // ->headerActions([
+                                //     Action::make('edit_project_info')
+                                //         ->label('Edit')
+                                //         ->visible(false)
+                                //         ->modalHeading('Edit Project Information')
+                                //         ->modalSubmitActionLabel('Save Changes')
+                                //         ->form([
+                                //             Select::make('status_handover')
+                                //                 ->label('Project Status')
+                                //                 ->options([
+                                //                     'InActive' => 'InActive',
+                                //                     'Closed' => 'Closed',
+                                //                 ])
+                                //                 ->default(fn ($record) => $record->softwareHandover()->latest('created_at')->first()?->status_handover ?? 'Open')
+                                //                 ->reactive()
+                                //                 ->required(),
 
-                                            DatePicker::make('go_live_date')
-                                                ->label('Go Live Date')
-                                                ->format('Y-m-d')
-                                                ->displayFormat('d/m/Y')
-                                                ->default(fn ($record) => $record->softwareHandover()->latest('created_at')->first()?->go_live_date ?? null)
-                                                // Only require go_live_date when status is NOT InActive
-                                                ->required(fn (callable $get) => $get('status_handover') !== 'InActive')
-                                                // Hide field when status is InActive
-                                                ->visible(fn (callable $get) => $get('status_handover') == 'Closed'),
-                                        ])
-                                        ->action(function (Lead $lead, array $data) {
-                                            // Get the latest software handover record
-                                            $handover = $lead->softwareHandover()->latest('created_at')->first();
+                                //             DatePicker::make('go_live_date')
+                                //                 ->label('Go Live Date')
+                                //                 ->format('Y-m-d')
+                                //                 ->displayFormat('d/m/Y')
+                                //                 ->default(fn ($record) => $record->softwareHandover()->latest('created_at')->first()?->go_live_date ?? null)
+                                //                 // Only require go_live_date when status is NOT InActive
+                                //                 ->required(fn (callable $get) => $get('status_handover') !== 'InActive')
+                                //                 // Hide field when status is InActive
+                                //                 ->visible(fn (callable $get) => $get('status_handover') == 'Closed'),
+                                //         ])
+                                //         ->action(function (Lead $lead, array $data) {
+                                //             // Get the latest software handover record
+                                //             $handover = $lead->softwareHandover()->latest('created_at')->first();
 
-                                            // Prepare update data - don't include go_live_date when status is Inactive
-                                            $updateData = [
-                                                'status_handover' => $data['status_handover'],
-                                            ];
+                                //             // Prepare update data - don't include go_live_date when status is Inactive
+                                //             $updateData = [
+                                //                 'status_handover' => $data['status_handover'],
+                                //             ];
 
-                                            // Only include go_live_date if status is not Inactive
-                                            if ($data['status_handover'] !== 'Inactive') {
-                                                $updateData['go_live_date'] = $data['go_live_date'];
-                                            }
+                                //             // Only include go_live_date if status is not Inactive
+                                //             if ($data['status_handover'] !== 'Inactive') {
+                                //                 $updateData['go_live_date'] = $data['go_live_date'];
+                                //             }
 
-                                            if ($handover) {
-                                                // Update existing software handover
-                                                $handover->update($updateData);
+                                //             if ($handover) {
+                                //                 // Update existing software handover
+                                //                 $handover->update($updateData);
 
-                                                Notification::make()
-                                                    ->title('Project Information Updated')
-                                                    ->success()
-                                                    ->send();
-                                            } else {
-                                                // Create new software handover
-                                                $lead->softwareHandover()->create(array_merge($updateData, [
-                                                    'status' => 'Completed',
-                                                ]));
+                                //                 Notification::make()
+                                //                     ->title('Project Information Updated')
+                                //                     ->success()
+                                //                     ->send();
+                                //             } else {
+                                //                 // Create new software handover
+                                //                 $lead->softwareHandover()->create(array_merge($updateData, [
+                                //                     'status' => 'Completed',
+                                //                 ]));
 
-                                                Notification::make()
-                                                    ->title('Project Information Created')
-                                                    ->success()
-                                                    ->send();
-                                            }
-                                        }),
-                                ])
+                                //                 Notification::make()
+                                //                     ->title('Project Information Created')
+                                //                     ->success()
+                                //                     ->send();
+                                //             }
+                                //         }),
+                                // ])
                                 ->schema([
                                     View::make('components.project-information'),
                                 ]),

@@ -475,7 +475,7 @@
                                     $formattedId = 'SW_250' . str_pad($softwareHandover->id, 3, '0', STR_PAD_LEFT);
                                 @endphp
                                 @if($index > 0), @endif
-                                {{ $formattedId }} ({{ $softwareHandover->created_at ? $softwareHandover->created_at->format('d M Y') : 'N/A' }})
+                                {{ $formattedId }}
                             @endforeach
                         </span>
                     </div>

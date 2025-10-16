@@ -308,45 +308,45 @@ class HeadcountHandoverRelationManager extends RelationManager
         return [
             // Action 1: Warning notification when requirements are not met
             Tables\Actions\Action::make('HeadcountHandoverWarning')
-            ->label('Add Headcount Handover')
-            ->icon('heroicon-o-plus')
-            ->color('gray')
-            ->visible(function () use ($leadStatus, $isCompanyDetailsIncomplete, $hasRequiredProducts) {
-                return $leadStatus !== 'Closed' || $isCompanyDetailsIncomplete || !$hasRequiredProducts;
-            })
-            ->action(function () use ($hasRequiredProducts) {
-                $body = 'Please ';
-                $reasons = [];
+                ->label('Add Headcount Handover')
+                ->icon('heroicon-o-plus')
+                ->color('gray')
+                ->visible(function () use ($leadStatus, $isCompanyDetailsIncomplete, $hasRequiredProducts) {
+                    return $leadStatus !== 'Closed' || $isCompanyDetailsIncomplete || !$hasRequiredProducts;
+                })
+                ->action(function () use ($hasRequiredProducts) {
+                    $body = 'Please ';
+                    $reasons = [];
 
-                if ($this->getOwnerRecord()->lead_status !== 'Closed') {
-                    $reasons[] = 'close the lead';
-                }
+                    if ($this->getOwnerRecord()->lead_status !== 'Closed') {
+                        $reasons[] = 'close the lead';
+                    }
 
-                if ($this->isCompanyDetailsIncomplete()) {
-                    $reasons[] = 'complete the company details';
-                }
+                    if ($this->isCompanyDetailsIncomplete()) {
+                        $reasons[] = 'complete the company details';
+                    }
 
-                if (!$hasRequiredProducts) {
-                    $reasons[] = 'ensure you have at least one final quotation with required products (114, 115, 116, 117, 118, 108, 120, 121)';
-                }
+                    if (!$hasRequiredProducts) {
+                        $reasons[] = 'ensure you have at least one final quotation with required products (TCL_TA USER-ADDON(R), TCL_LEAVE USER-ADDON(R), TCL_CLAIM USER-ADDON(R), TCL_PAYROLL USER-ADDON(R), TCL_TA USER-ADDON, TCL_TA USER-RENEWAL, TCL_CLAIM USER-ADDON, TCL_PAYROLL USER-ADDON)';
+                    }
 
-                $body .= implode(', ', $reasons) . ' before proceeding with the headcount handover.';
+                    $body .= implode(', ', $reasons) . ' before proceeding with the headcount handover.';
 
-                Notification::make()
-                    ->warning()
-                    ->title('Action Required')
-                    ->body($body)
-                    ->persistent()
-                    ->send();
-            }),
+                    Notification::make()
+                        ->warning()
+                        ->title('Action Required')
+                        ->body($body)
+                        ->persistent()
+                        ->send();
+                }),
 
             // Action 2: Actual form when requirements are met
             Tables\Actions\Action::make('AddHeadcountHandover')
                 ->label('Add Headcount Handover')
                 ->icon('heroicon-o-plus')
                 ->color('primary')
-                ->visible(function () use ($leadStatus, $isCompanyDetailsIncomplete) {
-                    return $leadStatus === 'Closed' && !$isCompanyDetailsIncomplete;
+                ->visible(function () use ($leadStatus, $isCompanyDetailsIncomplete, $hasRequiredProducts) {
+                    return $leadStatus === 'Closed' && !$isCompanyDetailsIncomplete && $hasRequiredProducts;
                 })
                 ->slideOver()
                 ->modalHeading('Headcount Handover Submission')

@@ -564,24 +564,39 @@ class ImplementerAppointmentRelationManager extends RelationManager
                     })
                     ->weight('bold'),
                 TextColumn::make('date')
-                    ->label('DATE & TIME'),
-                // TextColumn::make('date')
-                //     ->label('DATE & TIME')
-                //     ->sortable()
-                //     ->formatStateUsing(function ($record) {
-                //         if (!$record->date || !$record->start_time || !$record->end_time) {
-                //             return 'No Data Available';
-                //         }
+                    ->label('DATE & TIME')
+                    ->sortable()
+                    ->formatStateUsing(function ($record) {
+                        if (!$record->date || !$record->start_time || !$record->end_time) {
+                            return 'No Data Available';
+                        }
 
-                //         // Format the date
-                //         $date = \Carbon\Carbon::createFromFormat('Y-m-d', $record->date)->format('d M Y');
+                        try {
+                            // Format the date
+                            $date = \Carbon\Carbon::parse($record->date)->format('d M Y');
 
-                //         // Format the start and end times
-                //         $startTime = \Carbon\Carbon::createFromFormat('H:i:s', $record->start_time)->format('h:i A');
-                //         $endTime = \Carbon\Carbon::createFromFormat('H:i:s', $record->end_time)->format('h:i A');
+                            // Try different time formats
+                            $startTime = '';
+                            $endTime = '';
 
-                //         return "{$date} | {$startTime} - {$endTime}";
-                //     }),
+                            // Try H:i:s format first, then H:i
+                            try {
+                                $startTime = \Carbon\Carbon::createFromFormat('H:i:s', $record->start_time)->format('h:i A');
+                            } catch (\Exception $e) {
+                                $startTime = \Carbon\Carbon::createFromFormat('H:i', $record->start_time)->format('h:i A');
+                            }
+
+                            try {
+                                $endTime = \Carbon\Carbon::createFromFormat('H:i:s', $record->end_time)->format('h:i A');
+                            } catch (\Exception $e) {
+                                $endTime = \Carbon\Carbon::createFromFormat('H:i', $record->end_time)->format('h:i A');
+                            }
+
+                            return "{$date} | {$startTime} - {$endTime}";
+                        } catch (\Exception $e) {
+                            return 'Invalid Date/Time Format';
+                        }
+                    }),
                 IconColumn::make('view_remark')
                     ->label('View Remark')
                     ->alignCenter()

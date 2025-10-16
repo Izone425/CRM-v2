@@ -24,6 +24,8 @@ class SalesDebtor extends Page implements HasTable
 {
     use InteractsWithTable;
 
+    public $filterInvoiceAgeDays = null;
+
     protected static ?string $navigationIcon = 'heroicon-o-document-text';
     protected static ?string $navigationLabel = 'Sales Debtor Dashboard';
     protected static ?string $title = 'Sales Debtor Dashboard';
@@ -156,6 +158,11 @@ class SalesDebtor extends Page implements HasTable
             $this->applyDebtorAgingFilter($query, $this->filterDebtorAging);
         }
 
+        // Apply invoice age days filter if set
+        if ($this->filterInvoiceAgeDays) {
+            $this->applyInvoiceAgeDaysFilter($query, $this->filterInvoiceAgeDays);
+        }
+
         // Apply date filters if set
         if ($this->filterInvoiceDateFrom) {
             $query->whereDate('invoice_date', '>=', $this->filterInvoiceDateFrom);
@@ -176,6 +183,34 @@ class SalesDebtor extends Page implements HasTable
         }
 
         return $query;
+    }
+
+    protected function applyInvoiceAgeDaysFilter($query, $daysFilter)
+    {
+        $today = Carbon::now()->startOfDay();
+
+        switch ($daysFilter) {
+            case '30_days':
+                // Show invoices more than 30 days old
+                $cutoffDate = $today->copy()->subDays(30);
+                $query->whereDate('invoice_date', '<=', $cutoffDate);
+                break;
+            case '60_days':
+                // Show invoices more than 60 days old
+                $cutoffDate = $today->copy()->subDays(60);
+                $query->whereDate('invoice_date', '<=', $cutoffDate);
+                break;
+            case '90_days':
+                // Show invoices more than 90 days old
+                $cutoffDate = $today->copy()->subDays(90);
+                $query->whereDate('invoice_date', '<=', $cutoffDate);
+                break;
+            case '120_days':
+                // Show invoices more than 120 days old
+                $cutoffDate = $today->copy()->subDays(120);
+                $query->whereDate('invoice_date', '<=', $cutoffDate);
+                break;
+        }
     }
 
     protected function applyDebtorAgingFilter($query, $agingFilter)
@@ -476,6 +511,29 @@ class SalesDebtor extends Page implements HasTable
                             $this->loadData(); // Refresh stats
 
                             return $query->whereMonth('invoice_date', $data['value']);
+                        }),
+
+                    SelectFilter::make('invoice_age_days')
+                        ->options([
+                            '30_days' => 'More than 30 Days',
+                            '60_days' => 'More than 60 Days',
+                            '90_days' => 'More than 90 Days',
+                            '120_days' => 'More than 120 Days',
+                        ])
+                        ->label('Invoice Age')
+                        ->placeholder('All Invoice Ages')
+                        ->query(function (Builder $query, array $data) {
+                            if (empty($data['value'])) {
+                                $this->filterInvoiceAgeDays = null;
+                                $this->loadData(); // Refresh stats
+                                return $query;
+                            }
+
+                            $this->filterInvoiceAgeDays = $data['value'];
+                            $this->loadData(); // Refresh stats
+
+                            $this->applyInvoiceAgeDaysFilter($query, $data['value']);
+                            return $query;
                         }),
                 ])
                 ->filtersFormColumns(3)

@@ -59,6 +59,8 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\View\View;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Livewire\Attributes\On;
+use Filament\Forms\Get;
+use Filament\Forms\Set;
 
 class SoftwareHandoverRelationManager extends RelationManager
 {
@@ -320,7 +322,9 @@ class SoftwareHandoverRelationManager extends RelationManager
                         }),
                 ]),
 
-            Section::make('Step 5: Training Category')
+            Grid::make(2)
+            ->schema([
+                Section::make('Step 5: Training Category')
                 ->schema([
                     Forms\Components\Radio::make('training_type')
                         ->label('')
@@ -328,7 +332,6 @@ class SoftwareHandoverRelationManager extends RelationManager
                             'online_webinar_training' => 'Online Webinar Training',
                             'online_hrdf_training' => 'Online HRDF Training',
                         ])
-                        ->columns(2)
                         ->required()
                         ->reactive()
                         ->afterStateUpdated(function ($state, callable $set) {
@@ -339,29 +342,29 @@ class SoftwareHandoverRelationManager extends RelationManager
                             $set('sw_pi', null);
                         })
                         ->default(fn (?SoftwareHandover $record = null) => $record?->training_type ?? null),
-                ]),
+                ])->columnSpan(1),
 
-            Section::make('Step 6: Speaker Category')
-                ->schema([
-                    Forms\Components\Radio::make('speaker_category')
-                        ->label('')
-                        ->options([
-                            'english / malay' => 'English / Malay',
-                            'mandarin' => 'Mandarin',
-                        ])
-                        ->columns(2)
-                        ->live() // Make it react to headcount changes
-                        ->afterStateHydrated(function (Forms\Set $set, Forms\Get $get, $state) {
-                            $headcount = (int)$get('headcount');
+                Section::make('Step 6: Speaker Category')
+                    ->schema([
+                        Forms\Components\Radio::make('speaker_category')
+                            ->label('')
+                            ->options([
+                                'english / malay' => 'English / Malay',
+                                'mandarin' => 'Mandarin',
+                            ])
+                            ->live() // Make it react to headcount changes
+                            ->afterStateHydrated(function (Forms\Set $set, Forms\Get $get, $state) {
+                                $headcount = (int)$get('headcount');
 
-                            // If headcount <= 25 and value is mandarin, reset to english/malay
-                            if ($headcount <= 25 && $state === 'mandarin') {
-                                $set('speaker_category', 'english / malay');
-                            }
-                        })
-                        ->required()
-                        ->default(fn (?SoftwareHandover $record = null) => $record?->speaker_category ?? null),
-                ]),
+                                // If headcount <= 25 and value is mandarin, reset to english/malay
+                                if ($headcount <= 25 && $state === 'mandarin') {
+                                    $set('speaker_category', 'english / malay');
+                                }
+                            })
+                            ->required()
+                            ->default(fn (?SoftwareHandover $record = null) => $record?->speaker_category ?? null),
+                    ])->columnSpan(1),
+            ]),
 
             Section::make('Step 7: Proforma Invoice')
                 ->columnSpan(1) // Ensure it spans one column
@@ -547,7 +550,7 @@ class SoftwareHandoverRelationManager extends RelationManager
                                 }),
 
                             Select::make('proforma_invoice_hrdf')
-                                ->label('HRDF')
+                                ->label('HRDF Invoice')
                                 ->required(fn (callable $get) => $get('training_type') === 'online_hrdf_training')
                                 ->visible(fn (callable $get) => $get('training_type') === 'online_hrdf_training')
                                 ->options(function (RelationManager $livewire) {
@@ -616,7 +619,7 @@ class SoftwareHandoverRelationManager extends RelationManager
             Section::make('Step 8: Attachment')
                 ->columnSpan(1) // Ensure it spans one column
                 ->schema([
-                    Grid::make(2)
+                    Grid::make(3)
                         ->schema([
                         FileUpload::make('confirmation_order_file')
                             ->label('Upload Confirmation Order')
@@ -662,6 +665,14 @@ class SoftwareHandoverRelationManager extends RelationManager
                             ->openable()
                             ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
                             ->openable()
+                            ->required(function (Get $get) {
+                                // Check if HRDF grant has actual files
+                                $hrdfGrantFiles = $get('hrdf_grant_file');
+                                $hasHrdfGrant = is_array($hrdfGrantFiles) && count($hrdfGrantFiles) > 0 && !empty(array_filter($hrdfGrantFiles));
+
+                                // Only required if HRDF grant is empty
+                                return !$hasHrdfGrant;
+                            })
                             ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
                                 // Get lead ID from ownerRecord
                                 $leadId = $this->getOwnerRecord()->id;
@@ -696,6 +707,14 @@ class SoftwareHandoverRelationManager extends RelationManager
                             ->openable()
                             ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
                             ->openable()
+                            ->required(function (Get $get) {
+                                // Check if payment slip has actual files
+                                $paymentSlipFiles = $get('payment_slip_file');
+                                $hasPaymentSlip = is_array($paymentSlipFiles) && count($paymentSlipFiles) > 0 && !empty(array_filter($paymentSlipFiles));
+
+                                // Only required if payment slip is empty
+                                return !$hasPaymentSlip;
+                            })
                             ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
                                 // Get lead ID from ownerRecord
                                 $leadId = $this->getOwnerRecord()->id;
@@ -725,14 +744,14 @@ class SoftwareHandoverRelationManager extends RelationManager
                             }),
 
                         FileUpload::make('invoice_file')
-                            ->label('Upload Invoice')
+                            ->label('Upload Invoice TimeTec Penang')
                             ->disk('public')
                             ->directory('handovers/invoices')
                             ->visibility('public')
                             ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
                             ->multiple()
                             ->maxFiles(10)
-                            ->helperText('Upload invoice files (PDF, JPG, PNG formats accepted)')
+                            ->visible(fn () => in_array(auth()->id(), [1, 25]))
                             ->openable()
                             ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
                                 $companyName = Str::slug($get('company_name') ?? 'invoice');

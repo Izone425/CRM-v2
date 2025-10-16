@@ -184,7 +184,7 @@ class FinanceHandoverRelationManager extends RelationManager
                 ->color('primary')
                 ->slideOver()
                 ->modalSubmitActionLabel('Submit')
-                ->modalHeading('Add Finance Handover')
+                ->modalHeading('Finance Handover')
                 ->modalWidth(MaxWidth::FourExtraLarge)
                 ->form($this->defaultForm())
                 ->action(function (array $data): void {
@@ -250,12 +250,10 @@ class FinanceHandoverRelationManager extends RelationManager
 
                 TextColumn::make('reseller.company_name')
                     ->label('Reseller Company')
-                    ->searchable()
                     ->sortable(),
 
                 TextColumn::make('pic_name')
-                    ->label('PIC Name')
-                    ->searchable(),
+                    ->label('PIC Name'),
 
                 TextColumn::make('status')
                     ->label('STATUS')

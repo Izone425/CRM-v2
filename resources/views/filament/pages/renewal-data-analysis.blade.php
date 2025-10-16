@@ -68,11 +68,13 @@
             font-size: 1.25rem;
             font-weight: 600;
             margin-bottom: 0.25rem;
+            text-align: left;
         }
 
         .forecast-subtitle {
             font-size: 0.875rem;
             opacity: 0.9;
+            text-align: left;
         }
 
         /* USD specific header */

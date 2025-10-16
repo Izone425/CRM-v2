@@ -627,7 +627,7 @@ class SubscriberDetailsTabs
                                 // Then check if lead owner exists or salesperson exists
                                 (!is_null($lead->lead_owner) || (is_null($lead->lead_owner) && !is_null($lead->salesperson)))
                             )
-                            ->modalHeading('Edit on Person In-Charge') // Modal heading
+                            ->modalHeading('Edit HR Details') // Modal heading
                             ->modalSubmitActionLabel('Save Changes') // Modal button text
                             ->form([ // Define the form fields to show in the modal
                                 TextInput::make('name')
