@@ -710,27 +710,27 @@ class Calendar extends Component
                 ['name' => 'Joshua Ho', 'order' => 12],
                 ['name' => 'Vince Leong', 'order' => 13]
             ],
+            'Support Department' => [
+                ['name' => 'Siti Nadia', 'order' => 14],
+                ['name' => 'Noor Syazana', 'order' => 15],
+                ['name' => 'Ummu Najwa Fajrina', 'order' => 16],
+                ['name' => 'Ahmad Syazwan', 'order' => 17],
+                ['name' => 'Rahmah', 'order' => 18],
+                ['name' => 'Hanif Razali', 'order' => 19]
+            ],
             'Implementer Department' => [
-                ['name' => 'Nurul Shaqinur Ain', 'order' => 14],
-                ['name' => 'Ahmad Syamim', 'order' => 15],
-                ['name' => 'Ahmad Syazwan', 'order' => 16],
-                ['name' => 'Siti Shahilah', 'order' => 17],
-                ['name' => 'Muhamad Izzul Aiman', 'order' => 18],
-                ['name' => 'Zulhilmie', 'order' => 19],
-                ['name' => 'Nur Alia', 'order' => 20],
-                ['name' => 'John Low', 'order' => 21],
-                ['name' => 'Mohd Amirul Ashraf', 'order' => 22],
-                ['name' => 'Nur Fazuliana', 'order' => 23]
+                ['name' => 'Nurul Shaqinur Ain', 'order' => 20],
+                ['name' => 'Ahmad Syamim', 'order' => 21],
+                ['name' => 'Siti Shahilah', 'order' => 22],
+                ['name' => 'Muhamad Izzul Aiman', 'order' => 23],
+                ['name' => 'Zulhilmie', 'order' => 24],
+                ['name' => 'Nur Alia', 'order' => 25],
+                ['name' => 'John Low', 'order' => 26],
+                ['name' => 'Mohd Amirul Ashraf', 'order' => 27],
+                ['name' => 'Nur Fazuliana', 'order' => 28]
             ],
             'Trainer Department' => [
-                ['name' => 'Mohd Fairos', 'order' => 24]
-            ],
-            'Support Department' => [
-                ['name' => 'Siti Nadia', 'order' => 25],
-                ['name' => 'Noor Syazana', 'order' => 26],
-                ['name' => 'Ummu Najwa Fajrina', 'order' => 27],
-                ['name' => 'Rahmah', 'order' => 28],
-                ['name' => 'Hanif Razali', 'order' => 29]
+                ['name' => 'Mohd Fairos', 'order' => 29]
             ],
             'Technician Department' => [
                 ['name' => 'Khairul Izzuddin', 'order' => 30]

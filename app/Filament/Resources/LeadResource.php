@@ -25,6 +25,7 @@ use App\Filament\Resources\LeadResource\RelationManagers\RepairAppointmentRelati
 use App\Filament\Resources\LeadResource\RelationManagers\RPTableRelationManager;
 use App\Filament\Resources\LeadResource\RelationManagers\SHTableRelationManager;
 use App\Filament\Resources\LeadResource\RelationManagers\SoftwareHandoverRelationManager;
+use App\Filament\Resources\LeadResource\RelationManagers\SoftwareHandoverV2RelationManager;
 use App\Filament\Resources\LeadResource\RelationManagers\SubsidiaryRelationManager;
 use App\Filament\Resources\LeadResource\Tabs\AppointmentTabs;
 use App\Filament\Resources\LeadResource\Tabs\ARDetailsTabs;
@@ -1306,6 +1307,7 @@ class LeadResource extends Resource
             HeadcountHandoverRelationManager::class,
             HardwareHandoverV2RelationManager::class,
             FinanceHandoverRelationManager::class,
+            SoftwareHandoverV2RelationManager::class,
         ];
     }
 

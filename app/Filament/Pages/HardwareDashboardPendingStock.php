@@ -360,15 +360,19 @@ class HardwareDashboardPendingStock extends Page implements HasTable
                     ->label('Status')
                     ->options([
                         'New' => 'New',
-                        'Draft' => 'Draft',
-                        'Approved' => 'Approved',
                         'Rejected' => 'Rejected',
-                        'Completed' => 'Completed',
                         'Pending Stock' => 'Pending Stock',
                         'Pending Migration' => 'Pending Migration',
-                        'Completed: Installation' => 'Completed: Installation',
+                        'Pending Payment' => 'Pending Payment',
+                        'Pending: Courier' => 'Pending: Courier',
                         'Completed: Courier' => 'Completed: Courier',
-                        'Completed Migration' => 'Completed Migration',
+                        'Pending Admin: Self Pick-Up' => 'Pending Admin: Self Pick-Up',
+                        'Pending Customer: Self Pick-Up' => 'Pending Customer: Self Pick-Up',
+                        'Completed: Self Pick-Up' => 'Completed: Self Pick-Up',
+                        'Pending: External Installation' => 'Pending: External Installation',
+                        'Completed: External Installation' => 'Completed: External Installation',
+                        'Pending: Internal Installation' => 'Pending: Internal Installation',
+                        'Completed: Internal Installation' => 'Completed: Internal Installation',
                     ])
                     ->searchable()
                     ->preload(),

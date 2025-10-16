@@ -943,6 +943,9 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                             ->distinct()
                             ->orderBy('reseller_name')
                             ->pluck('reseller_name', 'reseller_name')
+                            ->mapWithKeys(function ($name, $key) {
+                                return [$key => strtoupper($name)];
+                            })
                             ->toArray();
                     })
                     ->query(function (Builder $query, array $data) {
@@ -1185,6 +1188,9 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                             ->distinct()
                             ->orderBy('reseller_name')
                             ->pluck('reseller_name', 'reseller_name')
+                            ->mapWithKeys(function ($name, $key) {
+                                return [$key => strtoupper($name)];
+                            })
                             ->toArray();
                     })
                     ->query(function (Builder $query, array $data) {

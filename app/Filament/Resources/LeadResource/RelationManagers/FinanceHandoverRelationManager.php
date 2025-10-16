@@ -129,6 +129,7 @@ class FinanceHandoverRelationManager extends RelationManager
                                 ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'])
                                 ->openable()
                                 ->downloadable()
+                                ->required()
                                 ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file): string {
                                     $leadId = $this->getOwnerRecord()->id;
                                     $formattedId = 'FN_250' . str_pad($leadId, 3, '0', STR_PAD_LEFT);
@@ -156,6 +157,7 @@ class FinanceHandoverRelationManager extends RelationManager
                                 ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'])
                                 ->openable()
                                 ->downloadable()
+                                ->required()
                                 ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file): string {
                                     $leadId = $this->getOwnerRecord()->id;
                                     $formattedId = 'FN_250' . str_pad($leadId, 3, '0', STR_PAD_LEFT);
@@ -183,6 +185,7 @@ class FinanceHandoverRelationManager extends RelationManager
                                 ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'])
                                 ->openable()
                                 ->downloadable()
+                                ->required()
                                 ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file): string {
                                     $leadId = $this->getOwnerRecord()->id;
                                     $formattedId = 'FN_250' . str_pad($leadId, 3, '0', STR_PAD_LEFT);
@@ -288,9 +291,6 @@ class FinanceHandoverRelationManager extends RelationManager
                     ->label('Reseller Company')
                     ->sortable(),
 
-                TextColumn::make('pic_name')
-                    ->label('PIC Name'),
-
                 TextColumn::make('status')
                     ->label('STATUS')
                     ->formatStateUsing(fn(string $state): HtmlString => match ($state) {
@@ -378,7 +378,23 @@ class FinanceHandoverRelationManager extends RelationManager
         try {
             $lead = $handover->lead;
             $reseller = $handover->reseller;
-            $salesperson = $lead->leadOwnerUser ?? auth()->user();
+
+            // Get salesperson from Lead model properly
+            $salesperson = null;
+            if ($lead->salesperson) {
+                // If salesperson is stored as user ID
+                if (is_numeric($lead->salesperson)) {
+                    $salesperson = User::find($lead->salesperson);
+                } else {
+                    // If salesperson is stored as name, search by name
+                    $salesperson = User::where('name', $lead->salesperson)->first();
+                }
+            }
+
+            // Fallback to auth user if no salesperson found
+            if (!$salesperson) {
+                $salesperson = auth()->user();
+            }
 
             $formattedId = 'FN_250' . str_pad($handover->id, 3, '0', STR_PAD_LEFT);
             $companyName = $lead->companyDetail->company_name ?? $lead->name ?? 'Unknown Company';
@@ -399,27 +415,45 @@ class FinanceHandoverRelationManager extends RelationManager
                 'pic_phone' => $handover->pic_phone,
                 'pic_email' => $handover->pic_email,
                 'attachment_details' => $attachmentDetails,
-                'related_handovers' => $relatedHandovers, // Add this line
+                'related_handovers' => $relatedHandovers,
             ];
 
-            // Send to salesperson and target email
-            $recipients = [
-                $salesperson->email ?? null,
-                'soonhock@timeteccloud.com'
-                // 'zilih.ng@timeteccloud.com'
-            ];
+            // Build recipients array
+            $recipients = [];
 
-            $recipients = array_filter($recipients);
+            // Add salesperson email if available
+            if ($salesperson && $salesperson->email) {
+                $recipients[] = $salesperson->email;
+            }
 
-            foreach ($recipients as $email) {
-                Mail::send('emails.finance-handover-notification', $emailData, function ($message) use ($email, $formattedId, $companyName) {
-                    $message->to($email)
+            // Always add soonhock email
+            $recipients[] = 'soonhock@timeteccloud.com';
+
+            // Remove duplicates and ensure valid emails
+            $recipients = array_unique(array_filter($recipients, function($email) {
+                return !empty($email) && filter_var($email, FILTER_VALIDATE_EMAIL);
+            }));
+
+            Log::info('Finance Handover Email Recipients: ', $recipients);
+            Log::info('Salesperson found: ', [
+                'id' => $salesperson->id ?? 'None',
+                'name' => $salesperson->name ?? 'None',
+                'email' => $salesperson->email ?? 'None'
+            ]);
+
+            // FIXED: Send to all recipients together, not one by one
+            if (!empty($recipients)) {
+                Mail::send('emails.finance-handover-notification', $emailData, function ($message) use ($recipients, $formattedId, $companyName) {
+                    $message->to($recipients)
                         ->subject("FINANCE HANDOVER | {$formattedId} | {$companyName}");
                 });
+
+                Log::info("Finance handover email sent to all recipients: " . implode(', ', $recipients));
             }
 
         } catch (\Exception $e) {
             Log::error('Failed to send finance handover email: ' . $e->getMessage());
+            Log::error('Stack trace: ' . $e->getTraceAsString());
         }
     }
 

@@ -88,6 +88,13 @@ class HandoverDetailTabs
                         ->schema([
 
                         ]),
+
+                    Tabs\Tab::make('Software Handover V2')
+                        ->schema([
+                            \Njxqlus\Filament\Components\Forms\RelationManager::make()
+                                ->manager(\App\Filament\Resources\LeadResource\RelationManagers\SoftwareHandoverV2RelationManager::class
+                            ),
+                        ]),
                 ])
                 ->columnSpan(2)
                 ->visible(function ($livewire) {
