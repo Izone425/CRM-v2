@@ -26,6 +26,7 @@ class FinanceHandover extends Model
         'status',
         'submitted_at',
         'remarks',
+        'related_hardware_handovers',
     ];
 
     protected $casts = [
@@ -35,6 +36,7 @@ class FinanceHandover extends Model
         'submitted_at' => 'datetime',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
+        'related_hardware_handovers' => 'array',
     ];
 
     protected $dates = [

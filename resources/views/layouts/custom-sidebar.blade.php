@@ -1194,7 +1194,7 @@
                             </div>
 
                             <div class="submenu" id="finance-handover-submenu">
-                                <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
+                                <a href="{{ route('filament.admin.pages.finance-handover-list') }}" class="submenu-item">
                                     <span class="module-font">Finance ID</span>
                                 </a>
                             </div>

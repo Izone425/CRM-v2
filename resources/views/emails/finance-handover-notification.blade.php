@@ -12,6 +12,9 @@
 
         <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0;">
             <h3 style="margin-top: 0; color: #2c3e50;">Handover Details</h3>
+            @if(!empty($related_handovers))
+                <p><strong>Related Hardware Handover ID:</strong> {{ implode(', ', $related_handovers) }}</p>
+            @endif
             <p><strong>FN ID:</strong> {{ $fn_id }}</p>
             <p><strong>Submitted Date:</strong> {{ $submitted_date }}</p>
             <p><strong>SalesPerson:</strong> {{ $salesperson }}</p>

@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\LeadResource\RelationManagers;
 
 use App\Models\FinanceHandover;
+use App\Models\HardwareHandoverV2;
 use App\Models\Reseller;
 use App\Models\User;
 use Filament\Resources\RelationManagers\RelationManager;
@@ -42,6 +43,36 @@ class FinanceHandoverRelationManager extends RelationManager
         return [
             Section::make('Step 1: Reseller Details')
                 ->schema([
+                    Select::make('related_hardware_handovers')
+                        ->label('Select Hardware Handovers to Combine With')
+                        ->multiple()
+                        ->searchable()
+                        ->preload()
+                        ->options(function () {
+                            $leadId = $this->getOwnerRecord()->id;
+
+                            return HardwareHandoverV2::where('lead_id', $leadId)
+                                ->get()
+                                ->mapWithKeys(function ($handover) {
+                                    // Format the display name with ID and any relevant info
+                                    $formattedId = 'HW_250' . str_pad($handover->id, 4, '0', STR_PAD_LEFT);
+                                    $displayName = $formattedId;
+
+                                    // Add additional info if available (e.g., status, date)
+                                    if ($handover->status) {
+                                        $displayName .= ' - ' . $handover->status;
+                                    }
+
+                                    if ($handover->created_at) {
+                                        $displayName .= ' (' . $handover->created_at->format('d M Y') . ')';
+                                    }
+
+                                    return [$handover->id => $displayName];
+                                })
+                                ->toArray();
+                        })
+                        ->required(),
+
                     Select::make('reseller_id')
                         ->label('Reseller Company Name')
                         ->required()
@@ -50,17 +81,17 @@ class FinanceHandoverRelationManager extends RelationManager
                         })
                         ->searchable()
                         ->preload()
-                        ->live()
-                        ->afterStateUpdated(function ($state, Forms\Set $set) {
-                            if ($state) {
-                                $reseller = Reseller::find($state);
-                                if ($reseller) {
-                                    $set('pic_name', $reseller->name ?? '');
-                                    $set('pic_phone', $reseller->phone ?? '');
-                                    $set('pic_email', $reseller->email ?? '');
-                                }
-                            }
-                        }),
+                        ->live(),
+                        // ->afterStateUpdated(function ($state, Forms\Set $set) {
+                        //     if ($state) {
+                        //         $reseller = Reseller::find($state);
+                        //         if ($reseller) {
+                        //             $set('pic_name', $reseller->name ?? '');
+                        //             $set('pic_phone', $reseller->phone ?? '');
+                        //             $set('pic_email', $reseller->email ?? '');
+                        //         }
+                        //     }
+                        // }),
 
                     Grid::make(3)
                         ->schema([
@@ -204,6 +235,11 @@ class FinanceHandoverRelationManager extends RelationManager
 
                     if (isset($data['invoice_by_reseller']) && is_array($data['invoice_by_reseller'])) {
                         $data['invoice_by_reseller'] = json_encode($data['invoice_by_reseller']);
+                    }
+
+                    // Store related hardware handovers as JSON
+                    if (isset($data['related_hardware_handovers']) && is_array($data['related_hardware_handovers'])) {
+                        $data['related_hardware_handovers'] = json_encode($data['related_hardware_handovers']);
                     }
 
                     // Generate next available ID
@@ -350,6 +386,9 @@ class FinanceHandoverRelationManager extends RelationManager
             // Prepare attachment details
             $attachmentDetails = $this->formatAttachmentDetails($handover);
 
+            // Prepare related hardware handovers details
+            $relatedHandovers = $this->formatRelatedHandoverDetails($handover);
+
             $emailData = [
                 'fn_id' => $formattedId,
                 'submitted_date' => $handover->submitted_at->format('d M Y'),
@@ -360,16 +399,17 @@ class FinanceHandoverRelationManager extends RelationManager
                 'pic_phone' => $handover->pic_phone,
                 'pic_email' => $handover->pic_email,
                 'attachment_details' => $attachmentDetails,
+                'related_handovers' => $relatedHandovers, // Add this line
             ];
 
-            // Send to salesperson and soonhock@timeteccloud.com
+            // Send to salesperson and target email
             $recipients = [
                 $salesperson->email ?? null,
-                // 'soonhock@timeteccloud.com'
-                'zilih.ng@timeteccloud.com'
+                'soonhock@timeteccloud.com'
+                // 'zilih.ng@timeteccloud.com'
             ];
 
-            $recipients = array_filter($recipients); // Remove null values
+            $recipients = array_filter($recipients);
 
             foreach ($recipients as $email) {
                 Mail::send('emails.finance-handover-notification', $emailData, function ($message) use ($email, $formattedId, $companyName) {
@@ -435,6 +475,30 @@ class FinanceHandoverRelationManager extends RelationManager
                         'name' => "File " . ($index + 1),
                         'url' => asset('storage/' . $file)
                     ];
+                }
+            }
+        }
+
+        return $details;
+    }
+
+    private function formatRelatedHandoverDetails(FinanceHandover $handover): array
+    {
+        $details = [];
+
+        if ($handover->related_hardware_handovers) {
+            $handoverIds = is_string($handover->related_hardware_handovers)
+                ? json_decode($handover->related_hardware_handovers, true)
+                : $handover->related_hardware_handovers;
+
+            if (is_array($handoverIds) && !empty($handoverIds)) {
+                $hardwareHandovers = HardwareHandoverV2::whereIn('id', $handoverIds)->get();
+
+                foreach ($hardwareHandovers as $hw) {
+                    // Use dynamic year based on hardware handover creation date
+                    $hwYear = $hw->created_at ? $hw->created_at->format('y') : now()->format('y');
+                    $formattedId = 'HW_' . $hwYear . str_pad($hw->id, 4, '0', STR_PAD_LEFT);
+                    $details[] = $formattedId;
                 }
             }
         }
