@@ -175,7 +175,7 @@
     .sw-modal-content {
         position: relative;
         width: 100%;
-        max-width: 80rem;
+        max-width: 55rem;
         padding: 1.5rem;
         margin: auto;
         background-color: white;
@@ -305,10 +305,15 @@
             grid-template-columns: 1fr;
         }
     }
+
+    .sw-status-red {
+        color: #dc2626;
+        font-weight: 600;
+    }
 </style>
 
 <div>
-    <div class="sw-info-item">
+    <div class="sw-info-item" style = 'margin-bottom: 1rem;'>
         <span class="sw-label">Software Handover Details</span><br>
         <span class="sw-label">Company Name:</span>
         <span class="sw-value">{{ $companyDetail->company_name ?? $record->company_name ?? 'N/A' }}</span>
@@ -323,19 +328,11 @@
                     <span class="sw-value">{{ $handoverId }}</span>
                 </div>
 
+                <hr class="my-6 border-t border-gray-300">
+
                 <div class="sw-info-item">
-                    <span class="sw-label">Software Handover Status:</span>
-                    @if($record->status == 'Approved')
-                        <span class="sw-status-approved sw-value">{{ $record->status }}</span>
-                    @elseif($record->status == 'Rejected')
-                        <span class="sw-status-rejected sw-value">{{ $record->status }}</span>
-                    @elseif($record->status == 'Draft')
-                        <span class="sw-status-draft sw-value">{{ $record->status }}</span>
-                    @elseif($record->status == 'New')
-                        <span class="sw-status-new sw-value">{{ $record->status }}</span>
-                    @else
-                        <span class="sw-value">{{ $record->status ?? '-' }}</span>
-                    @endif
+                    <span class="sw-label">Status:</span>
+                    <span class="sw-status-red sw-value">{{ $record->status ?? '-' }}</span>
                 </div>
 
                 <div class="sw-info-item">
@@ -343,31 +340,17 @@
                     <span class="sw-value">{{ $record->submitted_at ? \Carbon\Carbon::parse($record->submitted_at)->format('d F Y') : 'Not submitted' }}</span>
                 </div>
 
-                <hr class="my-6 border-t border-gray-300">
-
                 <div class="sw-info-item">
                     <span class="sw-label">SalesPerson:</span>
                     <span class="sw-value">{{ $salespersonName }}</span>
                 </div>
 
+                <hr class="my-6 border-t border-gray-300">
+
                 <div class="sw-info-item">
                     <span class="sw-label">Implementer:</span>
                     <span class="sw-value">{{ $record->implementer ?? '-' }}</span>
                 </div>
-
-                <div class="sw-export-container">
-                    <a href="{{ route('software-handover.export-customer', ['lead' => \App\Classes\Encryptor::encrypt($record->lead_id)]) }}"
-                       target="_blank"
-                       class="sw-export-btn">
-                        <!-- Download Icon -->
-                        <svg xmlns="http://www.w3.org/2000/svg" class="sw-export-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                        Export Invoice Information to Excel
-                    </a>
-                </div>
-                
-                <hr class="my-6 border-t border-gray-300">
 
                 <!-- Implementation Details -->
                 @if(count($implementationPics) > 0)
@@ -468,7 +451,7 @@
                     <span class="sw-not-available">Not Available</span>
                 </div>
                 @endif
-                
+
                 <!-- Training Category -->
                 <div class="sw-info-item">
                     <span class="sw-label">Training Category:</span>
@@ -504,7 +487,7 @@
                 @if($record->training_type === 'online_webinar_training')
                     <!-- Type 1: SW+HW Proforma Invoice -->
                     <div class="sw-info-item">
-                        <span class="sw-label">Type 1: SW+HW Proforma Invoice</span><br>
+                        <span class="sw-label">Type 1: SW+HW Proforma Invoice: </span>
                         @if(count($productPIs) > 0)
                             @foreach($productPIs as $index => $pi)
                                 <a href="{{ url('proforma-invoice-v2/' . $pi->id) }}" target="_blank" class="sw-view-link">File {{ $index + 1 }}</a>
@@ -517,7 +500,7 @@
                 @elseif($record->training_type === 'online_hrdf_training')
                     <!-- Type 1: SW+HW Proforma Invoice -->
                     <div class="sw-info-item">
-                        <span class="sw-label">Type 1: SW+HW Proforma Invoice</span><br>
+                        <span class="sw-label">Type 1: SW+HW Proforma Invoice: </span>
                         @if(count($softwareHardwarePIs) > 0)
                             @foreach($softwareHardwarePIs as $index => $pi)
                                 <a href="{{ url('proforma-invoice-v2/' . $pi->id) }}" target="_blank" class="sw-view-link">File {{ $index + 1 }}</a>
@@ -530,7 +513,7 @@
 
                     <!-- Type 2: NON-HRDF Invoice -->
                     <div class="sw-info-item">
-                        <span class="sw-label">Type 2: NON-HRDF Invoice</span><br>
+                        <span class="sw-label">Type 2: NON-HRDF Invoice: </span>
                         @if(count($nonHrdfPIs) > 0)
                             @foreach($nonHrdfPIs as $index => $pi)
                                 <a href="{{ url('proforma-invoice-v2/' . $pi->id) }}" target="_blank" class="sw-view-link">File {{ $index + 1 }}</a>
@@ -543,7 +526,7 @@
 
                     <!-- Type 3: HRDF Invoice -->
                     <div class="sw-info-item">
-                        <span class="sw-label">Type 3: HRDF Invoice</span><br>
+                        <span class="sw-label">Type 3: HRDF Invoice: </span>
                         @if(count($hrdfPIs) > 0)
                             @foreach($hrdfPIs as $index => $pi)
                                 <a href="{{ url('proforma-invoice/' . $pi->id) }}" target="_blank" class="sw-view-link">File {{ $index + 1 }}</a>
@@ -556,7 +539,7 @@
                 @else
                     <!-- Default - Product PI -->
                     <div class="sw-info-item">
-                        <span class="sw-label">Product PI:</span>
+                        <span class="sw-label">Product PI: </span>
                         @if(count($productPIs) > 0)
                             <span class="sw-value">
                                 @foreach($productPIs as $index => $pi)
@@ -574,7 +557,7 @@
 
                 <!-- Confirmation Order -->
                 <div class="sw-info-item">
-                    <span class="sw-label">Confirmation Order</span><br>
+                    <span class="sw-label">Confirmation Order: </span>
                     @if(count($confirmationFiles) > 0)
                         @foreach($confirmationFiles as $index => $file)
                             <a href="{{ url('storage/' . $file) }}" target="_blank" class="sw-view-link">File {{ $index + 1 }}</a>
@@ -587,7 +570,7 @@
 
                 <!-- Payment Slip -->
                 <div class="sw-info-item">
-                    <span class="sw-label">Payment Slip</span><br>
+                    <span class="sw-label">Payment Slip: </span>
                     @if(count($paymentFiles) > 0)
                         @foreach($paymentFiles as $index => $file)
                             <a href="{{ url('storage/' . $file) }}" target="_blank" class="sw-view-link">File {{ $index + 1 }}</a>
@@ -600,7 +583,7 @@
 
                 <!-- HRDF Grant -->
                 <div class="sw-info-item">
-                    <span class="sw-label">HRDF Grant</span><br>
+                    <span class="sw-label">HRDF Grant: </span>
                     @if(count($hrdfGrantFiles) > 0)
                         @foreach($hrdfGrantFiles as $index => $file)
                             <a href="{{ url('storage/' . $file) }}" target="_blank" class="sw-view-link">File {{ $index + 1 }}</a>
@@ -613,7 +596,7 @@
 
                 <!-- Invoice by Winson -->
                 <div class="sw-info-item">
-                    <span class="sw-label">Invoice by Winson</span><br>
+                    <span class="sw-label">Invoice by Admin: </span>
                     @if(count($invoiceFiles) > 0)
                         @foreach($invoiceFiles as $index => $file)
                             <a href="{{ url('storage/' . $file) }}" target="_blank" class="sw-view-link">File {{ $index + 1 }}</a>
@@ -628,8 +611,22 @@
 
                 <!-- Invoice by Admin -->
                 <div class="sw-info-item">
-                    <span class="sw-label">Invoice by Admin</span><br>
+                    <span class="sw-label">Invoice by Wirson: </span>
                     <span class="sw-not-available">Not Available</span>
+                </div>
+
+                <hr class="my-6 border-t border-gray-300">
+
+                <div class="sw-export-container">
+                    <a href="{{ route('software-handover.export-customer', ['lead' => \App\Classes\Encryptor::encrypt($record->lead_id)]) }}"
+                       target="_blank"
+                       class="sw-export-btn">
+                        <!-- Download Icon -->
+                        <svg xmlns="http://www.w3.org/2000/svg" class="sw-export-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        Export Invoice Information to Excel
+                    </a>
                 </div>
             </div>
         </div>

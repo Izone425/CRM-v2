@@ -405,32 +405,44 @@ class HardwareV2PendingCourierTable extends Component implements HasForms, HasTa
                         })
                         ->action(function (HardwareHandoverV2 $record, array $data): void {
                             try {
+                                // Check if courier_details exists, if not skip validation
+                                if (!isset($data['courier_details']) || empty($data['courier_details'])) {
+                                    Notification::make()
+                                        ->title('No Data')
+                                        ->body('No courier details provided.')
+                                        ->warning()
+                                        ->send();
+                                    return;
+                                }
+
                                 // Check for duplicates within current form data
                                 $trackingNumbers = [];
-                                foreach ($data['external_courier_details'] as $detail) {
-                                    if (isset($detail['external_courier_tracking']) && !empty($detail['external_courier_tracking'])) {
-                                        $upperValue = strtoupper($detail['external_courier_tracking']);
+                                foreach ($data['courier_details'] as $detail) {
+                                    if (isset($detail['courier_tracking']) && !empty($detail['courier_tracking'])) {
+                                        $upperValue = strtoupper($detail['courier_tracking']);
                                         $trackingNumbers[] = $upperValue;
                                     }
                                 }
 
-                                // Check for duplicates
-                                $duplicates = array_count_values($trackingNumbers);
-                                $duplicateFound = false;
-                                foreach ($duplicates as $trackingNumber => $count) {
-                                    if ($count > 1) {
-                                        $duplicateFound = true;
-                                        break;
+                                // Check for duplicates only if we have tracking numbers
+                                if (!empty($trackingNumbers)) {
+                                    $duplicates = array_count_values($trackingNumbers);
+                                    $duplicateFound = false;
+                                    foreach ($duplicates as $trackingNumber => $count) {
+                                        if ($count > 1) {
+                                            $duplicateFound = true;
+                                            break;
+                                        }
                                     }
-                                }
 
-                                if ($duplicateFound) {
-                                    Notification::make()
-                                        ->title('Duplicate Tracking Numbers')
-                                        ->body('Each address must have a unique tracking number. Please check your entries.')
-                                        ->danger()
-                                        ->send();
-                                    return;
+                                    if ($duplicateFound) {
+                                        Notification::make()
+                                            ->title('Duplicate Tracking Numbers')
+                                            ->body('Each address must have a unique tracking number. Please check your entries.')
+                                            ->danger()
+                                            ->send();
+                                        return;
+                                    }
                                 }
 
                                 // Get existing category2 data
@@ -441,37 +453,41 @@ class HardwareV2PendingCourierTable extends Component implements HasForms, HasTa
                                     $existingCategory2 = [];
                                 }
 
-                                // Merge courier data into external_courier_addresses
-                                if (isset($existingCategory2['external_courier_addresses']) && is_array($existingCategory2['external_courier_addresses'])) {
-                                    foreach ($data['external_courier_details'] as $index => $courierData) {
-                                        if (isset($existingCategory2['external_courier_addresses'][$index])) {
+                                // Merge courier data into courier_addresses (not external_courier_addresses)
+                                if (isset($existingCategory2['courier_addresses']) && is_array($existingCategory2['courier_addresses'])) {
+                                    foreach ($data['courier_details'] as $index => $courierData) {
+                                        if (isset($existingCategory2['courier_addresses'][$index])) {
                                             // Add courier fields to the existing address object
-                                            $existingCategory2['external_courier_addresses'][$index]['external_courier_date'] = $courierData['external_courier_date'];
-                                            $existingCategory2['external_courier_addresses'][$index]['external_courier_tracking'] = $courierData['external_courier_tracking'];
+                                            if (isset($courierData['courier_date'])) {
+                                                $existingCategory2['courier_addresses'][$index]['courier_date'] = $courierData['courier_date'];
+                                            }
+                                            if (isset($courierData['courier_tracking'])) {
+                                                $existingCategory2['courier_addresses'][$index]['courier_tracking'] = $courierData['courier_tracking'];
+                                            }
                                         }
                                     }
                                 }
 
                                 // Add completion metadata (optional - for tracking purposes)
-                                $existingCategory2['external_courier_completed'] = true;
-                                $existingCategory2['external_courier_completed_at'] = now();
-                                $existingCategory2['external_courier_completed_by'] = auth()->id();
+                                $existingCategory2['courier_completed'] = true;
+                                $existingCategory2['courier_completed_at'] = now();
+                                $existingCategory2['courier_completed_by'] = auth()->id();
 
                                 // Update the record with merged category2 data and new status
                                 $record->update([
                                     'category2' => json_encode($existingCategory2),
-                                    'status' => 'Completed: External Installation',
+                                    'status' => 'Completed: Courier', // Changed from 'Completed: External Installation'
                                     'completed_at' => now(),
                                 ]);
 
                                 Notification::make()
-                                    ->title('External Courier Completed')
-                                    ->body('All external courier details have been merged into address data successfully.')
+                                    ->title('Courier Completed')
+                                    ->body('All courier details have been saved successfully.')
                                     ->success()
                                     ->send();
 
                             } catch (\Exception $e) {
-                                Log::error("Error saving external courier data for handover {$record->id}: " . $e->getMessage());
+                                Log::error("Error saving courier data for handover {$record->id}: " . $e->getMessage());
 
                                 Notification::make()
                                     ->title('Error')

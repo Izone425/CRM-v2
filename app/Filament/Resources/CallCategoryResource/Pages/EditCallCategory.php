@@ -9,11 +9,4 @@ use Filament\Resources\Pages\EditRecord;
 class EditCallCategory extends EditRecord
 {
     protected static string $resource = CallCategoryResource::class;
-
-    protected function getHeaderActions(): array
-    {
-        return [
-            Actions\DeleteAction::make(),
-        ];
-    }
 }
