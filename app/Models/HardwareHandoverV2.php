@@ -61,6 +61,7 @@ class HardwareHandoverV2 extends Model
         'created_at',
         'updated_at',
         'reseller_quotation_file',
+        'sales_order_status'
     ];
 
     protected $casts = [

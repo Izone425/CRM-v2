@@ -25,16 +25,8 @@ class SalesOrderApiService
                 return $data['token'] ?? null;
             }
 
-            Log::error('Sales Order API Login failed', [
-                'status' => $response->status(),
-                'response' => $response->body()
-            ]);
-
             return null;
         } catch (\Exception $e) {
-            Log::error('Sales Order API Login exception', [
-                'error' => $e->getMessage()
-            ]);
             return null;
         }
     }
@@ -50,9 +42,7 @@ class SalesOrderApiService
     public function getSalesOrderStatus(string $soNo): ?array
     {
         $token = $this->getToken();
-
         if (!$token) {
-            Log::error('Could not get API token for sales order status check');
             return null;
         }
 
@@ -61,13 +51,28 @@ class SalesOrderApiService
                 ->withHeaders([
                     'Authorization' => 'Bearer ' . $token,
                     'Content-Type' => 'application/json',
+                    'Accept' => 'application/json',
                 ])
-                ->post($this->baseUrl . '/get-sales-order-status', [
+                ->get($this->baseUrl . '/get-sales-order-status', [
                     'so_no' => $soNo
                 ]);
 
             if ($response->successful()) {
                 return $response->json();
+            }
+
+            // Handle specific error cases
+            if ($response->status() === 500) {
+                $errorBody = $response->body();
+
+                // If it's a "property on null" error, the SO probably doesn't exist
+                if (str_contains($errorBody, 'property') && str_contains($errorBody, 'null')) {
+                    return [
+                        'status' => null,
+                        'so_no' => $soNo,
+                        'message' => 'Sales Order not found in system'
+                    ];
+                }
             }
 
             // If unauthorized, clear cache and retry once
@@ -80,8 +85,9 @@ class SalesOrderApiService
                         ->withHeaders([
                             'Authorization' => 'Bearer ' . $newToken,
                             'Content-Type' => 'application/json',
+                            'Accept' => 'application/json',
                         ])
-                        ->post($this->baseUrl . '/get-sales-order-status', [
+                        ->get($this->baseUrl . '/get-sales-order-status', [
                             'so_no' => $soNo
                         ]);
 
@@ -91,18 +97,8 @@ class SalesOrderApiService
                 }
             }
 
-            Log::error('Sales Order API status check failed', [
-                'so_no' => $soNo,
-                'status' => $response->status(),
-                'response' => $response->body()
-            ]);
-
             return null;
         } catch (\Exception $e) {
-            Log::error('Sales Order API status check exception', [
-                'so_no' => $soNo,
-                'error' => $e->getMessage()
-            ]);
             return null;
         }
     }
