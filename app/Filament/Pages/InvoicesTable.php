@@ -50,29 +50,57 @@ class InvoicesTable extends Page implements HasTable
     }
 
     // Helper method to get payment status for an invoice
+    // protected function getPaymentStatusForInvoice(string $invoiceNo): string
+    // {
+    //     // Get the total invoice amount for this invoice number
+    //     $totalInvoiceAmount = Invoice::where('invoice_no', $invoiceNo)->sum('invoice_amount');
+
+    //     // Look for this invoice in debtor_agings table
+    //     $debtorAging = DB::table('debtor_agings')
+    //         ->where('invoice_number', $invoiceNo)
+    //         ->first();
+
+    //     // If no matching record in debtor_agings or outstanding is 0
+    //     if (!$debtorAging || (float)$debtorAging->outstanding === 0.0) {
+    //         return 'Full Payment';
+    //     }
+
+    //     // If outstanding equals total invoice amount
+    //     if ((float)$debtorAging->outstanding === (float)$totalInvoiceAmount) {
+    //         return 'UnPaid';
+    //     }
+
+    //     // If outstanding is less than invoice amount but greater than 0
+    //     if ((float)$debtorAging->outstanding < (float)$totalInvoiceAmount && (float)$debtorAging->outstanding > 0) {
+    //         return 'Partial Payment';
+    //     }
+
+    //     // Fallback (shouldn't normally reach here)
+    //     return 'UnPaid';
+    // }
+
     protected function getPaymentStatusForInvoice(string $invoiceNo): string
     {
-        // Get the total invoice amount for this invoice number
-        $totalInvoiceAmount = Invoice::where('invoice_no', $invoiceNo)->sum('invoice_amount');
-
         // Look for this invoice in debtor_agings table
         $debtorAging = DB::table('debtor_agings')
             ->where('invoice_number', $invoiceNo)
             ->first();
 
-        // If no matching record in debtor_agings or outstanding is 0
-        if (!$debtorAging || (float)$debtorAging->outstanding === 0.0) {
+        // If no matching record in debtor_agings, assume fully paid
+        if (!$debtorAging) {
             return 'Full Payment';
         }
 
-        // If outstanding equals total invoice amount
-        if ((float)$debtorAging->outstanding === (float)$totalInvoiceAmount) {
-            return 'UnPaid';
-        }
+        $outstanding = (float)$debtorAging->outstanding;
+        $invoiceAmount = (float)$debtorAging->invoice_amount;
 
-        // If outstanding is less than invoice amount but greater than 0
-        if ((float)$debtorAging->outstanding < (float)$totalInvoiceAmount && (float)$debtorAging->outstanding > 0) {
-            return 'Partial Payment';
+        // Apply the same logic as your SQL CASE statement
+        if ($outstanding == 0) {
+            return 'Full Payment'; // 'fully paid'
+        } elseif ($outstanding < $invoiceAmount) {
+            return 'Partial Payment'; // 'partial paid'
+        } elseif ($outstanding == $invoiceAmount) {
+            return 'UnPaid'; // 'unpaid'
         }
 
         // Fallback (shouldn't normally reach here)
@@ -129,16 +157,41 @@ class InvoicesTable extends Page implements HasTable
 
     protected function calculateSummaryStats(Carbon $startDate, Carbon $endDate, array $allowedSalespersons, string $invoicePrefix = null): array
     {
-        $baseQuery = Invoice::query()
-            ->whereIn('salesperson', $allowedSalespersons)
-            ->whereBetween('invoice_date', [$startDate, $endDate]);
-
-        if ($invoicePrefix) {
-            $baseQuery->where('invoice_no', 'like', $invoicePrefix . '%');
+        if (empty($allowedSalespersons)) {
+            return [
+                'full_payment_amount' => 0,
+                'partial_payment_amount' => 0,
+                'unpaid_amount' => 0,
+                'total_amount' => 0,
+            ];
         }
 
-        // Group by invoice_no to get unique invoices
-        $invoiceNos = $baseQuery->distinct('invoice_no')->pluck('invoice_no');
+        // Get invoice totals first
+        $invoiceTotals = DB::table('invoices')
+            ->select('invoice_no', DB::raw('SUM(invoice_amount) as total_amount'))
+            ->whereIn('salesperson', $allowedSalespersons)
+            ->whereBetween('invoice_date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
+            ->when($invoicePrefix, function ($query, $prefix) {
+                return $query->where('invoice_no', 'like', $prefix . '%');
+            })
+            ->groupBy('invoice_no')
+            ->get();
+
+        if ($invoiceTotals->isEmpty()) {
+            return [
+                'full_payment_amount' => 0,
+                'partial_payment_amount' => 0,
+                'unpaid_amount' => 0,
+                'total_amount' => 0,
+            ];
+        }
+
+        // Get payment status for all invoices
+        $invoiceNos = $invoiceTotals->pluck('invoice_no')->toArray();
+        $debtorAgings = DB::table('debtor_agings')
+            ->whereIn('invoice_number', $invoiceNos)
+            ->get()
+            ->keyBy('invoice_number');
 
         $stats = [
             'full_payment_amount' => 0,
@@ -147,24 +200,19 @@ class InvoicesTable extends Page implements HasTable
             'total_amount' => 0,
         ];
 
-        foreach ($invoiceNos as $invoiceNo) {
-            // Calculate total invoice amount for this invoice
-            $totalInvoiceAmount = Invoice::where('invoice_no', $invoiceNo)->sum('invoice_amount');
-            $stats['total_amount'] += $totalInvoiceAmount;
+        foreach ($invoiceTotals as $invoice) {
+            $amount = (float)$invoice->total_amount;
+            $stats['total_amount'] += $amount;
 
-            // Use the same payment status logic
-            $paymentStatus = $this->getPaymentStatusForInvoice($invoiceNo);
+            $debtorAging = $debtorAgings->get($invoice->invoice_no);
 
-            switch ($paymentStatus) {
-                case 'Full Payment':
-                    $stats['full_payment_amount'] += $totalInvoiceAmount;
-                    break;
-                case 'Partial Payment':
-                    $stats['partial_payment_amount'] += $totalInvoiceAmount;
-                    break;
-                case 'UnPaid':
-                    $stats['unpaid_amount'] += $totalInvoiceAmount;
-                    break;
+            // Determine payment status using debtor_agings
+            if (!$debtorAging || (float)$debtorAging->outstanding == 0) {
+                $stats['full_payment_amount'] += $amount;
+            } elseif ((float)$debtorAging->outstanding < (float)$debtorAging->invoice_amount) {
+                $stats['partial_payment_amount'] += $amount;
+            } else {
+                $stats['unpaid_amount'] += $amount;
             }
         }
 
@@ -388,6 +436,16 @@ class InvoicesTable extends Page implements HasTable
                     }),
             ])
             ->actions([
+                // Tables\Actions\Action::make('generate_invoice_pdf')
+                //     ->label('Generate PDF')
+                //     ->hiddenLabel()
+                //     ->tooltip('Generate PDF for this invoice')
+                //     ->url(fn (Invoice $record): string => route('invoices.generate_pdf', ['invoice_no' => $record->invoice_no]))
+                //     ->icon('heroicon-o-document')
+                //     ->button()
+                //     ->openUrlInNewTab()
+                //     ->color('success')
+                //     ->visible(fn() => auth('web')->user()->id == 45),
             ])
             ->bulkActions([]);
     }

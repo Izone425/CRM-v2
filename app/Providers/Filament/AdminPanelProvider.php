@@ -23,6 +23,7 @@ use App\Filament\Pages\DemoRanking;
 use App\Filament\Pages\DepartmentCalendar;
 use App\Filament\Pages\DevicePurchaseInformation;
 use App\Filament\Pages\DeviceStockInformation;
+use App\Filament\Pages\FinanceHandoverList;
 use App\Filament\Pages\FutureEnhancement as PagesFutureEnhancement;
 use App\Filament\Pages\HardwareDashboardAll;
 use App\Filament\Pages\HardwareDashboardPendingStock;
@@ -349,6 +350,7 @@ class AdminPanelProvider extends PanelProvider
                 RenewalDataAnalysis::class,
                 CallLogAnalysis::class,
                 SalesAdminInvoice::class,
+                FinanceHandoverList::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([

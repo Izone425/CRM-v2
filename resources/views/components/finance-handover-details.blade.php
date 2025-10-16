@@ -73,9 +73,21 @@
             border-radius: 0.5rem;
         }
 
+        .hardware-section {
+            background-color: #f0fdf4;
+            padding: 1rem;
+            border-radius: 0.5rem;
+        }
+
         .section-title {
             font-weight: 600;
             color: #111827;
+            margin-bottom: 0.75rem;
+        }
+
+        .hardware-title {
+            font-weight: 600;
+            color: #166534;
             margin-bottom: 0.75rem;
         }
 
@@ -94,6 +106,21 @@
         .detail-label {
             font-weight: 500;
             min-width: 80px;
+        }
+
+        .hardware-ids {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .hardware-id-badge {
+            background-color: #dcfce7;
+            color: #166534;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            font-weight: 600;
         }
 
         .attachments-section {
@@ -154,7 +181,27 @@
     </style>
 
     @php
-        $formattedId = 'FN_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+        // Use dynamic year for finance handover
+        $year = $record->created_at ? $record->created_at->format('y') : now()->format('y');
+        $formattedId = 'FN_' . $year . str_pad($record->id, 4, '0', STR_PAD_LEFT);
+
+        // Get related hardware handovers with dynamic years
+        $relatedHandovers = [];
+        if ($record->related_hardware_handovers) {
+            $handoverIds = is_string($record->related_hardware_handovers)
+                ? json_decode($record->related_hardware_handovers, true)
+                : $record->related_hardware_handovers;
+
+            if (is_array($handoverIds) && !empty($handoverIds)) {
+                foreach ($handoverIds as $id) {
+                    // Get the hardware handover to check its creation date
+                    $hw = \App\Models\HardwareHandoverV2::find($id);
+                    $hwYear = $hw && $hw->created_at ? $hw->created_at->format('y') : now()->format('y');
+
+                    $relatedHandovers[] = 'HW_' . $hwYear . str_pad($id, 4, '0', STR_PAD_LEFT);
+                }
+            }
+        }
     @endphp
 
     <div class="handover-header">
@@ -177,6 +224,18 @@
             </div>
         </div>
     </div>
+
+    {{-- Related Hardware Handovers Section --}}
+    @if(!empty($relatedHandovers))
+    <div class="hardware-section">
+        <h4 class="hardware-title">Related Hardware Handovers</h4>
+        <div class="hardware-ids">
+            @foreach($relatedHandovers as $hwId)
+                <span class="hardware-id-badge">{{ $hwId }}</span>
+            @endforeach
+        </div>
+    </div>
+    @endif
 
     <div class="reseller-section">
         <h4 class="section-title">Reseller Details</h4>
@@ -247,7 +306,7 @@
                         @foreach($invoiceReseller as $index => $file)
                             <li class="file-item">
                                 <a href="{{ asset('storage/' . $file) }}" target="_blank" class="file-link">
-                                    File {{ $index + 1 }} (View/Download)
+                                    File {{ $index + 1 }}
                                 </a>
                             </li>
                         @endforeach
