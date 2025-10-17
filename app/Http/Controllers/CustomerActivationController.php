@@ -60,7 +60,7 @@ class CustomerActivationController extends Controller
         $fromEmail = $senderEmail ? $senderEmail : 'noreply@timeteccloud.com';
         $fromName = $senderName ? $senderName : 'TimeTec Implementation Team';
 
-        $customerName = $lead->companyDetail ? $lead->companyDetail->name : $lead->name;
+        $customerName = $lead->companyDetail ? $lead->companyDetail->company_name : $lead->name;
         $companyNameForEmail = $lead->companyDetail ? $lead->companyDetail->company_name : $lead->company_name;
 
         // Prepare CC recipients - include implementer and salesperson
@@ -94,7 +94,7 @@ class CustomerActivationController extends Controller
             'customerName' => $customerName,
             'companyName' => $companyNameForEmail,
             'implementerName' => $senderName,
-            'loginUrl' => url('/customer/login'),
+            'loginUrl' => config('app.url') . '/customer/login', // More explicit
         ], function ($message) use ($recipientEmails, $fromEmail, $fromName, $companyNameForEmail, $ccRecipients) {
             $message->from($fromEmail, $fromName)
                     ->to($recipientEmails) // Send to all PICs
