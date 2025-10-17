@@ -163,6 +163,16 @@ class CustomerCalendar extends Component
         $availableSessions = [];
         $dayOfWeek = strtolower(Carbon::parse($date)->format('l'));
 
+        // Calculate booking window - only allow next 3 weeks from today
+        $today = Carbon::today();
+        $maxBookingDate = $today->copy()->addWeeks(3)->endOfWeek(); // End of third week
+        $requestedDate = Carbon::parse($date);
+
+        // Block if date is beyond 3 weeks from today
+        if ($requestedDate->gt($maxBookingDate)) {
+            return [];
+        }
+
         // Skip weekends
         if (in_array($dayOfWeek, ['saturday', 'sunday'])) {
             return [];
@@ -613,7 +623,6 @@ class CustomerCalendar extends Component
                 }
             }
 
-            // CC recipients (implementer team + assigned implementer)
             $ccRecipients = [
                 // 'fazuliana.mohdarsad@timeteccloud.com'
             ];
@@ -622,6 +631,15 @@ class CustomerCalendar extends Component
             $implementerEmail = $this->getImplementerEmail($appointment->implementer);
             if ($implementerEmail && !in_array($implementerEmail, $ccRecipients)) {
                 $ccRecipients[] = $implementerEmail;
+            }
+
+            // Add the salesperson to CC
+            $lead = \App\Models\Lead::find($customer->lead_id);
+            if ($lead && $lead->salesperson) {
+                $salespersonEmail = $lead->getSalespersonEmail();
+                if ($salespersonEmail && !in_array($salespersonEmail, $ccRecipients)) {
+                    $ccRecipients[] = $salespersonEmail;
+                }
             }
 
             // Remove duplicates and filter valid emails
@@ -645,9 +663,8 @@ class CustomerCalendar extends Component
                 $emailData,
                 function ($message) use ($recipients, $ccRecipients, $customer, $implementerEmail, $implementerName) {
                     $message->from($implementerEmail ?: 'noreply@timeteccloud.com', $implementerName ?: 'TimeTec Implementation Team')
-                            ->replyTo($customer->original_email ?? $customer->email, $customer->name)
                             ->to($recipients) // Primary recipients (customer + attendees)
-                            ->cc($ccRecipients) // CC implementer team + assigned implementer
+                            ->cc($ccRecipients) // CC implementer team + assigned implementer + salesperson
                             ->subject("KICK-OFF MEETING SESSION | {$customer->company_name}");
                 }
             );
@@ -660,7 +677,8 @@ class CustomerCalendar extends Component
                 'customer' => $customer->company_name,
                 'appointment_id' => $appointment->id,
                 'total_to_recipients' => count($recipients),
-                'total_cc_recipients' => count($ccRecipients)
+                'total_cc_recipients' => count($ccRecipients),
+                'salesperson_included' => $lead && $lead->getSalespersonEmail() ? 'yes' : 'no'
             ]);
 
         } catch (\Exception $e) {
@@ -698,6 +716,10 @@ class CustomerCalendar extends Component
         $startOfCalendar = $startOfMonth->copy()->startOfWeek();
         $endOfCalendar = $endOfMonth->copy()->endOfWeek();
 
+        // Calculate booking window - only allow next 3 weeks from today
+        $today = Carbon::today();
+        $maxBookingDate = $today->copy()->addWeeks(3)->endOfWeek(); // End of third week
+
         $monthlyData = [];
         $current = $startOfCalendar->copy();
 
@@ -708,6 +730,9 @@ class CustomerCalendar extends Component
             $isPast = $current->isPast();
             $isWeekend = $current->isWeekend();
 
+            // Check if date is beyond booking window
+            $isBeyondBookingWindow = $current->gt($maxBookingDate);
+
             // Check for public holidays
             $isPublicHoliday = PublicHoliday::where('date', $dateString)->exists();
 
@@ -716,7 +741,7 @@ class CustomerCalendar extends Component
 
             // Count available sessions for this date (only if customer doesn't have existing booking)
             $availableCount = 0;
-            if (!$this->hasExistingBooking && !$isPast && !$isWeekend && !$isPublicHoliday && $isCurrentMonth) {
+            if (!$this->hasExistingBooking && !$isPast && !$isWeekend && !$isPublicHoliday && $isCurrentMonth && !$isBeyondBookingWindow) {
                 $availableCount = count($this->getAvailableSessionsForDate($dateString));
             }
 
@@ -729,9 +754,10 @@ class CustomerCalendar extends Component
                 'isPast' => $isPast,
                 'isWeekend' => $isWeekend,
                 'isPublicHoliday' => $isPublicHoliday,
+                'isBeyondBookingWindow' => $isBeyondBookingWindow,
                 'availableCount' => $availableCount,
                 'hasCustomerMeeting' => $hasCustomerMeeting,
-                'canBook' => !$this->hasExistingBooking && !$isPast && !$isWeekend && !$isPublicHoliday && $isCurrentMonth && $availableCount > 0
+                'canBook' => !$this->hasExistingBooking && !$isPast && !$isWeekend && !$isPublicHoliday && $isCurrentMonth && !$isBeyondBookingWindow && $availableCount > 0
             ];
 
             $current->addDay();

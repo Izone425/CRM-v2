@@ -12,13 +12,13 @@ use App\Models\Lead;
 
 class CustomerActivationController extends Controller
 {
-    public function sendGroupActivationEmail($leadId, array $recipientEmails, $senderEmail = null, $senderName = null)
+    public function sendGroupActivationEmail($leadId, array $recipientEmails, $senderEmail = null, $senderName = null, $handoverId = null)
     {
         $lead = Lead::with('companyDetail')->findOrFail($leadId);
 
         // Generate random email and password for the customer account
         $companyName = $lead->companyDetail ? $lead->companyDetail->company_name : $lead->company_name;
-        $randomEmail = $this->generateRandomEmail($companyName);
+        $randomEmail = $this->generateRandomEmail($companyName, $handoverId);
         $randomPassword = $this->generateRandomPassword();
 
         // Check if customer already exists
@@ -27,7 +27,7 @@ class CustomerActivationController extends Controller
         if (!$customerExists) {
             // Check if the random email already exists
             while (Customer::where('email', $randomEmail)->exists()) {
-                $randomEmail = $this->generateRandomEmail($companyName);
+                $randomEmail = $this->generateRandomEmail($companyName, $handoverId);
             }
 
             $customerName = $lead->companyDetail ? $lead->companyDetail->name : $lead->name;
@@ -63,8 +63,26 @@ class CustomerActivationController extends Controller
         $customerName = $lead->companyDetail ? $lead->companyDetail->name : $lead->name;
         $companyNameForEmail = $lead->companyDetail ? $lead->companyDetail->company_name : $lead->company_name;
 
-        // Send email to all PICs with implementer as sender and CC
-        // Updated variables to match what the email template expects
+        // Prepare CC recipients - include implementer and salesperson
+        $ccRecipients = [];
+
+        // Add implementer to CC
+        if ($fromEmail && filter_var($fromEmail, FILTER_VALIDATE_EMAIL)) {
+            $ccRecipients[] = $fromEmail;
+        }
+
+        // Add salesperson to CC
+        if ($lead->salesperson) {
+            $salesperson = \App\Models\User::find($lead->salesperson);
+            if ($salesperson && $salesperson->email && filter_var($salesperson->email, FILTER_VALIDATE_EMAIL)) {
+                $ccRecipients[] = $salesperson->email;
+            }
+        }
+
+        // Remove duplicates
+        $ccRecipients = array_unique($ccRecipients);
+
+        // Send email to all PICs with implementer as sender and CC implementer + salesperson
         \Illuminate\Support\Facades\Mail::send('emails.customer-activation', [
             'name' => $customerName,
             'email' => $randomEmail,
@@ -76,22 +94,31 @@ class CustomerActivationController extends Controller
             'customerName' => $customerName,
             'companyName' => $companyNameForEmail,
             'implementerName' => $senderName,
-            'loginUrl' => url('/customer/login'), // Add this missing variable
-        ], function ($message) use ($recipientEmails, $fromEmail, $fromName, $companyNameForEmail) {
+            'loginUrl' => url('/customer/login'),
+        ], function ($message) use ($recipientEmails, $fromEmail, $fromName, $companyNameForEmail, $ccRecipients) {
             $message->from($fromEmail, $fromName)
                     ->to($recipientEmails) // Send to all PICs
-                    ->cc([$fromEmail]) // CC the implementer
+                    ->cc($ccRecipients) // CC the implementer + salesperson
                     ->subject("🚀 Customer Portal Access - " . $companyNameForEmail);
         });
 
-        \Illuminate\Support\Facades\Log::info("Group activation email sent from {$fromEmail} to: " . implode(', ', $recipientEmails));
+        \Illuminate\Support\Facades\Log::info("Group activation email sent from {$fromEmail} to: " . implode(', ', $recipientEmails) . " | CC: " . implode(', ', $ccRecipients));
 
         return true;
     }
 
-    private function generateRandomEmail($companyName = null)
+    private function generateRandomEmail($companyName = null, $handoverId = null)
     {
-        // Clean company name for email generation
+        // If handover ID is provided, use it to generate email
+        if ($handoverId) {
+            $handoverParts = explode('_', $handoverId);
+            if (count($handoverParts) >= 2) {
+                $yearAndId = $handoverParts[1]; // "250800"
+                return strtolower("sw_{$yearAndId}@timeteccloud.com");
+            }
+        }
+
+        // Fallback to original method if no handover ID
         $cleanCompanyName = '';
         if ($companyName) {
             $cleanCompanyName = strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $companyName));
@@ -108,7 +135,7 @@ class CustomerActivationController extends Controller
             $username = 'customer' . $randomString . rand(100, 999);
         }
 
-        return $username . '@timeteccustomer.com';
+        return $username . '@timeteccloud.com';
     }
 
     private function generateRandomPassword($length = 12)

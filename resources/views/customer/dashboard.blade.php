@@ -100,8 +100,25 @@
                 </div>
                 <div class="flex items-center space-x-6">
                     <div class="text-right">
-                        <p class="font-semibold text-white">{{ Auth::guard('customer')->user()->name }}</p>
-                        <p class="text-sm text-indigo-100">{{ Auth::guard('customer')->user()->email }}</p>
+                        @php
+                            $customer = Auth::guard('customer')->user();
+                            $companyName = $customer->company_name ?? 'Not Available';
+
+                            // Get the latest software handover based on lead_id
+                            $projectCode = 'Not Available';
+                            if ($customer->lead_id) {
+                                $latestHandover = \App\Models\SoftwareHandover::where('lead_id', $customer->lead_id)
+                                    ->orderBy('id', 'desc')
+                                    ->first();
+
+                                if ($latestHandover) {
+                                    $projectCode = 'SW_250' . str_pad($latestHandover->id, 3, '0', STR_PAD_LEFT);
+                                }
+                            }
+                        @endphp
+
+                        <p class="font-semibold text-white">Company Name: {{ $companyName }}</p>
+                        <p class="text-sm text-indigo-100">Project Code: {{ $projectCode }}</p>
                     </div>
                     <form method="POST" action="{{ route('customer.logout') }}">
                         @csrf
@@ -118,21 +135,6 @@
     <!-- Main Content -->
     <main class="relative py-12">
         <div class="mx-auto max-w-7xl sm:px-6 lg:px-8">
-            <!-- Welcome Hero Section -->
-            <div class="mb-12 text-center">
-                <div class="relative">
-                    <h1 class="mb-4 text-5xl font-bold text-gray-800">
-                        Welcome back,
-                        <span class="text-transparent bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text">
-                            {{ explode(' ', Auth::guard('customer')->user()->name)[0] }}
-                        </span>!
-                    </h1>
-                    <p class="max-w-2xl mx-auto text-xl text-gray-600">
-                        Schedule your kick-off meeting and manage your implementation journey with ease.
-                    </p>
-                </div>
-            </div>
-
             <!-- Calendar Section -->
             <div id="calendar" class="overflow-hidden bg-white border border-gray-100 shadow-xl rounded-3xl">
                 <div class="px-8 py-6 bg-gradient-to-r from-indigo-600 to-purple-600">

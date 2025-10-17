@@ -42,11 +42,6 @@
             <div class="row"><span class="label">SW ID:</span> {{ $sw_id }}</div>
             <div class="row"><span class="label">SALESPERSON:</span> {{ $salesperson }}</div>
             <div class="row"><span class="label">COMPANY NAME:</span> {{ $company_name }}</div>
-            <div class="button-container">
-                <a href="{{ $form_url }}" class="button" target="_blank">
-                    Click here to view software handover form
-                </a>
-            </div>
         </div>
         <div class="footer">
             This is an automated notification from TimeTec CRM.<br>

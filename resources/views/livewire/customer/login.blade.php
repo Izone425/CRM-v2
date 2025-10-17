@@ -71,23 +71,11 @@
                         </div>
                     </div>
 
-                    <div class="flex items-center">
-                        <input type="checkbox" id="remember" name="remember" class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
-                        <label for="remember" class="block ml-2 text-sm text-gray-600">
-                            Remember me
-                        </label>
-                    </div>
-
                     <button type="submit"
                             class="w-full py-3 px-4 bg-gradient-to-r from-[#31c6f6] to-[#107eff] hover:opacity-90 text-white text-sm rounded-full transition duration-300">
                         Login
                     </button>
                 </form>
-
-                <p class="mt-8 text-xs text-center text-gray-600">
-                    Forgot your password?
-                    <a href="{{ route('customer.password.request') }}" class="text-blue-600 underline break-words">Reset here</a>.
-                </p>
             </div>
         </div>
 

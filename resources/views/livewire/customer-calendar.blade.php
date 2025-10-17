@@ -470,7 +470,7 @@
         <!-- Header Section -->
         <div class="calendar-header-section">
             <div class="flex items-center justify-between mb-6">
-                <div>
+                {{-- <div>
                     <h2 class="mb-2 text-2xl font-bold text-gray-900">📅 Schedule Your Kick-Off Meeting</h2>
                     <p class="text-gray-600">
                         @if($hasExistingBooking)
@@ -479,7 +479,7 @@
                             Select an available date to book your implementation session
                         @endif
                     </p>
-                </div>
+                </div> --}}
 
                 <div class="flex items-center gap-4">
                     <button wire:click="previousMonth" class="nav-button">
@@ -527,21 +527,11 @@
             @if($assignedImplementer)
                 <div class="implementer-info">
                     <div class="flex items-center justify-center mb-2">
-                        @if($assignedImplementer['avatar_path'])
-                            <img src="{{ asset('storage/' . $assignedImplementer['avatar_path']) }}"
-                                 alt="{{ $assignedImplementer['name'] }}"
-                                 class="w-12 h-12 mr-3 border-2 border-white rounded-full shadow-lg">
-                        @else
-                            <div class="flex items-center justify-center w-12 h-12 mr-3 font-semibold text-white bg-indigo-500 rounded-full">
-                                {{ substr($assignedImplementer['name'], 0, 1) }}
-                            </div>
-                        @endif
                         <div>
                             <h4 class="font-semibold text-gray-800">Your Assigned Implementer</h4>
                             <p class="font-medium text-indigo-600">{{ $assignedImplementer['name'] }}</p>
                         </div>
                     </div>
-                    <p class="text-sm text-gray-600">All sessions will be scheduled with your dedicated implementer</p>
                 </div>
             @else
                 <div class="implementer-info bg-amber-50 border-amber-200">
@@ -560,13 +550,13 @@
 
         <!-- Calendar Days Header -->
         <div class="calendar-days-header">
-            <div class="header-day">Sun</div>
             <div class="header-day">Mon</div>
             <div class="header-day">Tue</div>
             <div class="header-day">Wed</div>
             <div class="header-day">Thu</div>
             <div class="header-day">Fri</div>
             <div class="header-day">Sat</div>
+            <div class="header-day">Sun</div>
         </div>
 
         <!-- Calendar Grid -->
@@ -580,7 +570,8 @@
                     {{ $dayData['isPublicHoliday'] ? 'holiday' : '' }}
                     {{ $dayData['hasCustomerMeeting'] ? 'has-meeting' : '' }}
                     {{ $dayData['canBook'] ? 'bookable' : '' }}
-                    {{ $hasExistingBooking && !$dayData['hasCustomerMeeting'] ? 'disabled' : '' }}"
+                    {{ $hasExistingBooking && !$dayData['hasCustomerMeeting'] ? 'disabled' : '' }}
+                    {{ $dayData['isBeyondBookingWindow'] ? 'disabled' : '' }}"
                     @if($dayData['canBook'])
                         wire:click="openBookingModal('{{ $dayData['dateString'] }}')"
                     @endif>
@@ -595,6 +586,8 @@
                         <div class="text-xs font-semibold text-amber-600">🎯 Weekend</div>
                     @elseif($dayData['isPast'])
                         <div class="text-xs text-gray-500">📅 Past</div>
+                    @elseif($dayData['isBeyondBookingWindow'])
+                        <div class="text-xs text-gray-400">🔒 Beyond Booking Window</div>
                     @elseif($hasExistingBooking)
                         <div class="text-xs text-gray-400">🔒 Booking Complete</div>
                     @elseif($dayData['availableCount'] > 0)
@@ -665,10 +658,10 @@
 
                     <!-- Appointment Type -->
                     <div class="form-group">
-                        <label for="appointmentType" class="form-label">📱 Meeting Type <span class="text-red-600">*</span></label>
-                        <select wire:model="appointmentType" id="appointmentType" class="form-select">
-                            <option value="ONLINE">💻 Online Meeting (Teams/Zoom)</option>
-                        </select>
+                        <label for="appointmentType" class="form-label">📱 Meeting Type</label>
+                        <div class="text-gray-700 bg-gray-100 cursor-not-allowed form-input">
+                            💻 Online Meeting via Microsoft Teams
+                        </div>
                     </div>
 
                     <!-- Required Attendees -->
@@ -716,17 +709,9 @@
                 <!-- Header with TimeTec branding -->
                 <div class="text-center modal-header">
                     <div class="mb-6">
-                        <!-- TimeTec logo or branding -->
-                        <div class="flex justify-center mb-4">
-                            <div class="p-3 bg-white rounded-full shadow-lg">
-                                <svg class="w-12 h-12 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                </svg>
-                            </div>
-                        </div>
-                        <h1 class="mb-2 text-3xl font-bold text-white">Welcome to</h1>
+                        <h1 class="mb-2 text-3xl font-bold text-white">TimeTec</h1>
                         <div class="text-4xl font-bold text-white">
-                            time<span class="text-blue-300">Tec</span>
+                            Human Resource Management System
                         </div>
                     </div>
                 </div>
@@ -735,8 +720,8 @@
                     <!-- Success Content -->
                     <div class="mb-8">
                         <h2 class="mb-4 text-3xl font-bold text-green-600">Booking Submitted!</h2>
-                        <p class="mb-6 text-lg text-gray-600">
-                            Your kick-off meeting request has been submitted successfully. You'll receive an email for appointment details soon.
+                        <p class="mb-6 text-lg text-gray-600" style="text-align: left;">
+                            Your kick-off meeting request has been submitted successfully. <br>You'll receive an email for appointment details soon.
                         </p>
                     </div>
 
@@ -744,14 +729,6 @@
                     <div class="p-6 mb-6 border-2 border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl">
                         <h3 class="mb-4 text-lg font-semibold text-gray-800">📅 Your Booking Details</h3>
                         <div class="grid grid-cols-1 gap-4 text-sm md:grid-cols-2">
-                            <div class="text-left">
-                                <div class="font-medium text-gray-600">Booking ID</div>
-                                <div class="font-bold text-gray-800">#{{ $submittedBooking['id'] }}</div>
-                            </div>
-                            <div class="text-left">
-                                <div class="font-medium text-gray-600">Submitted At</div>
-                                <div class="font-bold text-gray-800">{{ $submittedBooking['submitted_at'] }}</div>
-                            </div>
                             <div class="text-left">
                                 <div class="font-medium text-gray-600">Date & Time</div>
                                 <div class="font-bold text-gray-800">{{ $submittedBooking['date'] }}</div>
@@ -775,19 +752,6 @@
                             <p class="mt-1 text-sm text-green-600">Meeting link will be included in your confirmation email</p>
                         </div>
                         @endif
-                    </div>
-                </div>
-
-                <div class="modal-footer bg-gray-50">
-                    <div class="flex flex-col w-full gap-3 sm:flex-row">
-                        <a href="{{ route('customer.dashboard') }}"
-                        class="flex-1 px-6 py-3 font-semibold text-center text-white transition-all duration-200 transform rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 hover:scale-105">
-                            🏠 Go to Dashboard
-                        </a>
-                        <button wire:click="closeSuccessModal"
-                                class="flex-1 px-6 py-3 font-semibold text-white transition-colors bg-gray-500 rounded-lg hover:bg-gray-600">
-                            📅 View Calendar
-                        </button>
                     </div>
                 </div>
             </div>

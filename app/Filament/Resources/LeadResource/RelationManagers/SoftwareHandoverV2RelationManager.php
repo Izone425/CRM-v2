@@ -83,42 +83,15 @@ class SoftwareHandoverV2RelationManager extends RelationManager
     public function defaultForm()
     {
         return [
-            Section::make('Step 1: License Type')
-                ->schema([
-                    Select::make('license_type')
-                        ->label('License Type')
-                        ->options([
-                            'New Sales' => 'New Sales',
-                            'Add On Module' => 'Add On Module',
-                        ])
-                        ->required()
-                        ->disabled()
-                        ->dehydrated(true)
-                        ->default(function (?SoftwareHandoverV2 $record = null) {
-                            // If editing existing record, return its saved value
-                            if ($record && $record->license_type) {
-                                return $record->license_type;
-                            }
-
-                            // For new records, check if this lead has any existing software handovers
-                            $leadId = $this->getOwnerRecord()->id;
-                            $existingHandovers = SoftwareHandoverV2::where('lead_id', $leadId)->count();
-
-                            // If no existing handovers, default to "New Sales"
-                            // If there are existing handovers, default to "Add On Module"
-                            return $existingHandovers > 0 ? 'Add On Module' : 'New Sales';
-                        })
-                        ->live(),
-                ]),
-
-            Section::make('Step 2: Database')
+            Section::make('Step 1: Database')
                 ->schema([
                     Grid::make(3)
                         ->schema([
                             TextInput::make('company_name')
                                 ->label('Company Name')
-                                ->disabled()
-                                ->dehydrated(true)
+                                ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                                ->afterStateHydrated(fn($state) => Str::upper($state))
+                                ->afterStateUpdated(fn($state) => Str::upper($state))
                                 ->default(fn (?SoftwareHandoverV2 $record = null) =>
                                     $record?->company_name ?? $this->getOwnerRecord()->companyDetail->company_name ?? null),
                             TextInput::make('pic_name')
@@ -143,48 +116,15 @@ class SoftwareHandoverV2RelationManager extends RelationManager
                                     $record?->salesperson ?? ($this->getOwnerRecord()->salesperson ? User::find($this->getOwnerRecord()->salesperson)->name : null)),
                             TextInput::make('headcount')
                                 ->numeric()
-                                ->live(debounce: 550) // delay 550ms to allow user to have sufficient time to do input
+                                ->live(debounce:550) // delay 550ms to allow user to have sufficient time to do input
                                 ->afterStateUpdated(function (Forms\Set $set, ?string $state, CategoryService $category) {
                                     /**
-                                    * set this company's category based on head count
-                                    */
+                                     * set this company's category based on head count
+                                     */
                                     $set('category', $category->retrieve($state));
                                 })
                                 ->required()
-                                ->default(function (?SoftwareHandoverV2 $record = null) {
-                                    // If editing existing record, return its saved value
-                                    if ($record && $record->headcount) {
-                                        return $record->headcount;
-                                    }
-
-                                    // For new records, get headcount from latest accepted quotation
-                                    $leadId = $this->getOwnerRecord()->id;
-
-                                    // Get the latest accepted quotation for this lead
-                                    $latestQuotation = \App\Models\Quotation::where('lead_id', $leadId)
-                                        ->where('status', \App\Enums\QuotationStatusEnum::accepted)
-                                        ->orderBy('created_at', 'desc')
-                                        ->first();
-
-                                    if ($latestQuotation) {
-                                        // Get the highest quantity from quotation items/details
-                                        $maxQuantity = \App\Models\QuotationDetail::where('quotation_id', $latestQuotation->id)
-                                            ->max('quantity');
-
-                                        if ($maxQuantity) {
-                                            return $maxQuantity;
-                                        }
-                                    }
-
-                                    // Fallback to null if no quotation found
-                                    return null;
-                                })
-                                ->afterStateHydrated(function (Forms\Set $set, ?string $state, CategoryService $category) {
-                                    // Also update category when the field is hydrated (loaded)
-                                    if ($state) {
-                                        $set('category', $category->retrieve($state));
-                                    }
-                                }),
+                                ->default(fn (?SoftwareHandoverV2 $record = null) => $record?->headcount ?? null),
                             TextInput::make('category')
                                 ->label('Company Size')
                                 ->dehydrated(false)
@@ -205,7 +145,7 @@ class SoftwareHandoverV2RelationManager extends RelationManager
                         ]),
                 ]),
 
-            Section::make('Step 3: Invoice Details')
+            Section::make('Step 2: Invoice Details')
                 ->schema([
                     Grid::make(1)
                         ->schema([
@@ -224,7 +164,7 @@ class SoftwareHandoverV2RelationManager extends RelationManager
                         ]),
                 ]),
 
-            Section::make('Step 4: Implementation Details')
+            Section::make('Step 3: Implementation Details')
                 ->schema([
                     Forms\Components\Repeater::make('implementation_pics')
                         ->hiddenLabel(true)
@@ -292,7 +232,7 @@ class SoftwareHandoverV2RelationManager extends RelationManager
                         }),
                 ]),
 
-            Section::make('Step 5: Remark Details')
+            Section::make('Step 4: Remark Details')
                 ->schema([
                     Forms\Components\Repeater::make('remarks')
                         ->label('Remarks')
@@ -384,7 +324,7 @@ class SoftwareHandoverV2RelationManager extends RelationManager
 
             Grid::make(2)
             ->schema([
-                Section::make('Step 6: Training Category')
+                Section::make('Step 5: Training Category')
                 ->schema([
                     Forms\Components\Radio::make('training_type')
                         ->label('')
@@ -404,7 +344,7 @@ class SoftwareHandoverV2RelationManager extends RelationManager
                         ->default(fn (?SoftwareHandoverV2 $record = null) => $record?->training_type ?? null),
                 ])->columnSpan(1),
 
-                Section::make('Step 7: Speaker Category')
+                Section::make('Step 6: Speaker Category')
                     ->schema([
                         Forms\Components\Radio::make('speaker_category')
                             ->label('')
@@ -426,14 +366,14 @@ class SoftwareHandoverV2RelationManager extends RelationManager
                     ])->columnSpan(1),
             ]),
 
-            Section::make('Step 8: Proforma Invoice')
+            Section::make('Step 7: Proforma Invoice')
                 ->columnSpan(1) // Ensure it spans one column
                 ->schema([
                     Grid::make(4)
                         ->schema([
                             Select::make('proforma_invoice_product')
                                 ->required()
-                                ->label('Product')
+                                ->label('Software + Hardware')
                                 ->options(function (RelationManager $livewire) {
                                     $leadId = $livewire->getOwnerRecord()->id;
                                     $currentRecordId = null;
@@ -676,7 +616,7 @@ class SoftwareHandoverV2RelationManager extends RelationManager
                         ])
                 ]),
 
-            Section::make('Step 9: Attachment')
+            Section::make('Step 8: Attachment')
                 ->columnSpan(1) // Ensure it spans one column
                 ->schema([
                     Grid::make(3)
@@ -767,6 +707,7 @@ class SoftwareHandoverV2RelationManager extends RelationManager
                             ->openable()
                             ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
                             ->openable()
+                            ->visible(fn (callable $get) => $get('training_type') === 'online_hrdf_training')
                             ->required(function (Get $get) {
                                 // Check if payment slip has actual files
                                 $paymentSlipFiles = $get('payment_slip_file');
@@ -859,7 +800,7 @@ class SoftwareHandoverV2RelationManager extends RelationManager
                 }),
 
             // Action 2: Actual form when e-invoice is complete
-            Tables\Actions\Action::make('AddSoftwareHandover')
+            Tables\Actions\Action::make('AddSoftwareHandoverV2')
                 ->label('Add Software Handover')
                 ->icon('heroicon-o-plus')
                 ->color('primary')
