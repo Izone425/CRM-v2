@@ -707,6 +707,7 @@ class SoftwareHandoverRelationManager extends RelationManager
                             ->openable()
                             ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
                             ->openable()
+                            ->visible(fn (callable $get) => $get('training_type') === 'online_hrdf_training')
                             ->required(function (Get $get) {
                                 // Check if payment slip has actual files
                                 $paymentSlipFiles = $get('payment_slip_file');

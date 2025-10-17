@@ -40,12 +40,12 @@ class HandoverDetailTabs
                             ),
                         ]),
 
-                    // Tabs\Tab::make('Hardware Handover')
-                    //     ->schema([
-                    //         \Njxqlus\Filament\Components\Forms\RelationManager::make()
-                    //             ->manager(\App\Filament\Resources\LeadResource\RelationManagers\HardwareHandoverRelationManager::class
-                    //         ),
-                    //     ]),
+                    Tabs\Tab::make('Hardware Handover V2')
+                        ->schema([
+                            \Njxqlus\Filament\Components\Forms\RelationManager::make()
+                                ->manager(\App\Filament\Resources\LeadResource\RelationManagers\HardwareHandoverV2RelationManager::class
+                            ),
+                        ]),
 
                     Tabs\Tab::make('HRDF Handover')
                         ->schema([
@@ -58,12 +58,6 @@ class HandoverDetailTabs
                         ->schema([
                             \Njxqlus\Filament\Components\Forms\RelationManager::make()
                                 ->manager(\App\Filament\Resources\LeadResource\RelationManagers\HeadcountHandoverRelationManager::class
-                            ),
-                        ]),
-                    Tabs\Tab::make('Hardware Handover V2')
-                        ->schema([
-                            \Njxqlus\Filament\Components\Forms\RelationManager::make()
-                                ->manager(\App\Filament\Resources\LeadResource\RelationManagers\HardwareHandoverV2RelationManager::class
                             ),
                         ]),
 
