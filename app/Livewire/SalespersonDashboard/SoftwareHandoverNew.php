@@ -314,7 +314,7 @@ class SoftwareHandoverNew extends Component implements HasForms, HasTable
                         ->icon('heroicon-o-eye')
                         ->color('secondary')
                         ->modalHeading(false)
-                        ->modalWidth('md')
+                        ->modalWidth('4xl')
                         ->modalSubmitAction(false)
                         ->modalCancelAction(false)
                         ->visible(fn(SoftwareHandover $record): bool => in_array($record->status, ['New', 'Completed', 'Approved']))
@@ -1160,30 +1160,55 @@ class SoftwareHandoverNew extends Component implements HasForms, HasTable
                             $controller = app(\App\Http\Controllers\CustomerActivationController::class);
 
                             try {
-                                $controller->sendActivationEmail($record->id);
+                                // Decode implementation_pics
+                                $pics = [];
+                                if (is_string($record->implementation_pics)) {
+                                    $pics = json_decode($record->implementation_pics, true) ?? [];
+                                } elseif (is_array($record->implementation_pics)) {
+                                    $pics = $record->implementation_pics;
+                                }
 
-                                Notification::make()
-                                    ->title('Activation Email Sent')
-                                    ->success()
-                                    ->body('The customer portal activation email has been sent to ' . $record->companyDetail->email)
-                                    ->send();
+                                // Collect all valid emails from implementation_pics
+                                $picEmails = [];
+                                foreach ($pics as $pic) {
+                                    if (!empty($pic['pic_email_impl']) && filter_var($pic['pic_email_impl'], FILTER_VALIDATE_EMAIL)) {
+                                        $picEmails[] = $pic['pic_email_impl'];
+                                    }
+                                }
 
-                                // Log the activity
-                                activity()
-                                    ->causedBy(auth()->user())
-                                    ->performedOn($record)
-                                    ->withProperties([
-                                        'email' => $record->email,
-                                        'name' => $record->companyDetail->name ?? $record->name
-                                    ])
-                                    ->log('Customer portal activation email sent');
+                                if (!empty($picEmails)) {
+                                    // Send group email to all PICs with implementer as sender and CC
+                                    $controller = app(\App\Http\Controllers\CustomerActivationController::class);
+                                    $controller->sendGroupActivationEmail($record->lead_id, $picEmails, $implementerEmail, $implementerName);
+
+                                    Notification::make()
+                                        ->title('Customer Portal Activation Emails Sent')
+                                        ->success()
+                                        ->body('Customer portal activation emails have been sent to: ' . implode(', ', $picEmails))
+                                        ->send();
+
+                                    // Log the activity
+                                    activity()
+                                        ->causedBy(auth()->user())
+                                        ->performedOn($record)
+                                        ->withProperties([
+                                            'emails' => $picEmails,
+                                            'implementer' => $implementerName,
+                                            'handover_id' => $handoverId
+                                        ])
+                                        ->log('Customer portal activation emails sent to all implementation PICs');
+                                } else {
+                                    \Illuminate\Support\Facades\Log::warning("No implementation PICs found for handover {$handoverId}");
+                                }
 
                             } catch (\Exception $e) {
                                 Notification::make()
-                                    ->title('Error')
+                                    ->title('Customer Portal Activation Error')
                                     ->danger()
-                                    ->body('Failed to send activation email: ' . $e->getMessage())
+                                    ->body('Failed to send customer portal activation emails: ' . $e->getMessage())
                                     ->send();
+
+                                \Illuminate\Support\Facades\Log::error('Customer activation emails failed: ' . $e->getMessage());
                             }
                         })
                         ->modalWidth('3xl')

@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Http\Controllers;
 
 use App\Models\Customer;
@@ -13,47 +12,81 @@ use App\Models\Lead;
 
 class CustomerActivationController extends Controller
 {
-    public function sendActivationEmail($leadId)
+    public function sendGroupActivationEmail($leadId, array $recipientEmails, $senderEmail = null, $senderName = null)
     {
         $lead = Lead::with('companyDetail')->findOrFail($leadId);
 
-        // Generate random email and password
-        $randomEmail = $this->generateRandomEmail($lead->companyDetail->company_name ?? $lead->company_name);
+        // Generate random email and password for the customer account
+        $companyName = $lead->companyDetail ? $lead->companyDetail->company_name : $lead->company_name;
+        $randomEmail = $this->generateRandomEmail($companyName);
         $randomPassword = $this->generateRandomPassword();
 
-        // Check if customer already exists with the original email
-        $customerExists = Customer::where('email', $lead->companyDetail->email)->exists();
-        if ($customerExists) {
-            return back()->with('error', 'Customer with this email already exists.');
+        // Check if customer already exists
+        $customerExists = Customer::where('lead_id', $leadId)->first();
+
+        if (!$customerExists) {
+            // Check if the random email already exists
+            while (Customer::where('email', $randomEmail)->exists()) {
+                $randomEmail = $this->generateRandomEmail($companyName);
+            }
+
+            $customerName = $lead->companyDetail ? $lead->companyDetail->name : $lead->name;
+            $customerPhone = $lead->companyDetail ? $lead->companyDetail->phone : $lead->phone;
+
+            // Create customer record
+            $customer = Customer::create([
+                'name' => $customerName,
+                'email' => $randomEmail,
+                'original_email' => $recipientEmails[0], // Use first PIC email as original
+                'lead_id' => $lead->id,
+                'company_name' => $companyName,
+                'phone' => $customerPhone,
+                'password' => Hash::make($randomPassword),
+                'status' => 'active',
+                'email_verified_at' => Carbon::now()
+            ]);
+        } else {
+            $customer = $customerExists;
+            $randomEmail = $customer->email;
+            $randomPassword = $this->generateRandomPassword();
+
+            // Update password
+            $customer->update([
+                'password' => Hash::make($randomPassword)
+            ]);
         }
 
-        // Check if the random email already exists (very unlikely but safe to check)
-        while (Customer::where('email', $randomEmail)->exists()) {
-            $randomEmail = $this->generateRandomEmail($lead->companyDetail->company_name ?? $lead->company_name);
-        }
+        // Set sender details
+        $fromEmail = $senderEmail ? $senderEmail : 'noreply@timeteccloud.com';
+        $fromName = $senderName ? $senderName : 'TimeTec Implementation Team';
 
-        // Create customer record with active status
-        $customer = Customer::create([
-            'name' => $lead->companyDetail->name ?? $lead->name,
-            'email' => $randomEmail, // Use random email for login
-            'original_email' => $lead->companyDetail->email ?? $lead->email, // Keep original for reference
-            'lead_id' => $lead->id,
-            'company_name' => $lead->companyDetail->company_name ?? $lead->company_name,
-            'phone' => $lead->companyDetail->phone ?? $lead->phone,
-            'password' => Hash::make($randomPassword),
-            'status' => 'active',
-            'email_verified_at' => Carbon::now()
-        ]);
+        $customerName = $lead->companyDetail ? $lead->companyDetail->name : $lead->name;
+        $companyNameForEmail = $lead->companyDetail ? $lead->companyDetail->company_name : $lead->company_name;
 
-        // Send credentials email to the original email address
-        Mail::to($lead->companyDetail->email ?? $lead->email)->send(new CustomerActivationMail(
-            $customer,
-            $randomEmail,
-            $randomPassword,
-            $lead->companyDetail->name ?? $lead->name
-        ));
+        // Send email to all PICs with implementer as sender and CC
+        // Updated variables to match what the email template expects
+        \Illuminate\Support\Facades\Mail::send('emails.customer-activation', [
+            'name' => $customerName,
+            'email' => $randomEmail,
+            'password' => $randomPassword,
+            'company' => $companyNameForEmail,
+            'implementer' => $senderName ? $senderName : 'TimeTec Implementation Team',
+            'customer' => $customer,
+            'loginEmail' => $randomEmail,
+            'customerName' => $customerName,
+            'companyName' => $companyNameForEmail,
+            'implementerName' => $senderName,
+            'loginUrl' => url('/customer/login'), // Add this missing variable
+        ], function ($message) use ($recipientEmails, $fromEmail, $fromName, $companyNameForEmail) {
+            $message->from($fromEmail, $fromName)
+                    ->to($recipientEmails) // Send to all PICs
+                    ->cc([$fromEmail]) // CC the implementer
+                    ->subject("🚀 Customer Portal Access - " . $companyNameForEmail);
+        });
 
-        return back()->with('success', 'Customer account has been created and credentials have been sent via email.');
+        \Illuminate\Support\Facades\Log::info("Group activation email sent from {$fromEmail} to: " . implode(', ', $recipientEmails));
+
+        return true;
     }
 
     private function generateRandomEmail($companyName = null)
