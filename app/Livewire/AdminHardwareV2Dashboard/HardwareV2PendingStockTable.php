@@ -107,6 +107,7 @@ class HardwareV2PendingStockTable extends Component implements HasForms, HasTabl
     {
         $query = HardwareHandoverV2::query()
             ->whereIn('status', ['Pending Stock'])
+            ->where('sales_order_status', 'packing')
             // ->where('created_at', '<', Carbon::today()) // Only those created before today
             ->orderBy('created_at', 'asc') // Oldest first since they're the most overdue
             ->with(['lead', 'lead.companyDetail', 'creator']);
@@ -264,15 +265,12 @@ class HardwareV2PendingStockTable extends Component implements HasForms, HasTabl
                         }
 
                         $status = $state ?? 'Unknown';
-                        $lastCheck = $record->last_status_check
-                            ? $record->last_status_check->format('d M H:i')
-                            : 'Never';
+                        $formattedStatus = ucfirst(strtolower($status)); // Uppercase first letter, lowercase the rest
 
                         return new HtmlString("
                             <div class='text-sm'>
-                                <div class='font-medium'>{$status}</div>
+                                <div class='font-medium'>{$formattedStatus}</div>
                                 <div class='text-xs text-gray-500'>SO: {$record->sales_order_number}</div>
-                                <div class='text-xs text-gray-400'>Updated: {$lastCheck}</div>
                             </div>
                         ");
                     })

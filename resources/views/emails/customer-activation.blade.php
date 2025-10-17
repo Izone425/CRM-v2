@@ -89,6 +89,46 @@
             font-size: 12px;
             color: #6b7280;
         }
+        .credentials-box {
+            background: #2563eb;
+            border-radius: 16px;
+            padding: 24px;
+            margin: 24px 0;
+            color: white;
+            text-align: center;
+        }
+        .credentials-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: white;
+        }
+        .credential-item {
+            background: white;
+            border-radius: 8px;
+            padding: 16px;
+            margin: 12px 0;
+            border: 1px solid #e5e7eb;
+        }
+        .credential-label {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+            color: #6b7280;
+            font-weight: 500;
+        }
+        .credential-value {
+            font-size: 16px;
+            font-weight: 700;
+            font-family: 'Courier New', monospace;
+            word-break: break-all;
+            background: #f3f4f6;
+            padding: 10px;
+            border-radius: 6px;
+            color: #1f2937;
+            letter-spacing: 0.5px;
+        }
     </style>
 </head>
 <body>
@@ -104,18 +144,30 @@
             <div class="body-content">
                 <h2 class="greeting">Hello {{ $name }},</h2>
                 <p class="message">
-                    Thank you for subscribing to TimeTec solution! To complete your account setup, please activate your customer portal account by clicking the button below.
-                </p>
-                <p class="message">
-                    This activation link is valid for the next 24 hours.
+                    Thank you for subscribing to TimeTec solution! To complete your account setup, please login to your customer portal account by clicking the button below.
                 </p>
 
-                <a href="{{ $activationLink }}" style="display: inline-block; margin-top: 32px; padding: 12px 16px; background-color: #107eff; background-image: linear-gradient(to right, #31c6f6, #107eff); color: #ffffff; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; text-decoration: none; border-radius: 9999px; text-align: center;">Activate My Account</a>
+                <!-- Login Credentials -->
+                <div class="credentials-box">
+                    <div class="credentials-title">🔐 Your Login Credentials</div>
+
+                    <div class="credential-item">
+                        <div class="credential-label">Login Email</div>
+                        <div class="credential-value">{{ $email }}</div>
+                    </div>
+
+                    <div class="credential-item">
+                        <div class="credential-label">Password</div>
+                        <div class="credential-value">{{ $password }}</div>
+                    </div>
+                </div>
+
+                <a href="{{ $loginUrl }}" style="display: inline-block; margin-top: 32px; padding: 12px 16px; background-color: #107eff; background-image: linear-gradient(to right, #31c6f6, #107eff); color: #ffffff; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; text-decoration: none; border-radius: 9999px; text-align: center;">Login My Account</a>
 
                 <!-- Fallback Link -->
                 <p class="fallback">
                     If the button doesn't work, you can also copy and paste the following link into your browser:<br>
-                    <a href="{{ $activationLink }}" class="link">{{ $activationLink }}</a>
+                    <a href="{{ $loginUrl }}" class="link">{{ $loginUrl }}</a>
                 </p>
             </div>
         </div>
