@@ -148,18 +148,6 @@
                 </tr>
             </table>
 
-            @if ($emailContent['handoverFormUrl'])
-                <div class="button-container">
-                    <a href="{{ $emailContent['handoverFormUrl'] }}" class="button" target="_blank">
-                        Click here to view software handover form
-                    </a>
-                </div>
-            @else
-                <p style="color: #777; text-align: center; margin-top: 20px;">
-                    The software handover form is not available at this moment.
-                </p>
-            @endif
-
             <p>If you need any additional information, please contact your manager.</p>
 
             <p>Thank you,<br>

@@ -729,6 +729,7 @@ class SoftwareHandoverNew extends Component implements HasForms, HasTable
                                                 ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
                                                 ->multiple()
                                                 ->maxFiles(10)
+                                                ->required()
                                                 ->helperText('Upload invoice files (PDF, JPG, PNG formats accepted)')
                                                 ->openable()
                                                 ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
@@ -1177,9 +1178,12 @@ class SoftwareHandoverNew extends Component implements HasForms, HasTable
                                 }
 
                                 if (!empty($picEmails)) {
+                                    // Format the handover ID properly
+                                    $handoverId = 'SW_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+
                                     // Send group email to all PICs with implementer as sender and CC
                                     $controller = app(\App\Http\Controllers\CustomerActivationController::class);
-                                    $controller->sendGroupActivationEmail($record->lead_id, $picEmails, $implementerEmail, $implementerName);
+                                    $controller->sendGroupActivationEmail($record->lead_id, $picEmails, $implementerEmail, $implementerName, $handoverId);
 
                                     Notification::make()
                                         ->title('Customer Portal Activation Emails Sent')

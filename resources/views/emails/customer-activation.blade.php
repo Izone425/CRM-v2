@@ -127,6 +127,7 @@
             padding: 10px;
             border-radius: 6px;
             color: #1f2937;
+            text-align: left;
             letter-spacing: 0.5px;
         }
     </style>
