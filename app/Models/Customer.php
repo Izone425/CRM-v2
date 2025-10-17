@@ -24,6 +24,7 @@ class Customer extends Authenticatable
         'status',
         'email_verified_at',
         'last_login_at',
+        'lead_id'
     ];
 
     protected $hidden = [

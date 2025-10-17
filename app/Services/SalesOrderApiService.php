@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Cache;
 
 class SalesOrderApiService
 {
-    private string $baseUrl = 'http://ims.timeteccloud.com:8080/api';
+    private string $baseUrl = 'http://ims.timeteccloud.com:16500/api';
     private string $username = 'hr_crm@timeteccloud.com';
     private string $password = 'ig3MFA81XTes';
 

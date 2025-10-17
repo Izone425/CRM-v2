@@ -1156,6 +1156,35 @@ class SoftwareHandoverNew extends Component implements HasForms, HasTable
                                 ->body("This handover has been marked as completed and assigned to $implementerName.")
                                 ->success()
                                 ->send();
+
+                            $controller = app(\App\Http\Controllers\CustomerActivationController::class);
+
+                            try {
+                                $controller->sendActivationEmail($record->id);
+
+                                Notification::make()
+                                    ->title('Activation Email Sent')
+                                    ->success()
+                                    ->body('The customer portal activation email has been sent to ' . $record->companyDetail->email)
+                                    ->send();
+
+                                // Log the activity
+                                activity()
+                                    ->causedBy(auth()->user())
+                                    ->performedOn($record)
+                                    ->withProperties([
+                                        'email' => $record->email,
+                                        'name' => $record->companyDetail->name ?? $record->name
+                                    ])
+                                    ->log('Customer portal activation email sent');
+
+                            } catch (\Exception $e) {
+                                Notification::make()
+                                    ->title('Error')
+                                    ->danger()
+                                    ->body('Failed to send activation email: ' . $e->getMessage())
+                                    ->send();
+                            }
                         })
                         ->modalWidth('3xl')
                         ->modalHeading('Complete Software Handover')

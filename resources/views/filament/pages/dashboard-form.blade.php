@@ -60,10 +60,25 @@
             ->count();
 
         $pendingStockCount = app(\App\Livewire\AdminHardwareV2Dashboard\HardwareV2PendingStockTable::class)
+            ->getHardwareHandoverCount();
+
+        $pendingCourierCount = app(\App\Livewire\AdminHardwareV2Dashboard\HardwareV2PendingCourierTable::class)
             ->getNewHardwareHandovers()
             ->count();
 
-        $initialStageTotal = $newTaskCount + $pendingStockCount;
+        $pendingAdminPickUpCount = app(\App\Livewire\AdminHardwareV2Dashboard\HardwareV2PendingAdminSelfPickUpTable::class)
+            ->getNewHardwareHandovers()
+            ->count();
+
+        $pendingExternalInstallationCount = app(\App\Livewire\AdminHardwareV2Dashboard\HardwareV2PendingExternalInstallationTable::class)
+            ->getNewHardwareHandovers()
+            ->count();
+
+        $pendingInternalInstallationCount = app(\App\Livewire\AdminHardwareV2Dashboard\HardwareV2PendingInternalInstallationTable::class)
+            ->getNewHardwareHandovers()
+            ->count();
+
+        $initialStageTotal = $newTaskCount + $pendingStockCount + $pendingCourierCount + $pendingAdminPickUpCount + $pendingExternalInstallationCount + $pendingInternalInstallationCount;
 
         $adminTotal = $adminSoftwareTotal + $adminHeadcountTotal + $adminHrdfTotal + $initialStageTotal;
     @endphp
@@ -166,7 +181,7 @@
                                     display: none;
                                     position: absolute;
                                     background-color: white;
-                                    min-width: 200px;
+                                    min-width: 250px;
                                     box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
                                     z-index: 1000;
                                     border-radius: 6px;
@@ -179,7 +194,7 @@
                                         wire:click="toggleDashboard('MainAdminDashboard')"
                                         style="
                                             display: block;
-                                            width: 200px;
+                                            width: 250px;
                                             padding: 10px 16px;
                                             text-align: left;
                                             border: none;
@@ -711,7 +726,7 @@
                                             display: none;
                                             position: absolute;
                                             background-color: white;
-                                            min-width: 200px;
+                                            min-width: 250px;
                                             box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
                                             z-index: 1000;
                                             border-radius: 6px;
@@ -1013,7 +1028,7 @@
                                         display: none;
                                         position: absolute;
                                         background-color: white;
-                                        min-width: 200px;
+                                        min-width: 250px;
                                         box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
                                         z-index: 10;
                                         border-radius: 6px;
@@ -1026,7 +1041,7 @@
                                             wire:click="toggleDashboard('MainAdminDashboard')"
                                             style="
                                                 display: block;
-                                                width: 200px;
+                                                width: 250px;
                                                 padding: 10px 16px;
                                                 text-align: left;
                                                 border: none;

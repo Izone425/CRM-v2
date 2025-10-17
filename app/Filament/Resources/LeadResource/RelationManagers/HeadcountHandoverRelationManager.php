@@ -589,7 +589,6 @@ class HeadcountHandoverRelationManager extends RelationManager
         // Check if any essential company details are missing
         $requiredFields = [
             'company_name',
-            'industry',
             'contact_no',
             'email',
             'name',

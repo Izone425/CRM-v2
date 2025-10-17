@@ -12,25 +12,28 @@ class CustomerActivationMail extends Mailable
     use Queueable, SerializesModels;
 
     public $customer;
-    public $token;
+    public $email;
+    public $password;
     public $name;
 
-    public function __construct(Customer $customer, $token, $name)
+    public function __construct(Customer $customer, $email, $password, $name)
     {
         $this->customer = $customer;
-        $this->token = $token;
+        $this->email = $email;
+        $this->password = $password;
         $this->name = $name;
     }
 
     public function build()
     {
-        $activationLink = route('customer.activate', $this->token);
-
-        return $this->subject('Activate Your TimeTec CRM Account')
+        return $this->subject('Your TimeTec CRM Customer Portal Access Credentials')
                    ->view('emails.customer-activation')
                    ->with([
-                        'activationLink' => $activationLink,
+                        'customer' => $this->customer,
+                        'email' => $this->email,
+                        'password' => $this->password,
                         'name' => $this->name,
+                        'loginUrl' => route('customer.login')
                    ]);
     }
 }
