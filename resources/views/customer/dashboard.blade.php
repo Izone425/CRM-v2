@@ -133,7 +133,7 @@
     </header>
 
     <!-- Main Content -->
-    <main class="relative py-12">
+    <main class="relative">
         <div class="mx-auto max-w-7xl sm:px-6 lg:px-8">
             <!-- Calendar Section -->
             <div class="p-8">
