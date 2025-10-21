@@ -266,16 +266,30 @@ class SearchLicense extends Page implements HasForms
             $expiryDate = Carbon::parse($data['expiry_date']);
             $today = Carbon::today();
 
-            // Calculate months difference and round to nearest month
-            $diffInMonths = $today->diffInMonths($expiryDate, false);
+            // Calculate exact months difference (with decimal)
+            $exactMonths = $today->diffInMonths($expiryDate, false);
+
+            // Get the remaining days after whole months
+            $tempDate = $today->copy()->addMonths($exactMonths);
+            $remainingDays = $tempDate->diffInDays($expiryDate, false);
+
+            // Calculate the fraction of the month
+            $daysInMonth = $tempDate->daysInMonth;
+            $monthFraction = $remainingDays / $daysInMonth;
+
+            // Apply rounding logic: if fraction > 0.5, add 1 month
+            $finalMonths = $exactMonths;
+            if (abs($monthFraction) > 0.5) {
+                $finalMonths += ($monthFraction > 0) ? 1 : -1;
+            }
 
             // If the expiry date has passed, show negative months
             if ($expiryDate->lt($today)) {
-                $diffInMonths = -abs($diffInMonths);
-                $resultText = abs($diffInMonths) . ' months ago (Expired)';
+                $finalMonths = -abs($finalMonths);
+                $resultText = abs($finalMonths) . ' months ago (Expired)';
                 $statusColor = 'danger';
             } else {
-                $resultText = $diffInMonths . ' months';
+                $resultText = $finalMonths . ' months';
                 $statusColor = 'success';
             }
 
@@ -290,7 +304,7 @@ class SearchLicense extends Page implements HasForms
 
             Notification::make()
                 ->title('Calculation Complete')
-                ->body($resultText)
+                ->body($resultText . ' (Exact: ' . round($exactMonths + $monthFraction, 2) . ' months)')
                 ->color($statusColor)
                 ->send();
 

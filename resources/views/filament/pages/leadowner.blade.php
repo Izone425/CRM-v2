@@ -371,6 +371,10 @@
         ->getPendingLeadsQuery()
         ->count();
 
+    $apolloNewLeadsCount = app(\App\Livewire\LeadownerDashboard\ApolloNewLeadTable::class)
+        ->getPendingLeadsQuery()
+        ->count();
+
     $pendingLeadsCount = app(\App\Livewire\LeadownerDashboard\PendingLeadTable::class)
         ->getNewLeadsQuery()
         ->count();
@@ -484,6 +488,13 @@
                         <div class="group-count">{{ $newLeadsCount + $pendingLeadsCount + $reminderTodayCount + $reminderOverdueCount }}</div>
                     </div>
 
+                    <div class="group-box group-new"
+                         :class="{'selected': selectedGroup === 'apollo-new'}"
+                         @click="setSelectedGroup('apollo-new')">
+                        <div class="group-title">Apollo New Leads</div>
+                        <div class="group-count">{{ $apolloNewLeadsCount }}</div>
+                    </div>
+
                     <!-- Group 2: Active Leads -->
                     <div class="group-box group-active"
                          :class="{'selected': selectedGroup === 'active'}"
@@ -551,6 +562,19 @@
                             <div class="stat-label">Reminder (Overdue)</div>
                         </div>
                         <div class="stat-count">{{ $reminderOverdueCount }}</div>
+                    </div>
+                </div>
+
+                <div class="category-container" x-show="selectedGroup === 'apollo-new'">
+                    <div class="stat-box new-leads"
+                            :class="{'selected': selectedStat === 'apollo-new-leads'}"
+                            @click="setSelectedStat('apollo-new-leads')">
+                        <div class="stat-info">
+                            <div class="stat-label">Apollo New Leads</div>
+                        </div>
+                        <div class="stat-count">
+                            <div class="stat-count">{{ $apolloNewLeadsCount }}</div>
+                        </div>
                     </div>
                 </div>
 
@@ -689,6 +713,10 @@
                     <!-- Content panels for each table (keep the same as your original) -->
                     <div x-show="selectedStat === 'new-leads'" x-transition :key="selectedStat + '-new-leads'">
                         <livewire:leadowner-dashboard.new-lead-table />
+                    </div>
+
+                    <div x-show="selectedStat === 'apollo-new-leads'" x-transition :key="selectedStat + '-apollo-new-leads'">
+                        <livewire:leadowner-dashboard.apollo-new-lead-table />
                     </div>
 
                     <div x-show="selectedStat === 'pending-leads'" x-transition :key="selectedStat + '-pending-leads'">

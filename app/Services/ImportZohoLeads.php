@@ -45,4 +45,32 @@ class ImportZohoLeads
         $import = new ApolloImport();
         Excel::import(import: $import, filePath: $file, readerType: \Maatwebsite\Excel\Excel::CSV);
     }
+
+    public static function importApollos1()
+    {
+        $file = public_path('storage/excel/Apollo_2025_10_21_1.csv');
+        $import = new ApolloImport();
+        Excel::import(import: $import, filePath: $file, readerType: \Maatwebsite\Excel\Excel::CSV);
+    }
+
+    public static function importApollos2()
+    {
+        $file = public_path('storage/excel/Apollo_2025_10_21_2.csv');
+        $import = new ApolloImport();
+        Excel::import(import: $import, filePath: $file, readerType: \Maatwebsite\Excel\Excel::CSV);
+    }
+
+    public static function importApollos3()
+    {
+        $file = public_path('storage/excel/Apollo_2025_10_21_3.csv');
+        $import = new ApolloImport();
+        Excel::import(import: $import, filePath: $file, readerType: \Maatwebsite\Excel\Excel::CSV);
+    }
+
+    public static function importApollos4()
+    {
+        $file = public_path('storage/excel/Apollo_2025_10_21_4.csv');
+        $import = new ApolloImport();
+        Excel::import(import: $import, filePath: $file, readerType: \Maatwebsite\Excel\Excel::CSV);
+    }
 }
