@@ -337,7 +337,7 @@
                  } else if (value === 'new-task') {
                      this.selectedStat = 'new-task';
                  } else if (value === 'pending-task') {
-                     this.selectedStat = 'pending-kick-off';
+                     this.selectedStat = 'pending-license';
                  } else if (value === 'completed-task') {
                      this.selectedStat = 'completed-task';
                  } else {

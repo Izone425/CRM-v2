@@ -34,9 +34,8 @@ class ApolloImport implements ToCollection, WithStartRow, SkipsEmptyRows, WithHe
     public function collection(Collection $collection)
     {
         $importedCount = 0;
-        $updatedCount = 0;
 
-        $collection->chunk(10)->each(function ($chunk) use (&$importedCount, &$updatedCount) {
+        $collection->chunk(10)->each(function ($chunk) use (&$importedCount) {
             foreach ($chunk as $row) {
                 // Sanitize all row values to handle potential encoding issues
                 $sanitizedRow = collect($row)->map(function ($value) {
@@ -60,7 +59,7 @@ class ApolloImport implements ToCollection, WithStartRow, SkipsEmptyRows, WithHe
 
                 // Clean phone number (remove quotes and extra formatting)
                 $phone = $sanitizedRow['company_phone'] ?? '';
-                $phone = preg_replace('/[^0-9+\-\s]/', '', $phone); // Keep only numbers, +, -, and spaces
+                $phone = preg_replace('/[^0-9]/', '', $phone);
 
                 // Set default created time to now in Malaysia timezone
                 $createdTime = now()->setTimezone('Asia/Kuala_Lumpur')->format('Y-m-d H:i:s');
@@ -68,76 +67,42 @@ class ApolloImport implements ToCollection, WithStartRow, SkipsEmptyRows, WithHe
                 // Get email (can be null)
                 $email = !empty($sanitizedRow['email']) ? $sanitizedRow['email'] : null;
 
-                // Check if lead exists - use email if available, otherwise use name + company combination
-                $existingLead = null;
-                if ($email) {
-                    $existingLead = Lead::where('email', $email)->first();
-                } else {
-                    // If no email, check by name and company combination to avoid duplicates
-                    $companyName = $sanitizedRow['company_name'] ?? '';
-                    if (!empty($companyName)) {
-                        $existingLead = Lead::where('name', $fullName)
-                            ->whereHas('companyDetail', function ($query) use ($companyName) {
-                                $query->where('company_name', $companyName);
-                            })
-                            ->first();
-                    }
-                }
-
-                // First, create or find company details
+                // Create company details
                 $companyDetailId = null;
                 if (!empty($sanitizedRow['company_name'])) {
-                    // Check if company already exists to avoid duplicates
-                    $existingCompany = CompanyDetail::where('company_name', $sanitizedRow['company_name'])->first();
-
-                    if ($existingCompany) {
-                        $companyDetailId = $existingCompany->id;
-                    } else {
-                        // Create new company details
-                        $companyDetail = CompanyDetail::create([
-                            'name' => $fullName,
-                            'email' => $email,
-                            'phone' => $phone,
-                            'position' => $sanitizedRow['title'] ?? '',
-                            'company_name' => $sanitizedRow['company_name'],
-                            'website_url' => $sanitizedRow['website'] ?? '',
-                            'linkedin_url' => $sanitizedRow['person_linkedin_url'] ?? '',
-                            'company_phone' => $phone,
-                            'company_state' => $sanitizedRow['state'] ?? '',
-                            'created_at' => $createdTime,
-                            'updated_at' => $createdTime,
-                        ]);
-                        $companyDetailId = $companyDetail->id;
-                    }
+                    $companyDetail = CompanyDetail::create([
+                        'name' => $fullName,
+                        'email' => $email,
+                        'contact_no' => $phone,
+                        'position' => $sanitizedRow['title'] ?? '',
+                        'company_name' => $sanitizedRow['company_name'],
+                        'website_url' => $sanitizedRow['website'] ?? '',
+                        'linkedin_url' => $sanitizedRow['person_linkedin_url'] ?? '',
+                        'state' => $sanitizedRow['state'] ?? '',
+                        'created_at' => $createdTime,
+                        'updated_at' => $createdTime,
+                    ]);
+                    $companyDetailId = $companyDetail->id;
                 }
 
-                // Create or update lead
-                $leadData = [
+                // Create new lead
+                $lead = Lead::create([
+                    'name' => $fullName,
+                    'email' => $email, // Can be null
+                    'phone' => $phone,
                     'company_name' => $companyDetailId, // Store the CompanyDetail ID
                     'created_at' => $createdTime,
                     'updated_at' => $createdTime,
                     'products' => '["hr"]',
+                    'company_size' => '25-99',
                     'country' => 'Malaysia',
                     'categories' => 'New',
                     'stage' => 'New',
                     'lead_status' => 'None',
                     'lead_code' => 'LinkedIn', // Set lead source as LinkedIn
-                ];
+                ]);
 
-                if ($existingLead) {
-                    // Update existing lead
-                    $existingLead->update($leadData);
-                    $lead = $existingLead;
-                    $updatedCount++;
-                } else {
-                    // Create new lead
-                    $lead = Lead::create(array_merge([
-                        'name' => $fullName,
-                        'email' => $email, // Can be null
-                        'phone' => $phone,
-                    ], $leadData));
-                    $importedCount++;
-                }
+                $importedCount++;
 
                 // Update the company details with the lead ID (establishing the relationship)
                 if ($companyDetailId && $lead) {
@@ -149,28 +114,17 @@ class ApolloImport implements ToCollection, WithStartRow, SkipsEmptyRows, WithHe
                 // Create activity log for tracking
                 ActivityLog::create([
                     'lead_id' => $lead->id,
-                    'activity' => 'Lead imported from Apollo',
-                    'description' => "Lead imported from Apollo CSV file - Company: {$sanitizedRow['company_name']}, Title: {$sanitizedRow['title']}" . ($email ? ", Email: {$email}" : " (No email provided)"),
+                    'activity' => 'Lead imported from LinkedIn',
+                    'description' => "Lead imported from LinkedIn CSV file - Company: {$sanitizedRow['company_name']}, Title: {$sanitizedRow['title']}" . ($email ? ", Email: {$email}" : " (No email provided)"),
                     'created_at' => $createdTime,
                     'updated_at' => $createdTime,
                 ]);
 
-                // Create referral details (for Apollo source tracking)
-                ReferralDetail::updateOrCreate(
-                    ['lead_id' => $lead->id],
-                    [
-                        'referral_source' => 'LinkedIn',
-                        'referral_notes' => "Imported from LinkedIn - Title: {$sanitizedRow['title']}, LinkedIn: {$sanitizedRow['person_linkedin_url']}" . ($email ? ", Email: {$email}" : " (No email)"),
-                        'created_at' => $createdTime,
-                        'updated_at' => $createdTime,
-                    ]
-                );
-
-                Log::info("Processed lead: {$fullName} from {$sanitizedRow['company_name']}" . ($email ? " (Email: {$email})" : " (No email)"));
+                Log::info("Created lead: {$fullName} from {$sanitizedRow['company_name']}" . ($email ? " (Email: {$email})" : " (No email)"));
             }
         });
 
-        Log::info("Apollo import completed in chunks of 10. Imported: $importedCount, Updated: $updatedCount");
+        Log::info("LinkedIn import completed. Total imported: $importedCount");
     }
 
     public function startRow(): int
