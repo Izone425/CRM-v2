@@ -63,10 +63,7 @@ class Kernel extends ConsoleKernel
             ->runInBackground()
             ->appendOutputTo(storage_path('logs/auto-mapping.log'));
 
-        $schedule->command('sales-order:update-status')
-            ->everyThirtyMinutes()
-            ->between('8:00', '18:00')
-            ->weekdays();
+        $schedule->command('sales-order:update-status')->everyThirtyMinutes();
 
         // $schedule->command('hrdf:process-emails')
         //     ->everyFifteenMinutes()

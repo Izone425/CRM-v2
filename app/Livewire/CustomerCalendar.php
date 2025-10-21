@@ -18,6 +18,7 @@ class CustomerCalendar extends Component
     public $monthlyData = [];
     public $assignedImplementer = null;
     public $customerLeadId;
+    public $swId;
     public $hasExistingBooking = false;
     public $existingBookings = [];
 
@@ -41,6 +42,7 @@ class CustomerCalendar extends Component
     {
         $this->currentDate = Carbon::now();
         $this->customerLeadId = auth()->guard('customer')->user()->lead_id;
+        $this->swId = auth()->guard('customer')->user()->sw_id;
         $this->assignedImplementer = $this->getAssignedImplementer();
         $this->checkExistingBookings();
     }
@@ -411,7 +413,53 @@ class CustomerCalendar extends Component
             return;
         }
 
+        // Retrieve required attendees from software handover
+        $this->requiredAttendees = $this->getRequiredAttendeesFromHandover();
+
         $this->showBookingModal = true;
+    }
+
+    private function getRequiredAttendeesFromHandover()
+    {
+        try {
+            // Get the latest software handover for this customer's lead
+            $handover = SoftwareHandover::where('id', $this->swId)
+                ->orderBy('created_at', 'desc')
+                ->first();
+
+            if (!$handover || !$handover->implementation_pics) {
+                return '';
+            }
+
+            // Decode the implementation_pics JSON
+            $implementationPics = [];
+            if (is_string($handover->implementation_pics)) {
+                $implementationPics = json_decode($handover->implementation_pics, true) ?? [];
+            } elseif (is_array($handover->implementation_pics)) {
+                $implementationPics = $handover->implementation_pics;
+            }
+
+            // Extract valid email addresses
+            $emails = [];
+            foreach ($implementationPics as $pic) {
+                if (isset($pic['pic_email_impl']) && !empty($pic['pic_email_impl'])) {
+                    $email = trim($pic['pic_email_impl']);
+                    if (filter_var($email, FILTER_VALIDATE_EMAIL) && !in_array($email, $emails)) {
+                        $emails[] = $email;
+                    }
+                }
+            }
+
+            // Return emails separated by semicolons
+            return implode(';', $emails);
+
+        } catch (\Exception $e) {
+            Log::error('Error retrieving required attendees from handover: ' . $e->getMessage(), [
+                'lead_id' => $this->customerLeadId,
+                'trace' => $e->getTraceAsString()
+            ]);
+            return '';
+        }
     }
 
     public function getAvailableSessionsForDate($date)

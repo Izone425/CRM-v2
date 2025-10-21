@@ -143,7 +143,7 @@
 
             <!-- Body -->
             <div class="body-content">
-                <h2 class="greeting">Hello {{ $name }},</h2>
+                <h2 class="greeting">Hello {{ $company }},</h2>
                 <p class="message">
                     Thank you for subscribing to TimeTec solution! To complete your account setup, please login to your customer portal account by clicking the button below.
                 </p>
