@@ -375,6 +375,18 @@
         ->getPendingLeadsQuery()
         ->count();
 
+    $apolloPendingLeadsCount = app(\App\Livewire\LeadownerDashboard\ApolloPendingLeadTable::class)
+        ->getNewLeadsQuery()
+        ->count();
+
+    $apolloReminderTodayCount = app(\App\Livewire\LeadownerDashboard\ApolloProspectReminderTodayTable::class)
+        ->getProspectTodayQuery()
+        ->count();
+
+    $apolloReminderOverdueCount = app(\App\Livewire\LeadownerDashboard\ApolloProspectReminderOverdueTable::class)
+        ->getProspectOverdueQuery()
+        ->count();
+
     $pendingLeadsCount = app(\App\Livewire\LeadownerDashboard\PendingLeadTable::class)
         ->getNewLeadsQuery()
         ->count();
@@ -451,6 +463,8 @@
                     // Set default category based on selected group
                     if (value === 'new') {
                         this.selectedStat = 'new-leads';
+                    } else if (value === 'apollo-new') {
+                        this.selectedStat = 'apollo-new-leads';
                     } else if (value === 'active') {
                         this.selectedStat = 'active-small';
                     } else if (value === 'inactive') {
@@ -492,7 +506,7 @@
                          :class="{'selected': selectedGroup === 'apollo-new'}"
                          @click="setSelectedGroup('apollo-new')">
                         <div class="group-title">Apollo New Leads</div>
-                        <div class="group-count">{{ $apolloNewLeadsCount }}</div>
+                        <div class="group-count">{{ $apolloNewLeadsCount + $apolloPendingLeadsCount + $apolloReminderTodayCount + $apolloReminderOverdueCount}}</div>
                     </div>
 
                     <!-- Group 2: Active Leads -->
@@ -575,6 +589,33 @@
                         <div class="stat-count">
                             <div class="stat-count">{{ $apolloNewLeadsCount }}</div>
                         </div>
+                    </div>
+
+                    <div class="stat-box pending-leads"
+                            :class="{'selected': selectedStat === 'apollo-pending-leads'}"
+                            @click="setSelectedStat('apollo-pending-leads')">
+                        <div class="stat-info">
+                            <div class="stat-label">Apollo Pending Leads</div>
+                        </div>
+                        <div class="stat-count">{{ $apolloPendingLeadsCount }}</div>
+                    </div>
+
+                    <div class="stat-box reminder-today"
+                        :class="{'selected': selectedStat === 'apollo-reminder-today'}"
+                        @click="setSelectedStat('apollo-reminder-today')">
+                        <div class="stat-info">
+                            <div class="stat-label">Apollo Reminder (Today)</div>
+                        </div>
+                        <div class="stat-count">{{ $apolloReminderTodayCount }}</div>
+                    </div>
+
+                    <div class="stat-box reminder-overdue"
+                        :class="{'selected': selectedStat === 'apollo-reminder-overdue'}"
+                        @click="setSelectedStat('apollo-reminder-overdue')">
+                        <div class="stat-info">
+                            <div class="stat-label">Apollo Reminder (Overdue)</div>
+                        </div>
+                        <div class="stat-count">{{ $apolloReminderOverdueCount }}</div>
                     </div>
                 </div>
 
@@ -717,6 +758,22 @@
 
                     <div x-show="selectedStat === 'apollo-new-leads'" x-transition :key="selectedStat + '-apollo-new-leads'">
                         <livewire:leadowner-dashboard.apollo-new-lead-table />
+                    </div>
+
+                    <div x-show="selectedStat === 'apollo-new-leads'" x-transition :key="selectedStat + '-apollo-new-leads'">
+                        <livewire:leadowner-dashboard.apollo-new-lead-table />
+                    </div>
+
+                    <div x-show="selectedStat === 'apollo-pending-leads'" x-transition :key="selectedStat + '-apollo-pending-leads'">
+                        <livewire:leadowner-dashboard.apollo-pending-lead-table />
+                    </div>
+
+                    <div x-show="selectedStat === 'apollo-reminder-today'" x-transition :key="selectedStat + '-apollo-reminder-today'">
+                        <livewire:leadowner-dashboard.apollo-prospect-reminder-today-table />
+                    </div>
+
+                    <div x-show="selectedStat === 'apollo-reminder-overdue'" x-transition :key="selectedStat + '-apollo-reminder-overdue'">
+                        <livewire:leadowner-dashboard.apollo-prospect-reminder-overdue-table />
                     </div>
 
                     <div x-show="selectedStat === 'pending-leads'" x-transition :key="selectedStat + '-pending-leads'">

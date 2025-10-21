@@ -820,7 +820,7 @@ class CustomerCalendar extends Component
                 'implementer' => $this->selectedSession['implementer_name'],
                 'title' => 'CUSTOMER REQUEST - KICK OFF MEETING SESSION | ' . $customer->company_name,
                 'status' => 'New',
-                'request_status' => 'PENDING',
+                'request_status' => 'New',
                 'required_attendees' => $this->requiredAttendees,
                 'remarks' => $this->remarks,
                 'session' => $this->selectedSession['session_name'],
@@ -828,6 +828,7 @@ class CustomerCalendar extends Component
                 'meeting_link' => $meetingLink,
                 'meeting_id' => $meetingId,
                 'meeting_password' => $meetingPassword,
+                'software_handover_id' => $this->swId,
             ]);
 
             $appointment->save();
