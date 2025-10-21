@@ -1,3 +1,4 @@
+<!-- filepath: /var/www/html/timeteccrm/resources/views/emails/implementer_appointment_notification.blade.php -->
 <!DOCTYPE html>
 <html>
 <head>
@@ -10,7 +11,7 @@
             color: #333;
         }
         .meeting-link {
-            color: #0066cc; /* Changed to standard blue link color */
+            color: #0066cc;
             text-decoration: underline;
         }
         .container {
@@ -105,6 +106,13 @@
             margin-bottom: 10px;
             font-weight: bold;
         }
+        .signature {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
+            font-size: 14px;
+            line-height: 1.4;
+        }
     </style>
 </head>
 <body>
@@ -116,7 +124,7 @@
 
     <div class="section-header">* Kick Off Meeting details:</div>
     <div class="remark-box">
-        <div><strong>Date:</strong> {{ \Carbon\Carbon::parse($content['lead']['date'])->format('d M Y, l') }}</div>
+        <div><strong>Date:</strong> {{ \Carbon\Carbon::parse($content['lead']['date'])->format('l, d F Y') }}</div>
         <div><strong>Time:</strong> {{ $content['lead']['startTime'] }} - {{ $content['lead']['endTime'] }}</div>
         <div><strong>Meeting Type:</strong> Kick-Off Meeting Session</div>
     </div>
@@ -140,6 +148,14 @@
 
         <li class="file-item">Data Migration Guide (PDF): <a href="{{ route('implementer.files', 'data-migration-explaination.pdf') }}" target="_blank">Import User File Guideline.pdf</a></li>
     </ul>
+
     <p>Looking forward to have you in our Kick-Off Meeting session.</p>
+
+    <div class="signature">
+        <p>Regards,<br>
+        <strong>{{ $content['lead']['implementerName'] }}</strong><br>
+        Software Implementer<br>
+        <a href="mailto:{{ $content['lead']['implementerEmail'] }}">{{ $content['lead']['implementerEmail'] }}</a> | 03-80709933</p>
+    </div>
 </body>
 </html>

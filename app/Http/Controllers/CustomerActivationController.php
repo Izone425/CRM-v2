@@ -9,6 +9,7 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\CustomerActivationMail;
 use App\Models\Lead;
+use App\Models\SoftwareHandover;
 
 class CustomerActivationController extends Controller
 {
@@ -16,9 +17,13 @@ class CustomerActivationController extends Controller
     {
         $lead = Lead::with('companyDetail')->findOrFail($leadId);
 
+        // Get the software handover to generate proper project code
+        $handover = SoftwareHandover::where('lead_id', $leadId)->orderBy('id', 'desc')->first();
+        $projectCode = $handover ? $handover->project_code : 'SW_250000';
+
         // Generate random email and password for the customer account
         $companyName = $lead->companyDetail ? $lead->companyDetail->company_name : $lead->company_name;
-        $randomEmail = $this->generateRandomEmail($companyName, $handoverId);
+        $randomEmail = $this->generateRandomEmail($companyName, $projectCode);
         $randomPassword = $this->generateRandomPassword();
 
         // Check if customer already exists
@@ -27,7 +32,7 @@ class CustomerActivationController extends Controller
         if (!$customerExists) {
             // Check if the random email already exists
             while (Customer::where('email', $randomEmail)->exists()) {
-                $randomEmail = $this->generateRandomEmail($companyName, $handoverId);
+                $randomEmail = $this->generateRandomEmail($companyName, $projectCode);
             }
 
             $customerName = $lead->companyDetail ? $lead->companyDetail->name : $lead->name;
@@ -60,7 +65,7 @@ class CustomerActivationController extends Controller
         $fromEmail = $senderEmail ? $senderEmail : 'noreply@timeteccloud.com';
         $fromName = $senderName ? $senderName : 'TimeTec Implementation Team';
 
-        $customerName = $lead->companyDetail ? $lead->companyDetail->company_name : $lead->name;
+        $customerName = $lead->companyDetail ? $lead->companyDetail->name : $lead->name;
         $companyNameForEmail = $lead->companyDetail ? $lead->companyDetail->company_name : $lead->company_name;
 
         // Prepare CC recipients - include implementer and salesperson
@@ -94,12 +99,12 @@ class CustomerActivationController extends Controller
             'customerName' => $customerName,
             'companyName' => $companyNameForEmail,
             'implementerName' => $senderName,
-            'loginUrl' => config('app.url') . '/customer/login', // More explicit
-        ], function ($message) use ($recipientEmails, $fromEmail, $fromName, $companyNameForEmail, $ccRecipients) {
+            'loginUrl' => config('app.url') . '/customer/login',
+        ], function ($message) use ($recipientEmails, $fromEmail, $fromName, $companyNameForEmail, $ccRecipients, $projectCode) {
             $message->from($fromEmail, $fromName)
                     ->to($recipientEmails) // Send to all PICs
                     ->cc($ccRecipients) // CC the implementer + salesperson
-                    ->subject("🚀 Customer Portal Access - " . $companyNameForEmail);
+                    ->subject("🚀 TIMETEC HRMS | {$projectCode} | {$companyNameForEmail}");
         });
 
         \Illuminate\Support\Facades\Log::info("Group activation email sent from {$fromEmail} to: " . implode(', ', $recipientEmails) . " | CC: " . implode(', ', $ccRecipients));
@@ -107,18 +112,16 @@ class CustomerActivationController extends Controller
         return true;
     }
 
-    private function generateRandomEmail($companyName = null, $handoverId = null)
+    private function generateRandomEmail($companyName = null, $projectCode = null)
     {
-        // If handover ID is provided, use it to generate email
-        if ($handoverId) {
-            $handoverParts = explode('_', $handoverId);
-            if (count($handoverParts) >= 2) {
-                $yearAndId = $handoverParts[1]; // "250800"
-                return strtolower("sw_{$yearAndId}@timeteccloud.com");
-            }
+        // If project code is provided, use it to generate email
+        if ($projectCode) {
+            // Extract the year and ID from project code (e.g., SW_250800 -> 250800)
+            $codeWithoutPrefix = str_replace('SW_', '', $projectCode);
+            return strtolower("sw_{$codeWithoutPrefix}@timeteccloud.com");
         }
 
-        // Fallback to original method if no handover ID
+        // Fallback to original method if no project code
         $cleanCompanyName = '';
         if ($companyName) {
             $cleanCompanyName = strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $companyName));

@@ -1,4 +1,3 @@
-{{-- filepath: /var/www/html/timeteccrm/resources/views/livewire/customer-calendar.blade.php --}}
 <div>
     <style>
         .calendar-container {
@@ -464,6 +463,40 @@
         .animate-spin {
             animation: spin 1s linear infinite;
         }
+
+        .cancel-button {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+            text-align: center;
+            min-width: 80px;
+        }
+
+        .cancel-button:hover {
+            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
+        }
+
+        .cancel-button:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .cancel-reason {
+            font-size: 0.65rem;
+            color: #6b7280;
+            font-style: italic;
+            margin-top: 0.25rem;
+        }
     </style>
 
     <div class="calendar-container">
@@ -509,9 +542,35 @@
                     @foreach($existingBookings as $booking)
                         <div class="booking-card">
                             <div class="flex items-center justify-between mb-2">
-                                <div>
+                                <div class="flex-1">
                                     <h5 class="font-semibold text-gray-800">📅 {{ $booking['date'] }}</h5>
                                     <p class="text-sm text-gray-600">🕒 {{ $booking['time'] }} ({{ $booking['session'] }})</p>
+                                </div>
+                                <div class="flex flex-col items-end">
+                                    @php
+                                        $appointmentDate = \Carbon\Carbon::parse($booking['raw_date'])->format('Y-m-d');
+                                        $appointmentDateTime = \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $appointmentDate . ' ' . $booking['start_time']);
+                                        $now = \Carbon\Carbon::now();
+                                        $canCancel = $appointmentDateTime->isFuture() || ($appointmentDateTime->isToday() && $appointmentDateTime->gt($now));
+                                    @endphp
+
+                                    @if($canCancel)
+                                        <button wire:click="openCancelModal({{ $booking['id'] }})"
+                                                class="cancel-button">
+                                            ❌ Cancel
+                                        </button>
+                                    @else
+                                        <button class="cancel-button" disabled>
+                                            🔒 Cannot Cancel
+                                        </button>
+                                        <div class="cancel-reason">
+                                            @if($appointmentDateTime->isPast())
+                                                Session already passed
+                                            @else
+                                                Session started/ongoing
+                                            @endif
+                                        </div>
+                                    @endif
                                 </div>
                             </div>
                             <div class="grid grid-cols-1 gap-2 text-sm text-gray-600 md:grid-cols-2">
@@ -523,7 +582,7 @@
                 </div>
             @endif
 
-            <!-- Assigned Implementer Info -->
+            {{-- <!-- Assigned Implementer Info -->
             @if($assignedImplementer)
                 <div class="implementer-info">
                     <div class="flex items-center justify-center mb-2">
@@ -545,7 +604,7 @@
                         <p class="text-sm text-amber-700">Please contact support to assign an implementer to your account</p>
                     </div>
                 </div>
-            @endif
+            @endif --}}
         </div>
 
         <!-- Calendar Days Header -->
@@ -627,29 +686,91 @@
         </div>
     </div>
 
-    <!-- Booking Modal (same as before) -->
+    <!-- Cancel Modal -->
+    @if($showCancelModal && $appointmentToCancel)
+        <div class="modal-overlay" wire:click="closeCancelModal">
+            <div class="max-w-md modal-container" wire:click.stop>
+                <div class="text-center modal-header bg-gradient-to-r from-red-500 to-red-600">
+                    <h3 class="text-2xl font-bold text-white">⚠️ Cancel Appointment</h3>
+                </div>
+
+                <div class="modal-body">
+                    <div class="mb-6 text-center">
+                        <div class="flex items-center justify-center w-16 h-16 mx-auto mb-4 bg-red-100 rounded-full">
+                            <svg class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                            </svg>
+                        </div>
+                        <h4 class="mb-2 text-lg font-semibold text-gray-800">Are you sure you want to cancel?</h4>
+                        <p class="text-sm text-gray-600">This action cannot be undone. You'll need to schedule a new appointment after cancelling.</p>
+                    </div>
+
+                    <!-- Appointment Details -->
+                    <div class="p-4 mb-6 rounded-lg bg-gray-50">
+                        <h5 class="mb-2 font-medium text-gray-700">Appointment Details:</h5>
+                        <div class="space-y-1 text-sm text-gray-600">
+                            <div><strong>Date:</strong> {{ $appointmentToCancel['date'] }}</div>
+                            <div><strong>Time:</strong> {{ $appointmentToCancel['time'] }}</div>
+                            <div><strong>Session:</strong> {{ $appointmentToCancel['session'] }}</div>
+                            <div><strong>Implementer:</strong> {{ $appointmentToCancel['implementer'] }}</div>
+                        </div>
+                    </div>
+
+                    <!-- Warning Message -->
+                    <div class="p-3 mb-6 border rounded-lg border-amber-200 bg-amber-50">
+                        <div class="flex items-center">
+                            <svg class="w-5 h-5 mr-2 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                            </svg>
+                            <p class="text-sm text-amber-700">
+                                After cancellation, you can immediately schedule a new appointment.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button wire:click="confirmCancelAppointment"
+                            class="btn btn-primary bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700"
+                            wire:loading.attr="disabled" wire:target="confirmCancelAppointment">
+                        <span wire:loading.remove wire:target="confirmCancelAppointment">
+                            ❌ Yes, Cancel Appointment
+                        </span>
+                        <span wire:loading wire:target="confirmCancelAppointment" class="flex items-center">
+                            <svg class="w-5 h-5 mr-2 animate-spin" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Cancelling...
+                        </span>
+                    </button>
+                    <button wire:click="closeCancelModal"
+                            class="btn btn-secondary"
+                            wire:loading.attr="disabled" wire:target="confirmCancelAppointment">
+                        🔙 Keep Appointment
+                    </button>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    <!-- Booking Modal -->
     @if($showBookingModal)
-        <div class="modal-overlay">
-            <div class="modal-container">
+        <div class="modal-overlay" wire:click="closeBookingModal">
+            <div class="modal-container" wire:click.stop>
                 <div class="modal-header">
-                    <h3 class="mb-2 text-2xl font-bold">🚀 Book Your Kick-Off Meeting</h3>
-                    <p class="text-indigo-100">{{ Carbon\Carbon::parse($selectedDate)->format('l, F j, Y') }}</p>
+                    <h3 class="mb-2 text-2xl font-bold">{{ Carbon\Carbon::parse($selectedDate)->format('l, F j, Y') }}</h3>
                 </div>
 
                 <div class="modal-body">
                     <!-- Available Sessions -->
                     <div class="form-group">
-                        <label class="form-label">⏰ Select Available Session</label>
                         @foreach($availableSessions as $index => $session)
                             <div class="session-option {{ $selectedSession && $selectedSession['session_name'] === $session['session_name'] ? 'selected' : '' }}"
                                 wire:click="selectSession({{ $index }})">
                                 <div class="flex items-center justify-between">
                                     <div>
-                                        <div class="font-semibold text-gray-800">{{ $session['session_name'] }}</div>
-                                        <div class="text-sm font-medium text-gray-600">🕒 {{ $session['formatted_time'] }}</div>
-                                    </div>
-                                    <div class="text-sm font-medium text-indigo-600">
-                                        👨‍💼 with {{ $session['implementer_name'] }}
+                                        <div class="font-semibold text-gray-800">{{ $session['session_name'] }} | {{ $session['formatted_time'] }}</div>
                                     </div>
                                 </div>
                             </div>
@@ -658,33 +779,33 @@
 
                     <!-- Appointment Type -->
                     <div class="form-group">
-                        <label for="appointmentType" class="form-label">📱 Meeting Type</label>
+                        <label for="appointmentType" class="form-label">Meeting Type</label>
                         <div class="text-gray-700 bg-gray-100 cursor-not-allowed form-input">
-                            💻 Online Meeting via Microsoft Teams
+                            Online Meeting via Microsoft Teams
                         </div>
                     </div>
 
                     <!-- Required Attendees -->
                     <div class="form-group">
-                        <label for="requiredAttendees" class="form-label">👥 Required Attendees <span class="text-red-600">*</span></label>
+                        <label for="requiredAttendees" class="form-label">Required Attendees <span class="text-red-600">*</span></label>
                         <input type="text" wire:model="requiredAttendees" id="requiredAttendees" class="form-input"
                             placeholder="john@example.com;jane@example.com">
-                        <p class="mt-2 text-xs text-gray-500">📝 Separate multiple emails with semicolons (;)</p>
+                        <p class="mt-2 text-xs text-gray-500">Separate multiple emails with semicolons (;)</p>
                     </div>
 
-                    <!-- Remarks -->
+                    {{-- <!-- Remarks -->
                     <div class="form-group">
                         <label for="remarks" class="form-label">💬 Additional Notes (Optional)</label>
                         <textarea wire:model="remarks" id="remarks" class="form-textarea" rows="4"
                             placeholder="Any special requirements, agenda items, or notes for your implementer..."></textarea>
-                    </div>
+                    </div> --}}
                 </div>
 
                 <div class="modal-footer">
                     <button wire:click="submitBooking" class="btn btn-primary"
                         {{ !$selectedSession ? 'disabled' : '' }}
                         wire:loading.attr="disabled" wire:target="submitBooking">
-                        <span wire:loading.remove wire:target="submitBooking">📨 Submit Booking Request</span>
+                        <span wire:loading.remove wire:target="submitBooking">📨 Submit</span>
                         <span wire:loading wire:target="submitBooking" class="flex items-center">
                             <svg class="w-5 h-5 mr-2 animate-spin" fill="none" viewBox="0 0 24 24">
                                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -702,16 +823,15 @@
         </div>
     @endif
 
-    <!-- Success Modal -->
+    <!-- Update the Success Modal section -->
     @if($showSuccessModal && $submittedBooking)
-        <div class="modal-overlay">
-            <div class="max-w-2xl modal-container">
+        <div class="modal-overlay" wire:click="closeSuccessModal">
+            <div class="max-w-2xl modal-container" wire:click.stop>
                 <!-- Header with TimeTec branding -->
                 <div class="text-center modal-header">
                     <div class="mb-6">
-                        <h1 class="mb-2 text-3xl font-bold text-white">TimeTec</h1>
                         <div class="text-4xl font-bold text-white">
-                            Human Resource Management System
+                            TimeTec HRMS
                         </div>
                     </div>
                 </div>
@@ -727,7 +847,6 @@
 
                     <!-- Booking Details Card -->
                     <div class="p-6 mb-6 border-2 border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl">
-                        <h3 class="mb-4 text-lg font-semibold text-gray-800">📅 Your Booking Details</h3>
                         <div class="grid grid-cols-1 gap-4 text-sm md:grid-cols-2">
                             <div class="text-left">
                                 <div class="font-medium text-gray-600">Date & Time</div>
@@ -747,9 +866,8 @@
                                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                                 </svg>
-                                <span class="font-medium">Microsoft Teams meeting created</span>
                             </div>
-                            <p class="mt-1 text-sm text-green-600">Meeting link will be included in your confirmation email</p>
+                            <p class="mt-1 text-sm text-green-600">Meeting link will be included in your email.</p>
                         </div>
                         @endif
                     </div>

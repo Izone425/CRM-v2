@@ -1153,6 +1153,7 @@ class ImplementerAppointmentRelationManager extends RelationManager
                                 'lastName' => $lead->companyDetail->name ?? $lead->name ?? 'Client',
                                 'company' => $lead->companyDetail->company_name ?? 'N/A',
                                 'implementerName' => $data['implementer'] ?? 'N/A',
+                                'implementerEmail' => $implementerUser->email ?? 'admin.timetec.hr@timeteccloud.com', // Add this line
                                 'phone' => optional($lead->companyDetail)->contact_no ?? $lead->phone ?? 'N/A',
                                 'pic' => optional($lead->companyDetail)->name ?? $lead->name ?? 'N/A',
                                 'email' => optional($lead->companyDetail)->email ?? $lead->email ?? 'N/A',

@@ -24,7 +24,8 @@ class Customer extends Authenticatable
         'status',
         'email_verified_at',
         'last_login_at',
-        'lead_id'
+        'lead_id',
+        'original_email' // Add this if not already present
     ];
 
     protected $hidden = [
@@ -38,4 +39,20 @@ class Customer extends Authenticatable
         'last_login_at' => 'datetime',
         'password' => 'hashed',
     ];
+
+    /**
+     * Get the lead associated with the customer
+     */
+    public function lead()
+    {
+        return $this->belongsTo(Lead::class);
+    }
+
+    /**
+     * Get the software handover through lead
+     */
+    public function softwareHandover()
+    {
+        return $this->hasOneThrough(SoftwareHandover::class, Lead::class, 'id', 'lead_id', 'lead_id', 'id');
+    }
 }

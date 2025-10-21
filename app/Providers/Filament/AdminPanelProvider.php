@@ -13,6 +13,7 @@ use App\Filament\Pages\Auth\EditProfile;
 use App\Filament\Pages\Calendar;
 use App\Filament\Pages\CallLogAnalysis;
 use App\Filament\Pages\ChatRoom;
+use App\Filament\Pages\CustomerPortalRawData;
 use App\Filament\Pages\DashboardForm;
 use App\Filament\Pages\DebtorAgingProcessData;
 use App\Filament\Pages\DebtorAgingRawData;
@@ -351,6 +352,7 @@ class AdminPanelProvider extends PanelProvider
                 CallLogAnalysis::class,
                 SalesAdminInvoice::class,
                 FinanceHandoverList::class,
+                CustomerPortalRawData::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([

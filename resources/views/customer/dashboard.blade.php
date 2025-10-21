@@ -95,7 +95,6 @@
                     </div>
                     <div>
                         <h1 class="text-3xl font-bold text-white drop-shadow-lg">Customer Portal</h1>
-                        <p class="text-sm text-indigo-100">Manage your appointments and account</p>
                     </div>
                 </div>
                 <div class="flex items-center space-x-6">
@@ -105,20 +104,21 @@
                             $companyName = $customer->company_name ?? 'Not Available';
 
                             // Get the latest software handover based on lead_id
-                            $projectCode = 'Not Available';
+                            $implementerName = 'Not Available';
+
                             if ($customer->lead_id) {
                                 $latestHandover = \App\Models\SoftwareHandover::where('lead_id', $customer->lead_id)
                                     ->orderBy('id', 'desc')
                                     ->first();
 
                                 if ($latestHandover) {
-                                    $projectCode = 'SW_250' . str_pad($latestHandover->id, 3, '0', STR_PAD_LEFT);
+                                    $implementerName = $latestHandover->implementer ?? 'Not Assigned';
                                 }
                             }
                         @endphp
 
                         <p class="font-semibold text-white">Company Name: {{ $companyName }}</p>
-                        <p class="text-sm text-indigo-100">Project Code: {{ $projectCode }}</p>
+                        <p class="text-sm font-medium text-indigo-200">Implementer: {{ $implementerName }}</p>
                     </div>
                     <form method="POST" action="{{ route('customer.logout') }}">
                         @csrf
@@ -160,11 +160,11 @@
         <div class="absolute inset-0 opacity-50 bg-gradient-to-r from-indigo-900 to-purple-900"></div>
         <div class="relative px-4 py-12 mx-auto max-w-7xl sm:px-6 lg:px-8">
             <div class="text-center">
-                <div class="flex items-center justify-center w-16 h-16 mx-auto mb-4 bg-white rounded-full bg-opacity-10">
+                {{-- <div class="flex items-center justify-center w-16 h-16 mx-auto mb-4 bg-white rounded-full bg-opacity-10">
                     <i class="text-2xl fas fa-clock"></i>
                 </div>
                 <h3 class="mb-2 text-2xl font-bold">TimeTec CRM</h3>
-                <p class="mb-4 text-gray-300">Your trusted HR Solutions partner</p>
+                <p class="mb-4 text-gray-300">Your trusted HR Solutions partner</p> --}}
                 <p class="text-sm text-gray-400">
                     © {{ date('Y') }} TimeTec CRM. All rights reserved.
                 </p>
