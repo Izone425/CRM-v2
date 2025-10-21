@@ -4,34 +4,29 @@ namespace App\Livewire\LeadownerDashboard;
 
 use App\Classes\Encryptor;
 use App\Filament\Actions\LeadActions;
-use App\Models\ActivityLog;
 use App\Models\Lead;
 use App\Models\User;
-use Filament\Forms\Components\Placeholder;
 use Filament\Tables\Actions\Action;
 use Filament\Tables\Table;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Tables\Contracts\HasTable;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Notifications\Notification;
-use Filament\Support\Enums\ActionSize;
 use Filament\Tables\Actions\ActionGroup;
-use Filament\Tables\Actions\BulkAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Filters\SelectFilter;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 use Illuminate\Support\Str;
 use Livewire\Attributes\On;
 
-class NewLeadTable extends Component implements HasForms, HasTable
+class ApolloProspectReminderTodayTable extends Component implements HasForms, HasTable
 {
     use InteractsWithTable;
     use InteractsWithForms;
 
-    public $selectedUser; // Allow dynamic filtering
+    public $selectedUser;
     public $lastRefreshTime;
 
     public function mount()
@@ -57,30 +52,46 @@ class NewLeadTable extends Component implements HasForms, HasTable
         $this->lastRefreshTime = now()->format('Y-m-d H:i:s');
     }
 
-    public function getPendingLeadsQuery()
+    #[On('updateTablesForUser')] // Listen for updates
+    public function updateTablesForUser($selectedUser)
     {
-        $query = Lead::query()
-            ->where('lead_code', '!=', 'LinkedIn')
-            ->where('categories', 'New')
-            ->whereNull('salesperson') // Still keeping this condition unless you want to include assigned ones too
-            ->selectRaw('*, DATEDIFF(NOW(), created_at) as pending_days');
+        if ($selectedUser) {
+            $this->selectedUser = $selectedUser;
+            session(['selectedUser' => $selectedUser]); // Store selected user
+        } else {
+            // Reset to "Your Own Dashboard" (value = 7)
+            $this->selectedUser = 7;
+            session(['selectedUser' => 7]);
+        }
 
+        $this->resetTable(); // Refresh the table
+    }
+
+    public function getProspectTodayQuery()
+    {
+        $this->selectedUser = $this->selectedUser ?? session('selectedUser') ?? auth()->user()->id;
+
+        $query = Lead::query()
+            ->where('lead_code', 'LinkedIn')
+            ->whereDate('follow_up_date', today())
+            ->where('categories', '!=', 'Inactive')
+            ->selectRaw('*, DATEDIFF(NOW(), follow_up_date) as pending_days')
+            ->where('follow_up_counter', true)
+            ->whereNull('salesperson');
+
+        // Handle filtering by user or group
         if ($this->selectedUser === 'all-lead-owners') {
             $leadOwnerNames = User::where('role_id', 1)->pluck('name');
             $query->whereIn('lead_owner', $leadOwnerNames);
-        } elseif ($this->selectedUser === 'all-salespersons') {
-            $salespersonIds = User::where('role_id', 2)->pluck('id');
-            $query->whereIn('salesperson', $salespersonIds);
-        } elseif ($this->selectedUser) {
-            $selectedUser = User::find($this->selectedUser);
+        } elseif (is_numeric($this->selectedUser)) {
+            $user = User::find($this->selectedUser);
 
-            if ($selectedUser) {
-                if ($selectedUser->role_id == 1) {
-                    $query->where('lead_owner', $selectedUser->name);
-                } elseif ($selectedUser->role_id == 2) {
-                    $query->where('salesperson', $selectedUser->id);
-                }
+            if ($user) {
+                $query->where('lead_owner', $user->name);
             }
+        } else {
+            // fallback to current user
+            $query->where('lead_owner', auth()->user()->name);
         }
 
         return $query;
@@ -90,11 +101,12 @@ class NewLeadTable extends Component implements HasForms, HasTable
     {
         return $table
             ->poll('300s')
+            ->query($this->getProspectTodayQuery())
             ->defaultSort('created_at', 'desc')
+            ->emptyState(fn () => view('components.empty-state-question'))
+            // ->heading(fn () => 'Prospect Reminder (Today) - ' . $this->getProspectTodayQuery()->count() . ' Records') // Display count
             ->defaultPaginationPageOption(5)
             ->paginated([5])
-            ->query($this->getPendingLeadsQuery())
-            ->emptyState(fn () => view('components.empty-state-question'))
             ->filters([
                 SelectFilter::make('company_size_label') // Use the correct filter key
                     ->label('')
@@ -156,11 +168,9 @@ class NewLeadTable extends Component implements HasForms, HasTable
                                 </a>';
                     })
                     ->html(),
-
                 TextColumn::make('lead_code')
                     ->label('Lead Source')
                     ->sortable(),
-
                 TextColumn::make('company_size_label')
                     ->label('Company Size')
                     ->sortable(query: function ($query, $direction) {
@@ -174,69 +184,33 @@ class NewLeadTable extends Component implements HasForms, HasTable
                             END $direction
                         ");
                     }),
+                // TextColumn::make('created_at')
+                //     ->label('Created Time')
+                //     ->sortable()
+                //     ->dateTime('d M Y, h:i A')
+                //     ->formatStateUsing(fn ($state) => Carbon::parse($state)->setTimezone('Asia/Kuala_Lumpur')->format('d M Y, h:i A')),
                 TextColumn::make('pending_days')
                     ->label('Pending Days')
-                    ->sortable()
-                    ->formatStateUsing(fn ($record) => $record->pending_days . ' days')
-                    ->color(fn ($record) => $record->pending_days == 0 ? 'draft' : 'danger'),
+                    ->default('0')
+                    ->formatStateUsing(fn ($state) => $state . ' ' . ($state == 0 ? 'Day' : 'Days'))
             ])
             ->actions([
                 ActionGroup::make([
+                    LeadActions::getAddDemoAction(),
+                    LeadActions::getAddRFQ(),
+                    LeadActions::getAddFollowUp(),
+                    LeadActions::getAddAutomation(),
+                    LeadActions::getArchiveAction(),
                     LeadActions::getViewAction(),
-                    LeadActions::getAssignToMeAction(),
-                    LeadActions::getAssignLeadAction(),
-                    LeadActions::getViewReferralDetailsAction(),
+                    LeadActions::getViewRemark(),
                 ])
                 ->button()
                 ->color(fn (Lead $record) => $record->follow_up_needed ? 'warning' : 'danger'),
-            ])
-            ->bulkActions([
-                BulkAction::make('Assign to Me')
-                    ->label('Assign Selected Leads to Me')
-                    ->requiresConfirmation()
-                    ->action(fn ($records) => $this->bulkAssignToMe($records))
-                    ->color('primary'),
             ]);
-    }
-
-    public function bulkAssignToMe($records)
-    {
-        $user = auth()->user();
-
-        foreach ($records as $record) {
-            // Update the lead owner and related fields
-            $record->update([
-                'lead_owner' => $user->name,
-                'categories' => 'Active',
-                'stage' => 'Transfer',
-                'lead_status' => 'New',
-                'pickup_date' => now(),
-            ]);
-
-            // Update the latest activity log
-            $latestActivityLog = ActivityLog::where('subject_id', $record->id)
-                ->orderByDesc('created_at')
-                ->first();
-
-            if ($latestActivityLog && $latestActivityLog->description !== 'Lead assigned to Lead Owner: ' . $user->name) {
-                $latestActivityLog->update([
-                    'description' => 'Lead assigned to Lead Owner: ' . $user->name,
-                ]);
-
-                activity()
-                    ->causedBy($user)
-                    ->performedOn($record);
-            }
-        }
-
-        Notification::make()
-            ->title(count($records) . ' Leads Assigned Successfully')
-            ->success()
-            ->send();
     }
 
     public function render()
     {
-        return view('livewire.leadowner_dashboard.new-lead-table');
+        return view('livewire.leadowner_dashboard.apollo-prospect-reminder-today-table');
     }
 }

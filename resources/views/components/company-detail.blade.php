@@ -5,8 +5,8 @@
         // First row - 3 columns
         ['label' => 'Company Name', 'value' => $lead->companyDetail->company_name ?? '-'],
         ['label' => 'Company Size', 'value' => $lead->getCompanySizeLabelAttribute() ?? '-'],
-        // ['label' => 'Company Address 1', 'value' => $lead->companyDetail->company_address1 ?? '-'],
-        // ['label' => 'New Reg No.', 'value' => $lead->companyDetail->reg_no_new ?? '-'],
+        ['label' => 'LinkedIn Url', 'value' => $lead->companyDetail->linkedin_url ?? '-'],
+        ['label' => 'Website Url', 'value' => $lead->companyDetail->website_url ?? '-'],
         // ['label' => 'Company Address 2', 'value' => $lead->companyDetail->company_address2 ?? '-'],
         // ['label' => 'Industry', 'value' => $lead->companyDetail->industry ?? '-'],
 
