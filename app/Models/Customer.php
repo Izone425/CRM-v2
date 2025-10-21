@@ -18,6 +18,7 @@ class Customer extends Authenticatable
         'email',
         'password',
         'company_name',
+        'sw_id',
         'phone',
         'activation_token',
         'token_expires_at',

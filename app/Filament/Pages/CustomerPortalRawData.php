@@ -41,14 +41,9 @@ class CustomerPortalRawData extends Page implements HasTable
                                 ->orderBy('id', 'desc')
                                 ->first();
 
-                            if ($handover && $handover->id) {
-                                try {
-                                    // Get the year from created_at, fallback to current year if null
-                                    $year = $handover->created_at ? $handover->created_at->format('y') : now()->format('y');
-                                    return 'SW_' . $year . str_pad($handover->id, 4, '0', STR_PAD_LEFT);
-                                } catch (\Exception $e) {
-                                    return 'SW_' . str_pad($handover->id, 6, '0', STR_PAD_LEFT);
-                                }
+                            if ($handover) {
+                                // Use the model's getProjectCodeAttribute method
+                                return $handover->project_code;
                             }
                         }
                         return 'N/A';
@@ -155,12 +150,26 @@ class CustomerPortalRawData extends Page implements HasTable
                 BadgeColumn::make('status')
                     ->label('Status')
                     ->getStateUsing(function ($record) {
-                        // Check if customer has any confirmed appointments
-                        $hasCompletedAppointment = \App\Models\ImplementerAppointment::where('lead_id', $record->lead_id)
-                            ->where('status', 'Done')
-                            ->exists();
+                        // Get the SW_ID (project_code) for this customer
+                        if ($record->lead_id) {
+                            $handover = SoftwareHandover::where('lead_id', $record->lead_id)
+                                ->orderBy('id', 'desc')
+                                ->first();
 
-                        return $hasCompletedAppointment ? 'COMPLETED' : 'PENDING';
+                            if ($handover) {
+                                $projectCode = $handover->id;
+
+                                // Check if customer has any completed appointments based on SW_ID
+                                $hasCompletedAppointment = \App\Models\ImplementerAppointment::where('software_handover_id', $projectCode)
+                                    ->where('type', 'KICK OFF MEETING SESSION')
+                                    ->where('status', 'Done')
+                                    ->exists();
+
+                                return $hasCompletedAppointment ? 'COMPLETED' : 'PENDING';
+                            }
+                        }
+
+                        return 'PENDING';
                     })
                     ->colors([
                         'success' => 'COMPLETED',
@@ -172,47 +181,35 @@ class CustomerPortalRawData extends Page implements HasTable
                 TextColumn::make('completed_at')
                     ->label('Date Time - Completed')
                     ->getStateUsing(function ($record) {
-                        // Get the latest confirmed appointment date
-                        $completedAppointment = \App\Models\ImplementerAppointment::where('lead_id', $record->lead_id)
-                            ->where('status', 'Confirmed')
-                            ->orderBy('updated_at', 'desc')
-                            ->first();
+                        // Get the SW_ID (project_code) for this customer
+                        if ($record->lead_id) {
+                            $handover = SoftwareHandover::where('lead_id', $record->lead_id)
+                                ->orderBy('id', 'desc')
+                                ->first();
 
-                        return $completedAppointment
-                            ? $completedAppointment->updated_at->format('d M Y H:i:s')
-                            : 'Not completed';
+                            if ($handover) {
+                                $projectCode = $handover->id;
+
+                                // Get the latest completed appointment based on SW_ID
+                                $completedAppointment = \App\Models\ImplementerAppointment::where('software_handover_id', $projectCode)
+                                    ->where('type', 'KICK OFF MEETING SESSION')
+                                    ->where('status', 'Done')
+                                    ->orderBy('updated_at', 'desc')
+                                    ->first();
+
+                                return $completedAppointment
+                                    ? $completedAppointment->updated_at->format('d M Y H:i:s')
+                                    : 'Not completed';
+                            }
+                        }
+
+                        return 'Not completed';
                     })
                     ->searchable(false)
                     ->sortable(false)
                     ->default('Not completed'),
             ])
             ->filters([
-                Filters\SelectFilter::make('status')
-                    ->label('Status')
-                    ->options([
-                        'PENDING' => 'Pending',
-                        'COMPLETED' => 'Completed',
-                    ])
-                    ->query(function (Builder $query, array $data): Builder {
-                        if (!isset($data['value'])) {
-                            return $query;
-                        }
-
-                        if ($data['value'] === 'COMPLETED') {
-                            return $query->whereHas('lead.implementerAppointment', function ($q) {
-                                $q->where('status', 'Confirmed');
-                            });
-                        }
-
-                        if ($data['value'] === 'PENDING') {
-                            return $query->whereDoesntHave('lead.implementerAppointment', function ($q) {
-                                $q->where('status', 'Confirmed');
-                            });
-                        }
-
-                        return $query;
-                    }),
-
                 Filters\Filter::make('date_range')
                     ->form([
                         \Filament\Forms\Components\DatePicker::make('from')
