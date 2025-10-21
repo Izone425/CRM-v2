@@ -136,21 +136,8 @@
     <main class="relative py-12">
         <div class="mx-auto max-w-7xl sm:px-6 lg:px-8">
             <!-- Calendar Section -->
-            <div id="calendar" class="overflow-hidden bg-white border border-gray-100 shadow-xl rounded-3xl">
-                <div class="px-8 py-6 bg-gradient-to-r from-indigo-600 to-purple-600">
-                    <div class="flex items-center">
-                        <div class="flex items-center justify-center w-12 h-12 mr-4 bg-white bg-opacity-20 rounded-xl">
-                            <i class="text-xl text-white fas fa-calendar-alt"></i>
-                        </div>
-                        <div>
-                            <h2 class="text-2xl font-bold text-white">Schedule Your Kick-Off Meeting</h2>
-                            <p class="text-indigo-100">Choose your preferred date and time</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="p-8">
-                    @livewire('customer-calendar')
-                </div>
+            <div class="p-8">
+                @livewire('customer-calendar')
             </div>
         </div>
     </main>

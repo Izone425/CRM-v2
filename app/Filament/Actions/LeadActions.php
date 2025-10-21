@@ -243,12 +243,36 @@ class LeadActions
                         });
                     }
 
+                    // Check email in both Lead and CompanyDetail
                     if (!empty($record?->email)) {
-                        $query->orWhere('email', $record->email);
+                        $query->orWhere('email', $record->email)
+                            ->orWhereHas('companyDetail', function ($q) use ($record) {
+                                $q->where('email', $record->email);
+                            });
                     }
 
+                    // Check email from CompanyDetail if it exists
+                    if (!empty($record?->companyDetail?->email)) {
+                        $query->orWhere('email', $record->companyDetail->email)
+                            ->orWhereHas('companyDetail', function ($q) use ($record) {
+                                $q->where('email', $record->companyDetail->email);
+                            });
+                    }
+
+                    // Check phone in both Lead and CompanyDetail
                     if (!empty($record?->phone)) {
-                        $query->orWhere('phone', $record->phone);
+                        $query->orWhere('phone', $record->phone)
+                            ->orWhereHas('companyDetail', function ($q) use ($record) {
+                                $q->where('contact_no', $record->phone);
+                            });
+                    }
+
+                    // Check contact_no from CompanyDetail if it exists
+                    if (!empty($record?->companyDetail?->contact_no)) {
+                        $query->orWhere('phone', $record->companyDetail->contact_no)
+                            ->orWhereHas('companyDetail', function ($q) use ($record) {
+                                $q->where('contact_no', $record->companyDetail->contact_no);
+                            });
                     }
                 })
                 ->where('id', '!=', optional($record)->id)

@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Imports\ApolloImport;
 use App\Imports\ContactImport;
 use App\Imports\DealImport;
 use App\Imports\LeadImport;
@@ -35,6 +36,13 @@ class ImportZohoLeads
     {
         $file = public_path('storage/excel/Software_2025_05_30.csv');
         $import = new SoftwareHandoverImport();
+        Excel::import(import: $import, filePath: $file, readerType: \Maatwebsite\Excel\Excel::CSV);
+    }
+
+    public static function importApollos()
+    {
+        $file = public_path('storage/excel/Apollo_2025_10_21.csv');
+        $import = new ApolloImport();
         Excel::import(import: $import, filePath: $file, readerType: \Maatwebsite\Excel\Excel::CSV);
     }
 }
