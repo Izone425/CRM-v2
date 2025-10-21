@@ -314,9 +314,9 @@
         ->count();
 
     // Calculate combined counts for groups
-    $allTaskCount = $newCount + $draftRejectedCount + $pendingKickOffCount + $pendingLicenseCount + $completedCount;
+    $allTaskCount = App\Models\SoftwareHandover::count();
     $newTaskGroupCount = $newCount;
-    $pendingTaskGroupCount = $pendingKickOffCount + $pendingLicenseCount;
+    $pendingTaskGroupCount = $pendingLicenseCount;
 @endphp
 
 <div id="software-handover-container" class="hardware-handover-container"
@@ -435,14 +435,14 @@
 
             <!-- PENDING TASK Categories (DASHBOARD 02) -->
             <div class="category-container" x-show="selectedGroup === 'pending-task'">
-                <div class="stat-box pending-kick-off"
+                <!-- <div class="stat-box pending-kick-off"
                      :class="{'selected': selectedStat === 'pending-kick-off'}"
                      @click="setSelectedStat('pending-kick-off')">
                     <div class="stat-info">
                         <div class="stat-label">Pending Kick Off</div>
                     </div>
                     <div class="stat-count">{{ $pendingKickOffCount }}</div>
-                </div>
+                </div> -->
 
                 <div class="stat-box pending-license"
                      :class="{'selected': selectedStat === 'pending-license'}"

@@ -106,10 +106,10 @@ class CustomerCalendar extends Component
             // Build primary recipients list (TO field) - same as booking notification
             $recipients = [];
 
-            // Add customer email
-            if ($customer->email && filter_var($customer->email, FILTER_VALIDATE_EMAIL)) {
-                $recipients[] = $customer->email;
-            }
+            // // Add customer email
+            // if ($customer->email && filter_var($customer->email, FILTER_VALIDATE_EMAIL)) {
+            //     $recipients[] = $customer->email;
+            // }
 
             // Add all required attendees
             if ($appointment->required_attendees) {

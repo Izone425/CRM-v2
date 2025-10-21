@@ -88,7 +88,7 @@ class HandoverDetailTabs
                             \Njxqlus\Filament\Components\Forms\RelationManager::make()
                                 ->manager(\App\Filament\Resources\LeadResource\RelationManagers\SoftwareHandoverV2RelationManager::class
                             ),
-                        ]),
+                        ])->visible(fn () => auth()->user()->role_id === 3),
                 ])
                 ->columnSpan(2)
                 ->visible(function ($livewire) {

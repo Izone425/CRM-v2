@@ -34,7 +34,7 @@
         $softwarePendingLicenseCount = app(\App\Livewire\SoftwareHandoverPendingLicense::class)
             ->getNewSoftwareHandovers()
             ->count();
-        $adminSoftwareTotal = $softwareNewCount + $softwarePendingKickOffCount + $softwarePendingLicenseCount;
+        $adminSoftwareTotal = $softwareNewCount + $softwarePendingLicenseCount;
 
         // ADMIN HARDWARE counts (NEW TASK + PENDING STOCK)
         $hardwareNewCount = app(\App\Livewire\SalespersonDashboard\HardwareHandoverNew::class)
