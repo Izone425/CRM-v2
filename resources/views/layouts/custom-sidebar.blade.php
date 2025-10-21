@@ -1756,7 +1756,7 @@
                         </div>
 
                         <div class="submenu" id="customer-portal-stage1-submenu">
-                            <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
+                            <a href="{{ route('filament.admin.pages.customer-portal-raw-data') }}" class="submenu-item">
                                 <span class="module-font">Raw Data</span>
                             </a>
                             <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">

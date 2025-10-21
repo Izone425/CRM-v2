@@ -124,6 +124,36 @@ class SoftwareHandover extends Model
     ];
 
     /**
+     * Generate project code based on creation year and ID
+     * Format: SW_YYXXXX (where YY is year and XXXX is padded ID)
+     *
+     * @return string
+     */
+    public function getProjectCodeAttribute(): string
+    {
+        $year = substr($this->created_at->format('Y'), -2); // Get last 2 digits of year
+        $paddedId = str_pad($this->id, 4, '0', STR_PAD_LEFT); // Pad ID to 4 digits
+        return "SW_{$year}{$paddedId}";
+    }
+
+    /**
+     * Static method to generate project code for any handover
+     *
+     * @param int $handoverId
+     * @param string|null $createdAt
+     * @return string
+     */
+    public static function generateProjectCode(int $handoverId, string $createdAt = null): string
+    {
+        $year = $createdAt
+            ? substr(Carbon::parse($createdAt)->format('Y'), -2)
+            : substr(Carbon::now()->format('Y'), -2);
+
+        $paddedId = str_pad($handoverId, 4, '0', STR_PAD_LEFT);
+        return "SW_{$year}{$paddedId}";
+    }
+
+    /**
      * Get the total days since completion.
      *
      * @return int|string

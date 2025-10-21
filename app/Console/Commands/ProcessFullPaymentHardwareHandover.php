@@ -114,10 +114,10 @@ class ProcessFullPaymentHardwareHandover extends Command
             // Get the total invoice amount for this invoice number
             $totalInvoiceAmount = Invoice::where('invoice_no', $invoiceNo)->sum('invoice_amount');
 
-            if ($totalInvoiceAmount <= 0) {
-                $this->warn("Invoice {$invoiceNo} not found in invoices table or has zero amount");
-                return 'UnPaid';
-            }
+            // if ($totalInvoiceAmount <= 0) {
+            //     $this->warn("Invoice {$invoiceNo} not found in invoices table or has zero amount");
+            //     return 'UnPaid';
+            // }
 
             // Look for this invoice in debtor_agings table
             $debtorAging = DB::table('debtor_agings')

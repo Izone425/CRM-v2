@@ -34,6 +34,9 @@ class CustomerCalendar extends Component
     public $showSuccessModal = false;
     public $submittedBooking = null;
 
+    public $showCancelModal = false;
+    public $appointmentToCancel = null;
+
     public function mount()
     {
         $this->currentDate = Carbon::now();
@@ -48,8 +51,8 @@ class CustomerCalendar extends Component
 
         // Use lead_id instead of customer_id
         $this->existingBookings = ImplementerAppointment::where('lead_id', $customer->lead_id)
-            ->whereIn('status', ['New', 'Confirmed', 'Pending'])
-            ->whereIn('request_status', ['PENDING', 'CONFIRMED'])
+            ->whereIn('status', ['New', 'Done'])
+            ->where('type', 'KICK OFF MEETING SESSION')
             ->orderBy('date', 'asc')
             ->get()
             ->map(function ($booking) {
@@ -57,18 +60,132 @@ class CustomerCalendar extends Component
                     'id' => $booking->id,
                     'date' => Carbon::parse($booking->date)->format('l, d F Y'),
                     'time' => Carbon::parse($booking->start_time)->format('g:i A') . ' - ' .
-                             Carbon::parse($booking->end_time)->format('g:i A'),
+                            Carbon::parse($booking->end_time)->format('g:i A'),
                     'implementer' => $booking->implementer,
                     'session' => $booking->session,
                     'status' => $booking->status,
                     'request_status' => $booking->request_status,
                     'appointment_type' => $booking->appointment_type,
                     'raw_date' => $booking->date,
+                    'start_time' => $booking->start_time, // Add this line
+                    'end_time' => $booking->end_time,     // Add this line too for consistency
                 ];
             })
             ->toArray();
 
         $this->hasExistingBooking = count($this->existingBookings) > 0;
+    }
+
+    private function sendCancellationNotification($appointment)
+    {
+        try {
+            $customer = auth()->guard('customer')->user();
+
+            // Email content for cancellation using the existing template structure
+            $emailData = [
+                'content' => [
+                    'appointmentType' => $appointment->appointment_type,
+                    'companyName' => $customer->company_name,
+                    'date' => Carbon::parse($appointment->date)->format('l, d F Y'),
+                    'time' => Carbon::parse($appointment->start_time)->format('g:i A') . ' - ' .
+                            Carbon::parse($appointment->end_time)->format('g:i A'),
+                    'implementer' => $appointment->implementer,
+                    'session' => $appointment->session,
+                    'cancelledAt' => now()->format('d F Y, g:i A'),
+                    'cancelledBy' => 'Customer',
+                    'customerName' => $customer->name,
+                    'customerEmail' => $customer->email,
+                    'requiredAttendees' => $appointment->required_attendees,
+                    'meetingLink' => $appointment->meeting_link,
+                    'eventId' => $appointment->event_id,
+                ]
+            ];
+
+            // Build primary recipients list (TO field) - same as booking notification
+            $recipients = [];
+
+            // Add customer email
+            if ($customer->email && filter_var($customer->email, FILTER_VALIDATE_EMAIL)) {
+                $recipients[] = $customer->email;
+            }
+
+            // Add all required attendees
+            if ($appointment->required_attendees) {
+                $attendeeEmails = array_map('trim', explode(';', $appointment->required_attendees));
+                foreach ($attendeeEmails as $email) {
+                    if (filter_var($email, FILTER_VALIDATE_EMAIL) && !in_array($email, $recipients)) {
+                        $recipients[] = $email;
+                    }
+                }
+            }
+
+            // Build CC recipients list (same as booking notification)
+            $ccRecipients = [];
+
+            // Add the assigned implementer to CC
+            $implementer = User::where('name', $appointment->implementer)->first();
+            $implementerEmail = $implementer ? $implementer->email : '';
+            if ($implementerEmail && !in_array($implementerEmail, $ccRecipients)) {
+                $ccRecipients[] = $implementerEmail;
+            }
+
+            // Add the salesperson to CC
+            $lead = \App\Models\Lead::find($customer->lead_id);
+            if ($lead && $lead->salesperson) {
+                $salespersonEmail = $lead->getSalespersonEmail();
+                if ($salespersonEmail && !in_array($salespersonEmail, $ccRecipients)) {
+                    $ccRecipients[] = $salespersonEmail;
+                }
+            }
+
+            // Remove duplicates and filter valid emails
+            $recipients = array_unique(array_filter($recipients, function($email) {
+                return filter_var($email, FILTER_VALIDATE_EMAIL);
+            }));
+
+            $ccRecipients = array_unique(array_filter($ccRecipients, function($email) {
+                return filter_var($email, FILTER_VALIDATE_EMAIL);
+            }));
+
+            if (empty($recipients)) {
+                throw new \Exception('No valid email recipients found');
+            }
+
+            // Get implementer details for sender (same as booking notification)
+            $implementerName = $appointment->implementer;
+
+            \Illuminate\Support\Facades\Mail::send(
+                'emails.implementer_appointment_cancel',
+                $emailData,
+                function ($message) use ($recipients, $ccRecipients, $customer, $implementerEmail, $implementerName, $appointment) {
+                    $message->from($implementerEmail ?: 'noreply@timeteccloud.com', $implementerName ?: 'TimeTec Implementation Team')
+                            ->to($recipients) // Primary recipients (customer + attendees)
+                            ->cc($ccRecipients) // CC implementer + salesperson
+                            ->subject("CANCELLED BY CUSTOMER: TIMETEC HR | {$appointment->appointment_type} | {$customer->company_name}");
+                }
+            );
+
+            Log::info('Cancellation notification sent successfully', [
+                'sender' => $implementerEmail ?: 'noreply@timeteccloud.com',
+                'sender_name' => $implementerName ?: 'TimeTec Implementation Team',
+                'to_recipients' => $recipients,
+                'cc_recipients' => $ccRecipients,
+                'customer' => $customer->company_name,
+                'appointment_id' => $appointment->id,
+                'template' => 'implementer_appointment_cancel',
+                'total_to_recipients' => count($recipients),
+                'total_cc_recipients' => count($ccRecipients),
+                'salesperson_included' => $lead && $lead->getSalespersonEmail() ? 'yes' : 'no'
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to send cancellation notification: ' . $e->getMessage(), [
+                'appointment_id' => $appointment->id,
+                'template' => 'implementer_appointment_cancel',
+                'customer' => $customer->company_name ?? 'unknown',
+                'trace' => $e->getTraceAsString()
+            ]);
+        }
     }
 
     public function getAssignedImplementer()
@@ -110,6 +227,145 @@ class CustomerCalendar extends Component
     public function nextMonth()
     {
         $this->currentDate = $this->currentDate->copy()->addMonth();
+    }
+
+    public function openCancelModal($bookingId)
+    {
+        $booking = collect($this->existingBookings)->firstWhere('id', $bookingId);
+
+        if (!$booking) {
+            Notification::make()
+                ->title('Booking not found')
+                ->danger()
+                ->send();
+            return;
+        }
+
+        $this->appointmentToCancel = $booking;
+        $this->showCancelModal = true;
+    }
+
+    public function closeCancelModal()
+    {
+        $this->showCancelModal = false;
+        $this->appointmentToCancel = null;
+    }
+
+    public function confirmCancelAppointment()
+    {
+        if (!$this->appointmentToCancel) {
+            return;
+        }
+
+        try {
+            $appointment = ImplementerAppointment::find($this->appointmentToCancel['id']);
+
+            if (!$appointment) {
+                Notification::make()
+                    ->title('Appointment not found')
+                    ->danger()
+                    ->send();
+                return;
+            }
+
+            // Double-check cancellation rules
+            $appointmentDate = Carbon::parse($appointment->date)->format('Y-m-d');
+            $appointmentDateTime = Carbon::createFromFormat('Y-m-d H:i:s', $appointmentDate . ' ' . $appointment->start_time);
+            $now = Carbon::now();
+
+            if (!($appointmentDateTime->isFuture() || ($appointmentDateTime->isToday() && $appointmentDateTime->gt($now)))) {
+                Notification::make()
+                    ->title('Cannot cancel appointment')
+                    ->danger()
+                    ->body('This appointment can no longer be cancelled.')
+                    ->send();
+                return;
+            }
+
+            // Cancel the Teams meeting if it exists
+            if ($appointment->event_id) {
+                try {
+                    $this->cancelTeamsMeeting($appointment);
+                    Log::info('Teams meeting cancelled successfully', [
+                        'appointment_id' => $appointment->id,
+                        'event_id' => $appointment->event_id
+                    ]);
+                } catch (\Exception $e) {
+                    Log::warning('Failed to cancel Teams meeting: ' . $e->getMessage(), [
+                        'appointment_id' => $appointment->id,
+                        'event_id' => $appointment->event_id
+                    ]);
+                    // Continue with appointment cancellation even if Teams cancellation fails
+                }
+            }
+
+            // Update appointment status to cancelled
+            $appointment->update([
+                'status' => 'Cancelled',
+                'request_status' => 'CANCELLED',
+                'remarks' => ($appointment->remarks ? $appointment->remarks . ' | ' : '') . 'CANCELLED BY CUSTOMER on ' . now()->format('d M Y H:i:s')
+            ]);
+
+            // Send cancellation notification email using existing template
+            $this->sendCancellationNotification($appointment);
+
+            // Close modal and refresh bookings
+            $this->closeCancelModal();
+            $this->checkExistingBookings();
+
+            Notification::make()
+                ->title('Appointment cancelled successfully')
+                ->success()
+                ->body('Your appointment and Teams meeting have been cancelled. Cancellation notifications sent to all attendees, implementer, and salesperson.')
+                ->send();
+
+        } catch (\Exception $e) {
+            Log::error('Failed to cancel appointment: ' . $e->getMessage());
+
+            Notification::make()
+                ->title('Cancellation failed')
+                ->danger()
+                ->body('There was an error cancelling your appointment. Please contact support.')
+                ->send();
+        }
+    }
+
+    private function cancelTeamsMeeting($appointment)
+    {
+        try {
+            // Get implementer details
+            $implementer = User::where('name', $appointment->implementer)->first();
+            if (!$implementer || !$implementer->email) {
+                throw new \Exception('Implementer not found for Teams meeting cancellation');
+            }
+
+            // Cancel Teams meeting through Microsoft Graph API
+            $accessToken = \App\Services\MicrosoftGraphService::getAccessToken();
+            $graph = new \Microsoft\Graph\Graph();
+            $graph->setAccessToken($accessToken);
+
+            // Delete the event from the implementer's calendar
+            $organizerEmail = $implementer->email;
+            $eventId = $appointment->event_id;
+
+            $graph->createRequest("DELETE", "/users/$organizerEmail/events/$eventId")
+                ->execute();
+
+            Log::info('Teams meeting cancelled successfully', [
+                'appointment_id' => $appointment->id,
+                'event_id' => $eventId,
+                'implementer' => $implementer->name,
+                'organizer_email' => $organizerEmail
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to cancel Teams meeting: ' . $e->getMessage(), [
+                'appointment_id' => $appointment->id,
+                'event_id' => $appointment->event_id ?? 'none',
+                'implementer' => $appointment->implementer ?? 'unknown'
+            ]);
+            throw $e;
+        }
     }
 
     public function openBookingModal($date)
@@ -534,7 +790,7 @@ class CustomerCalendar extends Component
             // Store booking details for success modal
             $this->submittedBooking = [
                 'id' => $appointment->id,
-                'date' => Carbon::parse($appointment->date)->format('l, F j, Y'),
+                'date' => Carbon::parse($appointment->date)->format('l, d F Y'),
                 'time' => Carbon::parse($appointment->start_time)->format('g:i A') . ' - ' .
                          Carbon::parse($appointment->end_time)->format('g:i A'),
                 'implementer' => $appointment->implementer,
@@ -606,12 +862,6 @@ class CustomerCalendar extends Component
 
             // Build primary recipients list (TO field)
             $recipients = [];
-
-            // Add customer email
-            $customerEmail = $customer->original_email ?? $customer->email;
-            if ($customerEmail) {
-                $recipients[] = $customerEmail;
-            }
 
             // Add all required attendees
             if ($appointment->required_attendees) {
