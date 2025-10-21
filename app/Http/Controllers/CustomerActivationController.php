@@ -44,6 +44,7 @@ class CustomerActivationController extends Controller
                 'email' => $randomEmail,
                 'original_email' => $recipientEmails[0], // Use first PIC email as original
                 'lead_id' => $lead->id,
+                'sw_id' => $handover ? $handover->id : null,
                 'company_name' => $companyName,
                 'phone' => $customerPhone,
                 'password' => Hash::make($randomPassword),

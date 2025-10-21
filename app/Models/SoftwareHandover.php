@@ -131,7 +131,13 @@ class SoftwareHandover extends Model
      */
     public function getProjectCodeAttribute(): string
     {
-        $year = substr($this->created_at->format('Y'), -2); // Get last 2 digits of year
+        // Handle case where created_at might be null
+        if (!$this->created_at) {
+            $year = substr(Carbon::now()->format('Y'), -2); // Use current year as fallback
+        } else {
+            $year = substr($this->created_at->format('Y'), -2); // Get last 2 digits of year
+        }
+
         $paddedId = str_pad($this->id, 4, '0', STR_PAD_LEFT); // Pad ID to 4 digits
         return "SW_{$year}{$paddedId}";
     }
