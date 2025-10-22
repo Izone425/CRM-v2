@@ -73,7 +73,7 @@ class ApolloProspectReminderOverdueTable extends Component implements HasForms, 
         $this->selectedUser = $this->selectedUser ?? session('selectedUser') ?? auth()->user()->id;
 
         $query = Lead::query()
-            ->where('lead_code', 'LinkedIn')
+            ->where('lead_code', 'Apollo')
             ->whereDate('follow_up_date', '<', today()) // Overdue
             ->where('categories', '!=', 'Inactive')
             ->whereNull('salesperson')
