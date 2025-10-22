@@ -175,8 +175,7 @@ class ProductResource extends Resource
                                         'margin' => 'Margin',
                                     ])
                                     ->default('no')
-                                    ->required()
-                                    ->helperText('Select the commission type for this product.'),
+                                    ->required(),
 
                                 TextInput::make('sort_order')
                                     ->label('Sort Order')
@@ -189,7 +188,6 @@ class ProductResource extends Resource
                                         $solution = request()->input('data.solution') ?? $record?->solution;
                                         return Product::where('solution', $solution)->max('sort_order') + 1;
                                     })
-                                    ->helperText('Lower numbers appear first in dropdowns.')
                                     ->rules(function ($record) {
                                         return [
                                             Rule::unique('products', 'sort_order')
@@ -207,8 +205,7 @@ class ProductResource extends Resource
                                 TextInput::make('subscription_period')
                                     ->label('Subscription Period (Months)')
                                     ->numeric()
-                                    ->nullable()
-                                    ->helperText('Enter the subscription period in months, if applicable.'),
+                                    ->nullable(),
 
                                 Select::make('package_group')
                                     ->label('Package Group')
@@ -220,14 +217,12 @@ class ProductResource extends Resource
                                         'Other' => 'Other',
                                     ])
                                     ->searchable()
-                                    ->nullable()
-                                    ->helperText('Used to group products into predefined package groups.'),
+                                    ->nullable(),
 
                                 TextInput::make('package_sort_order')
                                     ->label('Package Sort Order')
                                     ->numeric()
                                     ->nullable()
-                                    ->helperText('Sort order within this package group. Lower numbers appear first.')
                                     ->rules(function ($record) {
                                         return [
                                             Rule::unique('products', 'package_sort_order')
@@ -241,6 +236,20 @@ class ProductResource extends Resource
                                     ->validationMessages([
                                         'unique' => 'This sort order is already in use for this package group.',
                                     ]),
+
+                                Select::make('tariff_code')
+                                    ->label('Tariff Code')
+                                    ->placeholder('Select a tariff code')
+                                    ->options([
+                                        '9907061674' => 'Consultant - 9907061674',
+                                        '9907071675' => 'Management Services - 9907071675',
+                                        '9907071685' => 'Training - 9907071685',
+                                        '9907101676' => 'IT Services - 9907101676',
+                                        '9907131694' => 'Maintenance and Repair - 9907131694',
+                                        '9909141687' => 'Imported Services - 9909141687',
+                                    ])
+                                    ->searchable()
+                                    ->nullable(),
                             ])->columnSpan(1),
                     ]),
             ])

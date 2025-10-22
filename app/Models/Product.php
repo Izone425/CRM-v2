@@ -26,7 +26,8 @@ class Product extends Model
         'push_to_autocount',
         'convert_pi',
         'push_so',
-        'push_sw'
+        'push_sw',
+        'tariff_code',
     ];
 
     public function scopeActive(Builder $query, bool $value=true): Builder

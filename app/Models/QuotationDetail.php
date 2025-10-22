@@ -24,6 +24,8 @@ class QuotationDetail extends Model
         'sort_order',
         'tax_code',
         'convert_pi',
+        'year',
+        'tariff_code',
     ];
 
     public function quotation(): BelongsTo
