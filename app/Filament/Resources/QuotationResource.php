@@ -547,6 +547,7 @@ class QuotationResource extends Resource
                             ->schema([
                                 Select::make('product_id')
                                     ->label('Product Code')
+                                    ->live(debounce: 500)
                                     ->options(function (Forms\Get $get) {
                                         $quotationType = $get('../../quotation_type');
 
@@ -602,16 +603,22 @@ class QuotationResource extends Resource
                                             if ($product) {
                                                 $set('unit_price', $product->unit_price);
                                                 $set('description', $product->description);
-                                                $set('convert_pi', $product->convert_pi); // Add this line
+                                                $set('convert_pi', $product->convert_pi);
+                                                $set('tariff_code', $product->tariff_code);
 
                                                 if ($product->solution === 'software') {
                                                     $set('subscription_period', $product->subscription_period);
                                                 } else {
                                                     $set('subscription_period', null);
+                                                    $set('year', null);
                                                 }
                                             }
 
+                                            // First recalculate this row
                                             self::recalculateAllRows($get, $set, 'product_id', $state);
+
+                                            // Then recalculate all years for all items
+                                            self::recalculateAllYearsForAllItems($get, $set);
                                         }
                                     })
                                     ->columnSpan([
@@ -639,15 +646,22 @@ class QuotationResource extends Resource
                                 TextInput::make('subscription_period')
                                     ->label('Subscription Period')
                                     ->numeric()
+                                    ->maxValue(12)
                                     ->live(debounce:500)
-                                    //->default(fn(Forms\Get $get) => $get('../../base_subscription'))
                                     ->afterStateUpdated(function(?string $state, Forms\Get $get, Forms\Set $set) {
-                                        // self::updateFields('subscription_period', $get, $set, $state);
-                                        // self::updateSubscriptionPeriodInAllRows($get, $set, $state);
+                                        if ($state && (int)$state > 12) {
+                                            $set('subscription_period', 12);
+                                            Notification::make()
+                                                ->warning()
+                                                ->title('Maximum subscription period is 12 months')
+                                                ->send();
+                                        }
+
+                                        // ✅ Mark this subscription period as manually edited
+                                        $set('subscription_manually_edited', true);
+
                                         self::recalculateAllRows($get, $set);
                                     })
-                                    // ->live(debounce:500)
-                                    // ->readOnly()
                                     ->visible(function(Forms\Get $get)  {
                                         $productId = $get('product_id');
                                         if ($productId != null) {
@@ -658,6 +672,58 @@ class QuotationResource extends Resource
                                         }
                                         return false;
                                     }),
+                                TextInput::make('year')
+                                    ->label('Year')
+                                    ->columnSpan([
+                                        'md' => 1,
+                                    ])
+                                    ->readOnly()
+                                    ->dehydrated(true)
+                                    ->helperText('Auto-calculated based on duplicate products')
+                                    ->visible(function(Forms\Get $get) {
+                                        $productId = $get('product_id');
+                                        if ($productId != null) {
+                                            $product = Product::find($productId);
+                                            if ($product && $get('../../quotation_type') == 'product' && $product->solution == 'software') {
+                                                return true;
+                                            }
+                                        }
+                                        return false;
+                                    })
+                                    ->afterStateHydrated(function (Forms\Get $get, Forms\Set $set) {
+                                        // Calculate year based on position in items array
+                                        $currentProductId = $get('product_id');
+                                        if (!$currentProductId) {
+                                            return;
+                                        }
+
+                                        $product = Product::find($currentProductId);
+                                        if (!$product || $product->solution !== 'software') {
+                                            return;
+                                        }
+
+                                        $items = $get('../../items') ?? [];
+                                        $yearCount = 0;
+
+                                        // Find current item and count previous occurrences
+                                        foreach ($items as $item) {
+                                            if (!empty($item['product_id']) && $item['product_id'] === $currentProductId) {
+                                                $yearCount++;
+                                                // If this is the current item, break
+                                                if ($item === $get('')) {
+                                                    break;
+                                                }
+                                            }
+                                        }
+
+                                        if ($yearCount > 0) {
+                                            $set('year', "Year {$yearCount}");
+                                        }
+                                    }),
+                                Hidden::make('subscription_manually_edited')
+                                    ->default(false)
+                                    ->dehydrated(true),
+
                                 TextInput::make('unit_price')
                                     ->label('Unit Price')
                                     ->numeric()
@@ -774,18 +840,28 @@ class QuotationResource extends Resource
                                 Hidden::make('tax_code')
                                     ->dehydrated(true),
 
+                                Hidden::make('tariff_code')
+                                    ->dehydrated(true),
+
                                 Hidden::make('convert_pi')
                                     ->dehydrated(true),
                             ])
                             ->deleteAction(fn(Actions\Action $action) => $action->requiresConfirmation())
-                            ->afterStateUpdated(fn(Forms\Get $get, Forms\Set $set) => self::updateFields(null, $get, $set, null))
-                            ->afterStateHydrated(fn(Forms\Get $get, Forms\Set $set) => self::updateFields(null, $get, $set, null))
+                            ->afterStateUpdated(function(Forms\Get $get, Forms\Set $set) {
+                                // Recalculate everything when items are added, removed, or cloned
+                                self::recalculateAllRowsFromParent($get, $set);
+                                self::recalculateAllYearsFromParent($get, $set);
+                                self::updateFields(null, $get, $set, null);
+                            })
+                            ->afterStateHydrated(function(Forms\Get $get, Forms\Set $set) {
+                                // Recalculate years when form loads
+                                self::recalculateAllYearsFromParent($get, $set);
+                                self::updateFields(null, $get, $set, null);
+                            })
                             ->defaultItems(1)
-                            ->columns(7)
+                            ->columns(8)
                             ->collapsible()
                             ->reorderable(false)
-                            // ->reorderable()
-                            // ->reorderableWithDragAndDrop()
                             ->itemLabel(
                                 function(?array $state): ?string {
                                     if ($state != null && isset($state['product_id'])) {
@@ -798,6 +874,7 @@ class QuotationResource extends Resource
                                     return null;
                                 }
                             )
+                            ->cloneable()
                             ->addActionLabel('Add Quotation Item')
                             ->orderColumn('sort_order')
                     ])
@@ -1391,66 +1468,95 @@ class QuotationResource extends Resource
         $grandTotal = 0;
         $totalTax = 0;
 
+        // ✅ Track product occurrences for subscription period logic
+        $productOccurrences = [];
+        $productCounters = [];
+
+        // First pass: count total occurrences of each software product
+        foreach ($items as $item) {
+            if (!empty($item['product_id'])) {
+                $product = Product::find($item['product_id']);
+                if ($product && $product->solution === 'software') {
+                    $productId = $item['product_id'];
+                    $productOccurrences[$productId] = ($productOccurrences[$productId] ?? 0) + 1;
+                }
+            }
+        }
+
         foreach ($items as $index => $item) {
-            // $product = null;
-
-            // if (!empty($item['product_id'])) {
-            //     $product = Product::find($item['product_id']);
-            // }
-
-            // // Handle quantity based on type
-            // if ($product?->solution === 'hrdf') {
-            //     $itemQuantity = $get("../../items.{$index}.quantity") ?? 0;
-            //     $set("../../items.{$index}.quantity", $itemQuantity);
-            // }
-
-            // if ($product?->solution === 'software' || $product?->solution === 'hardware') {
-            //     $set("../../items.{$index}.quantity", $get("../../items.{$index}.quantity") ?? $product?->quantity);
-            //     if ((int) $get("../../items.{$index}.subscription_period") === 0) {
-            //         $set("../../items.{$index}.subscription_period", $get("../../subscription_period"));
-            //     }
-            // }
-
-            // $quantity = (float) $get("../../items.{$index}.quantity") ?: (float) $get("../../headcount");
-            // $set("../../items.{$index}.quantity", $quantity);
-
-            // $subscriptionPeriod = $get("../../items.{$index}.subscription_period");
-            // $unitPrice = isset($item['unit_price']) ? (float) $item['unit_price'] : 0;
-
-            // // Auto-fill unit price if zero
-            // if ($unitPrice === 0.00 && $product?->unit_price) {
-            //     $unitPrice = $product->unit_price;
-            // }
-            // $set("../../items.{$index}.unit_price", $unitPrice);
-
-            // // Total before tax
-            // $totalBeforeTax = $quantity * $unitPrice;
-            // if ($product?->solution === 'software') {
-            //     $totalBeforeTax = $quantity * $subscriptionPeriod * $unitPrice;
-            // }
             $product = null;
 
             if (!empty($item['product_id'])) {
                 $product = Product::find($item['product_id']);
-            }
 
-            // Handle quantity based on type
-            if ($product?->solution === 'hrdf') {
-                $itemQuantity = $get("../../items.{$index}.quantity") ?? 0;
-                $set("../../items.{$index}.quantity", $itemQuantity);
-            }
+                // ✅ Handle subscription period for software products
+                if ($product && $product->solution === 'software') {
+                    $productId = $item['product_id'];
 
-            if ($product?->solution === 'software' || $product?->solution === 'hardware') {
-                $set("../../items.{$index}.quantity", $get("../../items.{$index}.quantity") ?? $product?->quantity);
-                if ((int) $get("../../items.{$index}.subscription_period") === 0) {
-                    $set("../../items.{$index}.subscription_period", $get("../../subscription_period"));
+                    if (!isset($productCounters[$productId])) {
+                        $productCounters[$productId] = 1;
+                    } else {
+                        $productCounters[$productId]++;
+                    }
+
+                    // ✅ Check if subscription period was manually edited
+                    $isManuallyEdited = $get("../../items.{$index}.subscription_manually_edited");
+
+                    // Only auto-set subscription period if:
+                    // 1. It's a product_id change (new product selection), OR
+                    // 2. It hasn't been manually edited
+                    if ($field === 'product_id' || !$isManuallyEdited) {
+                        // Set subscription period logic:
+                        // - If product appears MORE THAN ONCE and this is NOT the LAST occurrence: 12 months
+                        // - If this is the LAST occurrence: use product's default subscription period
+                        if ($productOccurrences[$productId] > 1) {
+                            if ($productCounters[$productId] < $productOccurrences[$productId]) {
+                                // This is NOT the last occurrence, set to 12 months
+                                if (!$isManuallyEdited || $field === 'product_id') {
+                                    $set("../../items.{$index}.subscription_period", 12);
+                                    // Reset manual edit flag when auto-setting
+                                    if ($field === 'product_id') {
+                                        $set("../../items.{$index}.subscription_manually_edited", false);
+                                    }
+                                }
+                            } else {
+                                // This IS the last occurrence, use product's default (only if not manually edited)
+                                if ($field === 'product_id') {
+                                    $set("../../items.{$index}.subscription_period", $product->subscription_period ?? 1);
+                                    // Reset manual edit flag when selecting new product
+                                    $set("../../items.{$index}.subscription_manually_edited", false);
+                                }
+                                // If manually edited, preserve the value - don't override
+                            }
+                        } elseif ($field === 'product_id') {
+                            // Single occurrence, use product default only on product change
+                            $set("../../items.{$index}.subscription_period", $product->subscription_period ?? 1);
+                            $set("../../items.{$index}.subscription_manually_edited", false);
+                        }
+                    }
                 }
             }
 
-            $quantity = (float) $get("../../items.{$index}.quantity") ?: (float) $get("../../headcount");
-            $set("../../items.{$index}.quantity", $quantity);
+            // ✅ Fix quantity handling - preserve existing quantity
+            $currentQuantity = $get("../../items.{$index}.quantity");
 
-            $subscriptionPeriod = $get("../../items.{$index}.subscription_period");
+            // Only auto-set quantity if it's empty/null/zero
+            if (!$currentQuantity || $currentQuantity == 0) {
+                if ($product?->solution === 'hrdf') {
+                    $numParticipants = $get("../../num_of_participant");
+                    if ($numParticipants) {
+                        $set("../../items.{$index}.quantity", $numParticipants);
+                        $currentQuantity = $numParticipants;
+                    }
+                } elseif ($product?->solution === 'software' || $product?->solution === 'hardware') {
+                    $defaultQuantity = $product?->quantity ?? 1;
+                    $set("../../items.{$index}.quantity", $defaultQuantity);
+                    $currentQuantity = $defaultQuantity;
+                }
+            }
+
+            $quantity = (float) $currentQuantity ?: 1; // Use current quantity or fallback to 1
+            $subscriptionPeriod = $get("../../items.{$index}.subscription_period") ?: 1;
             $unitPrice = isset($item['unit_price']) ? (float) $item['unit_price'] : 0;
 
             // Auto-fill unit price if zero
@@ -1484,24 +1590,21 @@ class QuotationResource extends Resource
                     $sstRate = $get('../../sst_rate');
                     $taxAmount = $totalBeforeTax * ($sstRate / 100);
                     $totalTax += $taxAmount;
-                    $taxCode = 'SV-8'; // ✅ Set tax code for MYR taxable items
+                    $taxCode = 'SV-8';
                 } elseif ($currency === 'USD') {
-                    // For USD, we typically don't apply SST, but set tax code if needed
-                    $taxCode = 'NTS'; // ✅ Set tax code for USD taxable items
+                    $taxCode = 'NTS';
                 }
             }
 
             if ($product) {
                 $set("../../items.{$index}.convert_pi", $product->convert_pi);
+                $set("../../items.{$index}.tariff_code", $product->tariff_code);
             }
 
             $set("../../items.{$index}.tax_code", $taxCode);
 
             // Preserve manually edited descriptions
             $currentDescription = $get("../../items.{$index}.description") ?? '';
-            // Only set product description when:
-            // 1. Current description is empty/blank, OR
-            // 2. This specific item's product was just changed (field='product_id' AND the index matches)
             if (blank($currentDescription) || ($field === 'product_id' && $state && $index === $get('../../_repeater_index'))) {
                 $set("../../items.{$index}.description", $product?->description);
             }
@@ -1662,28 +1765,86 @@ class QuotationResource extends Resource
         $grandTotal = 0;
         $totalTax = 0;
 
+        // ✅ Track product occurrences for subscription period logic
+        $productOccurrences = [];
+        $productCounters = [];
+
+        // First pass: count total occurrences of each software product
+        foreach ($items as $item) {
+            if (!empty($item['product_id'])) {
+                $product = Product::find($item['product_id']);
+                if ($product && $product->solution === 'software') {
+                    $productId = $item['product_id'];
+                    $productOccurrences[$productId] = ($productOccurrences[$productId] ?? 0) + 1;
+                }
+            }
+        }
+
         foreach ($items as $index => $item) {
+            $product = null;
+
             if (array_key_exists('product_id',$item)) {
                 $product_id = $item['product_id'];
                 $product = Product::find($product_id);
 
                 if ($product) {
                     $set("items.{$index}.convert_pi", $product->convert_pi);
+                    $set("items.{$index}.tariff_code", $product->tariff_code);
+
+                    // ✅ Handle subscription period for software products
+                    if ($product->solution === 'software') {
+                        if (!isset($productCounters[$product_id])) {
+                            $productCounters[$product_id] = 1;
+                        } else {
+                            $productCounters[$product_id]++;
+                        }
+
+                        // ✅ Check if subscription period was manually edited
+                        $isManuallyEdited = $get("items.{$index}.subscription_manually_edited");
+
+                        // Only auto-set subscription period if it hasn't been manually edited
+                        if (!$isManuallyEdited) {
+                            // Set subscription period logic:
+                            // - If product appears MORE THAN ONCE and this is NOT the LAST occurrence: 12 months
+                            // - If this is the LAST occurrence: use product's default subscription period
+                            if ($productOccurrences[$product_id] > 1) {
+                                if ($productCounters[$product_id] < $productOccurrences[$product_id]) {
+                                    // This is NOT the last occurrence, set to 12 months
+                                    $set("items.{$index}.subscription_period", 12);
+                                } else {
+                                    // This IS the last occurrence, use product's default
+                                    $set("items.{$index}.subscription_period", $product->subscription_period ?? 1);
+                                }
+                            }
+                        }
+                        // If manually edited, preserve the value - don't override
+                    }
                 }
             }
 
-            $set("items.{$index}.quantity",$get("num_of_participant") ?? 0);
-            if ($product?->solution == 'software' || $product?->solution == 'hardware') {
-                $set("items.{$index}.quantity",$get("items.{$index}.quantity"));
-                if (!isset($item['subscription_period']) || $item['subscription_period'] == 0) {
-                    $set("items.{$index}.subscription_period", $product?->subscription_period ?? 1);
+            // ✅ Fix quantity handling - preserve existing quantity, don't force reset
+            $currentQuantity = $get("items.{$index}.quantity");
+
+            // Only set quantity if it's empty/null/zero AND we have context for what it should be
+            if (!$currentQuantity || $currentQuantity == 0) {
+                if ($product?->solution == 'hrdf') {
+                    // For HRDF, use num_of_participant if available
+                    $numParticipants = $get("num_of_participant");
+                    if ($numParticipants) {
+                        $set("items.{$index}.quantity", $numParticipants);
+                    }
+                } elseif ($product?->solution == 'software' || $product?->solution == 'hardware') {
+                    // For software/hardware, use product's default quantity
+                    $defaultQuantity = $product?->quantity ?? 1;
+                    $set("items.{$index}.quantity", $defaultQuantity);
                 }
             }
+            // If quantity already has a value, preserve it
 
-            $quantity = $get("items.{$index}.quantity");
-            $subscription_period =  $get("items.{$index}.subscription_period");
-            // $subscription_period = $get("base_subscription");
+            $quantity = $get("items.{$index}.quantity") ?: 1; // Fallback to 1 if still empty
+            $subscription_period = $get("items.{$index}.subscription_period") ?: 1;
             $unit_price = 0;
+
             if (array_key_exists('unit_price', $item)) {
                 $unit_price = $item['unit_price'];
                 if ($unit_price == 0.00) {
@@ -1692,7 +1853,6 @@ class QuotationResource extends Resource
             }
 
             $set("items.{$index}.unit_price",$unit_price);
-            //unit_price = $get("items.{$index}.unit_price");
 
             // Calculate total before tax
             $total_before_tax = (int) $quantity * (float) $unit_price;
@@ -1722,10 +1882,9 @@ class QuotationResource extends Resource
                     $sstRate = $get('sst_rate');
                     $taxation_amount = $total_before_tax * ($sstRate / 100);
                     $totalTax += $taxation_amount;
-                    $taxCode = 'SV-8'; // ✅ Set tax code for MYR taxable items
+                    $taxCode = 'SV-8';
                 } elseif ($currency === 'USD') {
-                    // For USD, we typically don't apply SST, but set tax code if needed
-                    $taxCode = 'NTS'; // ✅ Set tax code for USD taxable items
+                    $taxCode = 'NTS';
                 }
             }
 
@@ -1756,5 +1915,234 @@ class QuotationResource extends Resource
         $set('sub_total', number_format($subtotal, 2, '.', ''));
         $set('tax_amount', number_format($totalTax, 2, '.', ''));
         $set('total', number_format($grandTotal, 2, '.', ''));
+    }
+
+    public static function calculateYearForSingleItem(Forms\Get $get, Forms\Set $set): void
+    {
+        $currentProductId = $get('product_id');
+        if (!$currentProductId) {
+            $set('year', null);
+            return;
+        }
+
+        // Get all items
+        $items = $get('../../items') ?? [];
+        $currentPath = $get('../../_repeater_path'); // This helps identify which item we're working on
+
+        // Count occurrences of the same product before this item
+        $yearCount = 0;
+        $currentIndex = null;
+
+        // Find current item index first
+        foreach ($items as $index => $item) {
+            if ($index === count($items) - 1) { // If this is the last item (newly added)
+                $currentIndex = $index;
+                break;
+            }
+        }
+
+        // If we couldn't determine current index, try to count based on product occurrences
+        if ($currentIndex === null) {
+            foreach ($items as $index => $item) {
+                if (!empty($item['product_id']) && $item['product_id'] === $currentProductId) {
+                    $yearCount++;
+                }
+            }
+        } else {
+            // Count occurrences before current index
+            for ($i = 0; $i < $currentIndex; $i++) {
+                if (!empty($items[$i]['product_id']) && $items[$i]['product_id'] === $currentProductId) {
+                    $yearCount++;
+                }
+            }
+            $yearCount++; // Add 1 for current item
+        }
+
+        $set('year', "Year {$yearCount}");
+    }
+
+    public static function recalculateAllYears(Forms\Get $get, Forms\Set $set): void
+    {
+        $items = $get('items') ?? [];
+        $productCounts = [];
+
+        foreach ($items as $index => $item) {
+            if (empty($item['product_id'])) {
+                continue;
+            }
+
+            $product = Product::find($item['product_id']);
+            if (!$product || $product->solution !== 'software') {
+                continue;
+            }
+
+            $productId = $item['product_id'];
+
+            // Initialize counter for this product if not exists
+            if (!isset($productCounts[$productId])) {
+                $productCounts[$productId] = 0;
+            }
+
+            // Increment counter
+            $productCounts[$productId]++;
+
+            // Set year for this item
+            $set("items.{$index}.year", "Year {$productCounts[$productId]}");
+        }
+    }
+
+    public static function calculateYearForDuplicateProducts(Forms\Get $get, Forms\Set $set): void
+    {
+        $currentProductId = $get('product_id');
+        if (!$currentProductId) {
+            $set('year', null);
+            return;
+        }
+
+        $product = Product::find($currentProductId);
+        if (!$product || $product->solution !== 'software') {
+            $set('year', null);
+            return;
+        }
+
+        // Get all items and find current item position
+        $items = $get('../../items') ?? [];
+        $currentItemKey = $get('../../_key'); // Get the current repeater item key
+
+        // Count occurrences of this product up to current position
+        $yearCount = 0;
+        $foundCurrentItem = false;
+
+        foreach ($items as $key => $item) {
+            if (!empty($item['product_id']) && $item['product_id'] === $currentProductId) {
+                $yearCount++;
+
+                // If this is the current item, set its year and stop
+                if ($key === $currentItemKey) {
+                    $foundCurrentItem = true;
+                    break;
+                }
+            }
+        }
+
+        // If we couldn't find current item by key, count all occurrences
+        if (!$foundCurrentItem) {
+            $yearCount = 1;
+            foreach ($items as $item) {
+                if (!empty($item['product_id']) && $item['product_id'] === $currentProductId) {
+                    break;
+                }
+            }
+        }
+
+        $set('year', "Year {$yearCount}");
+    }
+
+    public static function recalculateAllYearsForAllItems(Forms\Get $get, Forms\Set $set): void
+    {
+        $items = $get('../../items') ?? [];
+        $productYearCounters = [];
+        $productOccurrences = [];
+
+        // First pass: count total occurrences of each product
+        foreach ($items as $item) {
+            if (!empty($item['product_id'])) {
+                $productId = $item['product_id'];
+                $productOccurrences[$productId] = ($productOccurrences[$productId] ?? 0) + 1;
+            }
+        }
+
+        // Second pass: process each item in order
+        foreach ($items as $index => $item) {
+            if (empty($item['product_id'])) {
+                continue;
+            }
+
+            $product = Product::find($item['product_id']);
+            if (!$product || $product->solution !== 'software') {
+                $set("../../items.{$index}.year", null);
+                continue;
+            }
+
+            $productId = $item['product_id'];
+
+            // Initialize or increment counter for this product
+            if (!isset($productYearCounters[$productId])) {
+                $productYearCounters[$productId] = 1;
+            } else {
+                $productYearCounters[$productId]++;
+            }
+
+            // ✅ Only set subscription period if not manually edited
+            $isManuallyEdited = $get("../../items.{$index}.subscription_manually_edited");
+
+            if (!$isManuallyEdited && $productOccurrences[$productId] > 1) {
+                if ($productYearCounters[$productId] < $productOccurrences[$productId]) {
+                    // This is NOT the last occurrence, set to 12 months
+                    $set("../../items.{$index}.subscription_period", 12);
+                } else {
+                    // This IS the last occurrence, use product's default
+                    $set("../../items.{$index}.subscription_period", $product->subscription_period ?? 1);
+                }
+            }
+
+            // Set the year for this item
+            $year = $productYearCounters[$productId];
+            $set("../../items.{$index}.year", "Year {$year}");
+        }
+    }
+
+    public static function recalculateAllYearsFromParent(Forms\Get $get, Forms\Set $set): void
+    {
+        $items = $get('items') ?? [];
+        $productYearCounters = [];
+        $productOccurrences = [];
+
+        // First pass: count total occurrences of each product
+        foreach ($items as $item) {
+            if (!empty($item['product_id'])) {
+                $productId = $item['product_id'];
+                $productOccurrences[$productId] = ($productOccurrences[$productId] ?? 0) + 1;
+            }
+        }
+
+        // Second pass: process each item in order
+        foreach ($items as $index => $item) {
+            if (empty($item['product_id'])) {
+                continue;
+            }
+
+            $product = Product::find($item['product_id']);
+            if (!$product || $product->solution !== 'software') {
+                $set("items.{$index}.year", null);
+                continue;
+            }
+
+            $productId = $item['product_id'];
+
+            // Initialize or increment counter for this product
+            if (!isset($productYearCounters[$productId])) {
+                $productYearCounters[$productId] = 1;
+            } else {
+                $productYearCounters[$productId]++;
+            }
+
+            // ✅ Only set subscription period if not manually edited
+            $isManuallyEdited = $get("items.{$index}.subscription_manually_edited");
+
+            if (!$isManuallyEdited && $productOccurrences[$productId] > 1) {
+                if ($productYearCounters[$productId] < $productOccurrences[$productId]) {
+                    // This is NOT the last occurrence, set to 12 months
+                    $set("items.{$index}.subscription_period", 12);
+                } else {
+                    // This IS the last occurrence, use product's default
+                    $set("items.{$index}.subscription_period", $product->subscription_period ?? 1);
+                }
+            }
+
+            // Set the year for this item
+            $year = $productYearCounters[$productId];
+            $set("items.{$index}.year", "Year {$year}");
+        }
     }
 }

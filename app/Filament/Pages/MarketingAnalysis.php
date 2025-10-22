@@ -141,6 +141,7 @@ class MarketingAnalysis extends Page
             'Existing Customer',
             'Existing Customer (Migration)',
             'FingerTec Leads',
+            'Apollo',
         ];
 
         $this->isExcludingLeadCodes = session('isExcludingLeadCodes', false);

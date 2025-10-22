@@ -760,10 +760,6 @@
                         <livewire:leadowner-dashboard.apollo-new-lead-table />
                     </div>
 
-                    <div x-show="selectedStat === 'apollo-new-leads'" x-transition :key="selectedStat + '-apollo-new-leads'">
-                        <livewire:leadowner-dashboard.apollo-new-lead-table />
-                    </div>
-
                     <div x-show="selectedStat === 'apollo-pending-leads'" x-transition :key="selectedStat + '-apollo-pending-leads'">
                         <livewire:leadowner-dashboard.apollo-pending-lead-table />
                     </div>
