@@ -608,7 +608,70 @@ class HardwareV2PendingStockTable extends Component implements HasForms, HasTabl
                         })
                         ->visible(fn (HardwareHandoverV2 $record): bool =>
                             $record->status === 'Pending Stock' && auth()->user()->role_id !== 2
-                        )
+                    ),
+                    Action::make('add_admin_remarks')
+                        ->label('Add Admin Remarks')
+                        ->icon('heroicon-o-chat-bubble-left-ellipsis')
+                        ->color('warning')
+                        ->modalHeading(function (HardwareHandoverV2 $record) {
+                            $companyName = 'Unknown Company';
+                            if ($record->lead && $record->lead->companyDetail && $record->lead->companyDetail->company_name) {
+                                $companyName = $record->lead->companyDetail->company_name;
+                            }
+                            return 'Add Admin Remarks - ' . $companyName;
+                        })
+                        ->modalWidth('2xl')
+                        ->form([
+                            Textarea::make('new_remark')
+                                ->label(false)
+                                ->placeholder('Enter your admin remark here...')
+                                ->rows(4)
+                                ->extraAlpineAttributes([
+                                    'x-on:input' => '
+                                        const start = $el.selectionStart;
+                                        const end = $el.selectionEnd;
+                                        const value = $el.value;
+                                        $el.value = value.toUpperCase();
+                                        $el.setSelectionRange(start, end);
+                                    '
+                                ])
+                                ->dehydrateStateUsing(fn ($state) => strtoupper($state))
+                                ->maxLength(1000)
+                                ->columnSpanFull(),
+                        ])
+                        ->action(function (HardwareHandoverV2 $record, array $data): void {
+                            // Get current admin remarks (handle both array and JSON string)
+                            $currentRemarks = $record->admin_remarks;
+
+                            if (is_string($currentRemarks)) {
+                                $currentRemarks = json_decode($currentRemarks, true) ?: [];
+                            } elseif (!is_array($currentRemarks)) {
+                                $currentRemarks = [];
+                            }
+
+                            // Add new remark with timestamp and user info
+                            $newRemark = [
+                                'remark' => $data['new_remark'],
+                                'created_by' => auth()->user()->name,
+                                'created_at' => now()->format('Y-m-d H:i:s'),
+                                'user_role' => auth()->user()->role->name ?? 'Unknown'
+                            ];
+
+                            // Prepend new remark to existing ones (newest first)
+                            array_unshift($currentRemarks, $newRemark);
+
+                            // Update the record
+                            $record->update([
+                                'admin_remarks' => $currentRemarks
+                            ]);
+
+                            Notification::make()
+                                ->title('Admin Remark Added')
+                                ->body('Your admin remark has been successfully added.')
+                                ->success()
+                                ->send();
+                        })
+                        ->visible(fn (HardwareHandoverV2 $record): bool => auth()->user()->role_id !== 2),
                 ])->button()
             ]);
     }

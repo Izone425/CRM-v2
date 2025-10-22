@@ -17,6 +17,7 @@ class Kernel extends ConsoleKernel
     protected $commands = [
         \App\Console\Commands\AutoFollowUp::class,
         \App\Console\Commands\UpdateLeadStatus::class,
+        \App\Console\Commands\UpdateSalesOrderStatus::class,
     ];
 
     protected function schedule(Schedule $schedule)

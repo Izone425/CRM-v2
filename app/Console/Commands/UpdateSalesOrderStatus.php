@@ -30,7 +30,7 @@ class UpdateSalesOrderStatus extends Command
             ->get();
 
         $this->info("Found {$handovers->count()} handovers to check");
-
+        info("SalesOrderStatusUpdate: Found {$handovers->count()} handovers to check");
         $updated = 0;
         $errors = 0;
 
