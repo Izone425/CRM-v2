@@ -406,7 +406,196 @@ class ProductResource extends Resource
                 ToggleColumn::make('taxable')->label('Tax')->width(100)->disabled(fn() => auth()->user()->role_id != 3),
                 ToggleColumn::make('minimum_price')->label('Min')->width(100)->disabled(fn() => auth()->user()->role_id != 3),
             ])
-            // ...existing filters and actions...
+            ->bulkActions([
+                Tables\Actions\BulkActionGroup::make([
+                    Tables\Actions\BulkAction::make('batch_update')
+                        ->label('Batch Update')
+                        ->icon('heroicon-o-pencil-square')
+                        ->color('primary')
+                        ->form([
+                            Forms\Components\Section::make('Status & Conversion')
+                                ->schema([
+                                    Forms\Components\Grid::make(3)
+                                        ->schema([
+                                            Forms\Components\Toggle::make('is_active')
+                                                ->label('Active')
+                                                ->inline(false),
+                                            Forms\Components\Toggle::make('convert_pi')
+                                                ->label('Convert PI')
+                                                ->inline(false),
+                                            Forms\Components\Toggle::make('taxable')
+                                                ->label('Tax')
+                                                ->inline(false),
+                                        ]),
+                                ]),
+
+                            Forms\Components\Section::make('AutoCount Integration')
+                                ->schema([
+                                    Forms\Components\Grid::make(3)
+                                        ->schema([
+                                            Forms\Components\Toggle::make('push_to_autocount')
+                                                ->label('Push Invoice')
+                                                ->inline(false)
+                                                ->live()
+                                                ->afterStateUpdated(function ($state, callable $set) {
+                                                    if ($state) {
+                                                        $set('push_so', false);
+                                                    }
+                                                }),
+                                            Forms\Components\Toggle::make('push_so')
+                                                ->label('Push S/Order')
+                                                ->inline(false)
+                                                ->live()
+                                                ->afterStateUpdated(function ($state, callable $set) {
+                                                    if ($state) {
+                                                        $set('push_to_autocount', false);
+                                                    }
+                                                }),
+                                            Forms\Components\Toggle::make('push_sw')
+                                                ->label('Push S/Ware')
+                                                ->inline(false),
+                                        ]),
+                                ]),
+
+                            Forms\Components\Section::make('Editing Permissions')
+                                ->schema([
+                                    Forms\Components\Grid::make(3)
+                                        ->schema([
+                                            Forms\Components\Toggle::make('amount_editable')
+                                                ->label('Edit Amount')
+                                                ->inline(false),
+                                            Forms\Components\Toggle::make('editable')
+                                                ->label('Edit Details')
+                                                ->inline(false),
+                                            Forms\Components\Toggle::make('minimum_price')
+                                                ->label('Min Price')
+                                                ->inline(false),
+                                        ]),
+                                ]),
+
+                            Forms\Components\Section::make('Update Options')
+                                ->schema([
+                                    Forms\Components\Fieldset::make('Select fields to update')
+                                        ->schema([
+                                            Forms\Components\Grid::make(3)
+                                                ->schema([
+                                                    Forms\Components\Checkbox::make('update_is_active')
+                                                        ->label('Update Active'),
+                                                    Forms\Components\Checkbox::make('update_convert_pi')
+                                                        ->label('Update Convert PI'),
+                                                    Forms\Components\Checkbox::make('update_taxable')
+                                                        ->label('Update Tax'),
+                                                    Forms\Components\Checkbox::make('update_push_to_autocount')
+                                                        ->label('Update Push Invoice'),
+                                                    Forms\Components\Checkbox::make('update_push_so')
+                                                        ->label('Update Push S/Order'),
+                                                    Forms\Components\Checkbox::make('update_push_sw')
+                                                        ->label('Update Push S/Ware'),
+                                                    Forms\Components\Checkbox::make('update_amount_editable')
+                                                        ->label('Update Edit Amount'),
+                                                    Forms\Components\Checkbox::make('update_editable')
+                                                        ->label('Update Edit Details'),
+                                                    Forms\Components\Checkbox::make('update_minimum_price')
+                                                        ->label('Update Min Price'),
+                                                ]),
+                                        ])
+                                        ->columns(1),
+                                ]),
+                        ])
+                        ->action(function (array $data, \Illuminate\Database\Eloquent\Collection $records) {
+                            $updateData = [];
+                            $fieldsToUpdate = [];
+
+                            // Build update data based on selected checkboxes
+                            if ($data['update_is_active'] ?? false) {
+                                $updateData['is_active'] = $data['is_active'] ?? false;
+                                $fieldsToUpdate[] = 'Active';
+                            }
+
+                            if ($data['update_convert_pi'] ?? false) {
+                                $updateData['convert_pi'] = $data['convert_pi'] ?? false;
+                                $fieldsToUpdate[] = 'Convert PI';
+                            }
+
+                            if ($data['update_taxable'] ?? false) {
+                                $updateData['taxable'] = $data['taxable'] ?? false;
+                                $fieldsToUpdate[] = 'Tax';
+                            }
+
+                            if ($data['update_push_to_autocount'] ?? false) {
+                                $updateData['push_to_autocount'] = $data['push_to_autocount'] ?? false;
+                                $fieldsToUpdate[] = 'Push Invoice';
+
+                                // If pushing invoice is enabled, disable push SO
+                                if ($data['push_to_autocount'] ?? false) {
+                                    $updateData['push_so'] = false;
+                                }
+                            }
+
+                            if ($data['update_push_so'] ?? false) {
+                                $updateData['push_so'] = $data['push_so'] ?? false;
+                                $fieldsToUpdate[] = 'Push S/Order';
+
+                                // If pushing SO is enabled, disable push invoice
+                                if ($data['push_so'] ?? false) {
+                                    $updateData['push_to_autocount'] = false;
+                                }
+                            }
+
+                            if ($data['update_push_sw'] ?? false) {
+                                $updateData['push_sw'] = $data['push_sw'] ?? false;
+                                $fieldsToUpdate[] = 'Push S/Ware';
+                            }
+
+                            if ($data['update_amount_editable'] ?? false) {
+                                $updateData['amount_editable'] = $data['amount_editable'] ?? false;
+                                $fieldsToUpdate[] = 'Edit Amount';
+                            }
+
+                            if ($data['update_editable'] ?? false) {
+                                $updateData['editable'] = $data['editable'] ?? false;
+                                $fieldsToUpdate[] = 'Edit Details';
+                            }
+
+                            if ($data['update_minimum_price'] ?? false) {
+                                $updateData['minimum_price'] = $data['minimum_price'] ?? false;
+                                $fieldsToUpdate[] = 'Min Price';
+                            }
+
+                            if (empty($updateData)) {
+                                \Filament\Notifications\Notification::make()
+                                    ->warning()
+                                    ->title('No Fields Selected')
+                                    ->body('Please select at least one field to update.')
+                                    ->send();
+                                return;
+                            }
+
+                            // Update all selected records
+                            $updatedCount = 0;
+                            foreach ($records as $record) {
+                                $record->update($updateData);
+                                $updatedCount++;
+                            }
+
+                            \Filament\Notifications\Notification::make()
+                                ->success()
+                                ->title('Batch Update Successful')
+                                ->body("Updated {$updatedCount} products. Fields updated: " . implode(', ', $fieldsToUpdate))
+                                ->send();
+                        })
+                        ->requiresConfirmation()
+                        ->modalHeading('Batch Update Products')
+                        ->modalDescription('Update multiple products at once. Select the fields you want to update and set their values.')
+                        ->modalSubmitActionLabel('Update Products')
+                        ->modalWidth(\Filament\Support\Enums\MaxWidth::FourExtraLarge)
+                        ->hidden(fn(): bool => auth()->user()->role_id != 3), // Only show for admin users
+
+                    // You can keep existing delete action if needed
+                    // Tables\Actions\DeleteBulkAction::make()
+                    //     ->hidden(fn(): bool => auth()->user()->role_id != 3),
+                ]),
+            ])
             ->filters([
                 Filter::make('solution')
                     ->form([
