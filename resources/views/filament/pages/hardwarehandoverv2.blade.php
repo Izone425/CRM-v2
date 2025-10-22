@@ -353,7 +353,7 @@
     $newTaskCount = HardwareHandoverV2::where('status', 'New')->count();
     $rejectedCount = HardwareHandoverV2::where('status', 'Rejected')->count();
     $pendingStockCount = HardwareHandoverV2::where('status', 'Pending Stock')
-        ->where('sales_order_status', 'packed')->count();
+        ->where('sales_order_status', 'packing')->count();
     $pendingMigrationCount = HardwareHandoverV2::where('status', 'Pending Migration')->count();
     $pendingPaymentCount = HardwareHandoverV2::where('status', 'Pending Payment')->count();
 

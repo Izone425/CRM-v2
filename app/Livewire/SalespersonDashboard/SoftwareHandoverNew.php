@@ -398,7 +398,7 @@ class SoftwareHandoverNew extends Component implements HasForms, HasTable
                                         ->schema([
                                             Actions::make([
                                                 FormAction::make('export_invoice_info')
-                                                    ->label('Export Invoice Information to Excel')
+                                                    ->label('Export AutoCount Debtor')
                                                     ->color('success')
                                                     ->icon('heroicon-o-document-arrow-down')
                                                     ->url(function (SoftwareHandover $record) {
