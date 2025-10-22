@@ -151,7 +151,7 @@ class SoftwareHandoverRelationManager extends RelationManager
                         ->schema([
                             Forms\Components\Actions::make([
                                 Forms\Components\Actions\Action::make('export_invoice_info')
-                                    ->label('Export Invoice Information to Excel')
+                                    ->label('Export AutoCount Debtor')
                                     ->color('success')
                                     ->icon('heroicon-o-document-arrow-down')
                                     ->url(function () {

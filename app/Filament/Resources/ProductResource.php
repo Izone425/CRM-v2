@@ -88,7 +88,7 @@ class ProductResource extends Resource
                                                     ->inline(false),
 
                                                 Toggle::make('convert_pi')
-                                                    ->label('Convert PI')
+                                                    ->label('Proforma Invoice')
                                                     ->inline(false)
                                                     ->default(false),
 
@@ -105,7 +105,7 @@ class ProductResource extends Resource
                                                     }),
 
                                                 Toggle::make('push_so')
-                                                    ->label('Push S/Order')
+                                                    ->label('Push Sales Order')
                                                     ->inline(false)
                                                     ->default(false)
                                                     ->live()
@@ -117,7 +117,7 @@ class ProductResource extends Resource
                                                     }),
 
                                                 Toggle::make('push_sw')
-                                                    ->label('Push S/Ware')
+                                                    ->label('Push Software')
                                                     ->inline(false)
                                                     ->default(false)
                                                     ->visible(fn (callable $get) => $get('solution') === 'software')
@@ -132,12 +132,12 @@ class ProductResource extends Resource
                                                     ->default(true),
 
                                                 Toggle::make('editable')
-                                                    ->label('Edit Description')
+                                                    ->label('Edit Details')
                                                     ->inline(false)
                                                     ->default(true),
 
                                                 Toggle::make('taxable')
-                                                    ->label('Tax')
+                                                    ->label('Taxation')
                                                     ->inline(false),
 
                                                 Toggle::make('minimum_price')
@@ -168,7 +168,7 @@ class ProductResource extends Resource
                                     ->label('Cost (RM)'),
 
                                 Select::make('is_commission')
-                                    ->label('Comm')
+                                    ->label('Commission')
                                     ->options([
                                         'yes' => 'Yes',
                                         'no' => 'No',
@@ -262,9 +262,9 @@ class ProductResource extends Resource
             // ->reorderable('sort_order')
             ->defaultSort('sort_order')
             ->recordUrl(false)
-            ->defaultPaginationPageOption(50)
-            ->paginated([50])
-            ->paginationPageOptions([50, 100])
+            // ->defaultPaginationPageOption(50)
+            // ->paginated([50])
+            ->paginationPageOptions(['all'])
             ->columns([
                 TextColumn::make('sort_order')->label('Order')->sortable(),
                 TextColumn::make('code')->width(100),
@@ -338,6 +338,7 @@ class ProductResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('unit_price')->label('RM')->width(100),
                 TextColumn::make('subscription_period')->label('Months')->width(150),
+                TextColumn::make('tariff_code')->label('Tariff Code')->width(150)->toggleable(isToggledHiddenByDefault: true),
 
                 ToggleColumn::make('is_active')->label('Active')->width(100)->disabled(fn() => auth()->user()->role_id != 3),
 
@@ -404,15 +405,32 @@ class ProductResource extends Resource
 
                 // Legacy column (keep for backwards compatibility)
                 ToggleColumn::make('taxable')->label('Tax')->width(100)->disabled(fn() => auth()->user()->role_id != 3),
-                ToggleColumn::make('minimum_price')->label('Min')->width(100)->disabled(fn() => auth()->user()->role_id != 3),
+                ToggleColumn::make('minimum_price')->label(new HtmlString('Minimum<br>Price'))->width(100)->disabled(fn() => auth()->user()->role_id != 3),
             ])
             ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\BulkAction::make('batch_update')
                         ->label('Batch Update')
                         ->icon('heroicon-o-pencil-square')
                         ->color('primary')
                         ->form([
+                            // Add Tariff Code section at the top
+                            Forms\Components\Section::make('Tariff Code')
+                                ->schema([
+                                    Select::make('tariff_code')
+                                        ->label('Tariff Code')
+                                        ->placeholder('Select a tariff code')
+                                        ->options([
+                                            '9907061674' => 'Consultant - 9907061674',
+                                            '9907071675' => 'Management Services - 9907071675',
+                                            '9907071685' => 'Training - 9907071685',
+                                            '9907101676' => 'IT Services - 9907101676',
+                                            '9907131694' => 'Maintenance and Repair - 9907131694',
+                                            '9909141687' => 'Imported Services - 9909141687',
+                                        ])
+                                        ->searchable()
+                                        ->nullable(),
+                                ]),
+
                             Forms\Components\Section::make('Status & Conversion')
                                 ->schema([
                                     Forms\Components\Grid::make(3)
@@ -421,10 +439,10 @@ class ProductResource extends Resource
                                                 ->label('Active')
                                                 ->inline(false),
                                             Forms\Components\Toggle::make('convert_pi')
-                                                ->label('Convert PI')
+                                                ->label('Proforma Invoice')
                                                 ->inline(false),
                                             Forms\Components\Toggle::make('taxable')
-                                                ->label('Tax')
+                                                ->label('Taxation')
                                                 ->inline(false),
                                         ]),
                                 ]),
@@ -443,7 +461,7 @@ class ProductResource extends Resource
                                                     }
                                                 }),
                                             Forms\Components\Toggle::make('push_so')
-                                                ->label('Push S/Order')
+                                                ->label('Push Sales Order')
                                                 ->inline(false)
                                                 ->live()
                                                 ->afterStateUpdated(function ($state, callable $set) {
@@ -452,7 +470,7 @@ class ProductResource extends Resource
                                                     }
                                                 }),
                                             Forms\Components\Toggle::make('push_sw')
-                                                ->label('Push S/Ware')
+                                                ->label('Push Software')
                                                 ->inline(false),
                                         ]),
                                 ]),
@@ -468,7 +486,7 @@ class ProductResource extends Resource
                                                 ->label('Edit Details')
                                                 ->inline(false),
                                             Forms\Components\Toggle::make('minimum_price')
-                                                ->label('Min Price')
+                                                ->label('Minimum Price')
                                                 ->inline(false),
                                         ]),
                                 ]),
@@ -479,24 +497,26 @@ class ProductResource extends Resource
                                         ->schema([
                                             Forms\Components\Grid::make(3)
                                                 ->schema([
+                                                    Forms\Components\Checkbox::make('update_tariff_code')
+                                                        ->label('Update Tariff Code'),
                                                     Forms\Components\Checkbox::make('update_is_active')
                                                         ->label('Update Active'),
                                                     Forms\Components\Checkbox::make('update_convert_pi')
-                                                        ->label('Update Convert PI'),
+                                                        ->label('Update Proforma Invoice'),
                                                     Forms\Components\Checkbox::make('update_taxable')
-                                                        ->label('Update Tax'),
+                                                        ->label('Update Taxation'),
                                                     Forms\Components\Checkbox::make('update_push_to_autocount')
                                                         ->label('Update Push Invoice'),
                                                     Forms\Components\Checkbox::make('update_push_so')
-                                                        ->label('Update Push S/Order'),
+                                                        ->label('Update Push Sales Order'),
                                                     Forms\Components\Checkbox::make('update_push_sw')
-                                                        ->label('Update Push S/Ware'),
+                                                        ->label('Update Push Software'),
                                                     Forms\Components\Checkbox::make('update_amount_editable')
                                                         ->label('Update Edit Amount'),
                                                     Forms\Components\Checkbox::make('update_editable')
                                                         ->label('Update Edit Details'),
                                                     Forms\Components\Checkbox::make('update_minimum_price')
-                                                        ->label('Update Min Price'),
+                                                        ->label('Update Minimum Price'),
                                                 ]),
                                         ])
                                         ->columns(1),
@@ -505,6 +525,12 @@ class ProductResource extends Resource
                         ->action(function (array $data, \Illuminate\Database\Eloquent\Collection $records) {
                             $updateData = [];
                             $fieldsToUpdate = [];
+
+                            // Add tariff code handling
+                            if ($data['update_tariff_code'] ?? false) {
+                                $updateData['tariff_code'] = $data['tariff_code'] ?? null;
+                                $fieldsToUpdate[] = 'Tariff Code';
+                            }
 
                             // Build update data based on selected checkboxes
                             if ($data['update_is_active'] ?? false) {
@@ -584,17 +610,12 @@ class ProductResource extends Resource
                                 ->body("Updated {$updatedCount} products. Fields updated: " . implode(', ', $fieldsToUpdate))
                                 ->send();
                         })
-                        ->requiresConfirmation()
-                        ->modalHeading('Batch Update Products')
-                        ->modalDescription('Update multiple products at once. Select the fields you want to update and set their values.')
                         ->modalSubmitActionLabel('Update Products')
                         ->modalWidth(\Filament\Support\Enums\MaxWidth::FourExtraLarge)
-                        ->hidden(fn(): bool => auth()->user()->role_id != 3), // Only show for admin users
-
+                        ->hidden(fn(): bool => auth()->user()->role_id != 3),
                     // You can keep existing delete action if needed
                     // Tables\Actions\DeleteBulkAction::make()
                     //     ->hidden(fn(): bool => auth()->user()->role_id != 3),
-                ]),
             ])
             ->filters([
                 Filter::make('solution')
