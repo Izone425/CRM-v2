@@ -72,6 +72,7 @@ class PendingLeadTable extends Component implements HasForms, HasTable
         $this->selectedUser = $this->selectedUser ?? session('selectedUser') ?? auth()->user()->id;
 
         $query = Lead::query()
+            ->where('lead_code', '!=', 'Apollo')
             ->where('stage', 'Transfer')
             ->whereNull('salesperson')
             ->where('follow_up_date', null)

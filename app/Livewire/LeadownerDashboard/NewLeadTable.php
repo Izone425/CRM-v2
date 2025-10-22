@@ -60,7 +60,7 @@ class NewLeadTable extends Component implements HasForms, HasTable
     public function getPendingLeadsQuery()
     {
         $query = Lead::query()
-            ->where('lead_code', '!=', 'LinkedIn')
+            ->where('lead_code', '!=', 'Apollo')
             ->where('categories', 'New')
             ->whereNull('salesperson') // Still keeping this condition unless you want to include assigned ones too
             ->selectRaw('*, DATEDIFF(NOW(), created_at) as pending_days');

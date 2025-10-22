@@ -72,7 +72,7 @@ class ApolloProspectReminderTodayTable extends Component implements HasForms, Ha
         $this->selectedUser = $this->selectedUser ?? session('selectedUser') ?? auth()->user()->id;
 
         $query = Lead::query()
-            ->where('lead_code', 'LinkedIn')
+            ->where('lead_code', 'Apollo')
             ->whereDate('follow_up_date', today())
             ->where('categories', '!=', 'Inactive')
             ->selectRaw('*, DATEDIFF(NOW(), follow_up_date) as pending_days')
