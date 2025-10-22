@@ -241,6 +241,7 @@ class ProductResource extends Resource
                                     ->label('Tariff Code')
                                     ->placeholder('Select a tariff code')
                                     ->options([
+                                        'N/A' => 'Not Available - N/A',
                                         '9907061674' => 'Consultant - 9907061674',
                                         '9907071675' => 'Management Services - 9907071675',
                                         '9907071685' => 'Training - 9907071685',

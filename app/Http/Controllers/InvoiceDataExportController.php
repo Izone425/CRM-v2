@@ -157,189 +157,226 @@ class InvoiceDataExportController extends Controller
             $allItems = collect();
                 foreach ($quotations as $quotation) {
                     foreach ($quotation->items as $item) {
-                        $allItems->push($item);
+                        // ✅ Check if product exists and push_to_autocount is true
+                        if ($item->product && $item->product->push_to_autocount === true) {
+                            $allItems->push($item);
+                            Log::info('Added item to export - Product: ' . $item->product->code . ' (push_to_autocount: true)');
+                        } else {
+                            $productCode = $item->product ? $item->product->code : 'No Product';
+                            $pushToAutocount = $item->product ? ($item->product->push_to_autocount ? 'true' : 'false') : 'N/A';
+                            Log::info('Skipped item - Product: ' . $productCode . ' (push_to_autocount: ' . $pushToAutocount . ')');
+                        }
+                }
+            }
+
+            Log::info('Total items collected: ' . $allItems->count());
+
+            // Create Excel file
+            Log::info('Creating Excel spreadsheet...');
+            $spreadsheet = new Spreadsheet();
+            $sheet = $spreadsheet->getActiveSheet();
+            $sheet->setTitle('Invoice Data');
+
+            // ✅ Generate common invoice data once (based on first quotation for reference)
+            $firstQuotation = $quotations->first();
+            Log::info('Using first quotation for reference: ID ' . $firstQuotation->id);
+
+            // ✅ DebtorCode - Make it empty as requested
+            $debtorCode = '';
+
+            // ✅ DocNo based on training type from software handover
+            $docNo = match($softwareHandover->training_type) {
+                'online_webinar_training' => 'EPIN',
+                'online_hrdf_training' => 'EHIN',
+                default => 'EGIN'
+            };
+            Log::info('DocNo determined: ' . $docNo . ' (training type: ' . ($softwareHandover->training_type ?? 'null') . ')');
+
+            // ✅ DocDate is today's date in j/n/Y format
+            $docDate = date('j/n/Y');
+            Log::info('DocDate: ' . $docDate);
+
+            // ✅ SalesAgent - Map to specific values
+            $salesAgent = $this->mapSalesAgent($lead, $firstQuotation);
+            Log::info('Sales Agent determined: ' . $salesAgent . ' (Lead salesperson: ' . $lead->salesperson . ')');
+
+            // ✅ CurrencyCode from lead->eInvoiceDetail->currency with fallback
+            $currencyCode = 'MYR'; // Default fallback
+            if ($lead->eInvoiceDetail && !empty($lead->eInvoiceDetail->currency)) {
+                $currencyCode = $lead->eInvoiceDetail->currency;
+                Log::info('Currency from eInvoiceDetail: ' . $currencyCode);
+            } elseif (!empty($firstQuotation->currency)) {
+                $currencyCode = $firstQuotation->currency;
+                Log::info('Currency from quotation: ' . $currencyCode);
+            } else {
+                Log::info('Using default currency: ' . $currencyCode);
+            }
+
+            // Currency rate based on currency
+            $currencyRate = $currencyCode === 'USD' ? null : '1';
+
+            // Determine UDF fields based on software handover training type
+            $salesAdmin = '';
+            if ($lead->lead_owner) {
+                $leadOwner = \App\Models\User::find($lead->lead_owner);
+                if ($leadOwner && $leadOwner->name) {
+                    $salesAdmin = strtoupper(trim($leadOwner->name));
+                    Log::info('Sales Admin from lead owner: ' . $salesAdmin);
+                }
+            } else {
+                Log::info('No lead owner found');
+            }
+
+            $billingType = 'New';
+            $cancelled = '';
+
+            if (auth()->id() === 5) {
+                $udfSupport = 'FATIMAH';
+            } elseif(auth()->id() === 52) {
+                $udfSupport = 'IRDINA';
+            } else {
+                $udfSupport = 'YAT';
+            }
+
+            // ✅ Create header row
+            $headers = [
+                'DocNo',
+                'DocDate',
+                'CompanyName',
+                'DebtorCode',
+                'SalesAgent',
+                'CurrencyCode',
+                'CurrencyRate',
+                'UDF_IV_SalesAdmin',
+                'UDF_IV_Support',
+                'UDF_IV_BillingType',
+                'Cancelled',
+                'ItemCode',
+                'Qty',
+                'UnitPrice',
+                'TaxCode',
+                'TariffCode'
+            ];
+
+            // Apply header row
+            $sheet->fromArray([$headers], null, 'A1');
+            Log::info('Headers applied to spreadsheet');
+
+            // Style the header row
+            $headerStyle = [
+                'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
+            ];
+            $sheet->getStyle('A1:O1')->applyFromArray($headerStyle);
+            Log::info('Header styling applied');
+
+            $row = 2; // Start from row 2 for data
+
+            // ✅ Process each quotation (PI) separately
+            Log::info('Processing ' . $quotations->count() . ' quotations (PIs)...');
+
+            foreach ($quotations as $quotationIndex => $quotation) {
+                Log::info('Processing PI/Quotation ' . ($quotationIndex + 1) . ' - ID: ' . $quotation->id);
+
+                // ✅ Filter quotation items to only include products with push_to_autocount = true
+                $quotationItems = $quotation->items->filter(function ($item) {
+                    if ($item->product && $item->product->push_to_autocount === true) {
+                        Log::info('Including item in PI export - Product: ' . $item->product->code . ' (push_to_autocount: true)');
+                        return true;
+                    } else {
+                        $productCode = $item->product ? $item->product->code : 'No Product';
+                        $pushToAutocount = $item->product ? ($item->product->push_to_autocount ? 'true' : 'false') : 'N/A';
+                        Log::info('Excluding item from PI export - Product: ' . $productCode . ' (push_to_autocount: ' . $pushToAutocount . ')');
+                        return false;
                     }
+                });
+
+                if ($quotationItems->isEmpty()) {
+                    Log::warning('No items with push_to_autocount=true found for quotation ID: ' . $quotation->id);
+                    continue;
                 }
 
-                Log::info('Total items collected: ' . $allItems->count());
+                // ✅ First item of this PI gets full invoice data
+                $firstItem = $quotationItems->first();
+                $firstProduct = $firstItem ? $firstItem->product : null;
 
-                // Create Excel file
-                Log::info('Creating Excel spreadsheet...');
-                $spreadsheet = new Spreadsheet();
-                $sheet = $spreadsheet->getActiveSheet();
-                $sheet->setTitle('Invoice Data');
+                Log::info('Adding full invoice row for first item of PI ' . $quotation->id);
 
-                // ✅ Generate common invoice data once (based on first quotation for reference)
-                $firstQuotation = $quotations->first();
-                Log::info('Using first quotation for reference: ID ' . $firstQuotation->id);
-
-                // ✅ DebtorCode - Make it empty as requested
-                $debtorCode = '';
-
-                // ✅ DocNo based on training type from software handover
-                $docNo = match($softwareHandover->training_type) {
-                    'online_webinar_training' => 'EPIN',
-                    'online_hrdf_training' => 'EHIN',
-                    default => 'EGIN'
-                };
-                Log::info('DocNo determined: ' . $docNo . ' (training type: ' . ($softwareHandover->training_type ?? 'null') . ')');
-
-                // ✅ DocDate is today's date in j/n/Y format
-                $docDate = date('j/n/Y');
-                Log::info('DocDate: ' . $docDate);
-
-                // ✅ SalesAgent - Map to specific values
-                $salesAgent = $this->mapSalesAgent($lead, $firstQuotation);
-                Log::info('Sales Agent determined: ' . $salesAgent . ' (Lead salesperson: ' . $lead->salesperson . ')');
-
-                // ✅ CurrencyCode from lead->eInvoiceDetail->currency with fallback
-                $currencyCode = 'MYR'; // Default fallback
-                if ($lead->eInvoiceDetail && !empty($lead->eInvoiceDetail->currency)) {
-                    $currencyCode = $lead->eInvoiceDetail->currency;
-                    Log::info('Currency from eInvoiceDetail: ' . $currencyCode);
-                } elseif (!empty($firstQuotation->currency)) {
-                    $currencyCode = $firstQuotation->currency;
-                    Log::info('Currency from quotation: ' . $currencyCode);
-                } else {
-                    Log::info('Using default currency: ' . $currencyCode);
-                }
-
-                // Currency rate based on currency
-                $currencyRate = $currencyCode === 'USD' ? null : '1';
-
-                // Determine UDF fields based on software handover training type
-                $salesAdmin = $lead->lead_owner ?? null;
-                $billingType = 'New';
-                $cancelled = '';
-
-                // ✅ Create header row
-                $headers = [
-                    'DocNo',
-                    'DocDate',
-                    'CompanyName',
-                    'DebtorCode',
-                    'SalesAgent',
-                    'CurrencyCode',
-                    'CurrencyRate',
-                    'UDF_IV_SalesAdmin',
-                    'UDF_IV_Support',
-                    'UDF_IV_BillingType',
-                    'Cancelled',
-                    'ItemCode',
-                    'Qty',
-                    'UnitPrice',
-                    'TaxCode',
-                    'TariffCode'
+                $firstRowData = [
+                    $docNo,                                             // DocNo
+                    $docDate,                                           // DocDate
+                    $this->getCompanyName($quotation, $softwareHandover), // CompanyName (from subsidiary or software handover)
+                    $debtorCode,                                        // DebtorCode (empty)
+                    $salesAgent,                                        // SalesAgent
+                    $currencyCode,                                      // CurrencyCode
+                    $currencyRate,                                      // CurrencyRate
+                    $salesAdmin,                                        // UDF_IV_SalesAdmin
+                    $udfSupport,                                        // UDF_IV_Support (FATIMAH if user ID = 5, else YAT)
+                    $billingType,                                       // UDF_IV_BillingType
+                    $cancelled,                                         // Cancelled
+                    $firstProduct ? $firstProduct->code : '',           // ItemCode (first product)
+                    $firstItem ? ($firstItem->quantity ?? 1) : 1,      // Qty (first product)
+                    // ✅ Calculate unit price based on product solution
+                    $firstItem ? $this->calculateUnitPrice($firstItem, $firstProduct) : 0, // UnitPrice (calculated)
+                    $firstItem ? $this->getTaxCode($firstItem, $firstProduct, $quotation) : 'NTS', // ✅ TaxCode based on taxable & currency
+                    $firstProduct ? ($firstProduct->tariff_code ?? '') : '', // TariffCode (first product)
                 ];
 
-                // Apply header row
-                $sheet->fromArray([$headers], null, 'A1');
-                Log::info('Headers applied to spreadsheet');
+                $sheet->fromArray([$firstRowData], null, 'A' . $row);
+                Log::info('Added full invoice row for PI ' . $quotation->id . ' at row ' . $row);
+                $row++;
 
-                // Style the header row
-                $headerStyle = [
-                    'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
-                ];
-                $sheet->getStyle('A1:O1')->applyFromArray($headerStyle);
-                Log::info('Header styling applied');
+                // ✅ Remaining items of this PI get only product data
+                $remainingItems = $quotationItems->skip(1);
+                Log::info('Processing ' . $remainingItems->count() . ' remaining items for PI ' . $quotation->id);
 
-                $row = 2; // Start from row 2 for data
+                foreach ($remainingItems as $item) {
+                    $product = $item->product;
+                    Log::info('Processing additional item - Product: ' . ($product ? $product->code : 'NULL') . ' for PI ' . $quotation->id);
 
-                // ✅ Process each quotation (PI) separately
-                Log::info('Processing ' . $quotations->count() . ' quotations (PIs)...');
-
-                foreach ($quotations as $quotationIndex => $quotation) {
-                    Log::info('Processing PI/Quotation ' . ($quotationIndex + 1) . ' - ID: ' . $quotation->id);
-
-                    $quotationItems = $quotation->items;
-
-                    if ($quotationItems->isEmpty()) {
-                        Log::warning('No items found for quotation ID: ' . $quotation->id);
-                        continue;
-                    }
-
-                    // ✅ First item of this PI gets full invoice data
-                    $firstItem = $quotationItems->first();
-                    $firstProduct = $firstItem ? $firstItem->product : null;
-
-                    Log::info('Adding full invoice row for first item of PI ' . $quotation->id);
-
-                    $firstRowData = [
-                        $docNo,                                             // DocNo
-                        $docDate,                                           // DocDate
-                        $this->getCompanyName($quotation, $softwareHandover), // ✅ CompanyName (from subsidiary or software handover)
-                        $debtorCode,                                        // DebtorCode (empty)
-                        $salesAgent,                                        // SalesAgent
-                        $currencyCode,                                      // CurrencyCode
-                        $currencyRate,                                      // CurrencyRate
-                        $salesAdmin,                                        // UDF_IV_SalesAdmin
-                        'YAT',                                              // UDF_IV_Support (default YAT)
-                        $billingType,                                       // UDF_IV_BillingType
-                        $cancelled,                                         // Cancelled
-                        $firstProduct ? $firstProduct->code : '',           // ItemCode (first product)
-                        $firstItem ? ($firstItem->quantity ?? 1) : 1,      // Qty (first product)
+                    // ✅ For additional products, only fill the product-related columns (L-P)
+                    $additionalRowData = [
+                        '', '', '', '', '', '', '', '', '', '', '', // Empty columns A-K (invoice info columns) - now 11 empty columns
+                        $product ? $product->code : '',           // ItemCode (column L)
+                        $item->quantity ?? 1,                     // Qty (column M)
                         // ✅ Calculate unit price based on product solution
-                        $firstItem ? $this->calculateUnitPrice($firstItem, $firstProduct) : 0, // UnitPrice (calculated)
-                        $firstItem ? ($firstItem->tax_code ?? 'NTS') : 'NTS',     // TaxCode (first product) - default to NTS if null
-                        $firstProduct ? ($firstProduct->tariff_code ?? '') : '', // TariffCode (first product)
+                        $this->calculateUnitPrice($item, $product), // UnitPrice (calculated) (column N)
+                        $this->getTaxCode($item, $product, $quotation), // ✅ TaxCode based on taxable & currency (column O)
+                        $product ? $product->tariff_code : '',    // TariffCode (column P)
                     ];
 
-                    $sheet->fromArray([$firstRowData], null, 'A' . $row);
-                    Log::info('Added full invoice row for PI ' . $quotation->id . ' at row ' . $row);
+                    $sheet->fromArray([$additionalRowData], null, 'A' . $row);
                     $row++;
-
-                    // ✅ Remaining items of this PI get only product data
-                    $remainingItems = $quotationItems->skip(1);
-                    Log::info('Processing ' . $remainingItems->count() . ' remaining items for PI ' . $quotation->id);
-
-                    foreach ($remainingItems as $item) {
-                        $product = $item->product;
-                        Log::info('Processing additional item - Product: ' . ($product ? $product->code : 'NULL') . ' for PI ' . $quotation->id);
-
-                        // ✅ For additional products, only fill the product-related columns (K-O)
-                        $additionalRowData = [
-                            '', '', '', '', '', '', '', '', '', '', '', // Empty columns A-K (invoice info columns) - now 11 empty columns
-                            $product ? $product->code : '',           // ItemCode (column L)
-                            $item->quantity ?? 1,                     // Qty (column M)
-                            // ✅ Calculate unit price based on product solution
-                            $this->calculateUnitPrice($item, $product), // UnitPrice (calculated) (column N)
-                            $item->tax_code ?? 'NTS',                 // TaxCode (column O) - default to NTS if null
-                            $product ? $product->tariff_code : '',    // TariffCode (column P)
-                        ];
-
-                        $sheet->fromArray([$additionalRowData], null, 'A' . $row);
-                        $row++;
-                    }
-
-                    Log::info('Completed processing PI ' . $quotation->id . ', current row: ' . $row);
                 }
 
-                Log::info('Processed all ' . $quotations->count() . ' PIs, final row: ' . ($row - 1));
+                Log::info('Completed processing PI ' . $quotation->id . ', current row: ' . $row);
+            }
 
-                // Auto-size columns
-                foreach (range('A', 'P') as $col) {
-                    $sheet->getColumnDimension($col)->setAutoSize(true);
-                }
+            Log::info('Processed all ' . $quotations->count() . ' PIs, final row: ' . ($row - 1));
 
-                // Save as Excel file
-                Log::info('Saving Excel file...');
-                $tempFile = tempnam(sys_get_temp_dir(), 'invoice_data_export_');
-                $writer = new Xlsx($spreadsheet);
-                $writer->save($tempFile);
-                Log::info('Excel file saved to: ' . $tempFile);
+            // Auto-size columns
+            foreach (range('A', 'P') as $col) {
+                $sheet->getColumnDimension($col)->setAutoSize(true);
+            }
 
-                // Create filename with handover ID
-                $companyName = $lead->companyDetail->company_name ?? 'Company';
-                $handoverId = 'SW_' . str_pad($softwareHandover->id, 3, '0', STR_PAD_LEFT);
-                $filename = 'Invoice_Data_' . $handoverId . '_' . str_replace([' ', '/', '\\', '&'], '_', $companyName) . '_' . date('Y-m-d') . '.xlsx';
+            // Save as Excel file
+            Log::info('Saving Excel file...');
+            $tempFile = tempnam(sys_get_temp_dir(), 'invoice_data_export_');
+            $writer = new Xlsx($spreadsheet);
+            $writer->save($tempFile);
+            Log::info('Excel file saved to: ' . $tempFile);
 
-                Log::info('About to send Invoice Data Excel file: ' . $filename);
+            // Create filename with handover ID
+            $companyName = $lead->companyDetail->company_name ?? 'Company';
+            $handoverId = 'SW_' . str_pad($softwareHandover->id, 3, '0', STR_PAD_LEFT);
+            $filename = 'Invoice_Data_' . $handoverId . '_' . str_replace([' ', '/', '\\', '&'], '_', $companyName) . '_' . date('Y-m-d') . '.xlsx';
 
-                // Return file as download
-                return response()->download($tempFile, $filename, [
-                    'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                    'Content-Disposition' => 'attachment; filename="' . $filename . '"',
-                ])->deleteFileAfterSend(true);
+            Log::info('About to send Invoice Data Excel file: ' . $filename);
+
+            // Return file as download
+            return response()->download($tempFile, $filename, [
+                'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+            ])->deleteFileAfterSend(true);
 
         } catch (\Exception $e) {
             Log::error('Invoice Data export error: ' . $e->getMessage());
@@ -355,7 +392,7 @@ class InvoiceDataExportController extends Controller
      */
     private function mapSalesAgent($lead, $quotation)
     {
-        // ✅ Allowed salesperson values
+        // ✅ Updated allowed salesperson values to include lead owner names
         $allowedSalesAgents = [
             'MUIM',
             'YASMIN',
@@ -363,34 +400,59 @@ class InvoiceDataExportController extends Controller
             'JOSHUA',
             'AZIZ',
             'BARI',
-            'VINCE'
+            'VINCE',
+            'JAJA',           // ✅ Added for lead owner
+            'AFIFAH SHAHILAH', // ✅ Added for lead owner
+            'SHEENA'          // ✅ Added for lead owner
         ];
 
         // Get salesperson name from various sources
         $salespersonName = '';
 
-        // Try lead salesperson first
-        $salespersonUser = $lead->getSalespersonUser();
-        if ($salespersonUser && $salespersonUser->name) {
-            $salespersonName = strtoupper(trim($salespersonUser->name));
+        // ✅ Try lead owner first
+        if ($lead->lead_owner) {
+            $leadOwner = \App\Models\User::find($lead->lead_owner);
+            if ($leadOwner && $leadOwner->name) {
+                $salespersonName = strtoupper(trim($leadOwner->name));
+                Log::info('Checking lead owner name: ' . $salespersonName);
+            }
         }
+
+        // If no lead owner or lead owner not in allowed list, try lead salesperson
+        if (empty($salespersonName) || !in_array($salespersonName, $allowedSalesAgents)) {
+            $salespersonUser = $lead->getSalespersonUser();
+            if ($salespersonUser && $salespersonUser->name) {
+                $salespersonName = strtoupper(trim($salespersonUser->name));
+                Log::info('Checking lead salesperson name: ' . $salespersonName);
+            }
+        }
+
         // Fallback to quotation's sales_person
-        elseif ($quotation->sales_person && $quotation->sales_person->name) {
-            $salespersonName = strtoupper(trim($quotation->sales_person->name));
+        if (empty($salespersonName) || !in_array($salespersonName, $allowedSalesAgents)) {
+            if ($quotation->sales_person && $quotation->sales_person->name) {
+                $salespersonName = strtoupper(trim($quotation->sales_person->name));
+                Log::info('Checking quotation sales person name: ' . $salespersonName);
+            }
         }
+
         // Final fallback: if salesperson is stored as string
-        elseif ($lead->salesperson && is_string($lead->salesperson) && !is_numeric($lead->salesperson)) {
-            $salespersonName = strtoupper(trim($lead->salesperson));
+        if (empty($salespersonName) || !in_array($salespersonName, $allowedSalesAgents)) {
+            if ($lead->salesperson && is_string($lead->salesperson) && !is_numeric($lead->salesperson)) {
+                $salespersonName = strtoupper(trim($lead->salesperson));
+                Log::info('Checking lead salesperson string: ' . $salespersonName);
+            }
         }
 
         // Check if the salesperson name matches any allowed values (exact match)
         if (in_array($salespersonName, $allowedSalesAgents)) {
+            Log::info('Found exact match: ' . $salespersonName);
             return $salespersonName;
         }
 
         // Try partial matching (in case the full name contains the allowed name)
         foreach ($allowedSalesAgents as $allowedAgent) {
             if (strpos($salespersonName, $allowedAgent) !== false) {
+                Log::info('Found partial match: ' . $allowedAgent . ' in ' . $salespersonName);
                 return $allowedAgent;
             }
         }
@@ -446,5 +508,30 @@ class InvoiceDataExportController extends Controller
         // Final fallback to empty string
         Log::warning('No company name found in subsidiary or software handover');
         return '';
+    }
+
+    private function getTaxCode($item, $product, $quotation)
+    {
+        // If currency is USD, always return NTS regardless of taxable status
+        if ($quotation->currency === 'USD') {
+            Log::info('Currency is USD - Tax code: NTS (regardless of taxable status)');
+            return 'NTS';
+        }
+
+        // For MYR currency, check product taxable status
+        if ($quotation->currency === 'MYR') {
+            if ($product && $product->taxable === true) {
+                Log::info('Currency is MYR and product is taxable - Tax code: SV-8');
+                return 'SV-8';
+            } else {
+                $taxableStatus = $product ? ($product->taxable ? 'true' : 'false') : 'N/A';
+                Log::info('Currency is MYR but product is not taxable (' . $taxableStatus . ') - Tax code: NTS');
+                return 'NTS';
+            }
+        }
+
+        // Default fallback for other currencies or null currency
+        Log::info('Currency is ' . ($quotation->currency ?? 'null') . ' - defaulting to NTS');
+        return 'NTS';
     }
 }

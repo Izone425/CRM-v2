@@ -143,69 +143,69 @@ class HeadcountHandoverRelationManager extends RelationManager
                             return is_array($record->proforma_invoice_product) ? $record->proforma_invoice_product : [];
                         }),
 
-                    Select::make('proforma_invoice_hrdf')
-                        ->label('HRDF PI')
-                        ->options(function (RelationManager $livewire) {
-                            $leadId = $livewire->getOwnerRecord()->id;
-                            $currentRecordId = null;
-                            if ($livewire->mountedTableActionRecord) {
-                                // Check if it's already a model object
-                                if (is_object($livewire->mountedTableActionRecord)) {
-                                    $currentRecordId = $livewire->mountedTableActionRecord->id;
-                                } else {
-                                    // If it's a string/ID, use it directly
-                                    $currentRecordId = $livewire->mountedTableActionRecord;
-                                }
-                            }
+                    // Select::make('proforma_invoice_hrdf')
+                    //     ->label('HRDF PI')
+                    //     ->options(function (RelationManager $livewire) {
+                    //         $leadId = $livewire->getOwnerRecord()->id;
+                    //         $currentRecordId = null;
+                    //         if ($livewire->mountedTableActionRecord) {
+                    //             // Check if it's already a model object
+                    //             if (is_object($livewire->mountedTableActionRecord)) {
+                    //                 $currentRecordId = $livewire->mountedTableActionRecord->id;
+                    //             } else {
+                    //                 // If it's a string/ID, use it directly
+                    //                 $currentRecordId = $livewire->mountedTableActionRecord;
+                    //             }
+                    //         }
 
-                            // Get all PI IDs already used in other headcount handovers for this lead
-                            $usedPiIds = [];
-                            $headcountHandovers = HeadcountHandover::where('lead_id', $leadId)
-                                ->when($currentRecordId, function ($query) use ($currentRecordId) {
-                                    // Exclude current record if we're editing
-                                    return $query->where('id', '!=', $currentRecordId);
-                                })
-                                ->get();
+                    //         // Get all PI IDs already used in other headcount handovers for this lead
+                    //         $usedPiIds = [];
+                    //         $headcountHandovers = HeadcountHandover::where('lead_id', $leadId)
+                    //             ->when($currentRecordId, function ($query) use ($currentRecordId) {
+                    //                 // Exclude current record if we're editing
+                    //                 return $query->where('id', '!=', $currentRecordId);
+                    //             })
+                    //             ->get();
 
-                            // Extract used HRDF PI IDs from all handovers
-                            foreach ($headcountHandovers as $handover) {
-                                $piHrdf = $handover->proforma_invoice_hrdf;
-                                if (!empty($piHrdf)) {
-                                    // Handle JSON string format
-                                    if (is_string($piHrdf)) {
-                                        $piIds = json_decode($piHrdf, true);
-                                        if (is_array($piIds)) {
-                                            $usedPiIds = array_merge($usedPiIds, $piIds);
-                                        }
-                                    }
-                                    // Handle array format
-                                    elseif (is_array($piHrdf)) {
-                                        $usedPiIds = array_merge($usedPiIds, $piHrdf);
-                                    }
-                                }
-                            }
+                    //         // Extract used HRDF PI IDs from all handovers
+                    //         foreach ($headcountHandovers as $handover) {
+                    //             $piHrdf = $handover->proforma_invoice_hrdf;
+                    //             if (!empty($piHrdf)) {
+                    //                 // Handle JSON string format
+                    //                 if (is_string($piHrdf)) {
+                    //                     $piIds = json_decode($piHrdf, true);
+                    //                     if (is_array($piIds)) {
+                    //                         $usedPiIds = array_merge($usedPiIds, $piIds);
+                    //                     }
+                    //                 }
+                    //                 // Handle array format
+                    //                 elseif (is_array($piHrdf)) {
+                    //                     $usedPiIds = array_merge($usedPiIds, $piHrdf);
+                    //                 }
+                    //             }
+                    //         }
 
-                            // Get available HRDF PIs excluding already used ones
-                            return \App\Models\Quotation::where('lead_id', $leadId)
-                                ->where('quotation_type', 'hrdf')
-                                ->where('status', \App\Enums\QuotationStatusEnum::accepted)
-                                ->whereNotIn('id', array_filter($usedPiIds)) // Filter out null/empty values
-                                ->pluck('pi_reference_no', 'id')
-                                ->toArray();
-                        })
-                        ->multiple()
-                        ->searchable()
-                        ->preload()
-                        ->helperText('Select HRDF PI (Optional)')
-                        ->default(function (?HeadcountHandover $record = null) {
-                            if (!$record || !$record->proforma_invoice_hrdf) {
-                                return [];
-                            }
-                            if (is_string($record->proforma_invoice_hrdf)) {
-                                return json_decode($record->proforma_invoice_hrdf, true) ?? [];
-                            }
-                            return is_array($record->proforma_invoice_hrdf) ? $record->proforma_invoice_hrdf : [];
-                        }),
+                    //         // Get available HRDF PIs excluding already used ones
+                    //         return \App\Models\Quotation::where('lead_id', $leadId)
+                    //             ->where('quotation_type', 'hrdf')
+                    //             ->where('status', \App\Enums\QuotationStatusEnum::accepted)
+                    //             ->whereNotIn('id', array_filter($usedPiIds)) // Filter out null/empty values
+                    //             ->pluck('pi_reference_no', 'id')
+                    //             ->toArray();
+                    //     })
+                    //     ->multiple()
+                    //     ->searchable()
+                    //     ->preload()
+                    //     ->helperText('Select HRDF PI (Optional)')
+                    //     ->default(function (?HeadcountHandover $record = null) {
+                    //         if (!$record || !$record->proforma_invoice_hrdf) {
+                    //             return [];
+                    //         }
+                    //         if (is_string($record->proforma_invoice_hrdf)) {
+                    //             return json_decode($record->proforma_invoice_hrdf, true) ?? [];
+                    //         }
+                    //         return is_array($record->proforma_invoice_hrdf) ? $record->proforma_invoice_hrdf : [];
+                    //     }),
                 ]),
 
             Grid::make(2)
