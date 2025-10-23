@@ -211,24 +211,24 @@ class DebtorAgingRawData extends Page implements HasTable
 
         switch ($daysFilter) {
             case '30_days':
-                // Show invoices between 30 days ago and today
+                // Show invoices MORE THAN 30 days old (before 30 days ago)
                 $cutoffDate = $today->copy()->subDays(30);
-                $query->whereBetween('invoice_date', [$cutoffDate, $today]);
+                $query->where('invoice_date', '<', $cutoffDate);
                 break;
             case '60_days':
-                // Show invoices between 60 days ago and today
-                $cutoffDate = $today->copy()->subDays(60);
-                $query->whereBetween('invoice_date', [$cutoffDate, $today]);
+                // Show invoices MORE THAN 60 days old (before 60 days ago)
+                $cutoffDate = $today->copy()->subDays(60); // ✅ Fixed: was 90
+                $query->where('invoice_date', '<', $cutoffDate);
                 break;
             case '90_days':
-                // Show invoices between 90 days ago and today
-                $cutoffDate = $today->copy()->subDays(90);
-                $query->whereBetween('invoice_date', [$cutoffDate, $today]);
+                // Show invoices MORE THAN 90 days old (before 90 days ago)
+                $cutoffDate = $today->copy()->subDays(90); // ✅ Fixed: was 120
+                $query->where('invoice_date', '<', $cutoffDate);
                 break;
             case '120_days':
-                // Show invoices between 120 days ago and today
-                $cutoffDate = $today->copy()->subDays(120);
-                $query->whereBetween('invoice_date', [$cutoffDate, $today]);
+                // Show invoices MORE THAN 120 days old (before 120 days ago)
+                $cutoffDate = $today->copy()->subDays(120); // ✅ Fixed: was 150
+                $query->where('invoice_date', '<', $cutoffDate);
                 break;
         }
     }
@@ -605,10 +605,10 @@ class DebtorAgingRawData extends Page implements HasTable
 
                     SelectFilter::make('invoice_age_days')
                         ->options([
-                            '30_days' => '30 Days',
-                            '60_days' => '60 Days',
-                            '90_days' => '90 Days',
-                            '120_days' => '120 Days',
+                            '30_days' => 'More than 30 Days',
+                            '60_days' => 'More than 60 Days',
+                            '90_days' => 'More than 90 Days',
+                            '120_days' => 'More than 120 Days',
                         ])
                         ->label('Invoice Age')
                         ->placeholder('All Invoice Ages')

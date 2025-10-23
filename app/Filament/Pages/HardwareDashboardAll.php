@@ -185,32 +185,32 @@ class HardwareDashboardAll extends Page implements HasTable
                 TextColumn::make('tc10_quantity')
                     ->label('TC10')
                     ->numeric(0)
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->toggleable(),
 
                 TextColumn::make('tc20_quantity')
                     ->label('TC20')
                     ->numeric(0)
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->toggleable(),
 
                 TextColumn::make('face_id5_quantity')
                     ->label('FACE ID 5')
                     ->numeric(0)
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->toggleable(),
 
                 TextColumn::make('face_id6_quantity')
                     ->label('FACE ID 6')
                     ->numeric(0)
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->toggleable(),
 
                 TextColumn::make('time_beacon_quantity')
                     ->label('TIME BEACON')
                     ->numeric(0)
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->toggleable(),
 
                 TextColumn::make('nfc_tag_quantity')
                     ->label('NFC TAG')
                     ->numeric(0)
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->toggleable(),
             ])
             ->filters([
                 // Existing Date Range Filter

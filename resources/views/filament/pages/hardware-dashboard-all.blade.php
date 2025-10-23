@@ -109,7 +109,7 @@
         <div class="stat-card amber-theme">
             <div class="stat-card-header"></div>
             <div class="stat-card-content">
-                <div class="stat-title">TIME BEACON</div>
+                <div class="stat-title">BEACON</div>
                 <div class="stat-value">{{ $this->getDeviceCount('time_beacon_quantity') }}</div>
             </div>
         </div>

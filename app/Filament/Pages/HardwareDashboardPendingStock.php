@@ -208,55 +208,31 @@ class HardwareDashboardPendingStock extends Page implements HasTable
                 TextColumn::make('tc10_quantity')
                     ->label('TC10')
                     ->numeric(0)
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->toggleable(),
 
                 TextColumn::make('tc20_quantity')
                     ->label('TC20')
                     ->numeric(0)
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->toggleable(),
 
                 TextColumn::make('face_id5_quantity')
                     ->label('FACE ID 5')
                     ->numeric(0)
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->toggleable(),
 
                 TextColumn::make('face_id6_quantity')
                     ->label('FACE ID 6')
                     ->numeric(0)
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->toggleable(),
 
                 TextColumn::make('time_beacon_quantity')
                     ->label('TIME BEACON')
                     ->numeric(0)
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->toggleable(),
 
                 TextColumn::make('nfc_tag_quantity')
                     ->label('NFC TAG')
                     ->numeric(0)
-                    ->toggleable(isToggledHiddenByDefault: true),
-
-                TextColumn::make('created_at')
-                    ->label('Date Submit')
-                    ->date('d M Y')
-                    ->sortable()
-                    ->toggleable(),
-
-                TextColumn::make('pending_stock_at')
-                    ->label('Date Pending Stock')
-                    ->date('d M Y')
-                    ->sortable()
-                    ->toggleable(),
-
-                TextColumn::make('pending_migration_at')
-                    ->label('Date Pending Migration')
-                    ->date('d M Y')
-                    ->sortable()
-                    ->toggleable(),
-
-                TextColumn::make('completed_at')
-                    ->label('Date Completed')
-                    ->date('d M Y')
-                    ->sortable()
                     ->toggleable(),
             ])
             ->filters([

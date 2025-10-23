@@ -547,7 +547,7 @@ class CreateLead extends CreateRecord
                         return $accessibleLeadSources->pluck('lead_code', 'lead_code')->toArray();
                     })
                     ->searchable()
-                    ->required(),
+                    // ->required(),
             ])
         ];
     }
