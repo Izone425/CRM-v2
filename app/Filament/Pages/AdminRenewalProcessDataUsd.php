@@ -25,6 +25,7 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\HtmlString;
@@ -206,9 +207,29 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
 
     public $shouldRefreshStats = false;
 
+    protected $renewalCache = [];
+    protected $resellerCache = [];
+
     public function mount(): void
     {
         $this->loadData();
+    }
+
+    protected function getCachedRenewal($companyId)
+    {
+        if (!isset($this->renewalCache[$companyId])) {
+            $this->renewalCache[$companyId] = Renewal::where('f_company_id', $companyId)->first();
+        }
+        return $this->renewalCache[$companyId];
+    }
+
+    // ✅ Cache reseller data method
+    protected function getCachedReseller($companyId)
+    {
+        if (!isset($this->resellerCache[$companyId])) {
+            $this->resellerCache[$companyId] = RenewalDataUsd::getResellerForCompany($companyId);
+        }
+        return $this->resellerCache[$companyId];
     }
 
     protected function getProductGroupMapping(): array
@@ -290,22 +311,21 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
         $this->renewalForecastCurrentMonthStats = $this->getRenewalForecastCurrentMonthStats(); // Add this line
     }
 
-    protected function getHeaderActions(): array
-    {
-        return [
-            \Filament\Actions\Action::make('refresh_stats')
-                ->label('')
-                ->icon('heroicon-o-arrow-path')
-                ->color('primary')
-                ->action('refreshStats')
-                ->tooltip('Refresh dashboard statistics to reflect current filters'),
-        ];
-    }
+    // protected function getHeaderActions(): array
+    // {
+    //     return [
+    //         \Filament\Actions\Action::make('refresh_stats')
+    //             ->label('')
+    //             ->icon('heroicon-o-arrow-path')
+    //             ->color('primary')
+    //             ->action('refreshStats')
+    //             ->tooltip('Refresh dashboard statistics to reflect current filters'),
+    //     ];
+    // }
 
     protected function getNewStats($startDate = null, $endDate = null)
     {
         try {
-            // Set default date range if not provided
             if (!$startDate || !$endDate) {
                 $today = Carbon::now()->format('Y-m-d');
                 $next90Days = Carbon::now()->addDays(90)->format('Y-m-d');
@@ -313,80 +333,47 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                 $endDate = $next90Days;
             }
 
-            // Get renewals with new status that fall within date range
-            $renewals = Renewal::where('renewal_progress', 'new')
-                ->with(['lead.quotations.items']) // Keep the eager loading but don't require it
-                ->get()
-                ->filter(function ($renewal) use ($startDate, $endDate) {
-                    // Check if renewal company has expiring licenses within date range
-                    $hasExpiringLicense = RenewalDataUsd::where('f_company_id', $renewal->f_company_id)
-                        ->whereBetween('f_expiry_date', [$startDate, $endDate])
-                        ->where('f_currency', 'USD')
-                        ->exists();
-
-                    return $hasExpiringLicense;
-                });
-
-            $totalCompanies = $renewals->count();
-            $totalInvoices = 0;
-            $totalAmount = 0;
-            $totalViaResellerCount = 0;
-            $totalViaEndUserCount = 0;
-            $totalViaResellerAmount = 0;
-            $totalViaEndUserAmount = 0;
-
-            foreach ($renewals as $renewal) {
-                // Only process quotation data if renewal has lead and lead exists
-                if ($renewal->lead_id && $renewal->lead) {
-                    // Get final renewal quotations for this lead (if they exist)
-                    $renewalQuotations = $renewal->lead->quotations()
-                        ->where('mark_as_final', true)
-                        ->where('sales_type', 'RENEWAL SALES')
-                        ->get();
-
-                    // If quotations exist, count them and calculate amount
-                    if ($renewalQuotations->isNotEmpty()) {
-                        $totalInvoices += $renewalQuotations->count();
-
-                        // Calculate amount from quotations
-                        $quotationAmount = 0;
-                        foreach ($renewalQuotations as $quotation) {
-                            $quotationAmount += $quotation->items->sum('total_before_tax');
-                        }
-
-                        $totalAmount += $quotationAmount;
-
-                        // Check if company has reseller for amount calculation
-                        $reseller = RenewalDataUsd::getResellerForCompany($renewal->f_company_id);
-                        if ($reseller && $reseller->f_rate) {
-                            $totalViaResellerAmount += $quotationAmount;
-                        } else {
-                            $totalViaEndUserAmount += $quotationAmount;
-                        }
-                    }
-                }
-
-                // Always count companies regardless of lead mapping or quotation existence
-                $reseller = RenewalDataUsd::getResellerForCompany($renewal->f_company_id);
-                if ($reseller && $reseller->f_rate) {
-                    $totalViaResellerCount++;
-                } else {
-                    $totalViaEndUserCount++;
-                }
-            }
+            // ✅ Single query with joins instead of multiple queries
+            $stats = DB::table('renewals as r')
+                ->leftJoin('leads as l', 'l.id', '=', 'r.lead_id')
+                ->leftJoin('quotations as q', function ($join) {
+                    $join->on('q.lead_id', '=', 'l.id')
+                        ->where('q.mark_as_final', true)
+                        ->where('q.sales_type', 'RENEWAL SALES');
+                })
+                ->leftJoin('quotation_items as qi', 'qi.quotation_id', '=', 'q.id')
+                ->leftJoin('crm_reseller_link as crl', 'crl.f_id', '=', 'r.f_company_id', 'frontenddb')
+                ->where('r.renewal_progress', 'new')
+                ->whereExists(function ($query) use ($startDate, $endDate) {
+                    $query->select(DB::raw(1))
+                        ->from('frontenddb.crm_expiring_license as cel')
+                        ->whereColumn('cel.f_company_id', 'r.f_company_id')
+                        ->whereBetween('cel.f_expiry_date', [$startDate, $endDate])
+                        ->where('cel.f_currency', 'USD');
+                })
+                ->selectRaw('
+                    COUNT(DISTINCT r.f_company_id) as total_companies,
+                    COUNT(DISTINCT q.id) as total_invoices,
+                    COALESCE(SUM(qi.total_before_tax), 0) as total_amount,
+                    COUNT(DISTINCT CASE WHEN crl.f_rate IS NOT NULL THEN r.f_company_id END) as total_via_reseller,
+                    COUNT(DISTINCT CASE WHEN crl.f_rate IS NULL THEN r.f_company_id END) as total_via_end_user,
+                    COALESCE(SUM(CASE WHEN crl.f_rate IS NOT NULL THEN qi.total_before_tax END), 0) as total_via_reseller_amount,
+                    COALESCE(SUM(CASE WHEN crl.f_rate IS NULL THEN qi.total_before_tax END), 0) as total_via_end_user_amount
+                ')
+                ->first();
 
             return [
-                'total_companies' => $totalCompanies,
-                'total_invoices' => $totalInvoices,
-                'total_amount' => $totalAmount,
-                'total_via_reseller' => $totalViaResellerCount,
-                'total_via_end_user' => $totalViaEndUserCount,
-                'total_via_reseller_amount' => $totalViaResellerAmount,
-                'total_via_end_user_amount' => $totalViaEndUserAmount,
+                'total_companies' => $stats->total_companies ?? 0,
+                'total_invoices' => $stats->total_invoices ?? 0,
+                'total_amount' => $stats->total_amount ?? 0,
+                'total_via_reseller' => $stats->total_via_reseller ?? 0,
+                'total_via_end_user' => $stats->total_via_end_user ?? 0,
+                'total_via_reseller_amount' => $stats->total_via_reseller_amount ?? 0,
+                'total_via_end_user_amount' => $stats->total_via_end_user_amount ?? 0,
             ];
+
         } catch (\Exception $e) {
             Log::error('Error fetching new renewal stats: '.$e->getMessage());
-
             return [
                 'total_companies' => 0,
                 'total_invoices' => 0,
@@ -821,39 +808,44 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
             ->query(function () {
                 $baseQuery = RenewalDataUsd::query();
 
-                // Only show records where expiry date has not yet passed
+                // ✅ Use indexed columns and reduce function calls
                 $today = Carbon::now()->format('Y-m-d');
-                $baseQuery->whereRaw('f_expiry_date >= ?', [$today]);
 
-                // Only show USD currency
-                $baseQuery->where('f_currency', '=', 'USD');
+                $baseQuery
+                    ->where('f_expiry_date', '>=', $today)
+                    ->where('f_currency', 'USD');
 
-                // Apply product exclusions using the helper method
-                RenewalDataUsd::applyProductExclusions($baseQuery);
+                // ✅ Apply product exclusions more efficiently using NOT IN
+                $excludedProducts = RenewalDataUsd::$excludedProducts;
+                foreach ($excludedProducts as $excludedProduct) {
+                    $baseQuery->where('f_name', 'NOT LIKE', '%'.$excludedProduct.'%');
+                }
 
-                // Exclude terminated renewals from the main view
-                $excludedCompanyIds = Renewal::whereIn('renewal_progress', ['terminated', 'completed_renewal'])
-                    ->pluck('f_company_id')
-                    ->toArray();
+                // ✅ Get excluded company IDs once and cache
+                $excludedCompanyIds = Cache::remember('excluded_renewal_company_ids', 300, function () {
+                    return Renewal::whereIn('renewal_progress', ['terminated', 'completed_renewal'])
+                        ->pluck('f_company_id')
+                        ->toArray();
+                });
 
-                if (! empty($excludedCompanyIds)) {
+                if (!empty($excludedCompanyIds)) {
                     $baseQuery->whereNotIn('f_company_id', $excludedCompanyIds);
                 }
 
-                // Apply aggregation - GROUP BY invoice to avoid duplicate amounts
+                // ✅ Optimized aggregation - avoid ANY_VALUE and complex calculations
                 $baseQuery->selectRaw('
                     f_company_id,
-                    ANY_VALUE(f_company_name) AS f_company_name,
-                    ANY_VALUE(f_currency) AS f_currency,
-                    SUM(DISTINCT f_total_amount) AS total_amount,
-                    SUM(f_unit) AS total_units,
-                    COUNT(*) AS total_products,
-                    COUNT(DISTINCT f_invoice_no) AS total_invoices,
-                    MIN(f_expiry_date) AS earliest_expiry,
-                    ANY_VALUE(f_created_time) AS f_created_time
+                    f_company_name,
+                    f_currency,
+                    SUM(f_total_amount) as total_amount,
+                    SUM(f_unit) as total_units,
+                    COUNT(*) as total_products,
+                    COUNT(DISTINCT f_invoice_no) as total_invoices,
+                    MIN(f_expiry_date) as earliest_expiry,
+                    MAX(f_created_time) as f_created_time
                 ')
-                    ->groupBy('f_company_id')
-                    ->havingRaw('COUNT(*) > 0');
+                ->groupBy('f_company_id', 'f_company_name', 'f_currency')
+                ->havingRaw('COUNT(*) > 0');
 
                 return $baseQuery;
             })
@@ -1209,6 +1201,60 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                         }
                     })
                     ->indicator('Exclude Resellers'),
+
+                SelectFilter::make('has_quotation')
+                    ->label('Quotation Status')
+                    ->options([
+                        'has_quotation' => 'Has Quotation',
+                        'no_quotation' => 'No Quotation',
+                    ])
+                    ->placeholder('All')
+                    ->default(null)
+                    ->query(function (Builder $query, array $data): Builder {
+                        if (!$data['value']) {
+                            return $query; // Return all results if no filter is selected
+                        }
+
+                        if ($data['value'] === 'has_quotation') {
+                            // Get company IDs that have renewal quotations
+                            $companyIdsWithQuotations = \App\Models\Renewal::query()
+                                ->whereNotNull('lead_id')
+                                ->whereHas('lead.quotations', function ($q) {
+                                    $q->where('mark_as_final', true)
+                                    ->where('sales_type', 'RENEWAL SALES');
+                                })
+                                ->pluck('f_company_id')
+                                ->toArray();
+
+                            if (!empty($companyIdsWithQuotations)) {
+                                return $query->whereIn('f_company_id', $companyIdsWithQuotations);
+                            } else {
+                                // No companies with quotations found, return empty result
+                                return $query->where('f_company_id', -1);
+                            }
+
+                        } elseif ($data['value'] === 'no_quotation') {
+                            // Get company IDs that DON'T have renewal quotations
+                            $companyIdsWithQuotations = \App\Models\Renewal::query()
+                                ->whereNotNull('lead_id')
+                                ->whereHas('lead.quotations', function ($q) {
+                                    $q->where('mark_as_final', true)
+                                    ->where('sales_type', 'RENEWAL SALES');
+                                })
+                                ->pluck('f_company_id')
+                                ->toArray();
+
+                            if (!empty($companyIdsWithQuotations)) {
+                                return $query->whereNotIn('f_company_id', $companyIdsWithQuotations);
+                            } else {
+                                // No companies with quotations exist, so all companies are "no quotation"
+                                return $query;
+                            }
+                        }
+
+                        return $query;
+                    })
+                    ->indicator('Quotation Status'),
             ])
             ->filtersFormColumns(3)
             ->columns([
@@ -1233,17 +1279,13 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
 
                                 $today = Carbon::now();
                                 $expiryDate = Carbon::parse($state);
+                                $daysDiff = $expiryDate->diffInDays($today);
 
-                                // Color coding based on how close to expiry
-                                if ($expiryDate->isToday()) {
-                                    return 'danger'; // Expires today
-                                } elseif ($expiryDate->diffInDays($today) <= 7) {
-                                    return 'warning'; // Expires within a week
-                                } elseif ($expiryDate->diffInDays($today) <= 30) {
-                                    return 'info'; // Expires within a month
-                                }
-
-                                return 'gray'; // More than a month
+                                // ✅ Simplified color logic
+                                if ($expiryDate->isToday()) return 'danger';
+                                if ($daysDiff <= 7) return 'warning';
+                                if ($daysDiff <= 30) return 'info';
+                                return 'gray';
                             }),
                     ]),
 
@@ -1253,11 +1295,9 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                             ->formatStateUsing(function ($state, $record) {
                                 if (!$state || !$record) return '';
 
-                                $renewal = Renewal::where('f_company_id', $state)->first();
-
-                                if (! $renewal || ! $renewal->renewal_progress) {
-                                    return '';
-                                }
+                                // ✅ Use cached renewal data
+                                $renewal = $this->getCachedRenewal($state);
+                                if (!$renewal || !$renewal->renewal_progress) return '';
 
                                 return match ($renewal->renewal_progress) {
                                     'new' => 'New',
@@ -1272,25 +1312,21 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                             ->color(function ($state, $record) {
                                 if (!$state || !$record) return 'gray';
 
-                                $renewal = Renewal::where('f_company_id', $record->f_company_id)->first();
-
-                                if (! $renewal || ! $renewal->renewal_progress) {
-                                    return 'gray';
-                                }
+                                $renewal = $this->getCachedRenewal($record->f_company_id);
+                                if (!$renewal || !$renewal->renewal_progress) return 'gray';
 
                                 return match ($renewal->renewal_progress) {
-                                    'new' => 'info',                    // Blue
-                                    'pending_confirmation' => 'warning', // Yellow
-                                    'pending_payment' => 'danger',      // Red
-                                    'completed_renewal' => 'success',           // Green
+                                    'new' => 'info',
+                                    'pending_confirmation' => 'warning',
+                                    'pending_payment' => 'danger',
+                                    'completed_renewal' => 'success',
                                     default => 'gray'
                                 };
                             })
                             ->visible(function ($state, $record) {
                                 if (!$state || !$record) return false;
-
-                                $renewal = Renewal::where('f_company_id', $record->f_company_id)->first();
-                                return $renewal;
+                                $renewal = $this->getCachedRenewal($record->f_company_id);
+                                return $renewal !== null;
                             }),
                     ]),
 
@@ -1301,36 +1337,25 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                             ->formatStateUsing(function ($state, $record) {
                                 if (!$state || !$record) return '0.00';
 
-                                // Get the renewal record to find the lead_id
-                                $renewal = \App\Models\Renewal::where('f_company_id', $record->f_company_id)->first();
+                                // ✅ Use cached renewal data
+                                $renewal = $this->getCachedRenewal($record->f_company_id);
+                                if (!$renewal || !$renewal->lead_id) return '0.00';
 
-                                // Check if renewal exists and has lead_id
-                                if (!$renewal || !$renewal->lead_id) {
-                                    return '0.00';
-                                }
+                                // ✅ Cache quotation amounts
+                                $cacheKey = "renewal_quotation_amount_{$renewal->lead_id}";
+                                $totalAmount = Cache::remember($cacheKey, 300, function () use ($renewal) {
+                                    $lead = Lead::find($renewal->lead_id);
+                                    if (!$lead) return 0;
 
-                                // Get the lead and find renewal sales quotations
-                                $lead = \App\Models\Lead::find($renewal->lead_id);
-
-                                if (!$lead) {
-                                    return '0.00';
-                                }
-
-                                // Get final renewal quotations for this lead
-                                $renewalQuotations = $lead->quotations()
-                                    ->where('mark_as_final', true)
-                                    ->where('sales_type', 'RENEWAL SALES')
-                                    ->get();
-
-                                if ($renewalQuotations->isEmpty()) {
-                                    return '0.00';
-                                }
-
-                                // Calculate total amount from renewal quotations
-                                $totalAmount = 0;
-                                foreach ($renewalQuotations as $quotation) {
-                                    $totalAmount += $quotation->items->sum('total_before_tax');
-                                }
+                                    return $lead->quotations()
+                                        ->where('mark_as_final', true)
+                                        ->where('sales_type', 'RENEWAL SALES')
+                                        ->with('items')
+                                        ->get()
+                                        ->sum(function ($quotation) {
+                                            return $quotation->items->sum('total_before_tax');
+                                        });
+                                });
 
                                 return number_format($totalAmount, 2);
                             }),
@@ -1342,7 +1367,8 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                             ->formatStateUsing(function ($state, $record) {
                                 if (!$state || !$record) return '';
 
-                                $reseller = RenewalDataUsd::getResellerForCompany($state);
+                                // ✅ Use cached reseller data
+                                $reseller = $this->getCachedReseller($state);
                                 return $reseller ? 'Reseller' : '';
                             })
                             ->badge()
@@ -1351,19 +1377,14 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                             ->tooltip(function ($state, $record) {
                                 if (!$state || !$record) return null;
 
-                                $reseller = RenewalDataUsd::getResellerForCompany($record->f_company_id);
+                                $reseller = $this->getCachedReseller($record->f_company_id);
+                                if (!$reseller) return null;
 
-                                if (! $reseller) {
-                                    return null;
-                                }
-
-                                $tooltipText = strtoupper("{$reseller->reseller_name}");
-                                return new HtmlString($tooltipText);
+                                return new HtmlString(strtoupper($reseller->reseller_name));
                             })
                             ->visible(function ($state, $record) {
                                 if (!$state || !$record) return false;
-
-                                $reseller = RenewalDataUsd::getResellerForCompany($record->f_company_id);
+                                $reseller = $this->getCachedReseller($record->f_company_id);
                                 return $reseller !== null;
                             }),
                     ]),
@@ -1912,139 +1933,6 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                                     ->send();
                             }
                         }),
-
-                    // Action::make('claim_via_hrdf')
-                    //     ->label('Claim via HRDF')
-                    //     ->icon('heroicon-o-building-library')
-                    //     ->color('success')
-                    //     ->requiresConfirmation()
-                    //     ->modalHeading('Claim via HRDF')
-                    //     ->modalDescription('Are you sure you want to process HRDF claim? This will change the renewal progress to "Pending Payment".')
-                    //     ->modalSubmitActionLabel('Yes, Process HRDF Claim')
-                    //     ->modalCancelActionLabel('Cancel')
-                    //     ->visible(function ($record) {
-                    //         $renewal = Renewal::where('f_company_id', $record->f_company_id)->first();
-
-                    //         return $renewal && $renewal->renewal_progress === 'pending_confirmation';
-                    //     })
-                    //     ->action(function ($record) {
-                    //         try {
-                    //             // Get the existing renewal record to preserve current progress_history
-                    //             $existingRenewal = Renewal::where('f_company_id', $record->f_company_id)->first();
-
-                    //             // Get current progress_history or initialize as empty array
-                    //             $progressHistory = $existingRenewal && $existingRenewal->progress_history
-                    //                 ? json_decode($existingRenewal->progress_history, true)
-                    //                 : [];
-
-                    //             // Add new log entry
-                    //             $newLogEntry = [
-                    //                 'timestamp' => now(),
-                    //                 'action' => 'hrdf_claim_initiated',
-                    //                 'previous_status' => $existingRenewal ? $existingRenewal->renewal_progress : null,
-                    //                 'new_status' => 'pending_payment',
-                    //                 'performed_by' => auth()->user()->name,
-                    //                 'performed_by_id' => auth()->user()->id,
-                    //                 'description' => 'HRDF claim initiated - Status changed to Pending Payment',
-                    //                 'company_name' => $record->f_company_name,
-                    //                 'f_company_id' => $record->f_company_id,
-                    //             ];
-
-                    //             // Add the new entry to progress history
-                    //             $progressHistory[] = $newLogEntry;
-
-                    //             // Update renewal record
-                    //             $renewal = Renewal::updateOrCreate(
-                    //                 ['f_company_id' => $record->f_company_id],
-                    //                 [
-                    //                     'renewal_progress' => 'pending_payment',
-                    //                     'progress_history' => json_encode($progressHistory),
-                    //                     'hrdf_claim_initiated_at' => now(),
-                    //                     'hrdf_claim_initiated_by' => auth()->user()->id,
-                    //                 ]
-                    //             );
-
-                    //             Notification::make()
-                    //                 ->success()
-                    //                 ->title('HRDF Claim Initiated')
-                    //                 ->body("HRDF claim has been initiated. Renewal progress updated to 'Pending Payment'.")
-                    //                 ->send();
-                    //         } catch (\Exception $e) {
-                    //             Log::error('Error initiating HRDF claim: '.$e->getMessage());
-
-                    //             Notification::make()
-                    //                 ->danger()
-                    //                 ->title('Error')
-                    //                 ->body('There was an error initiating the HRDF claim. Please try again.')
-                    //                 ->send();
-                    //         }
-                    //     }),
-
-                    // Action::make('termination')
-                    //     ->label('Termination')
-                    //     ->icon('heroicon-o-x-circle')
-                    //     ->color('danger')
-                    //     ->requiresConfirmation()
-                    //     ->modalHeading('Terminate Renewal')
-                    //     ->modalDescription(fn ($record) => "Are you sure you want to terminate the renewal for {$record->f_company_name}? This action will mark the renewal as terminated and remove it from the active renewal list.")
-                    //     ->modalSubmitActionLabel('Yes, Terminate')
-                    //     ->modalCancelActionLabel('Cancel')
-                    //     ->visible(function ($record) {
-                    //         $renewal = Renewal::where('f_company_id', $record->f_company_id)->first();
-                    //         // Show termination button for any status except already terminated
-                    //         return $renewal && $renewal->renewal_progress !== 'terminated';
-                    //     })
-                    //     ->action(function ($record) {
-                    //         try {
-                    //             // Get the existing renewal record to preserve current progress_history
-                    //             $existingRenewal = Renewal::where('f_company_id', $record->f_company_id)->first();
-
-                    //             // Get current progress_history or initialize as empty array
-                    //             $progressHistory = $existingRenewal && $existingRenewal->progress_history
-                    //                 ? json_decode($existingRenewal->progress_history, true)
-                    //                 : [];
-
-                    //             // Add new log entry
-                    //             $newLogEntry = [
-                    //                 'timestamp' => now(),
-                    //                 'action' => 'renewal_terminated',
-                    //                 'previous_status' => $existingRenewal ? $existingRenewal->renewal_progress : null,
-                    //                 'new_status' => 'terminated',
-                    //                 'performed_by' => auth()->user()->name,
-                    //                 'performed_by_id' => auth()->user()->id,
-                    //                 'description' => 'Renewal terminated - Removed from active renewal process',
-                    //                 'company_name' => $record->f_company_name,
-                    //                 'f_company_id' => $record->f_company_id,
-                    //             ];
-
-                    //             // Add the new entry to progress history
-                    //             $progressHistory[] = $newLogEntry;
-
-                    //             // Update renewal record
-                    //             $renewal = Renewal::updateOrCreate(
-                    //                 ['f_company_id' => $record->f_company_id],
-                    //                 [
-                    //                     'renewal_progress' => 'terminated',
-                    //                     'progress_history' => json_encode($progressHistory),
-                    //                 ]
-                    //             );
-
-                    //             Notification::make()
-                    //                 ->success()
-                    //                 ->title('Renewal Terminated')
-                    //                 ->body("Renewal for {$record->f_company_name} has been terminated and removed from active renewals.")
-                    //                 ->send();
-
-                    //         } catch (\Exception $e) {
-                    //             Log::error("Error terminating renewal: " . $e->getMessage());
-
-                    //             Notification::make()
-                    //                 ->danger()
-                    //                 ->title('Error')
-                    //                 ->body('There was an error terminating the renewal. Please try again.')
-                    //                 ->send();
-                    //         }
-                    //     }),
                 ])
                     ->icon('heroicon-m-ellipsis-vertical')
                     ->color('primary'),

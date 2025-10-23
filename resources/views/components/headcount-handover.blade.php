@@ -336,6 +336,37 @@
         background-color: #4b5563;
     }
 
+    .sw-export-container {
+        text-align: center;
+        margin-top: 0.5rem;
+        display: flex;
+        justify-content: center;
+        gap: 1rem; /* Add gap between buttons */
+        flex-wrap: wrap; /* Allow wrapping on smaller screens */
+    }
+
+    .sw-export-btn {
+        display: inline-flex;
+        align-items: center;
+        color: #16a34a;
+        text-decoration: none;
+        font-weight: 500;
+        padding: 0.5rem 0.75rem;
+        border: 1px solid #16a34a;
+        border-radius: 0.25rem;
+        transition: background-color 0.2s;
+    }
+
+    .sw-export-btn:hover {
+        background-color: #f0fdf4;
+    }
+
+    .sw-export-icon {
+        width: 1.25rem;
+        height: 1.25rem;
+        margin-right: 0.5rem;
+    }
+
     /* Responsive adjustments */
     @media (max-width: 767px) {
         .hc-container {
@@ -435,6 +466,20 @@
                         </div>
                     </div>
                     @endif
+                </div>
+
+                <hr class="my-6 border-t border-gray-300">
+
+                <div class="sw-export-container">
+                    <a href="{{ route('headcount-invoice-data.export', ['headcountHandover' => \App\Classes\Encryptor::encrypt($record->id)]) }}"
+                        target="_blank"
+                        class="sw-export-btn"
+                        style="background-color: #2563eb; color: white;">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="sw-export-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                            Export AutoCount Invoice
+                    </a>
                 </div>
             </div>
 

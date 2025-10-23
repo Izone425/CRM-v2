@@ -3,7 +3,7 @@ namespace App\Http\Controllers;
 
 use App\Classes\Encryptor;
 use App\Models\Lead;
-use App\Models\SoftwareHandover;
+use App\Models\HeadcountHandover; // ✅ Changed from SoftwareHandover
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
@@ -11,139 +11,59 @@ use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Style\Border;
 use Illuminate\Support\Facades\Log;
 
-class InvoiceDataExportController extends Controller
+class HeadcountInvoiceDataExportController extends Controller
 {
-    public function exportInvoiceData($softwareHandoverId)
+    public function exportInvoiceData($headcountHandoverId) // ✅ Changed parameter name
     {
         try {
-            Log::info('Starting Invoice Data export for Software Handover ID: ' . $softwareHandoverId);
+            Log::info('Starting Invoice Data export for Headcount Handover ID: ' . $headcountHandoverId);
 
-            // Decrypt the software handover ID
-            $decryptedHandoverId = Encryptor::decrypt($softwareHandoverId);
-            Log::info('Decrypted software handover ID: ' . $decryptedHandoverId);
+            // Decrypt the headcount handover ID
+            $decryptedHandoverId = Encryptor::decrypt($headcountHandoverId);
+            Log::info('Decrypted headcount handover ID: ' . $decryptedHandoverId);
 
-            // Get the software handover with related data
-            $softwareHandover = SoftwareHandover::with([
+            // Get the headcount handover with related data
+            $headcountHandover = HeadcountHandover::with([
                 'lead.companyDetail',
                 'lead.eInvoiceDetail'
             ])->findOrFail($decryptedHandoverId);
 
-            Log::info('Software handover found: ' . $softwareHandover->id);
-            Log::info('Training type: ' . ($softwareHandover->training_type ?? 'null'));
+            Log::info('Headcount handover found: ' . $headcountHandover->id);
 
-            $lead = $softwareHandover->lead;
+            $lead = $headcountHandover->lead;
             if (!$lead) {
-                return back()->with('error', 'No lead found for this software handover.');
+                return back()->with('error', 'No lead found for this headcount handover.');
             }
 
             Log::info('Lead found: ' . $lead->id);
 
             $piIds = [];
 
-            Log::info('Determining PI fields based on training type: ' . ($softwareHandover->training_type ?? 'null'));
+            // ✅ For headcount handover, only use proforma_invoice_product
+            Log::info('Processing headcount handover - checking proforma_invoice_product only');
 
-            if ($softwareHandover->training_type === 'online_webinar_training') {
-                // ✅ For webinar training, only use proforma_invoice_product
-                Log::info('Training type is online_webinar_training - checking proforma_invoice_product only');
+            if (!empty($headcountHandover->proforma_invoice_product)) {
+                $rawProductData = $headcountHandover->proforma_invoice_product;
+                Log::info('proforma_invoice_product raw data: ' . (is_array($rawProductData) ? json_encode($rawProductData) : $rawProductData));
 
-                if (!empty($softwareHandover->proforma_invoice_product)) {
-                    // ✅ Fix: Convert to string for logging
-                    $rawProductData = $softwareHandover->proforma_invoice_product;
-                    Log::info('proforma_invoice_product raw data: ' . (is_array($rawProductData) ? json_encode($rawProductData) : $rawProductData));
+                $productPiIds = is_string($headcountHandover->proforma_invoice_product)
+                    ? json_decode($headcountHandover->proforma_invoice_product, true)
+                    : $headcountHandover->proforma_invoice_product;
 
-                    $productPiIds = is_string($softwareHandover->proforma_invoice_product)
-                        ? json_decode($softwareHandover->proforma_invoice_product, true)
-                        : $softwareHandover->proforma_invoice_product;
+                Log::info('proforma_invoice_product decoded: ' . json_encode($productPiIds));
 
-                    Log::info('proforma_invoice_product decoded: ' . json_encode($productPiIds));
-
-                    if (is_array($productPiIds)) {
-                        $piIds = array_merge($piIds, $productPiIds);
-                        Log::info('Added ' . count($productPiIds) . ' PI IDs from proforma_invoice_product');
-                    }
-                } else {
-                    Log::info('proforma_invoice_product is empty');
-                }
-            } elseif ($softwareHandover->training_type === 'online_hrdf_training') {
-                // ✅ For HRDF training, use non_hrdf_pi and proforma_invoice_hrdf
-                Log::info('Training type is online_hrdf_training - checking non_hrdf_pi and proforma_invoice_hrdf');
-
-                // Check non_hrdf_pi field
-                if (!empty($softwareHandover->non_hrdf_pi)) {
-                    // ✅ Fix: Convert to string for logging
-                    $rawNonHrdfData = $softwareHandover->non_hrdf_pi;
-                    Log::info('non_hrdf_pi raw data: ' . (is_array($rawNonHrdfData) ? json_encode($rawNonHrdfData) : $rawNonHrdfData));
-
-                    $nonHrdfPiIds = is_string($softwareHandover->non_hrdf_pi)
-                        ? json_decode($softwareHandover->non_hrdf_pi, true)
-                        : $softwareHandover->non_hrdf_pi;
-
-                    Log::info('non_hrdf_pi decoded: ' . json_encode($nonHrdfPiIds));
-
-                    if (is_array($nonHrdfPiIds)) {
-                        $piIds = array_merge($piIds, $nonHrdfPiIds);
-                        Log::info('Added ' . count($nonHrdfPiIds) . ' PI IDs from non_hrdf_pi');
-                    }
-                } else {
-                    Log::info('non_hrdf_pi is empty');
-                }
-
-                // Check proforma_invoice_hrdf field
-                if (!empty($softwareHandover->proforma_invoice_hrdf)) {
-                    // ✅ Fix: Convert to string for logging
-                    $rawHrdfData = $softwareHandover->proforma_invoice_hrdf;
-                    Log::info('proforma_invoice_hrdf raw data: ' . (is_array($rawHrdfData) ? json_encode($rawHrdfData) : $rawHrdfData));
-
-                    $hrdfPiIds = is_string($softwareHandover->proforma_invoice_hrdf)
-                        ? json_decode($softwareHandover->proforma_invoice_hrdf, true)
-                        : $softwareHandover->proforma_invoice_hrdf;
-
-                    Log::info('proforma_invoice_hrdf decoded: ' . json_encode($hrdfPiIds));
-
-                    if (is_array($hrdfPiIds)) {
-                        $piIds = array_merge($piIds, $hrdfPiIds);
-                        Log::info('Added ' . count($hrdfPiIds) . ' PI IDs from proforma_invoice_hrdf');
-                    }
-                } else {
-                    Log::info('proforma_invoice_hrdf is empty');
+                if (is_array($productPiIds)) {
+                    $piIds = array_merge($piIds, $productPiIds);
+                    Log::info('Added ' . count($productPiIds) . ' PI IDs from proforma_invoice_product');
                 }
             } else {
-                // ✅ For other training types, check all PI fields as fallback
-                Log::info('Training type is not recognized (' . ($softwareHandover->training_type ?? 'null') . ') - checking all PI fields');
-
-                $piFields = [
-                    'proforma_invoice_product',
-                    'software_hardware_pi',
-                    'non_hrdf_pi',
-                    'proforma_invoice_hrdf'
-                ];
-
-                foreach ($piFields as $field) {
-                    Log::info("Checking {$field} field...");
-                    if (!empty($softwareHandover->$field)) {
-                        // ✅ Fix: Convert to string for logging
-                        $rawFieldData = $softwareHandover->$field;
-                        Log::info("{$field} raw data: " . (is_array($rawFieldData) ? json_encode($rawFieldData) : $rawFieldData));
-
-                        $fieldPiIds = is_string($softwareHandover->$field)
-                            ? json_decode($softwareHandover->$field, true)
-                            : $softwareHandover->$field;
-
-                        Log::info("{$field} decoded: " . json_encode($fieldPiIds));
-
-                        if (is_array($fieldPiIds)) {
-                            $piIds = array_merge($piIds, $fieldPiIds);
-                            Log::info('Added ' . count($fieldPiIds) . " PI IDs from {$field}");
-                        }
-                    } else {
-                        Log::info("{$field} is empty");
-                    }
-                }
+                Log::info('proforma_invoice_product is empty');
+                return back()->with('error', 'No proforma invoice products found for this headcount handover.');
             }
 
-            // Get quotations based on the PI IDs from software handover
+            // Get quotations based on the PI IDs from headcount handover
             $quotations = \App\Models\Quotation::whereIn('id', $piIds)
-                ->with(['items.product', 'sales_person', 'subsidiary']) // ✅ Added subsidiary relationship
+                ->with(['items.product', 'sales_person', 'subsidiary'])
                 ->get();
 
             Log::info('Found ' . $quotations->count() . ' quotations');
@@ -162,12 +82,12 @@ class InvoiceDataExportController extends Controller
 
                     Log::info('Debug item - Product: ' . $productCode . ' - push_to_autocount raw: ' . var_export($pushToAutocountRaw, true) . ' - type: ' . gettype($pushToAutocountRaw));
 
-                    // ✅ More flexible check for truthy values
+                    // ✅ More flexible check for truthy values (same as InvoiceDataExportController)
                     $shouldInclude = $item->product && (
                         $pushToAutocountRaw === true ||
                         $pushToAutocountRaw === 1 ||
                         $pushToAutocountRaw === '1' ||
-                        strtolower($pushToAutocountRaw) === 'true'
+                        (is_string($pushToAutocountRaw) && strtolower($pushToAutocountRaw) === 'true')
                     );
 
                     if ($shouldInclude) {
@@ -186,6 +106,9 @@ class InvoiceDataExportController extends Controller
                 Log::warning('No items with push_to_autocount=true found in any quotations');
                 return back()->with('error', 'No products eligible for AutoCount export found in the selected proforma invoices.');
             }
+
+            Log::info('Total items collected: ' . $allItems->count());
+
             // Create Excel file
             Log::info('Creating Excel spreadsheet...');
             $spreadsheet = new Spreadsheet();
@@ -199,13 +122,9 @@ class InvoiceDataExportController extends Controller
             // ✅ DebtorCode - Make it empty as requested
             $debtorCode = '';
 
-            // ✅ DocNo based on training type from software handover
-            $docNo = match($softwareHandover->training_type) {
-                'online_webinar_training' => 'EPIN',
-                'online_hrdf_training' => 'EHIN',
-                default => 'EGIN'
-            };
-            Log::info('DocNo determined: ' . $docNo . ' (training type: ' . ($softwareHandover->training_type ?? 'null') . ')');
+            // ✅ DocNo - For headcount, use 'HCIN' (Headcount Invoice)
+            $docNo = 'HCIN';
+            Log::info('DocNo determined: ' . $docNo . ' (headcount handover)');
 
             // ✅ DocDate is today's date in j/n/Y format
             $docDate = date('j/n/Y');
@@ -230,7 +149,7 @@ class InvoiceDataExportController extends Controller
             // Currency rate based on currency
             $currencyRate = $currencyCode === 'USD' ? null : '1';
 
-            // Determine UDF fields based on software handover training type
+            // Determine UDF fields based on headcount handover
             $salesAdmin = $this->mapSalesAdmin($lead);
             Log::info('Sales Admin determined: ' . $salesAdmin);
 
@@ -274,7 +193,7 @@ class InvoiceDataExportController extends Controller
             $headerStyle = [
                 'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
             ];
-            $sheet->getStyle('A1:O1')->applyFromArray($headerStyle);
+            $sheet->getStyle('A1:Q1')->applyFromArray($headerStyle); // ✅ Updated to Q1 for 17 columns
             Log::info('Header styling applied');
 
             $row = 2; // Start from row 2 for data
@@ -285,7 +204,7 @@ class InvoiceDataExportController extends Controller
             foreach ($quotations as $quotationIndex => $quotation) {
                 Log::info('Processing PI/Quotation ' . ($quotationIndex + 1) . ' - ID: ' . $quotation->id);
 
-                // ✅ Filter quotation items - flexible check for push_to_autocount
+                // ✅ Filter quotation items - flexible check for push_to_autocount (same as InvoiceDataExportController)
                 $quotationItems = $quotation->items->filter(function ($item) {
                     if (!$item->product) {
                         Log::info('Excluding item - No product found');
@@ -301,7 +220,7 @@ class InvoiceDataExportController extends Controller
                     $shouldInclude = $pushToAutocountRaw === true ||
                                     $pushToAutocountRaw === 1 ||
                                     $pushToAutocountRaw === '1' ||
-                                    strtolower($pushToAutocountRaw) === 'true';
+                                    (is_string($pushToAutocountRaw) && strtolower($pushToAutocountRaw) === 'true');
 
                     if ($shouldInclude) {
                         Log::info('Including item in PI export - Product: ' . $productCode);
@@ -321,26 +240,25 @@ class InvoiceDataExportController extends Controller
                 $firstItem = $quotationItems->first();
                 $firstProduct = $firstItem ? $firstItem->product : null;
 
-                Log::info('Adding full invoice row for first item of PI ' . $quotation->id . ' - Product: ' . ($firstProduct ? $firstProduct->code : 'NULL'));
+                Log::info('Adding full invoice row for first item of PI ' . $quotation->id);
 
                 $firstRowData = [
                     $docNo,                                             // DocNo
                     $docDate,                                           // DocDate
-                    $this->getCompanyName($quotation, $softwareHandover), // CompanyName (from subsidiary or software handover)
+                    $this->getCompanyName($quotation, $headcountHandover), // CompanyName (from subsidiary or lead)
                     $debtorCode,                                        // DebtorCode (empty)
                     $salesAgent,                                        // SalesAgent
                     $currencyCode,                                      // CurrencyCode
                     $currencyRate,                                      // CurrencyRate
-                    '',
+                    '',                                                 // RefDocNo (empty)
                     $salesAdmin,                                        // UDF_IV_SalesAdmin
-                    $udfSupport,                                        // UDF_IV_Support (FATIMAH if user ID = 5, else YAT)
+                    $udfSupport,                                        // UDF_IV_Support
                     $billingType,                                       // UDF_IV_BillingType
                     $cancelled,                                         // Cancelled
                     $firstProduct ? $firstProduct->code : '',           // ItemCode (first product)
                     $firstItem ? ($firstItem->quantity ?? 1) : 1,      // Qty (first product)
-                    // ✅ Calculate unit price based on product solution
                     $firstItem ? $this->calculateUnitPrice($firstItem, $firstProduct) : 0, // UnitPrice (calculated)
-                    $firstItem ? $this->getTaxCode($firstItem, $firstProduct, $quotation) : 'NTS', // ✅ TaxCode based on taxable & currency
+                    $firstItem ? $this->getTaxCode($firstItem, $firstProduct, $quotation) : 'NTS', // TaxCode
                     $firstProduct ? ($firstProduct->tariff_code ?? '') : '', // TariffCode (first product)
                 ];
 
@@ -356,15 +274,14 @@ class InvoiceDataExportController extends Controller
                     $product = $item->product;
                     Log::info('Processing additional item - Product: ' . ($product ? $product->code : 'NULL') . ' for PI ' . $quotation->id);
 
-                    // ✅ For additional products, only fill the product-related columns (L-P)
+                    // ✅ For additional products, only fill the product-related columns (M-Q)
                     $additionalRowData = [
-                        '', '', '', '', '', '', '', '', '', '', '', '', // Empty columns A-K (invoice info columns) - now 11 empty columns
-                        $product ? $product->code : '',           // ItemCode (column L)
-                        $item->quantity ?? 1,                     // Qty (column M)
-                        // ✅ Calculate unit price based on product solution
-                        $this->calculateUnitPrice($item, $product), // UnitPrice (calculated) (column N)
-                        $this->getTaxCode($item, $product, $quotation), // ✅ TaxCode based on taxable & currency (column O)
-                        $product ? $product->tariff_code : '',    // TariffCode (column P)
+                        '', '', '', '', '', '', '', '', '', '', '', '', // Empty columns A-L (invoice info columns) - 12 empty columns
+                        $product ? $product->code : '',           // ItemCode (column M)
+                        $item->quantity ?? 1,                     // Qty (column N)
+                        $this->calculateUnitPrice($item, $product), // UnitPrice (calculated) (column O)
+                        $this->getTaxCode($item, $product, $quotation), // TaxCode (column P)
+                        $product ? ($product->tariff_code ?? '') : '', // TariffCode (column Q)
                     ];
 
                     $sheet->fromArray([$additionalRowData], null, 'A' . $row);
@@ -377,23 +294,23 @@ class InvoiceDataExportController extends Controller
             Log::info('Processed all ' . $quotations->count() . ' PIs, final row: ' . ($row - 1));
 
             // Auto-size columns
-            foreach (range('A', 'P') as $col) {
+            foreach (range('A', 'Q') as $col) {
                 $sheet->getColumnDimension($col)->setAutoSize(true);
             }
 
             // Save as Excel file
             Log::info('Saving Excel file...');
-            $tempFile = tempnam(sys_get_temp_dir(), 'invoice_data_export_');
+            $tempFile = tempnam(sys_get_temp_dir(), 'headcount_invoice_data_export_');
             $writer = new Xlsx($spreadsheet);
             $writer->save($tempFile);
             Log::info('Excel file saved to: ' . $tempFile);
 
             // Create filename with handover ID
             $companyName = $lead->companyDetail->company_name ?? 'Company';
-            $handoverId = 'SW_' . str_pad($softwareHandover->id, 3, '0', STR_PAD_LEFT);
-            $filename = 'Invoice_Data_' . $handoverId . '_' . str_replace([' ', '/', '\\', '&'], '_', $companyName) . '_' . date('Y-m-d') . '.xlsx';
+            $handoverId = 'HC_250' . str_pad($headcountHandover->id, 3, '0', STR_PAD_LEFT);
+            $filename = 'Headcount_Invoice_Data_' . $handoverId . '_' . str_replace([' ', '/', '\\', '&'], '_', $companyName) . '_' . date('Y-m-d') . '.xlsx';
 
-            Log::info('About to send Invoice Data Excel file: ' . $filename);
+            Log::info('About to send Headcount Invoice Data Excel file: ' . $filename);
 
             // Return file as download
             return response()->download($tempFile, $filename, [
@@ -402,21 +319,30 @@ class InvoiceDataExportController extends Controller
             ])->deleteFileAfterSend(true);
 
         } catch (\Exception $e) {
-            Log::error('Invoice Data export error: ' . $e->getMessage());
+            Log::error('Headcount Invoice Data export error: ' . $e->getMessage());
             Log::error('File: ' . $e->getFile() . ' Line: ' . $e->getLine());
             Log::error('Stack trace: ' . $e->getTraceAsString());
 
-            return back()->with('error', 'Error exporting invoice data: ' . $e->getMessage());
+            return back()->with('error', 'Error exporting headcount invoice data: ' . $e->getMessage());
         }
     }
 
+    /**
+     * Map sales admin to specific allowed values
+     */
     private function mapSalesAdmin($lead)
     {
-        // ✅ Allowed sales admin values (same as sales agent)
+        // ✅ Allowed sales admin values
         $allowedSalesAdmins = [
+            'MUIM',
+            'YASMIN',
+            'FARHANAH',
+            'JOSHUA',
+            'AZIZ',
+            'BARI',
+            'VINCE',
             'JAJA',
-            'AFIFAH',
-            'SHAHILAH',
+            'AFIFAH SHAHILAH',
             'SHEENA'
         ];
 
@@ -425,21 +351,22 @@ class InvoiceDataExportController extends Controller
 
         // ✅ Try lead owner first (get actual user name, not just ID)
         if ($lead->lead_owner) {
-            $leadOwnerName = strtoupper(trim($lead->lead_owner));
-            Log::info('Checking lead owner name for sales admin: ' . $leadOwnerName);
+            $leadOwner = \App\Models\User::find($lead->lead_owner);
+            if ($leadOwner && $leadOwner->name) {
+                $salesAdminName = strtoupper(trim($leadOwner->name));
+                Log::info('Checking lead owner name for sales admin: ' . $salesAdminName);
 
-            // ✅ Map specific full names to their short versions
-            if (strpos($leadOwnerName, 'NURUL NAJAA NADIAH') !== false || strpos($leadOwnerName, 'NAJAA') !== false) {
-                $salesAdminName = 'JAJA';
-                Log::info('Mapped "' . $leadOwnerName . '" to JAJA for sales admin');
-            } elseif (strpos($leadOwnerName, 'AFIFAH SHAHILAH') !== false) {
-                $salesAdminName = 'AFIFAH';
-                Log::info('Mapped "' . $leadOwnerName . '" to AFIFAH for sales admin');
-            } elseif (strpos($leadOwnerName, 'SHEENA') !== false) {
-                $salesAdminName = 'SHEENA';
-                Log::info('Mapped "' . $leadOwnerName . '" to SHEENA for sales admin');
-            } else {
-                $salesAdminName = $leadOwnerName;
+                // ✅ Map specific full names to their short versions
+                if (strpos($salesAdminName, 'NURUL NAJAA NADIAH') !== false || strpos($salesAdminName, 'NAJAA') !== false) {
+                    $salesAdminName = 'JAJA';
+                    Log::info('Mapped "' . $salesAdminName . '" to JAJA for sales admin');
+                } elseif (strpos($salesAdminName, 'AFIFAH SHAHILAH') !== false) {
+                    $salesAdminName = 'AFIFAH SHAHILAH';
+                    Log::info('Mapped "' . $salesAdminName . '" to AFIFAH SHAHILAH for sales admin');
+                } elseif (strpos($salesAdminName, 'SHEENA') !== false) {
+                    $salesAdminName = 'SHEENA';
+                    Log::info('Mapped "' . $salesAdminName . '" to SHEENA for sales admin');
+                }
             }
         }
 
@@ -469,8 +396,6 @@ class InvoiceDataExportController extends Controller
     {
         // ✅ Updated allowed salesperson values to include lead owner names
         $allowedSalesAgents = [
-            'JONATHAN',
-            'WIRSON',
             'MUIM',
             'YASMIN',
             'FARHANAH',
@@ -478,14 +403,22 @@ class InvoiceDataExportController extends Controller
             'AZIZ',
             'BARI',
             'VINCE',
-            'JAJA',           // ✅ Added for lead owner
-            'AFIFAH'.
-            'SHAHILAH', // ✅ Added for lead owner
-            'SHEENA'          // ✅ Added for lead owner
+            'JAJA',
+            'AFIFAH SHAHILAH',
+            'SHEENA'
         ];
 
         // Get salesperson name from various sources
         $salespersonName = '';
+
+        // ✅ Try lead owner first
+        if ($lead->lead_owner) {
+            $leadOwner = \App\Models\User::find($lead->lead_owner);
+            if ($leadOwner && $leadOwner->name) {
+                $salespersonName = strtoupper(trim($leadOwner->name));
+                Log::info('Checking lead owner name: ' . $salespersonName);
+            }
+        }
 
         // If no lead owner or lead owner not in allowed list, try lead salesperson
         if (empty($salespersonName) || !in_array($salespersonName, $allowedSalesAgents)) {
@@ -531,54 +464,9 @@ class InvoiceDataExportController extends Controller
         return '';
     }
 
-    private function calculateUnitPrice($item, $product)
-    {
-        $baseUnitPrice = $item->unit_price ?? 0;
-
-        // If no product or no solution defined, return base unit price
-        if (!$product || !$product->solution) {
-            Log::info('No product or solution found, using base unit price: ' . $baseUnitPrice);
-            return $baseUnitPrice;
-        }
-
-        // Check if product solution is "software"
-        if (strtolower(trim($product->solution)) === 'software') {
-            $subscriptionPeriod = $item->subscription_period ?? 1; // Default to 1 if not set
-            $calculatedPrice = $baseUnitPrice * $subscriptionPeriod;
-
-            Log::info('Product solution is software - Base price: ' . $baseUnitPrice .
-                    ', Subscription period: ' . $subscriptionPeriod .
-                    ', Calculated price: ' . $calculatedPrice);
-
-            return $calculatedPrice;
-        } else {
-            // For non-software solutions, just return the base unit price
-            Log::info('Product solution is not software (' . $product->solution . '), using base unit price: ' . $baseUnitPrice);
-            return $baseUnitPrice;
-        }
-    }
-
-    private function getCompanyName($quotation, $softwareHandover)
-    {
-        // Check if quotation has subsidiary_id and subsidiary relationship
-        if ($quotation->subsidiary_id && $quotation->subsidiary && $quotation->subsidiary->company_name) {
-            $companyName = $quotation->subsidiary->company_name;
-            Log::info('Company name from subsidiary: ' . $companyName . ' (subsidiary_id: ' . $quotation->subsidiary_id . ')');
-            return $companyName;
-        }
-
-        // Fallback to software handover company_name
-        if ($softwareHandover->company_name) {
-            $companyName = $softwareHandover->company_name;
-            Log::info('Company name from software handover: ' . $companyName);
-            return $companyName;
-        }
-
-        // Final fallback to empty string
-        Log::warning('No company name found in subsidiary or software handover');
-        return '';
-    }
-
+    /**
+     * Determine tax code based on product taxable status and quotation currency
+     */
     private function getTaxCode($item, $product, $quotation)
     {
         // If currency is USD, always return NTS regardless of taxable status
@@ -615,5 +503,53 @@ class InvoiceDataExportController extends Controller
         // Default fallback for other currencies or null currency
         Log::info('Currency is ' . ($quotation->currency ?? 'null') . ' - defaulting to NTS');
         return 'NTS';
+    }
+
+    private function calculateUnitPrice($item, $product)
+    {
+        $baseUnitPrice = $item->unit_price ?? 0;
+
+        // If no product or no solution defined, return base unit price
+        if (!$product || !$product->solution) {
+            Log::info('No product or solution found, using base unit price: ' . $baseUnitPrice);
+            return $baseUnitPrice;
+        }
+
+        // Check if product solution is "software"
+        if (strtolower(trim($product->solution)) === 'software') {
+            $subscriptionPeriod = $item->subscription_period ?? 1; // Default to 1 if not set
+            $calculatedPrice = $baseUnitPrice * $subscriptionPeriod;
+
+            Log::info('Product solution is software - Base price: ' . $baseUnitPrice .
+                    ', Subscription period: ' . $subscriptionPeriod .
+                    ', Calculated price: ' . $calculatedPrice);
+
+            return $calculatedPrice;
+        } else {
+            // For non-software solutions, just return the base unit price
+            Log::info('Product solution is not software (' . $product->solution . '), using base unit price: ' . $baseUnitPrice);
+            return $baseUnitPrice;
+        }
+    }
+
+    private function getCompanyName($quotation, $headcountHandover)
+    {
+        // Check if quotation has subsidiary_id and subsidiary relationship
+        if ($quotation->subsidiary_id && $quotation->subsidiary && $quotation->subsidiary->company_name) {
+            $companyName = $quotation->subsidiary->company_name;
+            Log::info('Company name from subsidiary: ' . $companyName . ' (subsidiary_id: ' . $quotation->subsidiary_id . ')');
+            return $companyName;
+        }
+
+        // Fallback to lead's company detail
+        if ($headcountHandover->lead && $headcountHandover->lead->companyDetail && $headcountHandover->lead->companyDetail->company_name) {
+            $companyName = $headcountHandover->lead->companyDetail->company_name;
+            Log::info('Company name from lead company detail: ' . $companyName);
+            return $companyName;
+        }
+
+        // Final fallback to empty string
+        Log::warning('No company name found in subsidiary or lead company detail');
+        return '';
     }
 }

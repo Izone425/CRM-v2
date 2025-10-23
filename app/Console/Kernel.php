@@ -58,11 +58,7 @@ class Kernel extends ConsoleKernel
             ->withoutOverlapping()
             ->appendOutputTo(storage_path('logs/call-mapping.log'));
 
-        $schedule->command('renewal:auto-mapping')
-            ->everyThirtyMinutes()
-            ->withoutOverlapping() // Prevent multiple instances running simultaneously
-            ->runInBackground()
-            ->appendOutputTo(storage_path('logs/auto-mapping.log'));
+        $schedule->command('renewal:auto-mapping')->everyThirtyMinutes();
 
         $schedule->command('sales-order:update-status')->everyThirtyMinutes();
 
