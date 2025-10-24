@@ -356,9 +356,19 @@ class HRDFHandoverRelationManager extends RelationManager
                     $handover->fill($data);
                     $handover->save();
 
-                    // Update the HRDF claim to link it with this handover
+                    // ✅ Get lead and extract salesperson name using the existing function
+                    $lead = $this->getOwnerRecord();
+                    $salesPersonName = '';
+                    
+                    // Use the existing getSalespersonUser() function from Lead model
+                    $salespersonUser = $lead->getSalespersonUser();
+                    if ($salespersonUser && $salespersonUser->name) {
+                        $salesPersonName = $salespersonUser->name;
+                    }
+
+                    // Update the HRDF claim with the lead's salesperson
                     $hrdfClaim->update([
-                        'handover_created' => true, // Add this field to track if handover was created
+                        'sales_person' => $salesPersonName,
                     ]);
 
                     Notification::make()

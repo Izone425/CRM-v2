@@ -1146,7 +1146,7 @@
                                 <a href="{{ route('filament.admin.pages.hrdf-id') }}" class="submenu-item">
                                     <span class="module-font">HRDF ID</span>
                                 </a>
-                                <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
+                                <a href="{{ route('filament.admin.pages.hrdf-claim-tracker') }}" class="submenu-item">
                                     <span class="module-font">HRDF Claim Tracker</span>
                                 </a>
                             </div>
