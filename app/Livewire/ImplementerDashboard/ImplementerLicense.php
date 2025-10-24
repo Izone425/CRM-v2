@@ -172,7 +172,7 @@ class ImplementerLicense extends Component implements HasForms, HasTable
                     ->action(
                         Action::make('viewHandoverDetails')
                             ->modalHeading(false)
-                            ->modalWidth('6xl')
+                            ->modalWidth('4xl')
                             ->modalSubmitAction(false)
                             ->modalCancelAction(false)
                             ->modalContent(function (SoftwareHandover $record): View {
