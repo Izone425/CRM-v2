@@ -86,4 +86,9 @@ class HRDFHandover extends Model
     {
         return $this->belongsTo(User::class, 'rejected_by');
     }
+
+    public function hrdfClaim()
+    {
+        return $this->belongsTo(HrdfClaim::class, 'hrdf_grant_id', 'hrdf_grant_id');
+    }
 }

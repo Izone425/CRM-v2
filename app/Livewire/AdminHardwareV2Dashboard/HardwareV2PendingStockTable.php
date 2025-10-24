@@ -250,10 +250,7 @@ class HardwareV2PendingStockTable extends Component implements HasForms, HasTabl
                 TextColumn::make('status')
                     ->label('Status')
                     ->formatStateUsing(fn (string $state): HtmlString => match ($state) {
-                        'New' => new HtmlString('<span style="color: blue;">New</span>'),
-                        'Approved' => new HtmlString('<span style="color: green;">Approved</span>'),
-                        'Pending Stock' => new HtmlString('<span style="color: orange;">Pending Stock</span>'),
-                        'Pending Migration' => new HtmlString('<span style="color: purple;">Pending Migration</span>'),
+                        'Pending Stock' => new HtmlString('<span style="color: black;">Pending Stock</span>'),
                         default => new HtmlString('<span>' . ucfirst($state) . '</span>'),
                     }),
 
@@ -267,9 +264,13 @@ class HardwareV2PendingStockTable extends Component implements HasForms, HasTabl
                         $status = $state ?? 'Unknown';
                         $formattedStatus = ucfirst(strtolower($status)); // Uppercase first letter, lowercase the rest
 
+                        // Check if status is "packing" (case insensitive)
+                        $isPackingStatus = strtolower($status) === 'packing';
+                        $statusColor = $isPackingStatus ? 'color: red; font-weight: bold;' : 'color: black;';
+
                         return new HtmlString("
                             <div class='text-sm'>
-                                <div class='font-medium'>{$formattedStatus}</div>
+                                <div style='{$statusColor}'>{$formattedStatus}</div>
                                 <div class='text-xs text-gray-500'>SO: {$record->sales_order_number}</div>
                             </div>
                         ");

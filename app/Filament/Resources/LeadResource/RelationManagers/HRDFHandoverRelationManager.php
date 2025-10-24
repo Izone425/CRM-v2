@@ -76,42 +76,48 @@ class HRDFHandoverRelationManager extends RelationManager
     public function defaultForm()
     {
         return [
-            Select::make('subsidiary_id')
-                ->label('Use Subsidiary Details')
-                ->options(function (Forms\Get $get) {
-                    $leadId = $this->getOwnerRecord()->id;
-                    if (!$leadId) {
+            Select::make('hrdf_grant_id')
+                ->label('Select HRDF Grant')
+                ->searchable()
+                ->preload(false) // Change to false to prevent preloading
+                ->live()
+                ->placeholder('Type to search HRDF Grant ID or Company Name...')
+                ->options([]) // Empty by default
+                ->getSearchResultsUsing(function (string $search) {
+                    // Only show results when user types something
+                    if (empty(trim($search))) {
                         return [];
                     }
 
-                    $lead = Lead::find($leadId);
-                    if (!$lead) {
-                        return [];
-                    }
-
-                    // Return "None" option plus all subsidiaries
-                    $options = ['' => 'Use Default Company Details'];
-
-                    // Add subsidiaries - with null check
-                    $subsidiaries = $lead->subsidiaries()->get();
-
-                    foreach ($subsidiaries as $subsidiary) {
-                        // Only add subsidiaries that have a valid name
-                        if (!empty($subsidiary->company_name) && !is_null($subsidiary->company_name)) {
-                            $options[$subsidiary->id] = $subsidiary->company_name;
-                        }
-                    }
-
-                    return $options;
+                    // Search by HRDF Grant ID or Company Name
+                    return \App\Models\HrdfClaim::where(function ($query) use ($search) {
+                        $query->where('hrdf_grant_id', 'like', "%{$search}%")
+                            ->orWhere('company_name', 'like', "%{$search}%");
+                    })
+                    ->whereIn('claim_status', ['PENDING'])
+                    ->whereDoesntHave('hrdfHandover')
+                    ->limit(20)
+                    ->get()
+                    ->mapWithKeys(function ($claim) {
+                        return [
+                            $claim->hrdf_grant_id => "{$claim->hrdf_grant_id} - {$claim->company_name}"
+                        ];
+                    })
+                    ->toArray();
                 })
                 ->afterStateUpdated(function ($state, Forms\Set $set) {
-                    // Clear any previous selections
-                    $set('subsidiary_id', $state);
+                    if ($state) {
+                        // Get the selected HRDF claim details
+                        $claim = \App\Models\HrdfClaim::where('hrdf_grant_id', $state)->first();
+                        if ($claim) {
+                            // Auto-populate fields from the claim
+                            $set('autocount_invoice_number', $claim->invoice_number);
+                            // You can set other fields if needed
+                        }
+                    }
                 })
-                ->placeholder('Use Default Company Details')
-                ->searchable()
-                ->preload()
-                ->live(),
+                ->required()
+                ->helperText('Start typing to search for HRDF Grants (Grant ID or Company Name)'),
 
             Grid::make(3)
                 ->schema([
@@ -227,42 +233,11 @@ class HRDFHandoverRelationManager extends RelationManager
                 ->schema([
                     Grid::make(1)
                         ->schema([
-                            // HRDF Grant ID - Most Important Field
-                            TextInput::make('hrdf_grant_id')
-                                ->label('HRDF Grant ID')
-                                ->required()
-                                ->placeholder('Enter HRDF Grant ID')
-                                ->maxLength(50)
-                                ->extraAlpineAttributes([
-                                    'x-on:input' => '
-                                        const start = $el.selectionStart;
-                                        const end = $el.selectionEnd;
-                                        const value = $el.value;
-                                        $el.value = value.toUpperCase();
-                                        $el.setSelectionRange(start, end);
-                                    '
-                                ])
-                                ->default(function (?HRDFHandover $record = null) {
-                                    // If editing existing record, return the saved value
-                                    if ($record && $record->hrdf_grant_id) {
-                                        return $record->hrdf_grant_id;
-                                    }
-
-                                    return null;
-                                })
-                                ->dehydrateStateUsing(fn ($state) => strtoupper($state))
-                                ->unique(HRDFHandover::class, 'hrdf_grant_id', ignoreRecord: true)
-                                ->validationMessages([
-                                    'required' => 'HRDF Grant ID is required.',
-                                    'max' => 'HRDF Grant ID cannot exceed 50 characters.',
-                                    'unique' => 'This HRDF Grant ID already exists. Please use a different Grant ID.',
-                                ]),
-
-                            // AutoCount Invoice Number - New Field
+                            // AutoCount Invoice Number - Auto-populated from selected HRDF claim
                             TextInput::make('autocount_invoice_number')
                                 ->label('AutoCount Invoice Number')
                                 ->required()
-                                ->placeholder('Enter AutoCount Invoice Number')
+                                ->placeholder('Will be auto-populated when HRDF Grant is selected')
                                 ->maxLength(50)
                                 ->extraAlpineAttributes([
                                     'x-on:input' => '
@@ -278,7 +253,6 @@ class HRDFHandoverRelationManager extends RelationManager
                                     if ($record && $record->autocount_invoice_number) {
                                         return $record->autocount_invoice_number;
                                     }
-
                                     return null;
                                 })
                                 ->dehydrateStateUsing(fn ($state) => strtoupper($state))
@@ -348,10 +322,23 @@ class HRDFHandoverRelationManager extends RelationManager
                 ->modalSubmitActionLabel('Submit HRDF Handover')
                 ->form($this->defaultForm())
                 ->action(function (array $data): void {
+                    // Get the HRDF claim details
+                    $hrdfClaim = \App\Models\HrdfClaim::where('hrdf_grant_id', $data['hrdf_grant_id'])->first();
+
+                    if (!$hrdfClaim) {
+                        Notification::make()
+                            ->title('Error')
+                            ->body('Selected HRDF Grant not found.')
+                            ->danger()
+                            ->send();
+                        return;
+                    }
+
                     $data['created_by'] = auth()->id();
                     $data['lead_id'] = $this->getOwnerRecord()->id; // Use current lead
                     $data['status'] = 'New';
                     $data['submitted_at'] = now();
+                    $data['hrdf_claim_id'] = $hrdfClaim->hrdf_claim_id; // Link to the claim
 
                     // Handle file array encodings
                     foreach (['jd14_form_files', 'autocount_invoice_file', 'hrdf_grant_approval_file'] as $field) {
@@ -369,35 +356,14 @@ class HRDFHandoverRelationManager extends RelationManager
                     $handover->fill($data);
                     $handover->save();
 
-                    try {
-                        // Format handover ID
-                        $handoverId = 'HRDF_250' . str_pad($handover->id, 3, '0', STR_PAD_LEFT);
-
-                        // Get company name from CompanyDetail (including subsidiary if selected)
-                        $companyDetail = \App\Models\CompanyDetail::where('lead_id', $handover->lead_id)->first();
-                        $companyName = $companyDetail ? $companyDetail->company_name : 'Unknown Company';
-
-                        // If subsidiary was selected, append subsidiary name
-                        if (!empty($data['subsidiary_id'])) {
-                            $subsidiary = \App\Models\Subsidiary::find($data['subsidiary_id']);
-                            if ($subsidiary && $subsidiary->company_name) {
-                                $companyName .= ' - ' . $subsidiary->company_name . ' (Subsidiary)';
-                            }
-                        }
-
-                        // Get salesperson name
-                        $lead = Lead::find($handover->lead_id);
-                        $salesperson = $lead->salesperson ? User::find($lead->salesperson)->name : 'Unknown';
-
-                    } catch (\Exception $e) {
-                        \Illuminate\Support\Facades\Log::error("Failed to send HRDF handover notification email", [
-                            'error' => $e->getMessage(),
-                            'handover_id' => $handover->id ?? null
-                        ]);
-                    }
+                    // Update the HRDF claim to link it with this handover
+                    $hrdfClaim->update([
+                        'handover_created' => true, // Add this field to track if handover was created
+                    ]);
 
                     Notification::make()
                         ->title('HRDF Handover Created Successfully')
+                        ->body("Handover created for HRDF Grant: {$data['hrdf_grant_id']}")
                         ->success()
                         ->send();
 
