@@ -15,6 +15,7 @@ use Filament\Notifications\Notification;
 use App\Models\HRDFHandover;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\HtmlString;
 use Illuminate\View\View;
 use Livewire\Attributes\On;
@@ -118,7 +119,7 @@ class HrdfNewTable extends Component implements HasForms, HasTable
 
                 TextColumn::make('submitted_at')
                     ->label('Date Submitted')
-                    ->date('d M Y')
+                    ->dateTime('d M Y, g:ia')
                     ->sortable(),
 
                 TextColumn::make('lead.companyDetail.company_name')
@@ -224,13 +225,38 @@ class HrdfNewTable extends Component implements HasForms, HasTable
                         ->modalWidth('md')
                         ->action(function (HRDFHandover $record, array $data): void {
                             try {
-                                // Update the record with completion details and HRDF Claim ID
-                                $record->update([
-                                    'status' => 'Completed',
-                                    'completed_by' => auth()->id(),
-                                    'completed_at' => now(),
-                                    'hrdf_claim_id' => $data['hrdf_claim_id'], // Save the HRDF Claim ID
-                                ]);
+                                // Use database transaction to ensure both updates succeed or fail together
+                                DB::transaction(function () use ($record, $data) {
+                                    // 1. Update the HRDF Handover record
+                                    $record->update([
+                                        'status' => 'Completed',
+                                        'completed_by' => auth()->id(),
+                                        'completed_at' => now(),
+                                        'hrdf_claim_id' => $data['hrdf_claim_id'], // Save the HRDF Claim ID
+                                    ]);
+
+                                    // 2. Update the related HRDF Claim status to SUBMITTED using relationship
+                                    if ($record->hrdfClaim) {
+                                        $record->hrdfClaim->update([
+                                            'claim_status' => 'SUBMITTED',
+                                            'hrdf_claim_id' => $data['hrdf_claim_id'], // Also update the claim ID in the claim record
+                                            'invoice_number' => $record->autocount_invoice_number, // Add invoice number from handover
+                                        ]);
+
+                                        \Illuminate\Support\Facades\Log::info("HRDF Claim status updated to SUBMITTED", [
+                                            'claim_id' => $record->hrdfClaim->id,
+                                            'hrdf_grant_id' => $record->hrdf_grant_id,
+                                            'hrdf_claim_id' => $data['hrdf_claim_id'],
+                                            'invoice_number' => $record->autocount_invoice_number, // Log the invoice number
+                                            'updated_by' => auth()->id()
+                                        ]);
+                                    } else {
+                                        \Illuminate\Support\Facades\Log::warning("No HRDF Claim relationship found", [
+                                            'hrdf_grant_id' => $record->hrdf_grant_id,
+                                            'handover_id' => $record->id
+                                        ]);
+                                    }
+                                });
 
                                 // Get necessary data for email
                                 $handoverId = 'HRDF_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
@@ -276,13 +302,25 @@ class HrdfNewTable extends Component implements HasForms, HasTable
                                     }
                                 }
 
+                                // Success notification with updated information
+                                $message = "HRDF handover {$handoverId} has been completed with Claim ID: {$data['hrdf_claim_id']}";
+                                if ($record->hrdfClaim) {
+                                    $message .= ". Related HRDF Claim status updated to SUBMITTED.";
+                                }
+
                                 Notification::make()
                                     ->title('HRDF handover completed successfully')
-                                    ->body("HRDF handover {$handoverId} has been completed with Claim ID: {$data['hrdf_claim_id']}")
+                                    ->body($message)
                                     ->success()
                                     ->send();
 
                             } catch (\Exception $e) {
+                                \Illuminate\Support\Facades\Log::error("Failed to complete HRDF handover", [
+                                    'error' => $e->getMessage(),
+                                    'handover_id' => $record->id,
+                                    'trace' => $e->getTraceAsString()
+                                ]);
+
                                 Notification::make()
                                     ->title('Error')
                                     ->body('Failed to complete HRDF handover: ' . $e->getMessage())
@@ -290,7 +328,6 @@ class HrdfNewTable extends Component implements HasForms, HasTable
                                     ->send();
                             }
                         }),
-
 
                     Action::make('reject')
                         ->label('Reject')

@@ -1903,7 +1903,7 @@ class QuotationResource extends Resource
             $total_after_tax = $total_before_tax + $taxation_amount;
             $grandTotal += $total_after_tax;
             // Update the form values
-            $set("items.{$index}.unit_price", number_format($unit_price, 2, '.', ''));
+            $set("items.{$index}.unit_price", number_format((float)$unit_price, 2, '.', ''));
             $set("items.{$index}.total_before_tax", number_format($total_before_tax, 2, '.', ''));
             $set("items.{$index}.taxation", number_format($taxation_amount, 2, '.', ''));
             $set("items.{$index}.total_after_tax", number_format($total_after_tax, 2, '.', ''));

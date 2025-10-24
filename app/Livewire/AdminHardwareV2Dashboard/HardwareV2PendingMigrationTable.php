@@ -288,11 +288,8 @@ class HardwareV2PendingMigrationTable extends Component implements HasForms, Has
                 TextColumn::make('status')
                     ->label('Status')
                     ->formatStateUsing(fn (string $state): HtmlString => match ($state) {
-                        'New' => new HtmlString('<span style="color: blue;">New</span>'),
-                        'Approved' => new HtmlString('<span style="color: green;">Approved</span>'),
-                        'Pending Stock' => new HtmlString('<span style="color: orange;">Pending Stock</span>'),
-                        'Pending Migration' => new HtmlString('<span style="color: purple;">Pending Migration</span>'),
-                        default => new HtmlString('<span>' . ucfirst($state) . '</span>'),
+                        'Pending Migration' => new HtmlString('<span style="color: red; font-weight: bold;">Pending Migration</span>'),
+                        default => new HtmlString('<span style="font-weight: bold;">' . ucfirst($state) . '</span>'),
                     }),
 
                 TextColumn::make('created_at')

@@ -1,17 +1,17 @@
 <?php
-// filepath: /var/www/html/timeteccrm/app/Models/HrdfClaim.php
 
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Schema;
 
 class HrdfClaim extends Model
 {
     use HasFactory;
 
-    protected $table = 'hrdf_claims'; // Adjust table name if different
+    protected $table = 'hrdf_claims';
 
     protected $fillable = [
         'sales_person',
@@ -26,12 +26,14 @@ class HrdfClaim extends Model
         'programme_name',
         'approved_date',
         'email_processed_at',
+        'hrdf_mail_id',
     ];
 
     protected $casts = [
         'invoice_amount' => 'decimal:2',
         'approved_date' => 'date',
         'email_processed_at' => 'datetime',
+        'hrdf_training_date' => 'string',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
@@ -42,10 +44,30 @@ class HrdfClaim extends Model
         return $this->belongsTo(Lead::class, 'company_name', 'company_name');
     }
 
+    public function hrdfMail()
+    {
+        return $this->belongsTo(HrdfMail::class, 'hrdf_mail_id');
+    }
+
     // Scopes
     public function scopeReceived($query)
     {
         return $query->where('claim_status', 'RECEIVED');
+    }
+
+    public function scopePending($query)
+    {
+        return $query->where('claim_status', 'PENDING');
+    }
+
+    public function scopeSubmitted($query)
+    {
+        return $query->where('claim_status', 'SUBMITTED');
+    }
+
+    public function scopeApproved($query)
+    {
+        return $query->where('claim_status', 'APPROVED');
     }
 
     public function scopeByCompany($query, $companyName)
@@ -53,30 +75,156 @@ class HrdfClaim extends Model
         return $query->where('company_name', $companyName);
     }
 
-    // Accessors
-    public function getFormattedAmountAttribute()
+    // Auto-create from HRDF Mail - only use fillable fields
+    public static function createFromHrdfMail(HrdfMail $hrdfMail)
     {
-        return 'RM ' . number_format($this->invoice_amount, 2);
+        // Extract data using line numbers instead of structured data
+        $extractedData = self::extractDataByLineNumbers($hrdfMail->body_content);
+
+        $data = [
+            'sales_person' => 'AUTO-PARSED',
+            'company_name' => $extractedData['company_name'] ?? 'Unknown Company',
+            'invoice_amount' => $extractedData['invoice_amount'] ?? 0,
+            'invoice_number' => null,
+            'sales_remark' => 'Auto-created from email ID: ' . $hrdfMail->id,
+            'claim_status' => 'PENDING',
+            'hrdf_grant_id' => $extractedData['hrdf_grant_id'] ?? 'GRANT-' . $hrdfMail->id,
+            'hrdf_training_date' => $extractedData['hrdf_training_date'] ?? '',
+            'hrdf_claim_id' => null,
+            'programme_name' => $extractedData['programme_name'] ?? 'Unknown Programme',
+            'approved_date' => $extractedData['approved_date'] ?? $hrdfMail->received_date->toDateString(),
+            'email_processed_at' => now(),
+        ];
+
+        // Only add hrdf_mail_id if the column exists
+        if (Schema::hasColumn('hrdf_claims', 'hrdf_mail_id')) {
+            $data['hrdf_mail_id'] = $hrdfMail->id;
+        }
+
+        return self::create($data);
     }
 
-    public function getTrainingDateRangeAttribute()
+    // Extract data from email body content
+    private static function extractDataByLineNumbers($bodyContent)
     {
-        if (!$this->hrdf_training_date) {
-            return null;
+        $data = [];
+
+        // If content still contains HTML, clean it first
+        if (strpos($bodyContent, '<') !== false) {
+            $bodyContent = self::cleanBodyContent($bodyContent);
         }
 
-        // Parse the date range format "07/10/2025 To : 09/10/2025"
-        if (preg_match('/(\d{2}\/\d{2}\/\d{4})\s*To\s*:\s*(\d{2}\/\d{2}\/\d{4})/', $this->hrdf_training_date, $matches)) {
-            $startDate = Carbon::createFromFormat('d/m/Y', $matches[1]);
-            $endDate = Carbon::createFromFormat('d/m/Y', $matches[2]);
+        // Split content into lines
+        $lines = explode("\n", $bodyContent);
 
-            return [
-                'start' => $startDate,
-                'end' => $endDate,
-                'formatted' => $startDate->format('d M Y') . ' - ' . $endDate->format('d M Y')
-            ];
+        // Extract company name - look for line with SDN BHD
+        foreach ($lines as $line) {
+            $line = trim($line);
+            if (!empty($line) && (stripos($line, 'SDN BHD') !== false)) {
+                $data['company_name'] = strtoupper($line);
+                break;
+            }
         }
 
-        return null;
+        // Extract other fields using pattern matching
+        foreach ($lines as $line) {
+            $line = trim($line);
+
+            // Application number - hrdf_grant_id
+            if (preg_match('/APPLICATION\s+NUMBER\s*:\s*([A-Z0-9_]+)/', $line, $matches)) {
+                $data['hrdf_grant_id'] = trim($matches[1]);
+            }
+
+            // Programme name
+            if (preg_match('/PROGRAMME\s+NAME\s*:\s*(.+)/i', $line, $matches)) {
+                $data['programme_name'] = trim($matches[1]);
+            }
+
+            // Training date - DATE OF PROGRAM : From : 21/10/2025 To : 23/10/2025
+            if (preg_match('/DATE\s+OF\s+PROGRAM\s*:\s*From\s*:\s*(\d{2}\/\d{2}\/\d{4})\s*To\s*:\s*(\d{2}\/\d{2}\/\d{4})/', $line, $matches)) {
+                $data['hrdf_training_date'] = $matches[1] . ' To : ' . $matches[2];
+            }
+
+            // Total amount - TOTAL AMOUNT (RM) : 12,960.00
+            if (preg_match('/TOTAL\s+AMOUNT\s*\(RM\)\s*:\s*([\d,\.]+)/', $line, $matches)) {
+                $data['invoice_amount'] = (float) str_replace(',', '', $matches[1]);
+            }
+
+            // Approval date
+            if (preg_match('/Approved\s+Date\s*:\s*(\d{2}\/\d{2}\/\d{4})/', $line, $matches)) {
+                try {
+                    $data['approved_date'] = Carbon::createFromFormat('d/m/Y', $matches[1])->toDateString();
+                } catch (\Exception $e) {
+                    // Skip if date parsing fails
+                }
+            }
+        }
+
+        return $data;
+    }
+
+    private static function cleanBodyContent($htmlContent)
+    {
+        // Convert &nbsp; to regular spaces
+        $htmlContent = str_replace('&nbsp;', ' ', $htmlContent);
+
+        // Convert other HTML entities
+        $htmlContent = html_entity_decode($htmlContent, ENT_QUOTES, 'UTF-8');
+
+        // Add line breaks before closing tags
+        $htmlContent = preg_replace('/<\/(div|p|br|tr|td|th|li|h[1-6])>/i', "\n", $htmlContent);
+        $htmlContent = preg_replace('/<(br|hr)\s*\/?>/i', "\n", $htmlContent);
+
+        // Remove HTML tags
+        $cleanContent = strip_tags($htmlContent);
+
+        // Convert multiple spaces to single space
+        $cleanContent = preg_replace('/\s+/', ' ', $cleanContent);
+
+        // Split into lines and clean each line
+        $lines = explode("\n", $cleanContent);
+        $cleanLines = [];
+        foreach ($lines as $line) {
+            $cleanLines[] = trim($line);
+        }
+
+        return implode("\n", $cleanLines);
+    }
+
+    // Update status
+    public function updateStatus($newStatus, $notes = null)
+    {
+        $this->claim_status = strtoupper($newStatus);
+
+        if ($notes) {
+            $this->sales_remark = $notes;
+        }
+
+        $this->save();
+
+        return $this;
+    }
+
+    // Map invoice details
+    public function mapInvoiceDetails($invoiceNumber, $salesperson = null)
+    {
+        $this->invoice_number = $invoiceNumber;
+
+        if ($salesperson) {
+            $this->sales_person = $salesperson;
+        }
+
+        if (!$this->hrdf_claim_id) {
+            $this->hrdf_claim_id = 'CLAIM-' . $this->id . '-' . date('Y');
+        }
+
+        $this->save();
+
+        return $this;
+    }
+
+    public function hrdfHandover()
+    {
+        return $this->hasOne(HRDFHandover::class, 'hrdf_grant_id', 'hrdf_grant_id');
     }
 }
