@@ -255,27 +255,36 @@ class ProspectPICTabs
                                     foreach ($prospectPics as $index => $pic) {
                                         $formComponents[] = Section::make('Contact #' . ($index + 1))
                                             ->schema([
-                                                Grid::make(6)  // Change from 5 to 6 columns
+                                                Grid::make(6)
                                                     ->schema([
                                                         TextInput::make("prospect_pics.{$index}.name")
                                                             ->label('Name')
                                                             ->default($pic['name'] ?? '')
-                                                            ->disabled(),
+                                                            ->required()
+                                                            ->maxLength(255)
+                                                            ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                                                            ->afterStateUpdated(fn($state) => Str::upper($state)),
 
                                                         TextInput::make("prospect_pics.{$index}.position")
                                                             ->label('Position')
                                                             ->default($pic['position'] ?? '')
-                                                            ->disabled(),
+                                                            ->maxLength(255)
+                                                            ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                                                            ->afterStateUpdated(fn($state) => Str::upper($state)),
 
                                                         TextInput::make("prospect_pics.{$index}.contact_no")
                                                             ->label('Phone Number')
                                                             ->default($pic['contact_no'] ?? '')
-                                                            ->disabled(),
+                                                            ->required()
+                                                            ->tel()
+                                                            ->maxLength(20),
 
                                                         TextInput::make("prospect_pics.{$index}.email")
                                                             ->label('Email')
                                                             ->default($pic['email'] ?? '')
-                                                            ->disabled(),
+                                                            ->required()
+                                                            ->email()
+                                                            ->maxLength(255),
 
                                                         Select::make("prospect_pics.{$index}.status")
                                                             ->label('Status')
@@ -345,28 +354,27 @@ class ProspectPICTabs
                                                 $primaryContactIndex = $index;
                                             }
 
-                                            // Update status
+                                            // Update ALL fields (not just status and contact_no)
                                             if (isset($picData['original_data'])) {
-                                                // Restore the original data and update only the status
-                                                $originalData = json_decode($picData['original_data'], true);
-                                                $originalData['status'] = $picData['status'];
+                                                // Create updated data with all fields
+                                                $updatedData = [
+                                                    'name' => strtoupper($picData['name'] ?? ''),
+                                                    'position' => strtoupper($picData['position'] ?? ''),
+                                                    'contact_no' => $picData['contact_no'] ?? '',
+                                                    'email' => $picData['email'] ?? '',
+                                                    'status' => $picData['status'] ?? 'Available'
+                                                ];
 
-                                                // Don't save the set_as_primary flag to the JSON
-                                                $prospectPics[$index] = $originalData;
+                                                $prospectPics[$index] = $updatedData;
                                             } else {
-                                                // If original_data is missing, just update the status directly
-                                                if (isset($prospectPics[$index])) {
-                                                    $prospectPics[$index]['status'] = $picData['status'];
-                                                } else {
-                                                    // Create minimal record with status if nothing exists at this index
-                                                    $prospectPics[$index] = [
-                                                        'status' => $picData['status'],
-                                                        'name' => $picData['name'] ?? 'Unknown',
-                                                        'position' => $picData['position'] ?? '',
-                                                        'contact_no' => $picData['contact_no'] ?? '',
-                                                        'email' => $picData['email'] ?? '',
-                                                    ];
-                                                }
+                                                // If original_data is missing, create a new record with all fields
+                                                $prospectPics[$index] = [
+                                                    'name' => strtoupper($picData['name'] ?? 'Unknown'),
+                                                    'position' => strtoupper($picData['position'] ?? ''),
+                                                    'contact_no' => $picData['contact_no'] ?? '',
+                                                    'email' => $picData['email'] ?? '',
+                                                    'status' => $picData['status'] ?? 'Available'
+                                                ];
                                             }
                                         }
 
