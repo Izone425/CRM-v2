@@ -86,7 +86,7 @@ class HeadcountCompletedTable extends Component implements HasForms, HasTable
 
                 TextColumn::make('completed_at')
                     ->label('Date Completed')
-                    ->date('d M Y')
+                    ->dateTime('d M Y, g:ia')
                     ->sortable(),
 
                 TextColumn::make('lead.companyDetail.company_name')

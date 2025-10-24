@@ -94,7 +94,7 @@ class HeadcountNewTable extends Component implements HasForms, HasTable
 
                 TextColumn::make('submitted_at')
                     ->label('Date Submitted')
-                    ->date('d M Y')
+                    ->dateTime('d M Y, g:ia')
                     ->sortable(),
 
                 TextColumn::make('lead.companyDetail.company_name')
