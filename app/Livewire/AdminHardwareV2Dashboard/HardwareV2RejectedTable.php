@@ -254,8 +254,8 @@ class HardwareV2RejectedTable extends Component implements HasForms, HasTable
                         default => new HtmlString('<span>' . ucfirst($state) . '</span>'),
                     }),
 
-                TextColumn::make('created_at')
-                    ->label('Created Date')
+                TextColumn::make('updated_at')
+                    ->label('Last Modified')
                     ->dateTime('d M Y H:i')
                     ->sortable(),
             ])

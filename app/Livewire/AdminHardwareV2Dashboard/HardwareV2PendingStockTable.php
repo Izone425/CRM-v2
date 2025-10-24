@@ -278,8 +278,8 @@ class HardwareV2PendingStockTable extends Component implements HasForms, HasTabl
                     ->searchable(['sales_order_number', 'sales_order_status'])
                     ->sortable(),
 
-                TextColumn::make('created_at')
-                    ->label('Created Date')
+                TextColumn::make('updated_at')
+                    ->label('Last Modified')
                     ->dateTime('d M Y H:i')
                     ->sortable(),
             ])

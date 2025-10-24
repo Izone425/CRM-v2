@@ -247,17 +247,6 @@ class SyncHrdfEmails extends Command
 
                 $this->line("  └─ Created HRDF claim for: {$claim->company_name} (Grant: {$claim->hrdf_grant_id})");
 
-                // Create HRDF handover record
-                try {
-                    $hrdfHandover = $this->createHrdfHandover($claim, $hrdfMail);
-
-                    if ($hrdfHandover) {
-                        $this->line("  └─ Created HRDF handover for: {$claim->company_name} (ID: {$hrdfHandover->id})");
-                    }
-                } catch (\Exception $e) {
-                    $this->error("  └─ Failed to create HRDF handover: " . $e->getMessage());
-                }
-
             } catch (\Exception $e) {
                 $this->error("  └─ Failed to create HRDF claim: " . $e->getMessage());
             }
