@@ -29,29 +29,40 @@
         display: flex;
         flex-direction: column;
         justify-content: center;
-        align-items: center;
         margin-bottom: 15px;
         width: 100%;
-        min-width: 150px;
-        text-align: center;
+        text-align: center; /* Changed from center to left */
         max-height: 82px;
+        max-width: 220px;
     }
 
     .group-box:hover {
-        transform: translateY(-3px);
         background-color: #f9fafb;
+        transform: translateX(3px);
     }
 
     .group-box.selected {
         background-color: #f9fafb;
-        transform: translateY(-5px);
+        transform: translateX(5px);
         box-shadow: 0 4px 8px rgba(0,0,0,0.1);
     }
+
+    .group-info {
+        display: flex;
+        flex-direction: column;
+    }
+
 
     .group-title {
         font-size: 15px;
         font-weight: 600;
         margin-bottom: 8px;
+        text-align: left;
+    }
+
+    .group-desc {
+        font-size: 12px;
+        color: #6b7280;
     }
 
     .group-count {
@@ -94,7 +105,7 @@
     /* Category container */
     .category-container {
         display: grid;
-        grid-template-columns: repeat(4, 1fr);
+        grid-template-columns: repeat(5, 1fr);
         gap: 10px;
         border-right: 1px solid #e5e7eb;
         padding-right: 10px;
@@ -234,6 +245,9 @@
     .follow-up-lead { border-left: 4px solid #d946ef; }
     .follow-up-lead .stat-count { color: #d946ef; }
 
+    .group-rejected { border-top-color: #ef4444; }
+    .group-rejected .group-count { color: #ef4444; }
+
     .debtor-follow-up-today {
         border-left: 4px solid #06b6d4;
     }
@@ -308,6 +322,22 @@
     .stat-box.selected.debtor-product { background-color: rgba(59, 130, 246, 0.05); border-left-width: 6px; }
     .stat-box.selected.debtor-unpaid { background-color: rgba(239, 68, 68, 0.05); border-left-width: 6px; }
     .stat-box.selected.debtor-partial { background-color: rgba(245, 158, 11, 0.05); border-left-width: 6px; }
+    .software-handover-rejected { border-left: 4px solid #ef4444; }
+    .software-handover-rejected .stat-count { color: #ef4444; }
+    .hardware-handover-rejected { border-left: 4px solid #ef4444; }
+    .hardware-handover-rejected .stat-count { color: #ef4444; }
+
+    /* Selected state for hardware rejected */
+    .stat-box.selected.hardware-handover-rejected {
+        background-color: rgba(239, 68, 68, 0.05);
+        border-left-width: 6px;
+    }
+
+    /* Selected state for rejected */
+    .stat-box.selected.software-handover-rejected {
+        background-color: rgba(239, 68, 68, 0.05);
+        border-left-width: 6px;
+    }
 
     /* Table grid styling */
     .table-grid-container {
@@ -431,6 +461,10 @@
         ->getOverdueHardwareHandovers()
         ->count();
 
+    $hardwareHandoverRejected = app(\App\Livewire\SalespersonDashboard\HardwareHandoverRejected::class, [
+        'currentDashboard' => 'Salesperson'
+    ])->getHardwareHandoverCount();
+
     $followUpLead = app(\App\Livewire\SalespersonDashboard\FollowUpLead::class)
         ->getFollowUpLead()
         ->count();
@@ -453,6 +487,10 @@
 
     $hrdfFollowUpOverdue = app(\App\Livewire\SalespersonDashboard\HrdfFollowUpOverdueTable::class)
         ->getTodayProspects()
+        ->count();
+
+    $softwareHandoverRejected = app(\App\Livewire\SalespersonDashboard\SoftwareHandoverRejected::class)
+        ->getPendingKickOffs()
         ->count();
 
     // All Debtors - Getting real counts now
@@ -485,6 +523,8 @@
     $partialDebtorInvoiceCount = $partialDebtorsTable->getInvoiceCount();
     $partialDebtorAmount = $partialDebtorsTable->getTotalAmount();
 
+    $rejectedHandoverTotal = $softwareHandoverRejected + $hardwareHandoverRejected;
+
     // Total for badge display on group box
     $totalDebtorCount = $allDebtorCount;
 @endphp
@@ -510,8 +550,8 @@
                     this.selectedStat = 'software-handover-pending';
                 } else if (value === 'hardware-handover') {
                     this.selectedStat = 'hardware-handover-pending';
-                } else if (value === 'no-respond-leads') {
-                    this.selectedStat = 'transfer-lead';
+                } else if (value === 'rejected-handover') {
+                    this.selectedStat = 'software-handover-rejected';
                 } else if (value === 'others') {
                     this.selectedStat = 'debtor-all';
                 } else {
@@ -532,7 +572,6 @@
     <div class="dashboard-layout" wire:poll.300s>
         <div class="group-column">
             <div class="group-container">
-
                 <!-- Group: Demo Session -->
                 <div class="group-box group-demo"
                         :class="{'selected': selectedGroup === 'demo-session'}"
@@ -570,6 +609,14 @@
                         @click="setSelectedGroup('hardware-handover')">
                     <div class="group-title">Hardware Handover</div>
                     <div class="group-count">{{ $hardwareHandoverNew + $hardwareHandoverCompleted }}</div>
+                </div>
+
+                <!-- Group: Rejected Handover -->
+                <div class="group-box group-rejected"
+                        :class="{'selected': selectedGroup === 'rejected-handover'}"
+                        @click="setSelectedGroup('rejected-handover')">
+                    <div class="group-title">Rejected Handover</div>
+                    <div class="group-count">{{ $rejectedHandoverTotal }}</div>
                 </div>
             </div>
         </div>
@@ -712,29 +759,28 @@
                 </div>
             </div>
 
-            {{-- <!-- NO RESPOND LEADS -->
-            <div class="category-container" x-show="selectedGroup === 'no-respond-leads'">
-                <div class="stat-box transfer-lead"
-                        :class="{'selected': selectedStat === 'transfer-lead'}"
-                        @click="setSelectedStat('transfer-lead')">
+            <div class="category-container" x-show="selectedGroup === 'rejected-handover'">
+                <div class="stat-box software-handover-rejected"
+                        :class="{'selected': selectedStat === 'software-handover-rejected'}"
+                        @click="setSelectedStat('software-handover-rejected')">
                     <div class="stat-info">
-                        <div class="stat-label">Transfer Leads (37 Days)</div>
+                        <div class="stat-label">Software Rejected</div>
                     </div>
                     <div class="stat-count">
-                        <div class="stat-count">{{ $transferLead }}</div>
+                        <div class="stat-count">{{ $softwareHandoverRejected }}</div>
                     </div>
                 </div>
-                <div class="stat-box follow-up-lead"
-                        :class="{'selected': selectedStat === 'follow-up-lead'}"
-                        @click="setSelectedStat('follow-up-lead')">
+                <div class="stat-box hardware-handover-rejected"
+                        :class="{'selected': selectedStat === 'hardware-handover-rejected'}"
+                        @click="setSelectedStat('hardware-handover-rejected')">
                     <div class="stat-info">
-                        <div class="stat-label">Follow Up - Leads (97 Days)</div>
+                        <div class="stat-label">Hardware Rejected</div>
                     </div>
                     <div class="stat-count">
-                        <div class="stat-count">{{ $followUpLead }}</div>
+                        <div class="stat-count">{{ $hardwareHandoverRejected }}</div>
                     </div>
                 </div>
-            </div> --}}
+            </div>
 
             <!-- OTHERS -->
             <div class="category-container" x-show="selectedGroup === 'others'" style="grid-template-columns: repeat(5, 1fr);">
@@ -840,6 +886,9 @@
                 <div x-show="selectedStat === 'sales-completed-kickoff'" x-transition>
                     <livewire:salesperson-dashboard.sales-completed-kick-off />
                 </div>
+                <div x-show="selectedStat === 'software-handover-rejected'" x-transition>
+                    <livewire:salesperson-dashboard.software-handover-rejected />
+                </div>
 
                 <!-- Hardware Handover -->
                 <div x-show="selectedStat === 'hardware-handover-pending'" x-transition>
@@ -849,6 +898,9 @@
                 </div>
                 <div x-show="selectedStat === 'hardware-handover-completed'" x-transition>
                     <livewire:salesperson-dashboard.hardware-handover-completed />
+                </div>
+                <div x-show="selectedStat === 'hardware-handover-rejected'" x-transition>
+                    <livewire:salesperson-dashboard.hardware-handover-rejected :currentDashboard="'Salesperson'" />
                 </div>
 
                 <!-- No Respond Leads -->

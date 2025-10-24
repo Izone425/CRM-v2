@@ -805,7 +805,8 @@ class SoftwareHandoverV2RelationManager extends RelationManager
                 ->icon('heroicon-o-plus')
                 ->color('primary')
                 ->visible(function () use ($leadStatus, $isCompanyDetailsIncomplete) {
-                    return $leadStatus === 'Closed' && !$isCompanyDetailsIncomplete;
+                    return auth()->user()->id == 1;
+                    // return $leadStatus === 'Closed' && !$isCompanyDetailsIncomplete;
                 })
                 ->slideOver()
                 ->modalHeading('Software Handover')

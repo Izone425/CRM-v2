@@ -499,6 +499,7 @@ class HardwareHandoverV2RelationManager extends RelationManager
                                         ->where('quotation_type', 'product')
                                         ->where('status', \App\Enums\QuotationStatusEnum::accepted)
                                         ->whereNotIn('id', array_filter($usedPiIds)) // Filter out null/empty values
+                                        ->where('quotation_date', '>=', now()->toDateString())
                                         ->pluck('pi_reference_no', 'id')
                                         ->toArray();
                                 })
@@ -553,6 +554,7 @@ class HardwareHandoverV2RelationManager extends RelationManager
                                         ->where('quotation_type', 'hrdf')
                                         ->where('status', \App\Enums\QuotationStatusEnum::accepted)
                                         ->whereNotIn('id', array_filter($usedPiIds)) // Filter out null/empty values
+                                        ->where('quotation_date', '>=', now()->toDateString())
                                         ->pluck('pi_reference_no', 'id')
                                         ->toArray();
                                 })
