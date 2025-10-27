@@ -372,7 +372,6 @@ class SoftwareHandoverRelationManager extends RelationManager
                     Grid::make(4)
                         ->schema([
                             Select::make('proforma_invoice_product')
-                                ->required()
                                 ->label('Software + Hardware')
                                 ->options(function (RelationManager $livewire) {
                                     $leadId = $livewire->getOwnerRecord()->id;

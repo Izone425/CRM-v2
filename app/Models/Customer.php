@@ -27,7 +27,8 @@ class Customer extends Authenticatable
         'email_verified_at',
         'last_login_at',
         'lead_id',
-        'original_email' // Add this if not already present
+        'original_email',
+        'able_set_meeting',
     ];
 
     protected $hidden = [

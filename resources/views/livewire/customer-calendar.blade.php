@@ -3,7 +3,7 @@
         .calendar-container {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             border-radius: 20px;
-            padding: 2rem;
+            padding: 2rem 2rem 1rem 2rem;
             box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
         }
 
@@ -242,7 +242,7 @@
         }
 
         .form-group {
-            margin-bottom: 1.5rem;
+            margin-bottom: 1rem;
         }
 
         .form-label {
@@ -314,7 +314,7 @@
 
         /* Update modal footer to give more space */
         .modal-footer {
-            padding: 1.5rem 2rem;
+            padding: 1rem 2rem;
             border-top: 1px solid #e5e7eb;
             display: flex;
             justify-content: flex-end;
@@ -434,7 +434,7 @@
 
         /* Also hide scrollbar for modal body if needed */
         .modal-body {
-            padding: 2rem;
+            padding: 1.5rem 2rem 1rem 2rem;
             scrollbar-width: none; /* Firefox */
             -ms-overflow-style: none; /* Internet Explorer 10+ */
         }
@@ -528,7 +528,80 @@
             background: rgba(255, 255, 255, 0.3);
             transform: scale(1.1);
         }
+
+        .session-option {
+            padding: 1rem 0.75rem; /* Reduce horizontal padding for narrower boxes */
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 0; /* Remove bottom margin since we're using grid gap */
+            background: #fafafa;
+            min-height: 80px; /* Ensure consistent height */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .session-option:hover {
+            border-color: #667eea;
+            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.2);
+        }
+
+        .session-option.selected {
+            border-color: #667eea;
+            background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+            transform: translateY(-2px);
+        }
+
+        /* Responsive adjustments for smaller screens */
+        @media (max-width: 768px) {
+            .session-grid {
+                grid-template-columns: 1fr; /* Stack vertically on mobile */
+                gap: 1rem;
+            }
+
+            .session-option {
+                padding: 1.25rem; /* Restore padding on mobile */
+            }
+        }
+
+        @media (min-width: 769px) and (max-width: 1024px) {
+            .session-grid {
+                grid-template-columns: repeat(2, 1fr); /* 2 columns on tablets */
+            }
+        }
     </style>
+
+    @php
+        $customer = auth()->guard('customer')->user();
+        $hasNewAppointment = \App\Models\ImplementerAppointment::where('lead_id', $customer->lead_id)
+            ->where('status', 'New')
+            ->whereIn('type', ['KICK OFF MEETING SESSION', 'REVIEW SESSION'])
+            ->exists();
+    @endphp
+
+    {{-- @if(!$canScheduleMeeting)
+        <div class="p-4 mb-4 border rounded-lg border-amber-200 bg-amber-50">
+            <div class="flex items-center">
+                <svg class="w-5 h-5 mr-3 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                </svg>
+                <div>
+                    @if($hasNewKickOffMeeting)
+                        <h4 class="font-semibold text-amber-800">Pending Appointment</h4>
+                        <p class="text-sm text-amber-700">You have a pending kick-off meeting. Please wait for it to be completed before scheduling another one.</p>
+                    @else
+                        <h4 class="font-semibold text-amber-800">Meeting Scheduling Disabled</h4>
+                        <p class="text-sm text-amber-700">Please contact your sales representative or support team to enable meeting scheduling for your account.</p>
+                    @endif
+                </div>
+            </div>
+        </div>
+    @endif --}}
 
     <div class="calendar-container">
         <!-- Header Section -->
@@ -540,7 +613,7 @@
                         <i class="text-xl text-indigo-600 fas fa-calendar-alt"></i>
                     </div>
                     <div>
-                        <h2 class="text-2xl font-bold text-gray-900">Schedule Your Kick-Off Meeting</h2>
+                        <h2 class="text-2xl font-bold text-gray-900">{{ $this->getSessionTitle() }}</h2>
                         <p class="text-gray-600">Choose your preferred date and time</p>
                     </div>
                 </div>
@@ -583,8 +656,9 @@
                                 <!-- Column 2: Meeting Details -->
                                 <div class="flex-1">
                                     <div class="space-y-1 text-sm text-gray-600">
+                                        <div><strong>Type:</strong> {{ $booking['type'] }}</div>
                                         <div><strong>Implementer:</strong> {{ $booking['implementer'] }}</div>
-                                        <div><strong>Type:</strong> {{ $booking['appointment_type'] }}</div>
+                                        <div><strong>Mode:</strong> {{ $booking['appointment_type'] }}</div>
                                     </div>
                                 </div>
 
@@ -594,7 +668,10 @@
                                         $appointmentDate = \Carbon\Carbon::parse($booking['raw_date'])->format('Y-m-d');
                                         $appointmentDateTime = \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $appointmentDate . ' ' . $booking['start_time']);
                                         $now = \Carbon\Carbon::now();
-                                        $canCancel = $appointmentDateTime->isFuture() || ($appointmentDateTime->isToday() && $appointmentDateTime->gt($now));
+
+                                        // Updated cancellation logic
+                                        $canCancel = ($booking['status'] === 'New') && // Only allow cancellation if status is 'New'
+                                                    ($appointmentDateTime->isFuture() || ($appointmentDateTime->isToday() && $appointmentDateTime->gt($now)));
                                     @endphp
 
                                     @if($canCancel)
@@ -602,6 +679,10 @@
                                                 class="cancel-button">
                                             ❌ Cancel
                                         </button>
+                                    @elseif($booking['status'] === 'Done')
+                                        <div class="px-3 py-2 text-xs font-semibold text-green-700 bg-green-100 rounded-lg">
+                                            ✅ Completed
+                                        </div>
                                     @else
                                         <button class="cancel-button" disabled>
                                             🔒 Cannot Cancel
@@ -668,7 +749,7 @@
                     {{ $dayData['isPublicHoliday'] ? 'holiday' : '' }}
                     {{ $dayData['hasCustomerMeeting'] ? 'has-meeting' : '' }}
                     {{ $dayData['canBook'] ? 'bookable' : '' }}
-                    {{ $hasExistingBooking && !$dayData['hasCustomerMeeting'] ? 'disabled' : '' }}
+                    {{ !$canScheduleMeeting && !$dayData['hasCustomerMeeting'] ? 'disabled' : '' }}
                     {{ $dayData['isBeyondBookingWindow'] ? 'disabled' : '' }}"
                     @if($dayData['canBook'])
                         wire:click="openBookingModal('{{ $dayData['dateString'] }}')"
@@ -686,8 +767,14 @@
                         <div class="text-xs text-gray-500">📅 Past</div>
                     @elseif($dayData['isBeyondBookingWindow'])
                         <div class="text-xs text-gray-400">🔒 Beyond Booking Window</div>
-                    @elseif($hasExistingBooking)
-                        <div class="text-xs text-gray-400">🔒 Booking Complete</div>
+                    @elseif(!$canScheduleMeeting)
+                        <div class="text-xs text-gray-400">
+                            @if($hasNewAppointment)
+                                🔒 Pending Meeting
+                            @else
+                                🔒 Scheduling Disabled
+                            @endif
+                        </div>
                     @elseif($dayData['availableCount'] > 0)
                         <div class="available-count">✨ {{ $dayData['availableCount'] }} available</div>
                     @elseif($dayData['isCurrentMonth'])
@@ -795,16 +882,18 @@
                 <div class="modal-body">
                     <!-- Available Sessions -->
                     <div class="form-group">
-                        @foreach($availableSessions as $index => $session)
-                            <div class="session-option {{ $selectedSession && $selectedSession['session_name'] === $session['session_name'] ? 'selected' : '' }}"
-                                wire:click="selectSession({{ $index }})">
-                                <div class="flex items-center justify-between">
-                                    <div>
-                                        <div class="font-semibold text-gray-800">{{ $session['session_name'] }} | {{ $session['formatted_time'] }}</div>
+                        <label class="form-label">Available Sessions</label>
+                        <div class="grid grid-cols-3 gap-4">
+                            @foreach($availableSessions as $index => $session)
+                                <div class="session-option {{ $selectedSession && $selectedSession['session_name'] === $session['session_name'] ? 'selected' : '' }}"
+                                    wire:click="selectSession({{ $index }})">
+                                    <div class="text-center">
+                                        <div class="mb-1 text-sm font-semibold text-gray-800">{{ $session['session_name'] }}</div>
+                                        <div class="text-xs text-gray-600">{{ $session['formatted_time'] }}</div>
                                     </div>
                                 </div>
-                            </div>
-                        @endforeach
+                            @endforeach
+                        </div>
                     </div>
 
                     <!-- Appointment Type -->
@@ -885,7 +974,7 @@
                     <div class="mb-8">
                         <h2 class="mb-4 text-3xl font-bold text-green-600">Booking Submitted!</h2>
                         <p class="mb-6 text-lg text-gray-600" style="text-align: left;">
-                            Your kick-off meeting request has been submitted successfully. <br>You'll receive an email for appointment details soon.
+                            Your {{ strtolower($submittedBooking['session_type'] ?? 'meeting') }} request has been submitted successfully. <br>You'll receive an email for appointment details soon.
                         </p>
                     </div>
 

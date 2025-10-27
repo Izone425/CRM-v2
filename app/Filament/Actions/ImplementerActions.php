@@ -691,6 +691,38 @@ class ImplementerActions
                         }
                     }
 
+                    if ($record->lead_id) {
+                        try {
+                            // Find the customer associated with this lead
+                            $customer = \App\Models\Customer::where('lead_id', $record->lead_id)->first();
+
+                            if ($customer) {
+                                // Update customer's able_set_meeting to true
+                                $customer->update(['able_set_meeting' => true]);
+
+                                Log::info('Customer able_set_meeting enabled after implementer action cancellation', [
+                                    'customer_id' => $customer->id,
+                                    'customer_email' => $customer->email,
+                                    'appointment_id' => $record->id,
+                                    'company_name' => $customer->company_name,
+                                    'cancelled_by' => auth()->user()->name,
+                                    'cancellation_type' => 'implementer_action_cancellation'
+                                ]);
+                            } else {
+                                Log::warning('Customer not found for lead_id during implementer action cancellation', [
+                                    'lead_id' => $record->lead_id,
+                                    'appointment_id' => $record->id
+                                ]);
+                            }
+                        } catch (\Exception $e) {
+                            Log::error('Failed to update customer able_set_meeting during implementer action cancellation: ' . $e->getMessage(), [
+                                'appointment_id' => $record->id,
+                                'lead_id' => $record->lead_id,
+                                'trace' => $e->getTraceAsString()
+                            ]);
+                        }
+                    }
+
                     $record->save();
 
                     // Send email notification about cancellation

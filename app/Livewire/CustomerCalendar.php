@@ -37,25 +37,47 @@ class CustomerCalendar extends Component
 
     public $showCancelModal = false;
     public $appointmentToCancel = null;
+    public $canScheduleMeeting = false;
 
     public function mount()
     {
         $this->currentDate = Carbon::now();
-        $this->customerLeadId = auth()->guard('customer')->user()->lead_id;
-        $this->swId = auth()->guard('customer')->user()->sw_id;
+        $customer = auth()->guard('customer')->user();
+        $this->customerLeadId = $customer->lead_id;
+        $this->swId = $customer->sw_id;
         $this->assignedImplementer = $this->getAssignedImplementer();
         $this->checkExistingBookings();
+
+        // NEW LOGIC: Check if customer can schedule meetings
+        $this->canScheduleMeeting = $this->determineSchedulingPermission($customer);
+    }
+
+    private function determineSchedulingPermission($customer)
+    {
+        // Check if there's any "New" status appointment (any type)
+        $hasNewAppointment = ImplementerAppointment::where('lead_id', $customer->lead_id)
+            ->where('status', 'New')
+            ->whereIn('type', ['KICK OFF MEETING SESSION', 'REVIEW SESSION'])
+            ->exists();
+
+        // If there's a "New" appointment, cannot schedule more
+        if ($hasNewAppointment) {
+            return false;
+        }
+
+        // If no "New" appointments, check able_set_meeting permission
+        return (bool) $customer->able_set_meeting;
     }
 
     public function checkExistingBookings()
     {
         $customer = auth()->guard('customer')->user();
 
-        // Use lead_id instead of customer_id
+        // Get all existing bookings (for display purposes) - include both types
         $this->existingBookings = ImplementerAppointment::where('lead_id', $customer->lead_id)
             ->whereIn('status', ['New', 'Done'])
-            ->where('type', 'KICK OFF MEETING SESSION')
-            ->orderBy('date', 'asc')
+            ->whereIn('type', ['KICK OFF MEETING SESSION', 'REVIEW SESSION'])
+            ->orderBy('date', 'desc') // Show most recent first
             ->get()
             ->map(function ($booking) {
                 return [
@@ -68,14 +90,49 @@ class CustomerCalendar extends Component
                     'status' => $booking->status,
                     'request_status' => $booking->request_status,
                     'appointment_type' => $booking->appointment_type,
+                    'type' => $booking->type, // Add this to show the meeting type
                     'raw_date' => $booking->date,
-                    'start_time' => $booking->start_time, // Add this line
-                    'end_time' => $booking->end_time,     // Add this line too for consistency
+                    'start_time' => $booking->start_time,
+                    'end_time' => $booking->end_time,
                 ];
             })
             ->toArray();
 
+        // Keep this for display purposes only
         $this->hasExistingBooking = count($this->existingBookings) > 0;
+
+        // Update scheduling permission after checking bookings
+        $this->canScheduleMeeting = $this->determineSchedulingPermission($customer);
+    }
+
+    private function getNextSessionType()
+    {
+        $customer = auth()->guard('customer')->user();
+
+        // Check if there's any completed kick-off meeting
+        $hasCompletedKickOff = ImplementerAppointment::where('lead_id', $customer->lead_id)
+            ->where('type', 'KICK OFF MEETING SESSION')
+            ->where('status', 'Done')
+            ->exists();
+
+        // If there's a completed kick-off meeting, next should be review session
+        if ($hasCompletedKickOff) {
+            return 'REVIEW SESSION';
+        }
+
+        // Otherwise, it should be kick-off meeting
+        return 'KICK OFF MEETING SESSION';
+    }
+
+    public function getSessionTitle()
+    {
+        $nextSessionType = $this->getNextSessionType();
+
+        if ($nextSessionType === 'REVIEW SESSION') {
+            return 'Schedule Your Review Session';
+        }
+
+        return 'Schedule Your Kick-Off Meeting';
     }
 
     private function sendCancellationNotification($appointment)
@@ -284,7 +341,6 @@ class CustomerCalendar extends Component
                 return;
             }
 
-            // Cancel the Teams meeting if it exists
             if ($appointment->event_id) {
                 try {
                     $this->cancelTeamsMeeting($appointment);
@@ -308,17 +364,33 @@ class CustomerCalendar extends Component
                 'remarks' => ($appointment->remarks ? $appointment->remarks . ' | ' : '') . 'CANCELLED BY CUSTOMER on ' . now()->format('d M Y H:i:s')
             ]);
 
+            // NEW: Update customer's able_set_meeting to 1 after successful cancellation
+            $customer = auth()->guard('customer')->user();
+
+            DB::table('customers')
+            ->where('id', $customer->id)
+            ->update(['able_set_meeting' => true]);
+
+            Log::info('Customer able_set_meeting enabled after cancellation', [
+                'customer_id' => $customer->id,
+                'customer_email' => $customer->email,
+                'appointment_id' => $appointment->id,
+                'company_name' => $customer->company_name
+            ]);
+
             // Send cancellation notification email using existing template
             $this->sendCancellationNotification($appointment);
 
             // Close modal and refresh bookings
             $this->closeCancelModal();
-            $this->checkExistingBookings();
+            $this->checkExistingBookings(); // This will update canScheduleMeeting status
+
+            $this->canScheduleMeeting = true;
 
             Notification::make()
                 ->title('Appointment cancelled successfully')
                 ->success()
-                ->body('Your appointment and Teams meeting have been cancelled. Cancellation notifications sent to all attendees, implementer, and salesperson.')
+                ->body('Your appointment and Teams meeting have been cancelled. You can now schedule a new meeting if needed.')
                 ->send();
 
         } catch (\Exception $e) {
@@ -372,13 +444,29 @@ class CustomerCalendar extends Component
 
     public function openBookingModal($date)
     {
-        // Check if customer already has a booking
-        if ($this->hasExistingBooking) {
-            Notification::make()
-                ->title('Booking already exists')
-                ->warning()
-                ->body('You already have a scheduled kick-off meeting. Please contact support if you need to reschedule.')
-                ->send();
+        $customer = auth()->guard('customer')->user();
+
+        // Check the updated permission logic
+        if (!$this->canScheduleMeeting) {
+            // Check if it's because of "New" status meeting or permission
+            $hasNewKickOffMeeting = ImplementerAppointment::where('lead_id', $customer->lead_id)
+                ->where('status', 'New')
+                ->where('type', 'KICK OFF MEETING SESSION')
+                ->exists();
+
+            if ($hasNewKickOffMeeting) {
+                Notification::make()
+                    ->title('Existing appointment pending')
+                    ->warning()
+                    ->body('You have a pending kick-off meeting. Please wait for it to be completed before scheduling another one.')
+                    ->send();
+            } else {
+                Notification::make()
+                    ->title('Meeting scheduling disabled')
+                    ->warning()
+                    ->body('You are not authorized to schedule meetings. Please contact support for assistance.')
+                    ->send();
+            }
             return;
         }
 
@@ -599,12 +687,13 @@ class CustomerCalendar extends Component
 
     public function submitBooking()
     {
-        // Double check if customer already has a booking
-        if ($this->hasExistingBooking) {
+        $customer = auth()->guard('customer')->user();
+
+        if (!$customer->able_set_meeting) {
             Notification::make()
-                ->title('Booking already exists')
+                ->title('Meeting scheduling disabled')
                 ->danger()
-                ->body('You already have a scheduled meeting.')
+                ->body('You are not authorized to schedule meetings.')
                 ->send();
             return;
         }
@@ -626,6 +715,9 @@ class CustomerCalendar extends Component
         try {
             // Get customer details
             $customer = auth()->guard('customer')->user();
+
+            // Determine the correct session type
+            $sessionType = $this->getNextSessionType();
 
             // Create Teams meeting if appointment type is ONLINE
             $teamsEventId = null;
@@ -653,8 +745,8 @@ class CustomerCalendar extends Component
                     $startDateTime = Carbon::parse($this->selectedDate . ' ' . $this->selectedSession['start_time']);
                     $endDateTime = Carbon::parse($this->selectedDate . ' ' . $this->selectedSession['end_time']);
 
-                    $meetingTitle = "KICK OFF MEETING SESSION | {$customer->company_name}";
-                    $meetingBody = "Customer-requested kick-off meeting session scheduled by {$customer->name}";
+                    $meetingTitle = "{$sessionType} | {$customer->company_name}";
+                    $meetingBody = "Customer-requested {$sessionType} scheduled by {$customer->name}";
 
                     // Create Teams meeting through Microsoft Graph API
                     $accessToken = \App\Services\MicrosoftGraphService::getAccessToken();
@@ -789,13 +881,15 @@ class CustomerCalendar extends Component
                         'event_id' => $teamsEventId,
                         'meeting_link' => $meetingLink,
                         'customer' => $customer->company_name,
-                        'implementer' => $implementer->name
+                        'implementer' => $implementer->name,
+                        'session_type' => $sessionType
                     ]);
 
                 } catch (\Exception $e) {
                     Log::error('Failed to create Teams meeting for customer booking: ' . $e->getMessage(), [
                         'customer' => $customer->company_name,
                         'implementer' => $this->selectedSession['implementer_name'],
+                        'session_type' => $sessionType,
                         'trace' => $e->getTraceAsString()
                     ]);
 
@@ -812,13 +906,13 @@ class CustomerCalendar extends Component
             $appointment = new ImplementerAppointment();
             $appointment->fill([
                 'lead_id' => $customer->lead_id, // Use lead_id instead of customer_id
-                'type' => 'KICK OFF MEETING SESSION',
+                'type' => $sessionType, // Use the determined session type
                 'appointment_type' => $this->appointmentType,
                 'date' => $this->selectedDate,
                 'start_time' => $this->selectedSession['start_time'],
                 'end_time' => $this->selectedSession['end_time'],
                 'implementer' => $this->selectedSession['implementer_name'],
-                'title' => 'CUSTOMER REQUEST - KICK OFF MEETING SESSION | ' . $customer->company_name,
+                'title' => "CUSTOMER REQUEST - {$sessionType} | " . $customer->company_name,
                 'status' => 'New',
                 'request_status' => 'New',
                 'required_attendees' => $this->requiredAttendees,
@@ -833,6 +927,18 @@ class CustomerCalendar extends Component
 
             $appointment->save();
 
+            DB::table('customers')
+            ->where('id', $customer->id)
+            ->update(['able_set_meeting' => false]);
+
+            info('Customer able_set_meeting disabled after booking', [
+                'customer_id' => $customer->id,
+                'customer_email' => $customer->email,
+                'appointment_id' => $appointment->id,
+                'company_name' => $customer->company_name,
+                'session_type' => $sessionType
+            ]);
+
             // Send notification email to implementer team
             $this->sendBookingNotification($appointment, $customer);
 
@@ -841,10 +947,11 @@ class CustomerCalendar extends Component
                 'id' => $appointment->id,
                 'date' => Carbon::parse($appointment->date)->format('l, d F Y'),
                 'time' => Carbon::parse($appointment->start_time)->format('g:i A') . ' - ' .
-                         Carbon::parse($appointment->end_time)->format('g:i A'),
+                        Carbon::parse($appointment->end_time)->format('g:i A'),
                 'implementer' => $appointment->implementer,
                 'session' => $appointment->session,
                 'type' => $appointment->appointment_type,
+                'session_type' => $sessionType, // Add this for the success modal
                 'has_teams' => !empty($meetingLink),
                 'submitted_at' => now()->format('g:i A'),
             ];
@@ -1017,7 +1124,10 @@ class CustomerCalendar extends Component
 
         // Calculate booking window - only allow next 3 weeks from today
         $today = Carbon::today();
-        $maxBookingDate = $today->copy()->addWeeks(3)->endOfWeek(); // End of third week
+        $maxBookingDate = $today->copy()->addWeeks(3)->endOfWeek();
+
+        $customer = auth()->guard('customer')->user();
+        $canSchedule = $this->canScheduleMeeting; // Use the updated permission logic
 
         $monthlyData = [];
         $current = $startOfCalendar->copy();
@@ -1038,9 +1148,9 @@ class CustomerCalendar extends Component
             // Check if this date has customer's scheduled meeting
             $hasCustomerMeeting = collect($this->existingBookings)->contains('raw_date', $dateString);
 
-            // Count available sessions for this date (only if customer doesn't have existing booking)
+            // Count available sessions for this date (based on updated permission logic)
             $availableCount = 0;
-            if (!$this->hasExistingBooking && !$isPast && !$isWeekend && !$isPublicHoliday && $isCurrentMonth && !$isBeyondBookingWindow) {
+            if ($canSchedule && !$isPast && !$isWeekend && !$isPublicHoliday && $isCurrentMonth && !$isBeyondBookingWindow) {
                 $availableCount = count($this->getAvailableSessionsForDate($dateString));
             }
 
@@ -1056,7 +1166,7 @@ class CustomerCalendar extends Component
                 'isBeyondBookingWindow' => $isBeyondBookingWindow,
                 'availableCount' => $availableCount,
                 'hasCustomerMeeting' => $hasCustomerMeeting,
-                'canBook' => !$this->hasExistingBooking && !$isPast && !$isWeekend && !$isPublicHoliday && $isCurrentMonth && !$isBeyondBookingWindow && $availableCount > 0
+                'canBook' => $canSchedule && !$isPast && !$isWeekend && !$isPublicHoliday && $isCurrentMonth && !$isBeyondBookingWindow && $availableCount > 0
             ];
 
             $current->addDay();
