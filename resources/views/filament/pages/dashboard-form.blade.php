@@ -78,6 +78,15 @@
             ->getNewHardwareHandovers()
             ->count();
 
+        $adminUSDInvoiceTotal = DB::connection('frontenddb')
+            ->table('crm_invoice_details')
+            ->where('f_currency', 'USD')
+            ->where('f_status', 0)
+            ->whereNull('f_auto_count_inv')
+            ->where('f_id', '>', '0000040131')
+            ->distinct('f_invoice_no')
+            ->count('f_invoice_no');
+
         $initialStageTotal = $newTaskCount + $pendingStockCount + $pendingCourierCount + $pendingAdminPickUpCount + $pendingExternalInstallationCount + $pendingInternalInstallationCount;
 
         $adminTotal = $adminSoftwareTotal + $adminHeadcountTotal + $adminHrdfTotal + $initialStageTotal;
@@ -852,6 +861,36 @@
                                                         min-width: 20px;
                                                         text-align: center;
                                                     ">{{ $adminHrdfTotal }}</span>
+                                                @endif
+                                            </button>
+
+                                            <button
+                                                wire:click="toggleDashboard('AdminUSDInvoice')"
+                                                style="
+                                                    display: flex;
+                                                    justify-content: space-between;
+                                                    align-items: center;
+                                                    width: 100%;
+                                                    padding: 10px 16px;
+                                                    text-align: left;
+                                                    border: none;
+                                                    background: {{ $currentDashboard === 'AdminUSDInvoice' ? '#f3f3f3' : 'white' }};
+                                                    cursor: pointer;
+                                                    font-size: 14px;
+                                                "
+                                            >
+                                                <span>Admin - USD Invoice</span>
+                                                @if($adminUSDInvoiceTotal > 0)
+                                                    <span style="
+                                                        background: #ef4444;
+                                                        color: white;
+                                                        border-radius: 12px;
+                                                        padding: 2px 8px;
+                                                        font-size: 12px;
+                                                        font-weight: bold;
+                                                        min-width: 20px;
+                                                        text-align: center;
+                                                    ">{{ $adminUSDInvoiceTotal }}</span>
                                                 @endif
                                             </button>
 

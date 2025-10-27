@@ -57,17 +57,7 @@ class ProcessHrdfClaimPayments extends Command
 
                     $claim->update([
                         'claim_status' => 'RECEIVED',
-                        'paid_at' => now(),
-                        'payment_verified_at' => now()
                     ]);
-
-                    // Also update related HRDF handover if exists
-                    if ($claim->hrdfHandover) {
-                        $claim->hrdfHandover->update([
-                            'payment_status' => 'Fully Paid',
-                            'payment_verified_at' => now()
-                        ]);
-                    }
 
                     $processedCount++;
                     $fullyPaidCount++;

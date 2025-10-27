@@ -358,13 +358,7 @@ class HRDFHandoverRelationManager extends RelationManager
 
                     // ✅ Get lead and extract salesperson name using the existing function
                     $lead = $this->getOwnerRecord();
-                    $salesPersonName = '';
-                    
-                    // Use the existing getSalespersonUser() function from Lead model
-                    $salespersonUser = $lead->getSalespersonUser();
-                    if ($salespersonUser && $salespersonUser->name) {
-                        $salesPersonName = $salespersonUser->name;
-                    }
+                    $salesPersonName = auth()->user()->name;
 
                     // Update the HRDF claim with the lead's salesperson
                     $hrdfClaim->update([
