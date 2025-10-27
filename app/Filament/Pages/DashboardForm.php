@@ -105,6 +105,7 @@ class DashboardForm extends Page
             'AdminRenewalv2',
             'AdminHRDF',
             'AdminHeadcount',
+            'AdminUSDInvoice',
             'General',
             'Credit Controller',
             'Trainer',

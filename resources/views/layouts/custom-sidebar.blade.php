@@ -583,11 +583,12 @@
         .icon-link[data-section="admin"] .icon { color: #84CC16; /* icon-gradient-7 */ }
         .icon-link[data-section="implementer"] .icon { color: #EAB308; /* icon-gradient-8 */ }
         .icon-link[data-section="support"] .icon { color: #F59E0B; /* icon-gradient-9 */ }
-        .icon-link[data-section="technician"] .icon { color: #F97316; /* icon-gradient-10 */ }
-        .icon-link[data-section="marketing"] .icon { color: #DC2626; /* icon-gradient-11 */ }
-        .icon-link[data-section="internal"] .icon { color: #C026D3; /* icon-gradient-12 */ }
-        .icon-link[data-section="external"] .icon { color: #A855F7; /* icon-gradient-13 */ }
-        .icon-link[data-section="settings"] .icon { color: #8B5CF6; /* icon-gradient-14 */ }
+        .icon-link[data-section="trainer"] .icon { color: #F97316; /* Add this line for trainer */ }
+        .icon-link[data-section="technician"] .icon { color: #DC2626; /* Updated to next color */ }
+        .icon-link[data-section="marketing"] .icon { color: #C026D3; /* Updated */ }
+        .icon-link[data-section="internal"] .icon { color: #A855F7; /* Updated */ }
+        .icon-link[data-section="external"] .icon { color: #8B5CF6; /* Updated */ }
+        .icon-link[data-section="settings"] .icon { color: #7C3AED; /* Updated */ }
     </style>
 
     <!-- Main Sidebar Container -->
@@ -670,6 +671,15 @@
                         <span class="icon-tooltip">Support</span>
                     </div>
                 @endif
+
+                {{-- @if(in_array(auth()->user()->role_id, [6,7]) || auth()->user()->role_id == 3)
+                    <div class="icon-link" data-section="trainer">
+                        <div class="icon-wrapper">
+                            <i class="bi bi-person-video3 icon"></i>
+                        </div>
+                        <span class="icon-tooltip">Trainer</span>
+                    </div>
+                @endif --}}
 
                 @if(auth()->user()->role_id == 9 || auth()->user()->role_id == 3)
                     <div class="icon-link" data-section="technician">
@@ -1437,8 +1447,6 @@
 
                 <!-- Trainer Section -->
                 <div id="trainer-section" class="section-content">
-                    <div class="section-heading">Trainer</div>
-
                     <div class="menu-block">
                         <div class="menu-item nested-dropdown-trigger" data-submenu="trainer-dashboard-submenu">
                             <div class="menu-icon-wrapper">
