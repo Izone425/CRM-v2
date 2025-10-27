@@ -89,7 +89,7 @@
 
         $initialStageTotal = $newTaskCount + $pendingStockCount + $pendingCourierCount + $pendingAdminPickUpCount + $pendingExternalInstallationCount + $pendingInternalInstallationCount;
 
-        $adminTotal = $adminSoftwareTotal + $adminHeadcountTotal + $adminHrdfTotal + $initialStageTotal;
+        $adminTotal = $adminSoftwareTotal + $adminHeadcountTotal + $adminHrdfTotal + $initialStageTotal + $adminUSDInvoiceTotal;
     @endphp
 
     <div
@@ -875,7 +875,6 @@
                                                     text-align: left;
                                                     border: none;
                                                     background: {{ $currentDashboard === 'AdminUSDInvoice' ? '#f3f3f3' : 'white' }};
-                                                    cursor: pointer;
                                                     font-size: 14px;
                                                 "
                                             >

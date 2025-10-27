@@ -52,7 +52,8 @@ use Microsoft\Graph\Graph;
 use Microsoft\Graph\Model\Event;
 use Spatie\Activitylog\Traits\LogsActivity;
 use Livewire\Attributes\On;
-
+use Filament\Forms\Components\Toggle;
+use Filament\Forms\Components\Fieldset;
 class ImplementerAppointmentRelationManager extends RelationManager
 {
     protected static string $relationship = 'implementerAppointment';
@@ -868,6 +869,38 @@ class ImplementerAppointmentRelationManager extends RelationManager
                                     }
                                 }
 
+                                if ($record->lead_id) {
+                                    try {
+                                        // Find the customer associated with this lead
+                                        $customer = \App\Models\Customer::where('lead_id', $record->lead_id)->first();
+
+                                        if ($customer) {
+                                            // Update customer's able_set_meeting to true
+                                            $customer->update(['able_set_meeting' => true]);
+
+                                            Log::info('Customer able_set_meeting enabled after admin cancellation', [
+                                                'customer_id' => $customer->id,
+                                                'customer_email' => $customer->email,
+                                                'appointment_id' => $record->id,
+                                                'company_name' => $customer->company_name,
+                                                'cancelled_by' => auth()->user()->name,
+                                                'cancellation_type' => 'admin_cancellation'
+                                            ]);
+                                        } else {
+                                            Log::warning('Customer not found for lead_id during cancellation', [
+                                                'lead_id' => $record->lead_id,
+                                                'appointment_id' => $record->id
+                                            ]);
+                                        }
+                                    } catch (\Exception $e) {
+                                        Log::error('Failed to update customer able_set_meeting during admin cancellation: ' . $e->getMessage(), [
+                                            'appointment_id' => $record->id,
+                                            'lead_id' => $record->lead_id,
+                                            'trace' => $e->getTraceAsString()
+                                        ]);
+                                    }
+                                }
+
                                 $record->save();
 
                                 Notification::make()
@@ -968,6 +1001,322 @@ class ImplementerAppointmentRelationManager extends RelationManager
     public function headerActions(): array
     {
         return [
+            Tables\Actions\Action::make('Activate Customer Booking')
+                ->icon('heroicon-o-envelope')
+                ->color('info')
+                ->modalHeading('Send Email to Client')
+                ->modalWidth('6xl')
+                ->hidden(function() {
+                    // Get the current user
+                    $user = auth()->user();
+
+                    // Get the lead record
+                    $lead = $this->getOwnerRecord();
+                    if (!$lead) return true; // Hide if no lead record found
+
+                    // Admins (role_id = 3) can always send emails
+                    if ($user->role_id == 3) {
+                        return false; // Don't hide for admins
+                    }
+
+                    // Find the latest software handover for this lead
+                    $softwareHandover = \App\Models\SoftwareHandover::where('lead_id', $lead->id)
+                        ->latest()
+                        ->first();
+
+                    // If there's a software handover and the current user is the assigned implementer, allow access
+                    if ($softwareHandover && $softwareHandover->implementer === $user->name) {
+                        return false; // Don't hide for the assigned implementer
+                    }
+
+                    // For all other cases, hide the button
+                    return true;
+                })
+                ->form([
+                    Grid::make(2)
+                        ->schema([
+                            Toggle::make('enable_customer_booking')
+                                ->label('Enable Customer Meeting Booking')
+                                ->helperText('Check this to allow the customer to schedule new meetings after sending the email')
+                                ->onIcon('heroicon-o-calendar-days')
+                                ->offIcon('heroicon-o-calendar-days')
+                                ->onColor('success')
+                                ->offColor('gray')
+                                ->default(true)
+                                ->reactive(),
+
+                            Select::make('scheduler_type')
+                                ->label('Send Email')
+                                ->options([
+                                    'instant' => 'Send Immediately',
+                                    // 'scheduled' => 'Schedule for Later',
+                                    // 'both' => 'Send Now & Schedule'
+                                ])
+                                ->default('instant')
+                                ->required(),
+                        ]),
+
+                    Fieldset::make('Email Details')
+                        ->schema([
+                            TextInput::make('required_attendees')
+                                ->label('Required Attendees')
+                                ->default(function () {
+                                    $lead = $this->getOwnerRecord();
+                                    $emails = [];
+
+                                    if ($lead) {
+                                        // 1. Get emails from SoftwareHandover implementation_pics
+                                        $softwareHandover = \App\Models\SoftwareHandover::where('lead_id', $lead->id)->latest()->first();
+
+                                        if ($softwareHandover && !empty($softwareHandover->implementation_pics) && is_string($softwareHandover->implementation_pics)) {
+                                            try {
+                                                $contacts = json_decode($softwareHandover->implementation_pics, true);
+
+                                                if (is_array($contacts)) {
+                                                    foreach ($contacts as $contact) {
+                                                        if (!empty($contact['pic_email_impl'])) {
+                                                            $emails[] = $contact['pic_email_impl'];
+                                                        }
+                                                    }
+                                                }
+                                            } catch (\Exception $e) {
+                                                Log::error('Error parsing implementation_pics JSON: ' . $e->getMessage());
+                                            }
+                                        }
+
+                                        // 2. Get emails from company_detail->additional_pic
+                                        if ($lead->companyDetail && !empty($lead->companyDetail->additional_pic)) {
+                                            try {
+                                                $additionalPics = json_decode($lead->companyDetail->additional_pic, true);
+
+                                                if (is_array($additionalPics)) {
+                                                    foreach ($additionalPics as $pic) {
+                                                        // Only include contacts with "Available" status
+                                                        if (
+                                                            !empty($pic['email']) &&
+                                                            isset($pic['status']) &&
+                                                            $pic['status'] === 'Available'
+                                                        ) {
+                                                            $emails[] = $pic['email'];
+                                                        }
+                                                    }
+                                                }
+                                            } catch (\Exception $e) {
+                                                Log::error('Error parsing additional_pic JSON: ' . $e->getMessage());
+                                            }
+                                        }
+                                    }
+
+                                    // Remove duplicates and return as semicolon-separated string
+                                    $uniqueEmails = array_unique($emails);
+                                    return !empty($uniqueEmails) ? implode(';', $uniqueEmails) : null;
+                                })
+                                ->helperText('Separate each email with a semicolon (e.g., email1;email2;email3).')
+                                ->required(),
+
+                            Select::make('email_template')
+                                ->label('Email Template')
+                                ->options(function () {
+                                    return \App\Models\EmailTemplate::whereIn('type', ['implementer', 'client'])
+                                        ->pluck('name', 'id')
+                                        ->toArray();
+                                })
+                                ->searchable()
+                                ->preload()
+                                ->reactive()
+                                ->afterStateUpdated(function ($state, callable $set) {
+                                    if ($state) {
+                                        $template = \App\Models\EmailTemplate::find($state);
+                                        if ($template) {
+                                            $set('email_subject', $template->subject);
+                                            $set('email_content', $template->content);
+                                        }
+                                    }
+                                })
+                                ->required(),
+
+                            TextInput::make('email_subject')
+                                ->label('Email Subject')
+                                ->required(),
+
+                            RichEditor::make('email_content')
+                                ->label('Email Content')
+                                ->disableToolbarButtons([
+                                    'attachFiles',
+                                ])
+                                ->required(),
+                        ]),
+
+                    Hidden::make('implementer_name')
+                        ->default(auth()->user()->name ?? ''),
+
+                    Hidden::make('implementer_designation')
+                        ->default('Implementer'),
+
+                    Hidden::make('implementer_company')
+                        ->default('TimeTec Cloud Sdn Bhd'),
+
+                    Hidden::make('implementer_phone')
+                        ->default('03-80709933'),
+
+                    Hidden::make('implementer_email')
+                        ->default(auth()->user()->email ?? ''),
+
+                    Textarea::make('notes')
+                        ->label('Additional Notes')
+                        ->placeholder('Add any additional notes for internal reference...')
+                        ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()'])
+                        ->rows(3),
+                ])
+                ->action(function (array $data) {
+                    $lead = $this->getOwnerRecord();
+
+                    try {
+                        // Update customer's able_set_meeting if enabled
+                        if (isset($data['enable_customer_booking']) && $data['enable_customer_booking']) {
+                            $customer = \App\Models\Customer::where('lead_id', $lead->id)->first();
+
+                            if ($customer) {
+                                $customer->update(['able_set_meeting' => true]);
+
+                                Log::info('Customer able_set_meeting enabled via implementer email action', [
+                                    'customer_id' => $customer->id,
+                                    'customer_email' => $customer->email,
+                                    'lead_id' => $lead->id,
+                                    'company_name' => $customer->company_name,
+                                    'enabled_by' => auth()->user()->name,
+                                    'action_type' => 'implementer_email_action'
+                                ]);
+                            }
+                        }
+
+                        // Get recipient emails
+                        $recipientStr = $data['required_attendees'] ?? '';
+
+                        if (!empty($recipientStr)) {
+                            // Get email template content
+                            $subject = $data['email_subject'];
+                            $content = $data['email_content'];
+
+                            // Add signature to email content
+                            if (isset($data['implementer_name']) && !empty($data['implementer_name'])) {
+                                $signature = "<br><br>Regards,<br>";
+                                $signature .= "{$data['implementer_name']}<br>";
+                                $signature .= "{$data['implementer_designation']}<br>";
+                                $signature .= "{$data['implementer_company']}<br>";
+                                $signature .= "Phone: {$data['implementer_phone']}<br>";
+
+                                if (!empty($data['implementer_email'])) {
+                                    $signature .= "Email: {$data['implementer_email']}<br>";
+                                }
+
+                                $content .= $signature;
+                            }
+
+                            // Replace placeholders with actual data
+                            $softwareHandover = \App\Models\SoftwareHandover::where('lead_id', $lead->id)->latest()->first();
+
+                            $customer = \App\Models\Customer::where('lead_id', $lead->id)->first();
+
+                            $placeholders = [
+                                '{customer_name}' => $lead->contact_name ?? '',
+                                '{company_name}' => $softwareHandover->company_name ?? ($lead->companyDetail?->company_name ?? 'Unknown Company'),
+                                '{implementer_name}' => $data['implementer_name'] ?? auth()->user()->name ?? '',
+                                '{lead_owner}' => $lead->lead_owner ?? '',
+                                // NEW: Add customer credentials placeholders
+                                '{customer_email}' => $customer ? $customer->email : 'Not Available',
+                                '{customer_password}' => $customer ? $customer->plain_password : 'Not Available',
+                                '{customer_portal_url}' => config('app.url') . '/customer/login',
+                            ];
+
+                            $content = str_replace(array_keys($placeholders), array_values($placeholders), $content);
+                            $subject = str_replace(array_keys($placeholders), array_values($placeholders), $subject);
+
+                            // Collect valid email addresses
+                            $validRecipients = [];
+                            foreach (explode(';', $recipientStr) as $recipient) {
+                                $recipient = trim($recipient);
+                                if (filter_var($recipient, FILTER_VALIDATE_EMAIL)) {
+                                    $validRecipients[] = $recipient;
+                                }
+                            }
+
+                            if (!empty($validRecipients)) {
+                                // Get authenticated user's email for sender
+                                $authUser = auth()->user();
+                                $senderEmail = $data['implementer_email'] ?? $authUser->email;
+                                $senderName = $data['implementer_name'] ?? $authUser->name;
+
+                                $schedulerType = $data['scheduler_type'] ?? 'instant';
+
+                                $template = \App\Models\EmailTemplate::find($data['email_template']);
+                                $templateName = $template ? $template->name : 'Custom Email';
+
+                                // Store email data
+                                $emailData = [
+                                    'content' => $content,
+                                    'subject' => $subject,
+                                    'recipients' => $validRecipients,
+                                    'sender_email' => $senderEmail,
+                                    'sender_name' => $senderName,
+                                    'lead_id' => $lead->id,
+                                    'template_name' => $templateName,
+                                    'scheduler_type' => $schedulerType,
+                                    'notes' => $data['notes'] ?? '',
+                                    'booking_enabled' => $data['enable_customer_booking'] ?? false,
+                                ];
+
+                                // Handle different scheduler types
+                                if ($schedulerType === 'instant' || $schedulerType === 'both') {
+                                    // Send email immediately
+                                    $this->sendClientEmail($emailData, $lead);
+
+                                    Notification::make()
+                                        ->title('Email sent successfully')
+                                        ->success()
+                                        ->body('Email sent to ' . count($validRecipients) . ' recipient(s)')
+                                        ->send();
+                                }
+
+                                if ($schedulerType === 'scheduled' || $schedulerType === 'both') {
+                                    // For scheduled emails, you can implement your scheduling logic here
+                                    // This is just a placeholder for the scheduled functionality
+                                    Notification::make()
+                                        ->title('Email scheduling feature')
+                                        ->info()
+                                        ->body('Scheduled email functionality can be implemented here')
+                                        ->send();
+                                }
+
+                                // Create activity log entry
+                                \App\Models\ActivityLog::create([
+                                    'user_id' => auth()->id(),
+                                    'causer_id' => auth()->id(),
+                                    'action' => 'Sent Client Email',
+                                    'description' => "Sent email to client for " . ($lead->companyDetail?->company_name ?? 'Unknown Company') . ". " .
+                                         ($data['enable_customer_booking'] ? 'Customer booking enabled.' : 'Customer booking not enabled.'),
+                                    'subject_type' => get_class($lead),
+                                    'subject_id' => $lead->id,
+                                ]);
+
+                                if (isset($data['enable_customer_booking']) && $data['enable_customer_booking']) {
+                                    Notification::make()
+                                        ->title('Customer booking enabled')
+                                        ->success()
+                                        ->body('The customer can now schedule new meetings through their portal')
+                                        ->send();
+                                }
+                            }
+                        }
+                    } catch (\Exception $e) {
+                        Log::error('Error sending client email: ' . $e->getMessage());
+                        Notification::make()
+                            ->title('Error sending email')
+                            ->body($e->getMessage())
+                            ->danger()
+                            ->send();
+                    }
+                }),
             Tables\Actions\Action::make('Add Appointment')
                 ->icon('heroicon-o-pencil')
                 ->modalHeading('Add Implementation Appointment')
@@ -1658,6 +2007,102 @@ class ImplementerAppointmentRelationManager extends RelationManager
                 ->danger()
                 ->body($e->getMessage())
                 ->send();
+        }
+    }
+
+    /**
+     * Send email to client with CC to implementer and salesperson
+     *
+     * @param array $emailData
+     * @param \App\Models\Lead $lead
+     * @return void
+     */
+    private function sendClientEmail(array $emailData, $lead): void
+    {
+        try {
+            // Find the software handover record
+            $softwareHandover = \App\Models\SoftwareHandover::where('lead_id', $lead->id)->latest()->first();
+
+            if (!$softwareHandover) {
+                Log::error("Software handover not found for lead_id: {$lead->id}");
+                return;
+            }
+
+            // NEW: Get customer email and plain password
+            $customer = \App\Models\Customer::where('lead_id', $lead->id)->first();
+            $customerEmail = $customer ? $customer->email : null;
+            $customerPlainPassword = $customer ? $customer->plain_password : null;
+
+            // Initialize CC recipients array
+            $ccRecipients = [];
+
+            // Add implementer to CC if available and different from sender
+            if ($softwareHandover->implementer) {
+                $implementer = \App\Models\User::where('name', $softwareHandover->implementer)->first();
+                if ($implementer && $implementer->email && $implementer->email !== $emailData['sender_email']) {
+                    $ccRecipients[] = $implementer->email;
+                    Log::info("Added implementer to CC: {$implementer->name} <{$implementer->email}>");
+                }
+            }
+
+            // Add salesperson to CC if available and different from sender and implementer
+            if ($softwareHandover->salesperson) {
+                $salesperson = \App\Models\User::where('name', $softwareHandover->salesperson)->first();
+                if ($salesperson && $salesperson->email &&
+                    $salesperson->email !== $emailData['sender_email'] &&
+                    !in_array($salesperson->email, $ccRecipients)) {
+                    $ccRecipients[] = $salesperson->email;
+                    Log::info("Added salesperson to CC: {$salesperson->name} <{$salesperson->email}>");
+                }
+            }
+
+            // NEW: Replace placeholders in email content with customer credentials
+            $customerPlaceholders = [
+                '{customer_email}' => $customerEmail ?? 'Not Available',
+                '{customer_password}' => $customerPlainPassword ?? 'Not Available',
+                '{customer_portal_url}' => config('app.url') . '/customer/login',
+            ];
+
+            // Apply customer placeholders to email content
+            $emailContent = $emailData['content'];
+            $emailContent = str_replace(array_keys($customerPlaceholders), array_values($customerPlaceholders), $emailContent);
+
+            // Apply customer placeholders to email subject as well
+            $emailSubject = $emailData['subject'];
+            $emailSubject = str_replace(array_keys($customerPlaceholders), array_values($customerPlaceholders), $emailSubject);
+
+            // Send the email with CC recipients and updated content
+            Mail::html($emailContent, function (Message $message) use ($emailData, $ccRecipients, $emailSubject) {
+                $message->to($emailData['recipients'])
+                    ->subject($emailSubject)
+                    ->from($emailData['sender_email'], $emailData['sender_name']);
+
+                // Add CC recipients if we have any
+                if (!empty($ccRecipients)) {
+                    $message->cc($ccRecipients);
+                }
+
+                // BCC the sender as well
+                $message->bcc($emailData['sender_email']);
+            });
+
+            // Log email sent successfully with customer credentials info
+            Log::info('Client email sent successfully', [
+                'to' => $emailData['recipients'],
+                'cc' => $ccRecipients,
+                'subject' => $emailSubject,
+                'lead_id' => $emailData['lead_id'],
+                'template' => $emailData['template_name'],
+                'booking_enabled' => $emailData['booking_enabled'] ?? false,
+                'customer_email' => $customerEmail,
+                'has_customer_password' => !empty($customerPlainPassword),
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error in sendClientEmail method: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
+                'data' => $emailData
+            ]);
+            throw $e;
         }
     }
 }

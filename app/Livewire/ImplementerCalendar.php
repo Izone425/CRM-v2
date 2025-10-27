@@ -248,6 +248,38 @@ class ImplementerCalendar extends Component
                 }
             }
 
+            if ($this->appointmentToCancel->lead_id) {
+                try {
+                    // Find the customer associated with this lead
+                    $customer = \App\Models\Customer::where('lead_id', $this->appointmentToCancel->lead_id)->first();
+
+                    if ($customer) {
+                        // Update customer's able_set_meeting to true
+                        $customer->update(['able_set_meeting' => true]);
+
+                        Log::info('Customer able_set_meeting enabled after implementer cancellation', [
+                            'customer_id' => $customer->id,
+                            'customer_email' => $customer->email,
+                            'appointment_id' => $this->appointmentToCancel->id,
+                            'company_name' => $customer->company_name,
+                            'cancelled_by' => auth()->user()->name,
+                            'cancellation_type' => 'implementer_cancellation'
+                        ]);
+                    } else {
+                        Log::warning('Customer not found for lead_id during implementer cancellation', [
+                            'lead_id' => $this->appointmentToCancel->lead_id,
+                            'appointment_id' => $this->appointmentToCancel->id
+                        ]);
+                    }
+                } catch (\Exception $e) {
+                    Log::error('Failed to update customer able_set_meeting during implementer cancellation: ' . $e->getMessage(), [
+                        'appointment_id' => $this->appointmentToCancel->id,
+                        'lead_id' => $this->appointmentToCancel->lead_id,
+                        'trace' => $e->getTraceAsString()
+                    ]);
+                }
+            }
+
             $this->appointmentToCancel->save();
 
             // Send email notification about cancellation
