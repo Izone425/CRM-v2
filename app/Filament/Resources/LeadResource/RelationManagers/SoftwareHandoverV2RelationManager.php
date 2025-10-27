@@ -805,7 +805,7 @@ class SoftwareHandoverV2RelationManager extends RelationManager
                 ->icon('heroicon-o-plus')
                 ->color('primary')
                 ->visible(function () use ($leadStatus, $isCompanyDetailsIncomplete) {
-                    return auth()->user()->id == 1;
+                    return auth()->user()->id == 3;
                     // return $leadStatus === 'Closed' && !$isCompanyDetailsIncomplete;
                 })
                 ->slideOver()
@@ -818,6 +818,9 @@ class SoftwareHandoverV2RelationManager extends RelationManager
                     $data['lead_id'] = $this->getOwnerRecord()->id;
                     $data['status'] = 'New';
                     $data['submitted_at'] = now();
+
+                    $leadId = $this->getOwnerRecord()->id;
+                    $data['license_type'] = SoftwareHandoverV2::determineLicenseType($leadId);
 
                     // Process JSON encoding for array fields
                     if (isset($data['remarks']) && is_array($data['remarks'])) {
@@ -936,6 +939,15 @@ class SoftwareHandoverV2RelationManager extends RelationManager
                 TextColumn::make('training_type')
                     ->label('Training Type')
                     ->formatStateUsing(fn (string $state): string => Str::title(str_replace('_', ' ', $state))),
+                TextColumn::make('license_type')
+                    ->label('License Type')
+                    ->badge()
+                    ->color(fn (string $state): string => match ($state) {
+                        'New Sales' => 'success',
+                        'Add On Module' => 'info',
+                        default => 'gray',
+                    })
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('kick_off_meeting')
                     ->label('Kick Off Meeting Date')
                     ->formatStateUsing(function ($state) {
@@ -1014,6 +1026,10 @@ class SoftwareHandoverV2RelationManager extends RelationManager
                         ->slideOver()
                         ->form($this->defaultForm())
                         ->action(function (SoftwareHandoverV2 $record, array $data): void {
+                            if (!isset($data['license_type']) || empty($data['license_type'])) {
+                                $data['license_type'] = SoftwareHandoverV2::determineLicenseType($record->lead_id, $record->id);
+                            }
+
                             // Process JSON encoding for array fields
                             foreach (['remarks', 'confirmation_order_file', 'payment_slip_file', 'implementation_pics',
                                      'proforma_invoice_product', 'proforma_invoice_hrdf', 'invoice_file', 'hrdf_grant_file'] as $field) {

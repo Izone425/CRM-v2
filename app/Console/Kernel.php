@@ -64,6 +64,7 @@ class Kernel extends ConsoleKernel
 
         $schedule->command('hrdf:sync-emails --days=1')->everyFiveMinutes();
 
+        $schedule->command('hrdf:process-claim-payments')->everyFiveMinutes();
         // $schedule->command('hrdf:process-emails')
         //     ->everyFifteenMinutes()
         //     ->between('8:00', '18:00')

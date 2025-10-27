@@ -48,6 +48,7 @@ class CustomerActivationController extends Controller
                 'company_name' => $companyName,
                 'phone' => $customerPhone,
                 'password' => Hash::make($randomPassword),
+                'plain_password' => $randomPassword, // Store unhashed password
                 'status' => 'active',
                 'email_verified_at' => Carbon::now()
             ]);
@@ -58,7 +59,8 @@ class CustomerActivationController extends Controller
 
             // Update password
             $customer->update([
-                'password' => Hash::make($randomPassword)
+                'password' => Hash::make($randomPassword),
+                'plain_password' => $randomPassword // Store unhashed password
             ]);
         }
 

@@ -18,10 +18,12 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
 use Filament\Notifications\Notification;
 use Filament\Tables\Actions\ActionGroup;
+use Filament\Tables\Filters\SelectFilter;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Contracts\View\View;
 
 class HrdfClaimTracker extends Page implements HasTable
 {
@@ -35,17 +37,74 @@ class HrdfClaimTracker extends Page implements HasTable
     public function table(Table $table): Table
     {
         return $table
-            ->query(HrdfClaim::query())
+            ->query(
+                HrdfClaim::query()
+                    ->leftJoin('hrdf_handovers', 'hrdf_claims.hrdf_grant_id', '=', 'hrdf_handovers.hrdf_grant_id')
+                    ->select('hrdf_claims.*', 'hrdf_handovers.id as handover_id', 'hrdf_handovers.lead_id as handover_lead_id')
+                    ->orderByRaw('
+                        CASE hrdf_claims.claim_status
+                            WHEN "PENDING" THEN 1
+                            WHEN "SUBMITTED" THEN 2
+                            WHEN "APPROVED" THEN 3
+                            WHEN "RECEIVED" THEN 4
+                            ELSE 5
+                        END,
+                        hrdf_claims.created_at DESC
+                    ')
+            )
             ->columns([
-                // Column 1 - HRDF Grant ID
-                TextColumn::make('hrdf_grant_id')
-                    ->label('HRDF Grant ID')
+                TextColumn::make('hrdfHandover.id')
+                    ->label('HRDF ID')
+                    ->formatStateUsing(function ($state, HrdfClaim $record) {
+                        // Check if handover exists
+                        if (!$record->hrdfHandover || !$record->hrdfHandover->id) {
+                            return 'N/A';
+                        }
+
+                        $handover = $record->hrdfHandover;
+                        
+                        // Get year from created_at (last 2 digits)
+                        $year = $handover->created_at ? $handover->created_at->format('y') : '25';
+                        
+                        // Format: HRDF_{year}{padded_id}
+                        return 'HRDF_' . $year . str_pad($handover->id, 4, '0', STR_PAD_LEFT);
+                    })
+                    ->color('primary')
+                    ->weight('bold')
+                    ->sortable()
                     ->searchable()
+                    ->action(
+                        Action::make('viewHandoverDetails')
+                            ->modalHeading(false)
+                            ->modalWidth('3xl')
+                            ->modalSubmitAction(false)
+                            ->modalCancelAction(false)
+                            ->modalContent(function (HrdfClaim $record): View {
+                                // Get the handover from the claim record
+                                $handoverRecord = $record->hrdfHandover;
+                                
+                                if (!$handoverRecord) {
+                                    return view('components.no-handover-found');
+                                }
+                                
+                                return view('components.hrdf-handover')
+                                    ->with('extraAttributes', ['record' => $handoverRecord]);
+                            })
+                    ),
+
+                TextColumn::make('sales_person')
+                    ->label('SalesPerson'),
+
+                TextColumn::make('hrdfHandover.lead_id')
+                    ->label('Lead ID')
+                    ->formatStateUsing(function ($state, HrdfClaim $record) {
+                        // Get lead_id from hrdfHandover relationship
+                        return $record->hrdfHandover?->lead_id ?? 'N/A';
+                    })
                     ->sortable()
                     ->copyable()
-                    ->weight('medium'),
+                    ->toggleable(isToggledHiddenByDefault: true), 
 
-                // Column 2 - Company Name
                 TextColumn::make('company_name')
                     ->label('Company Name')
                     ->searchable()
@@ -53,18 +112,28 @@ class HrdfClaimTracker extends Page implements HasTable
                     ->wrap()
                     ->limit(30),
 
-                // Column 3 - Invoice Amount
+                TextColumn::make('hrdf_grant_id')
+                    ->label('HRDF Grant ID')
+                    ->sortable()
+                    ->copyable()
+                    ->weight('medium')
+                    ->searchable(query: function (Builder $query, string $search): Builder {
+                        return $query->where('hrdf_claims.hrdf_grant_id', 'like', "%{$search}%");
+                    }),
+
+                TextColumn::make('invoice_number')
+                    ->label('Invoice Number'),
+
                 TextColumn::make('invoice_amount')
                     ->label('Invoice Amount')
                     ->money('MYR')
                     ->sortable()
                     ->alignEnd(),
 
-                // Column 4 - HRDF Training Date
                 TextColumn::make('hrdf_training_date')
-                    ->label('Training Date'),
+                    ->label('Training Date')
+                    ->toggleable(isToggledHiddenByDefault: true), 
 
-                // Column 5 - HRDF Claim Status
                 BadgeColumn::make('claim_status')
                     ->label('Status')
                     ->colors([
@@ -75,143 +144,41 @@ class HrdfClaimTracker extends Page implements HasTable
                     ])
                     ->sortable(),
 
-                // Column 6 - Invoice Number (with matching logic)
-                // SelectColumn::make('invoice_number')
-                //     ->label('Invoice Number')
-                //     ->options(function (HrdfClaim $record): array {
-                //         return $this->getMatchingInvoices($record);
-                //     })
-                //     ->selectablePlaceholder('Select Invoice')
-                //     ->afterStateUpdated(function (HrdfClaim $record, $state) {
-                //         $this->updateInvoiceMapping($record, $state);
-                //     }),
-
-                // Column 7 - Sales Person (Auto update after invoice selection)
-                TextColumn::make('sales_person')
-                    ->label('SalesPerson'),
-
-                // Column 8 - HRDF Claim ID (Auto mapping)
                 TextColumn::make('hrdf_claim_id')
                     ->label('HRDF Claim ID')
                     ->default(fn (HrdfClaim $record) => $record->hrdf_claim_id ?: 'N/A')
                     ->copyable(),
             ])
             ->filters([
-                // Add filters for better data management
+                SelectFilter::make('claim_status')
+                    ->label('Status')
+                    ->options([
+                        'PENDING' => 'Pending',
+                        'SUBMITTED' => 'Submitted',
+                        'APPROVED' => 'Approved',
+                        'RECEIVED' => 'Received',
+                    ])
+                    ->placeholder('All Statuses')
+                    ->multiple(),
+
+                // Filter by Sales Person
+                SelectFilter::make('sales_person')
+                    ->label('Sales Person')
+                    ->options(function (): array {
+                        return HrdfClaim::query()
+                            ->whereNotNull('sales_person')
+                            ->where('sales_person', '!=', '')
+                            ->distinct()
+                            ->orderBy('sales_person')
+                            ->pluck('sales_person', 'sales_person')
+                            ->toArray();
+                    })
+                    ->placeholder('All Sales Persons')
+                    ->searchable()
+                    ->preload(),
             ])
             ->actions([
-                ActionGroup::make([
-                    // Action::make('mark_as_submitted')
-                    //     ->label('Mark as Submitted')
-                    //     ->icon('heroicon-o-paper-airplane')
-                    //     ->color('primary')
-                    //     ->form([
-                    //         TextInput::make('hrdf_claim_id')
-                    //             ->label('HRDF Claim ID')
-                    //             ->required()
-                    //             ->placeholder('Enter HRDF Claim ID')
-                    //             ->maxLength(100)
-                    //             ->helperText('This will be used to update both HRDF Claim and Handover records'),
-
-                    //         TextInput::make('invoice_number')
-                    //             ->label('Invoice Number')
-                    //             ->required()
-                    //             ->placeholder('Enter Invoice Number')
-                    //             ->maxLength(50)
-                    //             ->helperText('AutoCount invoice number for this claim'),
-                    //     ])
-                    //     ->action(function (HrdfClaim $record, array $data): void {
-                    //         try {
-                    //             // Start database transaction
-                    //             DB::transaction(function () use ($record, $data) {
-                    //                 // 1. Update HRDF Claim
-                    //                 $record->update([
-                    //                     'claim_status' => 'SUBMITTED',
-                    //                     'hrdf_claim_id' => strtoupper($data['hrdf_claim_id']),
-                    //                     'invoice_number' => $data['invoice_number'],
-                    //                 ]);
-
-                    //                 // 2. Find and update corresponding HRDF Handover
-                    //                 $hrdfHandover = \App\Models\HRDFHandover::where('hrdf_grant_id', $record->hrdf_grant_id)
-                    //                     ->first();
-
-                    //                 if ($hrdfHandover) {
-                    //                     $hrdfHandover->update([
-                    //                         'status' => 'New',
-                    //                         'hrdf_claim_id' => strtoupper($data['hrdf_claim_id']),
-                    //                         'autocount_invoice_number' => $data['invoice_number'],
-                    //                     ]);
-
-                    //                     Log::info('HRDF Handover updated to NEW status', [
-                    //                         'handover_id' => $hrdfHandover->id,
-                    //                         'hrdf_grant_id' => $record->hrdf_grant_id,
-                    //                         'hrdf_claim_id' => $data['hrdf_claim_id'],
-                    //                         'invoice_number' => $data['invoice_number']
-                    //                     ]);
-                    //                 } else {
-                    //                     Log::warning('No HRDF Handover found for grant ID', [
-                    //                         'hrdf_grant_id' => $record->hrdf_grant_id,
-                    //                         'hrdf_claim_id' => $data['hrdf_claim_id']
-                    //                     ]);
-                    //                 }
-                    //             });
-
-                    //             Notification::make()
-                    //                 ->title('Claim Marked as Submitted')
-                    //                 ->body("HRDF Claim {$record->hrdf_grant_id} has been marked as submitted. HRDF Handover status updated to NEW.")
-                    //                 ->success()
-                    //                 ->send();
-
-                    //         } catch (\Exception $e) {
-                    //             Log::error('Failed to mark HRDF claim as submitted', [
-                    //                 'hrdf_grant_id' => $record->hrdf_grant_id,
-                    //                 'error' => $e->getMessage(),
-                    //                 'trace' => $e->getTraceAsString()
-                    //             ]);
-
-                    //             Notification::make()
-                    //                 ->title('Error')
-                    //                 ->body('Failed to update records. Please try again.')
-                    //                 ->danger()
-                    //                 ->send();
-                    //         }
-                    //     })
-                    //     ->visible(fn (HrdfClaim $record): bool => $record->claim_status === 'PENDING'),
-
-                    // Action::make('view_details')
-                    //     ->label('View Details')
-                    //     ->icon('heroicon-o-eye')
-                    //     ->color('gray')
-                    //     ->modalContent(fn (HrdfClaim $record): string => view('filament.modals.hrdf-claim-details', compact('record'))->render())
-                    //     ->modalHeading(fn (HrdfClaim $record): string => 'HRDF Claim Details - ' . $record->hrdf_grant_id)
-                    //     ->modalWidth('4xl'),
-
-                    // Action::make('add_remark')
-                    //     ->label('Add Remark')
-                    //     ->icon('heroicon-o-chat-bubble-left-ellipsis')
-                    //     ->color('warning')
-                    //     ->form([
-                    //         Textarea::make('sales_remark')
-                    //             ->label('Add Remark')
-                    //             ->placeholder('Enter your remark here...')
-                    //             ->default(fn (HrdfClaim $record) => $record->sales_remark)
-                    //             ->maxLength(500)
-                    //             ->required(),
-                    //     ])
-                    //     ->action(function (HrdfClaim $record, array $data): void {
-                    //         $record->update([
-                    //             'sales_remark' => $data['sales_remark']
-                    //         ]);
-
-                    //         Notification::make()
-                    //             ->title('Remark Added')
-                    //             ->body('Remark has been saved successfully.')
-                    //             ->success()
-                    //             ->send();
-                    //     }),
-                ])
-                ->icon('heroicon-m-ellipsis-vertical')
-                ->size('sm')
+                
             ])
             ->defaultSort('created_at', 'desc')
             ->striped()

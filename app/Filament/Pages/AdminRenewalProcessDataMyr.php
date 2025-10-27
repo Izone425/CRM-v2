@@ -341,8 +341,8 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
                         ->where('q.mark_as_final', true)
                         ->where('q.sales_type', 'RENEWAL SALES');
                 })
-                ->leftJoin('quotation_items as qi', 'qi.quotation_id', '=', 'q.id')
-                ->leftJoin('crm_reseller_link as crl', 'crl.f_id', '=', 'r.f_company_id', 'frontenddb')
+                ->leftJoin('quotation_details as qd', 'qd.quotation_id', '=', 'q.id')
+                ->leftJoin('frontenddb.crm_reseller_link as crl', 'crl.f_id', '=', 'r.f_company_id')
                 ->where('r.renewal_progress', 'new')
                 ->whereExists(function ($query) use ($startDate, $endDate) {
                     $query->select(DB::raw(1))
@@ -354,11 +354,11 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
                 ->selectRaw('
                     COUNT(DISTINCT r.f_company_id) as total_companies,
                     COUNT(DISTINCT q.id) as total_invoices,
-                    COALESCE(SUM(qi.total_before_tax), 0) as total_amount,
+                    COALESCE(SUM(qd.total_before_tax), 0) as total_amount,
                     COUNT(DISTINCT CASE WHEN crl.f_rate IS NOT NULL THEN r.f_company_id END) as total_via_reseller,
                     COUNT(DISTINCT CASE WHEN crl.f_rate IS NULL THEN r.f_company_id END) as total_via_end_user,
-                    COALESCE(SUM(CASE WHEN crl.f_rate IS NOT NULL THEN qi.total_before_tax END), 0) as total_via_reseller_amount,
-                    COALESCE(SUM(CASE WHEN crl.f_rate IS NULL THEN qi.total_before_tax END), 0) as total_via_end_user_amount
+                    COALESCE(SUM(CASE WHEN crl.f_rate IS NOT NULL THEN qd.total_before_tax END), 0) as total_via_reseller_amount,
+                    COALESCE(SUM(CASE WHEN crl.f_rate IS NULL THEN qd.total_before_tax END), 0) as total_via_end_user_amount
                 ')
                 ->first();
 
