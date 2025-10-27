@@ -14,6 +14,7 @@ class SoftwareHandoverV2 extends Model
 
     protected $fillable = [
         'lead_id',
+        'license_type',
         'created_by',
         'status',
         'project_priority',
@@ -122,6 +123,59 @@ class SoftwareHandoverV2 extends Model
         'non_hrdf_pi' => 'array',
         'software_hardware_pi' => 'array',
     ];
+
+    protected static function boot()
+    {
+        parent::boot();
+
+        // Automatically set license type when creating new record
+        static::creating(function ($handover) {
+            if (empty($handover->license_type) && $handover->lead_id) {
+                $handover->license_type = self::determineLicenseType($handover->lead_id);
+            }
+        });
+
+        // Automatically update license type when updating record if not set
+        static::updating(function ($handover) {
+            if (empty($handover->license_type) && $handover->lead_id && $handover->isDirty('lead_id')) {
+                $handover->license_type = self::determineLicenseType($handover->lead_id, $handover->id);
+            }
+        });
+    }
+
+    /**
+     * Determine license type based on existing handovers for the lead
+     */
+    public static function determineLicenseType(int $leadId, ?int $excludeHandoverId = null): string
+    {
+        $existingHandovers = self::where('lead_id', $leadId)
+            ->when($excludeHandoverId, function ($query) use ($excludeHandoverId) {
+                return $query->where('id', '!=', $excludeHandoverId);
+            })
+            ->count();
+
+        // If no existing handovers, default to "New Sales"
+        // If there are existing handovers, default to "Add On Module"
+        return $existingHandovers > 0 ? 'Add On Module' : 'New Sales';
+    }
+
+    /**
+     * Get the license type for this handover
+     */
+    public function getLicenseTypeAttribute($value)
+    {
+        // If value exists in database, return it
+        if ($value) {
+            return $value;
+        }
+
+        // If no value and we have a lead_id, determine it
+        if ($this->lead_id) {
+            return self::determineLicenseType($this->lead_id, $this->id);
+        }
+
+        return 'New Sales'; // Default fallback
+    }
 
     /**
      * Get the total days since completion.
