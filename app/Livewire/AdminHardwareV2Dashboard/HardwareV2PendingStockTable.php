@@ -247,12 +247,12 @@ class HardwareV2PendingStockTable extends Component implements HasForms, HasTabl
                         default => ucfirst($state ?? 'Unknown')
                     }),
 
-                TextColumn::make('status')
-                    ->label('Status')
-                    ->formatStateUsing(fn (string $state): HtmlString => match ($state) {
-                        'Pending Stock' => new HtmlString('<span style="color: black;">Pending Stock</span>'),
-                        default => new HtmlString('<span>' . ucfirst($state) . '</span>'),
-                    }),
+                // TextColumn::make('status')
+                //     ->label('Status')
+                //     ->formatStateUsing(fn (string $state): HtmlString => match ($state) {
+                //         'Pending Stock' => new HtmlString('<span style="color: black;">Pending Stock</span>'),
+                //         default => new HtmlString('<span>' . ucfirst($state) . '</span>'),
+                //     }),
 
                 TextColumn::make('sales_order_status')
                     ->label('SO Status')

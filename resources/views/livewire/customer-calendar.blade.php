@@ -1,3 +1,7 @@
+@php
+use Carbon\Carbon;
+@endphp
+
 <div>
     <style>
         .calendar-container {
@@ -134,7 +138,7 @@
         .booking-card {
             background: white;
             border-radius: 12px;
-            padding: 1.25rem;
+            padding: 0.5rem;
             margin-bottom: 1rem;
             border-left: 4px solid #6366f1;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
@@ -574,6 +578,87 @@
                 grid-template-columns: repeat(2, 1fr); /* 2 columns on tablets */
             }
         }
+
+        .existing-bookings {
+            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+            border: 2px solid #0ea5e9;
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .bookings-header {
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: between;
+            margin-bottom: 0.5rem;
+            padding: 0.5rem 0;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .bookings-header:hover {
+            background: rgba(59, 130, 246, 0.05);
+            padding: 0.5rem;
+        }
+
+        .collapse-icon {
+            transition: transform 0.1s ease;
+            width: 1.5rem;
+            height: 1.5rem;
+            color: #3b82f6;
+        }
+
+        .collapse-icon.rotated {
+            transform: rotate(180deg);
+        }
+
+        .bookings-list {
+            transition: all 0.2s ease-in-out;
+            overflow: hidden;
+        }
+
+        .bookings-list.collapsed {
+            max-height: 0;
+            opacity: 0;
+            margin: 0;
+        }
+
+        .bookings-list.expanded {
+            max-height: 1000px;
+            opacity: 1;
+        }
+
+        .meeting-indicator.completed {
+            background: rgba(34, 197, 94, 0.1);
+            color: #22c55e;
+            border: 1px solid #22c55e;
+        }
+
+        .modal-close-btn {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            border-radius: 50%;
+            width: 2.5rem;
+            height: 2.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            backdrop-filter: blur(10px);
+            color: white;
+        }
+
+        .modal-close-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.1);
+        }
     </style>
 
     @php
@@ -641,90 +726,87 @@
             <!-- Existing Bookings -->
             @if($hasExistingBooking)
                 <div class="existing-bookings">
-                    <h4 class="flex items-center mb-4 text-lg font-semibold text-gray-800">
-                        Your Scheduled Meetings
-                    </h4>
-                    @foreach($existingBookings as $booking)
-                        <div class="booking-card">
-                            <div class="grid items-center grid-cols-3 gap-4">
-                                <!-- Column 1: Date & Time -->
-                                <div class="flex-1">
-                                    <h5 class="font-semibold text-gray-800">{{ $booking['date'] }}</h5>
-                                    <p class="text-sm text-gray-600">{{ $booking['time'] }}&nbsp;({{ $booking['session'] }})</p>
-                                </div>
-
-                                <!-- Column 2: Meeting Details -->
-                                <div class="flex-1">
-                                    <div class="space-y-1 text-sm text-gray-600">
-                                        <div><strong>Type:</strong> {{ $booking['type'] }}</div>
-                                        <div><strong>Implementer:</strong> {{ $booking['implementer'] }}</div>
-                                        <div><strong>Mode:</strong> {{ $booking['appointment_type'] }}</div>
-                                    </div>
-                                </div>
-
-                                <!-- Column 3: Actions -->
-                                <div class="flex flex-col items-end justify-center">
-                                    @php
-                                        $appointmentDate = \Carbon\Carbon::parse($booking['raw_date'])->format('Y-m-d');
-                                        $appointmentDateTime = \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $appointmentDate . ' ' . $booking['start_time']);
-                                        $now = \Carbon\Carbon::now();
-
-                                        // Updated cancellation logic
-                                        $canCancel = ($booking['status'] === 'New') && // Only allow cancellation if status is 'New'
-                                                    ($appointmentDateTime->isFuture() || ($appointmentDateTime->isToday() && $appointmentDateTime->gt($now)));
-                                    @endphp
-
-                                    @if($canCancel)
-                                        <button wire:click="openCancelModal({{ $booking['id'] }})"
-                                                class="cancel-button">
-                                            ❌ Cancel
-                                        </button>
-                                    @elseif($booking['status'] === 'Done')
-                                        <div class="px-3 py-2 text-xs font-semibold text-green-700 bg-green-100 rounded-lg">
-                                            ✅ Completed
-                                        </div>
-                                    @else
-                                        <button class="cancel-button" disabled>
-                                            🔒 Cannot Cancel
-                                        </button>
-                                        <div class="cancel-reason">
-                                            @if($appointmentDateTime->isPast())
-                                                Session already passed
-                                            @else
-                                                Session started/ongoing
-                                            @endif
-                                        </div>
-                                    @endif
-                                </div>
+                    <div class="bookings-header" wire:click="toggleExistingBookings">
+                        <div class="flex items-center justify-between w-full">
+                            <h4 class="text-lg font-semibold text-gray-800">
+                                Your Scheduled Meetings
+                                @if(count($existingBookings) > 1)
+                                    <span class="ml-2 text-sm font-normal text-gray-600">({{ count($existingBookings) }} meetings)</span>
+                                @endif
+                            </h4>
+                            <div class="flex items-center">
+                                <span class="mr-2 text-sm text-gray-600">
+                                    {{ $showExistingBookings ? 'Hide' : 'Show' }}
+                                </span>
+                                <svg class="collapse-icon {{ $showExistingBookings ? 'rotated' : '' }}"
+                                    fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M19 9l-7 7-7-7"></path>
+                                </svg>
                             </div>
                         </div>
-                    @endforeach
+                    </div>
+
+                    <div class="bookings-list {{ $showExistingBookings ? 'expanded' : 'collapsed' }}">
+                        @foreach($existingBookings as $booking)
+                            <div class="booking-card">
+                                <div class="flex items-center gap-4">
+                                    <!-- Column 1: Date & Time -->
+                                    <div class="flex-1">
+                                        <h5 class="font-semibold text-gray-800">{{ $booking['date'] }}</h5>
+                                    </div>
+
+                                    <div class="flex-1">
+                                        <p class="text-sm text-gray-600">{{ $booking['time'] }}&nbsp;({{ $booking['session'] }})</p>
+                                    </div>
+
+                                    <!-- Column 2: Meeting Details -->
+                                    <div class="flex-1">
+                                        <div class="text-sm text-gray-600">
+                                            {{ $booking['type'] }}
+                                        </div>
+                                    </div>
+
+                                    <!-- Column 3: Actions -->
+                                    <div class="flex flex-col items-end justify-center">
+                                        @php
+                                            $appointmentDate = \Carbon\Carbon::parse($booking['raw_date'])->format('Y-m-d');
+                                            $appointmentDateTime = \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $appointmentDate . ' ' . $booking['start_time']);
+                                            $now = \Carbon\Carbon::now();
+
+                                            // Updated cancellation logic
+                                            $canCancel = ($booking['status'] === 'New') && // Only allow cancellation if status is 'New'
+                                                        ($appointmentDateTime->isFuture() || ($appointmentDateTime->isToday() && $appointmentDateTime->gt($now)));
+                                        @endphp
+
+                                        @if($canCancel)
+                                            <button wire:click="openCancelModal({{ $booking['id'] }})"
+                                                    class="cancel-button">
+                                                ❌ Cancel
+                                            </button>
+                                        @elseif($booking['status'] === 'Done')
+                                            <div class="px-3 py-2 text-xs font-semibold text-green-700 bg-green-100 rounded-lg">
+                                                ✅ Completed
+                                            </div>
+                                        @else
+                                            <button class="cancel-button" disabled>
+                                                🔒 Cannot Cancel
+                                            </button>
+                                            <div class="cancel-reason">
+                                                @if($appointmentDateTime->isPast())
+                                                    Session already passed
+                                                @else
+                                                    Session started/ongoing
+                                                @endif
+                                            </div>
+                                        @endif
+                                    </div>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
                 </div>
             @endif
-
-            {{-- <!-- Assigned Implementer Info -->
-            @if($assignedImplementer)
-                <div class="implementer-info">
-                    <div class="flex items-center justify-center mb-2">
-                        <div>
-                            <h4 class="font-semibold text-gray-800">Your Assigned Implementer</h4>
-                            <p class="font-medium text-indigo-600">{{ $assignedImplementer['name'] }}</p>
-                        </div>
-                    </div>
-                </div>
-            @else
-                <div class="implementer-info bg-amber-50 border-amber-200">
-                    <div class="text-center">
-                        <div class="flex items-center justify-center w-12 h-12 mx-auto mb-2 rounded-full bg-amber-500">
-                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
-                            </svg>
-                        </div>
-                        <h4 class="mb-1 font-semibold text-amber-800">No Implementer Assigned</h4>
-                        <p class="text-sm text-amber-700">Please contact support to assign an implementer to your account</p>
-                    </div>
-                </div>
-            @endif --}}
         </div>
 
         <!-- Calendar Days Header -->
@@ -753,12 +835,37 @@
                     {{ $dayData['isBeyondBookingWindow'] ? 'disabled' : '' }}"
                     @if($dayData['canBook'])
                         wire:click="openBookingModal('{{ $dayData['dateString'] }}')"
+                    @elseif($dayData['hasCustomerMeeting'])
+                        @php
+                            // Get the meeting for this specific date
+                            $todaysMeeting = collect($existingBookings)->first(function ($booking) use ($dayData) {
+                                return Carbon::parse($booking['date'])->format('Y-m-d') === $dayData['dateString'];
+                            });
+                        @endphp
+                        @if($todaysMeeting)
+                            wire:click="openMeetingDetailsModal({{ $todaysMeeting['id'] }})"
+                        @endif
                     @endif>
 
                     <div class="day-number">{{ $dayData['day'] }}</div>
 
                     @if($dayData['hasCustomerMeeting'])
-                        <div class="meeting-indicator">📅 Your Meeting</div>
+                        @php
+                            // Get the meeting for this specific date to check its status
+                            $todaysMeeting = collect($existingBookings)->first(function ($booking) use ($dayData) {
+                                return Carbon::parse($booking['date'])->format('Y-m-d') === $dayData['dateString'];
+                            });
+                        @endphp
+
+                        @if($todaysMeeting && $todaysMeeting['status'] === 'Done')
+                            <div class="meeting-indicator completed">
+                                ✅ Completed
+                            </div>
+                        @elseif($todaysMeeting)
+                            <div class="meeting-indicator">
+                                📅 Your Meeting
+                            </div>
+                        @endif
                     @elseif($dayData['isPublicHoliday'])
                         <div class="text-xs font-semibold text-red-600">🏛️ Holiday</div>
                     @elseif($dayData['isWeekend'])
@@ -913,13 +1020,6 @@
                             Separate multiple emails with semicolons (;)
                         </p>
                     </div>
-
-                    {{-- <!-- Remarks -->
-                    <div class="form-group">
-                        <label for="remarks" class="form-label">💬 Additional Notes (Optional)</label>
-                        <textarea wire:model="remarks" id="remarks" class="form-textarea" rows="4"
-                            placeholder="Any special requirements, agenda items, or notes for your implementer..."></textarea>
-                    </div> --}}
                 </div>
 
                 <div class="modal-footer">
@@ -999,6 +1099,144 @@
                         </div>
                         @endif
                     </div>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    @if($showMeetingDetailsModal && $selectedMeetingDetails)
+        <div class="modal-overlay" wire:click="closeMeetingDetailsModal">
+            <div class="modal-container" wire:click.stop>
+                <div class="modal-header">
+                    <!-- Close Button -->
+                    <button wire:click="closeMeetingDetailsModal" class="absolute text-white transition-colors top-4 right-4 hover:text-gray-200">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+
+                    <h3 class="text-2xl font-bold">
+                        {{ $selectedMeetingDetails['type'] === 'KICK OFF MEETING SESSION' ? 'Kick-Off Meeting' : 'Review Session' }} Details
+                    </h3>
+                </div>
+
+                <div class="modal-body">
+                    <!-- Meeting Basic Info -->
+                    <div class="p-4 mb-6 border-2 border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl">
+                        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+                            <div>
+                                <div class="mb-2 text-sm font-medium text-gray-600">Date</div>
+                                <div class="font-semibold text-gray-800 text-md">{{ $selectedMeetingDetails['date'] }}</div>
+                            </div>
+                            <div>
+                                <div class="mb-2 text-sm font-medium text-gray-600">Time</div>
+                                <div class="font-semibold text-indigo-600 text-md">{{ $selectedMeetingDetails['time'] }}</div>
+                            </div>
+                            <div>
+                                <div class="mb-2 text-sm font-medium text-gray-600">Type</div>
+                                <div class="font-semibold text-gray-800 text-md">
+                                    {{ $selectedMeetingDetails['type'] === 'KICK OFF MEETING SESSION' ? 'Kick-Off Meeting' : 'Review Session' }}
+                                </div>
+                            </div>
+                            <div>
+                                <div class="mb-2 text-sm font-medium text-gray-600">Status</div>
+                                <div class="inline-flex px-3 py-1 text-sm font-semibold rounded-full
+                                    @if($selectedMeetingDetails['status'] === 'Done')
+                                        bg-green-100 text-green-800
+                                    @elseif($selectedMeetingDetails['status'] === 'New')
+                                        bg-blue-100 text-blue-800
+                                    @else
+                                        bg-gray-100 text-gray-800
+                                    @endif">
+                                    @if($selectedMeetingDetails['status'] === 'Done')
+                                        ✅ Completed
+                                    @elseif($selectedMeetingDetails['status'] === 'New')
+                                        🕒 Scheduled
+                                    @else
+                                        {{ $selectedMeetingDetails['status'] }}
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Implementer Details -->
+                    <div class="form-group">
+                        <label class="form-label">Implementer Details</label>
+                        <div class="p-4 border border-indigo-200 rounded-lg bg-indigo-50">
+                            <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+                                <div>
+                                    <div class="mb-1 text-sm font-medium text-indigo-700">Name:</div>
+                                    <div class="font-semibold text-gray-800 text-md">{{ $selectedMeetingDetails['implementer_name'] }}</div>
+                                </div>
+                                <div>
+                                    <div class="mb-1 text-sm font-medium text-indigo-700">Email:</div>
+                                    <div class="text-sm text-gray-700">
+                                        <a href="mailto:{{ $selectedMeetingDetails['implementer_email'] }}"
+                                        class="text-blue-600 hover:text-blue-800 hover:underline">
+                                            {{ $selectedMeetingDetails['implementer_email'] }}
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Required Attendees -->
+                    @if($selectedMeetingDetails['required_attendees'])
+                        <div class="form-group">
+                            <label class="form-label">Required Attendees</label>
+                            <div class="p-4 border border-gray-200 rounded-lg bg-gray-50">
+                                <div class="grid grid-cols-1 gap-2 md:grid-cols-2">
+                                    @foreach(explode(';', $selectedMeetingDetails['required_attendees']) as $email)
+                                        @if(trim($email))
+                                            <div class="flex items-center p-2 bg-white border border-gray-200 rounded">
+                                                <svg class="w-4 h-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207"></path>
+                                                </svg>
+                                                <a href="mailto:{{ trim($email) }}"
+                                                class="text-sm text-blue-600 hover:text-blue-800 hover:underline">
+                                                    {{ trim($email) }}
+                                                </a>
+                                            </div>
+                                        @endif
+                                    @endforeach
+                                </div>
+                            </div>
+                        </div>
+                    @endif
+                </div>
+
+                <div class="modal-footer">
+                    @if($selectedMeetingDetails['meeting_link'])
+                        @php
+                            // Check if meeting is past or completed
+                            $meetingDate = \Carbon\Carbon::parse($selectedMeetingDetails['date']);
+                            $isPastMeeting = $meetingDate->isPast();
+                            $isCompleted = $selectedMeetingDetails['status'] === 'Done';
+                            $shouldDisableJoin = $isPastMeeting || $isCompleted;
+                        @endphp
+
+                        @if($shouldDisableJoin)
+                            <button class="btn btn-primary" disabled style="opacity: 0.5; cursor: not-allowed;">
+                                @if($isCompleted)
+                                    ✅ Meeting Completed
+                                @else
+                                    🕐 Meeting Expired
+                                @endif
+                            </button>
+                        @else
+                            <a href="{{ $selectedMeetingDetails['meeting_link'] }}"
+                            target="_blank"
+                            class="btn btn-primary">
+                                🚀 Join Teams Meeting
+                            </a>
+                        @endif
+                    @endif
+
+                    <button wire:click="closeMeetingDetailsModal" class="btn btn-secondary">
+                        ❌ Close
+                    </button>
                 </div>
             </div>
         </div>

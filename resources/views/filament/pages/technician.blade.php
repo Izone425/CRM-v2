@@ -30,29 +30,40 @@
         display: flex;
         flex-direction: column;
         justify-content: center;
-        align-items: center;
         margin-bottom: 15px;
         width: 100%;
-        min-width: 150px;
-        text-align: center;
+        text-align: center; /* Changed from center to left */
         max-height: 82px;
+        max-width: 220px;
     }
 
     .group-box:hover {
-        transform: translateY(-3px);
         background-color: #f9fafb;
+        transform: translateX(3px);
     }
 
     .group-box.selected {
         background-color: #f9fafb;
-        transform: translateY(-5px);
+        transform: translateX(5px);
         box-shadow: 0 4px 8px rgba(0,0,0,0.1);
     }
+
+    .group-info {
+        display: flex;
+        flex-direction: column;
+    }
+
 
     .group-title {
         font-size: 15px;
         font-weight: 600;
         margin-bottom: 8px;
+        text-align: left;
+    }
+
+    .group-desc {
+        font-size: 12px;
+        color: #6b7280;
     }
 
     .group-count {
@@ -465,7 +476,7 @@
                 <div class="group-box group-all-items"
                      :class="{'selected': selectedGroup === 'all-items'}"
                      @click="setSelectedGroup('all-items')">
-                    <div class="group-title">All Items</div>
+                    <div class="group-title">OnSite Repair Handover</div>
                     <div class="group-count">{{ $allTaskCount }}</div>
                 </div>
 
@@ -473,7 +484,7 @@
                 <div class="group-box group-new-task"
                      :class="{'selected': selectedGroup === 'new-task'}"
                      @click="setSelectedGroup('new-task')">
-                    <div class="group-title">New Task</div>
+                    <div class="group-title">New Task - Technician</div>
                     <div class="group-count">{{ $newCount + $inactiveCount }}</div>
                 </div>
 
@@ -481,7 +492,7 @@
                 <div class="group-box group-task-status"
                      :class="{'selected': selectedGroup === 'task-status'}"
                      @click="setSelectedGroup('task-status')">
-                    <div class="group-title">Task Status</div>
+                    <div class="group-title">New Task - Admin</div>
                     <div class="group-count">{{ $acceptedCount }}</div>
                 </div>
 
@@ -530,7 +541,7 @@
                      :class="{'selected': selectedStat === 'inactive'}"
                      @click="setSelectedStat('inactive')">
                     <div class="stat-info">
-                        <div class="stat-label">Inactive</div>
+                        <div class="stat-label">InActive</div>
                     </div>
                     <div class="stat-count">{{ $inactiveCount }}</div>
                 </div>
