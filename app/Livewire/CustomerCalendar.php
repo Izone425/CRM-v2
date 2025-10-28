@@ -38,6 +38,10 @@ class CustomerCalendar extends Component
     public $showCancelModal = false;
     public $appointmentToCancel = null;
     public $canScheduleMeeting = false;
+    public $showExistingBookings = true;
+
+    public $showMeetingDetailsModal = false;
+    public $selectedMeetingDetails = null;
 
     public function mount()
     {
@@ -50,6 +54,75 @@ class CustomerCalendar extends Component
 
         // NEW LOGIC: Check if customer can schedule meetings
         $this->canScheduleMeeting = $this->determineSchedulingPermission($customer);
+
+        // Initialize bookings visibility to true
+        $this->showExistingBookings = true;
+    }
+
+    public function openMeetingDetailsModal($bookingId)
+    {
+        // Add debugging
+        Log::info('openMeetingDetailsModal called', ['booking_id' => $bookingId]);
+
+        $booking = collect($this->existingBookings)->firstWhere('id', $bookingId);
+
+        if (!$booking) {
+            Log::error('Booking not found', ['booking_id' => $bookingId, 'existing_bookings' => $this->existingBookings]);
+            Notification::make()
+                ->title('Meeting not found')
+                ->danger()
+                ->send();
+            return;
+        }
+
+        // Add more debugging
+        Log::info('Booking found', ['booking' => $booking]);
+
+        // Get the full appointment details from database
+        $appointment = ImplementerAppointment::find($bookingId);
+
+        if (!$appointment) {
+            Log::error('Appointment not found in database', ['booking_id' => $bookingId]);
+            Notification::make()
+                ->title('Meeting details not found')
+                ->danger()
+                ->send();
+            return;
+        }
+
+        // Get implementer email - ADD NULL CHECK HERE
+        $implementerEmail = $this->getImplementerEmail($appointment->implementer ?? '');
+
+        $this->selectedMeetingDetails = [
+            'id' => $appointment->id,
+            'date' => Carbon::parse($appointment->date)->format('j M Y, l'),
+            'time' => Carbon::parse($appointment->start_time)->format('H:i') . ' – ' .
+                    Carbon::parse($appointment->end_time)->format('H:i'),
+            'type' => $appointment->type ?? '',
+            'implementer_name' => $appointment->implementer ?? 'Unknown',
+            'implementer_email' => $implementerEmail,
+            'meeting_link' => $appointment->meeting_link ?? '',
+            'meeting_id' => $appointment->meeting_id ?? '',
+            'meeting_password' => $appointment->meeting_password ?? '',
+            'status' => $appointment->status ?? 'Unknown',
+            'required_attendees' => $appointment->required_attendees ?? '',
+            'remarks' => $appointment->remarks ?? '',
+            'appointment_type' => $appointment->appointment_type ?? '',
+        ];
+
+        Log::info('Modal should show now', ['selectedMeetingDetails' => $this->selectedMeetingDetails]);
+        $this->showMeetingDetailsModal = true;
+    }
+
+    public function closeMeetingDetailsModal()
+    {
+        $this->showMeetingDetailsModal = false;
+        $this->selectedMeetingDetails = null;
+    }
+
+    public function toggleExistingBookings()
+    {
+        $this->showExistingBookings = !$this->showExistingBookings;
     }
 
     private function determineSchedulingPermission($customer)
@@ -985,16 +1058,26 @@ class CustomerCalendar extends Component
         try {
             $lead = \App\Models\Lead::find($customer->lead_id);
 
-            // Format data to match the email template's expected $content['lead'] structure
+            // Determine email template and subject based on appointment type
+            $emailTemplate = ($appointment->type === 'KICK OFF MEETING SESSION')
+                ? 'emails.implementer_appointment_notification'
+                : 'emails.implementation_session';
+
+            $subjectPrefix = ($appointment->type === 'KICK OFF MEETING SESSION')
+                ? 'KICK-OFF MEETING SESSION'
+                : 'REVIEW SESSION';
+
+            // Format data to match the email template's expected structure
             $emailData = [
                 'content' => [
                     'lead' => [
                         'appointment_type' => $appointment->appointment_type,
                         'demo_type' => $appointment->type,
+                        'type' => $appointment->type,
                         'company' => $customer->company_name,
                         'date' => $appointment->date,
-                        'startTime' => Carbon::parse($appointment->start_time)->format('g:i A'),
-                        'endTime' => Carbon::parse($appointment->end_time)->format('g:i A'),
+                        'startTime' => Carbon::parse($appointment->start_time)->format('H:i'),
+                        'endTime' => Carbon::parse($appointment->end_time)->format('H:i'),
                         'meetingLink' => $appointment->meeting_link,
                         'implementerName' => $appointment->implementer,
                         'implementerEmail' => $this->getImplementerEmail($appointment->implementer),
@@ -1012,7 +1095,18 @@ class CustomerCalendar extends Component
                         'eventId' => $appointment->event_id,
                         'bookingId' => $appointment->id,
                         'submittedAt' => now()->format('d F Y, g:i A'),
-                    ]
+                    ],
+                    // Add additional fields for implementation_session template
+                    'appointmentType' => $appointment->appointment_type,
+                    'type' => $appointment->type,
+                    'date' => $appointment->date,
+                    'startTime' => Carbon::parse($appointment->start_time)->format('H:i'),
+                    'endTime' => Carbon::parse($appointment->end_time)->format('H:i'),
+                    'meetingLink' => $appointment->meeting_link,
+                    'companyName' => $customer->company_name,
+                    'implementerName' => $appointment->implementer,
+                    'implementerEmail' => $this->getImplementerEmail($appointment->implementer),
+                    'remarks' => $appointment->remarks,
                 ]
             ];
 
@@ -1029,9 +1123,7 @@ class CustomerCalendar extends Component
                 }
             }
 
-            $ccRecipients = [
-                // 'fazuliana.mohdarsad@timeteccloud.com'
-            ];
+            $ccRecipients = [];
 
             // Add the assigned implementer to CC
             $implementerEmail = $this->getImplementerEmail($appointment->implementer);
@@ -1065,23 +1157,26 @@ class CustomerCalendar extends Component
             $implementerName = $appointment->implementer;
 
             \Illuminate\Support\Facades\Mail::send(
-                'emails.implementer_appointment_notification',
+                $emailTemplate,
                 $emailData,
-                function ($message) use ($recipients, $ccRecipients, $customer, $implementerEmail, $implementerName) {
+                function ($message) use ($recipients, $ccRecipients, $customer, $implementerEmail, $implementerName, $subjectPrefix) {
                     $message->from($implementerEmail ?: 'noreply@timeteccloud.com', $implementerName ?: 'TimeTec Implementation Team')
                             ->to($recipients) // Primary recipients (customer + attendees)
                             ->cc($ccRecipients) // CC implementer team + assigned implementer + salesperson
-                            ->subject("KICK-OFF MEETING SESSION | {$customer->company_name}");
+                            ->subject("{$subjectPrefix} | {$customer->company_name}");
                 }
             );
 
             Log::info('Booking notification email sent successfully', [
+                'template' => $emailTemplate,
+                'subject_prefix' => $subjectPrefix,
                 'sender' => $implementerEmail ?: 'noreply@timeteccloud.com',
                 'sender_name' => $implementerName ?: 'TimeTec Implementation Team',
                 'to_recipients' => $recipients,
                 'cc_recipients' => $ccRecipients,
                 'customer' => $customer->company_name,
                 'appointment_id' => $appointment->id,
+                'appointment_type' => $appointment->type,
                 'total_to_recipients' => count($recipients),
                 'total_cc_recipients' => count($ccRecipients),
                 'salesperson_included' => $lead && $lead->getSalespersonEmail() ? 'yes' : 'no'
@@ -1091,6 +1186,7 @@ class CustomerCalendar extends Component
             Log::error("Failed to send booking notification email: " . $e->getMessage(), [
                 'customer' => $customer->company_name,
                 'appointment_id' => $appointment->id ?? 'unknown',
+                'appointment_type' => $appointment->type ?? 'unknown',
                 'trace' => $e->getTraceAsString()
             ]);
         }
@@ -1146,7 +1242,9 @@ class CustomerCalendar extends Component
             $isPublicHoliday = PublicHoliday::where('date', $dateString)->exists();
 
             // Check if this date has customer's scheduled meeting
-            $hasCustomerMeeting = collect($this->existingBookings)->contains('raw_date', $dateString);
+            $hasCustomerMeeting = collect($this->existingBookings)->contains(function ($booking) use ($dateString) {
+                return Carbon::parse($booking['date'])->format('Y-m-d') === $dateString;
+            });
 
             // Count available sessions for this date (based on updated permission logic)
             $availableCount = 0;

@@ -145,12 +145,20 @@ class CustomerPortalRawData extends Page implements HasTable
                                 ->first();
 
                             return $firstAppointment
-                                ? $firstAppointment->created_at->format('d M Y H:i:s')
-                                : 'Not submitted';
+                                ? new \Illuminate\Support\HtmlString(
+                                    $firstAppointment->created_at->format('d M Y') . '<br>' .
+                                    $firstAppointment->created_at->format('H:i:s')
+                                )
+                                : new \Illuminate\Support\HtmlString(
+                                    '<span style="color: red; font-weight: bold;">Not submitted</span>'
+                                );;
                         }
 
-                        return 'Not submitted';
+                        return new \Illuminate\Support\HtmlString(
+                            '<span style="color: red; font-weight: bold;">Not submitted</span>'
+                        );
                     })
+                    ->html() // Enable HTML rendering
                     ->sortable(false)
                     ->searchable(false)
                     ->default('Not submitted'),
@@ -181,7 +189,12 @@ class CustomerPortalRawData extends Page implements HasTable
 
                                         // Combine date and time properly
                                         $combined = $dateOnly . ' ' . $time;
-                                        return \Carbon\Carbon::parse($combined)->format('d M Y H:i:s');
+                                        $parsedDateTime = \Carbon\Carbon::parse($combined);
+
+                                        return new \Illuminate\Support\HtmlString(
+                                            $parsedDateTime->format('d M Y') . '<br>' .
+                                            $parsedDateTime->format('H:i:s')
+                                        );
                                     } catch (\Exception $e) {
                                         // Fallback if parsing fails
                                         return \Carbon\Carbon::parse($date)->format('d M Y');
@@ -191,8 +204,11 @@ class CustomerPortalRawData extends Page implements HasTable
                                 }
                             }
                         }
-                        return 'No kick-off meeting';
+                        return new \Illuminate\Support\HtmlString(
+                            '<span style="color: red; font-weight: bold;">Not available</span>'
+                        );
                     })
+                    ->html() // Enable HTML rendering
                     ->sortable(false)
                     ->searchable(false)
                     ->default('No kick-off meeting')

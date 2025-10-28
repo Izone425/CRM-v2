@@ -1130,22 +1130,81 @@ class ImplementerAppointmentRelationManager extends RelationManager
                                         if ($template) {
                                             $set('email_subject', $template->subject);
                                             $set('email_content', $template->content);
+
+                                            // NEW: Trigger preview update
+                                            $set('template_selected', true);
                                         }
                                     }
                                 })
                                 ->required(),
 
-                            TextInput::make('email_subject')
-                                ->label('Email Subject')
-                                ->required(),
+                            Grid::make(2)
+                                ->schema([
+                                    // Left column - Email form fields
+                                    Grid::make(1)
+                                        ->schema([
+                                            TextInput::make('email_subject')
+                                                ->label('Email Subject')
+                                                ->required()
+                                                ->reactive(),
 
-                            RichEditor::make('email_content')
-                                ->label('Email Content')
-                                ->disableToolbarButtons([
-                                    'attachFiles',
-                                ])
-                                ->required(),
-                        ]),
+                                            RichEditor::make('email_content')
+                                                ->label('Email Content')
+                                                ->disableToolbarButtons([
+                                                    'attachFiles',
+                                                ])
+                                                ->required()
+                                                ->reactive(),
+                                        ])->columnSpan(1),
+
+                                    // Right column - Email preview (remove the nested Grid and Fieldset)
+                                    Forms\Components\Placeholder::make('email_preview')
+                                        ->label('Email Preview')
+                                        ->content(function (callable $get) {
+                                            $subject = $get('email_subject') ?? '';
+                                            $content = $get('email_content') ?? '';
+
+                                            if (empty($subject) && empty($content)) {
+                                                return new \Illuminate\Support\HtmlString('<p class="italic text-gray-500">Select a template to see preview...</p>');
+                                            }
+
+                                            // Get customer data for replacement
+                                            $lead = $this->getOwnerRecord();
+                                            $customer = \App\Models\Customer::where('lead_id', $lead->id)->first();
+                                            $softwareHandover = \App\Models\SoftwareHandover::where('lead_id', $lead->id)->latest()->first();
+
+                                            // Replace placeholders
+                                            $placeholders = [
+                                                '{customer_name}' => $lead->contact_name ?? '',
+                                                '{company_name}' => $softwareHandover->company_name ?? ($lead->companyDetail?->company_name ?? 'Unknown Company'),
+                                                '{implementer_name}' => auth()->user()->name ?? '',
+                                                '{lead_owner}' => $lead->lead_owner ?? '',
+                                                '{customer_email}' => $customer ? $customer->email : 'Not Available',
+                                                '{customer_password}' => $customer ? $customer->plain_password : 'Not Available',
+                                                '{customer_portal_url}' => str_replace('http://', 'https://', config('app.url')) . '/customer/login',
+                                            ];
+
+                                            $previewSubject = str_replace(array_keys($placeholders), array_values($placeholders), $subject);
+                                            $previewContent = str_replace(array_keys($placeholders), array_values($placeholders), $content);
+
+                                            $html = '<div class="p-4 border rounded-lg bg-gray-50">';
+                                            $html .= '<div class="mb-3"><strong>Subject:</strong> <span class="text-blue-600">' . e($previewSubject) . '</span></div>';
+                                            $html .= '<div><strong>Content:</strong></div>';
+                                            $html .= '<div class="p-3 mt-2 bg-white border rounded">' . $previewContent . '</div>';
+                                            $html .= '</div>';
+
+                                            return new \Illuminate\Support\HtmlString($html);
+                                        })
+                                        ->columnSpan(1)
+                                        ->dehydrated(false)
+                                        ->visible(fn (callable $get) => !empty($get('email_subject')) || !empty($get('email_content')))
+                                ]),
+                            ]),
+
+                    // Add a hidden field to track template selection
+                    Hidden::make('template_selected')
+                        ->default(false)
+                        ->dehydrated(false),
 
                     Hidden::make('implementer_name')
                         ->default(auth()->user()->name ?? ''),

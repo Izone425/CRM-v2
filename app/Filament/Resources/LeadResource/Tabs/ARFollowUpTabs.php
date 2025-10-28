@@ -559,11 +559,14 @@ class ARFollowUpTabs
             // Initialize CC recipients array
             $ccRecipients = [];
 
+            // Always add renewal.timetec.hr@timeteccloud.com to CC
+            $ccRecipients[] = 'renewal.timetec.hr@timeteccloud.com';
+
             // Add admin renewal to CC if available and different from sender
             if ($renewal->admin_renewal) {
                 // Look up user by name
                 $adminUser = \App\Models\User::where('name', $renewal->admin_renewal)->first();
-                if ($adminUser && $adminUser->email && $adminUser->email !== $emailData['sender_email']) {
+                if ($adminUser && $adminUser->email && $adminUser->email !== $emailData['sender_email'] && !in_array($adminUser->email, $ccRecipients)) {
                     $ccRecipients[] = $adminUser->email;
                     Log::info("Added admin renewal to CC: {$adminUser->name} <{$adminUser->email}>");
                 } else {
@@ -580,7 +583,7 @@ class ARFollowUpTabs
                     ->subject($emailData['subject'])
                     ->from($emailData['sender_email'], $emailData['sender_name']);
 
-                // Add CC recipients if we have any
+                // Add CC recipients (including renewal.timetec.hr@timeteccloud.com)
                 if (! empty($ccRecipients)) {
                     $message->cc($ccRecipients);
                 }
