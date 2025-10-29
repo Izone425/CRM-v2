@@ -132,11 +132,11 @@ class LeadResource extends Resource
             } elseif ($user->role_id === 4) { // Implementer
                 $activeTabs = ['implementer_software_handover', 'implementer_hardware_handover', 'implementer_pic_details',
                     'implementer_notes', 'implementer_appointment', 'implementer_follow_up',
-                    'data_file', 'implementer_service_form', 'ticketing'];
+                    'data_file', 'implementer_service_form', 'ticketing', 'project_plan'];
             } elseif ($user->role_id === 5) { // Implementer
                 $activeTabs = ['implementer_software_handover', 'implementer_hardware_handover','implementer_pic_details',
                     'implementer_notes', 'implementer_appointment', 'implementer_follow_up',
-                    'data_file', 'implementer_service_form', 'other_form', 'ticketing'];
+                    'data_file', 'implementer_service_form', 'other_form', 'ticketing', 'project_plan'];
             } elseif ($user->role_id === 9) { // Technician
                 $activeTabs = ['company', 'quotation', 'repair_appointment'];
             } else { // Manager (role_id = 3) or others
@@ -199,12 +199,12 @@ class LeadResource extends Resource
         }
 
         if (in_array('implementer_software_handover', $activeTabs)) {
-            $tabs[] = Tabs\Tab::make('Handover')
+            $tabs[] = Tabs\Tab::make('Software')
                 ->schema(ImplementerSoftwareHandoverTabs::getSchema());
         }
 
         if (in_array('implementer_hardware_handover', $activeTabs)) {
-            $tabs[] = Tabs\Tab::make('Handover')
+            $tabs[] = Tabs\Tab::make('Hardware')
                 ->schema(ImplementerHardwareHandoverTabs::getSchema());
         }
 
@@ -224,8 +224,12 @@ class LeadResource extends Resource
         }
 
         if (in_array('implementer_appointment', $activeTabs)) {
-            $tabs[] = Tabs\Tab::make('Appointment')
+            $tabs[] = Tabs\Tab::make('Sessions')
                 ->schema(ImplementerAppointmentTabs::getSchema());
+        }
+
+        if (in_array('project_plan', $activeTabs)) {
+            $tabs[] = Tabs\Tab::make('Project Plan');
         }
 
         // if (in_array('data_file', $activeTabs)) {

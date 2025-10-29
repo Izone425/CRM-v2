@@ -64,7 +64,7 @@ class ImplementerFollowUpTabs
                         ->icon('heroicon-o-clipboard-document-check')
                         ->headerActions([
                             Action::make('add_follow_up')
-                                ->label('Add Follow-up')
+                                ->label('Add Follow-Up')
                                 ->button()
                                 ->color('primary')
                                 ->icon('heroicon-o-plus')

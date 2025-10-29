@@ -26,14 +26,21 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Illuminate\View\View as IlluminateView;
 
-class ImplementerHardwareHandoverTabs
+class ImplementerSoftwareHandoverTabs
 {
     public static function getSchema(): array
     {
         return [
-            \Njxqlus\Filament\Components\Forms\RelationManager::make()
-                ->manager(\App\Filament\Resources\LeadResource\RelationManagers\HHTableRelationManager::class
-            ),
+            Tabs::make('Handovers')
+                ->tabs([
+                    Tabs\Tab::make('Software Handover')
+                        ->schema([
+                            \Njxqlus\Filament\Components\Forms\RelationManager::make()
+                                ->manager(\App\Filament\Resources\LeadResource\RelationManagers\SHTableRelationManager::class
+                            ),
+                        ]),
+                ])
+                ->columnSpan(2),
         ];
     }
 }

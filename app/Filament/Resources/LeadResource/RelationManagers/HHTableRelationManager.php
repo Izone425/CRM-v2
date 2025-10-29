@@ -3,7 +3,7 @@
 namespace App\Filament\Resources\LeadResource\RelationManagers;
 
 use Filament\Resources\RelationManagers\RelationManager;
-use App\Models\HardwareHandover;
+use App\Models\HardwareHandoverV2;
 use App\Models\User;
 use Filament\Forms\Components\Builder;
 use Filament\Support\Colors\Color;
@@ -18,7 +18,7 @@ use Livewire\Attributes\On;
 
 class HHTableRelationManager extends RelationManager
 {
-    protected static string $relationship = 'hardwareHandover'; // Define the relationship name in the Lead model
+    protected static string $relationship = 'hardwareHandoverv2'; // Define the relationship name in the Lead model
     protected static ?int $indexRepeater2 = 0;
 
     #[On('refresh-hardware-handovers')]
@@ -26,6 +26,11 @@ class HHTableRelationManager extends RelationManager
     public function refresh()
     {
         $this->resetTable();
+    }
+
+    protected function getTableHeading(): string
+    {
+        return __('Hardware Handovers V2');
     }
 
     public static function canViewForRecord(Model $ownerRecord, string $pageClass): bool
@@ -41,7 +46,7 @@ class HHTableRelationManager extends RelationManager
             ->columns([
                 TextColumn::make('id')
                     ->label('ID')
-                    ->formatStateUsing(function ($state, HardwareHandover $record) {
+                    ->formatStateUsing(function ($state, HardwareHandoverV2 $record) {
                         // If no state (ID) is provided, return a fallback
                         if (!$state) {
                             return 'Unknown';
@@ -69,14 +74,13 @@ class HHTableRelationManager extends RelationManager
                             ->modalWidth('4xl')
                             ->modalSubmitAction(false)
                             ->modalCancelAction(false)
-                            ->modalContent(function (HardwareHandover $record): View {
+                            ->modalContent(function (HardwareHandoverV2 $record): View {
                                 return view('components.hardware-handover')
                                     ->with('extraAttributes', ['record' => $record]);
                             })
                     ),
 
                 TextColumn::make('lead.companyDetail.company_name')
-                    ->searchable()
                     ->label('Company Name')
                     ->url(function ($state, $record) {
                         if ($record->lead && $record->lead->id) {
@@ -109,7 +113,7 @@ class HHTableRelationManager extends RelationManager
 
                 TextColumn::make('lead.salesperson')
                     ->label('SalesPerson')
-                    ->getStateUsing(function (HardwareHandover $record) {
+                    ->getStateUsing(function (HardwareHandoverV2 $record) {
                         $lead = $record->lead;
                         if (!$lead) {
                             return '-';
@@ -120,66 +124,34 @@ class HHTableRelationManager extends RelationManager
                     }),
 
                 TextColumn::make('implementer')
-                    ->label('Implementer')
-                    ->toggleable(),
+                    ->label('Implementer'),
 
                 TextColumn::make('status')
-                    ->label('Status')
-                    ->toggleable(),
+                    ->label('Status'),
 
                 TextColumn::make('tc10_quantity')
                     ->label('TC10')
-                    ->numeric(0)
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->numeric(0),
 
                 TextColumn::make('tc20_quantity')
                     ->label('TC20')
-                    ->numeric(0)
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->numeric(0),
 
                 TextColumn::make('face_id5_quantity')
                     ->label('FACE ID 5')
-                    ->numeric(0)
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->numeric(0),
 
                 TextColumn::make('face_id6_quantity')
                     ->label('FACE ID 6')
-                    ->numeric(0)
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->numeric(0),
 
                 TextColumn::make('time_beacon_quantity')
-                    ->label('TIME BEACON')
-                    ->numeric(0)
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->label('BEACON')
+                    ->numeric(0),
 
                 TextColumn::make('nfc_tag_quantity')
                     ->label('NFC TAG')
-                    ->numeric(0)
-                    ->toggleable(isToggledHiddenByDefault: true),
-
-                TextColumn::make('created_at')
-                    ->label('Date Submit')
-                    ->date('d M Y')
-                    ->sortable()
-                    ->toggleable(),
-
-                TextColumn::make('pending_stock_at')
-                    ->label(new HtmlString('Date<br>Pending Stock'))
-                    ->date('d M Y')
-                    ->sortable()
-                    ->toggleable(),
-
-                TextColumn::make('pending_migration_at')
-                    ->label(new HtmlString('Date<br>Pending Migration'))
-                    ->date('d M Y')
-                    ->sortable()
-                    ->toggleable(),
-
-                TextColumn::make('completed_at')
-                    ->label(new HtmlString('Date<br>Completed'))
-                    ->date('d M Y')
-                    ->sortable()
-                    ->toggleable(),
+                    ->numeric(0),
             ]);
     }
 }

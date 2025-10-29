@@ -344,7 +344,7 @@ class ProductResource extends Resource
                 ToggleColumn::make('is_active')->label('Active')->width(100)->disabled(fn() => auth()->user()->role_id != 3),
 
                 ToggleColumn::make('convert_pi')
-                    ->label(new HtmlString('Convert<br>to PI'))
+                    ->label(new HtmlString('Push<br>to PI'))
                     ->width(100)
                     ->disabled(fn() => auth()->user()->role_id != 3),
 

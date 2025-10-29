@@ -70,13 +70,13 @@ class ViewLeadRecord extends ViewRecord
         } elseif ($user->role_id === 2) { // Salesperson
             return ['prospect_details', 'subscriber_details', 'sales_progress', 'commercial_items', 'handover_details'];
         } elseif ($user->role_id === 4) { // Implementer
-            return ['implementer_handover','implementer_pic_details',
+            return ['implementer_software_handover','implementer_hardware_handover','implementer_pic_details',
             'implementer_notes', 'implementer_appointment', 'implementer_follow_up',
-            'data_file', 'implementer_service_form', 'other_form', 'ticketing'];
+            'data_file', 'implementer_service_form', 'other_form', 'ticketing', 'project_plan'];
         } elseif ($user->role_id === 5) { // Implementer
-            return ['implementer_handover','implementer_pic_details',
+            return ['implementer_software_handover','implementer_hardware_handover','implementer_pic_details',
             'implementer_notes', 'implementer_appointment', 'implementer_follow_up',
-            'data_file', 'implementer_service_form', 'other_form', 'ticketing'];
+            'data_file', 'implementer_service_form', 'other_form', 'ticketing', 'project_plan'];
         } elseif ($user->role_id === 9) { // Technician
             return ['company', 'quotation', 'repair_appointment'];
         } else { // Manager (role_id = 3) or others
@@ -222,9 +222,9 @@ class ViewLeadRecord extends ViewRecord
                             $tabs = ['prospect_details', 'subscriber_details', 'sales_progress', 'commercial_items', 'handover_details'];
                             break;
                         case 'implementer':
-                            $tabs = ['implementer_handover','implementer_pic_details',
+                            $tabs = ['implementer_software_handover','implementer_hardware_handover','implementer_pic_details',
                                 'implementer_notes', 'implementer_appointment', 'implementer_follow_up',
-                                'implementer_service_form', 'data_file', 'other_form', 'ticketing'];
+                                'implementer_service_form', 'data_file', 'other_form', 'ticketing', 'project_plan'];
                             break;
                         case 'admin_repair':
                             $tabs = ['company', 'quotation', 'repair_appointment'];

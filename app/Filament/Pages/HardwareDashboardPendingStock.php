@@ -226,7 +226,7 @@ class HardwareDashboardPendingStock extends Page implements HasTable
                     ->toggleable(),
 
                 TextColumn::make('time_beacon_quantity')
-                    ->label('TIME BEACON')
+                    ->label('BEACON')
                     ->numeric(0)
                     ->toggleable(),
 

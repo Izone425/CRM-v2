@@ -30,11 +30,11 @@
             </div>
         </div>
     @else
-        <div class="flex items-center justify-center p-6 text-gray-500 rounded-lg bg-gray-50">
+        <!-- <div class="flex items-center justify-center p-6 text-gray-500 rounded-lg bg-gray-50">
             <div class="text-center">
                 <p>No notes available for this lead</p>
                 <p class="mt-1 text-sm">Click 'Add Note' to create the first note</p>
             </div>
-        </div>
+        </div> -->
     @endif
 </div>
