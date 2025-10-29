@@ -140,13 +140,6 @@
 
                 <!-- Messages Container -->
                 <div class="flex-1 p-4 space-y-4 overflow-y-auto bg-gray-100">
-                    <!-- 👇 Loading spinner while switching chat -->
-                    <div class="flex-1 p-4 space-y-4 overflow-y-auto bg-gray-100"
-                        wire:poll.2s="refreshSelectedChatMessages"
-                        wire:key="messages-{{ $selectedChat['user1'] ?? '' }}-{{ $selectedChat['user2'] ?? '' }}">
-                        <i class="mr-2 fas fa-spinner fa-spin"></i> Loading messages...
-                    </div>
-
                     <!-- 👇 Hide messages while loading -->
                     <div wire:loading.remove wire:target="selectChat">
                         @foreach($this->fetchMessages($selectedChat) as $message)

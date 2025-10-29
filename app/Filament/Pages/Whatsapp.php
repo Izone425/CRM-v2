@@ -269,13 +269,15 @@ class Whatsapp extends Page
 
     public function fetchContacts()
     {
+        $twilioNumber = preg_replace('/[^0-9]/', '', env('TWILIO_WHATSAPP_FROM', ''));
+
         // Start with a more efficient base query
         $baseQuery = DB::table('chat_messages')
             ->select([
                 DB::raw('LEAST(sender, receiver) AS user1'),
                 DB::raw('GREATEST(sender, receiver) AS user2'),
                 DB::raw('MAX(created_at) as last_message_time'),
-                DB::raw('MAX(id) as latest_message_id') // Get the latest message ID for efficient joins
+                DB::raw('MAX(id) as latest_message_id')
             ])
             ->groupBy('user1', 'user2');
 
@@ -287,23 +289,11 @@ class Whatsapp extends Page
             ]);
         }
 
-        // Apply unreplied filter at SQL level for better performance
-        if ($this->filterUnreplied) {
-            $twilioNumber = preg_replace('/[^0-9]/', '', env('TWILIO_WHATSAPP_FROM', ''));
-
-            $baseQuery->whereExists(function ($query) use ($twilioNumber) {
-                $query->select(DB::raw(1))
-                    ->from('chat_messages as unread')
-                    ->whereColumn('unread.sender', 'chat_messages.sender')
-                    ->whereColumn('unread.receiver', 'chat_messages.receiver')
-                    ->where('unread.is_from_customer', true)
-                    ->where('unread.is_read', false)
-                    ->where('unread.receiver', $twilioNumber);
-            });
-        }
+        // Get more records than needed if filtering unreplied (since we'll filter in PHP)
+        $limit = $this->filterUnreplied ? $this->contactsLimit * 3 : $this->contactsLimit * 2;
 
         $chatPairs = $baseQuery->orderByDesc('last_message_time')
-            ->limit($this->contactsLimit * 2) // Get more to account for filtering
+            ->limit($limit)
             ->get();
 
         // Get all latest messages in one query
@@ -313,8 +303,7 @@ class Whatsapp extends Page
             ->keyBy('id');
 
         // Pre-load lead and company data for better performance
-        $allPhones = $chatPairs->map(function ($chat) {
-            $twilioNumber = preg_replace('/[^0-9]/', '', env('TWILIO_WHATSAPP_FROM', ''));
+        $allPhones = $chatPairs->map(function ($chat) use ($twilioNumber) {
             $user1 = preg_replace('/^\+/', '', $chat->user1);
             $user2 = preg_replace('/^\+/', '', $chat->user2);
             return ($user1 === $twilioNumber) ? $user2 : $user1;
@@ -334,10 +323,29 @@ class Whatsapp extends Page
         $contacts = collect();
 
         foreach ($chatPairs as $chat) {
-            $twilioNumber = preg_replace('/[^0-9]/', '', env('TWILIO_WHATSAPP_FROM', ''));
             $user1 = preg_replace('/^\+/', '', $chat->user1);
             $user2 = preg_replace('/^\+/', '', $chat->user2);
             $chatParticipant = ($user1 === $twilioNumber) ? $user2 : $user1;
+
+            // Get the latest message for this chat
+            $lastMessage = $latestMessages->get($chat->latest_message_id);
+
+            $chat->latest_message = $lastMessage->message ?? null;
+            $chat->is_from_customer = $lastMessage->is_from_customer ?? null;
+            $chat->is_read = $lastMessage->is_read ?? null;
+
+            // Check for unread messages - CORRECTED LOGIC
+            // Only consider it "no reply" if the LATEST message is from customer AND unread
+            $hasNoReply = $lastMessage &&
+                        $lastMessage->is_from_customer &&
+                        !$lastMessage->is_read;
+
+            $chat->has_no_reply = $hasNoReply;
+
+            // APPLY UNREPLIED FILTER HERE (in PHP after getting the latest message)
+            if ($this->filterUnreplied && !$hasNoReply) {
+                continue; // Skip this chat if filtering unreplied and this chat doesn't need a reply
+            }
 
             // Apply lead owner filter
             if (!empty($this->selectedLeadOwner)) {
@@ -372,20 +380,6 @@ class Whatsapp extends Page
                     continue;
                 }
             }
-
-            // Get the latest message for this chat
-            $lastMessage = $latestMessages->get($chat->latest_message_id);
-
-            $chat->latest_message = $lastMessage->message ?? null;
-            $chat->is_from_customer = $lastMessage->is_from_customer ?? null;
-            $chat->is_read = $lastMessage->is_read ?? null;
-
-            // Check for unread messages more efficiently
-            $hasNoReply = $lastMessage &&
-                        $lastMessage->is_from_customer &&
-                        !$lastMessage->is_read;
-
-            $chat->has_no_reply = $hasNoReply;
 
             // Set participant name from pre-loaded data
             $participantLeads = $leads->get($chatParticipant, collect());
@@ -770,68 +764,23 @@ class Whatsapp extends Page
         }
     }
 
-    // public static function getNavigationBadge(): ?string
-    // {
-    //     $chatPairs = ChatMessage::selectRaw('LEAST(sender, receiver) AS user1, GREATEST(sender, receiver) AS user2')
-    //         ->groupBy('user1', 'user2')
-    //         ->get();
+    public function updatedFilterUnreplied()
+    {
+        $this->contactsLimit = 15; // Reset limit when filter changes
+    }
 
-    //     $unreadChats = $chatPairs->filter(function ($chat) {
-    //         $lastMessage = ChatMessage::where(function ($query) use ($chat) {
-    //                 $query->where('sender', $chat->user1)
-    //                     ->where('receiver', $chat->user2);
-    //             })
-    //             ->orWhere(function ($query) use ($chat) {
-    //                 $query->where('sender', $chat->user2)
-    //                     ->where('receiver', $chat->user1);
-    //             })
-    //             ->latest()
-    //             ->first();
+    public function updatedSelectedLeadOwner()
+    {
+        $this->contactsLimit = 15; // Reset limit when filter changes
+    }
 
-    //         if (!$lastMessage || !$lastMessage->is_from_customer) {
-    //             return false;
-    //         }
+    public function updatedSearchCompany()
+    {
+        $this->contactsLimit = 15; // Reset limit when search changes
+    }
 
-    //         // Look for unread message from customer to system (i.e. no reply yet)
-    //         return ChatMessage::where('sender', $chat->user2)
-    //             ->where('receiver', $chat->user1)
-    //             ->where('is_from_customer', true)
-    //             ->where('is_read', false)
-    //             ->exists();
-    //     });
-
-    //     return (string) $unreadChats->count();
-    // }
-
-    // public static function getNavigationBadgeColor(): ?string
-    // {
-    //     $chatPairs = ChatMessage::selectRaw('LEAST(sender, receiver) AS user1, GREATEST(sender, receiver) AS user2')
-    //         ->groupBy('user1', 'user2')
-    //         ->get();
-
-    //     $hasUnread = $chatPairs->contains(function ($chat) {
-    //         $lastMessage = ChatMessage::where(function ($query) use ($chat) {
-    //                 $query->where('sender', $chat->user1)
-    //                     ->where('receiver', $chat->user2);
-    //             })
-    //             ->orWhere(function ($query) use ($chat) {
-    //                 $query->where('sender', $chat->user2)
-    //                     ->where('receiver', $chat->user1);
-    //             })
-    //             ->latest()
-    //             ->first();
-
-    //         if (!$lastMessage || !$lastMessage->is_from_customer) {
-    //             return false;
-    //         }
-
-    //         return ChatMessage::where('sender', $chat->user2)
-    //             ->where('receiver', $chat->user1)
-    //             ->where('is_from_customer', true)
-    //             ->where('is_read', false)
-    //             ->exists();
-    //     });
-
-    //     return $hasUnread ? 'danger' : null;
-    // }
+    public function updatedSearchPhone()
+    {
+        $this->contactsLimit = 15; // Reset limit when search changes
+    }
 }
