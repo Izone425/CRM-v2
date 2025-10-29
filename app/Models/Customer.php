@@ -29,6 +29,8 @@ class Customer extends Authenticatable
         'lead_id',
         'original_email',
         'able_set_meeting',
+        'tutorial_completed',
+        'tutorial_step',
     ];
 
     protected $hidden = [

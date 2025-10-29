@@ -659,6 +659,488 @@ use Carbon\Carbon;
             background: rgba(255, 255, 255, 0.3);
             transform: scale(1.1);
         }
+
+        .help-button {
+            animation: helpButtonPulse 3s ease-in-out infinite;
+        }
+
+        @keyframes helpButtonPulse {
+            0%, 100% {
+                box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
+            }
+            50% {
+                box-shadow: 0 0 0 10px rgba(59, 130, 246, 0);
+            }
+        }
+
+        .tutorial-step-indicator {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .tutorial-step-indicator.active {
+            transform: scale(1.2);
+        }
+
+        .tutorial-modal {
+            position: fixed;
+            inset: 0;
+            z-index: 50;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(4px);
+        }
+
+        .tutorial-container {
+            background: white;
+            border-radius: 24px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            width: 100%;
+            max-width: 700px; /* Reduced from 5xl to smaller size */
+            max-height: auto; /* Reduced from 95vh */
+            margin: 1rem;
+            overflow: hidden;
+            transform: scale(1);
+            transition: all 0.3s ease;
+        }
+
+        .tutorial-header {
+            position: relative;
+            padding: 2rem 2rem 1.5rem 2rem; /* Reduced padding */
+            color: white;
+            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #4f46e5 100%);
+        }
+
+        .tutorial-header-pattern {
+            position: absolute;
+            inset: 0;
+            opacity: 0.1;
+        }
+
+        .tutorial-header-pattern::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 160px;
+            height: 160px;
+            border-radius: 50%;
+            background: linear-gradient(to right, white, transparent);
+            transform: translate(-80px, -80px);
+        }
+
+        .tutorial-header-pattern::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: linear-gradient(to right, white, transparent);
+            transform: translate(60px, 60px);
+        }
+
+        .tutorial-header-content {
+            position: relative;
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+        }
+
+        .tutorial-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 60px;
+            height: 60px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 16px;
+            backdrop-filter: blur(10px);
+            margin-right: 1rem;
+        }
+
+        .tutorial-title {
+            font-size: 1.5rem; /* Reduced from 3xl */
+            font-weight: 700;
+            line-height: 1.2;
+            margin-bottom: 0.5rem;
+        }
+
+        .tutorial-step-info {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-top: 0.5rem;
+        }
+
+        .tutorial-step-badge {
+            padding: 0.25rem 0.75rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .tutorial-progress-dots {
+            display: flex;
+            gap: 0.25rem;
+        }
+
+        .tutorial-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .tutorial-dot.active {
+            background: white;
+        }
+
+        .tutorial-close-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            color: white;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .tutorial-close-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.1);
+        }
+
+        .tutorial-progress-bar {
+            position: relative;
+            margin-top: 1rem;
+        }
+
+        .tutorial-progress-bg {
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .tutorial-progress-fill {
+            height: 6px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            transition: all 0.7s ease-out;
+        }
+
+        .tutorial-body {
+            padding: 1.5rem 2rem; /* Reduced padding */
+            background: linear-gradient(135deg, #f9fafb 0%, white 100%);
+            text-align: center;
+        }
+
+        .tutorial-emoji {
+            font-size: 2rem; /* Reduced from 8xl */
+        }
+
+        .tutorial-emoji.bounce {
+            animation: bounce 2s infinite;
+        }
+
+        .tutorial-step-title {
+            font-size: 1.25rem; /* Reduced from 3xl */
+            font-weight: 700;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .tutorial-step-description {
+            font-size: 1rem; /* Reduced from xl */
+            color: #6b7280;
+            line-height: 1.6;
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
+            margin-bottom: 1rem;
+        }
+
+        .tutorial-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .tutorial-card {
+            padding: 0.5rem 1rem 0.5rem 1rem;;
+            border: 2px solid;
+            border-radius: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .tutorial-card:hover {
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .tutorial-card.blue {
+            background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+            border-color: #3b82f6;
+        }
+
+        .tutorial-card.purple {
+            background: linear-gradient(135deg, #e9d5ff 0%, #ddd6fe 100%);
+            border-color: #8b5cf6;
+        }
+
+        .tutorial-card.green {
+            background: linear-gradient(135deg, #d1fae5 0%, #bbf7d0 100%);
+            border-color: #10b981;
+        }
+
+        .tutorial-tip {
+            padding: 1rem;
+            margin-top: 1rem;
+            border-left: 4px solid #10b981;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+        }
+
+        .tutorial-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem 2rem; /* Reduced padding */
+            border-top: 1px solid #e5e7eb;
+            background: linear-gradient(135deg, #f9fafb 0%, white 100%);
+        }
+
+        .tutorial-btn {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1.5rem;
+            border: 2px solid;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            font-size: 0.875rem;
+        }
+
+        .tutorial-btn.secondary {
+            color: #6b7280;
+            background: white;
+            border-color: #d1d5db;
+        }
+
+        .tutorial-btn.secondary:hover {
+            background: #f9fafb;
+            border-color: #9ca3af;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .tutorial-btn.primary {
+            color: white;
+            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+            border-color: transparent;
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+        }
+
+        .tutorial-btn.primary:hover {
+            background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
+            box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
+            transform: translateY(-1px);
+        }
+
+        .tutorial-btn.success {
+            color: white;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            border-color: transparent;
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+        }
+
+        .tutorial-btn.success:hover {
+            background: linear-gradient(135deg, #059669 0%, #047857 100%);
+            box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
+            transform: translateY(-1px);
+        }
+
+        .tutorial-btn svg {
+            width: 1rem;
+            height: 1rem;
+            transition: transform 0.2s ease;
+        }
+
+        .tutorial-btn:hover svg.arrow-right {
+            transform: translateX(2px);
+        }
+
+        .tutorial-btn:hover svg.arrow-left {
+            transform: translateX(-2px);
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 640px) {
+            .tutorial-container {
+                max-width: 95%;
+                margin: 0.5rem;
+            }
+
+            .tutorial-header {
+                padding: 1.5rem 1rem 1rem 1rem;
+            }
+
+            .tutorial-body {
+                padding: 1rem;
+            }
+
+            .tutorial-footer {
+                padding: 1rem;
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+
+            .tutorial-emoji {
+                font-size: 3rem;
+            }
+
+            .tutorial-step-title {
+                font-size: 1.25rem;
+            }
+
+            .tutorial-step-description {
+                font-size: 0.875rem;
+            }
+        }
+
+        @keyframes bounce {
+            0%, 20%, 53%, 80%, 100% {
+                transform: translate3d(0,0,0);
+            }
+            40%, 43% {
+                transform: translate3d(0,-10px,0);
+            }
+            70% {
+                transform: translate3d(0,-5px,0);
+            }
+            90% {
+                transform: translate3d(0,-2px,0);
+            }
+        }
+
+        .help-button-wrapper {
+            position: relative;
+            display: inline-block;
+        }
+
+        .help-tooltip {
+            position: absolute;
+            bottom: 120%;
+            right: 0;
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            white-space: nowrap;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(10px);
+            transition: all 0.3s ease;
+            z-index: 60;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+
+            /* Auto-show animation every 10 seconds */
+            animation: tooltipAutoShow 10s infinite;
+        }
+
+        .help-tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            right: 1rem;
+            border: 6px solid transparent;
+            border-top-color: rgba(0, 0, 0, 0.9);
+        }
+
+        /* Manual hover still works */
+        .help-button-wrapper:hover .help-tooltip {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+            animation: none; /* Pause auto-animation on hover */
+        }
+
+        /* Auto-show animation keyframes */
+        @keyframes tooltipAutoShow {
+            0%, 85% {
+                opacity: 0;
+                visibility: hidden;
+                transform: translateY(10px);
+            }
+            90%, 95% {
+                opacity: 1;
+                visibility: visible;
+                transform: translateY(0);
+            }
+            100% {
+                opacity: 0;
+                visibility: hidden;
+                transform: translateY(10px);
+            }
+        }
+
+        /* Enhanced help button pulse when tooltip shows */
+        .help-button {
+            animation: helpButtonPulse 10s infinite;
+        }
+
+        @keyframes helpButtonPulse {
+            0%, 85% {
+                box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
+            }
+            90%, 95% {
+                box-shadow: 0 0 0 10px rgba(59, 130, 246, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
+            }
+        }
+
+        /* Pause animations when tutorial modal is open */
+        .tutorial-modal ~ .help-button-wrapper .help-tooltip,
+        .tutorial-modal ~ .help-button-wrapper .help-button {
+            animation-play-state: paused;
+        }
+
+        @media (max-width: 640px) {
+            .help-tooltip {
+                bottom: 110%;
+                right: -50px;
+                left: -50px;
+                text-align: center;
+                white-space: normal;
+            }
+
+            .help-tooltip::after {
+                right: 50%;
+                transform: translateX(50%);
+            }
+        }
     </style>
 
     @php
@@ -770,9 +1252,9 @@ use Carbon\Carbon;
                                     <!-- Column 3: Actions -->
                                     <div class="flex flex-col items-end justify-center">
                                         @php
-                                            $appointmentDate = \Carbon\Carbon::parse($booking['raw_date'])->format('Y-m-d');
-                                            $appointmentDateTime = \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $appointmentDate . ' ' . $booking['start_time']);
-                                            $now = \Carbon\Carbon::now();
+                                            $appointmentDate = Carbon::parse($booking['raw_date'])->format('Y-m-d');
+                                            $appointmentDateTime = Carbon::createFromFormat('Y-m-d H:i:s', $appointmentDate . ' ' . $booking['start_time']);
+                                            $now = Carbon::now();
 
                                             // Updated cancellation logic
                                             $canCancel = ($booking['status'] === 'New') && // Only allow cancellation if status is 'New'
@@ -983,7 +1465,7 @@ use Carbon\Carbon;
         <div class="modal-overlay" wire:click="closeBookingModal">
             <div class="modal-container" wire:click.stop>
                 <div class="modal-header">
-                    <h3 class="text-2xl font-bold">{{ Carbon\Carbon::parse($selectedDate)->format('l, j F Y') }}</h3>
+                    <h3 class="text-2xl font-bold">{{ Carbon::parse($selectedDate)->format('l, j F Y') }}</h3>
                 </div>
 
                 <div class="modal-body">
@@ -1211,7 +1693,7 @@ use Carbon\Carbon;
                     @if($selectedMeetingDetails['meeting_link'])
                         @php
                             // Check if meeting is past or completed
-                            $meetingDate = \Carbon\Carbon::parse($selectedMeetingDetails['date']);
+                            $meetingDate = Carbon::parse($selectedMeetingDetails['date']);
                             $isPastMeeting = $meetingDate->isPast();
                             $isCompleted = $selectedMeetingDetails['status'] === 'Done';
                             $shouldDisableJoin = $isPastMeeting || $isCompleted;
@@ -1237,6 +1719,179 @@ use Carbon\Carbon;
                     <button wire:click="closeMeetingDetailsModal" class="btn btn-secondary">
                         ❌ Close
                     </button>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    <div class="fixed z-40 bottom-6 right-6">
+        <div class="help-button-wrapper">
+            <button wire:click="showTutorialModal"
+                    class="flex items-center justify-center text-white transition-all duration-300 rounded-full shadow-lg w-14 h-14 bg-gradient-to-r from-blue-500 to-purple-600 hover:shadow-xl hover:scale-110 group help-button">
+                <svg class="w-6 h-6 transition-transform group-hover:rotate-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+            </button>
+
+            <!-- Tooltip -->
+            <div class="help-tooltip">
+                View Tutorial
+            </div>
+        </div>
+    </div>
+
+    @if($showTutorial)
+        <div class="tutorial-modal">
+            <div class="tutorial-container">
+                <!-- Tutorial Header -->
+                <div class="tutorial-header">
+                    <div class="tutorial-header-pattern"></div>
+
+                    <div class="tutorial-header-content">
+                        <div style="display: flex; align-items: center;">
+                            <div>
+                                <h3 class="tutorial-title">How to Schedule Your Sessions</h3>
+                                <div class="tutorial-step-info">
+                                    <span class="tutorial-step-badge">
+                                        Step {{ $currentTutorialStep }} of {{ $totalTutorialSteps }}
+                                    </span>
+                                    <div class="tutorial-progress-dots">
+                                        @for($i = 1; $i <= $totalTutorialSteps; $i++)
+                                            <div class="tutorial-dot {{ $i <= $currentTutorialStep ? 'active' : '' }}"></div>
+                                        @endfor
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button wire:click="closeTutorial" class="tutorial-close-btn">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width: 1.25rem; height: 1.25rem;">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
+
+                    <!-- Progress Bar -->
+                    <div class="tutorial-progress-bar">
+                        <div class="tutorial-progress-bg">
+                            <div class="tutorial-progress-fill" style="width: {{ ($currentTutorialStep / $totalTutorialSteps) * 100 }}%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tutorial Content -->
+                <div class="tutorial-body">
+                    @if($currentTutorialStep == 1)
+                        <p class="tutorial-step-description">
+                            This is your personal calendar where you can schedule <strong>Kick-Off Meetings</strong> and <strong>Review Sessions</strong> with your implementer.
+                        </p>
+
+                        <div class="tutorial-grid">
+                            <div class="tutorial-card blue">
+                                <h5 style="font-weight: 700; color: #1e40af; margin-bottom: 0.5rem;">Kick-Off <br>Meetings</h5>
+                            </div>
+                            <div class="tutorial-card purple">
+                                <h5 style="font-weight: 700; color: #6b21a8; margin-bottom: 0.5rem;">Review <br>Sessions</h5>
+                            </div>
+                        </div>
+
+                        <div class="tutorial-tip">
+                            <p style="color: #047857; font-size: 0.875rem;">
+                                <strong style="color: #059669;">Green dates</strong> are available for booking, and your existing meetings appear in <strong style="color: #2563eb;">blue</strong>.
+                            </p>
+                        </div>
+
+                    @elseif($currentTutorialStep == 2)
+                        <h4 class="tutorial-step-title">Finding Available Dates</h4>
+                        <p class="tutorial-step-description">
+                            Look for dates highlighted in <span style="padding: 0.25rem 0.75rem; background: #dcfce7; color: #166534; border-radius: 20px; font-weight: 600;">green</span>
+                        </p>
+
+                        <!-- Mini Calendar Preview -->
+                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin: 1.5rem auto; max-width: 600px;">
+                            <div class="tutorial-card green" style="text-align: center; padding: 0.75rem;">
+                                <div style="font-weight: 700; color: #166534;">15</div>
+                                <div style="font-size: 0.75rem; color: #059669; margin-top: 0.25rem;">✨ 3 available</div>
+                            </div>
+                            <div style="padding: 0.75rem; background: #f3f4f6; border: 2px solid #d1d5db; border-radius: 12px; text-align: center; opacity: 0.6;">
+                                <div style="font-weight: 700; color: #6b7280;">16</div>
+                                <div style="font-size: 0.75rem; color: #9ca3af; margin-top: 0.25rem;">Weekend</div>
+                            </div>
+                            <div class="tutorial-card blue" style="text-align: center; padding: 0.75rem;">
+                                <div style="font-weight: 700; color: #1e40af;">17</div>
+                                <div style="font-size: 0.75rem; color: #2563eb; margin-top: 0.25rem;">📅 Your Meeting</div>
+                            </div>
+                        </div>
+
+                    @elseif($currentTutorialStep == 3)
+                        <h4 class="tutorial-step-title">Select Your Time Slot</h4>
+
+                        <!-- Session Selector Preview -->
+                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; margin: 1.5rem 0;">
+                            <div style="padding: 1rem; border: 2px solid #e5e7eb; border-radius: 12px; text-align: center; background: white;">
+                                <div style="font-weight: 700; color: #374151; font-size: 0.875rem;">SESSION 1</div>
+                                <div style="color: #6b7280; font-size: 0.75rem;">9:30 AM</div>
+                            </div>
+                            <div style="padding: 1rem; border: 2px solid #3b82f6; border-radius: 12px; text-align: center; background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); transform: scale(1.05);">
+                                <div style="font-weight: 700; color: #1e40af; font-size: 0.875rem;">SESSION 2</div>
+                                <div style="color: #2563eb; font-size: 0.75rem;">11:00 AM</div>
+                                <div style="margin-top: 0.5rem; padding: 0.25rem 0.5rem; background: #3b82f6; color: white; border-radius: 20px; font-size: 0.625rem;">Selected</div>
+                            </div>
+                            <div style="padding: 1rem; border: 2px solid #e5e7eb; border-radius: 12px; text-align: center; background: white;">
+                                <div style="font-weight: 700; color: #374151; font-size: 0.875rem;">SESSION 3</div>
+                                <div style="color: #6b7280; font-size: 0.75rem;">2:00 PM</div>
+                            </div>
+                        </div>
+
+                    @elseif($currentTutorialStep == 4)
+                        <h4 class="tutorial-step-title">Add Attendees & Submit</h4>
+
+                        <!-- Form Preview -->
+                        <div style="padding: 1rem; border: 2px solid #10b981; border-radius: 12px; background: #ecfdf5; margin: 1.5rem 0; text-align: left;">
+                            <label style="display: block; font-weight: 600; color: #374151; margin-bottom: 0.5rem; font-size: 0.875rem;">
+                                Required Attendees <span style="color: #ef4444;">*</span>
+                            </label>
+                            <input type="text"
+                                style="width: 100%; padding: 0.75rem; border: 2px solid #10b981; border-radius: 8px; background: #f0fdf4; font-size: 0.875rem;"
+                                placeholder="john@example.com;jane@example.com"
+                                disabled>
+                            <p style="margin-top: 0.5rem; font-size: 0.75rem; color: #059669;">💡 Separate multiple emails with semicolons (;)</p>
+                        </div>
+                    @endif
+                </div>
+
+                <!-- Tutorial Footer -->
+                <div class="tutorial-footer">
+                    <div style="display: flex; gap: 0.75rem;">
+                        @if($currentTutorialStep > 1)
+                            <button wire:click="previousTutorialStep" class="tutorial-btn secondary">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" class="arrow-left" style="margin-right: 0.5rem;">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                                </svg>
+                                Previous
+                            </button>
+                        @endif
+                    </div>
+
+                    <div style="display: flex; gap: 0.75rem;">
+                        <button wire:click="skipTutorial" class="tutorial-btn secondary">
+                            Skip Tutorial
+                        </button>
+
+                        @if($currentTutorialStep < $totalTutorialSteps)
+                            <button wire:click="nextTutorialStep" class="tutorial-btn primary">
+                                Next Step
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" class="arrow-right" style="margin-left: 0.5rem;">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                                </svg>
+                            </button>
+                        @else
+                            <button wire:click="completeTutorial" class="tutorial-btn success">
+                                <span style="margin-right: 0.5rem;">🎉</span>
+                                Get Started!
+                            </button>
+                        @endif
+                    </div>
                 </div>
             </div>
         </div>

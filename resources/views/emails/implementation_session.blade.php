@@ -61,6 +61,10 @@
         }
         .signature {
             margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
+            font-size: 14px;
+            line-height: 1.4;
         }
     </style>
 </head>
@@ -85,6 +89,13 @@
         <div><strong>Email:</strong> <a href="mailto:{{ $content['implementerEmail'] }}">{{ $content['implementerEmail'] }}</a></div>
     </div>
 
-    <p class="signature">Looking forward to have you in our Review Session.</p>
+    <p>Looking forward to have you in our Review Session.</p>
+
+    <div class="signature">
+        <p>Regards,<br>
+        <strong>{{ $content['lead']['implementerName'] }}</strong><br>
+        Software Implementer<br>
+        <a href="mailto:{{ $content['lead']['implementerEmail'] }}">{{ $content['lead']['implementerEmail'] }}</a> | 03-80709933</p>
+    </div>
 </body>
 </html>

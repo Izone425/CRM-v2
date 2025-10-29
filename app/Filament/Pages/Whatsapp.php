@@ -46,6 +46,15 @@ class Whatsapp extends Page
     public bool $showError = false;
     public int $errorTimestamp = 0;
 
+    public $currentMessages = [];
+
+    public function refreshSelectedChatMessages()
+    {
+        if ($this->selectedChat) {
+            $this->currentMessages = $this->fetchMessages();
+        }
+    }
+
     public function mount()
     {
         $this->endDate = Carbon::now()->toDateString(); // default to today
@@ -92,6 +101,8 @@ class Whatsapp extends Page
             'user1' => $user1,
             'user2' => $user2
         ];
+
+        $this->currentMessages = $this->fetchMessages();
 
         // Get the participant phone number
         $twilioNumber = preg_replace('/^whatsapp:\+?/', '', env('TWILIO_WHATSAPP_FROM'));
@@ -251,148 +262,155 @@ class Whatsapp extends Page
                 $query->where('sender', $this->selectedChat['user2'])
                     ->where('receiver', $this->selectedChat['user1']);
             })
+            ->with(['repliedMessage']) // Only load needed relationships
             ->oldest()
             ->get();
     }
 
     public function fetchContacts()
     {
-        $query = ChatMessage::selectRaw('
-                LEAST(sender, receiver) AS user1,
-                GREATEST(sender, receiver) AS user2,
-                MAX(created_at) as last_message_time
-            ')
+        // Start with a more efficient base query
+        $baseQuery = DB::table('chat_messages')
+            ->select([
+                DB::raw('LEAST(sender, receiver) AS user1'),
+                DB::raw('GREATEST(sender, receiver) AS user2'),
+                DB::raw('MAX(created_at) as last_message_time'),
+                DB::raw('MAX(id) as latest_message_id') // Get the latest message ID for efficient joins
+            ])
             ->groupBy('user1', 'user2');
 
-        // Date filter
+        // Apply date filter early to reduce dataset
         if ($this->startDate && $this->endDate) {
-            $query->whereBetween('created_at', [
+            $baseQuery->whereBetween('created_at', [
                 Carbon::parse($this->startDate)->startOfDay(),
                 Carbon::parse($this->endDate)->endOfDay(),
             ]);
         }
 
-        if (!empty($this->selectedLeadOwner)) {
-            $query->where(function ($q) {
-                $twilioNumber = preg_replace('/^whatsapp:\+?/', '', env('TWILIO_WHATSAPP_FROM'));
-
-                // Filter chats where either sender or receiver is a lead with matching lead_owner
-                $q->whereIn(DB::raw("LEAST(sender, receiver)"), function ($sub) use ($twilioNumber) {
-                    $sub->select('phone')
-                        ->from('leads')
-                        ->when($this->selectedLeadOwner === 'none', fn ($query) => $query->whereNull('lead_owner'))
-                        ->when($this->selectedLeadOwner !== 'none', fn ($query) => $query->where('lead_owner', $this->selectedLeadOwner));
-                })
-                ->orWhereIn(DB::raw("GREATEST(sender, receiver)"), function ($sub) use ($twilioNumber) {
-                    $sub->select('phone')
-                        ->from('leads')
-                        ->when($this->selectedLeadOwner === 'none', fn ($query) => $query->whereNull('lead_owner'))
-                        ->when($this->selectedLeadOwner !== 'none', fn ($query) => $query->where('lead_owner', $this->selectedLeadOwner));
-                });
-            });
-        }
-
-        if (!empty($this->searchCompany)) {
-            $companyNames = CompanyDetail::where('company_name', 'LIKE', '%' . $this->searchCompany . '%')
-                ->pluck('contact_no')
-                ->merge(
-                    Lead::whereHas('companyDetail', fn ($q) => $q->where('company_name', 'LIKE', '%' . $this->searchCompany . '%'))
-                        ->pluck('phone')
-                )
-                ->unique();
-
-            $query->where(function ($q) use ($companyNames) {
-                $q->whereIn(DB::raw("LEAST(sender, receiver)"), $companyNames)
-                  ->orWhereIn(DB::raw("GREATEST(sender, receiver)"), $companyNames);
-            });
-        }
-
-        // Then modify the fetchContacts method where it uses this property (around line 154-168)
-        if (!empty($this->searchPhone)) {
-            // Search by phone number directly in sender/receiver or in lead/company records
-            $phoneSearch = '%' . $this->searchPhone . '%';
-
-            $query->where(function ($q) use ($phoneSearch) {
-                // Search in chat messages (sender or receiver)
-                $q->where(DB::raw("LEAST(sender, receiver)"), 'LIKE', $phoneSearch)
-                ->orWhere(DB::raw("GREATEST(sender, receiver)"), 'LIKE', $phoneSearch)
-                // Search in leads
-                ->orWhereExists(function ($subq) use ($phoneSearch) {
-                    $subq->select(DB::raw(1))
-                        ->from('leads')
-                        ->whereRaw('leads.phone LIKE ?', [$phoneSearch])
-                        ->whereRaw('(leads.phone = LEAST(chat_messages.sender, chat_messages.receiver) OR leads.phone = GREATEST(chat_messages.sender, chat_messages.receiver))');
-                })
-                // Search in company details
-                ->orWhereExists(function ($subq) use ($phoneSearch) {
-                    $subq->select(DB::raw(1))
-                        ->from('company_details')
-                        ->whereRaw('company_details.contact_no LIKE ?', [$phoneSearch])
-                        ->whereRaw('(company_details.contact_no = LEAST(chat_messages.sender, chat_messages.receiver) OR company_details.contact_no = GREATEST(chat_messages.sender, chat_messages.receiver))');
-                });
-            });
-        }
-        // SQL-level filter for unreplied messages
+        // Apply unreplied filter at SQL level for better performance
         if ($this->filterUnreplied) {
-            $query->where('chat_messages.is_from_customer', true)
-                ->where('chat_messages.is_read', false)
-                ->whereNotExists(function ($sub) {
-                    $sub->selectRaw(1)
-                        ->from('chat_messages as replies')
-                        ->whereColumn('replies.sender', 'chat_messages.receiver')
-                        ->whereColumn('replies.receiver', 'chat_messages.sender')
-                        ->where('replies.created_at', '>', DB::raw('chat_messages.created_at'))
-                        ->where('replies.is_from_customer', false);
-                });
+            $twilioNumber = preg_replace('/[^0-9]/', '', env('TWILIO_WHATSAPP_FROM', ''));
+
+            $baseQuery->whereExists(function ($query) use ($twilioNumber) {
+                $query->select(DB::raw(1))
+                    ->from('chat_messages as unread')
+                    ->whereColumn('unread.sender', 'chat_messages.sender')
+                    ->whereColumn('unread.receiver', 'chat_messages.receiver')
+                    ->where('unread.is_from_customer', true)
+                    ->where('unread.is_read', false)
+                    ->where('unread.receiver', $twilioNumber);
+            });
         }
 
-        $contacts = $query->orderByDesc('last_message_time')
-            ->limit($this->contactsLimit)
+        $chatPairs = $baseQuery->orderByDesc('last_message_time')
+            ->limit($this->contactsLimit * 2) // Get more to account for filtering
+            ->get();
+
+        // Get all latest messages in one query
+        $latestMessageIds = $chatPairs->pluck('latest_message_id');
+        $latestMessages = ChatMessage::whereIn('id', $latestMessageIds)
             ->get()
-            ->map(function ($chat) {
-                // Get the last message in this chat pair
-                $lastMessage = ChatMessage::where(function ($query) use ($chat) {
-                        $query->where('sender', $chat->user1)
-                            ->where('receiver', $chat->user2);
-                    })
-                    ->orWhere(function ($query) use ($chat) {
-                        $query->where('sender', $chat->user2)
-                            ->where('receiver', $chat->user1);
-                    })
-                    ->latest()
-                    ->first();
+            ->keyBy('id');
 
-                $chat->latest_message = $lastMessage->message ?? null;
-                $chat->is_from_customer = $lastMessage->is_from_customer ?? null;
-                $chat->is_read = $lastMessage->is_read ?? null;
+        // Pre-load lead and company data for better performance
+        $allPhones = $chatPairs->map(function ($chat) {
+            $twilioNumber = preg_replace('/[^0-9]/', '', env('TWILIO_WHATSAPP_FROM', ''));
+            $user1 = preg_replace('/^\+/', '', $chat->user1);
+            $user2 = preg_replace('/^\+/', '', $chat->user2);
+            return ($user1 === $twilioNumber) ? $user2 : $user1;
+        })->unique();
 
-                $hasNoReply = ChatMessage::where('is_read', false)
-                    ->where('sender', $chat->user2)
-                    ->where('receiver', $chat->user1)
-                    ->where('is_from_customer', true)
-                    ->exists();
+        // Load leads and companies in bulk
+        $leads = Lead::with('companyDetail')
+            ->whereIn('phone', $allPhones)
+            ->get()
+            ->groupBy('phone');
 
-                $chat->has_no_reply = $lastMessage->is_from_customer && $hasNoReply;
+        $companies = CompanyDetail::whereIn('contact_no', $allPhones)
+            ->get()
+            ->groupBy('contact_no');
 
-                $twilioNumber = preg_replace('/^whatsapp:\+?/', '', env('TWILIO_WHATSAPP_FROM'));
-                $user1 = preg_replace('/^\+/', '', $chat->user1);
-                $user2 = preg_replace('/^\+/', '', $chat->user2);
-                $chatParticipant = ($user1 === $twilioNumber) ? $user2 : $user1;
+        // Apply remaining filters and build final result
+        $contacts = collect();
 
-                $lead = Lead::where('phone', $chatParticipant)->first();
-                if ($lead) {
-                    $chat->participant_name = $lead->companyDetail->name ?? $lead->name;
-                } else {
-                    $company = CompanyDetail::where('contact_no', $chatParticipant)->first();
-                    $chat->participant_name = $company->name ?? $chatParticipant;
+        foreach ($chatPairs as $chat) {
+            $twilioNumber = preg_replace('/[^0-9]/', '', env('TWILIO_WHATSAPP_FROM', ''));
+            $user1 = preg_replace('/^\+/', '', $chat->user1);
+            $user2 = preg_replace('/^\+/', '', $chat->user2);
+            $chatParticipant = ($user1 === $twilioNumber) ? $user2 : $user1;
+
+            // Apply lead owner filter
+            if (!empty($this->selectedLeadOwner)) {
+                $participantLeads = $leads->get($chatParticipant, collect());
+                $hasMatchingOwner = $participantLeads->contains(function ($lead) {
+                    return $this->selectedLeadOwner === 'none'
+                        ? is_null($lead->lead_owner)
+                        : $lead->lead_owner === $this->selectedLeadOwner;
+                });
+
+                if (!$hasMatchingOwner) continue;
+            }
+
+            // Apply company search filter
+            if (!empty($this->searchCompany)) {
+                $participantLeads = $leads->get($chatParticipant, collect());
+                $participantCompanies = $companies->get($chatParticipant, collect());
+
+                $matchesCompanySearch = $participantLeads->contains(function ($lead) {
+                    return $lead->companyDetail &&
+                        stripos($lead->companyDetail->company_name, $this->searchCompany) !== false;
+                }) || $participantCompanies->contains(function ($company) {
+                    return stripos($company->company_name, $this->searchCompany) !== false;
+                });
+
+                if (!$matchesCompanySearch) continue;
+            }
+
+            // Apply phone search filter
+            if (!empty($this->searchPhone)) {
+                if (stripos($chatParticipant, $this->searchPhone) === false) {
+                    continue;
                 }
+            }
 
-                return $chat;
-            });
+            // Get the latest message for this chat
+            $lastMessage = $latestMessages->get($chat->latest_message_id);
+
+            $chat->latest_message = $lastMessage->message ?? null;
+            $chat->is_from_customer = $lastMessage->is_from_customer ?? null;
+            $chat->is_read = $lastMessage->is_read ?? null;
+
+            // Check for unread messages more efficiently
+            $hasNoReply = $lastMessage &&
+                        $lastMessage->is_from_customer &&
+                        !$lastMessage->is_read;
+
+            $chat->has_no_reply = $hasNoReply;
+
+            // Set participant name from pre-loaded data
+            $participantLeads = $leads->get($chatParticipant, collect());
+            $participantCompanies = $companies->get($chatParticipant, collect());
+
+            if ($participantLeads->isNotEmpty()) {
+                $lead = $participantLeads->first();
+                $chat->participant_name = $lead->companyDetail->name ?? $lead->name;
+            } elseif ($participantCompanies->isNotEmpty()) {
+                $company = $participantCompanies->first();
+                $chat->participant_name = $company->name ?? $chatParticipant;
+            } else {
+                $chat->participant_name = $chatParticipant;
+            }
+
+            $contacts->push($chat);
+
+            // Stop if we have enough contacts
+            if ($contacts->count() >= $this->contactsLimit) {
+                break;
+            }
+        }
 
         $this->filteredContactsCount = $contacts->count();
-
-        return $contacts->take($this->contactsLimit);
+        return $contacts;
     }
 
     public function fetchParticipantDetails()

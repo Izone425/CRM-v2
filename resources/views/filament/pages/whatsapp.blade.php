@@ -65,7 +65,7 @@
             </div>
         </div>
     </div>
-    <div class="flex h-screen bg-white border border-gray-200 rounded-lg" wire:poll.1s>
+    <div class="flex h-screen bg-white border border-gray-200 rounded-lg">
         <!-- Left Sidebar - Chat List -->
         <div class="border-r bg-gray-50" style="width: 300px;">
             <div class="p-4 bg-white border-b">
@@ -73,7 +73,7 @@
             </div>
 
             <!-- 🔽 Scrollable area -->
-            <div style="overflow-y: auto; height: calc(100vh - 9rem);">
+            <div style="overflow-y: auto; height: calc(100vh - 9rem);" wire:poll.5s="fetchContacts">
                 @foreach($this->fetchContacts() as $contact)
                     <div wire:click="selectChat('{{ $contact->user1 }}', '{{ $contact->user2 }}')"
                         class="p-4 border-b cursor-pointer hover:bg-gray-50 {{ $selectedChat === $contact->participant_name ? 'bg-blue-50' : '' }}">
@@ -141,7 +141,9 @@
                 <!-- Messages Container -->
                 <div class="flex-1 p-4 space-y-4 overflow-y-auto bg-gray-100">
                     <!-- 👇 Loading spinner while switching chat -->
-                    <div wire:loading wire:target="selectChat" class="text-center text-gray-500">
+                    <div class="flex-1 p-4 space-y-4 overflow-y-auto bg-gray-100"
+                        wire:poll.2s="refreshSelectedChatMessages"
+                        wire:key="messages-{{ $selectedChat['user1'] ?? '' }}-{{ $selectedChat['user2'] ?? '' }}">
                         <i class="mr-2 fas fa-spinner fa-spin"></i> Loading messages...
                     </div>
 

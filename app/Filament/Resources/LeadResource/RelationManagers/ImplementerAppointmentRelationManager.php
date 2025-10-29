@@ -1001,10 +1001,10 @@ class ImplementerAppointmentRelationManager extends RelationManager
     public function headerActions(): array
     {
         return [
-            Tables\Actions\Action::make('Activate Customer Booking')
+            Tables\Actions\Action::make('Activate Review Sessions')
                 ->icon('heroicon-o-envelope')
                 ->color('info')
-                ->modalHeading('Send Email to Client')
+                ->modalHeading(false)
                 ->modalWidth('6xl')
                 ->hidden(function() {
                     // Get the current user
@@ -1033,116 +1033,119 @@ class ImplementerAppointmentRelationManager extends RelationManager
                     return true;
                 })
                 ->form([
-                    Grid::make(2)
+                    Grid::make(3)
                         ->schema([
-                            Toggle::make('enable_customer_booking')
-                                ->label('Enable Customer Meeting Booking')
-                                ->helperText('Check this to allow the customer to schedule new meetings after sending the email')
-                                ->onIcon('heroicon-o-calendar-days')
-                                ->offIcon('heroicon-o-calendar-days')
+                            Hidden::make('enable_customer_booking')
+                                ->default(true)
+                                ->dehydrated(true),
+
+                            Toggle::make('create_customer_account')
+                                ->label('Create New Customer Account')
+                                ->helperText('Check this to create a new customer account if one does not exist')
+                                ->onIcon('heroicon-o-user-plus')
+                                ->offIcon('heroicon-o-user-plus')
                                 ->onColor('success')
                                 ->offColor('gray')
-                                ->default(true)
-                                ->reactive(),
+                                ->default(false)
+                                ->reactive()
+                                ->visible(function () {
+                                    // Only show this toggle if customer doesn't exist or doesn't have credentials
+                                    $lead = $this->getOwnerRecord();
+                                    $customer = \App\Models\Customer::where('lead_id', $lead->id)->first();
 
-                            Select::make('scheduler_type')
-                                ->label('Send Email')
-                                ->options([
-                                    'instant' => 'Send Immediately',
-                                    // 'scheduled' => 'Schedule for Later',
-                                    // 'both' => 'Send Now & Schedule'
-                                ])
+                                    return !$customer || empty($customer->email) || empty($customer->plain_password);
+                                }),
+
+                            Hidden::make('scheduler_type')
                                 ->default('instant')
-                                ->required(),
+                                ->dehydrated(true),
                         ]),
 
                     Fieldset::make('Email Details')
                         ->schema([
-                            TextInput::make('required_attendees')
-                                ->label('Required Attendees')
-                                ->default(function () {
-                                    $lead = $this->getOwnerRecord();
-                                    $emails = [];
-
-                                    if ($lead) {
-                                        // 1. Get emails from SoftwareHandover implementation_pics
-                                        $softwareHandover = \App\Models\SoftwareHandover::where('lead_id', $lead->id)->latest()->first();
-
-                                        if ($softwareHandover && !empty($softwareHandover->implementation_pics) && is_string($softwareHandover->implementation_pics)) {
-                                            try {
-                                                $contacts = json_decode($softwareHandover->implementation_pics, true);
-
-                                                if (is_array($contacts)) {
-                                                    foreach ($contacts as $contact) {
-                                                        if (!empty($contact['pic_email_impl'])) {
-                                                            $emails[] = $contact['pic_email_impl'];
-                                                        }
-                                                    }
-                                                }
-                                            } catch (\Exception $e) {
-                                                Log::error('Error parsing implementation_pics JSON: ' . $e->getMessage());
-                                            }
-                                        }
-
-                                        // 2. Get emails from company_detail->additional_pic
-                                        if ($lead->companyDetail && !empty($lead->companyDetail->additional_pic)) {
-                                            try {
-                                                $additionalPics = json_decode($lead->companyDetail->additional_pic, true);
-
-                                                if (is_array($additionalPics)) {
-                                                    foreach ($additionalPics as $pic) {
-                                                        // Only include contacts with "Available" status
-                                                        if (
-                                                            !empty($pic['email']) &&
-                                                            isset($pic['status']) &&
-                                                            $pic['status'] === 'Available'
-                                                        ) {
-                                                            $emails[] = $pic['email'];
-                                                        }
-                                                    }
-                                                }
-                                            } catch (\Exception $e) {
-                                                Log::error('Error parsing additional_pic JSON: ' . $e->getMessage());
-                                            }
-                                        }
-                                    }
-
-                                    // Remove duplicates and return as semicolon-separated string
-                                    $uniqueEmails = array_unique($emails);
-                                    return !empty($uniqueEmails) ? implode(';', $uniqueEmails) : null;
-                                })
-                                ->helperText('Separate each email with a semicolon (e.g., email1;email2;email3).')
-                                ->required(),
-
-                            Select::make('email_template')
-                                ->label('Email Template')
-                                ->options(function () {
-                                    return \App\Models\EmailTemplate::whereIn('type', ['implementer', 'client'])
-                                        ->pluck('name', 'id')
-                                        ->toArray();
-                                })
-                                ->searchable()
-                                ->preload()
-                                ->reactive()
-                                ->afterStateUpdated(function ($state, callable $set) {
-                                    if ($state) {
-                                        $template = \App\Models\EmailTemplate::find($state);
-                                        if ($template) {
-                                            $set('email_subject', $template->subject);
-                                            $set('email_content', $template->content);
-
-                                            // NEW: Trigger preview update
-                                            $set('template_selected', true);
-                                        }
-                                    }
-                                })
-                                ->required(),
-
                             Grid::make(2)
                                 ->schema([
                                     // Left column - Email form fields
                                     Grid::make(1)
                                         ->schema([
+                                            TextInput::make('required_attendees')
+                                                ->label('Required Attendees')
+                                                ->default(function () {
+                                                    $lead = $this->getOwnerRecord();
+                                                    $emails = [];
+
+                                                    if ($lead) {
+                                                        // 1. Get emails from SoftwareHandover implementation_pics
+                                                        $softwareHandover = \App\Models\SoftwareHandover::where('lead_id', $lead->id)->latest()->first();
+
+                                                        if ($softwareHandover && !empty($softwareHandover->implementation_pics) && is_string($softwareHandover->implementation_pics)) {
+                                                            try {
+                                                                $contacts = json_decode($softwareHandover->implementation_pics, true);
+
+                                                                if (is_array($contacts)) {
+                                                                    foreach ($contacts as $contact) {
+                                                                        if (!empty($contact['pic_email_impl'])) {
+                                                                            $emails[] = $contact['pic_email_impl'];
+                                                                        }
+                                                                    }
+                                                                }
+                                                            } catch (\Exception $e) {
+                                                                Log::error('Error parsing implementation_pics JSON: ' . $e->getMessage());
+                                                            }
+                                                        }
+
+                                                        // 2. Get emails from company_detail->additional_pic
+                                                        if ($lead->companyDetail && !empty($lead->companyDetail->additional_pic)) {
+                                                            try {
+                                                                $additionalPics = json_decode($lead->companyDetail->additional_pic, true);
+
+                                                                if (is_array($additionalPics)) {
+                                                                    foreach ($additionalPics as $pic) {
+                                                                        // Only include contacts with "Available" status
+                                                                        if (
+                                                                            !empty($pic['email']) &&
+                                                                            isset($pic['status']) &&
+                                                                            $pic['status'] === 'Available'
+                                                                        ) {
+                                                                            $emails[] = $pic['email'];
+                                                                        }
+                                                                    }
+                                                                }
+                                                            } catch (\Exception $e) {
+                                                                Log::error('Error parsing additional_pic JSON: ' . $e->getMessage());
+                                                            }
+                                                        }
+                                                    }
+
+                                                    // Remove duplicates and return as semicolon-separated string
+                                                    $uniqueEmails = array_unique($emails);
+                                                    return !empty($uniqueEmails) ? implode(';', $uniqueEmails) : null;
+                                                })
+                                                ->required(),
+
+                                            Select::make('email_template')
+                                                ->label('Email Template')
+                                                ->options(function () {
+                                                    return \App\Models\EmailTemplate::whereIn('type', ['implementer', 'client'])
+                                                        ->pluck('name', 'id')
+                                                        ->toArray();
+                                                })
+                                                ->searchable()
+                                                ->preload()
+                                                ->reactive()
+                                                ->afterStateUpdated(function ($state, callable $set) {
+                                                    if ($state) {
+                                                        $template = \App\Models\EmailTemplate::find($state);
+                                                        if ($template) {
+                                                            $set('email_subject', $template->subject);
+                                                            $set('email_content', $template->content);
+
+                                                            // NEW: Trigger preview update
+                                                            $set('template_selected', true);
+                                                        }
+                                                    }
+                                                })
+                                                ->required(),
                                             TextInput::make('email_subject')
                                                 ->label('Email Subject')
                                                 ->required()
@@ -1155,6 +1158,19 @@ class ImplementerAppointmentRelationManager extends RelationManager
                                                 ])
                                                 ->required()
                                                 ->reactive(),
+
+                                            Forms\Components\FileUpload::make('email_attachments')
+                                                ->label('Email Attachments')
+                                                ->multiple()
+                                                ->maxFiles(5)
+                                                ->acceptedFileTypes(['application/pdf', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'])
+                                                ->maxSize(10240) // 10MB per file
+                                                ->directory('temp_email_attachments')
+                                                ->preserveFilenames()
+                                                ->storeFileNamesIn('attachment_names') // Store original names
+                                                ->helperText('Upload up to 5 files (PDF or Excel). Max 10MB per file.')
+                                                ->columnSpanFull()
+                                                ->reactive(),
                                         ])->columnSpan(1),
 
                                     // Right column - Email preview (remove the nested Grid and Fieldset)
@@ -1163,6 +1179,7 @@ class ImplementerAppointmentRelationManager extends RelationManager
                                         ->content(function (callable $get) {
                                             $subject = $get('email_subject') ?? '';
                                             $content = $get('email_content') ?? '';
+                                            $createNewAccount = $get('create_customer_account') ?? false;
 
                                             if (empty($subject) && empty($content)) {
                                                 return new \Illuminate\Support\HtmlString('<p class="italic text-gray-500">Select a template to see preview...</p>');
@@ -1173,19 +1190,66 @@ class ImplementerAppointmentRelationManager extends RelationManager
                                             $customer = \App\Models\Customer::where('lead_id', $lead->id)->first();
                                             $softwareHandover = \App\Models\SoftwareHandover::where('lead_id', $lead->id)->latest()->first();
 
+                                            // Get form values for preview
+                                            $previewImplementerName = $get('implementer_name') ?? auth()->user()->name ?? '';
+                                            $previewDesignation = $get('implementer_designation') ?? 'Implementer';
+
+                                            // Determine customer credentials
+                                            $customerEmail = '';
+                                            $customerPassword = '';
+                                            $isAutoGenerated = false;
+
+                                            if ($customer && !empty($customer->email) && !empty($customer->plain_password) && !$createNewAccount) {
+                                                // Existing customer with credentials and not creating new account
+                                                $customerEmail = $customer->email;
+                                                $customerPassword = $customer->plain_password;
+                                            } elseif ($createNewAccount) {
+                                                // Auto-generate credentials preview using project code format
+                                                $projectCode = $softwareHandover ? $softwareHandover->project_code : 'SW_250000';
+                                                $codeWithoutPrefix = str_replace('SW_', '', $projectCode);
+
+                                                // Show what the generated credentials would look like
+                                                $customerEmail = "sw_{$codeWithoutPrefix}@timeteccloud.com";
+                                                $customerPassword = 'Auto Generated Strong Password'; // Don't show actual password in preview
+                                                $isAutoGenerated = true;
+                                            } else {
+                                                // No customer or credentials
+                                                $customerEmail = 'Not Available';
+                                                $customerPassword = 'Not Available';
+                                            }
+
                                             // Replace placeholders
                                             $placeholders = [
                                                 '{customer_name}' => $lead->contact_name ?? '',
                                                 '{company_name}' => $softwareHandover->company_name ?? ($lead->companyDetail?->company_name ?? 'Unknown Company'),
-                                                '{implementer_name}' => auth()->user()->name ?? '',
+                                                '{implementer_name}' => $previewImplementerName,
+                                                '{implementer_designation}' => $previewDesignation,
                                                 '{lead_owner}' => $lead->lead_owner ?? '',
-                                                '{customer_email}' => $customer ? $customer->email : 'Not Available',
-                                                '{customer_password}' => $customer ? $customer->plain_password : 'Not Available',
+                                                '{customer_email}' => $customerEmail,
+                                                '{customer_password}' => $customerPassword,
                                                 '{customer_portal_url}' => str_replace('http://', 'https://', config('app.url')) . '/customer/login',
                                             ];
 
                                             $previewSubject = str_replace(array_keys($placeholders), array_values($placeholders), $subject);
                                             $previewContent = str_replace(array_keys($placeholders), array_values($placeholders), $content);
+
+                                            // If auto-generated, make email and password red and bold in the preview
+                                            if ($isAutoGenerated) {
+                                                $previewContent = str_replace(
+                                                    $customerEmail,
+                                                    '<span style="color: red; font-weight: bold;">' . $customerEmail . ' (Will be generated)</span>',
+                                                    $previewContent
+                                                );
+                                                $previewContent = str_replace(
+                                                    $customerPassword,
+                                                    '<span style="color: red; font-weight: bold;">' . $customerPassword . ' (Will be generated)</span>',
+                                                    $previewContent
+                                                );
+                                            }
+
+                                            // Add signature automatically at the end of the content regardless of template
+                                            $signature = "<br><br>Regards,<br>{$previewImplementerName}<br>{$previewDesignation}<br>TimeTec Cloud Sdn Bhd<br>Phone: 03-80709933";
+                                            $previewContent .= $signature;
 
                                             $html = '<div class="p-4 border rounded-lg bg-gray-50">';
                                             $html .= '<div class="mb-3"><strong>Subject:</strong> <span class="text-blue-600">' . e($previewSubject) . '</span></div>';
@@ -1220,17 +1284,99 @@ class ImplementerAppointmentRelationManager extends RelationManager
 
                     Hidden::make('implementer_email')
                         ->default(auth()->user()->email ?? ''),
-
-                    Textarea::make('notes')
-                        ->label('Additional Notes')
-                        ->placeholder('Add any additional notes for internal reference...')
-                        ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()'])
-                        ->rows(3),
                 ])
                 ->action(function (array $data) {
                     $lead = $this->getOwnerRecord();
 
                     try {
+                        if (isset($data['create_customer_account']) && $data['create_customer_account']) {
+                            $customer = \App\Models\Customer::where('lead_id', $lead->id)->first();
+
+                            // Only create if customer doesn't exist or doesn't have credentials
+                            if (!$customer || empty($customer->email) || empty($customer->plain_password)) {
+                                // Get the software handover to generate proper project code (same as CustomerActivationController)
+                                $handover = \App\Models\SoftwareHandover::where('lead_id', $lead->id)->orderBy('id', 'desc')->first();
+                                $projectCode = $handover ? $handover->project_code : 'SW_250000';
+
+                                // Get company and contact details from lead
+                                $companyName = $lead->companyDetail ? $lead->companyDetail->company_name : ($lead->company_name ?? 'Unknown Company');
+                                $customerName = $lead->companyDetail ? $lead->companyDetail->name : ($lead->contact_name ?? 'Customer');
+                                $customerPhone = $lead->companyDetail ? $lead->companyDetail->contact_no : ($lead->phone ?? null);
+                                $originalEmail = $lead->email ?? null; // Store original email as reference
+
+                                // Generate credentials using the same method as CustomerActivationController
+                                $generatedEmail = $this->generateRandomEmail($companyName, $projectCode);
+                                $generatedPassword = $this->generateRandomPassword();
+
+                                if ($customer) {
+                                    // Check if the random email already exists (excluding current customer)
+                                    while (\App\Models\Customer::where('email', $generatedEmail)->where('id', '!=', $customer->id)->exists()) {
+                                        $generatedEmail = $this->generateRandomEmail($companyName, $projectCode);
+                                    }
+
+                                    // Update existing customer with new credentials
+                                    $customer->update([
+                                        'name' => $customerName,
+                                        'email' => $generatedEmail,
+                                        'original_email' => $originalEmail,
+                                        'password' => bcrypt($generatedPassword),
+                                        'plain_password' => $generatedPassword,
+                                        'company_name' => $companyName,
+                                        'phone' => $customerPhone,
+                                        'sw_id' => $handover ? $handover->id : null,
+                                        'status' => 'active',
+                                        'able_set_meeting' => $data['enable_customer_booking'] ?? true,
+                                        'email_verified_at' => now(),
+                                    ]);
+
+                                    Log::info('Customer account updated with new credentials', [
+                                        'customer_id' => $customer->id,
+                                        'email' => $generatedEmail,
+                                        'original_email' => $originalEmail,
+                                        'company_name' => $companyName,
+                                        'project_code' => $projectCode,
+                                        'lead_id' => $lead->id
+                                    ]);
+                                } else {
+                                    // Check if the random email already exists
+                                    while (\App\Models\Customer::where('email', $generatedEmail)->exists()) {
+                                        $generatedEmail = $this->generateRandomEmail($companyName, $projectCode);
+                                    }
+
+                                    // Create new customer account
+                                    $customer = \App\Models\Customer::create([
+                                        'name' => $customerName,
+                                        'email' => $generatedEmail,
+                                        'original_email' => $originalEmail,
+                                        'password' => bcrypt($generatedPassword),
+                                        'plain_password' => $generatedPassword,
+                                        'company_name' => $companyName,
+                                        'phone' => $customerPhone,
+                                        'lead_id' => $lead->id,
+                                        'sw_id' => $handover ? $handover->id : null,
+                                        'status' => 'active',
+                                        'able_set_meeting' => $data['enable_customer_booking'] ?? true,
+                                        'email_verified_at' => now(),
+                                    ]);
+
+                                    Log::info('New customer account created', [
+                                        'customer_id' => $customer->id,
+                                        'email' => $generatedEmail,
+                                        'original_email' => $originalEmail,
+                                        'company_name' => $companyName,
+                                        'project_code' => $projectCode,
+                                        'lead_id' => $lead->id
+                                    ]);
+                                }
+
+                                Notification::make()
+                                    ->title('Customer Account Created/Updated')
+                                    ->success()
+                                    ->body("Customer account created with email: {$generatedEmail} (Project: {$projectCode})")
+                                    ->send();
+                            }
+                        }
+
                         // Update customer's able_set_meeting if enabled
                         if (isset($data['enable_customer_booking']) && $data['enable_customer_booking']) {
                             $customer = \App\Models\Customer::where('lead_id', $lead->id)->first();
@@ -1282,7 +1428,6 @@ class ImplementerAppointmentRelationManager extends RelationManager
                                 '{company_name}' => $softwareHandover->company_name ?? ($lead->companyDetail?->company_name ?? 'Unknown Company'),
                                 '{implementer_name}' => $data['implementer_name'] ?? auth()->user()->name ?? '',
                                 '{lead_owner}' => $lead->lead_owner ?? '',
-                                // NEW: Add customer credentials placeholders
                                 '{customer_email}' => $customer ? $customer->email : 'Not Available',
                                 '{customer_password}' => $customer ? $customer->plain_password : 'Not Available',
                                 '{customer_portal_url}' => config('app.url') . '/customer/login',
@@ -1321,8 +1466,8 @@ class ImplementerAppointmentRelationManager extends RelationManager
                                     'lead_id' => $lead->id,
                                     'template_name' => $templateName,
                                     'scheduler_type' => $schedulerType,
-                                    'notes' => $data['notes'] ?? '',
                                     'booking_enabled' => $data['enable_customer_booking'] ?? false,
+                                    'email_attachments' => $data['email_attachments'] ?? [], // Add this line
                                 ];
 
                                 // Handle different scheduler types
@@ -1346,17 +1491,6 @@ class ImplementerAppointmentRelationManager extends RelationManager
                                         ->body('Scheduled email functionality can be implemented here')
                                         ->send();
                                 }
-
-                                // Create activity log entry
-                                \App\Models\ActivityLog::create([
-                                    'user_id' => auth()->id(),
-                                    'causer_id' => auth()->id(),
-                                    'action' => 'Sent Client Email',
-                                    'description' => "Sent email to client for " . ($lead->companyDetail?->company_name ?? 'Unknown Company') . ". " .
-                                         ($data['enable_customer_booking'] ? 'Customer booking enabled.' : 'Customer booking not enabled.'),
-                                    'subject_type' => get_class($lead),
-                                    'subject_id' => $lead->id,
-                                ]);
 
                                 if (isset($data['enable_customer_booking']) && $data['enable_customer_booking']) {
                                     Notification::make()
@@ -2087,7 +2221,7 @@ class ImplementerAppointmentRelationManager extends RelationManager
                 return;
             }
 
-            // NEW: Get customer email and plain password
+            // Get customer email and plain password
             $customer = \App\Models\Customer::where('lead_id', $lead->id)->first();
             $customerEmail = $customer ? $customer->email : null;
             $customerPlainPassword = $customer ? $customer->plain_password : null;
@@ -2115,7 +2249,7 @@ class ImplementerAppointmentRelationManager extends RelationManager
                 }
             }
 
-            // NEW: Replace placeholders in email content with customer credentials
+            // Replace placeholders in email content with customer credentials
             $customerPlaceholders = [
                 '{customer_email}' => $customerEmail ?? 'Not Available',
                 '{customer_password}' => $customerPlainPassword ?? 'Not Available',
@@ -2130,8 +2264,30 @@ class ImplementerAppointmentRelationManager extends RelationManager
             $emailSubject = $emailData['subject'];
             $emailSubject = str_replace(array_keys($customerPlaceholders), array_values($customerPlaceholders), $emailSubject);
 
-            // Send the email with CC recipients and updated content
-            Mail::html($emailContent, function (Message $message) use ($emailData, $ccRecipients, $emailSubject) {
+            Log::info('Preparing to send email with attachments', [
+                'email_data_keys' => array_keys($emailData),
+                'has_attachments' => !empty($emailData['email_attachments']),
+                'attachment_count' => is_array($emailData['email_attachments'] ?? null) ? count($emailData['email_attachments']) : 0,
+                'attachments' => $emailData['email_attachments'] ?? 'none'
+            ]);
+
+            // Prepare attachments data
+            $attachmentsData = $this->prepareAttachmentsData($emailData);
+
+            Log::info('Attachments prepared for email', [
+                'attachment_count' => count($attachmentsData),
+                'attachments_details' => array_map(function($att) {
+                    return [
+                        'name' => $att['name'],
+                        'path' => $att['path'],
+                        'exists' => file_exists($att['path']),
+                        'size' => file_exists($att['path']) ? filesize($att['path']) : 0
+                    ];
+                }, $attachmentsData)
+            ]);
+
+            // Send the email with CC recipients, updated content, and attachments
+            Mail::html($emailContent, function (Message $message) use ($emailData, $ccRecipients, $emailSubject, $attachmentsData) {
                 $message->to($emailData['recipients'])
                     ->subject($emailSubject)
                     ->from($emailData['sender_email'], $emailData['sender_name']);
@@ -2143,9 +2299,19 @@ class ImplementerAppointmentRelationManager extends RelationManager
 
                 // BCC the sender as well
                 $message->bcc($emailData['sender_email']);
+
+                // Add file attachments
+                foreach ($attachmentsData as $attachment) {
+                    if (file_exists($attachment['path'])) {
+                        $message->attach($attachment['path'], [
+                            'as' => $attachment['name'],
+                            'mime' => $attachment['mime']
+                        ]);
+                    }
+                }
             });
 
-            // Log email sent successfully with customer credentials info
+            // Log email sent successfully with attachments info
             Log::info('Client email sent successfully', [
                 'to' => $emailData['recipients'],
                 'cc' => $ccRecipients,
@@ -2155,13 +2321,180 @@ class ImplementerAppointmentRelationManager extends RelationManager
                 'booking_enabled' => $emailData['booking_enabled'] ?? false,
                 'customer_email' => $customerEmail,
                 'has_customer_password' => !empty($customerPlainPassword),
+                'attachments_count' => count($attachmentsData),
             ]);
+
+            // Clean up temporary attachment files
+            $this->cleanupTempAttachments($attachmentsData);
+
         } catch (\Exception $e) {
             Log::error('Error in sendClientEmail method: ' . $e->getMessage(), [
                 'trace' => $e->getTraceAsString(),
                 'data' => $emailData
             ]);
             throw $e;
+        }
+    }
+
+    private function generateRandomEmail($companyName = null, $projectCode = null)
+    {
+        // If project code is provided, use it to generate email
+        if ($projectCode) {
+            // Extract the year and ID from project code (e.g., SW_250800 -> 250800)
+            $codeWithoutPrefix = str_replace('SW_', '', $projectCode);
+            return strtolower("sw_{$codeWithoutPrefix}@timeteccloud.com");
+        }
+
+        // Fallback to original method if no project code
+        $cleanCompanyName = '';
+        if ($companyName) {
+            $cleanCompanyName = strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $companyName));
+            $cleanCompanyName = substr($cleanCompanyName, 0, 8); // Limit to 8 characters
+        }
+
+        // Generate random string
+        $randomString = strtolower(\Illuminate\Support\Str::random(6));
+
+        // Create email with company name prefix or just random
+        if ($cleanCompanyName) {
+            $username = $cleanCompanyName . $randomString;
+        } else {
+            $username = 'customer' . $randomString . rand(100, 999);
+        }
+
+        return $username . '@timeteccloud.com';
+    }
+
+    /**
+     * Generate random password (same as CustomerActivationController)
+     */
+    private function generateRandomPassword($length = 12)
+    {
+        $characters = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%&*';
+        $password = '';
+
+        // Ensure password has at least one uppercase, one lowercase, one digit, and one special character
+        $password .= $characters[rand(26, 51)]; // Uppercase
+        $password .= $characters[rand(0, 25)];  // Lowercase
+        $password .= $characters[rand(52, 61)]; // Digit
+        $password .= $characters[rand(62, strlen($characters) - 1)]; // Special character
+
+        // Fill the rest randomly
+        for ($i = 4; $i < $length; $i++) {
+            $password .= $characters[rand(0, strlen($characters) - 1)];
+        }
+
+        return str_shuffle($password);
+    }
+
+    private function prepareAttachmentsData(array $emailData): array
+    {
+        $attachmentsData = [];
+
+        // Handle user uploaded files
+        if (!empty($emailData['email_attachments'])) {
+            Log::info("Processing email attachments", [
+                'attachments_raw' => $emailData['email_attachments'],
+                'attachments_type' => gettype($emailData['email_attachments'])
+            ]);
+
+            foreach ($emailData['email_attachments'] as $fileName) {
+                try {
+                    $filePath = null;
+                    $displayName = null;
+
+                    // Handle different file path formats
+                    if (is_string($fileName)) {
+                        // Check if it's a regular file path
+                        if (str_contains($fileName, 'temp_email_attachments/')) {
+                            $filePath = storage_path('app/public/' . $fileName);
+                            $displayName = basename($fileName);
+                        } else {
+                            // Try as direct filename in temp directory
+                            $filePath = storage_path('app/public/temp_email_attachments/' . $fileName);
+                            $displayName = $fileName;
+                        }
+                    } elseif (is_object($fileName) && method_exists($fileName, 'getRealPath')) {
+                        // Handle TemporaryUploadedFile objects
+                        $filePath = $fileName->getRealPath();
+                        $displayName = $fileName->getClientOriginalName();
+                    } elseif (is_array($fileName) && isset($fileName['tmp_name'])) {
+                        // Handle array format
+                        $filePath = $fileName['tmp_name'];
+                        $displayName = $fileName['name'] ?? 'unknown_file';
+                    }
+
+                    Log::info("Processing attachment: {$displayName}", [
+                        'file_path' => $filePath,
+                        'exists' => $filePath ? file_exists($filePath) : false,
+                        'original_format' => gettype($fileName)
+                    ]);
+
+                    if ($filePath && file_exists($filePath)) {
+                        $mimeType = mime_content_type($filePath);
+
+                        // Validate file type
+                        $allowedTypes = [
+                            'application/pdf',
+                            'application/vnd.ms-excel',
+                            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                            'application/vnd.ms-excel.sheet.macroEnabled.12'
+                        ];
+
+                        if (in_array($mimeType, $allowedTypes)) {
+                            $attachmentsData[] = [
+                                'path' => $filePath,
+                                'name' => $displayName,
+                                'mime' => $mimeType,
+                                'type' => 'user_upload'
+                            ];
+
+                            Log::info("Added user uploaded attachment: {$displayName}", [
+                                'file_path' => $filePath,
+                                'mime_type' => $mimeType,
+                                'file_size' => filesize($filePath)
+                            ]);
+                        } else {
+                            Log::warning("File type not allowed: {$displayName}", [
+                                'mime_type' => $mimeType,
+                                'allowed_types' => $allowedTypes
+                            ]);
+                        }
+                    } else {
+                        Log::error("Attachment file not found: {$displayName}", [
+                            'attempted_path' => $filePath,
+                            'original_data' => $fileName
+                        ]);
+                    }
+                } catch (\Exception $e) {
+                    Log::error("Error preparing user uploaded attachment", [
+                        'fileName' => $fileName,
+                        'error' => $e->getMessage(),
+                        'trace' => $e->getTraceAsString()
+                    ]);
+                }
+            }
+        } else {
+            Log::info("No email attachments found in email data");
+        }
+
+        Log::info("Total attachments prepared: " . count($attachmentsData));
+        return $attachmentsData;
+    }
+
+    private function cleanupTempAttachments(array $attachmentsData): void
+    {
+        foreach ($attachmentsData as $attachment) {
+            if ($attachment['type'] === 'user_upload' && file_exists($attachment['path'])) {
+                try {
+                    unlink($attachment['path']);
+                    Log::info("Cleaned up temporary attachment: {$attachment['name']}");
+                } catch (\Exception $e) {
+                    Log::error("Failed to cleanup attachment: {$attachment['name']}", [
+                        'error' => $e->getMessage()
+                    ]);
+                }
+            }
         }
     }
 }
