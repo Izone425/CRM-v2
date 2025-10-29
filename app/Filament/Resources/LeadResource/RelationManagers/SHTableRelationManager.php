@@ -77,7 +77,6 @@ class SHTableRelationManager extends RelationManager
                     ),
 
                 TextColumn::make('company_name')
-                    ->searchable()
                     ->label('Company Name')
                     ->formatStateUsing(function ($state, $record) {
                         // This will control what's displayed
@@ -140,8 +139,7 @@ class SHTableRelationManager extends RelationManager
                         return $state
                             ? new \Illuminate\Support\HtmlString('<i class="bi bi-check-circle-fill" style="font-size: 1.2rem; color:green;"></i>')
                             : new \Illuminate\Support\HtmlString('<i class="bi bi-x-circle-fill " style="font-size: 1.2rem; color:red;"></i>');
-                    })
-                    ->toggleable(),
+                    }),
 
                 TextColumn::make('tl')
                     ->label('TL')
@@ -149,8 +147,7 @@ class SHTableRelationManager extends RelationManager
                         return $state
                             ? new \Illuminate\Support\HtmlString('<i class="bi bi-check-circle-fill" style="font-size: 1.2rem; color:green;"></i>')
                             : new \Illuminate\Support\HtmlString('<i class="bi bi-x-circle-fill " style="font-size: 1.2rem; color:red;"></i>');
-                    })
-                    ->toggleable(),
+                    }),
 
                 TextColumn::make('tc')
                     ->label('TC')
@@ -158,8 +155,7 @@ class SHTableRelationManager extends RelationManager
                         return $state
                             ? new \Illuminate\Support\HtmlString('<i class="bi bi-check-circle-fill" style="font-size: 1.2rem; color:green;"></i>')
                             : new \Illuminate\Support\HtmlString('<i class="bi bi-x-circle-fill " style="font-size: 1.2rem; color:red;"></i>');
-                    })
-                    ->toggleable(),
+                    }),
 
                 TextColumn::make('tp')
                     ->label('TP')
@@ -167,8 +163,7 @@ class SHTableRelationManager extends RelationManager
                         return $state
                             ? new \Illuminate\Support\HtmlString('<i class="bi bi-check-circle-fill" style="font-size: 1.2rem; color:green;"></i>')
                             : new \Illuminate\Support\HtmlString('<i class="bi bi-x-circle-fill " style="font-size: 1.2rem; color:red;"></i>');
-                    })
-                    ->toggleable(),
+                    }),
 
                 TextColumn::make('tapp')
                     ->label('TAPP')
@@ -218,15 +213,13 @@ class SHTableRelationManager extends RelationManager
                             return $categoryService->retrieve($record->headcount);
                         }
                         return $state ?? 'N/A';
-                    })
-                    ->toggleable(),
+                    }),
                 TextColumn::make('headcount')
-                    ->label('Headcount')
-                    ->toggleable(),
+                    ->label('Headcount'),
                 TextColumn::make('completed_at')
                     ->label('DB Creation')
                     ->date('d M Y')
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('total_days')
                     ->label('Total Days')
                     ->getStateUsing(function (SoftwareHandover $record) {

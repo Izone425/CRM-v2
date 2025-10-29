@@ -67,7 +67,7 @@ class ImplementerAppointmentRelationManager extends RelationManager
 
     protected function getTableHeading(): string
     {
-        return __('Implementer Appointments');
+        return __('Implementer Sessions');
     }
 
     public static function canViewForRecord(Model $ownerRecord, string $pageClass): bool
@@ -511,6 +511,7 @@ class ImplementerAppointmentRelationManager extends RelationManager
             ->poll('300s')
             ->emptyState(fn () => view('components.empty-state-question'))
             ->headerActions($this->headerActions())
+            ->defaultPaginationPageOption('all')
             ->columns([
                 TextColumn::make('implementer')
                     ->label('IMPLEMENTER')
@@ -1002,6 +1003,7 @@ class ImplementerAppointmentRelationManager extends RelationManager
     {
         return [
             Tables\Actions\Action::make('Activate Review Sessions')
+                ->label('Activate Sessions')
                 ->icon('heroicon-o-envelope')
                 ->color('info')
                 ->modalHeading(false)
@@ -1248,7 +1250,7 @@ class ImplementerAppointmentRelationManager extends RelationManager
                                             }
 
                                             // Add signature automatically at the end of the content regardless of template
-                                            $signature = "<br><br>Regards,<br>{$previewImplementerName}<br>{$previewDesignation}<br>TimeTec Cloud Sdn Bhd<br>Phone: 03-80709933";
+                                            $signature = "<br>Regards,<br>{$previewImplementerName}<br>{$previewDesignation}<br>TimeTec Cloud Sdn Bhd<br>Phone: 03-80709933";
                                             $previewContent .= $signature;
 
                                             $html = '<div class="p-4 border rounded-lg bg-gray-50">';
@@ -1511,8 +1513,9 @@ class ImplementerAppointmentRelationManager extends RelationManager
                     }
                 }),
             Tables\Actions\Action::make('Add Appointment')
-                ->icon('heroicon-o-pencil')
-                ->modalHeading('Add Implementation Appointment')
+                ->label('Session')
+                ->icon('heroicon-o-plus')
+                ->modalHeading('Implementation Session')
                 ->hidden(function() {
                     // Get the current user
                     $user = auth()->user();

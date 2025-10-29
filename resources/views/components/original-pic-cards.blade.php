@@ -175,7 +175,7 @@
                         <div class="pic-info">
                             <div class="pic-info-row">
                                 <div class="pic-info-label">Position:</div>
-                                <div class="pic-info-value">{{ $pic['position'] ?? 'N/A' }}</div>
+                                <div class="pic-info-value">{{ strtoupper($pic['position'] ?? 'N/A') }}</div>
                             </div>
                             <div class="pic-info-row">
                                 <div class="pic-info-label">Phone:</div>

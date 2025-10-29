@@ -68,8 +68,6 @@ class ImplementerPICTabs
 
                         return 'Original Details from Software Handover ID ' . $handoverId;
                     })
-                    ->description('Original implementation PICs from software handover')
-                    ->icon('heroicon-o-user-group')
                     ->schema([
                         // Display original PICs in a custom view
                         View::make('components.original-pic-cards')
@@ -262,15 +260,14 @@ class ImplementerPICTabs
 
                     // Group 2: New PICs added by Implementer
                     Section::make('New Implementation PIC added by Implementer')
-                        ->description('Add additional persons in charge for this lead')
-                        ->icon('heroicon-o-users')
                         ->schema([
                             // Display saved new PICs in a card view
                             View::make('components.new-pic-cards')
                         ])
                         ->headerActions([
                             Action::make('add_new_pic')
-                                ->label('Add New PIC Details')
+                                ->label('Details')
+                                ->icon('heroicon-o-plus')
                                 ->color('primary')
                                 ->modalWidth('5xl')
                                 ->visible(function ($record) {
