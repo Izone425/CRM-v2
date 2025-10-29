@@ -80,7 +80,7 @@ class RenewalDataAnalysis extends Page
             // Define all periods upfront
             $periods = [
                 'current_month' => [
-                    'start' => $today->copy()->startOfMonth()->format('Y-m-d'),
+                    'start' => $today->copy()->format('Y-m-d'),
                     'end' => $today->copy()->endOfMonth()->format('Y-m-d')
                 ],
                 'next_month' => [

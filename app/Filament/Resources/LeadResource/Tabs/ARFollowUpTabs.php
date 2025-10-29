@@ -409,7 +409,7 @@ class ARFollowUpTabs
                                                 if (isset($data['admin_name']) && ! empty($data['admin_name'])) {
                                                     $signature = 'Regards,<br>';
                                                     $signature .= "{$data['admin_name']} | {$data['admin_designation']}<br>";
-                                                    $signature .= "Office: 03-8070 9933 (Ext 307) | Mobile: 013-677 0597<br>";
+                                                    $signature .= "Office: 03-8070 9933<br>";
                                                     $signature .= "Email: renewal.timetec.hr@timeteccloud.com<br>";
 
                                                     $content .= $signature;
@@ -561,18 +561,6 @@ class ARFollowUpTabs
 
             // Always add renewal.timetec.hr@timeteccloud.com to CC
             $ccRecipients[] = 'renewal.timetec.hr@timeteccloud.com';
-
-            // Add admin renewal to CC if available and different from sender
-            if ($renewal->admin_renewal) {
-                // Look up user by name
-                $adminUser = \App\Models\User::where('name', $renewal->admin_renewal)->first();
-                if ($adminUser && $adminUser->email && $adminUser->email !== $emailData['sender_email'] && !in_array($adminUser->email, $ccRecipients)) {
-                    $ccRecipients[] = $adminUser->email;
-                    Log::info("Added admin renewal to CC: {$adminUser->name} <{$adminUser->email}>");
-                } else {
-                    Log::info("Admin renewal user not found or no valid email for: {$renewal->admin_renewal}");
-                }
-            }
 
             // Prepare attachments data for both instant and scheduled emails
             $attachmentsData = self::prepareAttachmentsData($emailData);

@@ -436,7 +436,7 @@ class AdminRenewalActions
                     if (isset($data['admin_name']) && ! empty($data['admin_name'])) {
                         $signature = 'Regards,<br>';
                         $signature .= "{$data['admin_name']} | {$data['admin_designation']}<br>";
-                        $signature .= "Office: 03-8070 9933 (Ext 307) | Mobile: 013-677 0597<br>";
+                        $signature .= "Office: 03-8070 9933<br>";
                         $signature .= "Email: renewal.timetec.hr@timeteccloud.com<br>";
 
                         $content .= $signature;

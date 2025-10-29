@@ -43,6 +43,10 @@ class CustomerCalendar extends Component
     public $showMeetingDetailsModal = false;
     public $selectedMeetingDetails = null;
 
+    public $showTutorial = false;
+    public $currentTutorialStep = 1;
+    public $totalTutorialSteps = 4;
+
     public function mount()
     {
         $this->currentDate = Carbon::now();
@@ -57,6 +61,75 @@ class CustomerCalendar extends Component
 
         // Initialize bookings visibility to true
         $this->showExistingBookings = true;
+
+        // Check if tutorial should be shown
+        if (!$customer->tutorial_completed) {
+            $this->showTutorial = true;
+            $this->currentTutorialStep = $customer->tutorial_step ?? 1;
+        }
+    }
+
+    public function showTutorialModal()
+    {
+        $customer = auth()->guard('customer')->user();
+        $this->currentTutorialStep = 1; // Always start from step 1
+        $this->showTutorial = true;
+    }
+
+    public function nextTutorialStep()
+    {
+        if ($this->currentTutorialStep < $this->totalTutorialSteps) {
+            $this->currentTutorialStep++;
+            $this->updateTutorialProgress();
+        } else {
+            $this->completeTutorial();
+        }
+    }
+
+    public function previousTutorialStep()
+    {
+        if ($this->currentTutorialStep > 1) {
+            $this->currentTutorialStep--;
+            $this->updateTutorialProgress();
+        }
+    }
+
+    public function skipTutorial()
+    {
+        $this->completeTutorial();
+    }
+
+    public function closeTutorial()
+    {
+        $this->showTutorial = false;
+    }
+
+    private function updateTutorialProgress()
+    {
+        $customer = auth()->guard('customer')->user();
+        DB::table('customers')
+            ->where('id', $customer->id)
+            ->update(['tutorial_step' => $this->currentTutorialStep]);
+    }
+
+    public function completeTutorial()
+    {
+        $customer = auth()->guard('customer')->user();
+        DB::table('customers')
+            ->where('id', $customer->id)
+            ->update([
+                'tutorial_completed' => true,
+                'tutorial_step' => 1  // Reset to step 1
+            ]);
+
+        $this->showTutorial = false;
+
+        // Show a success notification
+        Notification::make()
+            ->title('Tutorial completed! 🎉')
+            ->success()
+            ->body('You can access this tutorial anytime using the help button.')
+            ->send();
     }
 
     public function openMeetingDetailsModal($bookingId)
@@ -1246,9 +1319,9 @@ class CustomerCalendar extends Component
                 return Carbon::parse($booking['date'])->format('Y-m-d') === $dateString;
             });
 
-            // Count available sessions for this date (based on updated permission logic)
+            // Count available sessions for this date (REMOVE $isCurrentMonth condition)
             $availableCount = 0;
-            if ($canSchedule && !$isPast && !$isWeekend && !$isPublicHoliday && $isCurrentMonth && !$isBeyondBookingWindow) {
+            if ($canSchedule && !$isPast && !$isWeekend && !$isPublicHoliday && !$isBeyondBookingWindow) {
                 $availableCount = count($this->getAvailableSessionsForDate($dateString));
             }
 
@@ -1264,7 +1337,7 @@ class CustomerCalendar extends Component
                 'isBeyondBookingWindow' => $isBeyondBookingWindow,
                 'availableCount' => $availableCount,
                 'hasCustomerMeeting' => $hasCustomerMeeting,
-                'canBook' => $canSchedule && !$isPast && !$isWeekend && !$isPublicHoliday && $isCurrentMonth && !$isBeyondBookingWindow && $availableCount > 0
+                'canBook' => $canSchedule && !$isPast && !$isWeekend && !$isPublicHoliday && !$isBeyondBookingWindow && $availableCount > 0
             ];
 
             $current->addDay();
