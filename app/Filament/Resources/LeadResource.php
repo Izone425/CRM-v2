@@ -42,9 +42,11 @@ use App\Filament\Resources\LeadResource\Tabs\HardwareHandoverTabs;
 use App\Filament\Resources\LeadResource\Tabs\ImplementerAppointmentTabs;
 use App\Filament\Resources\LeadResource\Tabs\ImplementerFollowUpTabs;
 use App\Filament\Resources\LeadResource\Tabs\ImplementerHandoverTabs;
+use App\Filament\Resources\LeadResource\Tabs\ImplementerHardwareHandoverTabs;
 use App\Filament\Resources\LeadResource\Tabs\ImplementerNoteTabs;
 use App\Filament\Resources\LeadResource\Tabs\ImplementerPICTabs;
 use App\Filament\Resources\LeadResource\Tabs\ImplementerServiceFormTabs;
+use App\Filament\Resources\LeadResource\Tabs\ImplementerSoftwareHandoverTabs;
 use App\Filament\Resources\LeadResource\Tabs\LeadTabs;
 use App\Filament\Resources\LeadResource\Tabs\OtherFormTabs;
 use App\Filament\Resources\LeadResource\Tabs\ProformaInvoiceTabs;
@@ -128,11 +130,11 @@ class LeadResource extends Resource
             } elseif ($user->role_id === 2) { // Salesperson
                 $activeTabs = ['prospect_details', 'subscriber_details', 'sales_progress', 'commercial_items', 'handover_details'];
             } elseif ($user->role_id === 4) { // Implementer
-                $activeTabs = ['implementer_handover', 'implementer_pic_details',
+                $activeTabs = ['implementer_software_handover', 'implementer_hardware_handover', 'implementer_pic_details',
                     'implementer_notes', 'implementer_appointment', 'implementer_follow_up',
                     'data_file', 'implementer_service_form', 'ticketing'];
             } elseif ($user->role_id === 5) { // Implementer
-                $activeTabs = ['implementer_handover', 'implementer_pic_details',
+                $activeTabs = ['implementer_software_handover', 'implementer_hardware_handover','implementer_pic_details',
                     'implementer_notes', 'implementer_appointment', 'implementer_follow_up',
                     'data_file', 'implementer_service_form', 'other_form', 'ticketing'];
             } elseif ($user->role_id === 9) { // Technician
@@ -194,6 +196,16 @@ class LeadResource extends Resource
         if (in_array('implementer_handover', $activeTabs)) {
             $tabs[] = Tabs\Tab::make('Handover')
                 ->schema(ImplementerHandoverTabs::getSchema());
+        }
+
+        if (in_array('implementer_software_handover', $activeTabs)) {
+            $tabs[] = Tabs\Tab::make('Handover')
+                ->schema(ImplementerSoftwareHandoverTabs::getSchema());
+        }
+
+        if (in_array('implementer_hardware_handover', $activeTabs)) {
+            $tabs[] = Tabs\Tab::make('Handover')
+                ->schema(ImplementerHardwareHandoverTabs::getSchema());
         }
 
         if (in_array('implementer_pic_details', $activeTabs)) {
