@@ -116,7 +116,7 @@ class Whatsapp extends Page
 
         // Set the error message if outside the 24-hour window
         if (!$canSendFreeform) {
-            $this->errorMessage = 'Cannot send message: The 24-hour customer service window has expired. Please use a template message instead.';
+            $this->errorMessage = 'Cannot send message: The 24-hour customer service window has expired. Please use template message.';
             $this->showError = true;
             $this->errorTimestamp = time();
         } else {
@@ -427,7 +427,7 @@ class Whatsapp extends Page
 
         // Set the error message if the participant is outside the 24-hour window
         if (!$canSendFreeform) {
-            $this->errorMessage = 'Cannot send message: The 24-hour customer service window has expired. Please use a template message instead.';
+            $this->errorMessage = 'Cannot send message: The 24-hour customer service window has expired. Please use template message.';
             $this->showError = true;
             $this->errorTimestamp = time(); // Store current time
 
@@ -645,7 +645,7 @@ class Whatsapp extends Page
                     $this->dispatchTemplateMessageModal($recipient);
 
                     // Set persistent error message properties
-                    $this->errorMessage = 'Cannot send message: The 24-hour customer service window has expired. Please use a template message instead.';
+                    $this->errorMessage = 'Cannot send message: The 24-hour customer service window has expired. Please use template message.';
                     $this->showError = true;
                     $this->errorTimestamp = time(); // Store current time
 
