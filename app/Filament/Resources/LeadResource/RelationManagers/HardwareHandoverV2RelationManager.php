@@ -771,6 +771,7 @@ class HardwareHandoverV2RelationManager extends RelationManager
     {
         $isCompanyDetailsIncomplete = $this->isCompanyDetailsIncomplete();
         $leadStatus = $this->getOwnerRecord()->lead_status ?? '';
+        $hasIncompleteHardwareHandover = $this->hasIncompleteHardwareHandover();
 
         return [
             // Action 1: Warning notification when e-invoice is incomplete
@@ -778,14 +779,28 @@ class HardwareHandoverV2RelationManager extends RelationManager
                 ->label('Add Hardware Handover')
                 ->icon('heroicon-o-plus')
                 ->color('gray')
-                ->visible(function () use ($leadStatus, $isCompanyDetailsIncomplete) {
-                    return $leadStatus !== 'Closed' || $isCompanyDetailsIncomplete;
+                ->visible(function () use ($leadStatus, $isCompanyDetailsIncomplete, $hasIncompleteHardwareHandover) {
+                    return $leadStatus !== 'Closed' || $isCompanyDetailsIncomplete || $hasIncompleteHardwareHandover;
                 })
-                ->action(function () {
+                ->action(function () use ($leadStatus, $isCompanyDetailsIncomplete, $hasIncompleteHardwareHandover) {
+                    $message = '';
+
+                    if ($leadStatus !== 'Closed') {
+                        $message .= 'Please close the lead first. ';
+                    }
+
+                    if ($isCompanyDetailsIncomplete) {
+                        $message .= 'Please complete the company details. ';
+                    }
+
+                    if ($hasIncompleteHardwareHandover) {
+                        $message .= 'Please complete all existing hardware handovers (status must not be "Draft", "New", or "Rejected") before creating a new one.';
+                    }
+
                     Notification::make()
                         ->warning()
                         ->title('Action Required')
-                        ->body('Please close the lead and complete the company details before proceeding with the hardware handover.')
+                        ->body(trim($message))
                         ->persistent()
                         ->send();
                 }),
@@ -795,8 +810,8 @@ class HardwareHandoverV2RelationManager extends RelationManager
                 ->label('Add Hardware Handover')
                 ->icon('heroicon-o-plus')
                 ->color('primary')
-                ->visible(function () use ($leadStatus, $isCompanyDetailsIncomplete) {
-                    return $leadStatus === 'Closed' && !$isCompanyDetailsIncomplete;
+                ->visible(function () use ($leadStatus, $isCompanyDetailsIncomplete, $hasIncompleteHardwareHandover) {
+                    return $leadStatus === 'Closed' && !$isCompanyDetailsIncomplete && !$hasIncompleteHardwareHandover;
                 })
                 ->slideOver()
                 ->modalSubmitActionLabel('Submit')
@@ -1100,6 +1115,18 @@ class HardwareHandoverV2RelationManager extends RelationManager
                 //     Tables\Actions\DeleteBulkAction::make(),
                 // ]),
             ]);
+    }
+
+    protected function hasIncompleteHardwareHandover(): bool
+    {
+        $lead = $this->getOwnerRecord();
+
+        // Check if there are any existing hardware handovers that are in Draft, New, or Rejected status
+        $incompleteHandovers = $lead->hardwareHandoverV2()
+            ->whereIn('status', ['Draft', 'New', 'Rejected'])
+            ->exists();
+
+        return $incompleteHandovers;
     }
 
     protected function isCompanyDetailsIncomplete(): bool

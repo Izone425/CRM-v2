@@ -783,6 +783,7 @@ class SoftwareHandoverRelationManager extends RelationManager
     {
         $leadStatus = $this->getOwnerRecord()->lead_status ?? '';
         $isCompanyDetailsIncomplete = $this->isCompanyDetailsIncomplete();
+        $hasIncompleteSoftwareHandover = $this->hasIncompleteSoftwareHandover();
 
         return [
             // Action 1: Warning notification when e-invoice is incomplete
@@ -790,14 +791,28 @@ class SoftwareHandoverRelationManager extends RelationManager
                 ->label('Add Software Handover')
                 ->icon('heroicon-o-plus')
                 ->color('gray')
-                ->visible(function () use ($leadStatus, $isCompanyDetailsIncomplete) {
-                    return $leadStatus !== 'Closed' || $isCompanyDetailsIncomplete;
+                ->visible(function () use ($leadStatus, $isCompanyDetailsIncomplete, $hasIncompleteSoftwareHandover) {
+                    return $leadStatus !== 'Closed' || $isCompanyDetailsIncomplete || $hasIncompleteSoftwareHandover;
                 })
-                ->action(function () {
+                ->action(function () use ($leadStatus, $isCompanyDetailsIncomplete, $hasIncompleteSoftwareHandover) {
+                    $message = '';
+
+                    if ($leadStatus !== 'Closed') {
+                        $message .= 'Please close the lead first. ';
+                    }
+
+                    if ($isCompanyDetailsIncomplete) {
+                        $message .= 'Please complete the company details. ';
+                    }
+
+                    if ($hasIncompleteSoftwareHandover) {
+                        $message .= 'Please complete all existing software handovers (status must not be "Draft", "New", or "Rejected") before creating a new one.';
+                    }
+
                     Notification::make()
                         ->warning()
                         ->title('Action Required')
-                        ->body('Please close the lead and complete the company details before proceeding with the software handover.')
+                        ->body(trim($message))
                         ->persistent()
                         ->send();
                 }),
@@ -807,8 +822,8 @@ class SoftwareHandoverRelationManager extends RelationManager
                 ->label('Add Software Handover')
                 ->icon('heroicon-o-plus')
                 ->color('primary')
-                ->visible(function () use ($leadStatus, $isCompanyDetailsIncomplete) {
-                    return $leadStatus === 'Closed' && !$isCompanyDetailsIncomplete;
+                ->visible(function () use ($leadStatus, $isCompanyDetailsIncomplete, $hasIncompleteSoftwareHandover) {
+                    return $leadStatus === 'Closed' && !$isCompanyDetailsIncomplete && !$hasIncompleteSoftwareHandover;
                 })
                 ->slideOver()
                 ->modalHeading('Software Handover')
@@ -1093,6 +1108,18 @@ class SoftwareHandoverRelationManager extends RelationManager
                 //     Tables\Actions\DeleteBulkAction::make(),
                 // ]),
             ]);
+    }
+
+    protected function hasIncompleteSoftwareHandover(): bool
+    {
+        $lead = $this->getOwnerRecord();
+
+        // Check if there are any existing software handovers that are not completed
+        $incompleteHandovers = $lead->softwareHandover()
+            ->whereIn('status', ['Draft', 'New', 'Rejected'])
+            ->exists();
+
+        return $incompleteHandovers;
     }
 
     protected function isCompanyDetailsIncomplete(): bool
