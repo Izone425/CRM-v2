@@ -289,6 +289,7 @@ class HRDFHandoverRelationManager extends RelationManager
     {
         $leadStatus = $this->getOwnerRecord()->lead_status ?? '';
         $isCompanyDetailsIncomplete = $this->isCompanyDetailsIncomplete();
+        $hasIncompleteHRDFHandover = $this->hasIncompleteHRDFHandover();
 
         return [
             // Action 1: Warning notification when requirements are not met
@@ -296,14 +297,28 @@ class HRDFHandoverRelationManager extends RelationManager
                 ->label('Add HRDF Handover')
                 ->icon('heroicon-o-plus')
                 ->color('gray')
-                ->visible(function () use ($leadStatus, $isCompanyDetailsIncomplete) {
-                    return $leadStatus !== 'Closed' || $isCompanyDetailsIncomplete;
+                ->visible(function () use ($leadStatus, $isCompanyDetailsIncomplete, $hasIncompleteHRDFHandover) {
+                    return $leadStatus !== 'Closed' || $isCompanyDetailsIncomplete || $hasIncompleteHRDFHandover;
                 })
-                ->action(function () {
+                ->action(function () use ($leadStatus, $isCompanyDetailsIncomplete, $hasIncompleteHRDFHandover) {
+                    $message = '';
+
+                    if ($leadStatus !== 'Closed') {
+                        $message .= 'Please close the lead first. ';
+                    }
+
+                    if ($isCompanyDetailsIncomplete) {
+                        $message .= 'Please complete the company details. ';
+                    }
+
+                    if ($hasIncompleteHRDFHandover) {
+                        $message .= 'Please complete all existing HRDF handovers (status must not be "Draft", "New", or "Rejected") before creating a new one.';
+                    }
+
                     Notification::make()
                         ->warning()
                         ->title('Action Required')
-                        ->body('Please close the lead and complete the company details before proceeding with the HRDF handover.')
+                        ->body(trim($message))
                         ->persistent()
                         ->send();
                 }),
@@ -313,8 +328,8 @@ class HRDFHandoverRelationManager extends RelationManager
                 ->label('Add HRDF Handover')
                 ->icon('heroicon-o-plus')
                 ->color('primary')
-                ->visible(function () use ($leadStatus, $isCompanyDetailsIncomplete) {
-                    return $leadStatus === 'Closed' && !$isCompanyDetailsIncomplete;
+                ->visible(function () use ($leadStatus, $isCompanyDetailsIncomplete, $hasIncompleteHRDFHandover) {
+                    return $leadStatus === 'Closed' && !$isCompanyDetailsIncomplete && !$hasIncompleteHRDFHandover;
                 })
                 ->slideOver()
                 ->modalHeading('HRDF Handover')
@@ -534,6 +549,18 @@ class HRDFHandoverRelationManager extends RelationManager
             ->bulkActions([
                 // No bulk actions needed
             ]);
+    }
+
+    protected function hasIncompleteHRDFHandover(): bool
+    {
+        $lead = $this->getOwnerRecord();
+
+        // Check if there are any existing HRDF handovers that are in Draft, New, or Rejected status
+        $incompleteHandovers = $lead->hrdfHandover()
+            ->whereIn('status', ['Draft', 'New', 'Rejected'])
+            ->exists();
+
+        return $incompleteHandovers;
     }
 
     protected function isCompanyDetailsIncomplete(): bool
