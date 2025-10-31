@@ -120,7 +120,7 @@ class HrdfClaim extends Model
         // Extract company name - look for line with SDN BHD
         foreach ($lines as $line) {
             $line = trim($line);
-            if (!empty($line) && (stripos($line, 'SDN BHD') !== false)) {
+            if (!empty($line) && (stripos($line, 'SDN BHD') !== false || stripos($line, 'SDN. BHD') !== false)) {
                 $data['company_name'] = strtoupper($line);
                 break;
             }

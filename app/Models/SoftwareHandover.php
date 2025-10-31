@@ -295,4 +295,28 @@ class SoftwareHandover extends Model
                 return 'Unknown'; // fallback if `company_size` is an unexpected value
         }
     }
+
+    public function projectPlans()
+    {
+        return $this->hasMany(ProjectPlan::class, 'sw_id');
+    }
+
+    /**
+     * Get selected modules based on boolean fields
+     * @return array
+     */
+    public function getSelectedModules(): array
+    {
+        $modules = [];
+
+        // Always include general module
+        $modules[] = 'general';
+
+        if ($this->ta) $modules[] = 'attendance';
+        if ($this->tl) $modules[] = 'leave';
+        if ($this->tc) $modules[] = 'claim';
+        if ($this->tp) $modules[] = 'payroll';
+
+        return $modules;
+    }
 }

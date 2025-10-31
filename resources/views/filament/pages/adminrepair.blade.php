@@ -390,7 +390,7 @@
         ->getTableQuery()
         ->count();
 
-    $completedCount = $completedTechnicianCount + $completedAdminCount;
+    $completedCount = $completedTechnicianCount;
 
     // Calculate all tasks count
     $allTaskCount = $newCount + $inactiveCount + $acceptedCount + $pendingConfirmationCount +

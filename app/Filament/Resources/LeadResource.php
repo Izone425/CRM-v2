@@ -50,6 +50,7 @@ use App\Filament\Resources\LeadResource\Tabs\ImplementerSoftwareHandoverTabs;
 use App\Filament\Resources\LeadResource\Tabs\LeadTabs;
 use App\Filament\Resources\LeadResource\Tabs\OtherFormTabs;
 use App\Filament\Resources\LeadResource\Tabs\ProformaInvoiceTabs;
+use App\Filament\Resources\LeadResource\Tabs\ProjectPlanTabs;
 use App\Filament\Resources\LeadResource\Tabs\ProspectDetailsTabs;
 use App\Filament\Resources\LeadResource\Tabs\ProspectFollowUpTabs;
 use App\Filament\Resources\LeadResource\Tabs\ProspectPICTabs;
@@ -132,7 +133,7 @@ class LeadResource extends Resource
             } elseif ($user->role_id === 4) { // Implementer
                 $activeTabs = ['implementer_software_handover', 'implementer_hardware_handover', 'implementer_pic_details',
                     'implementer_notes', 'implementer_appointment', 'implementer_follow_up',
-                    'data_file', 'implementer_service_form', 'ticketing', 'project_plan'];
+                    'data_file', 'implementer_service_form', 'ticketing', 'project_plan', 'project_plan'];
             } elseif ($user->role_id === 5) { // Implementer
                 $activeTabs = ['implementer_software_handover', 'implementer_hardware_handover','implementer_pic_details',
                     'implementer_notes', 'implementer_appointment', 'implementer_follow_up',
@@ -228,9 +229,10 @@ class LeadResource extends Resource
                 ->schema(ImplementerAppointmentTabs::getSchema());
         }
 
-        if (in_array('project_plan', $activeTabs)) {
-            $tabs[] = Tabs\Tab::make('Project Plan');
-        }
+        // if (in_array('project_plan', $activeTabs)) {
+        //     $tabs[] = Tabs\Tab::make('Project Plan')
+        //         ->schema(ProjectPlanTabs::getSchema());
+        // }
 
         // if (in_array('data_file', $activeTabs)) {
         //     $tabs[] = Tabs\Tab::make('Data Files')

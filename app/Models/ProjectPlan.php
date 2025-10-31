@@ -1,0 +1,88 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Carbon\Carbon;
+
+class ProjectPlan extends Model
+{
+    use HasFactory;
+
+    protected $fillable = [
+        'lead_id',
+        'sw_id', // Add sw_id to fillable
+        'project_task_id',
+        'plan_start_date',
+        'plan_end_date',
+        'plan_duration',
+        'actual_start_date',
+        'actual_end_date',
+        'actual_duration',
+        'status',
+        'notes',
+    ];
+
+    protected $casts = [
+        'plan_duration' => 'integer',
+        'actual_duration' => 'integer',
+        'plan_start_date' => 'date',
+        'plan_end_date' => 'date',
+        'actual_start_date' => 'date',
+        'actual_end_date' => 'date',
+    ];
+
+    public function lead(): BelongsTo
+    {
+        return $this->belongsTo(Lead::class);
+    }
+
+    public function softwareHandover(): BelongsTo
+    {
+        return $this->belongsTo(SoftwareHandover::class, 'sw_id');
+    }
+
+    public function projectTask(): BelongsTo
+    {
+        return $this->belongsTo(ProjectTask::class);
+    }
+
+    // Calculate plan duration when dates are set
+    public function calculatePlanDuration()
+    {
+        if ($this->plan_start_date && $this->plan_end_date) {
+            $this->plan_duration = $this->plan_start_date->diffInDays($this->plan_end_date) + 1;
+            $this->save();
+        }
+    }
+
+    // Calculate actual duration when dates are set
+    public function calculateActualDuration()
+    {
+        if ($this->actual_start_date && $this->actual_end_date) {
+            $this->actual_duration = $this->actual_start_date->diffInDays($this->actual_end_date) + 1;
+            $this->save();
+        }
+    }
+
+    // Auto-update status based on actual dates
+    public function updateStatusBasedOnDates()
+    {
+        if ($this->actual_end_date) {
+            $this->status = 'completed';
+        } elseif ($this->actual_start_date) {
+            $this->status = 'in_progress';
+        } else {
+            $this->status = 'pending';
+        }
+        $this->save();
+    }
+
+    // Get percentage from the related ProjectTask
+    public function getPercentageAttribute()
+    {
+        return $this->projectTask ? $this->projectTask->percentage : 0;
+    }
+}

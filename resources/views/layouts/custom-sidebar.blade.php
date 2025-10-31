@@ -1728,7 +1728,13 @@
 
                         <div class="submenu" id="ticketing-submenu">
                             <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
-                                <span class="module-font">Raw Data</span>
+                                <span class="module-font">Create Ticket</span>
+                            </a>
+                            <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
+                                <span class="module-font">Dashboard</span>
+                            </a>
+                            <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
+                                <span class="module-font">Ticket List</span>
                             </a>
                             <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
                                 <span class="module-font">Analysis</span>

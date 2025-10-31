@@ -485,7 +485,7 @@
                      :class="{'selected': selectedGroup === 'new-task'}"
                      @click="setSelectedGroup('new-task')">
                     <div class="group-title">New Task - Technician</div>
-                    <div class="group-count">{{ $newCount + $inactiveCount }}</div>
+                    <div class="group-count">{{ $inactiveCount }}</div>
                 </div>
 
                 <!-- Group: Task Status -->

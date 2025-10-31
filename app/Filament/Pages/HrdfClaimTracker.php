@@ -34,6 +34,44 @@ class HrdfClaimTracker extends Page implements HasTable
     protected static ?string $title = 'HRDF Claim Tracker';
     protected static string $view = 'filament.pages.hrdf-claim-tracker';
 
+    /**
+     * Get summary statistics for all statuses
+     */
+    public function getStats(): array
+    {
+        $allClaims = HrdfClaim::query();
+
+        $stats = [
+            'all' => [
+                'label' => 'ALL',
+                'count' => $allClaims->count(),
+                'amount' => $allClaims->sum('invoice_amount'),
+            ],
+            'pending' => [
+                'label' => 'PENDING',
+                'count' => (clone $allClaims)->where('claim_status', 'PENDING')->count(),
+                'amount' => (clone $allClaims)->where('claim_status', 'PENDING')->sum('invoice_amount'),
+            ],
+            'submitted' => [
+                'label' => 'SUBMITTED',
+                'count' => (clone $allClaims)->where('claim_status', 'SUBMITTED')->count(),
+                'amount' => (clone $allClaims)->where('claim_status', 'SUBMITTED')->sum('invoice_amount'),
+            ],
+            'approved' => [
+                'label' => 'APPROVED',
+                'count' => (clone $allClaims)->where('claim_status', 'APPROVED')->count(),
+                'amount' => (clone $allClaims)->where('claim_status', 'APPROVED')->sum('invoice_amount'),
+            ],
+            'received' => [
+                'label' => 'RECEIVED',
+                'count' => (clone $allClaims)->where('claim_status', 'RECEIVED')->count(),
+                'amount' => (clone $allClaims)->where('claim_status', 'RECEIVED')->sum('invoice_amount'),
+            ],
+        ];
+
+        return $stats;
+    }
+
     public function table(Table $table): Table
     {
         return $table
@@ -62,10 +100,10 @@ class HrdfClaimTracker extends Page implements HasTable
                         }
 
                         $handover = $record->hrdfHandover;
-                        
+
                         // Get year from created_at (last 2 digits)
                         $year = $handover->created_at ? $handover->created_at->format('y') : '25';
-                        
+
                         // Format: HRDF_{year}{padded_id}
                         return 'HRDF_' . $year . str_pad($handover->id, 4, '0', STR_PAD_LEFT);
                     })
@@ -82,11 +120,11 @@ class HrdfClaimTracker extends Page implements HasTable
                             ->modalContent(function (HrdfClaim $record): View {
                                 // Get the handover from the claim record
                                 $handoverRecord = $record->hrdfHandover;
-                                
+
                                 if (!$handoverRecord) {
                                     return view('components.no-handover-found');
                                 }
-                                
+
                                 return view('components.hrdf-handover')
                                     ->with('extraAttributes', ['record' => $handoverRecord]);
                             })
@@ -103,7 +141,7 @@ class HrdfClaimTracker extends Page implements HasTable
                     })
                     ->sortable()
                     ->copyable()
-                    ->toggleable(isToggledHiddenByDefault: true), 
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('company_name')
                     ->label('Company Name')
@@ -132,7 +170,7 @@ class HrdfClaimTracker extends Page implements HasTable
 
                 TextColumn::make('hrdf_training_date')
                     ->label('Training Date')
-                    ->toggleable(isToggledHiddenByDefault: true), 
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 BadgeColumn::make('claim_status')
                     ->label('Status')
@@ -178,25 +216,12 @@ class HrdfClaimTracker extends Page implements HasTable
                     ->preload(),
             ])
             ->actions([
-                
+
             ])
             ->defaultSort('created_at', 'desc')
             ->striped()
             ->paginated([50, 100]);
     }
-
-    /**
-     * Get matching invoices based on company name and amount
-     */
-    // private function getMatchingInvoices(HrdfClaim $record): array
-    // {
-    //     $invoices = Invoice::where('company_name', $record->company_name)
-    //         ->where('total_amount', $record->invoice_amount)
-    //         ->whereNull('hrdf_claim_id') // Only show unmapped invoices
-    //         ->get();
-
-    //     return $invoices->pluck('invoice_number', 'invoice_number')->toArray();
-    // }
 
     /**
      * Update invoice mapping and auto-update sales person and HRDF claim ID
