@@ -393,8 +393,8 @@ class Lead extends Model
             ->join(', ');
     }
 
-    // public function getCurrencyAttribute()
-    // {
-    //     return $this->quotations->currency;
-    // }
+    public function projectPlans(): HasMany
+    {
+        return $this->hasMany(ProjectPlan::class);
+    }
 }

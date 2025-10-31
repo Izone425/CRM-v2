@@ -376,7 +376,7 @@ class CustomerPortalRawData extends Page implements HasTable
                     }),
             ])
             ->defaultSort('created_at', 'desc')
-            ->paginated([10, 25, 50, 100])
+            ->paginated([50, 100])
             ->poll('60s'); // Auto refresh every 60 seconds
     }
 

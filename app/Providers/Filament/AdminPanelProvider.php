@@ -108,6 +108,7 @@ use App\Filament\Resources\PhoneExtensionResource;
 use App\Filament\Resources\PolicyCategoryResource;
 use App\Filament\Resources\PolicyResource;
 use App\Filament\Resources\ProductResource;
+use App\Filament\Resources\ProjectTaskResource;
 use App\Filament\Resources\QuotationResource;
 use App\Filament\Resources\UserResource;
 use App\Filament\Resources\ResellerResource;
@@ -118,6 +119,7 @@ use App\Filament\Resources\SoftwareAttachmentResource;
 use App\Filament\Resources\SoftwareHandoverResource;
 use App\Filament\Resources\SoftwareResource;
 use App\Filament\Resources\SparePartResource;
+use App\Filament\Resources\TicketResource;
 use App\Filament\Resources\TrainingBookingResource;
 use App\Filament\Widgets\LeadChartWidget;
 use App\Livewire\FutureEnhancement;
@@ -279,6 +281,8 @@ class AdminPanelProvider extends PanelProvider
                 PolicyCategoryResource::class,
                 ShippingDeviceModelResource::class,
                 SalesPricingResource::class,
+                ProjectTaskResource::class,
+                TicketResource::class,
             ])
             // ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->pages([
