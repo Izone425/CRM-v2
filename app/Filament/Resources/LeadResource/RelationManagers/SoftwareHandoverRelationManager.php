@@ -83,6 +83,26 @@ class SoftwareHandoverRelationManager extends RelationManager
     public function defaultForm()
     {
         return [
+            Forms\Components\ToggleButtons::make('hr_version')
+                ->label('Select HR Version')
+                ->options([
+                    '1' => 'HR Version 1',
+                    '2' => 'HR Version 2',
+                ])
+                ->default('1')
+                ->inline()
+                ->required()
+                ->live()
+                ->visible(fn () => auth()->user()->role_id === 3)
+                ->afterStateUpdated(function (Set $set, $state) {
+                    // Clear fields when switching versions
+                    if ($state === '2') {
+                        $set('headcount', null);
+                        $set('category', null);
+                        $set('salesperson', null);
+                    }
+                }),
+
             Section::make('Step 1: Database')
                 ->schema([
                     Grid::make(3)
@@ -116,7 +136,7 @@ class SoftwareHandoverRelationManager extends RelationManager
                                     $record?->salesperson ?? ($this->getOwnerRecord()->salesperson ? User::find($this->getOwnerRecord()->salesperson)->name : null)),
                             TextInput::make('headcount')
                                 ->numeric()
-                                ->live(debounce:550) // delay 550ms to allow user to have sufficient time to do input
+                                ->live(debounce: 550)
                                 ->afterStateUpdated(function (Forms\Set $set, ?string $state, CategoryService $category) {
                                     /**
                                      * set this company's category based on head count
@@ -124,7 +144,10 @@ class SoftwareHandoverRelationManager extends RelationManager
                                     $set('category', $category->retrieve($state));
                                 })
                                 ->required()
+                                ->readOnly()
+                                ->dehydrated(true)
                                 ->default(fn (?SoftwareHandover $record = null) => $record?->headcount ?? null),
+
                             TextInput::make('category')
                                 ->label('Company Size')
                                 ->dehydrated(false)
@@ -373,6 +396,7 @@ class SoftwareHandoverRelationManager extends RelationManager
                         ->schema([
                             Select::make('proforma_invoice_product')
                                 ->label('Software + Hardware')
+                                ->required(fn (callable $get) => $get('training_type') === 'online_webinar_training')
                                 ->options(function (RelationManager $livewire) {
                                     $leadId = $livewire->getOwnerRecord()->id;
                                     $currentRecordId = null;
@@ -416,8 +440,23 @@ class SoftwareHandoverRelationManager extends RelationManager
                                 ->multiple()
                                 ->searchable()
                                 ->preload()
+                                ->live() // Add live to trigger updates
+                                ->afterStateUpdated(function (Forms\Set $set, ?array $state, CategoryService $category) {
+                                    if (empty($state)) {
+                                        return;
+                                    }
+
+                                    // Get the highest quantity from selected quotations
+                                    $highestQuantity = \App\Models\QuotationDetail::whereIn('quotation_id', $state)
+                                        ->max('quantity');
+
+                                    if ($highestQuantity) {
+                                        $set('headcount', $highestQuantity);
+                                        // Also update the category based on the new headcount
+                                        $set('category', $category->retrieve($highestQuantity));
+                                    }
+                                })
                                 ->visible(fn (callable $get) => $get('training_type') === 'online_webinar_training')
-                                ->required(fn (callable $get) => $get('training_type') === 'online_webinar_training')
                                 ->default(function (?SoftwareHandover $record = null) {
                                     if (!$record || !$record->proforma_invoice_product) {
                                         return [];
@@ -479,6 +518,22 @@ class SoftwareHandoverRelationManager extends RelationManager
                                 ->multiple()
                                 ->searchable()
                                 ->preload()
+                                ->live() // Add live to trigger updates
+                                ->afterStateUpdated(function (Forms\Set $set, ?array $state, CategoryService $category) {
+                                    if (empty($state)) {
+                                        return;
+                                    }
+
+                                    // Get the highest quantity from selected quotations
+                                    $highestQuantity = \App\Models\QuotationDetail::whereIn('quotation_id', $state)
+                                        ->max('quantity');
+
+                                    if ($highestQuantity) {
+                                        $set('headcount', $highestQuantity);
+                                        // Also update the category based on the new headcount
+                                        $set('category', $category->retrieve($highestQuantity));
+                                    }
+                                })
                                 ->visible(fn (callable $get) => $get('training_type') === 'online_hrdf_training')
                                 ->default(function (?SoftwareHandover $record = null) {
                                     if (!$record || !$record->software_hardware_pi) {
@@ -835,6 +890,13 @@ class SoftwareHandoverRelationManager extends RelationManager
                     $data['lead_id'] = $this->getOwnerRecord()->id;
                     $data['status'] = 'New';
                     $data['submitted_at'] = now();
+
+                    $existingHandovers = SoftwareHandover::where('lead_id', $this->getOwnerRecord()->id)
+                        ->exists();
+
+                    // Set license_type based on whether this is first handover or additional
+                    $data['license_type'] = $existingHandovers ? 'addon module' : 'new sales';
+
 
                     // Process JSON encoding for array fields
                     if (isset($data['remarks']) && is_array($data['remarks'])) {

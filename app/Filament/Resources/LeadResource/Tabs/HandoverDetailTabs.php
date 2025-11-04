@@ -33,42 +33,42 @@ class HandoverDetailTabs
         return [
             Tabs::make('Handover Details')
                 ->tabs([
-                    Tabs\Tab::make('Software Handover')
+                    Tabs\Tab::make('Software')
                         ->schema([
                             \Njxqlus\Filament\Components\Forms\RelationManager::make()
                                 ->manager(\App\Filament\Resources\LeadResource\RelationManagers\SoftwareHandoverRelationManager::class
                             ),
                         ]),
 
-                    Tabs\Tab::make('Hardware Handover V2')
+                    Tabs\Tab::make('Hardware V2')
                         ->schema([
                             \Njxqlus\Filament\Components\Forms\RelationManager::make()
                                 ->manager(\App\Filament\Resources\LeadResource\RelationManagers\HardwareHandoverV2RelationManager::class
                             ),
                         ]),
 
-                    Tabs\Tab::make('HRDF Handover')
+                    Tabs\Tab::make('HRDF')
                         ->schema([
                             \Njxqlus\Filament\Components\Forms\RelationManager::make()
                                 ->manager(\App\Filament\Resources\LeadResource\RelationManagers\HRDFHandoverRelationManager::class
                             ),
                         ]),
 
-                    Tabs\Tab::make('Headcount Handover')
+                    Tabs\Tab::make('Headcount')
                         ->schema([
                             \Njxqlus\Filament\Components\Forms\RelationManager::make()
                                 ->manager(\App\Filament\Resources\LeadResource\RelationManagers\HeadcountHandoverRelationManager::class
                             ),
                         ]),
 
-                    Tabs\Tab::make('Finance Handover')
+                    Tabs\Tab::make('Finance')
                         ->schema([
                             \Njxqlus\Filament\Components\Forms\RelationManager::make()
                                 ->manager(\App\Filament\Resources\LeadResource\RelationManagers\FinanceHandoverRelationManager::class
                             ),
                         ]),
 
-                    Tabs\Tab::make('Reseller Handover')
+                    Tabs\Tab::make('Reseller')
                         ->schema([
 
                         ]),
@@ -82,13 +82,6 @@ class HandoverDetailTabs
                         ->schema([
 
                         ]),
-
-                    Tabs\Tab::make('Software Handover V2')
-                        ->schema([
-                            \Njxqlus\Filament\Components\Forms\RelationManager::make()
-                                ->manager(\App\Filament\Resources\LeadResource\RelationManagers\SoftwareHandoverV2RelationManager::class
-                            ),
-                        ])->visible(fn () => auth()->user()->role_id === 3),
                 ])
                 ->columnSpan(2)
                 ->visible(function ($livewire) {

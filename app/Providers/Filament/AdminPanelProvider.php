@@ -4,6 +4,7 @@ namespace App\Providers\Filament;
 
 use App\Filament\Pages\AdminDebtorProcessDataMyr;
 use App\Filament\Pages\AdminDebtorProcessDataUsd;
+use App\Filament\Pages\AdminPortalHrV2;
 use App\Filament\Pages\AdminRenewalProcessData;
 use App\Filament\Pages\AdminRenewalProcessDataMyr;
 use App\Filament\Pages\AdminRenewalProcessDataUsd;
@@ -359,6 +360,7 @@ class AdminPanelProvider extends PanelProvider
                 FinanceHandoverList::class,
                 CustomerPortalRawData::class,
                 HrdfClaimTracker::class,
+                AdminPortalHrV2::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([

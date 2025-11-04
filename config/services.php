@@ -48,4 +48,10 @@ return [
         'client_secret' => env('ZOHO_CLIENT_SECRET'),
         'redirect_uri'  => env('ZOHO_REDIRECT_URI'),
     ],
+
+    'crm' => [
+        'api_url' => env('CRM_API_URL', 'https://profile-crm-hr-test.timeteccloud.com'),
+        'api_key' => env('CRM_API_KEY', 'crm_external_api'),
+        'private_key_path' => env('CRM_PRIVATE_KEY_PATH', 'storage/keys/crm_client.private.pem'), // Relative path
+    ],
 ];

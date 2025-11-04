@@ -31,7 +31,7 @@ use Illuminate\View\View;
 use Livewire\Attributes\On;
 use Illuminate\Database\Eloquent\Builder;
 
-class SoftwareHandoverCompleted extends Component implements HasForms, HasTable
+class SoftwareHandoverV2Rejected extends Component implements HasForms, HasTable
 {
     use InteractsWithTable;
     use InteractsWithForms;
@@ -71,13 +71,12 @@ class SoftwareHandoverCompleted extends Component implements HasForms, HasTable
         $this->resetTable(); // Refresh the table
     }
 
-    public function getNewSoftwareHandovers()
+    public function getPendingKickOffs()
     {
         $this->selectedUser = $this->selectedUser ?? session('selectedUser') ?? auth()->id();
 
         $query = SoftwareHandover::query();
-        $query->whereIn('status', ['Completed']);
-        $query->where('hr_version', 1);
+        $query->whereIn('status', ['Rejected']);
 
         // Apply normal salesperson filtering for other roles
         if ($this->selectedUser === 'all-salespersons') {
@@ -104,7 +103,7 @@ class SoftwareHandoverCompleted extends Component implements HasForms, HasTable
         } else {
             if (auth()->user()->role_id === 2) {
                 // Salespersons (role_id 2) can see Draft, New, Approved, and Completed
-                $query->whereIn('status', ['Completed']);
+                $query->whereIn('status', ['Rejected']);
 
                 // But only THEIR OWN records
                 $userId = auth()->id();
@@ -113,7 +112,7 @@ class SoftwareHandoverCompleted extends Component implements HasForms, HasTable
                 });
             } else {
                 // Other users (admin, managers) can only see New, Approved, and Completed
-                $query->whereIn('status', ['Completed']);
+                $query->whereIn('status', ['Rejected']);
                 // But they can see ALL records
             }
         }
@@ -121,7 +120,7 @@ class SoftwareHandoverCompleted extends Component implements HasForms, HasTable
         $query->orderByRaw("CASE
             WHEN status = 'New' THEN 1
             WHEN status = 'Approved' THEN 2
-            WHEN status = 'Completed' THEN 3
+            WHEN status = 'Rejected' THEN 3
             ELSE 4
         END")
             ->orderBy('updated_at', 'desc');
@@ -133,7 +132,7 @@ class SoftwareHandoverCompleted extends Component implements HasForms, HasTable
     {
         return $table
             ->poll('300s')
-            ->query($this->getNewSoftwareHandovers())
+            ->query($this->getPendingKickOffs())
             // ->defaultSort('updated_at', 'desc')
             ->emptyState(fn() => view('components.empty-state-question'))
             ->defaultPaginationPageOption(5)
@@ -271,16 +270,6 @@ class SoftwareHandoverCompleted extends Component implements HasForms, HasTable
                     })
                     ->html(),
 
-                TextColumn::make('status')
-                    ->label('Status')
-                    ->formatStateUsing(fn(string $state): HtmlString => match ($state) {
-                        'Draft' => new HtmlString('<span style="color: orange;">Draft</span>'),
-                        'New' => new HtmlString('<span style="color: blue;">New</span>'),
-                        'Approved' => new HtmlString('<span style="color: green;">Approved</span>'),
-                        'Rejected' => new HtmlString('<span style="color: red;">Rejected</span>'),
-                        default => new HtmlString('<span>' . ucfirst($state) . '</span>'),
-                    }),
-
                 // TextColumn::make('submitted_at')
                 //     ->label('Date Submit')
                 //     ->date('d M Y'),
@@ -324,114 +313,6 @@ class SoftwareHandoverCompleted extends Component implements HasForms, HasTable
                             return view('components.software-handover')
                                 ->with('extraAttributes', ['record' => $record]);
                         }),
-                    Action::make('mark_approved')
-                        ->label('Approve')
-                        ->icon('heroicon-o-check-circle')
-                        ->color('success')
-                        ->action(function (SoftwareHandover $record): void {
-                            $record->update(['status' => 'Approved']);
-
-                            Notification::make()
-                                ->title('Software Handover marked as approved')
-                                ->success()
-                                ->send();
-                        })
-                        ->requiresConfirmation()
-                        ->hidden(
-                            fn(SoftwareHandover $record): bool =>
-                            $record->status !== 'New' || auth()->user()->role_id === 2
-                        ),
-                    Action::make('mark_rejected')
-                        ->label('Reject')
-                        ->icon('heroicon-o-x-circle')
-                        ->color('danger')
-                        ->hidden(
-                            fn(SoftwareHandover $record): bool =>
-                            $record->status !== 'New' || auth()->user()->role_id === 2
-                        )
-                        ->form([
-                            \Filament\Forms\Components\Textarea::make('reject_reason')
-                                ->extraInputAttributes(['style' => 'text-transform: uppercase'])
-                                ->afterStateHydrated(fn($state) => Str::upper($state))
-                                ->afterStateUpdated(fn($state) => Str::upper($state))
-                                ->label('Reason for Rejection')
-                                ->required()
-                                ->placeholder('Please provide a reason for rejecting this handover')
-                                ->maxLength(500)
-                        ])
-                        ->action(function (SoftwareHandover $record, array $data): void {
-                            // Update both status and add the rejection remarks
-                            $record->update([
-                                'status' => 'Rejected',
-                                'reject_reason' => $data['reject_reason']
-                            ]);
-
-                            Notification::make()
-                                ->title('Hardware Handover marked as rejected')
-                                ->body('Rejection reason: ' . $data['reject_reason'])
-                                ->danger()
-                                ->send();
-                        })
-                        ->requiresConfirmation(false),
-                    Action::make('mark_completed')
-                        ->label('Mark as Completed')
-                        ->icon('heroicon-o-check-badge') // Using check badge icon to distinguish from regular approval
-                        ->color('success') // Using success color for completion
-                        ->action(function (SoftwareHandover $record): void {
-                            $record->update(['status' => 'Completed']);
-
-                            Notification::make()
-                                ->title('Software Handover marked as completed')
-                                ->body('This handover has been marked as completed.')
-                                ->success()
-                                ->send();
-                        })
-                        ->requiresConfirmation()
-                        ->hidden(
-                            fn(SoftwareHandover $record): bool =>
-                            $record->status !== 'Approved' || auth()->user()->role_id === 2
-                        ),
-                    Action::make('view_license_details')
-                        ->label('View License Details')
-                        ->icon('heroicon-o-document-text')
-                        ->color('info')
-                        ->modalHeading(fn(SoftwareHandover $record) => "License Details for {$record->company_name}")
-                        ->modalWidth('xl')
-                        ->modalSubmitAction(false)
-                        ->modalCancelActionLabel('Close')
-                        ->modalContent(function (SoftwareHandover $record) {
-                            // Calculate dates based on company's license data
-                            $kickOffDate = $record->kick_off_meeting ?? now();
-                            $bufferMonths = 1; // Default buffer
-
-                            if ($record->license_certification_id) {
-                                $licenseCertificate = \App\Models\LicenseCertificate::find($record->license_certification_id);
-
-                                if ($licenseCertificate) {
-                                    $kickOffDate = $licenseCertificate->kick_off_date;
-                                    $bufferStart = $licenseCertificate->buffer_license_start;
-                                    $bufferEnd = $licenseCertificate->buffer_license_end;
-                                    $paidStart = $licenseCertificate->paid_license_start;
-                                    $paidEnd = $licenseCertificate->paid_license_end;
-                                    $nextRenewal = $licenseCertificate->next_renewal_date;
-                                    $yearPurchase = $licenseCertificate->license_years ?? 1;
-
-                                    return view('components.license-details', [
-                                        'company' => $record->company_name,
-                                        'kickOffDate' => $kickOffDate ? Carbon::parse($kickOffDate)->format('d M Y') : 'N/A',
-                                        'bufferLicense' => $bufferStart && $bufferEnd ?
-                                            Carbon::parse($bufferStart)->format('d M Y') . ' – ' .
-                                            Carbon::parse($bufferEnd)->format('d M Y') : 'N/A',
-                                        'paidLicense' => $paidStart && $paidEnd ?
-                                            Carbon::parse($paidStart)->format('d M Y') . ' – ' .
-                                            Carbon::parse($paidEnd)->format('d M Y') : 'N/A',
-                                        'yearPurchase' => is_numeric($yearPurchase) ?
-                                            (int)$yearPurchase . ' year' . ((int)$yearPurchase > 1 ? 's' : '') : $yearPurchase,
-                                        'nextRenewal' => $nextRenewal ? Carbon::parse($nextRenewal)->format('d M Y') : 'N/A',
-                                    ]);
-                                }
-                            };
-                        })
                 ])->button()
                     ->color('warning')
             ]);
@@ -439,6 +320,6 @@ class SoftwareHandoverCompleted extends Component implements HasForms, HasTable
 
     public function render()
     {
-        return view('livewire.salesperson_dashboard.software-handover-completed');
+        return view('livewire.salesperson_dashboard.software-handover-v2-rejected');
     }
 }

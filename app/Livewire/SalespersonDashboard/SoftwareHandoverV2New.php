@@ -47,7 +47,7 @@ use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Filament\Tables\Actions\Action;
 use Livewire\Attributes\On;
 
-class SoftwareHandoverNew extends Component implements HasForms, HasTable
+class SoftwareHandoverV2New extends Component implements HasForms, HasTable
 {
     use InteractsWithTable;
     use InteractsWithForms;
@@ -95,7 +95,7 @@ class SoftwareHandoverNew extends Component implements HasForms, HasTable
         $this->selectedUser = $this->selectedUser ?? session('selectedUser') ?? auth()->id();
 
         $query = SoftwareHandover::query();
-        $query->where('hr_version', 1);
+        $query->where('hr_version', 2);
 
         // Salesperson filter logic
         if ($this->selectedUser === 'all-salespersons') {
@@ -916,6 +916,7 @@ class SoftwareHandoverNew extends Component implements HasForms, HasTable
                                 ->send();
                         })
                         ->requiresConfirmation(false),
+
                     Action::make('mark_completed')
                         ->label('Mark as Completed')
                         ->icon('heroicon-o-check-badge')
@@ -928,11 +929,9 @@ class SoftwareHandoverNew extends Component implements HasForms, HasTable
                                         ->readOnly()
                                         ->default(function (SoftwareHandover $record) {
                                             if ($record && $record->speaker_category) {
-
                                                 return ucwords($record->speaker_category);
-
                                             }
-                                            return ucwords($record->speaker_category) ?? 'Not specified';
+                                            return 'Not specified';
                                         })
                                         ->dehydrated(false),
 
@@ -957,35 +956,52 @@ class SoftwareHandoverNew extends Component implements HasForms, HasTable
                                                 ->schema([
                                                     Checkbox::make('ta')
                                                         ->label('Time Attendance (TA)')
-                                                        ->inline(),
-
+                                                        ->inline()
+                                                        ->default(function (SoftwareHandover $record) {
+                                                            return $this->shouldModuleBeChecked($record, ['TCL_TA USER-NEW', 'TCL_TA USER-ADDON', 'TCL_TA USER-ADDON(R)', 'TCL_TA USER-RENEWAL', 'TCL_FULL USER-NEW']);
+                                                        }),
                                                     Checkbox::make('tapp')
                                                         ->label('TimeTec Appraisal (T-APP)')
-                                                        ->inline(),
-
+                                                        ->inline()
+                                                        ->default(function (SoftwareHandover $record) {
+                                                            return $this->shouldModuleBeChecked($record, ['TCL_APPRAISAL USER-NEW']);
+                                                        }),
                                                     Checkbox::make('tl')
                                                         ->label('TimeTec Leave (TL)')
-                                                        ->inline(),
-
+                                                        ->inline()
+                                                        ->default(function (SoftwareHandover $record) {
+                                                            return $this->shouldModuleBeChecked($record, ['TCL_LEAVE USER-NEW', 'TCL_LEAVE USER-ADDON', 'TCL_LEAVE USER-ADDON(R)', 'TCL_LEAVE USER-RENEWAL', 'TCL_FULL USER-NEW']);
+                                                        }),
                                                     Checkbox::make('thire')
                                                         ->label('TimeTec Hire (T-HIRE)')
-                                                        ->inline(),
-
+                                                        ->inline()
+                                                        ->default(function (SoftwareHandover $record) {
+                                                            return $this->shouldModuleBeChecked($record, ['TCL_HIRE-NEW', 'TCL_HIRE-RENEWAL']);
+                                                        }),
                                                     Checkbox::make('tc')
                                                         ->label('TimeTec Claim (TC)')
-                                                        ->inline(),
-
+                                                        ->inline()
+                                                        ->default(function (SoftwareHandover $record) {
+                                                            return $this->shouldModuleBeChecked($record, ['TCL_CLAIM USER-NEW', 'TCL_CLAIM USER-ADDON', 'TCL_CLAIM USER-ADDON(R)', 'TCL_CLAIM USER-RENEWAL', 'TCL_FULL USER-NEW']);
+                                                        }),
                                                     Checkbox::make('tacc')
                                                         ->label('TimeTec Access (T-ACC)')
-                                                        ->inline(),
-
+                                                        ->inline()
+                                                        ->default(function (SoftwareHandover $record) {
+                                                            return $this->shouldModuleBeChecked($record, ['TCL_ACCESS-NEW', 'TCL_ACCESS-RENEWAL']);
+                                                        }),
                                                     Checkbox::make('tp')
                                                         ->label('TimeTec Payroll (TP)')
-                                                        ->inline(),
-
+                                                        ->inline()
+                                                        ->default(function (SoftwareHandover $record) {
+                                                            return $this->shouldModuleBeChecked($record, ['TCL_PAYROLL USER-NEW', 'TCL_PAYROLL USER-ADDON', 'TCL_PAYROLL USER-ADDON(R)', 'TCL_PAYROLL USER-RENEWAL', 'TCL_FULL USER-NEW']);
+                                                        }),
                                                     Checkbox::make('tpbi')
                                                         ->label('TimeTec Power BI (T-PBI)')
-                                                        ->inline(),
+                                                        ->inline()
+                                                        ->default(function (SoftwareHandover $record) {
+                                                            return $this->shouldModuleBeChecked($record, ['TCL_POWER BI']);
+                                                        }),
                                                 ])
                                         ]),
                                 ]),
@@ -1006,14 +1022,12 @@ class SoftwareHandoverNew extends Component implements HasForms, HasTable
                                     $date = now()->format('Y-m-d');
                                     $random = Str::random(5);
                                     $extension = $file->getClientOriginalExtension();
-
                                     return "{$companyName}-invoice-{$date}-{$random}.{$extension}";
                                 }),
                         ])
                         ->action(function (SoftwareHandover $record, array $data): void {
-                            // Handle file array encoding for invoice_file
+                            // Handle invoice file encoding
                             if (isset($data['invoice_file']) && is_array($data['invoice_file'])) {
-                                // Get existing invoice files
                                 $existingInvoiceFiles = [];
                                 if ($record->invoice_file) {
                                     if (is_string($record->invoice_file)) {
@@ -1022,39 +1036,33 @@ class SoftwareHandoverNew extends Component implements HasForms, HasTable
                                         $existingInvoiceFiles = $record->invoice_file;
                                     }
                                 }
-
-                                // Merge existing files with new ones
                                 $mergedInvoiceFiles = array_merge($existingInvoiceFiles, $data['invoice_file']);
-
-                                // Encode the merged files
                                 $data['invoice_file'] = json_encode($mergedInvoiceFiles);
                             }
 
+                            // Get implementer info
                             $implementerId = $data['implementer_id'];
                             $implementer = \App\Models\User::find($implementerId);
                             $implementerName = $implementer?->name ?? 'Unknown';
                             $implementerEmail = $implementer?->email ?? null;
 
-                            ImplementerLogs::create([
-                                'lead_id' => $record->lead_id,
-                                'description' => 'NEW PROJECT ASSIGNMENT',
-                                'subject_id' => $record->id, // The software handover ID
-                                'causer_id' => auth()->id(), // Who assigned the project
-                                'remark' => "Project assigned to {$implementer->name} for {$record->company_name}",
-                            ]);
-
-                            // Get the salesperson info
+                            // Get salesperson info
                             $salespersonId = $record->lead->salesperson ?? null;
                             $salesperson = \App\Models\User::find($salespersonId);
                             $salespersonEmail = $salesperson?->email ?? null;
                             $salespersonName = $salesperson?->name ?? 'Unknown Salesperson';
 
-                            // Prepare data for update
-                            $updateData = [
-                                'project_priority' => 'High',
-                                'status' => 'Completed',
-                                'completed_at' => now(),
-                                'implementer' => $implementerName,
+                            // Log implementer assignment
+                            ImplementerLogs::create([
+                                'lead_id' => $record->lead_id,
+                                'description' => 'NEW PROJECT ASSIGNMENT',
+                                'subject_id' => $record->id,
+                                'causer_id' => auth()->id(),
+                                'remark' => "Project assigned to {$implementerName} for {$record->company_name}",
+                            ]);
+
+                            // Extract module selections for license setup
+                            $moduleSelections = [
                                 'ta' => $data['ta'] ?? false,
                                 'tl' => $data['tl'] ?? false,
                                 'tc' => $data['tc'] ?? false,
@@ -1063,11 +1071,26 @@ class SoftwareHandoverNew extends Component implements HasForms, HasTable
                                 'thire' => $data['thire'] ?? false,
                                 'tacc' => $data['tacc'] ?? false,
                                 'tpbi' => $data['tpbi'] ?? false,
+                            ];
+
+                            // Prepare update data
+                            $updateData = [
+                                'project_priority' => 'High',
+                                'status' => 'Completed',
+                                'completed_at' => now(),
+                                'implementer' => $implementerName,
+                                'ta' => $moduleSelections['ta'],
+                                'tl' => $moduleSelections['tl'],
+                                'tc' => $moduleSelections['tc'],
+                                'tp' => $moduleSelections['tp'],
+                                'tapp' => $moduleSelections['tapp'],
+                                'thire' => $moduleSelections['thire'],
+                                'tacc' => $moduleSelections['tacc'],
+                                'tpbi' => $moduleSelections['tpbi'],
                                 'follow_up_date' => now(),
                                 'follow_up_counter' => true,
                             ];
 
-                            // Add invoice file if it exists
                             if (isset($data['invoice_file'])) {
                                 $updateData['invoice_file'] = $data['invoice_file'];
                             }
@@ -1075,147 +1098,28 @@ class SoftwareHandoverNew extends Component implements HasForms, HasTable
                             // Update the record
                             $record->update($updateData);
 
-                            // Send email notification
-                            try {
-                                $viewName = 'emails.handover_notification';
+                            // Create CRM Account
+                            $handoverId = 'SW_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+                            $crmResult = $this->createCRMAccount($record, $handoverId);
 
-                                // Get implementer and company details
-                                $implementerName = $implementer?->name ?? 'Unknown';
-                                $companyName = $record->company_name ?? $record->lead->companyDetail->company_name ?? 'Unknown Company';
-                                $salespersonName = $salesperson?->name ?? 'Unknown Salesperson';
-
-                                // Format the handover ID properly
-                                $handoverId = 'SW_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
-
-                                // Get the handover PDF URL
-                                $handoverFormUrl = $record->handover_pdf ? url('storage/' . $record->handover_pdf) : null;
-
-                                $invoiceFiles = [];
-                                if ($record->invoice_file) {
-                                    $invoiceFileArray = is_string($record->invoice_file)
-                                        ? json_decode($record->invoice_file, true)
-                                        : $record->invoice_file;
-
-                                    if (is_array($invoiceFileArray)) {
-                                        foreach ($invoiceFileArray as $file) {
-                                            $invoiceFiles[] = url('storage/' . $file);
-                                        }
-                                    }
-                                }
-
-                                // Create email content structure
-                                $emailContent = [
-                                    'implementer' => [
-                                        'name' => $implementerName,
-                                    ],
-                                    'company' => [
-                                        'name' => $companyName,
-                                    ],
-                                    'salesperson' => [
-                                        'name' => $salespersonName,
-                                    ],
-                                    'handover_id' => $handoverId,
-                                    // CHANGE created_at to completed_at
-                                    'createdAt' => $record->completed_at ? \Carbon\Carbon::parse($record->completed_at)->format('d M Y') : now()->format('d M Y'),
-                                    'handoverFormUrl' => $handoverFormUrl,
-                                    'invoiceFiles' => $invoiceFiles, // Array of all invoice file URLs
-                                ];
-
-                                // Initialize recipients array with admin email
-                                $recipients = ['faiz@timeteccloud.com']; // Always include admin
-
-                                // Add implementer email if valid
-                                if ($implementerEmail && filter_var($implementerEmail, FILTER_VALIDATE_EMAIL)) {
-                                    $recipients[] = $implementerEmail;
-                                }
-
-                                // Add salesperson email if valid
-                                if ($salespersonEmail && filter_var($salespersonEmail, FILTER_VALIDATE_EMAIL)) {
-                                    $recipients[] = $salespersonEmail;
-                                }
-
-                                // Get authenticated user's email for sender
-                                $authUser = auth()->user();
-                                $senderEmail = $authUser->email;
-                                $senderName = $authUser->name;
-
-                                // Send email with template and custom subject format
-                                if (count($recipients) > 0) {
-                                    \Illuminate\Support\Facades\Mail::send($viewName, ['emailContent' => $emailContent], function ($message) use ($recipients, $senderEmail, $senderName, $handoverId, $companyName) {
-                                        $message->from($senderEmail, $senderName)
-                                            ->to($recipients)
-                                            ->subject("SOFTWARE HANDOVER ID {$handoverId} | {$companyName}");
-                                    });
-
-                                    \Illuminate\Support\Facades\Log::info("Project assignment email sent successfully from {$senderEmail} to: " . implode(', ', $recipients));
-                                }
-                            } catch (\Exception $e) {
-                                // Log error but don't stop the process
-                                \Illuminate\Support\Facades\Log::error("Email sending failed for handover #{$record->id}: {$e->getMessage()}");
+                            // ✅ Setup CRM Licenses if account creation was successful
+                            if ($crmResult['success'] && !empty($crmResult['data'])) {
+                                $this->setupCRMLicenses($record, $crmResult['data'], $moduleSelections, $handoverId);
+                            } else {
+                                \Illuminate\Support\Facades\Log::warning("Skipping license setup - CRM account creation failed", [
+                                    'handover_id' => $handoverId
+                                ]);
                             }
+
+                            // Send notification emails
+                            $this->sendHandoverNotificationEmail($record, $implementerName, $implementerEmail, $salespersonName, $salespersonEmail);
+                            $this->sendCustomerActivationEmails($record, $implementerName, $implementerEmail);
 
                             Notification::make()
-                                ->title('Software Handover marked as completed')
-                                ->body("This handover has been marked as completed and assigned to $implementerName.")
+                                ->title('Software Handover Completed')
+                                ->body("Handover marked as completed and assigned to {$implementerName}")
                                 ->success()
                                 ->send();
-
-                            $controller = app(\App\Http\Controllers\CustomerActivationController::class);
-
-                            try {
-                                // Decode implementation_pics
-                                $pics = [];
-                                if (is_string($record->implementation_pics)) {
-                                    $pics = json_decode($record->implementation_pics, true) ?? [];
-                                } elseif (is_array($record->implementation_pics)) {
-                                    $pics = $record->implementation_pics;
-                                }
-
-                                // Collect all valid emails from implementation_pics
-                                $picEmails = [];
-                                foreach ($pics as $pic) {
-                                    if (!empty($pic['pic_email_impl']) && filter_var($pic['pic_email_impl'], FILTER_VALIDATE_EMAIL)) {
-                                        $picEmails[] = $pic['pic_email_impl'];
-                                    }
-                                }
-
-                                if (!empty($picEmails)) {
-                                    // Format the handover ID properly
-                                    $handoverId = 'SW_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
-
-                                    // Send group email to all PICs with implementer as sender and CC
-                                    $controller = app(\App\Http\Controllers\CustomerActivationController::class);
-                                    $controller->sendGroupActivationEmail($record->lead_id, $picEmails, $implementerEmail, $implementerName, $handoverId);
-
-                                    Notification::make()
-                                        ->title('Customer Portal Activation Emails Sent')
-                                        ->success()
-                                        ->body('Customer portal activation emails have been sent to: ' . implode(', ', $picEmails))
-                                        ->send();
-
-                                    // Log the activity
-                                    activity()
-                                        ->causedBy(auth()->user())
-                                        ->performedOn($record)
-                                        ->withProperties([
-                                            'emails' => $picEmails,
-                                            'implementer' => $implementerName,
-                                            'handover_id' => $handoverId
-                                        ])
-                                        ->log('Customer portal activation emails sent to all implementation PICs');
-                                } else {
-                                    \Illuminate\Support\Facades\Log::warning("No implementation PICs found for handover {$handoverId}");
-                                }
-
-                            } catch (\Exception $e) {
-                                Notification::make()
-                                    ->title('Customer Portal Activation Error')
-                                    ->danger()
-                                    ->body('Failed to send customer portal activation emails: ' . $e->getMessage())
-                                    ->send();
-
-                                \Illuminate\Support\Facades\Log::error('Customer activation emails failed: ' . $e->getMessage());
-                            }
                         })
                         ->modalWidth('3xl')
                         ->modalHeading('Complete Software Handover')
@@ -1224,6 +1128,7 @@ class SoftwareHandoverNew extends Component implements HasForms, HasTable
                             fn(SoftwareHandover $record): bool =>
                             $record->status !== 'New' || auth()->user()->role_id === 2
                         ),
+
                     Action::make('convert_to_draft')
                         ->label('Convert to Draft')
                         ->icon('heroicon-o-document')
@@ -1244,8 +1149,520 @@ class SoftwareHandoverNew extends Component implements HasForms, HasTable
             ]);
     }
 
+    /**
+     * Create CRM account for the handover
+     */
+    protected function createCRMAccount(SoftwareHandover $record, string $handoverId)
+    {
+        try {
+            $lead = $record->lead;
+
+            // Get country details
+            $countryService = app(\App\Services\CountryService::class);
+            $countries = $countryService->getCountries();
+            $leadCountry = $lead->country ?? 'Malaysia';
+            $countryData = collect($countries)->firstWhere('name', $leadCountry);
+
+            if (!$countryData) {
+                $countryData = collect($countries)->firstWhere('id', 132); // Fallback to Malaysia
+            }
+
+            // Get or generate customer credentials
+            $credentials = $this->getOrCreateCustomerCredentials($record, $handoverId);
+
+            // Process phone number from implementation PICs
+            $phoneData = $this->processPhoneNumber($record, $countryData, $handoverId);
+
+            // Prepare CRM account data
+            $crmAccountData = [
+                'company_name' => $record->company_name,
+                'country_id' => (int)$countryData['id'],
+                'name' => $credentials['name'],
+                'email' => $credentials['email'],
+                'password' => $credentials['password'],
+                'phone_code' => $phoneData['phone_code'],
+                'phone' => $phoneData['clean_phone'],
+                'timezone' => $countryData['timezone'] ?? 'Asia/Kuala_Lumpur',
+            ];
+
+            \Illuminate\Support\Facades\Log::info("Calling CRM API", [
+                'handover_id' => $handoverId,
+                'company_name' => $crmAccountData['company_name'],
+                'email' => $crmAccountData['email'],
+                'phone_code' => $crmAccountData['phone_code'],
+                'phone' => $crmAccountData['phone'],
+                'country_id' => $crmAccountData['country_id'],
+                'timezone' => $crmAccountData['timezone']
+            ]);
+
+            // Create account via CRM API
+            $crmService = app(\App\Services\CRMApiService::class);
+            $crmResult = $crmService->createAccount($crmAccountData);
+
+            if ($crmResult['success']) {
+                $this->saveCRMAccountData($record, $crmResult['data'], $credentials, $phoneData['raw_phone']);
+
+                Notification::make()
+                    ->title('CRM Account Created Successfully')
+                    ->success()
+                    ->body("Account ID: {$crmResult['data']['accountId']} | Company ID: {$crmResult['data']['companyId']}")
+                    ->send();
+            } else {
+                \Illuminate\Support\Facades\Log::error("CRM Account creation failed", [
+                    'handover_id' => $handoverId,
+                    'error' => $crmResult['error'],
+                    'status' => $crmResult['status'] ?? 'unknown'
+                ]);
+
+                Notification::make()
+                    ->title('CRM Account Creation Failed')
+                    ->warning()
+                    ->body($crmResult['error'] ?: 'Unknown error occurred')
+                    ->send();
+            }
+
+            return $crmResult;
+
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error("CRM Account creation exception", [
+                'handover_id' => $handoverId,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            Notification::make()
+                ->title('CRM Account Creation Error')
+                ->danger()
+                ->body($e->getMessage())
+                ->send();
+
+            return ['success' => false, 'error' => $e->getMessage()];
+        }
+    }
+
+    /**
+     * Get existing customer credentials or generate new ones
+     */
+    protected function getOrCreateCustomerCredentials(SoftwareHandover $record, string $handoverId): array
+    {
+        $customer = \App\Models\Customer::where('lead_id', $record->lead_id)->first();
+        $activationController = app(\App\Http\Controllers\CustomerActivationController::class);
+
+        if ($customer) {
+            \Illuminate\Support\Facades\Log::info("Using existing customer credentials", [
+                'handover_id' => $handoverId,
+                'customer_id' => $customer->id,
+                'email' => $customer->email,
+            ]);
+
+            return [
+                'email' => $customer->email,
+                'password' => $customer->plain_password,
+                'name' => $customer->name,
+                'customer' => $customer,
+            ];
+        }
+
+        // Generate new credentials
+        $credentials = $activationController->generateCRMAccountCredentials(
+            $record->lead_id,
+            $handoverId
+        );
+
+        \Illuminate\Support\Facades\Log::info("Generated new customer credentials", [
+            'handover_id' => $handoverId,
+            'email' => $credentials['email'],
+            'name' => $credentials['name']
+        ]);
+
+        return [
+            'email' => $credentials['email'],
+            'password' => $credentials['password'],
+            'name' => $credentials['name'],
+            'customer' => null,
+        ];
+    }
+
+    /**
+     * Process phone number from implementation PICs
+     */
+    protected function processPhoneNumber(SoftwareHandover $record, array $countryData, string $handoverId): array
+    {
+        $implementationPics = json_decode($record->implementation_pics, true);
+
+        if (!is_array($implementationPics) || empty($implementationPics)) {
+            throw new \Exception("No implementation PICs found for handover {$handoverId}");
+        }
+
+        $rawPhone = $implementationPics[0]['pic_phone_impl'] ?? null;
+        $firstPicName = $implementationPics[0]['pic_name_impl'] ?? null;
+
+        if (!$rawPhone) {
+            throw new \Exception("No phone number found in implementation PICs for handover {$handoverId}");
+        }
+
+        \Illuminate\Support\Facades\Log::info("Raw phone from PIC", [
+            'handover_id' => $handoverId,
+            'pic_name' => $firstPicName,
+            'raw_phone' => $rawPhone,
+        ]);
+
+        // Clean phone number - remove ALL non-numeric characters
+        $cleanPhone = preg_replace('/[^0-9]/', '', $rawPhone);
+
+        // Get country code digits (e.g., "+60" -> "60")
+        $phoneCode = $countryData['phone_code'];
+        $phoneCodeDigits = preg_replace('/[^0-9]/', '', $phoneCode);
+
+        // Remove country code if present at the start
+        if (substr($cleanPhone, 0, strlen($phoneCodeDigits)) === $phoneCodeDigits) {
+            $cleanPhone = substr($cleanPhone, strlen($phoneCodeDigits));
+        }
+
+        // Remove leading zeros
+        $cleanPhone = ltrim($cleanPhone, '0');
+
+        // Validate phone length
+        if (strlen($cleanPhone) < 7 || strlen($cleanPhone) > 11) {
+            \Illuminate\Support\Facades\Log::warning("Phone number length unusual", [
+                'handover_id' => $handoverId,
+                'raw_phone' => $rawPhone,
+                'clean_phone' => $cleanPhone,
+                'length' => strlen($cleanPhone)
+            ]);
+        }
+
+        \Illuminate\Support\Facades\Log::info("Phone number processed", [
+            'handover_id' => $handoverId,
+            'raw_phone' => $rawPhone,
+            'phone_code' => $phoneCode,
+            'clean_phone' => $cleanPhone,
+        ]);
+
+        return [
+            'raw_phone' => $rawPhone,
+            'clean_phone' => $cleanPhone,
+            'phone_code' => $phoneCode,
+            'pic_name' => $firstPicName,
+        ];
+    }
+
+    /**
+     * Save CRM account data to database
+     */
+    protected function saveCRMAccountData(SoftwareHandover $record, array $crmData, array $credentials, string $rawPhone): void
+    {
+        $lead = $record->lead;
+
+        // Update software_handover table
+        $record->update([
+            'hr_account_id' => $crmData['accountId'] ?? null,
+            'hr_company_id' => $crmData['companyId'] ?? null,
+            'hr_user_id' => $crmData['userId'] ?? null,
+        ]);
+
+        // Update or create customer record
+        if ($credentials['customer']) {
+            $credentials['customer']->update([
+                'hr_account_id' => $crmData['accountId'] ?? null,
+                'hr_company_id' => $crmData['companyId'] ?? null,
+                'hr_user_id' => $crmData['userId'] ?? null,
+            ]);
+        } else {
+            \App\Models\Customer::create([
+                'name' => $credentials['name'],
+                'email' => $credentials['email'],
+                'original_email' => $lead->companyDetail->email ?? $lead->email ?? $credentials['email'],
+                'lead_id' => $lead->id,
+                'sw_id' => $record->id,
+                'company_name' => $record->company_name,
+                'phone' => $rawPhone,
+                'password' => \Illuminate\Support\Facades\Hash::make($credentials['password']),
+                'plain_password' => $credentials['password'],
+                'status' => 'active',
+                'email_verified_at' => now(),
+                'hr_account_id' => $crmData['accountId'] ?? null,
+                'hr_company_id' => $crmData['companyId'] ?? null,
+                'hr_user_id' => $crmData['userId'] ?? null,
+            ]);
+        }
+
+        \Illuminate\Support\Facades\Log::info("CRM Account data saved successfully", [
+            'software_handover_id' => $record->id,
+            'account_id' => $crmData['accountId'],
+            'company_id' => $crmData['companyId'],
+            'user_id' => $crmData['userId'],
+        ]);
+    }
+
+    /**
+     * Send handover notification email to implementer and salesperson
+     */
+    protected function sendHandoverNotificationEmail(SoftwareHandover $record, string $implementerName, string $implementerEmail, string $salespersonName, string $salespersonEmail): void
+    {
+        try {
+            $companyName = $record->company_name ?? $record->lead->companyDetail->company_name ?? 'Unknown Company';
+            $handoverId = 'SW_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+            $handoverFormUrl = $record->handover_pdf ? url('storage/' . $record->handover_pdf) : null;
+
+            // Get invoice files
+            $invoiceFiles = [];
+            if ($record->invoice_file) {
+                $invoiceFileArray = is_string($record->invoice_file)
+                    ? json_decode($record->invoice_file, true)
+                    : $record->invoice_file;
+
+                if (is_array($invoiceFileArray)) {
+                    foreach ($invoiceFileArray as $file) {
+                        $invoiceFiles[] = url('storage/' . $file);
+                    }
+                }
+            }
+
+            $emailContent = [
+                'implementer' => ['name' => $implementerName],
+                'company' => ['name' => $companyName],
+                'salesperson' => ['name' => $salespersonName],
+                'handover_id' => $handoverId,
+                'createdAt' => $record->completed_at ? \Carbon\Carbon::parse($record->completed_at)->format('d M Y') : now()->format('d M Y'),
+                'handoverFormUrl' => $handoverFormUrl,
+                'invoiceFiles' => $invoiceFiles,
+            ];
+
+            $recipients = [];
+            if ($implementerEmail && filter_var($implementerEmail, FILTER_VALIDATE_EMAIL)) {
+                $recipients[] = $implementerEmail;
+            }
+            if ($salespersonEmail && filter_var($salespersonEmail, FILTER_VALIDATE_EMAIL)) {
+                $recipients[] = $salespersonEmail;
+            }
+
+            if (count($recipients) > 0) {
+                $authUser = auth()->user();
+                $senderEmail = $authUser->email;
+                $senderName = $authUser->name;
+
+                \Illuminate\Support\Facades\Mail::send('emails.handover_notification', ['emailContent' => $emailContent], function ($message) use ($recipients, $senderEmail, $senderName, $handoverId, $companyName) {
+                    $message->from($senderEmail, $senderName)
+                        ->to($recipients)
+                        ->subject("SOFTWARE HANDOVER ID {$handoverId} | {$companyName}");
+                });
+
+                \Illuminate\Support\Facades\Log::info("Handover notification email sent successfully", [
+                    'recipients' => $recipients,
+                    'handover_id' => $handoverId
+                ]);
+            }
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error("Handover notification email failed", [
+                'handover_id' => $handoverId ?? 'unknown',
+                'error' => $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Send customer portal activation emails to implementation PICs
+     */
+    protected function sendCustomerActivationEmails(SoftwareHandover $record, string $implementerName, string $implementerEmail): void
+    {
+        try {
+            $pics = [];
+            if (is_string($record->implementation_pics)) {
+                $pics = json_decode($record->implementation_pics, true) ?? [];
+            } elseif (is_array($record->implementation_pics)) {
+                $pics = $record->implementation_pics;
+            }
+
+            $picEmails = [];
+            foreach ($pics as $pic) {
+                if (!empty($pic['pic_email_impl']) && filter_var($pic['pic_email_impl'], FILTER_VALIDATE_EMAIL)) {
+                    $picEmails[] = $pic['pic_email_impl'];
+                }
+            }
+
+            if (empty($picEmails)) {
+                $handoverId = 'SW_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+                \Illuminate\Support\Facades\Log::warning("No valid PIC emails found for handover {$handoverId}");
+                return;
+            }
+
+            $handoverId = 'SW_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+            $activationController = app(\App\Http\Controllers\CustomerActivationController::class);
+
+            $activationController->sendGroupActivationEmail(
+                $record->lead_id,
+                $picEmails,
+                $implementerEmail,
+                $implementerName,
+                $handoverId
+            );
+
+            Notification::make()
+                ->title('Customer Portal Activation Emails Sent')
+                ->success()
+                ->body('Emails sent to: ' . implode(', ', $picEmails))
+                ->send();
+
+            activity()
+                ->causedBy(auth()->user())
+                ->performedOn($record)
+                ->withProperties([
+                    'emails' => $picEmails,
+                    'implementer' => $implementerName,
+                    'handover_id' => $handoverId
+                ])
+                ->log('Customer portal activation emails sent');
+
+        } catch (\Exception $e) {
+            Notification::make()
+                ->title('Customer Portal Activation Error')
+                ->danger()
+                ->body('Failed to send emails: ' . $e->getMessage())
+                ->send();
+
+            \Illuminate\Support\Facades\Log::error('Customer activation emails failed', [
+                'error' => $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Setup CRM licenses (buffer + paid applications)
+     */
+    protected function setupCRMLicenses(SoftwareHandover $record, array $crmData, array $modules, string $handoverId): void
+    {
+        $accountId = $crmData['accountId'] ?? null;
+        $companyId = $crmData['companyId'] ?? null;
+
+        if (!$accountId || !$companyId) {
+            \Illuminate\Support\Facades\Log::warning("Cannot setup licenses - missing account or company ID", [
+                'handover_id' => $handoverId,
+                'account_id' => $accountId,
+                'company_id' => $companyId
+            ]);
+            return;
+        }
+
+        // Add buffer license
+        $bufferResult = $this->addBufferLicense($record, $accountId, $companyId, $handoverId);
+
+        if ($bufferResult['success']) {
+            // Store buffer license ID
+            $record->update([
+                'crm_buffer_license_id' => $bufferResult['data']['licenseSetId'] ?? null
+            ]);
+
+            Notification::make()
+                ->title('Buffer License Added')
+                ->success()
+                ->body('30-day buffer license has been added')
+                ->send();
+        } else {
+            Notification::make()
+                ->title('Buffer License Failed')
+                ->warning()
+                ->body($bufferResult['error'] ?? 'Failed to add buffer license')
+                ->send();
+        }
+
+        // Add paid application licenses based on selected modules
+        $licenseResults = $this->addPaidApplicationLicenses($record, $accountId, $companyId, $modules, $handoverId);
+
+        if ($licenseResults['success']) {
+            $successCount = 0;
+            $failCount = 0;
+            $licenseIds = [];
+
+            foreach ($licenseResults['results'] as $app => $result) {
+                if ($result['success']) {
+                    $successCount++;
+                    $licenseIds[$app] = $result['data']['periodId'] ?? null;
+                } else {
+                    $failCount++;
+                }
+            }
+
+            // Store paid license IDs as JSON
+            if (!empty($licenseIds)) {
+                $record->update([
+                    'crm_paid_license_ids' => json_encode($licenseIds)
+                ]);
+            }
+
+            Notification::make()
+                ->title('Application Licenses Setup')
+                ->success()
+                ->body("Successfully added {$successCount} application license(s)" .
+                    ($failCount > 0 ? ", {$failCount} failed" : ''))
+                ->send();
+
+            \Illuminate\Support\Facades\Log::info("License setup completed", [
+                'handover_id' => $handoverId,
+                'success_count' => $successCount,
+                'fail_count' => $failCount,
+                'license_ids' => $licenseIds
+            ]);
+        }
+    }
+
+    protected function shouldModuleBeChecked(SoftwareHandover $record, array $productCodes): bool
+    {
+        // Get all PI IDs from proforma_invoice_product and proforma_invoice_hrdf
+        $allPiIds = [];
+
+        if (!empty($record->proforma_invoice_product)) {
+            $productPis = is_string($record->proforma_invoice_product)
+                ? json_decode($record->proforma_invoice_product, true)
+                : $record->proforma_invoice_product;
+            if (is_array($productPis)) {
+                $allPiIds = array_merge($allPiIds, $productPis);
+            }
+        }
+
+        if (!empty($record->proforma_invoice_hrdf)) {
+            $hrdfPis = is_string($record->proforma_invoice_hrdf)
+                ? json_decode($record->proforma_invoice_hrdf, true)
+                : $record->proforma_invoice_hrdf;
+            if (is_array($hrdfPis)) {
+                $allPiIds = array_merge($allPiIds, $hrdfPis);
+            }
+        }
+
+        if (empty($allPiIds)) {
+            return false;
+        }
+
+        // Get quotation details for these PIs
+        $quotations = \App\Models\Quotation::whereIn('id', $allPiIds)->get();
+
+        foreach ($quotations as $quotation) {
+            $details = \App\Models\QuotationDetail::where('quotation_id', $quotation->id)
+                ->with('product')
+                ->get();
+
+            foreach ($details as $detail) {
+                if (!$detail->product) {
+                    continue;
+                }
+
+                // Check if this product code matches any of the module's product codes
+                if (in_array($detail->product->code, $productCodes)) {
+                    \Illuminate\Support\Facades\Log::info("Module auto-checked based on quotation", [
+                        'product_code' => $detail->product->code,
+                        'pi_reference' => $quotation->pi_reference_no,
+                        'handover_id' => $record->id
+                    ]);
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
     public function render()
     {
-        return view('livewire.salesperson_dashboard.software-handover-new');
+        return view('livewire.salesperson_dashboard.software-handover-v2-new');
     }
 }

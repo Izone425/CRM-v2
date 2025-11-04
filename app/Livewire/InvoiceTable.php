@@ -166,7 +166,7 @@ class InvoicesTable extends Page implements HasTable
             ];
         }
 
-        // Get invoice totals first
+        // Get invoice totals for the date range
         $invoiceTotals = DB::table('invoices')
             ->select('invoice_no', DB::raw('SUM(invoice_amount) as total_amount'))
             ->whereIn('salesperson', $allowedSalespersons)
@@ -175,23 +175,20 @@ class InvoicesTable extends Page implements HasTable
                 return $query->where('invoice_no', 'like', $prefix . '%');
             })
             ->groupBy('invoice_no')
-            ->get();
-
-        if ($invoiceTotals->isEmpty()) {
-            return [
-                'full_payment_amount' => 0,
-                'partial_payment_amount' => 0,
-                'unpaid_amount' => 0,
-                'total_amount' => 0,
-            ];
-        }
-
-        // Get payment status for all invoices
-        $invoiceNos = $invoiceTotals->pluck('invoice_no')->toArray();
-        $debtorAgings = DB::table('debtor_agings')
-            ->whereIn('invoice_number', $invoiceNos)
             ->get()
-            ->keyBy('invoice_number');
+            ->keyBy('invoice_no');
+
+        // Get credit notes ISSUED during this date range (based on credit_note_date)
+        // These will be deducted from this period's total, regardless of when the original invoice was issued
+        $creditNotesInRange = DB::table('credit_notes')
+            ->select('invoice_number', DB::raw('SUM(amount) as total_credit'))
+            ->whereIn('salesperson', $allowedSalespersons)
+            ->whereBetween('credit_note_date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
+            ->when($invoicePrefix, function ($query, $prefix) {
+                return $query->where('invoice_number', 'like', $prefix . '%');
+            })
+            ->groupBy('invoice_number')
+            ->get();
 
         $stats = [
             'full_payment_amount' => 0,
@@ -200,11 +197,15 @@ class InvoicesTable extends Page implements HasTable
             'total_amount' => 0,
         ];
 
-        foreach ($invoiceTotals as $invoice) {
+        // First, add all invoices from this period
+        foreach ($invoiceTotals as $invoiceNo => $invoice) {
             $amount = (float)$invoice->total_amount;
             $stats['total_amount'] += $amount;
 
-            $debtorAging = $debtorAgings->get($invoice->invoice_no);
+            // Get payment status from debtor_agings
+            $debtorAging = DB::table('debtor_agings')
+                ->where('invoice_number', $invoiceNo)
+                ->first();
 
             // Determine payment status using debtor_agings
             if (!$debtorAging || (float)$debtorAging->outstanding == 0) {
@@ -213,6 +214,31 @@ class InvoicesTable extends Page implements HasTable
                 $stats['partial_payment_amount'] += $amount;
             } else {
                 $stats['unpaid_amount'] += $amount;
+            }
+        }
+
+        // Then, subtract ALL credit notes issued in this period from total_amount
+        // This affects the period they were issued, not the period of the original invoice
+        foreach ($creditNotesInRange as $creditNote) {
+            $creditAmount = (float)$creditNote->total_credit;
+
+            // Always deduct from total_amount for this period
+            $stats['total_amount'] -= $creditAmount;
+
+            // For payment status categorization:
+            // Check the payment status of the original invoice
+            $invoiceNo = $creditNote->invoice_number;
+            $debtorAging = DB::table('debtor_agings')
+                ->where('invoice_number', $invoiceNo)
+                ->first();
+
+            // Deduct from the appropriate payment status category
+            if (!$debtorAging || (float)$debtorAging->outstanding == 0) {
+                $stats['full_payment_amount'] -= $creditAmount;
+            } elseif ((float)$debtorAging->outstanding < (float)$debtorAging->invoice_amount) {
+                $stats['partial_payment_amount'] -= $creditAmount;
+            } else {
+                $stats['unpaid_amount'] -= $creditAmount;
             }
         }
 
@@ -250,21 +276,95 @@ class InvoicesTable extends Page implements HasTable
                     ->money('MYR')
                     ->sortable()
                     ->getStateUsing(function (Invoice $record): float {
-                        // Calculate the sum for this invoice_no
+                        // Just return the invoice sum for this invoice_no
                         return Invoice::where('invoice_no', $record->invoice_no)->sum('invoice_amount');
                     })
                     ->summarize([
                         Tables\Columns\Summarizers\Summarizer::make()
                             ->label('Grand Total')
                             ->using(function ($query) {
-                                // Get the grouped results
                                 $groupedResults = $query->get();
                                 $grandTotal = 0;
 
-                                // Calculate total for each unique invoice
+                                // Calculate total invoice amounts
                                 foreach ($groupedResults as $record) {
-                                    $grandTotal += Invoice::where('invoice_no', $record->invoice_no)->sum('invoice_amount');
+                                    $invoiceSum = Invoice::where('invoice_no', $record->invoice_no)->sum('invoice_amount');
+                                    $grandTotal += $invoiceSum;
                                 }
+
+                                // Now deduct credit notes that were issued in the same date range as the filtered invoices
+                                $allowedSalespersons = array_keys(static::$salespersonUserIds);
+
+                                // Get the active table filters
+                                $tableFilters = $this->tableFilters ?? [];
+
+                                // Extract filter values safely
+                                $year = null;
+                                $month = null;
+                                $invoiceType = null;
+                                $salespersonFilter = null;
+
+                                if (isset($tableFilters['year']['value'])) {
+                                    $year = $tableFilters['year']['value'];
+                                } elseif (isset($tableFilters['year']) && !is_array($tableFilters['year'])) {
+                                    $year = $tableFilters['year'];
+                                }
+
+                                if (isset($tableFilters['month']['value'])) {
+                                    $month = $tableFilters['month']['value'];
+                                } elseif (isset($tableFilters['month']) && !is_array($tableFilters['month'])) {
+                                    $month = $tableFilters['month'];
+                                }
+
+                                if (isset($tableFilters['invoice_type']['value'])) {
+                                    $invoiceType = $tableFilters['invoice_type']['value'];
+                                } elseif (isset($tableFilters['invoice_type']) && !is_array($tableFilters['invoice_type'])) {
+                                    $invoiceType = $tableFilters['invoice_type'];
+                                }
+
+                                if (isset($tableFilters['salesperson']['value'])) {
+                                    $salespersonFilter = $tableFilters['salesperson']['value'];
+                                } elseif (isset($tableFilters['salesperson']) && !is_array($tableFilters['salesperson'])) {
+                                    $salespersonFilter = $tableFilters['salesperson'];
+                                }
+
+                                // Build the credit note query
+                                $creditNoteQuery = DB::table('credit_notes')
+                                    ->whereIn('salesperson', $allowedSalespersons);
+
+                                // Apply year filter if set
+                                if ($year) {
+                                    $creditNoteQuery->whereYear('credit_note_date', $year);
+                                }
+
+                                // Apply month filter if set
+                                if ($month) {
+                                    $creditNoteQuery->whereMonth('credit_note_date', $month);
+                                }
+
+                                // Apply invoice type filter if set
+                                if ($invoiceType) {
+                                    $creditNoteQuery->where('invoice_number', 'like', $invoiceType . '%');
+                                }
+
+                                // Apply salesperson filter if set (for admin view)
+                                if ($salespersonFilter) {
+                                    $creditNoteQuery->where('salesperson', $salespersonFilter);
+                                }
+
+                                // For role_id 2, filter by their own salesperson name
+                                if (Auth::check() && Auth::user()->role_id === 2) {
+                                    $userId = Auth::id();
+                                    $salespersonName = array_search($userId, static::$salespersonUserIds);
+                                    if ($salespersonName) {
+                                        $creditNoteQuery->where('salesperson', $salespersonName);
+                                    }
+                                }
+
+                                $totalCreditNotes = $creditNoteQuery->sum('amount');
+
+                                // Deduct credit notes from grand total
+                                $grandTotal -= $totalCreditNotes;
 
                                 return 'RM ' . number_format($grandTotal, 2);
                             }),

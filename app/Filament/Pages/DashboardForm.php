@@ -95,6 +95,7 @@ class DashboardForm extends Page
             'HardwareHandover',
             'MainAdminDashboard',
             'SoftwareAdmin',
+            'SoftwareAdminV2',
             'HardwareAdmin',
             'HardwareAdminV2',
             'AdminRepair',

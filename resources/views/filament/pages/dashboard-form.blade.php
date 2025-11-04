@@ -24,7 +24,7 @@
         // use App\Models\SoftwareHandover;
         // use App\Models\HardwareHandover;
 
-        // ADMIN SOFTWARE counts (NEW TASK + PENDING KICK OFF + PENDING LICENSE)
+        // ADMIN SOFTWARE V1 counts (NEW TASK + PENDING LICENSE)
         $softwareNewCount = app(\App\Livewire\SalespersonDashboard\SoftwareHandoverNew::class)
             ->getNewSoftwareHandovers()
             ->count();
@@ -35,6 +35,18 @@
             ->getNewSoftwareHandovers()
             ->count();
         $adminSoftwareTotal = $softwareNewCount + $softwarePendingLicenseCount;
+
+        // ADMIN SOFTWARE V2 counts (NEW TASK + PENDING LICENSE + PENDING KICK OFF)
+        $softwareV2NewCount = app(\App\Livewire\SalespersonDashboard\SoftwareHandoverV2New::class)
+            ->getNewSoftwareHandovers()
+            ->count();
+        $softwareV2PendingKickOffCount = app(\App\Livewire\SoftwareHandoverV2KickOffReminder::class)
+            ->getNewSoftwareHandovers()
+            ->count();
+        $softwareV2PendingLicenseCount = app(\App\Livewire\SoftwareHandoverV2PendingLicense::class)
+            ->getNewSoftwareHandovers()
+            ->count();
+        $adminSoftwareV2Total = $softwareV2NewCount + $softwareV2PendingKickOffCount + $softwareV2PendingLicenseCount;
 
         // ADMIN HARDWARE counts (NEW TASK + PENDING STOCK)
         $hardwareNewCount = app(\App\Livewire\SalespersonDashboard\HardwareHandoverNew::class)
@@ -55,6 +67,7 @@
             ->getNewHrdfHandovers()
             ->count();
 
+        // ADMIN HARDWARE V2 counts
         $newTaskCount = app(\App\Livewire\AdminHardwareV2Dashboard\HardwareV2NewTable::class)
             ->getNewHardwareHandovers()
             ->count();
@@ -89,7 +102,8 @@
 
         $initialStageTotal = $newTaskCount + $pendingStockCount + $pendingCourierCount + $pendingAdminPickUpCount + $pendingExternalInstallationCount + $pendingInternalInstallationCount;
 
-        $adminTotal = $adminSoftwareTotal + $adminHeadcountTotal + $adminHrdfTotal + $initialStageTotal + $adminUSDInvoiceTotal;
+        // Calculate total admin count including Software V2
+        $adminTotal = $adminSoftwareTotal + $adminSoftwareV2Total + $adminHeadcountTotal + $adminHrdfTotal + $initialStageTotal + $adminUSDInvoiceTotal;
     @endphp
 
     <div
@@ -696,8 +710,8 @@
                                                 font-weight: bold;
                                                 border: none;
                                                 border-radius: 20px;
-                                                background: {{ in_array($currentDashboard, ['MainAdminDashboard','SoftwareAdmin', 'HardwareAdmin', 'HardwareAdminV2', 'AdminRepair', 'AdminRenewalv1', 'AdminRenewalv2', 'AdminHRDF', 'AdminHeadcount']) ? '#431fa1' : 'transparent' }};
-                                                color: {{ in_array($currentDashboard, ['MainAdminDashboard','SoftwareAdmin', 'HardwareAdmin', 'HardwareAdminV2', 'AdminRepair', 'AdminRenewalv1', 'AdminRenewalv2', 'AdminHRDF', 'AdminHeadcount']) ? '#ffffff' : '#555' }};
+                                                background: {{ in_array($currentDashboard, ['MainAdminDashboard','SoftwareAdmin', 'SoftwareAdminV2', 'HardwareAdmin', 'HardwareAdminV2', 'AdminRepair', 'AdminRenewalv1', 'AdminRenewalv2', 'AdminHRDF', 'AdminHeadcount']) ? '#431fa1' : 'transparent' }};
+                                                color: {{ in_array($currentDashboard, ['MainAdminDashboard','SoftwareAdmin','SoftwareAdminV2', 'HardwareAdmin', 'HardwareAdminV2', 'AdminRepair', 'AdminRenewalv1', 'AdminRenewalv2', 'AdminHRDF', 'AdminHeadcount']) ? '#ffffff' : '#555' }};
                                                 cursor: pointer;
                                                 display: flex;
                                                 align-items: center;
@@ -759,7 +773,7 @@
                                                     font-size: 14px;
                                                 "
                                             >
-                                                <span>Admin - Software</span>
+                                                <span>Admin - Software v1</span>
                                                 @if($adminSoftwareTotal > 0)
                                                     <span style="
                                                         background: #ef4444;
@@ -771,6 +785,36 @@
                                                         min-width: 20px;
                                                         text-align: center;
                                                     ">{{ $adminSoftwareTotal }}</span>
+                                                @endif
+                                            </button>
+
+                                            <button
+                                                wire:click="toggleDashboard('SoftwareAdminV2')"
+                                                style="
+                                                    display: flex;
+                                                    justify-content: space-between;
+                                                    align-items: center;
+                                                    width: 100%;
+                                                    padding: 10px 16px;
+                                                    text-align: left;
+                                                    border: none;
+                                                    background: {{ $currentDashboard === 'SoftwareAdminV2' ? '#f3f3f3' : 'white' }};
+                                                    cursor: pointer;
+                                                    font-size: 14px;
+                                                "
+                                            >
+                                                <span>Admin - Software v2</span>
+                                                @if($adminSoftwareV2Total > 0)
+                                                    <span style="
+                                                        background: #ef4444;
+                                                        color: white;
+                                                        border-radius: 12px;
+                                                        padding: 2px 8px;
+                                                        font-size: 12px;
+                                                        font-weight: bold;
+                                                        min-width: 20px;
+                                                        text-align: center;
+                                                    ">{{ $adminSoftwareV2Total }}</span>
                                                 @endif
                                             </button>
 
@@ -1275,6 +1319,8 @@
                             @include('filament.pages.adminheadcount')
                         @elseif ($currentDashboard === 'SoftwareAdmin')
                             @include('filament.pages.softwarehandover')
+                        @elseif ($currentDashboard === 'SoftwareAdminV2')
+                            @include('filament.pages.softwarehandoverv2')
                         @elseif ($currentDashboard === 'Debtor')
                             {{-- @include('filament.pages.admindebtor') --}}
                         @elseif ($currentDashboard === 'HardwareAdminV2')

@@ -552,13 +552,7 @@ class AdminRenewalActions
 
             $ccRecipients = [];
 
-            // Add admin renewal to CC
-            if ($renewal->admin_renewal) {
-                $adminUser = \App\Models\User::where('name', $renewal->admin_renewal)->first();
-                if ($adminUser && $adminUser->email && $adminUser->email !== $emailData['sender_email']) {
-                    $ccRecipients[] = $adminUser->email;
-                }
-            }
+            $ccRecipients[] = 'renewal.timetec.hr@timeteccloud.com';
 
             // Prepare attachments data for both instant and scheduled emails
             $attachmentsData = self::prepareAttachmentsData($emailData);

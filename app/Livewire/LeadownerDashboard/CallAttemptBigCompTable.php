@@ -132,6 +132,28 @@ class CallAttemptBigCompTable extends Component implements HasForms, HasTable
                             ? 'Lead Source: ' . implode(', ', $data['values'])
                             : null;
                     }),
+                SelectFilter::make('exclude_lead_code')
+                    ->label('')
+                    ->multiple()
+                    ->options(function () {
+                        return Lead::distinct()
+                            ->whereNotNull('lead_code')
+                            ->where('lead_code', '!=', '')
+                            ->orderBy('lead_code')
+                            ->pluck('lead_code', 'lead_code')
+                            ->toArray();
+                    })
+                    ->placeholder('Exclude Lead Source')
+                    ->query(function (\Illuminate\Database\Eloquent\Builder $query, array $data) {
+                        if (!empty($data['values'])) {
+                            $query->whereNotIn('lead_code', $data['values']);
+                        }
+                    })
+                    ->indicateUsing(function (array $data) {
+                        return !empty($data['values'])
+                            ? 'Excluded: ' . implode(', ', $data['values'])
+                            : null;
+                    }),
             ])
             ->columns([
                 TextColumn::make('lead_owner')

@@ -292,11 +292,13 @@ class FetchZohoLeads extends Command
                     if (!empty($lead['Company'])) {
                         $companyDetail = CompanyDetail::create([
                             'company_name' => $lead['Company'],
+                            'linkedin_url' => $lead['Linkedin_Profile_URL'] ?? null,
                             'lead_id'      => $newLead->id,
                         ]);
 
                         $newLead->updateQuietly([
                             'company_name' => $companyDetail->id ?? null,
+                            'linkedin_url' => $lead['Linkedin_Profile_URL'] ?? null,
                         ]);
                     }
                 } elseif (!empty($lead['Salesperson'])) {
@@ -346,11 +348,13 @@ class FetchZohoLeads extends Command
                     if (!empty($lead['Company'])) {
                         $companyDetail = CompanyDetail::create([
                             'company_name' => $lead['Company'],
+                            'linkedin_url' => $lead['Linkedin_Profile_URL'] ?? null,
                             'lead_id'      => $newLead->id,
                         ]);
 
                         $newLead->updateQuietly([
                             'company_name' => $companyDetail->id ?? null,
+                            'linkedin_url' => $lead['Linkedin_Profile_URL'] ?? null,
                         ]);
                     }
                 }else{
@@ -392,11 +396,13 @@ class FetchZohoLeads extends Command
                     if (!empty($lead['Company'])) {
                         $companyDetail = CompanyDetail::create([
                             'company_name' => $lead['Company'],
+                            'linkedin_url' => $lead['Linkedin_Profile_URL'] ?? null,
                             'lead_id'      => $newLead->id,
                         ]);
 
                         $newLead->updateQuietly([
                             'company_name' => $companyDetail->id ?? null,
+                            'linkedin_url' => $lead['Linkedin_Profile_URL'] ?? null,
                         ]);
                     }
                 }
