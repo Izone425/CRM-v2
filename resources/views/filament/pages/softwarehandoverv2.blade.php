@@ -219,6 +219,9 @@
     .completed-task { border-left: 4px solid #10b981; }
     .completed-task .stat-count { color: #10b981; }
 
+    .draft { border-left: 4px solid #f97316; }
+    .draft .stat-count { color: #f97316; }
+
     /* Selected states for categories */
     .stat-box.selected.all-items { background-color: rgba(107, 114, 128, 0.05); border-left-width: 6px; }
     .stat-box.selected.new-task { background-color: rgba(37, 99, 235, 0.05); border-left-width: 6px; }
@@ -226,6 +229,7 @@
     .stat-box.selected.pending-kick-off { background-color: rgba(245, 158, 11, 0.05); border-left-width: 6px; }
     .stat-box.selected.pending-license { background-color: rgba(139, 92, 246, 0.05); border-left-width: 6px; }
     .stat-box.selected.completed-task { background-color: rgba(16, 185, 129, 0.05); border-left-width: 6px; }
+    .stat-box.selected.draft { background-color: rgba(249, 115, 22, 0.05); border-left-width: 6px; }
 
     /* Animation for tab switching */
     [x-transition] {
@@ -291,6 +295,10 @@
     // Define queries for New
     $newCount = app(\App\Livewire\SalespersonDashboard\SoftwareHandoverV2New::class)
         ->getNewSoftwareHandovers()
+        ->count();
+
+    $draftCount = SoftwareHandover::where('status', 'Draft')
+        ->where('hr_version', 2)
         ->count();
 
     // Define queries for Rejected
@@ -423,6 +431,15 @@
                     <div class="stat-count">{{ $newCount }}</div>
                 </div>
 
+                <div class="stat-box draft"
+                    :class="{'selected': selectedStat === 'draft'}"
+                    @click="setSelectedStat('draft')">
+                    <div class="stat-info">
+                        <div class="stat-label">Draft</div>
+                    </div>
+                    <div class="stat-count">{{ $draftCount }}</div>
+                </div>
+
                 <div class="stat-box rejected"
                      :class="{'selected': selectedStat === 'rejected'}"
                      @click="setSelectedStat('rejected')">
@@ -491,6 +508,10 @@
                     <div>
                         @livewire('software-handover-addon')
                     </div>
+                </div>
+
+                <div>
+                    @livewire('software-handover-v2-draft')
                 </div>
 
                 <!-- New Task (from DASHBOARD 01) -->

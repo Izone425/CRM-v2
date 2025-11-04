@@ -598,6 +598,8 @@
                     @endif
                 </div>
 
+                <hr class="my-6 border-t border-gray-300">
+
                 <!-- Invoice by Winson -->
                 <div class="sw-info-item">
                     <span class="sw-label">Invoice by Admin: </span>

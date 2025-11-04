@@ -218,36 +218,6 @@ class SoftwareHandoverNew extends Component implements HasForms, HasTable
                             })
                     ),
 
-                // TextColumn::make('lead.salesperson')
-                //     ->label('SALESPERSON')
-                //     ->getStateUsing(function (SoftwareHandover $record) {
-                //         $lead = $record->lead;
-                //         if (!$lead) {
-                //             return '-';
-                //         }
-
-                //         $salespersonId = $lead->salesperson;
-                //         return User::find($salespersonId)?->name ?? '-';
-                //     })
-                //     ->visible(fn(): bool => auth()->user()->role_id !== 2),
-
-                // TextColumn::make('lead.companyDetail.company_name')
-                //     ->label('Company Name')
-                //     ->formatStateUsing(function ($state, $record) {
-                //         $fullName = $state ?? 'N/A';
-                //         $shortened = strtoupper(Str::limit($fullName, 25, '...'));
-                //         $encryptedId = \App\Classes\Encryptor::encrypt($record->lead->id);
-
-                //         return '<a href="' . url('admin/leads/' . $encryptedId) . '"
-                //                     target="_blank"
-                //                     title="' . e($fullName) . '"
-                //                     class="inline-block"
-                //                     style="color:#338cf0;">
-                //                     ' . $shortened . '
-                //                 </a>';
-                //     })
-                //     ->html(),
-
                 TextColumn::make('salesperson')
                     ->label('SalesPerson')
                     ->visible(fn(): bool => auth()->user()->role_id !== 2),
@@ -279,6 +249,16 @@ class SoftwareHandoverNew extends Component implements HasForms, HasTable
                         return "<span title='{$state}'>{$state}</span>";
                     })
                     ->html(),
+
+                TextColumn::make('hr_version')
+                    ->label('HR Version')
+                    ->formatStateUsing(function ($state) {
+                        return $state ? 'Version ' . $state : 'N/A';
+                    }),
+
+                TextColumn::make('license_type')
+                    ->label('License Type')
+                    ->formatStateUsing(fn (string $state): string => Str::title($state)),
 
                 TextColumn::make('status')
                     ->label('Status')
@@ -957,37 +937,71 @@ class SoftwareHandoverNew extends Component implements HasForms, HasTable
                                                 ->schema([
                                                     Checkbox::make('ta')
                                                         ->label('Time Attendance (TA)')
-                                                        ->inline(),
-
+                                                        ->inline()
+                                                        ->disabled()
+                                                        ->dehydrated(true)
+                                                        ->default(function (SoftwareHandover $record) {
+                                                            return $this->shouldModuleBeChecked($record, ['TCL_TA USER-NEW', 'TCL_TA USER-ADDON', 'TCL_TA USER-ADDON(R)', 'TCL_TA USER-RENEWAL', 'TCL_FULL USER-NEW']);
+                                                        }),
                                                     Checkbox::make('tapp')
                                                         ->label('TimeTec Appraisal (T-APP)')
-                                                        ->inline(),
-
+                                                        ->inline()
+                                                        ->disabled()
+                                                        ->dehydrated(true)
+                                                        ->default(function (SoftwareHandover $record) {
+                                                            return $this->shouldModuleBeChecked($record, ['TCL_APPRAISAL USER-NEW']);
+                                                        }),
                                                     Checkbox::make('tl')
                                                         ->label('TimeTec Leave (TL)')
-                                                        ->inline(),
-
+                                                        ->inline()
+                                                        ->disabled()
+                                                        ->dehydrated(true)
+                                                        ->default(function (SoftwareHandover $record) {
+                                                            return $this->shouldModuleBeChecked($record, ['TCL_LEAVE USER-NEW', 'TCL_LEAVE USER-ADDON', 'TCL_LEAVE USER-ADDON(R)', 'TCL_LEAVE USER-RENEWAL', 'TCL_FULL USER-NEW']);
+                                                        }),
                                                     Checkbox::make('thire')
                                                         ->label('TimeTec Hire (T-HIRE)')
-                                                        ->inline(),
-
+                                                        ->inline()
+                                                        ->disabled()
+                                                        ->dehydrated(true)
+                                                        ->default(function (SoftwareHandover $record) {
+                                                            return $this->shouldModuleBeChecked($record, ['TCL_HIRE-NEW', 'TCL_HIRE-RENEWAL']);
+                                                        }),
                                                     Checkbox::make('tc')
                                                         ->label('TimeTec Claim (TC)')
-                                                        ->inline(),
-
+                                                        ->inline()
+                                                        ->disabled()
+                                                        ->dehydrated(true)
+                                                        ->default(function (SoftwareHandover $record) {
+                                                            return $this->shouldModuleBeChecked($record, ['TCL_CLAIM USER-NEW', 'TCL_CLAIM USER-ADDON', 'TCL_CLAIM USER-ADDON(R)', 'TCL_CLAIM USER-RENEWAL', 'TCL_FULL USER-NEW']);
+                                                        }),
                                                     Checkbox::make('tacc')
                                                         ->label('TimeTec Access (T-ACC)')
-                                                        ->inline(),
-
+                                                        ->inline()
+                                                        ->disabled()
+                                                        ->dehydrated(true)
+                                                        ->default(function (SoftwareHandover $record) {
+                                                            return $this->shouldModuleBeChecked($record, ['TCL_ACCESS-NEW', 'TCL_ACCESS-RENEWAL']);
+                                                        }),
                                                     Checkbox::make('tp')
                                                         ->label('TimeTec Payroll (TP)')
-                                                        ->inline(),
-
+                                                        ->inline()
+                                                        ->disabled()
+                                                        ->dehydrated(true)
+                                                        ->default(function (SoftwareHandover $record) {
+                                                            return $this->shouldModuleBeChecked($record, ['TCL_PAYROLL USER-NEW', 'TCL_PAYROLL USER-ADDON', 'TCL_PAYROLL USER-ADDON(R)', 'TCL_PAYROLL USER-RENEWAL', 'TCL_FULL USER-NEW']);
+                                                        }),
                                                     Checkbox::make('tpbi')
                                                         ->label('TimeTec Power BI (T-PBI)')
-                                                        ->inline(),
+                                                        ->inline()
+                                                        ->disabled()
+                                                        ->dehydrated(true)
+                                                        ->default(function (SoftwareHandover $record) {
+                                                            return $this->shouldModuleBeChecked($record, ['TCL_POWER BI']);
+                                                        }),
                                                 ])
-                                        ]),
+                                        ])
+                                        ->hidden() // Hide the entire section
                                 ]),
 
                             FileUpload::make('invoice_file')
@@ -1242,6 +1256,61 @@ class SoftwareHandoverNew extends Component implements HasForms, HasTable
                 ])->button()
 
             ]);
+    }
+
+    protected function shouldModuleBeChecked(SoftwareHandover $record, array $productCodes): bool
+    {
+        // Get all PI IDs from proforma_invoice_product and proforma_invoice_hrdf
+        $allPiIds = [];
+
+        if (!empty($record->proforma_invoice_product)) {
+            $productPis = is_string($record->proforma_invoice_product)
+                ? json_decode($record->proforma_invoice_product, true)
+                : $record->proforma_invoice_product;
+            if (is_array($productPis)) {
+                $allPiIds = array_merge($allPiIds, $productPis);
+            }
+        }
+
+        if (!empty($record->proforma_invoice_hrdf)) {
+            $hrdfPis = is_string($record->proforma_invoice_hrdf)
+                ? json_decode($record->proforma_invoice_hrdf, true)
+                : $record->proforma_invoice_hrdf;
+            if (is_array($hrdfPis)) {
+                $allPiIds = array_merge($allPiIds, $hrdfPis);
+            }
+        }
+
+        if (empty($allPiIds)) {
+            return false;
+        }
+
+        // Get quotation details for these PIs
+        $quotations = \App\Models\Quotation::whereIn('id', $allPiIds)->get();
+
+        foreach ($quotations as $quotation) {
+            $details = \App\Models\QuotationDetail::where('quotation_id', $quotation->id)
+                ->with('product')
+                ->get();
+
+            foreach ($details as $detail) {
+                if (!$detail->product) {
+                    continue;
+                }
+
+                // Check if this product code matches any of the module's product codes
+                if (in_array($detail->product->code, $productCodes)) {
+                    \Illuminate\Support\Facades\Log::info("Module auto-checked based on quotation", [
+                        'product_code' => $detail->product->code,
+                        'pi_reference' => $quotation->pi_reference_no,
+                        'handover_id' => $record->id
+                    ]);
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     public function render()

@@ -61,6 +61,8 @@ use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Livewire\Attributes\On;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 
 class SoftwareHandoverRelationManager extends RelationManager
 {
@@ -101,9 +103,8 @@ class SoftwareHandoverRelationManager extends RelationManager
                         ->schema([
                             TextInput::make('company_name')
                                 ->label('Company Name')
-                                ->extraInputAttributes(['style' => 'text-transform: uppercase'])
-                                ->afterStateHydrated(fn($state) => Str::upper($state))
-                                ->afterStateUpdated(fn($state) => Str::upper($state))
+                                ->readOnly()
+                                ->dehydrated(true)
                                 ->default(fn (?SoftwareHandover $record = null) =>
                                     $record?->company_name ?? $this->getOwnerRecord()->companyDetail->company_name ?? null),
                             TextInput::make('pic_name')
@@ -123,22 +124,26 @@ class SoftwareHandoverRelationManager extends RelationManager
                         ->schema([
                             TextInput::make('salesperson')
                                 ->readOnly()
+                                ->dehydrated(true)
                                 ->label('Salesperson')
                                 ->default(fn (?SoftwareHandover $record = null) =>
-                                    $record?->salesperson ?? ($this->getOwnerRecord()->salesperson ? User::find($this->getOwnerRecord()->salesperson)->name : null)),
+                                    $record?->salesperson ?? ($this->getOwnerRecord()->salesperson ? User::find($this->getOwnerRecord()->salesperson)->name : null))
+                                ->visible(fn (Forms\Get $get) => $get('hr_version') !== '2'), // Hide for HR Version 2
+
                             TextInput::make('headcount')
                                 ->numeric()
                                 ->live(debounce: 550)
                                 ->afterStateUpdated(function (Forms\Set $set, ?string $state, CategoryService $category) {
                                     /**
-                                     * set this company's category based on head count
-                                     */
+                                    * set this company's category based on head count
+                                    */
                                     $set('category', $category->retrieve($state));
                                 })
                                 ->required()
-                                ->readOnly()
+                                ->disabled()
                                 ->dehydrated(true)
-                                ->default(fn (?SoftwareHandover $record = null) => $record?->headcount ?? null),
+                                ->default(fn (?SoftwareHandover $record = null) => $record?->headcount ?? null)
+                                ->visible(fn (Forms\Get $get) => $get('hr_version') !== '2'), // Hide for HR Version 2
 
                             TextInput::make('category')
                                 ->label('Company Size')
@@ -156,7 +161,8 @@ class SoftwareHandoverRelationManager extends RelationManager
                                     }
                                     return null;
                                 })
-                                ->readOnly(),
+                                ->readOnly()
+                                ->visible(fn (Forms\Get $get) => $get('hr_version') !== '2'), // Hide for HR Version 2
                         ]),
                 ]),
 
@@ -274,30 +280,30 @@ class SoftwareHandoverRelationManager extends RelationManager
                                     ->autosize()
                                     ->rows(3),
 
-                                FileUpload::make('attachments')
-                                    ->hiddenLabel(true)
-                                    ->disk('public')
-                                    ->directory('handovers/remark_attachments')
-                                    ->visibility('public')
-                                    ->multiple()
-                                    ->maxFiles(3)
-                                    ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'])
-                                    ->openable()
-                                    ->downloadable()
-                                    ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
-                                        // Get lead ID from ownerRecord
-                                        $leadId = $this->getOwnerRecord()->id;
-                                        // Format ID with prefix (250) and padding
-                                        $formattedId = '250' . str_pad($leadId, 3, '0', STR_PAD_LEFT);
-                                        // Get extension
-                                        $extension = $file->getClientOriginalExtension();
+                                // FileUpload::make('attachments')
+                                //     ->hiddenLabel(true)
+                                //     ->disk('public')
+                                //     ->directory('handovers/remark_attachments')
+                                //     ->visibility('public')
+                                //     ->multiple()
+                                //     ->maxFiles(3)
+                                //     ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'])
+                                //     ->openable()
+                                //     ->downloadable()
+                                //     ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
+                                //         // Get lead ID from ownerRecord
+                                //         $leadId = $this->getOwnerRecord()->id;
+                                //         // Format ID with prefix (250) and padding
+                                //         $formattedId = '250' . str_pad($leadId, 3, '0', STR_PAD_LEFT);
+                                //         // Get extension
+                                //         $extension = $file->getClientOriginalExtension();
 
-                                        // Generate a unique identifier (timestamp) to avoid overwriting files
-                                        $timestamp = now()->format('YmdHis');
-                                        $random = rand(1000, 9999);
+                                //         // Generate a unique identifier (timestamp) to avoid overwriting files
+                                //         $timestamp = now()->format('YmdHis');
+                                //         $random = rand(1000, 9999);
 
-                                        return "{$formattedId}-SW-REMARK-{$timestamp}-{$random}.{$extension}";
-                                    }),
+                                //         return "{$formattedId}-SW-REMARK-{$timestamp}-{$random}.{$extension}";
+                                //     }),
                             ])
                         ])
                         ->itemLabel(fn() => __('Remark') . ' ' . ++self::$indexRepeater2)
@@ -823,6 +829,41 @@ class SoftwareHandoverRelationManager extends RelationManager
                             }),
                         ])
                 ]),
+
+            Section::make('Step 9: Renewal Note')
+                ->columnSpan(1)
+                ->schema([
+                    Grid::make(1)
+                        ->schema([
+                            Textarea::make('renewal_note')
+                                ->label('Renewal Note')
+                                ->placeholder('Enter renewal notes here...')
+                                ->rows(4)
+                                ->maxLength(1000)
+                                ->extraAlpineAttributes([
+                                    'x-on:input' => '
+                                        const start = $el.selectionStart;
+                                        const end = $el.selectionEnd;
+                                        const value = $el.value;
+                                        $el.value = value.toUpperCase();
+                                        $el.setSelectionRange(start, end);
+                                    '
+                                ])
+                                ->dehydrateStateUsing(fn ($state) => strtoupper($state))
+                                ->default(function (?SoftwareHandover $record = null) {
+                                    if (!$record) {
+                                        return null;
+                                    }
+
+                                    // Get the latest renewal note for this lead
+                                    $latestNote = \App\Models\RenewalNote::where('lead_id', $record->lead_id)
+                                        ->latest()
+                                        ->first();
+
+                                    return $latestNote?->content ?? null;
+                                }),
+                        ])
+                ]),
         ];
     }
 
@@ -878,6 +919,9 @@ class SoftwareHandoverRelationManager extends RelationManager
                 ->modalSubmitActionLabel('Submit')
                 ->form($this->defaultForm())
                 ->action(function (array $data): void {
+                    $renewalNote = $data['renewal_note'] ?? null;
+                    unset($data['renewal_note']);
+
                     $data['created_by'] = auth()->id();
                     $data['lead_id'] = $this->getOwnerRecord()->id;
                     $data['status'] = 'New';
@@ -886,26 +930,22 @@ class SoftwareHandoverRelationManager extends RelationManager
                     $existingHandovers = SoftwareHandover::where('lead_id', $this->getOwnerRecord()->id)
                         ->exists();
 
-                    // Set license_type based on whether this is first handover or additional
                     $data['license_type'] = $existingHandovers ? 'addon module' : 'new sales';
-
 
                     // Process JSON encoding for array fields
                     if (isset($data['remarks']) && is_array($data['remarks'])) {
                         foreach ($data['remarks'] as $key => $remark) {
-                            // Encode the attachments array for each remark
                             if (isset($remark['attachments']) && is_array($remark['attachments'])) {
                                 $data['remarks'][$key]['attachments'] = json_encode($remark['attachments']);
                             }
                         }
-                        // Encode the entire remarks structure
                         $data['remarks'] = json_encode($data['remarks']);
                     }
 
                     // Handle file array encodings
                     foreach (['confirmation_order_file', 'payment_slip_file', 'proforma_invoice_hrdf',
                             'proforma_invoice_product', 'invoice_file', 'implementation_pics',
-                            'hrdf_grant_file'] as $field) {
+                            'hrdf_grant_file', 'software_hardware_pi', 'non_hrdf_pi'] as $field) {
                         if (isset($data[$field]) && is_array($data[$field])) {
                             $data[$field] = json_encode($data[$field]);
                         }
@@ -919,6 +959,26 @@ class SoftwareHandoverRelationManager extends RelationManager
                     $handover->id = $nextId;
                     $handover->fill($data);
                     $handover->save();
+
+                    // ✅ Save renewal note to renewal_notes table if provided
+                    if (!empty($renewalNote)) {
+                        try {
+                            $savedNote = \App\Models\RenewalNote::create([
+                                'lead_id' => $this->getOwnerRecord()->id,
+                                'user_id' => auth()->id(),
+                                'content' => strtoupper($renewalNote),
+                            ]);
+                        } catch (\Exception $e) {
+                            Log::error('❌ Failed to save renewal note', [
+                                'error_message' => $e->getMessage(),
+                                'error_trace' => $e->getTraceAsString(),
+                                'lead_id' => $this->getOwnerRecord()->id,
+                                'renewal_note' => $renewalNote,
+                            ]);
+                        }
+                    } else {
+                        Log::info('Renewal note is empty, skipping save');
+                    }
 
                     app(GenerateSoftwareHandoverPdfController::class)->generateInBackground($handover);
 
@@ -1009,18 +1069,15 @@ class SoftwareHandoverRelationManager extends RelationManager
                 TextColumn::make('training_type')
                     ->label('Training Type')
                     ->formatStateUsing(fn (string $state): string => Str::title(str_replace('_', ' ', $state))),
-                TextColumn::make('kick_off_meeting')
-                    ->label('Kick Off Meeting Date')
+                TextColumn::make('hr_version')
+                    ->label('HR Version')
                     ->formatStateUsing(function ($state) {
-                        return $state ? Carbon::parse($state)->format('d M Y') : 'N/A';
-                    })
-                    ->date('d M Y'),
-                TextColumn::make('webinar_training')
-                    ->label('Training Date')
-                    ->formatStateUsing(function ($state) {
-                        return $state ? Carbon::parse($state)->format('d M Y') : 'N/A';
-                    })
-                    ->date('d M Y'),
+                        return $state ? 'Version ' . $state : 'N/A';
+                    }),
+
+                TextColumn::make('license_type')
+                    ->label('License Type')
+                    ->formatStateUsing(fn (string $state): string => Str::title($state)),
                 TextColumn::make('implementer')
                     ->label('Implementer'),
                 TextColumn::make('status')
@@ -1090,6 +1147,8 @@ class SoftwareHandoverRelationManager extends RelationManager
                         ->slideOver()
                         ->form($this->defaultForm())
                         ->action(function (SoftwareHandover $record, array $data): void {
+                            $renewalNote = $data['renewal_note'] ?? null;
+                            unset($data['renewal_note']);
                             // Process JSON encoding for array fields
                             foreach (['remarks', 'confirmation_order_file', 'payment_slip_file', 'implementation_pics',
                                      'proforma_invoice_product', 'proforma_invoice_hrdf', 'invoice_file', 'hrdf_grant_file'] as $field) {
@@ -1109,6 +1168,27 @@ class SoftwareHandoverRelationManager extends RelationManager
 
                             // Update the record
                             $record->update($data);
+
+                            if (!empty($renewalNote)) {
+                                try {
+                                    $savedNote = \App\Models\RenewalNote::create([
+                                        'lead_id' => $record->lead_id,
+                                        'user_id' => auth()->id(),
+                                        'content' => strtoupper($renewalNote),
+                                    ]);
+
+                                    info('Renewal note updated', [
+                                        'note_id' => $savedNote->id,
+                                        'lead_id' => $savedNote->lead_id,
+                                        'content' => $savedNote->content,
+                                    ]);
+                                } catch (\Exception $e) {
+                                    Log::error('Failed to update renewal note', [
+                                        'error' => $e->getMessage(),
+                                        'lead_id' => $record->lead_id,
+                                    ]);
+                                }
+                            }
 
                             // Generate PDF for non-draft handovers
                             if ($record->status !== 'Draft') {
