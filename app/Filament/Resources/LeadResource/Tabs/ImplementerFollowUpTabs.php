@@ -340,13 +340,16 @@ class ImplementerFollowUpTabs
                                             $recipientStr = $data['required_attendees'] ?? '';
 
                                             if (!empty($recipientStr)) {
+                                                // ✅ GET FRESH CUSTOMER DATA BEFORE REPLACING PLACEHOLDERS
+                                                $customer = \App\Models\Customer::where('lead_id', $record->id)->first();
+
                                                 // Get email template content
                                                 $subject = $data['email_subject'];
                                                 $content = $data['email_content'];
 
                                                 // Add signature to email content if provided
                                                 if (isset($data['implementer_name']) && !empty($data['implementer_name'])) {
-                                                    $signature = "Regards,<br>";
+                                                    $signature = "<br><br>Regards,<br>";
                                                     $signature .= "{$data['implementer_name']}<br>";
                                                     $signature .= "{$data['implementer_designation']}<br>";
                                                     $signature .= "{$data['implementer_company']}<br>";
@@ -359,12 +362,16 @@ class ImplementerFollowUpTabs
                                                     $content .= $signature;
                                                 }
 
-                                                // Replace placeholders with actual data
+                                                // ✅ REPLACE PLACEHOLDERS WITH ACTUAL DATA (INCLUDING FRESH CUSTOMER CREDENTIALS)
                                                 $placeholders = [
                                                     '{customer_name}' => $record->contact_name ?? '',
-                                                    '{company_name}' => $softwareHandover->company_name ?? $record->companyDetail->company_name,
+                                                    '{company_name}' => $softwareHandover->company_name ?? ($record->companyDetail?->company_name ?? 'Unknown Company'),
                                                     '{implementer_name}' => $data['implementer_name'] ?? auth()->user()->name ?? '',
-                                                    '{follow_up_date}' => $data['follow_up_date'] ? date('d M Y', strtotime($data['follow_up_date'])) : '',
+                                                    '{implementer_designation}' => $data['implementer_designation'] ?? 'Implementer',
+                                                    '{lead_owner}' => $record->lead_owner ?? '',
+                                                    '{customer_email}' => $customer ? $customer->email : 'Not Available',
+                                                    '{customer_password}' => $customer ? $customer->plain_password : 'Not Available',
+                                                    '{customer_portal_url}' => str_replace('http://', 'https://', config('app.url')) . '/customer/login',
                                                 ];
 
                                                 $content = str_replace(array_keys($placeholders), array_values($placeholders), $content);
@@ -390,17 +397,17 @@ class ImplementerFollowUpTabs
                                                     $template = EmailTemplate::find($data['email_template']);
                                                     $templateName = $template ? $template->name : 'Custom Email';
 
-                                                    // Store email data for scheduling
+                                                    // ✅ STORE EMAIL DATA WITH ALREADY-REPLACED CONTENT
                                                     $emailData = [
-                                                        'content' => $content,
-                                                        'subject' => $subject,
+                                                        'content' => $content, // Already replaced
+                                                        'subject' => $subject, // Already replaced
                                                         'recipients' => $validRecipients,
                                                         'sender_email' => $senderEmail,
                                                         'sender_name' => $senderName,
                                                         'lead_id' => $record->id,
                                                         'implementer_log_id' => $implementerLog->id,
-                                                        'template_name' => $templateName, // Add this line to store the template name
-                                                        'scheduler_type' => $schedulerType, // Add this to track how it's scheduled
+                                                        'template_name' => $templateName,
+                                                        'scheduler_type' => $schedulerType,
                                                     ];
 
                                                     // Handle different scheduler types
@@ -427,7 +434,6 @@ class ImplementerFollowUpTabs
                                                         $scheduledDate = date('Y-m-d 08:00:00', strtotime($data['follow_up_date']));
 
                                                         // Store scheduled email in database
-                                                        // This is just a placeholder - you'll need to implement the actual scheduling logic
                                                         DB::table('scheduled_emails')->insert([
                                                             'email_data' => json_encode($emailData),
                                                             'scheduled_date' => $scheduledDate,

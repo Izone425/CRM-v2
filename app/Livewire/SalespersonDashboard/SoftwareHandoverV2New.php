@@ -218,36 +218,6 @@ class SoftwareHandoverV2New extends Component implements HasForms, HasTable
                             })
                     ),
 
-                // TextColumn::make('lead.salesperson')
-                //     ->label('SALESPERSON')
-                //     ->getStateUsing(function (SoftwareHandover $record) {
-                //         $lead = $record->lead;
-                //         if (!$lead) {
-                //             return '-';
-                //         }
-
-                //         $salespersonId = $lead->salesperson;
-                //         return User::find($salespersonId)?->name ?? '-';
-                //     })
-                //     ->visible(fn(): bool => auth()->user()->role_id !== 2),
-
-                // TextColumn::make('lead.companyDetail.company_name')
-                //     ->label('Company Name')
-                //     ->formatStateUsing(function ($state, $record) {
-                //         $fullName = $state ?? 'N/A';
-                //         $shortened = strtoupper(Str::limit($fullName, 25, '...'));
-                //         $encryptedId = \App\Classes\Encryptor::encrypt($record->lead->id);
-
-                //         return '<a href="' . url('admin/leads/' . $encryptedId) . '"
-                //                     target="_blank"
-                //                     title="' . e($fullName) . '"
-                //                     class="inline-block"
-                //                     style="color:#338cf0;">
-                //                     ' . $shortened . '
-                //                 </a>';
-                //     })
-                //     ->html(),
-
                 TextColumn::make('salesperson')
                     ->label('SalesPerson')
                     ->visible(fn(): bool => auth()->user()->role_id !== 2),
@@ -279,6 +249,16 @@ class SoftwareHandoverV2New extends Component implements HasForms, HasTable
                         return "<span title='{$state}'>{$state}</span>";
                     })
                     ->html(),
+
+                TextColumn::make('hr_version')
+                    ->label('HR Version')
+                    ->formatStateUsing(function ($state) {
+                        return $state ? 'Version ' . $state : 'N/A';
+                    }),
+
+                TextColumn::make('license_type')
+                    ->label('License Type')
+                    ->formatStateUsing(fn (string $state): string => Str::title($state)),
 
                 TextColumn::make('status')
                     ->label('Status')
@@ -957,53 +937,70 @@ class SoftwareHandoverV2New extends Component implements HasForms, HasTable
                                                     Checkbox::make('ta')
                                                         ->label('Time Attendance (TA)')
                                                         ->inline()
+                                                        ->disabled()
+                                                        ->dehydrated(true)
                                                         ->default(function (SoftwareHandover $record) {
                                                             return $this->shouldModuleBeChecked($record, ['TCL_TA USER-NEW', 'TCL_TA USER-ADDON', 'TCL_TA USER-ADDON(R)', 'TCL_TA USER-RENEWAL', 'TCL_FULL USER-NEW']);
                                                         }),
                                                     Checkbox::make('tapp')
                                                         ->label('TimeTec Appraisal (T-APP)')
                                                         ->inline()
+                                                        ->disabled()
+                                                        ->dehydrated(true)
                                                         ->default(function (SoftwareHandover $record) {
                                                             return $this->shouldModuleBeChecked($record, ['TCL_APPRAISAL USER-NEW']);
                                                         }),
                                                     Checkbox::make('tl')
                                                         ->label('TimeTec Leave (TL)')
                                                         ->inline()
+                                                        ->disabled()
+                                                        ->dehydrated(true)
                                                         ->default(function (SoftwareHandover $record) {
                                                             return $this->shouldModuleBeChecked($record, ['TCL_LEAVE USER-NEW', 'TCL_LEAVE USER-ADDON', 'TCL_LEAVE USER-ADDON(R)', 'TCL_LEAVE USER-RENEWAL', 'TCL_FULL USER-NEW']);
                                                         }),
                                                     Checkbox::make('thire')
                                                         ->label('TimeTec Hire (T-HIRE)')
                                                         ->inline()
+                                                        ->disabled()
+                                                        ->dehydrated(true)
                                                         ->default(function (SoftwareHandover $record) {
                                                             return $this->shouldModuleBeChecked($record, ['TCL_HIRE-NEW', 'TCL_HIRE-RENEWAL']);
                                                         }),
                                                     Checkbox::make('tc')
                                                         ->label('TimeTec Claim (TC)')
                                                         ->inline()
+                                                        ->disabled()
+                                                        ->dehydrated(true)
                                                         ->default(function (SoftwareHandover $record) {
                                                             return $this->shouldModuleBeChecked($record, ['TCL_CLAIM USER-NEW', 'TCL_CLAIM USER-ADDON', 'TCL_CLAIM USER-ADDON(R)', 'TCL_CLAIM USER-RENEWAL', 'TCL_FULL USER-NEW']);
                                                         }),
                                                     Checkbox::make('tacc')
                                                         ->label('TimeTec Access (T-ACC)')
                                                         ->inline()
+                                                        ->disabled()
+                                                        ->dehydrated(true)
                                                         ->default(function (SoftwareHandover $record) {
                                                             return $this->shouldModuleBeChecked($record, ['TCL_ACCESS-NEW', 'TCL_ACCESS-RENEWAL']);
                                                         }),
                                                     Checkbox::make('tp')
                                                         ->label('TimeTec Payroll (TP)')
                                                         ->inline()
+                                                        ->disabled()
+                                                        ->dehydrated(true)
                                                         ->default(function (SoftwareHandover $record) {
                                                             return $this->shouldModuleBeChecked($record, ['TCL_PAYROLL USER-NEW', 'TCL_PAYROLL USER-ADDON', 'TCL_PAYROLL USER-ADDON(R)', 'TCL_PAYROLL USER-RENEWAL', 'TCL_FULL USER-NEW']);
                                                         }),
                                                     Checkbox::make('tpbi')
                                                         ->label('TimeTec Power BI (T-PBI)')
                                                         ->inline()
+                                                        ->disabled()
+                                                        ->dehydrated(true)
                                                         ->default(function (SoftwareHandover $record) {
                                                             return $this->shouldModuleBeChecked($record, ['TCL_POWER BI']);
                                                         }),
                                                 ])
-                                        ]),
+                                        ])
+                                        ->hidden() // Hide the entire section
                                 ]),
 
                             FileUpload::make('invoice_file')
