@@ -16,7 +16,7 @@ class InvoiceDetail extends Model
         'description',
         'quantity',
         'unit_price',
-        'local_subtotal',
+        'local_sub_total',
         'tax_amount',
         'tax_rate',
         'serial_number_list',

@@ -4,6 +4,7 @@ namespace App\Livewire;
 
 use App\Models\User;
 use App\Models\Invoice;
+use App\Models\InvoiceDetail;
 use App\Models\ProformaInvoice;
 use App\Models\Lead;
 use App\Models\SalesTarget;
@@ -35,16 +36,40 @@ class SalesForecastSummaryTable extends Component implements HasForms, HasTable
     public $salesSummary = [];
 
     // Define IDs for special processing
-    protected $adminRenewalId = 15; // The salesperson ID to use for Admin Renewal
-    protected $adminLeadOwners = ['Fatimah Nurnabilah', 'Norhaiyati']; // Lead owners to include in Admin Renewal
+    protected $adminRenewalId = 15;
+    protected $adminLeadOwners = ['Fatimah Nurnabilah', 'Norhaiyati'];
+
+    // Map of salesperson names to their user IDs
+    protected $salespersonUserIds = [
+        'MUIM' => 6,
+        'YASMIN' => 7,
+        'FARHANAH' => 8,
+        'JOSHUA' => 9,
+        'AZIZ' => 10,
+        'BARI' => 11,
+        'VINCE' => 12,
+    ];
+
+    // Excluded item codes for invoice calculations
+    protected $excludedItemCodes = [
+        'SHIPPING',
+        'Not',
+        'Rem Code',
+        'In',
+        'BANKCHG',
+        'DEPOSIT-MYR',
+        'F.COMMISSION',
+        'L.COMMISSION',
+        'L.ENTITLEMENT',
+        'MGT FEES',
+        'PG.COMMISSION'
+    ];
 
     public function mount()
     {
         $now = now();
-
         $this->selectedMonth ??= $now->month;
         $this->selectedYear ??= $now->year;
-
         $this->loadSalesSummary();
     }
 
@@ -69,7 +94,6 @@ class SalesForecastSummaryTable extends Component implements HasForms, HasTable
 
     protected function getTableQuery()
     {
-        // First, get the demo rankings to determine the order
         $demoRankings = DB::table('demo_rankings')
             ->select('user_id', 'rank')
             ->orderBy('rank')
@@ -77,20 +101,34 @@ class SalesForecastSummaryTable extends Component implements HasForms, HasTable
             ->pluck('user_id')
             ->toArray();
 
-        // Start with the base query to get salespersons, but now include ID 15
         $query = User::where('role_id', 2)
-            ->whereNotIn('id', [18, 21, 25]); // ID 15 is now included
+            ->whereNotIn('id', [18, 21, 25]);
 
-        // If we have demo rankings, use them to order the results
         if (!empty($demoRankings)) {
-            // Use FIELD function in MySQL to order by the ranking position
             $query->orderByRaw('FIELD(id, ' . implode(',', $demoRankings) . ')');
         } else {
-            // Default sorting by name if no rankings are available
             $query->orderBy('name');
         }
 
         return $query;
+    }
+
+    /**
+     * Get total invoice amount from invoice_details (excluding certain item codes)
+     */
+    private function getTotalInvoiceAmountByDocKey(string $docKey): float
+    {
+        return InvoiceDetail::where('doc_key', $docKey)
+            ->whereNotIn('item_code', $this->excludedItemCodes)
+            ->sum('local_sub_total');
+    }
+
+    /**
+     * Get salesperson name from user ID
+     */
+    private function getSalespersonNameById(int $userId): ?string
+    {
+        return array_search($userId, $this->salespersonUserIds) ?: null;
     }
 
     public function table(Table $table): Table
@@ -104,7 +142,6 @@ class SalesForecastSummaryTable extends Component implements HasForms, HasTable
                 ->label('Update New Data')
                 ->modalHeading('Set Sales Target for Salespersons')
                 ->form(function () {
-                    // First, get the demo rankings to determine the order, same as in getTableQuery()
                     $demoRankings = DB::table('demo_rankings')
                         ->select('user_id', 'rank')
                         ->orderBy('rank')
@@ -112,18 +149,15 @@ class SalesForecastSummaryTable extends Component implements HasForms, HasTable
                         ->pluck('user_id')
                         ->toArray();
 
-                    // Get salespersons with the same filter as in getTableQuery()
                     $query = User::where('role_id', 2)
-                        ->whereNotIn('id', [18, 21, 25]); // Include ID 15 for Admin Renewal
+                        ->whereNotIn('id', [18, 21, 25]);
 
-                    // Apply the same ordering as in getTableQuery()
                     if (!empty($demoRankings)) {
                         $query->orderByRaw('FIELD(id, ' . implode(',', $demoRankings) . ')');
                     } else {
                         $query->orderBy('name');
                     }
 
-                    // Get the salespeople in the same order as the table
                     $salespeople = $query->get();
                     $components = [];
 
@@ -131,7 +165,6 @@ class SalesForecastSummaryTable extends Component implements HasForms, HasTable
                     $year = now()->year;
 
                     foreach ($salespeople as $salesperson) {
-                        // Get the latest target record
                         $latestTarget = \App\Models\SalesTarget::where('salesperson', $salesperson->id)
                             ->orderByDesc('year')
                             ->orderByDesc('month')
@@ -141,15 +174,10 @@ class SalesForecastSummaryTable extends Component implements HasForms, HasTable
                         $latestMonth = optional($latestTarget)->month;
                         $latestYear = optional($latestTarget)->year;
 
-                        // Get current invoice amount
-                        if ($salesperson->id === $this->adminRenewalId) {
-                            // For Admin Renewal
-                            $invoiceAmount = Invoice::whereNull('salesperson')
-                                ->whereYear('invoice_date', $year)
-                                ->whereMonth('invoice_date', $month)
-                                ->sum('amount');
+                        // Get current invoice amount using new structure
+                        $invoiceAmount = $this->getInvoiceTotal($salesperson, $month, $year);
 
-                            // Add special handling for Admin Renewal
+                        if ($salesperson->id === $this->adminRenewalId) {
                             $components[] = \Filament\Forms\Components\Grid::make(7)
                                 ->schema([
                                     Placeholder::make("salesperson_name_{$salesperson->id}")
@@ -178,13 +206,6 @@ class SalesForecastSummaryTable extends Component implements HasForms, HasTable
                                         ->columnSpan(2),
                                 ]);
                         } else {
-                            // For regular salespeople
-                            $invoiceAmount = Invoice::where('salesperson', $salesperson->id)
-                                ->whereYear('invoice_date', $year)
-                                ->whereMonth('invoice_date', $month)
-                                ->sum('amount');
-
-                            // Add target and invoice amount fields for regular salespeople
                             $components[] = \Filament\Forms\Components\Grid::make(7)
                                 ->schema([
                                     Placeholder::make("salesperson_name_{$salesperson->id}")
@@ -214,24 +235,21 @@ class SalesForecastSummaryTable extends Component implements HasForms, HasTable
                 ->action(function ($data) {
                     $now = now();
 
-                    // Process sales targets
                     foreach ($data['targets'] as $salespersonId => $amount) {
                         if (is_null($amount) || $amount === '') {
-                            continue; // Skip empty entries
+                            continue;
                         }
 
                         $updateData = [
                             'target_amount' => $amount,
                         ];
 
-                        // Add invoice amount if provided
                         if (isset($data['invoice_amount'][$salespersonId]) &&
                             !is_null($data['invoice_amount'][$salespersonId]) &&
                             $data['invoice_amount'][$salespersonId] !== '') {
                             $updateData['invoice_amount'] = $data['invoice_amount'][$salespersonId];
                         }
 
-                        // For Admin Renewal, also add forecast hot if provided
                         if ($salespersonId == $this->adminRenewalId &&
                             isset($data['forecast_hot'][$salespersonId]) &&
                             !is_null($data['forecast_hot'][$salespersonId]) &&
@@ -239,7 +257,6 @@ class SalesForecastSummaryTable extends Component implements HasForms, HasTable
                             $updateData['forecast_hot_amount'] = $data['forecast_hot'][$salespersonId];
                         }
 
-                        // Update or create the sales target record
                         \App\Models\SalesTarget::updateOrCreate(
                             [
                                 'salesperson' => $salespersonId,
@@ -276,6 +293,7 @@ class SalesForecastSummaryTable extends Component implements HasForms, HasTable
                 TextColumn::make('id')
                     ->label('ID')
                     ->rowIndex(),
+
                 TextColumn::make('name')
                     ->label('SALESPERSON')
                     ->sortable()
@@ -287,7 +305,6 @@ class SalesForecastSummaryTable extends Component implements HasForms, HasTable
                 TextColumn::make('invoice')
                     ->label('INVOICE')
                     ->getStateUsing(function ($record) {
-                        // Use the getInvoiceTotal method for all salespeople
                         $total = $this->getInvoiceTotal($record);
                         return 'RM ' . number_format($total, 2);
                     })
@@ -307,7 +324,6 @@ class SalesForecastSummaryTable extends Component implements HasForms, HasTable
                         return 'RM ' . number_format($total, 2);
                     })
                     ->summarize([
-                        // Use a custom summarizer with the correct method
                         \Filament\Tables\Columns\Summarizers\Summarizer::make()
                             ->label('')
                             ->using(function () {
@@ -322,7 +338,6 @@ class SalesForecastSummaryTable extends Component implements HasForms, HasTable
                         $month = $this->selectedMonth;
                         $year = $this->selectedYear;
 
-                        // Use consistent methods for all calculations
                         $invoiceTotal = $this->getInvoiceTotal($record, $month, $year);
                         $forecastTotal = $this->getForecastHot($record, $month, $year);
 
@@ -341,7 +356,7 @@ class SalesForecastSummaryTable extends Component implements HasForms, HasTable
                 TextColumn::make('sales_target')
                     ->label('SALES TARGET')
                     ->getStateUsing(function ($record) {
-                        $now = now(); // fallback
+                        $now = now();
                         $month = $this->selectedMonth ?? $now->month;
                         $year = $this->selectedYear ?? $now->year;
 
@@ -367,7 +382,6 @@ class SalesForecastSummaryTable extends Component implements HasForms, HasTable
                         $month = $this->selectedMonth ?? now()->month;
                         $year = $this->selectedYear ?? now()->year;
 
-                        // Use consistent methods for all calculations
                         $invoiceTotal = $this->getInvoiceTotal($record, $month, $year);
                         $proformaTotal = $this->getProformaTotal($record, $month, $year);
                         $forecastTotal = $this->getForecastHot($record, $month, $year);
@@ -382,7 +396,6 @@ class SalesForecastSummaryTable extends Component implements HasForms, HasTable
                         $month = $this->selectedMonth ?? now()->month;
                         $year = $this->selectedYear ?? now()->year;
 
-                        // Use consistent methods for all calculations
                         $invoiceTotal = $this->getInvoiceTotal($record, $month, $year);
                         $proformaTotal = $this->getProformaTotal($record, $month, $year);
                         $forecastTotal = $this->getForecastHot($record, $month, $year);
@@ -403,6 +416,9 @@ class SalesForecastSummaryTable extends Component implements HasForms, HasTable
             ]);
     }
 
+    /**
+     * Get invoice total using new separated tables structure
+     */
     private function getInvoiceTotal($salesperson, $month = null, $year = null)
     {
         $month = $month ?? $this->selectedMonth;
@@ -418,27 +434,54 @@ class SalesForecastSummaryTable extends Component implements HasForms, HasTable
             return $manualInvoice;
         }
 
-        // If no manual amount, get actual invoices from the invoices table
+        // Get salesperson name for the query
+        $salespersonName = $this->getSalespersonNameById($salesperson->id);
+
+        // Use optimized SQL query with new structure
+        $placeholders = implode(',', array_fill(0, count($this->excludedItemCodes), '?'));
+        $params = array_merge($this->excludedItemCodes, [$year, $month]);
+
         if ($salesperson->id === $this->adminRenewalId) {
-            // For Admin Renewal (null salesperson or special handling)
-            return Invoice::whereNull('salesperson')
-                ->whereYear('invoice_date', $year)
-                ->whereMonth('invoice_date', $month)
-                ->sum('invoice_amount');
+            // For Admin Renewal (null salesperson)
+            $sql = "
+                SELECT COALESCE(SUM(id.local_sub_total), 0) as total
+                FROM invoices i
+                INNER JOIN invoice_details id ON i.doc_key = id.doc_key
+                WHERE id.item_code NOT IN ($placeholders)
+                    AND YEAR(i.invoice_date) = ?
+                    AND MONTH(i.invoice_date) = ?
+                    AND i.invoice_status != 'V'
+                    AND i.salesperson IS NULL
+            ";
+        } elseif ($salespersonName) {
+            // For regular salespeople using salesperson name
+            $sql = "
+                SELECT COALESCE(SUM(id.local_sub_total), 0) as total
+                FROM invoices i
+                INNER JOIN invoice_details id ON i.doc_key = id.doc_key
+                WHERE id.item_code NOT IN ($placeholders)
+                    AND YEAR(i.invoice_date) = ?
+                    AND MONTH(i.invoice_date) = ?
+                    AND i.invoice_status != 'V'
+                    AND i.salesperson = ?
+            ";
+            $params[] = $salespersonName;
         } else {
-            // For regular salespeople
-            return Invoice::where('salesperson', $salesperson->id)
-                ->whereYear('invoice_date', $year)
-                ->whereMonth('invoice_date', $month)
-                ->sum('invoice_amount');
+            return 0;
         }
+
+        $result = DB::selectOne($sql, $params);
+        return (float) $result->total;
     }
 
-    private function getProformaTotal($salesperson)
+    private function getProformaTotal($salesperson, $month = null, $year = null)
     {
+        $month = $month ?? $this->selectedMonth;
+        $year = $year ?? $this->selectedYear;
+
         $total = ProformaInvoice::where('salesperson', $salesperson->id)
-            ->whereYear('created_at', $this->selectedYear)
-            ->whereMonth('created_at', $this->selectedMonth)
+            ->whereYear('created_at', $year)
+            ->whereMonth('created_at', $month)
             ->sum('amount');
 
         return $total;
@@ -467,7 +510,7 @@ class SalesForecastSummaryTable extends Component implements HasForms, HasTable
                 ->sum('deal_amount');
         }
 
-        // For regular salespeople, use the existing logic
+        // For regular salespeople
         return Lead::where('salesperson', $salesperson->id)
             ->where('lead_status', 'Hot')
             ->sum('deal_amount');
@@ -495,26 +538,20 @@ class SalesForecastSummaryTable extends Component implements HasForms, HasTable
         ];
 
         foreach ($this->getTableQuery()->get() as $record) {
-            // Calculate invoice total
             $invoiceTotal = $this->getInvoiceTotal($record, $month, $year);
             $totals['invoice'] += $invoiceTotal;
 
-            // Calculate forecast hot total
             $forecastTotal = $this->getForecastHot($record, $month, $year);
             $totals['forecast_hot'] += $forecastTotal;
 
-            // Calculate proforma total (if used in grand total)
             $proformaTotal = $this->getProformaTotal($record, $month, $year);
 
-            // Calculate grand total
             $recordGrandTotal = $invoiceTotal + $forecastTotal + $proformaTotal;
             $totals['grand_total'] += $recordGrandTotal;
 
-            // Calculate sales target total
             $targetAmount = $this->getSalesTarget($record, $month, $year);
             $totals['sales_target'] += $targetAmount;
 
-            // Add to difference total
             $totals['difference'] += ($recordGrandTotal - $targetAmount);
         }
 

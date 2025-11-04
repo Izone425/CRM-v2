@@ -216,7 +216,7 @@ class HardwareV2AllTable extends Component implements HasForms, HasTable
                         }
 
                         $salespersonId = $lead->salesperson;
-                        return User::find($salespersonId)?->name ?? '-';
+                        return User::find($salespersonId)?->name ?? $lead->lead_owner;
                     }),
 
                 TextColumn::make('lead.companyDetail.company_name')

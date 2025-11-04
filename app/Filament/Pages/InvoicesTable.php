@@ -2,6 +2,7 @@
 namespace App\Filament\Pages;
 
 use App\Models\Invoice;
+use App\Models\InvoiceDetail;
 use App\Models\User;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -17,6 +18,7 @@ use Illuminate\Support\Facades\DB;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\Filter;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Cache;
 
 class InvoicesTable extends Page implements HasTable
 {
@@ -44,103 +46,228 @@ class InvoicesTable extends Page implements HasTable
 
     public $summaryData = [];
 
+    // Cache for invoice amounts
+    protected $invoiceAmountCache = [];
+
+    // Cache for payment statuses
+    protected $paymentStatusCache = [];
+
     public function mount(): void
     {
         $this->loadSummaryData();
     }
 
-    // Helper method to get payment status for an invoice
-    // protected function getPaymentStatusForInvoice(string $invoiceNo): string
-    // {
-    //     // Get the total invoice amount for this invoice number
-    //     $totalInvoiceAmount = Invoice::where('invoice_no', $invoiceNo)->sum('invoice_amount');
+    // Helper method to get total invoice amount from invoice_details (with caching)
+    protected function getTotalInvoiceAmount(string $docKey): float
+    {
+        // Check cache first
+        if (isset($this->invoiceAmountCache[$docKey])) {
+            return $this->invoiceAmountCache[$docKey];
+        }
 
-    //     // Look for this invoice in debtor_agings table
-    //     $debtorAging = DB::table('debtor_agings')
-    //         ->where('invoice_number', $invoiceNo)
-    //         ->first();
+        $excludedItemCodes = [
+            'SHIPPING',
+            'Not',
+            'Rem Code',
+            'In',
+            'BANKCHG',
+            'DEPOSIT-MYR',
+            'F.COMMISSION',
+            'L.COMMISSION',
+            'L.ENTITLEMENT',
+            'MGT FEES',
+            'PG.COMMISSION'
+        ];
 
-    //     // If no matching record in debtor_agings or outstanding is 0
-    //     if (!$debtorAging || (float)$debtorAging->outstanding === 0.0) {
-    //         return 'Full Payment';
-    //     }
+        $amount = InvoiceDetail::where('doc_key', $docKey)
+            ->whereNotIn('item_code', $excludedItemCodes)
+            ->sum('local_sub_total');
 
-    //     // If outstanding equals total invoice amount
-    //     if ((float)$debtorAging->outstanding === (float)$totalInvoiceAmount) {
-    //         return 'UnPaid';
-    //     }
+        // Store in cache
+        $this->invoiceAmountCache[$docKey] = $amount;
 
-    //     // If outstanding is less than invoice amount but greater than 0
-    //     if ((float)$debtorAging->outstanding < (float)$totalInvoiceAmount && (float)$debtorAging->outstanding > 0) {
-    //         return 'Partial Payment';
-    //     }
+        return $amount;
+    }
 
-    //     // Fallback (shouldn't normally reach here)
-    //     return 'UnPaid';
-    // }
+    // Batch load invoice amounts for multiple doc_keys
+    protected function batchLoadInvoiceAmounts(array $docKeys): array
+    {
+        if (empty($docKeys)) {
+            return [];
+        }
 
+        $excludedItemCodes = [
+            'SHIPPING',
+            'Not',
+            'Rem Code',
+            'In',
+            'BANKCHG',
+            'DEPOSIT-MYR',
+            'F.COMMISSION',
+            'L.COMMISSION',
+            'L.ENTITLEMENT',
+            'MGT FEES',
+            'PG.COMMISSION'
+        ];
+
+        $results = InvoiceDetail::whereIn('doc_key', $docKeys)
+            ->whereNotIn('item_code', $excludedItemCodes)
+            ->select('doc_key', DB::raw('SUM(local_sub_total) as total'))
+            ->groupBy('doc_key')
+            ->get()
+            ->pluck('total', 'doc_key')
+            ->toArray();
+
+        // Cache all results
+        foreach ($results as $docKey => $amount) {
+            $this->invoiceAmountCache[$docKey] = (float) $amount;
+        }
+
+        // Fill in missing doc_keys with 0
+        foreach ($docKeys as $docKey) {
+            if (!isset($this->invoiceAmountCache[$docKey])) {
+                $this->invoiceAmountCache[$docKey] = 0.0;
+            }
+        }
+
+        return $this->invoiceAmountCache;
+    }
+
+    // Batch load payment statuses for multiple invoice numbers
+    protected function batchLoadPaymentStatuses(array $invoiceNos): void
+    {
+        if (empty($invoiceNos)) {
+            return;
+        }
+
+        // Get invoices and their doc_keys
+        $invoices = Invoice::whereIn('invoice_no', $invoiceNos)
+            ->get()
+            ->keyBy('invoice_no');
+
+        // Get debtor aging data - CAST to handle collation
+        $debtorAgings = DB::table('debtor_agings')
+            ->whereIn(DB::raw('CAST(invoice_number AS CHAR)'), array_map('strval', $invoiceNos))
+            ->get()
+            ->keyBy('invoice_number');
+
+        // Batch load invoice amounts
+        $docKeys = $invoices->pluck('doc_key')->toArray();
+        $this->batchLoadInvoiceAmounts($docKeys);
+
+        foreach ($invoiceNos as $invoiceNo) {
+            $invoice = $invoices->get($invoiceNo);
+
+            if (!$invoice) {
+                $this->paymentStatusCache[$invoiceNo] = 'Charge Out';
+                continue;
+            }
+
+            $totalInvoiceAmount = $this->getTotalInvoiceAmount($invoice->doc_key);
+
+            if ($totalInvoiceAmount <= 0) {
+                $this->paymentStatusCache[$invoiceNo] = 'Charge Out';
+                continue;
+            }
+
+            $debtorAging = $debtorAgings->get($invoiceNo);
+
+            $status = 'Full Payment'; // Default
+
+            if (!$debtorAging || (float)$debtorAging->outstanding === 0.0) {
+                $status = 'Full Payment';
+            } elseif ((float)$debtorAging->outstanding === (float)$totalInvoiceAmount) {
+                $status = 'UnPaid';
+            } elseif ((float)$debtorAging->outstanding < (float)$totalInvoiceAmount && (float)$debtorAging->outstanding > 0) {
+                $status = 'Partial Payment';
+            } else {
+                $status = 'UnPaid';
+            }
+
+            $this->paymentStatusCache[$invoiceNo] = $status;
+        }
+    }
+
+    // Helper method to get payment status for an invoice (with caching)
     protected function getPaymentStatusForInvoice(string $invoiceNo): string
     {
-        // Look for this invoice in debtor_agings table
+        // Check cache first
+        if (isset($this->paymentStatusCache[$invoiceNo])) {
+            return $this->paymentStatusCache[$invoiceNo];
+        }
+
+        // Get the invoice record
+        $invoice = Invoice::where('invoice_no', $invoiceNo)->first();
+
+        if (!$invoice) {
+            $this->paymentStatusCache[$invoiceNo] = 'Charge Out';
+            return 'Charge Out';
+        }
+
+        // Get total invoice amount from invoice_details
+        $totalInvoiceAmount = $this->getTotalInvoiceAmount($invoice->doc_key);
+
+        if ($totalInvoiceAmount <= 0) {
+            $this->paymentStatusCache[$invoiceNo] = 'Charge Out';
+            return 'Charge Out';
+        }
+
+        // Look for this invoice in debtor_agings table - CAST to handle collation
         $debtorAging = DB::table('debtor_agings')
-            ->where('invoice_number', $invoiceNo)
+            ->where(DB::raw('CAST(invoice_number AS CHAR)'), '=', $invoiceNo)
             ->first();
 
-        // If no matching record in debtor_agings, assume fully paid
-        if (!$debtorAging) {
-            return 'Full Payment';
+        $status = 'Full Payment'; // Default
+
+        if (!$debtorAging || (float)$debtorAging->outstanding === 0.0) {
+            $status = 'Full Payment';
+        } elseif ((float)$debtorAging->outstanding === (float)$totalInvoiceAmount) {
+            $status = 'UnPaid';
+        } elseif ((float)$debtorAging->outstanding < (float)$totalInvoiceAmount && (float)$debtorAging->outstanding > 0) {
+            $status = 'Partial Payment';
+        } else {
+            $status = 'UnPaid';
         }
 
-        $outstanding = (float)$debtorAging->outstanding;
-        $invoiceAmount = (float)$debtorAging->invoice_amount;
+        $this->paymentStatusCache[$invoiceNo] = $status;
 
-        // Apply the same logic as your SQL CASE statement
-        if ($outstanding == 0) {
-            return 'Full Payment'; // 'fully paid'
-        } elseif ($outstanding < $invoiceAmount) {
-            return 'Partial Payment'; // 'partial paid'
-        } elseif ($outstanding == $invoiceAmount) {
-            return 'UnPaid'; // 'unpaid'
-        }
-
-        // Fallback (shouldn't normally reach here)
-        return 'UnPaid';
+        return $status;
     }
 
     public function loadSummaryData(): void
     {
-        $today = Carbon::today();
-        $currentYear = $today->year;
-        $currentMonth = $today->month;
+        $cacheKey = 'invoices_table_summary_' . Auth::id() . '_' . date('Y-m-d');
 
-        // Determine date ranges based on current date
-        $allYearStart = Carbon::create($currentYear - 1, 1, 1); // Previous year January 1st
-        $allYearEnd = $today; // Today
+        $this->summaryData = Cache::remember($cacheKey, 300, function () {
+            $today = Carbon::today();
+            $currentYear = $today->year;
+            $currentMonth = $today->month;
 
-        $currentYearStart = Carbon::create($currentYear, 1, 1); // Current year January 1st
-        $currentYearEnd = $today; // Today
+            $allYearStart = Carbon::create($currentYear - 1, 1, 1);
+            $allYearEnd = $today;
 
-        $currentMonthStart = Carbon::create($currentYear, $currentMonth, 1); // Current month 1st
-        $currentMonthEnd = $today; // Today
+            $currentYearStart = Carbon::create($currentYear, 1, 1);
+            $currentYearEnd = $today;
 
-        // Get allowed salespersons based on user role
-        $allowedSalespersons = $this->getAllowedSalespersons();
+            $currentMonthStart = Carbon::create($currentYear, $currentMonth, 1);
+            $currentMonthEnd = $today;
 
-        // Calculate summary data
-        $this->summaryData = [
-            'all_year' => $this->calculateSummaryStats($allYearStart, $allYearEnd, $allowedSalespersons),
-            'current_year' => $this->calculateSummaryStats($currentYearStart, $currentYearEnd, $allowedSalespersons),
-            'current_month' => $this->calculateSummaryStats($currentMonthStart, $currentMonthEnd, $allowedSalespersons),
-            'hrdf_all_year' => $this->calculateSummaryStats($allYearStart, $allYearEnd, $allowedSalespersons, 'EHIN'),
-            'product_all_year' => $this->calculateSummaryStats($allYearStart, $allYearEnd, $allowedSalespersons, 'EPIN'),
-        ];
+            $allowedSalespersons = $this->getAllowedSalespersons();
+
+            return [
+                'all_year' => $this->calculateSummaryStats($allYearStart, $allYearEnd, $allowedSalespersons),
+                'current_year' => $this->calculateSummaryStats($currentYearStart, $currentYearEnd, $allowedSalespersons),
+                'current_month' => $this->calculateSummaryStats($currentMonthStart, $currentMonthEnd, $allowedSalespersons),
+                'hrdf_all_year' => $this->calculateSummaryStats($allYearStart, $allYearEnd, $allowedSalespersons, 'EHIN'),
+                'product_all_year' => $this->calculateSummaryStats($allYearStart, $allYearEnd, $allowedSalespersons, 'EPIN'),
+            ];
+        });
     }
 
     protected function getAllowedSalespersons(): array
     {
         $allowedSalespersons = array_keys(static::$salespersonUserIds);
 
-        // Filter for individual salespersons to see only their own data
         if (Auth::check() && Auth::user()->role_id === 2) {
             $userId = Auth::id();
             $salespersonName = array_search($userId, static::$salespersonUserIds);
@@ -148,7 +275,7 @@ class InvoicesTable extends Page implements HasTable
             if ($salespersonName) {
                 return [$salespersonName];
             } else {
-                return []; // No results if user not in mapping
+                return [];
             }
         }
 
@@ -166,32 +293,42 @@ class InvoicesTable extends Page implements HasTable
             ];
         }
 
-        // Get invoice totals first
-        $invoiceTotals = DB::table('invoices')
-            ->select('invoice_no', DB::raw('SUM(invoice_amount) as total_amount'))
-            ->whereIn('salesperson', $allowedSalespersons)
-            ->whereBetween('invoice_date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
-            ->when($invoicePrefix, function ($query, $prefix) {
-                return $query->where('invoice_no', 'like', $prefix . '%');
-            })
-            ->groupBy('invoice_no')
-            ->get();
+        // OPTIMIZED: Use raw SQL with COLLATE to fix collation mismatch
+        $excludedItemCodes = [
+            'SHIPPING', 'Not', 'Rem Code', 'In', 'BANKCHG',
+            'DEPOSIT-MYR', 'F.COMMISSION', 'L.COMMISSION',
+            'L.ENTITLEMENT', 'MGT FEES', 'PG.COMMISSION'
+        ];
 
-        if ($invoiceTotals->isEmpty()) {
-            return [
-                'full_payment_amount' => 0,
-                'partial_payment_amount' => 0,
-                'unpaid_amount' => 0,
-                'total_amount' => 0,
-            ];
+        $placeholders = implode(',', array_fill(0, count($excludedItemCodes), '?'));
+        $salespersonPlaceholders = implode(',', array_fill(0, count($allowedSalespersons), '?'));
+
+        $params = array_merge($excludedItemCodes, $allowedSalespersons, [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')]);
+
+        $invoiceTypeCondition = '';
+        if ($invoicePrefix) {
+            $invoiceTypeCondition = " AND i.invoice_no LIKE ?";
+            $params[] = $invoicePrefix . '%';
         }
 
-        // Get payment status for all invoices
-        $invoiceNos = $invoiceTotals->pluck('invoice_no')->toArray();
-        $debtorAgings = DB::table('debtor_agings')
-            ->whereIn('invoice_number', $invoiceNos)
-            ->get()
-            ->keyBy('invoice_number');
+        // Single query with CAST to handle collation
+        $results = DB::select("
+            SELECT
+                i.invoice_no,
+                i.doc_key,
+                COALESCE(SUM(id.local_sub_total), 0) as total_amount,
+                COALESCE(da.outstanding, 0) as outstanding,
+                COALESCE(da.invoice_amount, 0) as debtor_invoice_amount
+            FROM invoices i
+            LEFT JOIN invoice_details id ON i.doc_key = id.doc_key
+                AND id.item_code NOT IN ($placeholders)
+            LEFT JOIN debtor_agings da ON CAST(i.invoice_no AS CHAR) = CAST(da.invoice_number AS CHAR)
+            WHERE i.salesperson IN ($salespersonPlaceholders)
+                AND i.invoice_date BETWEEN ? AND ?
+                $invoiceTypeCondition
+            GROUP BY i.invoice_no, i.doc_key, da.outstanding, da.invoice_amount
+            HAVING total_amount > 0
+        ", $params);
 
         $stats = [
             'full_payment_amount' => 0,
@@ -200,16 +337,15 @@ class InvoicesTable extends Page implements HasTable
             'total_amount' => 0,
         ];
 
-        foreach ($invoiceTotals as $invoice) {
-            $amount = (float)$invoice->total_amount;
+        foreach ($results as $row) {
+            $amount = (float) $row->total_amount;
+            $outstanding = (float) $row->outstanding;
+
             $stats['total_amount'] += $amount;
 
-            $debtorAging = $debtorAgings->get($invoice->invoice_no);
-
-            // Determine payment status using debtor_agings
-            if (!$debtorAging || (float)$debtorAging->outstanding == 0) {
+            if ($outstanding == 0) {
                 $stats['full_payment_amount'] += $amount;
-            } elseif ((float)$debtorAging->outstanding < (float)$debtorAging->invoice_amount) {
+            } elseif ($outstanding < $amount) {
                 $stats['partial_payment_amount'] += $amount;
             } else {
                 $stats['unpaid_amount'] += $amount;
@@ -225,6 +361,7 @@ class InvoicesTable extends Page implements HasTable
             ->query(Invoice::query())
             ->defaultPaginationPageOption(50)
             ->heading('Invoices')
+            ->deferLoading()
             ->columns([
                 Tables\Columns\TextColumn::make('salesperson')
                     ->label('Salesperson')
@@ -250,20 +387,20 @@ class InvoicesTable extends Page implements HasTable
                     ->money('MYR')
                     ->sortable()
                     ->getStateUsing(function (Invoice $record): float {
-                        // Calculate the sum for this invoice_no
-                        return Invoice::where('invoice_no', $record->invoice_no)->sum('invoice_amount');
+                        return $this->getTotalInvoiceAmount($record->doc_key);
                     })
                     ->summarize([
                         Tables\Columns\Summarizers\Summarizer::make()
                             ->label('Grand Total')
                             ->using(function ($query) {
-                                // Get the grouped results
                                 $groupedResults = $query->get();
-                                $grandTotal = 0;
 
-                                // Calculate total for each unique invoice
+                                $docKeys = $groupedResults->pluck('doc_key')->toArray();
+                                $this->batchLoadInvoiceAmounts($docKeys);
+
+                                $grandTotal = 0;
                                 foreach ($groupedResults as $record) {
-                                    $grandTotal += Invoice::where('invoice_no', $record->invoice_no)->sum('invoice_amount');
+                                    $grandTotal += $this->getTotalInvoiceAmount($record->doc_key);
                                 }
 
                                 return 'RM ' . number_format($grandTotal, 2);
@@ -284,35 +421,30 @@ class InvoicesTable extends Page implements HasTable
             ])
             ->defaultSort('invoice_date', 'desc')
             ->modifyQueryUsing(function (Builder $query) {
-                // Only show invoices from the 7 specified salespersons
                 $allowedSalespersons = array_keys(static::$salespersonUserIds);
 
-                $query = $query->select([
-                    DB::raw('MIN(id) as id'),
-                    'salesperson',
-                    'invoice_no',
-                    'invoice_date',
-                    'company_name',
-                    DB::raw('SUM(invoice_amount) as total_invoice_amount')
-                ])
-                ->whereIn('salesperson', $allowedSalespersons)
-                ->groupBy('invoice_no', 'salesperson', 'invoice_date', 'company_name')
-                ->orderBy('invoice_date', 'desc');
+                $query->whereIn('salesperson', $allowedSalespersons)
+                    ->orderBy('invoice_date', 'desc');
 
-                // Additional filter for individual salespersons to see only their own data
                 if (Auth::check() && Auth::user()->role_id === 2) {
                     $userId = Auth::id();
-
-                    // Find the salesperson name that corresponds to the current user ID
                     $salespersonName = array_search($userId, static::$salespersonUserIds);
 
                     if ($salespersonName) {
-                        // Filter invoices to only show those belonging to this salesperson
                         $query->where('salesperson', $salespersonName);
                     } else {
-                        // If the user ID is not in our mapping, don't show any results
-                        $query->where('id', 0); // This will return no results
+                        $query->where('id', 0);
                     }
+                }
+
+                // Batch load data for current page
+                $results = $query->limit(1000)->get();
+                if ($results->isNotEmpty()) {
+                    $docKeys = $results->pluck('doc_key')->toArray();
+                    $invoiceNos = $results->pluck('invoice_no')->toArray();
+
+                    $this->batchLoadInvoiceAmounts($docKeys);
+                    $this->batchLoadPaymentStatuses($invoiceNos);
                 }
 
                 return $query;
@@ -333,24 +465,25 @@ class InvoicesTable extends Page implements HasTable
                         $targetStatus = $data['value'];
                         $allowedSalespersons = array_keys(static::$salespersonUserIds);
 
-                        // Get all invoices that match the target payment status
-                        $matchingInvoiceNos = collect();
+                        $allInvoices = Invoice::whereIn('salesperson', $allowedSalespersons)->get();
 
-                        $allInvoices = Invoice::query()
-                            ->whereIn('salesperson', $allowedSalespersons)
-                            ->select('invoice_no')
-                            ->distinct()
-                            ->pluck('invoice_no');
+                        $matchingInvoiceNos = [];
 
-                        foreach ($allInvoices as $invoiceNo) {
-                            $paymentStatus = $this->getPaymentStatusForInvoice($invoiceNo);
-                            if ($paymentStatus === $targetStatus) {
-                                $matchingInvoiceNos->push($invoiceNo);
+                        // Batch load for efficiency
+                        $docKeys = $allInvoices->pluck('doc_key')->toArray();
+                        $invoiceNos = $allInvoices->pluck('invoice_no')->toArray();
+
+                        $this->batchLoadInvoiceAmounts($docKeys);
+                        $this->batchLoadPaymentStatuses($invoiceNos);
+
+                        foreach ($allInvoices as $invoice) {
+                            $status = $this->getPaymentStatusForInvoice($invoice->invoice_no);
+                            if ($status === $targetStatus) {
+                                $matchingInvoiceNos[] = $invoice->invoice_no;
                             }
                         }
 
-                        // Filter the main query to only include matching invoice numbers
-                        return $query->whereIn('invoice_no', $matchingInvoiceNos->toArray());
+                        return $query->whereIn('invoice_no', $matchingInvoiceNos);
                     }),
 
                 SelectFilter::make('invoice_type')
@@ -360,34 +493,25 @@ class InvoicesTable extends Page implements HasTable
                         'EHIN' => 'HRDF Invoice (EHIN)',
                     ])
                     ->query(function (Builder $query, array $data): Builder {
-                        return $query
-                            ->when(
-                                $data['value'],
-                                function (Builder $query, $prefix): Builder {
-                                    return $query->where('invoice_no', 'like', $prefix . '%');
-                                }
-                            );
+                        return $query->when(
+                            $data['value'],
+                            fn (Builder $query, $prefix): Builder => $query->where('invoice_no', 'like', $prefix . '%')
+                        );
                     }),
+
                 SelectFilter::make('salesperson')
                     ->label('Salesperson')
                     ->options(function () {
-                        // Only show the 7 specified salespersons in the filter
                         $allowedSalespersons = array_keys(static::$salespersonUserIds);
 
-                        try {
-                            return Invoice::query()
-                                ->select('salesperson')
-                                ->distinct()
-                                ->whereNotNull('salesperson')
-                                ->where('salesperson', '!=', '')
-                                ->whereIn('salesperson', $allowedSalespersons)
-                                ->orderBy('salesperson')
-                                ->pluck('salesperson', 'salesperson')
-                                ->toArray();
-                        } catch (\Exception $e) {
-                            // In case of database error, return empty array
-                            return [];
-                        }
+                        return Invoice::select('salesperson')
+                            ->distinct()
+                            ->whereNotNull('salesperson')
+                            ->where('salesperson', '!=', '')
+                            ->whereIn('salesperson', $allowedSalespersons)
+                            ->orderBy('salesperson')
+                            ->pluck('salesperson', 'salesperson')
+                            ->toArray();
                     })
                     ->visible(fn () => Auth::check() && Auth::user()->role_id === 3),
 
@@ -404,49 +528,28 @@ class InvoicesTable extends Page implements HasTable
                             ->toArray();
                     })
                     ->query(function (Builder $query, array $data): Builder {
-                        return $query
-                            ->when(
-                                $data['value'],
-                                fn (Builder $query, $year): Builder => $query->whereYear('invoice_date', $year)
-                            );
+                        return $query->when(
+                            $data['value'],
+                            fn (Builder $query, $year): Builder => $query->whereYear('invoice_date', $year)
+                        );
                     }),
 
                 SelectFilter::make('month')
                     ->label('Month')
                     ->options([
-                        '1' => 'January',
-                        '2' => 'February',
-                        '3' => 'March',
-                        '4' => 'April',
-                        '5' => 'May',
-                        '6' => 'June',
-                        '7' => 'July',
-                        '8' => 'August',
-                        '9' => 'September',
-                        '10' => 'October',
-                        '11' => 'November',
-                        '12' => 'December',
+                        '1' => 'January', '2' => 'February', '3' => 'March',
+                        '4' => 'April', '5' => 'May', '6' => 'June',
+                        '7' => 'July', '8' => 'August', '9' => 'September',
+                        '10' => 'October', '11' => 'November', '12' => 'December',
                     ])
                     ->query(function (Builder $query, array $data): Builder {
-                        return $query
-                            ->when(
-                                $data['value'],
-                                fn (Builder $query, $month): Builder => $query->whereMonth('invoice_date', $month)
-                            );
+                        return $query->when(
+                            $data['value'],
+                            fn (Builder $query, $month): Builder => $query->whereMonth('invoice_date', $month)
+                        );
                     }),
             ])
-            ->actions([
-                // Tables\Actions\Action::make('generate_invoice_pdf')
-                //     ->label('Generate PDF')
-                //     ->hiddenLabel()
-                //     ->tooltip('Generate PDF for this invoice')
-                //     ->url(fn (Invoice $record): string => route('invoices.generate_pdf', ['invoice_no' => $record->invoice_no]))
-                //     ->icon('heroicon-o-document')
-                //     ->button()
-                //     ->openUrlInNewTab()
-                //     ->color('success')
-                //     ->visible(fn() => auth('web')->user()->id == 45),
-            ])
+            ->actions([])
             ->bulkActions([]);
     }
 }

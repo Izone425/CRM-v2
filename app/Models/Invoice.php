@@ -28,11 +28,9 @@ class Invoice extends Model
         'doc_status',
         'doc_key',
         'doc_type',
-        'sub_total',
-        'invoice_amount',
-        'item_code',
         'currency_code',
         'exchange_rate',
+        'invoice_status',
         'last_modified_at',
         'invoice_status',
     ];

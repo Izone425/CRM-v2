@@ -717,7 +717,7 @@
                         <div class="stat-count">{{ $softwareHandoverCompleted }}</div>
                     </div>
                 </div>
-                <div class="stat-box sales-pending-kickoff"
+                <!-- <div class="stat-box sales-pending-kickoff"
                         :class="{'selected': selectedStat === 'sales-pending-kickoff'}"
                         @click="setSelectedStat('sales-pending-kickoff')">
                     <div class="stat-info">
@@ -736,7 +736,7 @@
                     <div class="stat-count">
                         <div class="stat-count">{{ $salesCompletedKickOff }}</div>
                     </div>
-                </div>
+                </div> -->
             </div>
 
             <!-- HARDWARE HANDOVER -->

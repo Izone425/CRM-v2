@@ -233,7 +233,7 @@ class HrdfClaimTracker extends Page implements HasTable
         }
 
         // Find the invoice
-        $invoice = Invoice::where('invoice_number', $invoiceNumber)->first();
+        $invoice = Invoice::where('invoice_no', $invoiceNumber)->first();
 
         if (!$invoice) {
             Notification::make()

@@ -79,31 +79,52 @@ class HRDFHandoverRelationManager extends RelationManager
             Select::make('hrdf_grant_id')
                 ->label('Select HRDF Grant')
                 ->searchable()
-                ->preload(false) // Change to false to prevent preloading
+                ->preload(false)
                 ->live()
                 ->placeholder('Type to search HRDF Grant ID or Company Name...')
-                ->options([]) // Empty by default
-                ->getSearchResultsUsing(function (string $search) {
+                ->options(function (?HRDFHandover $record = null) {
+                    // When editing, preload the current HRDF grant
+                    if ($record && $record->hrdf_grant_id) {
+                        $claim = \App\Models\HrdfClaim::where('hrdf_grant_id', $record->hrdf_grant_id)->first();
+                        if ($claim) {
+                            return [
+                                $claim->hrdf_grant_id => "{$claim->hrdf_grant_id} - {$claim->company_name}"
+                            ];
+                        }
+                    }
+                    return [];
+                })
+                ->getSearchResultsUsing(function (string $search, ?HRDFHandover $record = null) {
                     // Only show results when user types something
                     if (empty(trim($search))) {
                         return [];
                     }
 
                     // Search by HRDF Grant ID or Company Name
-                    return \App\Models\HrdfClaim::where(function ($query) use ($search) {
+                    $results = \App\Models\HrdfClaim::where(function ($query) use ($search) {
                         $query->where('hrdf_grant_id', 'like', "%{$search}%")
                             ->orWhere('company_name', 'like', "%{$search}%");
                     })
-                    ->whereIn('claim_status', ['PENDING'])
-                    ->whereDoesntHave('hrdfHandover')
-                    ->limit(20)
-                    ->get()
-                    ->mapWithKeys(function ($claim) {
-                        return [
-                            $claim->hrdf_grant_id => "{$claim->hrdf_grant_id} - {$claim->company_name}"
-                        ];
-                    })
-                    ->toArray();
+                    ->whereIn('claim_status', ['PENDING']);
+
+                    // When editing, allow the current grant to be selected even if it has a handover
+                    if ($record && $record->hrdf_grant_id) {
+                        $results->where(function ($query) use ($record) {
+                            $query->whereDoesntHave('hrdfHandover')
+                                ->orWhere('hrdf_grant_id', $record->hrdf_grant_id);
+                        });
+                    } else {
+                        $results->whereDoesntHave('hrdfHandover');
+                    }
+
+                    return $results->limit(20)
+                        ->get()
+                        ->mapWithKeys(function ($claim) {
+                            return [
+                                $claim->hrdf_grant_id => "{$claim->hrdf_grant_id} - {$claim->company_name}"
+                            ];
+                        })
+                        ->toArray();
                 })
                 ->afterStateUpdated(function ($state, Forms\Set $set) {
                     if ($state) {
@@ -112,9 +133,12 @@ class HRDFHandoverRelationManager extends RelationManager
                         if ($claim) {
                             // Auto-populate fields from the claim
                             $set('autocount_invoice_number', $claim->invoice_number);
-                            // You can set other fields if needed
                         }
                     }
+                })
+                ->default(function (?HRDFHandover $record = null) {
+                    // Set default value when editing
+                    return $record?->hrdf_grant_id ?? null;
                 })
                 ->required()
                 ->helperText('Start typing to search for HRDF Grants (Grant ID or Company Name)'),
