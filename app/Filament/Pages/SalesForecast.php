@@ -2,12 +2,15 @@
 namespace App\Filament\Pages;
 
 use App\Models\Invoice;
+use App\Models\InvoiceDetail;
 use Filament\Pages\Page;
 use App\Models\User;
 use App\Models\Lead;
 use App\Models\ProformaInvoice;
 use Livewire\Attributes\On;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
 
 class SalesForecast extends Page
 {
@@ -80,6 +83,10 @@ class SalesForecast extends Page
     {
         $this->selectedUser = $userId;
         session(['selectedUser' => $userId]);
+
+        // Clear cache for this user
+        $this->clearUserCache($userId);
+
         $this->calculateHotDealsTotal();
         $this->calculateInvoiceTotal();
         $this->calculateProformaInvoice();
@@ -93,10 +100,23 @@ class SalesForecast extends Page
     {
         $this->selectedMonth = $month;
         session(['selectedMonth' => $month]);
+
+        // Clear cache for this month
+        $this->clearUserCache($this->selectedUser);
+
         $this->calculateHotDealsTotal();
         $this->calculateInvoiceTotal();
         $this->calculateProformaInvoice();
         $this->dispatch('updateTablesForUser', $this->selectedUser, $month);
+    }
+
+    /**
+     * Clear cache for a specific user and month
+     */
+    protected function clearUserCache($userId)
+    {
+        $cacheKey = "sales_forecast_invoice_{$userId}_{$this->selectedMonth}";
+        Cache::forget($cacheKey);
     }
 
     /**
@@ -118,22 +138,92 @@ class SalesForecast extends Page
         $this->hotDealsTotal = $query->sum('deal_amount');
     }
 
+    /**
+     * Calculate invoice total from invoice_details table (excluding certain item codes)
+     * Updated to use new separated tables structure
+     */
     public function calculateInvoiceTotal()
     {
-        $query = Invoice::query(); // Get all invoices
+        // Create cache key based on user and month
+        $cacheKey = "sales_forecast_invoice_{$this->selectedUser}_{$this->selectedMonth}";
 
-        if ($this->selectedUser) {
-            $query->where('salesperson', $this->selectedUser);
-        }
+        // Cache for 5 minutes
+        $this->invoiceTotal = Cache::remember($cacheKey, 300, function () {
+            // Excluded item codes
+            $excludedItemCodes = [
+                'SHIPPING',
+                'BANKCHG',
+                'DEPOSIT-MYR',
+                'F.COMMISSION',
+                'L.COMMISSION',
+                'L.ENTITLEMENT',
+                'MGT FEES',
+                'PG.COMMISSION'
+            ];
 
-        if ($this->selectedMonth) {
-            $query->whereMonth('invoice_date', Carbon::parse($this->selectedMonth)->month)
-                  ->whereYear('invoice_date', Carbon::parse($this->selectedMonth)->year);
-        }
+            // Get user's salesperson name
+            $salespersonName = null;
+            if ($this->selectedUser) {
+                $user = User::find($this->selectedUser);
+                if ($user) {
+                    // Map user to salesperson name
+                    $salespersonMapping = [
+                        6 => 'MUIM',
+                        7 => 'YASMIN',
+                        8 => 'FARHANAH',
+                        9 => 'JOSHUA',
+                        10 => 'AZIZ',
+                        11 => 'BARI',
+                        12 => 'VINCE',
+                    ];
+                    $salespersonName = $salespersonMapping[$user->id] ?? strtoupper($user->name);
+                }
+            }
 
-        $this->invoiceTotal = $query->sum('invoice_amount'); // Sum the 'amount' column
+            // Build query with optimized raw SQL
+            $placeholders = implode(',', array_fill(0, count($excludedItemCodes), '?'));
+
+            $params = $excludedItemCodes;
+
+            $whereConditions = [];
+
+            // Add salesperson filter
+            if ($salespersonName) {
+                $whereConditions[] = "i.salesperson = ?";
+                $params[] = $salespersonName;
+            }
+
+            // Exclude cancelled invoices
+            $whereConditions[] = "i.invoice_status != 'V'";
+
+            // Add month/year filter
+            if ($this->selectedMonth) {
+                $date = Carbon::parse($this->selectedMonth);
+                $whereConditions[] = "MONTH(i.invoice_date) = ?";
+                $whereConditions[] = "YEAR(i.invoice_date) = ?";
+                $params[] = $date->month;
+                $params[] = $date->year;
+            }
+
+            $whereClause = !empty($whereConditions) ? 'AND ' . implode(' AND ', $whereConditions) : '';
+
+            // OPTIMIZED: Single query to get invoice total
+            $result = DB::selectOne("
+                SELECT
+                    COALESCE(SUM(id.local_sub_total), 0) as total
+                FROM invoices i
+                INNER JOIN invoice_details id ON i.doc_key = id.doc_key
+                WHERE id.item_code NOT IN ($placeholders)
+                    $whereClause
+            ", $params);
+
+            return (float) $result->total;
+        });
     }
 
+    /**
+     * Calculate proforma invoice total
+     */
     public function calculateProformaInvoice()
     {
         $query = ProformaInvoice::query(); // Get all invoices
@@ -148,5 +238,72 @@ class SalesForecast extends Page
         }
 
         $this->proformaInvoiceTotal = $query->sum('amount'); // Sum the 'amount' column
+    }
+
+    /**
+     * Helper method to get total invoice amount from invoice_details (excluding certain item codes)
+     */
+    protected function getTotalInvoiceAmountByDocKey(string $docKey): float
+    {
+        $excludedItemCodes = [
+            'SHIPPING',
+            'BANKCHG',
+            'DEPOSIT-MYR',
+            'F.COMMISSION',
+            'L.COMMISSION',
+            'L.ENTITLEMENT',
+            'MGT FEES',
+            'PG.COMMISSION'
+        ];
+
+        return InvoiceDetail::where('doc_key', $docKey)
+            ->whereNotIn('item_code', $excludedItemCodes)
+            ->sum('local_sub_total');
+    }
+
+    /**
+     * Get invoice data with details for display
+     */
+    public function getInvoiceDataWithDetails()
+    {
+        $cacheKey = "sales_forecast_detailed_{$this->selectedUser}_{$this->selectedMonth}";
+
+        return Cache::remember($cacheKey, 300, function () {
+            $query = Invoice::query()
+                ->where('invoice_status', '!=', 'V'); // Exclude cancelled invoices
+
+            // Get user's salesperson name
+            if ($this->selectedUser) {
+                $user = User::find($this->selectedUser);
+                if ($user) {
+                    $salespersonMapping = [
+                        6 => 'MUIM',
+                        7 => 'YASMIN',
+                        8 => 'FARHANAH',
+                        9 => 'JOSHUA',
+                        10 => 'AZIZ',
+                        11 => 'BARI',
+                        12 => 'VINCE',
+                    ];
+                    $salespersonName = $salespersonMapping[$user->id] ?? strtoupper($user->name);
+                    $query->where('salesperson', $salespersonName);
+                }
+            }
+
+            if ($this->selectedMonth) {
+                $query->whereMonth('invoice_date', Carbon::parse($this->selectedMonth)->month)
+                      ->whereYear('invoice_date', Carbon::parse($this->selectedMonth)->year);
+            }
+
+            $invoices = $query->get();
+
+            // Calculate actual amounts from invoice_details
+            $invoicesWithAmounts = $invoices->map(function ($invoice) {
+                $invoice->actual_amount = $this->getTotalInvoiceAmountByDocKey($invoice->doc_key);
+                return $invoice;
+            });
+
+            return $invoicesWithAmounts;
+        });
     }
 }

@@ -3,6 +3,8 @@
 namespace App\Filament\Pages;
 
 use App\Models\DebtorAging;
+use App\Models\Invoice;
+use App\Models\InvoiceDetail;
 use Carbon\Carbon;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
@@ -110,6 +112,97 @@ class SalesDebtor extends Page implements HasTable
         }
     }
 
+    // Helper method to get total invoice amount from invoice_details (excluding certain item codes)
+    protected function getTotalInvoiceAmount(string $invoiceNo): float
+    {
+        // Get the invoice first
+        $invoice = Invoice::where('invoice_no', $invoiceNo)->first();
+
+        if (!$invoice) {
+            return 0;
+        }
+
+        $excludedItemCodes = [
+            'SHIPPING',
+            'BANKCHG',
+            'DEPOSIT-MYR',
+            'F.COMMISSION',
+            'L.COMMISSION',
+            'L.ENTITLEMENT',
+            'MGT FEES',
+            'PG.COMMISSION'
+        ];
+
+        return InvoiceDetail::where('doc_key', $invoice->doc_key)
+            ->whereNotIn('item_code', $excludedItemCodes)
+            ->sum('local_sub_total');
+    }
+
+    // Helper method to recalculate payment status based on actual invoice amount
+    protected function getRecalculatedPaymentStatus(DebtorAging $record): string
+    {
+        // Get actual invoice amount from invoice_details (excluding certain items)
+        $actualInvoiceAmount = $this->getTotalInvoiceAmount($record->invoice_number);
+
+        if ($actualInvoiceAmount <= 0) {
+            return 'Charge Out';
+        }
+
+        $outstanding = (float)$record->outstanding;
+
+        // If no outstanding amount or it's 0
+        if ($outstanding === 0.0) {
+            return 'Full Payment';
+        }
+
+        // If outstanding equals actual invoice amount
+        if (abs($outstanding - $actualInvoiceAmount) < 0.01) { // Use small epsilon for float comparison
+            return 'UnPaid';
+        }
+
+        // If outstanding is less than actual invoice amount but greater than 0
+        if ($outstanding < $actualInvoiceAmount && $outstanding > 0) {
+            return 'Partial Payment';
+        }
+
+        // If outstanding is greater than actual invoice amount (shouldn't happen normally)
+        if ($outstanding > $actualInvoiceAmount) {
+            return 'UnPaid';
+        }
+
+        // Fallback
+        return 'UnPaid';
+    }
+
+    // Helper method to get recalculated outstanding in MYR
+    protected function getRecalculatedOutstanding(DebtorAging $record): float
+    {
+        $actualInvoiceAmount = $this->getTotalInvoiceAmount($record->invoice_number);
+        $originalInvoiceAmount = (float)$record->invoice_amount;
+        $outstanding = (float)$record->outstanding;
+
+        // If invoice amounts match, return original outstanding
+        if (abs($originalInvoiceAmount - $actualInvoiceAmount) < 0.01) {
+            return $record->currency_code === 'MYR'
+                ? $outstanding
+                : ($outstanding * $record->exchange_rate);
+        }
+
+        // Calculate the ratio and adjust outstanding
+        if ($originalInvoiceAmount > 0) {
+            $ratio = $actualInvoiceAmount / $originalInvoiceAmount;
+            $adjustedOutstanding = $outstanding * $ratio;
+
+            return $record->currency_code === 'MYR'
+                ? $adjustedOutstanding
+                : ($adjustedOutstanding * $record->exchange_rate);
+        }
+
+        return $record->currency_code === 'MYR'
+            ? $outstanding
+            : ($outstanding * $record->exchange_rate);
+    }
+
     protected function loadData(): void
     {
         // Get base query with filtered salespeople and apply all current filters
@@ -145,12 +238,35 @@ class SalesDebtor extends Page implements HasTable
             $query->where('invoice_number', 'like', 'EPIN%');
         }
 
-        // Apply payment status filter if set
+        // Apply payment status filter if set (now using recalculated amounts)
         if ($this->filterPaymentStatus === 'unpaid') {
-            $query->whereRaw('outstanding = invoice_amount');
+            // Get invoice numbers where outstanding matches actual invoice amount
+            $unpaidInvoiceNumbers = [];
+            $allRecords = DebtorAging::whereIn('salesperson', $this->filteredSalespeople)
+                ->where('outstanding', '>', 0)
+                ->get();
+
+            foreach ($allRecords as $record) {
+                if ($this->getRecalculatedPaymentStatus($record) === 'UnPaid') {
+                    $unpaidInvoiceNumbers[] = $record->invoice_number;
+                }
+            }
+
+            $query->whereIn('invoice_number', $unpaidInvoiceNumbers);
         } elseif ($this->filterPaymentStatus === 'partial') {
-            $query->whereRaw('outstanding < invoice_amount')
-                ->where('outstanding', '>', 0);
+            // Get invoice numbers where outstanding is less than actual invoice amount
+            $partialInvoiceNumbers = [];
+            $allRecords = DebtorAging::whereIn('salesperson', $this->filteredSalespeople)
+                ->where('outstanding', '>', 0)
+                ->get();
+
+            foreach ($allRecords as $record) {
+                if ($this->getRecalculatedPaymentStatus($record) === 'Partial Payment') {
+                    $partialInvoiceNumbers[] = $record->invoice_number;
+                }
+            }
+
+            $query->whereIn('invoice_number', $partialInvoiceNumbers);
         }
 
         // Apply debtor aging filter if set
@@ -191,23 +307,19 @@ class SalesDebtor extends Page implements HasTable
 
         switch ($daysFilter) {
             case '30_days':
-                // Show invoices MORE THAN 30 days old (before 30 days ago)
                 $cutoffDate = $today->copy()->subDays(30);
                 $query->where('invoice_date', '<', $cutoffDate);
                 break;
             case '60_days':
-                // Show invoices MORE THAN 60 days old (before 60 days ago)
-                $cutoffDate = $today->copy()->subDays(60); // ✅ Fixed: was 90
+                $cutoffDate = $today->copy()->subDays(60);
                 $query->where('invoice_date', '<', $cutoffDate);
                 break;
             case '90_days':
-                // Show invoices MORE THAN 90 days old (before 90 days ago)
-                $cutoffDate = $today->copy()->subDays(90); // ✅ Fixed: was 120
+                $cutoffDate = $today->copy()->subDays(90);
                 $query->where('invoice_date', '<', $cutoffDate);
                 break;
             case '120_days':
-                // Show invoices MORE THAN 120 days old (before 120 days ago)
-                $cutoffDate = $today->copy()->subDays(120); // ✅ Fixed: was 150
+                $cutoffDate = $today->copy()->subDays(120);
                 $query->where('invoice_date', '<', $cutoffDate);
                 break;
         }
@@ -219,7 +331,6 @@ class SalesDebtor extends Page implements HasTable
 
         switch ($agingFilter) {
             case 'current':
-                // Current month invoices (not overdue or overdue but less than a month)
                 $query->where(function($q) use ($now) {
                     $q->where('aging_date', '>=', $now)
                       ->orWhere(function($subQ) use ($now) {
@@ -306,7 +417,7 @@ class SalesDebtor extends Page implements HasTable
                     BadgeColumn::make('payment_status')
                         ->label('Payment Type')
                         ->getStateUsing(function (DebtorAging $record): string {
-                            return $this->determinePaymentStatus($record);
+                            return $this->getRecalculatedPaymentStatus($record);
                         })
                         ->colors([
                             'danger' => 'UnPaid',
@@ -317,9 +428,7 @@ class SalesDebtor extends Page implements HasTable
                     TextColumn::make('outstanding_rm')
                         ->label('Outstanding (RM)')
                         ->getStateUsing(function (DebtorAging $record): float {
-                            return $record->currency_code === 'MYR'
-                                ? $record->outstanding
-                                : ($record->outstanding * $record->exchange_rate);
+                            return $this->getRecalculatedOutstanding($record);
                         })
                         ->numeric(
                             decimalPlaces: 2,
@@ -343,7 +452,7 @@ class SalesDebtor extends Page implements HasTable
                             }
 
                             $this->filterSalesperson = $data['values'];
-                            $this->loadData(); // Refresh stats
+                            $this->loadData();
 
                             return $query->whereIn('salesperson', $data['values']);
                         }),
@@ -362,7 +471,7 @@ class SalesDebtor extends Page implements HasTable
                             }
 
                             $this->filterInvoiceType = $data['value'];
-                            $this->loadData(); // Refresh stats
+                            $this->loadData();
 
                             if ($data['value'] === 'hrdf') {
                                 return $query->where('invoice_number', 'like', 'EHIN%');
@@ -371,7 +480,7 @@ class SalesDebtor extends Page implements HasTable
                             }
                         }),
 
-                    // Filter 3 - By Payment Status
+                    // Filter 3 - By Payment Status (updated to use recalculated status)
                     SelectFilter::make('payment_status')
                         ->options([
                             'unpaid' => 'Unpaid',
@@ -381,18 +490,29 @@ class SalesDebtor extends Page implements HasTable
                         ->query(function (Builder $query, array $data) {
                             if (empty($data['value'])) {
                                 $this->filterPaymentStatus = null;
+                                $this->loadData();
                                 return $query;
                             }
 
                             $this->filterPaymentStatus = $data['value'];
-                            $this->loadData(); // Refresh stats
+                            $this->loadData();
 
-                            if ($data['value'] === 'unpaid') {
-                                return $query->whereRaw('outstanding = invoice_amount');
-                            } elseif ($data['value'] === 'partial') {
-                                return $query->whereRaw('outstanding < invoice_amount')
-                                    ->where('outstanding', '>', 0);
+                            // Get matching invoice numbers based on recalculated payment status
+                            $matchingInvoiceNumbers = [];
+                            $allRecords = DebtorAging::whereIn('salesperson', $this->filteredSalespeople)
+                                ->where('outstanding', '>', 0)
+                                ->get();
+
+                            foreach ($allRecords as $record) {
+                                $status = $this->getRecalculatedPaymentStatus($record);
+                                if ($data['value'] === 'unpaid' && $status === 'UnPaid') {
+                                    $matchingInvoiceNumbers[] = $record->invoice_number;
+                                } elseif ($data['value'] === 'partial' && $status === 'Partial Payment') {
+                                    $matchingInvoiceNumbers[] = $record->invoice_number;
+                                }
                             }
+
+                            return $query->whereIn('invoice_number', $matchingInvoiceNumbers);
                         }),
 
                     // Filter 4 - By Debtor Aging
@@ -413,13 +533,13 @@ class SalesDebtor extends Page implements HasTable
                             }
 
                             $this->filterDebtorAging = $data['value'];
-                            $this->loadData(); // Refresh stats
+                            $this->loadData();
 
                             $this->applyDebtorAgingFilter($query, $data['value']);
                             return $query;
                         }),
 
-                    // Filter 5 - By Date Range (using DateRangePicker)
+                    // Filter 5 - By Date Range
                     Filter::make('invoice_date_range')
                         ->form([
                             DateRangePicker::make('date_range')
@@ -428,23 +548,16 @@ class SalesDebtor extends Page implements HasTable
                         ])
                         ->query(function (Builder $query, array $data) {
                             if (!empty($data['date_range'])) {
-                                // Parse the date range from the "start - end" format
                                 [$start, $end] = explode(' - ', $data['date_range']);
-
-                                // Ensure valid dates
                                 $startDate = Carbon::createFromFormat('d/m/Y', $start)->startOfDay();
                                 $endDate = Carbon::createFromFormat('d/m/Y', $end)->endOfDay();
 
-                                // Set the filter properties for stats refresh
                                 $this->filterInvoiceDateFrom = $startDate->format('Y-m-d');
                                 $this->filterInvoiceDateUntil = $endDate->format('Y-m-d');
+                                $this->loadData();
 
-                                $this->loadData(); // Refresh stats
-
-                                // Apply the filter
                                 $query->whereBetween('invoice_date', [$startDate, $endDate]);
                             } else {
-                                // Clear filters when empty
                                 $this->filterInvoiceDateFrom = null;
                                 $this->filterInvoiceDateUntil = null;
                                 $this->loadData();
@@ -452,9 +565,7 @@ class SalesDebtor extends Page implements HasTable
                         })
                         ->indicateUsing(function (array $data) {
                             if (!empty($data['date_range'])) {
-                                // Parse the date range for display
                                 [$start, $end] = explode(' - ', $data['date_range']);
-
                                 return 'Invoice Date: ' . Carbon::createFromFormat('d/m/Y', $start)->format('j M Y') .
                                     ' to ' . Carbon::createFromFormat('d/m/Y', $end)->format('j M Y');
                             }
@@ -479,7 +590,7 @@ class SalesDebtor extends Page implements HasTable
                             }
 
                             $this->filterYear = $data['value'];
-                            $this->loadData(); // Refresh stats
+                            $this->loadData();
 
                             return $query->whereYear('invoice_date', $data['value']);
                         }),
@@ -508,7 +619,7 @@ class SalesDebtor extends Page implements HasTable
                             }
 
                             $this->filterMonth = $data['value'];
-                            $this->loadData(); // Refresh stats
+                            $this->loadData();
 
                             return $query->whereMonth('invoice_date', $data['value']);
                         }),
@@ -525,12 +636,12 @@ class SalesDebtor extends Page implements HasTable
                         ->query(function (Builder $query, array $data) {
                             if (empty($data['value'])) {
                                 $this->filterInvoiceAgeDays = null;
-                                $this->loadData(); // Refresh stats
+                                $this->loadData();
                                 return $query;
                             }
 
                             $this->filterInvoiceAgeDays = $data['value'];
-                            $this->loadData(); // Refresh stats
+                            $this->loadData();
 
                             $this->applyInvoiceAgeDaysFilter($query, $data['value']);
                             return $query;
@@ -545,71 +656,39 @@ class SalesDebtor extends Page implements HasTable
     protected function getBaseQuery()
     {
         $query = DebtorAging::query();
-
-        // Filter only for unpaid or partial payment debtors
-        $query->where(function ($q) {
-            // Unpaid or partial payment cases:
-            // outstanding > 0, meaning it's either unpaid or partially paid
-            $q->where('outstanding', '>', 0);
-        });
-
-        // Filter by the filtered salespeople
+        $query->where('outstanding', '>', 0);
         $query->whereIn('salesperson', $this->filteredSalespeople);
-
         return $query;
     }
 
     protected function determinePaymentStatus($record)
     {
-        // If no outstanding amount or it's 0
-        if (!isset($record->outstanding) || (float)$record->outstanding === 0.0) {
-            return 'Full Payment';
-        }
-
-        // If outstanding equals total invoice amount
-        if ((float)$record->outstanding === (float)$record->invoice_amount) {
-            return 'UnPaid';
-        }
-
-        // If outstanding is less than invoice amount but greater than 0
-        if ((float)$record->outstanding < (float)$record->invoice_amount && (float)$record->outstanding > 0) {
-            return 'Partial Payment';
-        }
-
-        // Fallback
-        return 'UnPaid';
+        return $this->getRecalculatedPaymentStatus($record);
     }
 
     protected function determineInvoiceType($invoiceNumber)
     {
-        // Invoice numbers starting with EPIN indicate Product invoices
         if (strpos($invoiceNumber, 'EPIN') === 0) {
             return 'Product';
         }
-
-        // Invoice numbers starting with EHIN indicate HRDF invoices
         if (strpos($invoiceNumber, 'EHIN') === 0) {
             return 'HRDF';
         }
-
-        // Check if the invoice_type is already set in the record
-        // This is a fallback for records that might not follow the naming convention
         return 'Other';
     }
 
-    // Stats methods remain unchanged
+    // Updated stats methods to use recalculated amounts
     protected function getAllDebtorStats($baseQuery)
     {
         $query = clone $baseQuery;
+        $records = $query->get();
 
-        $totalInvoices = $query->count();
-        $totalAmount = $query->sum(DB::raw('
-            CASE
-                WHEN currency_code = "MYR" THEN outstanding
-                WHEN outstanding IS NOT NULL AND exchange_rate IS NOT NULL THEN outstanding * exchange_rate
-                ELSE 0
-            END
-        '));
+        $totalInvoices = $records->count();
+        $totalAmount = 0;
+
+        foreach ($records as $record) {
+            $totalAmount += $this->getRecalculatedOutstanding($record);
+        }
 
         return [
             'total_invoices' => $totalInvoices,
@@ -622,15 +701,14 @@ class SalesDebtor extends Page implements HasTable
     {
         $query = clone $baseQuery;
         $query->where('invoice_number', 'like', 'EHIN%');
+        $records = $query->get();
 
-        $totalInvoices = $query->count();
-        $totalAmount = $query->sum(DB::raw('
-            CASE
-                WHEN currency_code = "MYR" THEN outstanding
-                WHEN outstanding IS NOT NULL AND exchange_rate IS NOT NULL THEN outstanding * exchange_rate
-                ELSE 0
-            END
-        '));
+        $totalInvoices = $records->count();
+        $totalAmount = 0;
+
+        foreach ($records as $record) {
+            $totalAmount += $this->getRecalculatedOutstanding($record);
+        }
 
         return [
             'total_invoices' => $totalInvoices,
@@ -643,15 +721,14 @@ class SalesDebtor extends Page implements HasTable
     {
         $query = clone $baseQuery;
         $query->where('invoice_number', 'like', 'EPIN%');
+        $records = $query->get();
 
-        $totalInvoices = $query->count();
-        $totalAmount = $query->sum(DB::raw('
-            CASE
-                WHEN currency_code = "MYR" THEN outstanding
-                WHEN outstanding IS NOT NULL AND exchange_rate IS NOT NULL THEN outstanding * exchange_rate
-                ELSE 0
-            END
-        '));
+        $totalInvoices = $records->count();
+        $totalAmount = 0;
+
+        foreach ($records as $record) {
+            $totalAmount += $this->getRecalculatedOutstanding($record);
+        }
 
         return [
             'total_invoices' => $totalInvoices,
@@ -663,16 +740,17 @@ class SalesDebtor extends Page implements HasTable
     protected function getUnpaidDebtorStats($baseQuery)
     {
         $query = clone $baseQuery;
-        $query->whereRaw('outstanding = invoice_amount');
+        $records = $query->get();
 
-        $totalInvoices = $query->count();
-        $totalAmount = $query->sum(DB::raw('
-            CASE
-                WHEN currency_code = "MYR" THEN outstanding
-                WHEN outstanding IS NOT NULL AND exchange_rate IS NOT NULL THEN outstanding * exchange_rate
-                ELSE 0
-            END
-        '));
+        $totalInvoices = 0;
+        $totalAmount = 0;
+
+        foreach ($records as $record) {
+            if ($this->getRecalculatedPaymentStatus($record) === 'UnPaid') {
+                $totalInvoices++;
+                $totalAmount += $this->getRecalculatedOutstanding($record);
+            }
+        }
 
         return [
             'total_invoices' => $totalInvoices,
@@ -684,17 +762,17 @@ class SalesDebtor extends Page implements HasTable
     protected function getPartialPaymentDebtorStats($baseQuery)
     {
         $query = clone $baseQuery;
-        $query->whereRaw('outstanding < invoice_amount')
-            ->where('outstanding', '>', 0);
+        $records = $query->get();
 
-        $totalInvoices = $query->count();
-        $totalAmount = $query->sum(DB::raw('
-            CASE
-                WHEN currency_code = "MYR" THEN outstanding
-                WHEN outstanding IS NOT NULL AND exchange_rate IS NOT NULL THEN outstanding * exchange_rate
-                ELSE 0
-            END
-        '));
+        $totalInvoices = 0;
+        $totalAmount = 0;
+
+        foreach ($records as $record) {
+            if ($this->getRecalculatedPaymentStatus($record) === 'Partial Payment') {
+                $totalInvoices++;
+                $totalAmount += $this->getRecalculatedOutstanding($record);
+            }
+        }
 
         return [
             'total_invoices' => $totalInvoices,
@@ -712,16 +790,13 @@ class SalesDebtor extends Page implements HasTable
         $due = \Carbon\Carbon::parse($record->aging_date);
         $now = \Carbon\Carbon::now();
 
-        // For current month invoices (not overdue)
         if ($due->greaterThanOrEqualTo($now)) {
             return 'Current';
         }
 
-        // For overdue invoices, calculate months difference
         $monthsDiff = $now->diffInMonths($due);
 
         if ($monthsDiff == 0) {
-            // Still in the same month (overdue but less than a month)
             return 'Current';
         } elseif ($monthsDiff == 1) {
             return '1 Month';
@@ -746,18 +821,18 @@ class SalesDebtor extends Page implements HasTable
         $now = \Carbon\Carbon::now();
 
         if ($due->greaterThanOrEqualTo($now)) {
-            return 'success'; // Green for current
+            return 'success';
         }
 
         $monthsDiff = $now->diffInMonths($due);
 
         return match($monthsDiff) {
-            0 => 'success',     // Green
-            1 => 'info',        // Blue
-            2 => 'warning',     // Yellow
-            3 => 'warning',     // Orange
-            4 => 'danger',      // Red
-            default => 'danger' // Dark red for 5+ months
+            0 => 'success',
+            1 => 'info',
+            2 => 'warning',
+            3 => 'warning',
+            4 => 'danger',
+            default => 'danger'
         };
     }
 }

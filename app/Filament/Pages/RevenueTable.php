@@ -2,6 +2,7 @@
 namespace App\Filament\Pages;
 
 use App\Models\Invoice;
+use App\Models\InvoiceDetail;
 use App\Models\User;
 use Carbon\Carbon;
 use Filament\Pages\Page;
@@ -14,7 +15,7 @@ class RevenueTable extends Page
     protected static ?string $navigationLabel = 'Revenue';
     protected static ?int $navigationSort = 18;
     protected static ?string $title = '';
-     protected static ?string $slug = 'revenue';
+    protected static ?string $slug = 'revenue';
     protected static string $view = 'filament.pages.revenue-table';
 
     public int $selectedYear;
@@ -23,6 +24,21 @@ class RevenueTable extends Page
     public int $currentMonth;
 
     public array $excludedSalespeople = ['WIRSON', 'TTCP'];
+
+    // Excluded item codes for invoice calculations
+    protected array $excludedItemCodes = [
+        'SHIPPING',
+        'Not',
+        'Rem Code',
+        'In',
+        'BANKCHG',
+        'DEPOSIT-MYR',
+        'F.COMMISSION',
+        'L.COMMISSION',
+        'L.ENTITLEMENT',
+        'MGT FEES',
+        'PG.COMMISSION'
+    ];
 
     public function mount(): void
     {
@@ -36,13 +52,13 @@ class RevenueTable extends Page
     {
         // Define specific salespeople we want to show
         $this->salespeople = [
-            'Muim',
-            'Yasmin',
-            'Farhanah',
-            'Joshua',
-            'Aziz',
-            'Bari',
-            'Vince',
+            'MUIM',
+            'YASMIN',
+            'FARHANAH',
+            'JOSHUA',
+            'AZIZ',
+            'BARI',
+            'VINCE',
             'Others'  // For all other salespeople not in the list
         ];
     }
@@ -54,102 +70,15 @@ class RevenueTable extends Page
     }
 
     /**
-     * Get actual revenue data from invoices table
+     * Get actual revenue data from invoices table using new structure
      */
-    // protected function getInvoiceRevenue(): array
-    // {
-    //     $startOfYear = Carbon::createFromDate($this->selectedYear, 1, 1)->startOfYear();
-    //     $endOfYear = Carbon::createFromDate($this->selectedYear, 12, 31)->endOfYear();
-
-    //     // Convert main salespeople names to uppercase for comparison
-    //     // Exclude the 'Others' entry which is the last one
-    //     $mainSalespeople = array_map('strtoupper', array_slice($this->salespeople, 0, -1));
-
-    //     // Get all invoices for the selected year
-    //     $invoiceRevenue = Invoice::whereBetween('invoice_date', [$startOfYear, $endOfYear])
-    //         ->select(
-    //             DB::raw('UPPER(salesperson) as salesperson'),
-    //             DB::raw('MONTH(invoice_date) as month'),
-    //             DB::raw('SUM(invoice_amount) as total_amount')
-    //         )
-    //         ->groupBy(DB::raw('UPPER(salesperson)'), 'month')
-    //         ->get();
-
-    //     // Get all credit notes for the selected year
-    //     $creditNoteRevenue = DB::table('credit_notes')
-    //         ->whereBetween('credit_note_date', [$startOfYear, $endOfYear])
-    //         ->select(
-    //             DB::raw('UPPER(salesperson) as salesperson'),
-    //             DB::raw('MONTH(credit_note_date) as month'),
-    //             DB::raw('SUM(amount) as total_amount')
-    //         )
-    //         ->groupBy(DB::raw('UPPER(salesperson)'), 'month')
-    //         ->get();
-
-    //     // Initialize data structure
-    //     $data = [];
-    //     for ($month = 1; $month <= 12; $month++) {
-    //         $data[$month] = [];
-    //         foreach ($this->salespeople as $person) {
-    //             $data[$month][$person] = 0;
-    //         }
-    //     }
-
-    //     // Add invoice amounts
-    //     foreach ($invoiceRevenue as $invoice) {
-    //         $month = (int) $invoice->month;
-    //         $salesperson = $invoice->salesperson;
-    //         $amount = (float) $invoice->total_amount;
-
-    //         // Skip excluded salespeople completely
-    //         if (in_array($salesperson, $this->excludedSalespeople)) {
-    //             continue;
-    //         }
-
-    //         // Check if this is one of our main salespeople
-    //         if (in_array($salesperson, $mainSalespeople)) {
-    //             // Find the original case version from salespeople array
-    //             $originalCase = $this->findOriginalCase($salesperson);
-    //             $data[$month][$originalCase] += $amount;
-    //         } else {
-    //             // Everyone else goes to "Others"
-    //             $data[$month]['Others'] += $amount;
-    //         }
-    //     }
-
-    //     // Subtract credit note amounts
-    //     foreach ($creditNoteRevenue as $creditNote) {
-    //         $month = (int) $creditNote->month;
-    //         $salesperson = $creditNote->salesperson;
-    //         $amount = (float) $creditNote->total_amount;
-
-    //         // Skip excluded salespeople completely
-    //         if (in_array($salesperson, $this->excludedSalespeople)) {
-    //             continue;
-    //         }
-
-    //         // Check if this is one of our main salespeople
-    //         if (in_array($salesperson, $mainSalespeople)) {
-    //             // Find the original case version from salespeople array
-    //             $originalCase = $this->findOriginalCase($salesperson);
-    //             $data[$month][$originalCase] -= $amount;
-    //         } else {
-    //             // Everyone else goes to "Others"
-    //             $data[$month]['Others'] -= $amount;
-    //         }
-    //     }
-
-    //     return $data;
-    // }
-
     protected function getInvoiceRevenue(): array
     {
         $startOfYear = Carbon::createFromDate($this->selectedYear, 1, 1)->startOfYear();
         $endOfYear = Carbon::createFromDate($this->selectedYear, 12, 31)->endOfYear();
 
-        // Convert main salespeople names to uppercase for comparison
-        // Exclude the 'Others' entry which is the last one
-        $mainSalespeople = array_map('strtoupper', array_slice($this->salespeople, 0, -1));
+        // Main salespeople (exclude 'Others')
+        $mainSalespeople = array_slice($this->salespeople, 0, -1);
 
         // Initialize data structure
         $data = [];
@@ -160,42 +89,59 @@ class RevenueTable extends Page
             }
         }
 
-        // Get all invoices for the selected year
-        $invoiceRevenue = Invoice::whereBetween('invoice_date', [$startOfYear, $endOfYear])
-            ->select(
-                DB::raw('UPPER(salesperson) as salesperson'),
-                DB::raw('MONTH(invoice_date) as month'),
-                DB::raw('SUM(invoice_amount) as total_amount')
-            )
-            ->groupBy(DB::raw('UPPER(salesperson)'), 'month')
-            ->get();
+        // OPTIMIZED: Get invoice revenue using new structure with excluded item codes
+        $placeholders = implode(',', array_fill(0, count($this->excludedItemCodes), '?'));
+        $excludedPlaceholders = implode(',', array_fill(0, count($this->excludedSalespeople), '?'));
 
-        // Get all credit notes for the selected year
-        $creditNoteRevenue = DB::table('credit_notes')
-            ->whereBetween('credit_note_date', [$startOfYear, $endOfYear])
-            ->select(
-                DB::raw('UPPER(salesperson) as salesperson'),
-                DB::raw('MONTH(credit_note_date) as month'),
-                DB::raw('SUM(amount) as total_amount')
-            )
-            ->groupBy(DB::raw('UPPER(salesperson)'), 'month')
-            ->get();
+        $mainSalespersonPlaceholders = implode(',', array_fill(0, count($mainSalespeople), '?'));
 
-        // Process invoices for all months
+        $invoiceParams = array_merge(
+            $this->excludedItemCodes,
+            [$startOfYear->format('Y-m-d'), $endOfYear->format('Y-m-d')],
+            $this->excludedSalespeople
+        );
+
+        // Query for invoice revenue using new separated tables
+        $invoiceRevenue = DB::select("
+            SELECT
+                UPPER(i.salesperson) as salesperson,
+                MONTH(i.invoice_date) as month,
+                COALESCE(SUM(id.local_sub_total), 0) as total_amount
+            FROM invoices i
+            INNER JOIN invoice_details id ON i.doc_key = id.doc_key
+            WHERE id.item_code NOT IN ($placeholders)
+                AND i.invoice_date BETWEEN ? AND ?
+                AND i.invoice_status != 'V'
+                AND (i.salesperson IS NULL OR UPPER(i.salesperson) NOT IN ($excludedPlaceholders))
+            GROUP BY UPPER(i.salesperson), MONTH(i.invoice_date)
+        ", $invoiceParams);
+
+        // Get credit note revenue
+        $creditNoteParams = array_merge(
+            [$startOfYear->format('Y-m-d'), $endOfYear->format('Y-m-d')],
+            $this->excludedSalespeople
+        );
+
+        $creditNoteRevenue = DB::select("
+            SELECT
+                UPPER(salesperson) as salesperson,
+                MONTH(credit_note_date) as month,
+                SUM(amount) as total_amount
+            FROM credit_notes
+            WHERE credit_note_date BETWEEN ? AND ?
+                AND (salesperson IS NULL OR UPPER(salesperson) NOT IN ($excludedPlaceholders))
+            GROUP BY UPPER(salesperson), MONTH(credit_note_date)
+        ", $creditNoteParams);
+
+        // Process invoices
         foreach ($invoiceRevenue as $invoice) {
             $month = (int) $invoice->month;
             $salesperson = $invoice->salesperson;
             $amount = (float) $invoice->total_amount;
 
-            // Skip excluded salespeople completely
-            if (in_array($salesperson, $this->excludedSalespeople)) {
-                continue;
-            }
-
             // Handle main salespeople for all months
             if (in_array($salesperson, $mainSalespeople)) {
-                $originalCase = $this->findOriginalCase($salesperson);
-                $data[$month][$originalCase] += $amount;
+                $data[$month][$salesperson] += $amount;
             }
             // For "Others", only process September onwards from DB
             // (January-August will be overridden with fixed values later)
@@ -204,21 +150,15 @@ class RevenueTable extends Page
             }
         }
 
-        // Process credit notes for all months
+        // Process credit notes
         foreach ($creditNoteRevenue as $creditNote) {
             $month = (int) $creditNote->month;
             $salesperson = $creditNote->salesperson;
             $amount = (float) $creditNote->total_amount;
 
-            // Skip excluded salespeople completely
-            if (in_array($salesperson, $this->excludedSalespeople)) {
-                continue;
-            }
-
             // Handle main salespeople for all months
             if (in_array($salesperson, $mainSalespeople)) {
-                $originalCase = $this->findOriginalCase($salesperson);
-                $data[$month][$originalCase] -= $amount;
+                $data[$month][$salesperson] -= $amount;
             }
             // For "Others", only process September onwards from DB
             elseif ($month >= 9) {

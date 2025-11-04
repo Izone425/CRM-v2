@@ -213,7 +213,7 @@ class HardwareV2CompletedCourierTable extends Component implements HasForms, Has
                         }
 
                         $salespersonId = $lead->salesperson;
-                        return User::find($salespersonId)?->name ?? '-';
+                        return User::find($salespersonId)?->name ?? $lead->lead_owner;
                     }),
 
                 TextColumn::make('lead.companyDetail.company_name')

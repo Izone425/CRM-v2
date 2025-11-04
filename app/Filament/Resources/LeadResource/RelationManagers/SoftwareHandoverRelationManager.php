@@ -93,15 +93,7 @@ class SoftwareHandoverRelationManager extends RelationManager
                 ->inline()
                 ->required()
                 ->live()
-                ->visible(fn () => auth()->user()->role_id === 3)
-                ->afterStateUpdated(function (Set $set, $state) {
-                    // Clear fields when switching versions
-                    if ($state === '2') {
-                        $set('headcount', null);
-                        $set('category', null);
-                        $set('salesperson', null);
-                    }
-                }),
+                ->visible(fn () => auth()->user()->role_id === 3),
 
             Section::make('Step 1: Database')
                 ->schema([

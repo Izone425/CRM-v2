@@ -214,7 +214,7 @@ class HardwareV2PendingCustomerSelfPickUpTable extends Component implements HasF
                         }
 
                         $salespersonId = $lead->salesperson;
-                        return User::find($salespersonId)?->name ?? '-';
+                        return User::find($salespersonId)?->name ?? $lead->lead_owner;
                     }),
 
                 TextColumn::make('lead.companyDetail.company_name')

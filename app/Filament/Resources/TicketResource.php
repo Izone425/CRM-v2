@@ -9,6 +9,7 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -58,9 +59,40 @@ class TicketResource extends Resource
                         'Critical' => 'Critical',
                     ]),
 
-                Forms\Components\TextInput::make('company_name')
+                Forms\Components\Select::make('company_name')
                     ->label('Company Name')
-                    ->required(),
+                    ->searchable()
+                    ->preload()
+                    ->required()
+                    ->options(function () {
+                        return \Illuminate\Support\Facades\DB::connection('frontenddb')
+                            ->table('crm_expiring_license')
+                            ->select('f_company_name', 'f_created_time')
+                            ->groupBy('f_company_name', 'f_created_time')
+                            ->orderBy('f_created_time', 'desc')
+                            ->get()
+                            ->mapWithKeys(function ($company) {
+                                return [$company->f_company_name => strtoupper($company->f_company_name)];
+                            })
+                            ->toArray();
+                    })
+                    ->getSearchResultsUsing(function (string $search) {
+                        return \Illuminate\Support\Facades\DB::connection('frontenddb')
+                            ->table('crm_expiring_license')
+                            ->select('f_company_name', 'f_created_time')
+                            ->where('f_company_name', 'like', "%{$search}%")
+                            ->groupBy('f_company_name', 'f_created_time')
+                            ->orderBy('f_created_time', 'desc')
+                            ->limit(50)
+                            ->get()
+                            ->mapWithKeys(function ($company) {
+                                return [$company->f_company_name => strtoupper($company->f_company_name)];
+                            })
+                            ->toArray();
+                    })
+                    ->getOptionLabelUsing(function ($value) {
+                        return strtoupper($value);
+                    }),
 
                 Forms\Components\TextInput::make('zoho_ticket_number')
                     ->label('Zoho Ticket Number'),

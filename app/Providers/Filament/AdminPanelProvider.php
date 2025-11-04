@@ -102,7 +102,6 @@ use App\Filament\Resources\HardwarePendingStockResource;
 use App\Filament\Resources\IndustryResource;
 use App\Filament\Resources\InstallerResource;
 use App\Filament\Resources\InvalidLeadReasonResource;
-use App\Filament\Resources\InvoiceResource;
 use App\Filament\Resources\LeadResource;
 use App\Filament\Resources\LeadSourceResource;
 use App\Filament\Resources\PhoneExtensionResource;
