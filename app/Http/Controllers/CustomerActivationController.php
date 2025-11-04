@@ -175,4 +175,52 @@ class CustomerActivationController extends Controller
         return redirect()->route('customer.login')
             ->with('info', 'Account activation is no longer required. Please use your credentials to login.');
     }
+
+    public function generateCRMAccountCredentials($leadId, $handoverId = null)
+    {
+        $lead = Lead::find($leadId);
+
+        if (!$lead) {
+            throw new \Exception("Lead not found: {$leadId}");
+        }
+
+        // Generate email (check if customer already exists first)
+        $existingCustomer = Customer::where('lead_id', $leadId)->first();
+
+        if ($existingCustomer) {
+            return [
+                'email' => $existingCustomer->email,
+                'password' => $existingCustomer->plain_password,
+                'name' => $existingCustomer->name,
+            ];
+        }
+
+        // Generate new credentials
+        $email = $this->generateRandomEmail(
+            $lead->companyDetail->company_name ?? null,
+            $handoverId
+        );
+
+        $password = $this->generateRandomPassword();
+
+        // Get name from lead or company detail
+        $name = $lead->name
+            ?? $lead->companyDetail->name
+            ?? $lead->companyDetail->company_name
+            ?? 'Unknown';
+
+        \Illuminate\Support\Facades\Log::info("Generated CRM credentials", [
+            'lead_id' => $leadId,
+            'email' => $email,
+            'name' => $name,
+            'handover_id' => $handoverId
+        ]);
+
+        return [
+            'email' => $email,
+            'password' => $password,
+            'name' => $name,
+        ];
+    }
+
 }

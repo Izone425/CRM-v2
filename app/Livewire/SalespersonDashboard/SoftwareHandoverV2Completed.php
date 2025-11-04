@@ -31,7 +31,7 @@ use Illuminate\View\View;
 use Livewire\Attributes\On;
 use Illuminate\Database\Eloquent\Builder;
 
-class SoftwareHandoverCompleted extends Component implements HasForms, HasTable
+class SoftwareHandoverV2Completed extends Component implements HasForms, HasTable
 {
     use InteractsWithTable;
     use InteractsWithForms;
@@ -77,7 +77,7 @@ class SoftwareHandoverCompleted extends Component implements HasForms, HasTable
 
         $query = SoftwareHandover::query();
         $query->whereIn('status', ['Completed']);
-        $query->where('hr_version', 1);
+        $query->where('hr_version', 2);
 
         // Apply normal salesperson filtering for other roles
         if ($this->selectedUser === 'all-salespersons') {
@@ -439,6 +439,6 @@ class SoftwareHandoverCompleted extends Component implements HasForms, HasTable
 
     public function render()
     {
-        return view('livewire.salesperson_dashboard.software-handover-completed');
+        return view('livewire.salesperson_dashboard.software-handover-v2-completed');
     }
 }

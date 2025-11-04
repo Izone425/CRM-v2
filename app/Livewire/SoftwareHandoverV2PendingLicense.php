@@ -1,18 +1,34 @@
 <?php
 
-namespace App\Livewire\SalespersonDashboard;
+namespace App\Livewire;
 
+use App\Classes\Encryptor;
 use App\Filament\Filters\SortFilter;
+use App\Http\Controllers\GenerateSoftwareHandoverPdfController;
 use App\Models\CompanyDetail;
 use App\Models\Lead;
 use App\Models\SoftwareHandover;
 use App\Models\User;
+use App\Services\CategoryService;
+use Filament\Forms\Components\Actions;
+use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Grid;
+use Filament\Forms\Components\Radio;
+use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
-use Filament\Tables\Actions\Action;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Actions\Action as FormAction;
+use Filament\Forms\Components\Checkbox;
+use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Placeholder;
 use Filament\Tables\Table;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Tables\Contracts\HasTable;
 use Filament\Forms\Concerns\InteractsWithForms;
+use Filament\Forms\Get;
+use Filament\Forms\Set;
 use Filament\Tables\Actions\ActionGroup;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
@@ -21,20 +37,23 @@ use Livewire\Component;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 use Filament\Notifications\Notification;
+use Filament\Resources\RelationManagers\RelationManager;
+use Filament\Support\Enums\MaxWidth;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Columns\BadgeColumn;
-use Filament\Tables\Filters\Filter;
-use Illuminate\Contracts\Database\Query\Builder as QueryBuilder;
-use Illuminate\Database\Query\Builder as DatabaseQueryBuilder;
 use Illuminate\Support\HtmlString;
 use Illuminate\View\View;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
+use Filament\Tables\Actions\Action;
 use Livewire\Attributes\On;
-use Illuminate\Database\Eloquent\Builder;
 
-class SoftwareHandoverCompleted extends Component implements HasForms, HasTable
+class SoftwareHandoverV2PendingLicense extends Component implements HasForms, HasTable
 {
     use InteractsWithTable;
     use InteractsWithForms;
+
+    protected static ?int $indexRepeater = 0;
+    protected static ?int $indexRepeater2 = 0;
 
     public $selectedUser;
     public $lastRefreshTime;
@@ -73,59 +92,24 @@ class SoftwareHandoverCompleted extends Component implements HasForms, HasTable
 
     public function getNewSoftwareHandovers()
     {
-        $this->selectedUser = $this->selectedUser ?? session('selectedUser') ?? auth()->id();
-
         $query = SoftwareHandover::query();
         $query->whereIn('status', ['Completed']);
-        $query->where('hr_version', 1);
+        $query->where('hr_version', 2);
 
-        // Apply normal salesperson filtering for other roles
-        if ($this->selectedUser === 'all-salespersons') {
-            // Keep as is - show all salespersons' handovers
-            // $salespersonIds = User::where('role_id', 2)->pluck('id');
-            // $query->whereHas('lead', function ($leadQuery) use ($salespersonIds) {
-            //     $leadQuery->whereIn('salesperson', $salespersonIds);
-            // });
-        } elseif (is_numeric($this->selectedUser)) {
-            // Validate that the selected user exists and is a salesperson
-            $userExists = User::where('id', $this->selectedUser)->where('role_id', 2)->exists();
+        // Check for both NULL and false (0) values for license_activated
+        $query->where(function ($q) {
+            $q->whereNull('license_activated')
+            ->orWhere('license_activated', 0)
+            ->orWhere('license_activated', false);
+        });
 
-            if ($userExists) {
-                $selectedUser = $this->selectedUser; // Create a local variable
-                $query->whereHas('lead', function ($leadQuery) use ($selectedUser) {
-                    $leadQuery->where('salesperson', $selectedUser);
-                });
-            } else {
-                // Invalid user ID or not a salesperson, fall back to default
-                $query->whereHas('lead', function ($leadQuery) {
-                    $leadQuery->where('salesperson', auth()->id());
-                });
-            }
-        } else {
-            if (auth()->user()->role_id === 2) {
-                // Salespersons (role_id 2) can see Draft, New, Approved, and Completed
-                $query->whereIn('status', ['Completed']);
+        // Add this condition to only include records with license_certification_id not null
+        $query->whereNotNull('license_certification_id');
 
-                // But only THEIR OWN records
-                $userId = auth()->id();
-                $query->whereHas('lead', function ($leadQuery) use ($userId) {
-                    $leadQuery->where('salesperson', $userId);
-                });
-            } else {
-                // Other users (admin, managers) can only see New, Approved, and Completed
-                $query->whereIn('status', ['Completed']);
-                // But they can see ALL records
-            }
-        }
-
-        $query->orderByRaw("CASE
-            WHEN status = 'New' THEN 1
-            WHEN status = 'Approved' THEN 2
-            WHEN status = 'Completed' THEN 3
-            ELSE 4
-        END")
-            ->orderBy('updated_at', 'desc');
-
+        $query->orderBy('updated_at', 'desc');
+        $query->where(function ($q) {
+            $q->where('id', '>=', 556);
+        });
         return $query;
     }
 
@@ -134,12 +118,10 @@ class SoftwareHandoverCompleted extends Component implements HasForms, HasTable
         return $table
             ->poll('300s')
             ->query($this->getNewSoftwareHandovers())
-            // ->defaultSort('updated_at', 'desc')
             ->emptyState(fn() => view('components.empty-state-question'))
             ->defaultPaginationPageOption(5)
             ->paginated([5])
             ->filters([
-                // Add this new filter for status
                 SelectFilter::make('status')
                     ->label('Filter by Status')
                     ->options([
@@ -205,35 +187,6 @@ class SoftwareHandoverCompleted extends Component implements HasForms, HasTable
                             })
                     ),
 
-                // TextColumn::make('lead.salesperson')
-                //     ->label('SALESPERSON')
-                //     ->getStateUsing(function (SoftwareHandover $record) {
-                //         $lead = $record->lead;
-                //         if (!$lead) {
-                //             return '-';
-                //         }
-
-                //         $salespersonId = $lead->salesperson;
-                //         return User::find($salespersonId)?->name ?? '-';
-                //     })
-                //     ->visible(fn(): bool => auth()->user()->role_id !== 2),
-
-                // TextColumn::make('lead.companyDetail.company_name')
-                //     ->label('Company Name')
-                //     ->formatStateUsing(function ($state, $record) {
-                //         $fullName = $state ?? 'N/A';
-                //         $shortened = strtoupper(Str::limit($fullName, 20, '...'));
-                //         $encryptedId = \App\Classes\Encryptor::encrypt($record->lead->id);
-
-                //         return '<a href="' . url('admin/leads/' . $encryptedId) . '"
-                //                     target="_blank"
-                //                     title="' . e($fullName) . '"
-                //                     class="inline-block"
-                //                     style="color:#338cf0;">
-                //                     ' . $shortened . '
-                //                 </a>';
-                //     })
-                //     ->html(),
 
                 TextColumn::make('salesperson')
                     ->label('SalesPerson')
@@ -244,8 +197,8 @@ class SoftwareHandoverCompleted extends Component implements HasForms, HasTable
                     ->visible(fn(): bool => auth()->user()->role_id !== 2),
 
                 TextColumn::make('company_name')
-                    ->label('Company Name')
                     ->searchable()
+                    ->label('Company Name')
                     ->formatStateUsing(function ($state, $record) {
                         $company = CompanyDetail::where('company_name', $state)->first();
 
@@ -265,7 +218,6 @@ class SoftwareHandoverCompleted extends Component implements HasForms, HasTable
                                     ' . $company->company_name . '
                                 </a>');
                         }
-
                         $shortened = strtoupper(Str::limit($state, 20, '...'));
                         return "<span title='{$state}'>{$state}</span>";
                     })
@@ -280,117 +232,58 @@ class SoftwareHandoverCompleted extends Component implements HasForms, HasTable
                         'Rejected' => new HtmlString('<span style="color: red;">Rejected</span>'),
                         default => new HtmlString('<span>' . ucfirst($state) . '</span>'),
                     }),
-
-                // TextColumn::make('submitted_at')
-                //     ->label('Date Submit')
-                //     ->date('d M Y'),
-
-                // TextColumn::make('kik_off_meeting_date')
-                //     ->label('Kick Off Meeting Date')
-                //     ->formatStateUsing(function ($state) {
-                //         return $state ? Carbon::parse($state)->format('d M Y') : 'N/A';
-                //     })
-                //     ->date('d M Y'),
-
-                // TextColumn::make('training_date')
-                //     ->label('Training Date')
-                //     ->formatStateUsing(function ($state) {
-                //         return $state ? Carbon::parse($state)->format('d M Y') : 'N/A';
-                //     })
-                //     ->date('d M Y'),
-
-                // TextColumn::make('training_date')
-                //     ->label('Implementer')
-                //     ->formatStateUsing(function ($state) {
-                //         return $state ? Carbon::parse($state)->format('d M Y') : 'N/A';
-                //     })
-                //     ->date('d M Y'),
             ])
             ->actions([
                 ActionGroup::make([
-                    Action::make('view')
-                        ->label('View')
-                        ->icon('heroicon-o-eye')
-                        ->color('secondary')
-                        ->modalHeading(false)
-                        ->modalWidth('4xl')
-                        ->modalSubmitAction(false)
-                        ->modalCancelAction(false)
-                        ->visible(fn(SoftwareHandover $record): bool => in_array($record->status, ['New', 'Completed', 'Approved']))
-                        // Use a callback function instead of arrow function for more control
-                        ->modalContent(function (SoftwareHandover $record): View {
-
-                            // Return the view with the record using $this->record pattern
-                            return view('components.software-handover')
-                                ->with('extraAttributes', ['record' => $record]);
-                        }),
-                    Action::make('mark_approved')
-                        ->label('Approve')
+                    Action::make('activate_license')
+                        ->label('Activate License')
                         ->icon('heroicon-o-check-circle')
                         ->color('success')
-                        ->action(function (SoftwareHandover $record): void {
-                            $record->update(['status' => 'Approved']);
+                        ->form(function (SoftwareHandover $record) {
+                            // Only show payroll code field if tp is true
+                            if ($record->tp) {
+                                return [
+                                    TextInput::make('payroll_code')
+                                        ->label('Payroll Code')
+                                        ->required()
+                                        ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                                        ->afterStateHydrated(fn($state) => Str::upper($state))
+                                        ->afterStateUpdated(fn($state) => Str::upper($state))
+                                        ->placeholder('Enter the payroll code')
+                                ];
+                            }
 
-                            Notification::make()
-                                ->title('Software Handover marked as approved')
-                                ->success()
-                                ->send();
+                            // If tp is false, return empty form (just confirmation)
+                            return [];
                         })
                         ->requiresConfirmation()
-                        ->hidden(
-                            fn(SoftwareHandover $record): bool =>
-                            $record->status !== 'New' || auth()->user()->role_id === 2
-                        ),
-                    Action::make('mark_rejected')
-                        ->label('Reject')
-                        ->icon('heroicon-o-x-circle')
-                        ->color('danger')
-                        ->hidden(
-                            fn(SoftwareHandover $record): bool =>
-                            $record->status !== 'New' || auth()->user()->role_id === 2
-                        )
-                        ->form([
-                            \Filament\Forms\Components\Textarea::make('reject_reason')
-                                ->extraInputAttributes(['style' => 'text-transform: uppercase'])
-                                ->afterStateHydrated(fn($state) => Str::upper($state))
-                                ->afterStateUpdated(fn($state) => Str::upper($state))
-                                ->label('Reason for Rejection')
-                                ->required()
-                                ->placeholder('Please provide a reason for rejecting this handover')
-                                ->maxLength(500)
-                        ])
+                        ->modalHeading(fn(SoftwareHandover $record) => "Activate License for {$record->company_name}")
+                        ->modalDescription(function (SoftwareHandover $record) {
+                            if ($record->tp) {
+                                return 'Enter the payroll code and confirm license activation. This action is to make sure you have activated the license.';
+                            }
+                            return 'Confirm license activation. This action is to make sure you have activated the license.';
+                        })
+                        ->modalSubmitActionLabel('Yes, Activate License')
+                        ->modalCancelActionLabel('No, Cancel')
                         ->action(function (SoftwareHandover $record, array $data): void {
-                            // Update both status and add the rejection remarks
-                            $record->update([
-                                'status' => 'Rejected',
-                                'reject_reason' => $data['reject_reason']
-                            ]);
+                            // Update data based on tp field
+                            $updateData = [
+                                'license_activated' => true,
+                            ];
+
+                            // Only add payroll_code to update if tp is true and payroll_code was provided
+                            if ($record->tp && isset($data['payroll_code'])) {
+                                $updateData['payroll_code'] = $data['payroll_code'];
+                            }
+
+                            $record->update($updateData);
 
                             Notification::make()
-                                ->title('Hardware Handover marked as rejected')
-                                ->body('Rejection reason: ' . $data['reject_reason'])
-                                ->danger()
-                                ->send();
-                        })
-                        ->requiresConfirmation(false),
-                    Action::make('mark_completed')
-                        ->label('Mark as Completed')
-                        ->icon('heroicon-o-check-badge') // Using check badge icon to distinguish from regular approval
-                        ->color('success') // Using success color for completion
-                        ->action(function (SoftwareHandover $record): void {
-                            $record->update(['status' => 'Completed']);
-
-                            Notification::make()
-                                ->title('Software Handover marked as completed')
-                                ->body('This handover has been marked as completed.')
+                                ->title('License has been activated successfully')
                                 ->success()
                                 ->send();
-                        })
-                        ->requiresConfirmation()
-                        ->hidden(
-                            fn(SoftwareHandover $record): bool =>
-                            $record->status !== 'Approved' || auth()->user()->role_id === 2
-                        ),
+                        }),
                     Action::make('view_license_details')
                         ->label('View License Details')
                         ->icon('heroicon-o-document-text')
@@ -431,14 +324,79 @@ class SoftwareHandoverCompleted extends Component implements HasForms, HasTable
                                     ]);
                                 }
                             };
+                        }),
+                    Action::make('add_admin_remark')
+                        ->label('Add Admin Remark')
+                        ->icon('heroicon-o-chat-bubble-left-right')
+                        ->color('primary')
+                        ->modalSubmitActionLabel('Save Remark')
+                        ->modalWidth(MaxWidth::Medium)
+                        ->modalHeading(fn(SoftwareHandover $record) => "Add Admin Remark for {$record->company_name}")
+                        ->form([
+                            Textarea::make('remark_content')
+                                ->label('Remark')
+                                ->required()
+                                ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                                ->afterStateHydrated(fn($state) => Str::upper($state))
+                                ->afterStateUpdated(fn($state) => Str::upper($state))
+                                ->rows(4)
+                                ->placeholder('Enter your remark here...')
+                                ->columnSpan(2),
+
+                            // Show existing remarks if any
+                            Placeholder::make('existing_remarks')
+                                ->label('Existing Remarks')
+                                ->content(function (SoftwareHandover $record) {
+                                    if (!$record->admin_remarks_license) {
+                                        return 'No remarks yet.';
+                                    }
+
+                                    $remarks = json_decode($record->admin_remarks_license, true) ?: [];
+                                    $html = '';
+
+                                    foreach ($remarks as $index => $remark) {
+                                        $number = $index + 1;
+                                        $html .= "<div class='p-3 mb-4 border border-gray-200 rounded bg-gray-50'>";
+                                        $html .= "<strong>Admin Remark {$number}</strong><br>";
+                                        $html .= "By {$remark['author']}<br>";
+                                        $html .= "<span class='text-xs text-gray-500'>{$remark['date']}</span><br>";
+                                        $html .= "<p class='mt-2'>{$remark['content']}</p>";
+                                        $html .= "</div>";
+                                    }
+
+                                    return new HtmlString($html);
+                                })
+                                ->columnSpan(2)
+                                ->visible(fn(SoftwareHandover $record) => !empty($record->admin_remarks_license))
+                        ])
+                        ->action(function (SoftwareHandover $record, array $data): void {
+                            // Get existing remarks or create new array
+                            $remarks = json_decode($record->admin_remarks_license, true) ?: [];
+
+                            // Add new remark
+                            $remarks[] = [
+                                'author' => auth()->user()->name,
+                                'date' => now()->format('Y-m-d H:i:s'),
+                                'content' => strtoupper($data['remark_content'])
+                            ];
+
+                            // Update record
+                            $record->update([
+                                'admin_remarks_license' => json_encode($remarks)
+                            ]);
+
+                            Notification::make()
+                                ->title('Admin remark added successfully')
+                                ->success()
+                                ->send();
                         })
                 ])->button()
-                    ->color('warning')
+
             ]);
     }
 
     public function render()
     {
-        return view('livewire.salesperson_dashboard.software-handover-completed');
+        return view('livewire.software-handover-v2-pending-license');
     }
 }

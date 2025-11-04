@@ -132,6 +132,35 @@ class SalesAdminInvoice extends Page implements HasTable
                 }
             }
 
+            // Deduct credit notes issued in this date range for this salesperson
+            $creditNotesForSalesperson = DB::table('credit_notes')
+                ->where('salesperson', $salespersonName)
+                ->whereBetween('credit_note_date', [$allYearStart, $allYearEnd])
+                ->get();
+
+            foreach ($creditNotesForSalesperson as $creditNote) {
+                // Get the invoice to check sales admin
+                $invoice = Invoice::where('invoice_no', $creditNote->invoice_number)
+                    ->where('invoice_amount', '>', 0)
+                    ->first();
+
+                if (!$invoice) continue;
+
+                $salesAdmin = $this->getSalesAdminFromInvoice($invoice);
+                $creditAmount = (float)$creditNote->amount;
+
+                // Only deduct from Full Payment status
+                $paymentStatus = $this->getPaymentStatusForInvoice($creditNote->invoice_number);
+
+                if ($paymentStatus === 'Full Payment') {
+                    if ($salesAdmin === 'JAJA') {
+                        $jajaAmount -= $creditAmount;
+                    } elseif ($salesAdmin === 'SHEENA') {
+                        $sheenaAmount -= $creditAmount;
+                    }
+                }
+            }
+
             $this->salespersonData[$salespersonName] = [
                 'jaja_amount' => $jajaAmount,
                 'sheena_amount' => $sheenaAmount,
@@ -196,6 +225,114 @@ class SalesAdminInvoice extends Page implements HasTable
                                         ->where('invoice_amount', '>', 0)
                                         ->sum('invoice_amount');
                                 }
+
+                                // Now deduct credit notes that were issued in the same date range
+                                $allowedSalespersons = array_keys(static::$salespersonUserIds);
+
+                                // Get the active table filters
+                                $tableFilters = $this->tableFilters ?? [];
+
+                                // Extract filter values safely
+                                $year = null;
+                                $month = null;
+                                $invoiceType = null;
+                                $salespersonFilter = null;
+                                $salesAdminFilter = null;
+
+                                if (isset($tableFilters['year']['value'])) {
+                                    $year = $tableFilters['year']['value'];
+                                } elseif (isset($tableFilters['year']) && !is_array($tableFilters['year'])) {
+                                    $year = $tableFilters['year'];
+                                }
+
+                                if (isset($tableFilters['month']['value'])) {
+                                    $month = $tableFilters['month']['value'];
+                                } elseif (isset($tableFilters['month']) && !is_array($tableFilters['month'])) {
+                                    $month = $tableFilters['month'];
+                                }
+
+                                if (isset($tableFilters['invoice_type']['value'])) {
+                                    $invoiceType = $tableFilters['invoice_type']['value'];
+                                } elseif (isset($tableFilters['invoice_type']) && !is_array($tableFilters['invoice_type'])) {
+                                    $invoiceType = $tableFilters['invoice_type'];
+                                }
+
+                                if (isset($tableFilters['salesperson']['value'])) {
+                                    $salespersonFilter = $tableFilters['salesperson']['value'];
+                                } elseif (isset($tableFilters['salesperson']) && !is_array($tableFilters['salesperson'])) {
+                                    $salespersonFilter = $tableFilters['salesperson'];
+                                }
+
+                                if (isset($tableFilters['sales_admin']['value'])) {
+                                    $salesAdminFilter = $tableFilters['sales_admin']['value'];
+                                } elseif (isset($tableFilters['sales_admin']) && !is_array($tableFilters['sales_admin'])) {
+                                    $salesAdminFilter = $tableFilters['sales_admin'];
+                                }
+
+                                // Build the credit note query based on credit_note_date
+                                $creditNoteQuery = DB::table('credit_notes')
+                                    ->whereIn('salesperson', $allowedSalespersons);
+
+                                // Apply year filter if set
+                                if ($year) {
+                                    $creditNoteQuery->whereYear('credit_note_date', $year);
+                                }
+
+                                // Apply month filter if set
+                                if ($month) {
+                                    $creditNoteQuery->whereMonth('credit_note_date', $month);
+                                }
+
+                                // Apply invoice type filter if set
+                                if ($invoiceType) {
+                                    $creditNoteQuery->where('invoice_number', 'like', $invoiceType . '%');
+                                }
+
+                                // Apply salesperson filter if set
+                                if ($salespersonFilter) {
+                                    $creditNoteQuery->where('salesperson', $salespersonFilter);
+                                }
+
+                                // Apply sales_admin filter if set
+                                if ($salesAdminFilter !== null) {
+                                    // Get invoice numbers that match the sales_admin filter
+                                    $invoiceNosWithSalesAdmin = Invoice::query()
+                                        ->whereIn('salesperson', $allowedSalespersons)
+                                        ->where('invoice_amount', '>', 0);
+
+                                    if ($salesAdminFilter === '') {
+                                        // Filter for unassigned
+                                        $invoiceNosWithSalesAdmin->where(function ($q) {
+                                            $q->whereNull('sales_admin')
+                                            ->orWhere('sales_admin', '');
+                                        });
+                                    } else {
+                                        // Filter for specific sales_admin
+                                        $invoiceNosWithSalesAdmin->where('sales_admin', $salesAdminFilter);
+                                    }
+
+                                    $matchingInvoiceNos = $invoiceNosWithSalesAdmin
+                                        ->distinct('invoice_no')
+                                        ->pluck('invoice_no')
+                                        ->toArray();
+
+                                    // Only include credit notes for these invoice numbers
+                                    $creditNoteQuery->whereIn('invoice_number', $matchingInvoiceNos);
+                                }
+
+                                // For role_id 2, filter by their own salesperson name
+                                if (Auth::check() && Auth::user()->role_id === 2) {
+                                    $userId = Auth::id();
+                                    $salespersonName = array_search($userId, static::$salespersonUserIds);
+                                    if ($salespersonName) {
+                                        $creditNoteQuery->where('salesperson', $salespersonName);
+                                    }
+                                }
+
+                                $totalCreditNotes = $creditNoteQuery->sum('amount');
+
+                                // Deduct credit notes from grand total
+                                $grandTotal -= $totalCreditNotes;
 
                                 return 'RM ' . number_format($grandTotal, 2);
                             }),

@@ -493,6 +493,10 @@
         ->getPendingKickOffs()
         ->count();
 
+    $softwareHandoverV2Rejected = app(\App\Livewire\SalespersonDashboard\SoftwareHandoverV2Rejected::class)
+        ->getPendingKickOffs()
+        ->count();
+
     // All Debtors - Getting real counts now
     $allDebtorsTable = app(\App\Livewire\SalespersonDashboard\AllDebtorsTable::class);
     $allDebtorCount = $allDebtorsTable->getDebtorCount();
@@ -523,7 +527,7 @@
     $partialDebtorInvoiceCount = $partialDebtorsTable->getInvoiceCount();
     $partialDebtorAmount = $partialDebtorsTable->getTotalAmount();
 
-    $rejectedHandoverTotal = $softwareHandoverRejected + $hardwareHandoverRejected;
+    $rejectedHandoverTotal = $softwareHandoverRejected + $hardwareHandoverRejected + $softwareHandoverV2Rejected;
 
     // Total for badge display on group box
     $totalDebtorCount = $allDebtorCount;
@@ -764,12 +768,24 @@
                         :class="{'selected': selectedStat === 'software-handover-rejected'}"
                         @click="setSelectedStat('software-handover-rejected')">
                     <div class="stat-info">
-                        <div class="stat-label">Software Rejected</div>
+                        <div class="stat-label">Software Rejected (V1)</div>
                     </div>
                     <div class="stat-count">
                         <div class="stat-count">{{ $softwareHandoverRejected }}</div>
                     </div>
                 </div>
+
+                <div class="stat-box software-handover-rejected"
+                        :class="{'selected': selectedStat === 'software-handover-v2-rejected'}"
+                        @click="setSelectedStat('software-handover-v2-rejected')">
+                    <div class="stat-info">
+                        <div class="stat-label">Software Rejected (V2)</div>
+                    </div>
+                    <div class="stat-count">
+                        <div class="stat-count">{{ $softwareHandoverV2Rejected }}</div>
+                    </div>
+                </div>
+
                 <div class="stat-box hardware-handover-rejected"
                         :class="{'selected': selectedStat === 'hardware-handover-rejected'}"
                         @click="setSelectedStat('hardware-handover-rejected')">
@@ -889,7 +905,9 @@
                 <div x-show="selectedStat === 'software-handover-rejected'" x-transition>
                     <livewire:salesperson-dashboard.software-handover-rejected />
                 </div>
-
+                <div x-show="selectedStat === 'software-handover-v2-rejected'" x-transition>
+                    <livewire:salesperson-dashboard.software-handover-v2-rejected />
+                </div>
                 <!-- Hardware Handover -->
                 <div x-show="selectedStat === 'hardware-handover-pending'" x-transition>
                     <div x-show="selectedStat === 'hardware-handover-pending'" x-transition>

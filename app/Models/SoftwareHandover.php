@@ -87,6 +87,15 @@ class SoftwareHandover extends Model
 
         'non_hrdf_pi',
         'software_hardware_pi',
+
+        'hr_account_id',
+        'hr_company_id',
+        'hr_user_id',
+        'hr_version',
+        'license_type',
+
+        'crm_buffer_license_id',
+        'crm_paid_license_ids',
     ];
 
     protected $casts = [
@@ -121,6 +130,12 @@ class SoftwareHandover extends Model
 
         'non_hrdf_pi' => 'array',
         'software_hardware_pi' => 'array',
+
+        'hr_account_id' => 'integer',
+        'hr_company_id' => 'integer',
+        'hr_user_id' => 'integer',
+        'crm_buffer_license_id' => 'integer',
+        'crm_paid_license_ids' => 'array',
     ];
 
     /**

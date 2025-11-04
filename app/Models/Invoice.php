@@ -24,6 +24,17 @@ class Invoice extends Model
         'invoice_no',
         'invoice_date',
         'salesperson',
+        'sales_admin',
+        'doc_status',
+        'doc_key',
+        'doc_type',
+        'sub_total',
+        'invoice_amount',
+        'item_code',
+        'currency_code',
+        'exchange_rate',
+        'last_modified_at',
+        'invoice_status',
     ];
 
     protected $guarded = ['id'];
@@ -31,5 +42,10 @@ class Invoice extends Model
     public function lead(): BelongsTo
     {
         return $this->belongsTo(Lead::class, 'lead_id', 'id');
+    }
+
+    public function details(): HasMany
+    {
+        return $this->hasMany(InvoiceDetail::class, 'doc_key', 'doc_key');
     }
 }

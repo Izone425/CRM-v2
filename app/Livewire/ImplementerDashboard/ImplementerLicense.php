@@ -78,7 +78,7 @@ class ImplementerLicense extends Component implements HasForms, HasTable
         $query = SoftwareHandover::query()
             ->whereIn('status', ['Completed'])
             ->whereNull('license_certification_id')
-            ->where('id', '>=', 561)
+            // ->where('id', '>=', 561)
             ->orderBy('created_at', 'asc') // Oldest first since they're the most overdue
             ->with(['lead', 'lead.companyDetail', 'creator']);
 
@@ -257,6 +257,11 @@ class ImplementerLicense extends Component implements HasForms, HasTable
                         ->label('Create License Duration')
                         ->icon('heroicon-o-check-circle')
                         ->color('success')
+                        ->visible(fn(SoftwareHandover $record): bool =>
+                            $record->hr_version == '1' &&
+                            $record->status === 'Completed' &&
+                            is_null($record->license_certification_id)
+                        )
                         ->form([
                             \Filament\Forms\Components\Grid::make(4)
                             ->schema([
@@ -611,12 +616,760 @@ class ImplementerLicense extends Component implements HasForms, HasTable
                                 ->success()
                                 ->body("License certificate duration generated successfully and email has been sent.")
                                 ->send();
-                        })
+                        }),
+                    Action::make('activate_license_v2')
+                        ->label('Activate License (V2)')
+                        ->icon('heroicon-o-key')
+                        ->color('success')
+                        ->visible(fn(SoftwareHandover $record): bool =>
+                            $record->hr_version == 2 &&
+                            $record->status === 'Completed' &&
+                            is_null($record->license_certification_id)
+                        )
+                        ->form([
+                            \Filament\Forms\Components\Section::make('Module Selection')
+                                ->description('Modules are automatically selected based on quotation')
+                                ->schema([
+                                    \Filament\Forms\Components\Grid::make(2)
+                                        ->schema([
+                                            \Filament\Forms\Components\Checkbox::make('ta')
+                                                ->label('Time Attendance (TA)')
+                                                ->inline()
+                                                ->disabled()
+                                                ->dehydrated()
+                                                ->helperText(function (SoftwareHandover $record) {
+                                                    return $this->getModulePeriodInfo($record, ['TCL_TA USER-NEW', 'TCL_TA USER-ADDON', 'TCL_TA USER-ADDON(R)', 'TCL_TA USER-RENEWAL', 'TCL_FULL USER-NEW']);
+                                                })
+                                                ->default(function (SoftwareHandover $record) {
+                                                    return $this->shouldModuleBeChecked($record, ['TCL_TA USER-NEW', 'TCL_TA USER-ADDON', 'TCL_TA USER-ADDON(R)', 'TCL_TA USER-RENEWAL', 'TCL_FULL USER-NEW']);
+                                                }),
+
+                                            \Filament\Forms\Components\Checkbox::make('tapp')
+                                                ->label('TimeTec Appraisal (T-APP)')
+                                                ->inline()
+                                                ->disabled()
+                                                ->dehydrated()
+                                                ->helperText(function (SoftwareHandover $record) {
+                                                    return $this->getModulePeriodInfo($record, ['TCL_APPRAISAL USER-NEW']);
+                                                })
+                                                ->default(function (SoftwareHandover $record) {
+                                                    return $this->shouldModuleBeChecked($record, ['TCL_APPRAISAL USER-NEW']);
+                                                }),
+
+                                            \Filament\Forms\Components\Checkbox::make('tl')
+                                                ->label('TimeTec Leave (TL)')
+                                                ->inline()
+                                                ->disabled()
+                                                ->dehydrated()
+                                                ->helperText(function (SoftwareHandover $record) {
+                                                    return $this->getModulePeriodInfo($record, ['TCL_LEAVE USER-NEW', 'TCL_LEAVE USER-ADDON', 'TCL_LEAVE USER-ADDON(R)', 'TCL_LEAVE USER-RENEWAL', 'TCL_FULL USER-NEW']);
+                                                })
+                                                ->default(function (SoftwareHandover $record) {
+                                                    return $this->shouldModuleBeChecked($record, ['TCL_LEAVE USER-NEW', 'TCL_LEAVE USER-ADDON', 'TCL_LEAVE USER-ADDON(R)', 'TCL_LEAVE USER-RENEWAL', 'TCL_FULL USER-NEW']);
+                                                }),
+
+                                            \Filament\Forms\Components\Checkbox::make('thire')
+                                                ->label('TimeTec Hire (T-HIRE)')
+                                                ->inline()
+                                                ->disabled()
+                                                ->dehydrated()
+                                                ->helperText(function (SoftwareHandover $record) {
+                                                    return $this->getModulePeriodInfo($record, ['TCL_HIRE-NEW', 'TCL_HIRE-RENEWAL']);
+                                                })
+                                                ->default(function (SoftwareHandover $record) {
+                                                    return $this->shouldModuleBeChecked($record, ['TCL_HIRE-NEW', 'TCL_HIRE-RENEWAL']);
+                                                }),
+
+                                            \Filament\Forms\Components\Checkbox::make('tc')
+                                                ->label('TimeTec Claim (TC)')
+                                                ->inline()
+                                                ->disabled()
+                                                ->dehydrated()
+                                                ->helperText(function (SoftwareHandover $record) {
+                                                    return $this->getModulePeriodInfo($record, ['TCL_CLAIM USER-NEW', 'TCL_CLAIM USER-ADDON', 'TCL_CLAIM USER-ADDON(R)', 'TCL_CLAIM USER-RENEWAL', 'TCL_FULL USER-NEW']);
+                                                })
+                                                ->default(function (SoftwareHandover $record) {
+                                                    return $this->shouldModuleBeChecked($record, ['TCL_CLAIM USER-NEW', 'TCL_CLAIM USER-ADDON', 'TCL_CLAIM USER-ADDON(R)', 'TCL_CLAIM USER-RENEWAL', 'TCL_FULL USER-NEW']);
+                                                }),
+
+                                            \Filament\Forms\Components\Checkbox::make('tacc')
+                                                ->label('TimeTec Access (T-ACC)')
+                                                ->inline()
+                                                ->disabled()
+                                                ->dehydrated()
+                                                ->helperText(function (SoftwareHandover $record) {
+                                                    return $this->getModulePeriodInfo($record, ['TCL_ACCESS-NEW', 'TCL_ACCESS-RENEWAL']);
+                                                })
+                                                ->default(function (SoftwareHandover $record) {
+                                                    return $this->shouldModuleBeChecked($record, ['TCL_ACCESS-NEW', 'TCL_ACCESS-RENEWAL']);
+                                                }),
+
+                                            \Filament\Forms\Components\Checkbox::make('tp')
+                                                ->label('TimeTec Payroll (TP)')
+                                                ->inline()
+                                                ->disabled()
+                                                ->dehydrated()
+                                                ->helperText(function (SoftwareHandover $record) {
+                                                    return $this->getModulePeriodInfo($record, ['TCL_PAYROLL USER-NEW', 'TCL_PAYROLL USER-ADDON', 'TCL_PAYROLL USER-ADDON(R)', 'TCL_PAYROLL USER-RENEWAL', 'TCL_FULL USER-NEW']);
+                                                })
+                                                ->default(function (SoftwareHandover $record) {
+                                                    return $this->shouldModuleBeChecked($record, ['TCL_PAYROLL USER-NEW', 'TCL_PAYROLL USER-ADDON', 'TCL_PAYROLL USER-ADDON(R)', 'TCL_PAYROLL USER-RENEWAL', 'TCL_FULL USER-NEW']);
+                                                }),
+
+                                            \Filament\Forms\Components\Checkbox::make('tpbi')
+                                                ->label('TimeTec Power BI (T-PBI)')
+                                                ->inline()
+                                                ->disabled()
+                                                ->dehydrated()
+                                                ->helperText(function (SoftwareHandover $record) {
+                                                    return $this->getModulePeriodInfo($record, ['TCL_POWER BI']);
+                                                })
+                                                ->default(function (SoftwareHandover $record) {
+                                                    return $this->shouldModuleBeChecked($record, ['TCL_POWER BI']);
+                                                }),
+                                        ])
+                                ]),
+
+                            \Filament\Forms\Components\Section::make('License Duration Summary')
+                                ->schema([
+                                    \Filament\Forms\Components\Placeholder::make('buffer_period')
+                                        ->label('Buffer License Period')
+                                        ->content(function () {
+                                            $start = now()->format('d M Y');
+                                            $end = now()->addMonth()->subDay()->format('d M Y');
+                                            return "**{$start}** to **{$end}** (1 month)";
+                                        }),
+
+                                    \Filament\Forms\Components\Placeholder::make('paid_period')
+                                        ->label('Paid License Period')
+                                        ->content(function (SoftwareHandover $record) {
+                                            $start = now()->addMonth()->format('d M Y');
+
+                                            // Get total paid months
+                                            $allPiIds = [];
+                                            if (!empty($record->proforma_invoice_product)) {
+                                                $productPis = is_string($record->proforma_invoice_product)
+                                                    ? json_decode($record->proforma_invoice_product, true)
+                                                    : $record->proforma_invoice_product;
+                                                if (is_array($productPis)) {
+                                                    $allPiIds = array_merge($allPiIds, $productPis);
+                                                }
+                                            }
+                                            if (!empty($record->proforma_invoice_hrdf)) {
+                                                $hrdfPis = is_string($record->proforma_invoice_hrdf)
+                                                    ? json_decode($record->proforma_invoice_hrdf, true)
+                                                    : $record->proforma_invoice_hrdf;
+                                                if (is_array($hrdfPis)) {
+                                                    $allPiIds = array_merge($allPiIds, $hrdfPis);
+                                                }
+                                            }
+
+                                            $totalPaidMonths = 0;
+                                            if (!empty($allPiIds)) {
+                                                $licensePeriods = $this->getLicensePeriodsFromQuotations($allPiIds, $record->project_code);
+                                                foreach ($licensePeriods as $period) {
+                                                    if ($period['subscription_period'] > $totalPaidMonths) {
+                                                        $totalPaidMonths = $period['subscription_period'];
+                                                    }
+                                                }
+                                            }
+
+                                            if ($totalPaidMonths === 0) {
+                                                $totalPaidMonths = 12;
+                                            }
+
+                                            $end = now()->addMonth()->addMonths($totalPaidMonths)->subDay()->format('d M Y');
+                                            $duration = $this->formatDuration(floor($totalPaidMonths / 12), $totalPaidMonths % 12);
+
+                                            return "**{$start}** to **{$end}** ({$duration})";
+                                        }),
+                                ])
+                                ->columns(2),
+                        ])
+                        ->modalHeading('Activate V2 License')
+                        ->modalWidth('4xl')
+                        ->action(function (SoftwareHandover $record, array $data): void {
+                            // ... existing action code remains the same ...
+                            $handoverId = $record->project_code;
+                            $accountId = $record->hr_account_id;
+                            $companyId = $record->hr_company_id;
+
+                            if (!$accountId || !$companyId) {
+                                Notification::make()
+                                    ->title('License Activation Failed')
+                                    ->danger()
+                                    ->body('CRM account not found. Please complete the handover first.')
+                                    ->send();
+                                return;
+                            }
+
+                            // Extract module selections (from disabled but dehydrated checkboxes)
+                            $moduleSelections = [
+                                'ta' => $data['ta'] ?? false,
+                                'tl' => $data['tl'] ?? false,
+                                'tc' => $data['tc'] ?? false,
+                                'tp' => $data['tp'] ?? false,
+                                'tapp' => $data['tapp'] ?? false,
+                                'thire' => $data['thire'] ?? false,
+                                'tacc' => $data['tacc'] ?? false,
+                                'tpbi' => $data['tpbi'] ?? false,
+                            ];
+
+                            \Illuminate\Support\Facades\Log::info("Starting V2 license activation", [
+                                'handover_id' => $handoverId,
+                                'account_id' => $accountId,
+                                'company_id' => $companyId,
+                                'modules' => $moduleSelections
+                            ]);
+
+                            // Get company name
+                            $companyName = $record->company_name ?? $record->lead->companyDetail->company_name ?? 'Unknown Company';
+
+                            // Calculate license dates for V2
+                            $bufferStartDate = now();
+                            $bufferEndDate = now()->copy()->addMonth()->subDay();
+                            $paidStartDate = now()->copy()->addMonth();
+
+                            // Get total paid months from quotations
+                            $allPiIds = [];
+                            if (!empty($record->proforma_invoice_product)) {
+                                $productPis = is_string($record->proforma_invoice_product)
+                                    ? json_decode($record->proforma_invoice_product, true)
+                                    : $record->proforma_invoice_product;
+                                if (is_array($productPis)) {
+                                    $allPiIds = array_merge($allPiIds, $productPis);
+                                }
+                            }
+                            if (!empty($record->proforma_invoice_hrdf)) {
+                                $hrdfPis = is_string($record->proforma_invoice_hrdf)
+                                    ? json_decode($record->proforma_invoice_hrdf, true)
+                                    : $record->proforma_invoice_hrdf;
+                                if (is_array($hrdfPis)) {
+                                    $allPiIds = array_merge($allPiIds, $hrdfPis);
+                                }
+                            }
+
+                            // Calculate total paid months
+                            $totalPaidMonths = 0;
+                            if (!empty($allPiIds)) {
+                                $licensePeriods = $this->getLicensePeriodsFromQuotations($allPiIds, $handoverId);
+                                foreach ($licensePeriods as $period) {
+                                    if ($period['subscription_period'] > $totalPaidMonths) {
+                                        $totalPaidMonths = $period['subscription_period'];
+                                    }
+                                }
+                            }
+
+                            if ($totalPaidMonths === 0) {
+                                $totalPaidMonths = 12;
+                            }
+
+                            $paidEndDate = $paidStartDate->copy()->addMonths($totalPaidMonths)->subDay();
+                            $nextRenewalDate = $paidEndDate->copy()->addDay();
+
+                            $paidLicenseYears = floor($totalPaidMonths / 12);
+                            $paidLicenseMonths = $totalPaidMonths % 12;
+                            $licenseYears = $paidLicenseYears + ($paidLicenseMonths / 12);
+
+                            // Create license certificate
+                            $certificate = \App\Models\LicenseCertificate::create([
+                                'company_name' => $companyName,
+                                'software_handover_id' => $record->id,
+                                'kick_off_date' => $record->kick_off_meeting ?? now(),
+                                'buffer_license_start' => $bufferStartDate,
+                                'buffer_license_end' => $bufferEndDate,
+                                'buffer_months' => 1,
+                                'paid_license_start' => $paidStartDate,
+                                'paid_license_end' => $paidEndDate,
+                                'paid_months' => $totalPaidMonths,
+                                'next_renewal_date' => $nextRenewalDate,
+                                'license_years' => $licenseYears,
+                                'created_by' => auth()->id(),
+                                'updated_by' => auth()->id(),
+                            ]);
+
+                            // Add buffer and paid licenses
+                            $bufferResult = $this->addBufferLicenses($record, $accountId, $companyId, $moduleSelections, $handoverId);
+                            $paidResult = $this->addPaidApplicationLicenses($record, $accountId, $companyId, $moduleSelections, $handoverId);
+
+                            // Update software handover
+                            $record->update([
+                                'license_certification_id' => $certificate->id,
+                                'license_activated' => true,
+                                'license_activated_at' => now(),
+                                'ta' => $moduleSelections['ta'],
+                                'tl' => $moduleSelections['tl'],
+                                'tc' => $moduleSelections['tc'],
+                                'tp' => $moduleSelections['tp'],
+                                'tapp' => $moduleSelections['tapp'],
+                                'thire' => $moduleSelections['thire'],
+                                'tacc' => $moduleSelections['tacc'],
+                                'tpbi' => $moduleSelections['tpbi'],
+                            ]);
+
+                            $certificateId = 'LC_' . str_pad($certificate->id, 4, '0', STR_PAD_LEFT);
+
+                            if ($bufferResult['success'] && $paidResult['success']) {
+                                \Illuminate\Support\Facades\Log::info("V2 License certificate created", [
+                                    'handover_id' => $handoverId,
+                                    'certificate_id' => $certificateId,
+                                    'buffer_period' => "{$bufferStartDate->format('d M Y')} to {$bufferEndDate->format('d M Y')}",
+                                    'paid_period' => "{$paidStartDate->format('d M Y')} to {$paidEndDate->format('d M Y')}",
+                                    'total_paid_months' => $totalPaidMonths
+                                ]);
+
+                                Notification::make()
+                                    ->title('V2 License Activated')
+                                    ->success()
+                                    ->body("License certificate {$certificateId} created. Buffer and paid licenses added successfully.")
+                                    ->send();
+                            } else {
+                                $errors = [];
+                                if (!$bufferResult['success']) {
+                                    $errors[] = "Buffer: " . ($bufferResult['error'] ?? 'Unknown error');
+                                }
+                                if (!$paidResult['success']) {
+                                    $errors[] = "Paid: " . ($paidResult['error'] ?? 'Unknown error');
+                                }
+
+                                Notification::make()
+                                    ->title('License Activation Completed with Errors')
+                                    ->warning()
+                                    ->body("Certificate created but some licenses failed: " . implode('; ', $errors))
+                                    ->send();
+                            }
+                        }),
                 ])
                 ->button()
                 ->color('warning')
                 ->label('Actions')
             ]);
+    }
+
+    /**
+     * Get module period info for display
+     */
+    protected function getModulePeriodInfo(SoftwareHandover $record, array $productCodes): ?string
+    {
+        // Get all PI IDs
+        $allPiIds = [];
+        if (!empty($record->proforma_invoice_product)) {
+            $productPis = is_string($record->proforma_invoice_product)
+                ? json_decode($record->proforma_invoice_product, true)
+                : $record->proforma_invoice_product;
+            if (is_array($productPis)) {
+                $allPiIds = array_merge($allPiIds, $productPis);
+            }
+        }
+        if (!empty($record->proforma_invoice_hrdf)) {
+            $hrdfPis = is_string($record->proforma_invoice_hrdf)
+                ? json_decode($record->proforma_invoice_hrdf, true)
+                : $record->proforma_invoice_hrdf;
+            if (is_array($hrdfPis)) {
+                $allPiIds = array_merge($allPiIds, $hrdfPis);
+            }
+        }
+
+        if (empty($allPiIds)) {
+            return null;
+        }
+
+        // Get license periods
+        $licensePeriods = $this->getLicensePeriodsFromQuotations($allPiIds, $record->project_code);
+
+        // Find matching period for this module
+        foreach ($licensePeriods as $period) {
+            $intersection = array_intersect($productCodes, $period['product_codes']);
+            if (!empty($intersection)) {
+                $totalMonths = $period['subscription_period'];
+                $years = floor($totalMonths / 12);
+                $months = $totalMonths % 12;
+                $duration = $this->formatDuration($years, $months);
+
+                $startDate = now()->addMonth()->format('d M Y');
+                $endDate = $period['end_date'];
+
+                return "📅 {$startDate} to {$endDate} ({$duration})";
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Check if module should be checked based on quotation products
+     */
+    protected function shouldModuleBeChecked(SoftwareHandover $record, array $productCodes): bool
+    {
+        // Get all PI IDs from proforma_invoice_product and proforma_invoice_hrdf
+        $allPiIds = [];
+
+        if (!empty($record->proforma_invoice_product)) {
+            $productPis = is_string($record->proforma_invoice_product)
+                ? json_decode($record->proforma_invoice_product, true)
+                : $record->proforma_invoice_product;
+            if (is_array($productPis)) {
+                $allPiIds = array_merge($allPiIds, $productPis);
+            }
+        }
+
+        if (!empty($record->proforma_invoice_hrdf)) {
+            $hrdfPis = is_string($record->proforma_invoice_hrdf)
+                ? json_decode($record->proforma_invoice_hrdf, true)
+                : $record->proforma_invoice_hrdf;
+            if (is_array($hrdfPis)) {
+                $allPiIds = array_merge($allPiIds, $hrdfPis);
+            }
+        }
+
+        if (empty($allPiIds)) {
+            return false;
+        }
+
+        // Get quotation details for these PIs
+        $quotations = \App\Models\Quotation::whereIn('id', $allPiIds)->get();
+
+        foreach ($quotations as $quotation) {
+            $details = \App\Models\QuotationDetail::where('quotation_id', $quotation->id)
+                ->with('product')
+                ->get();
+
+            foreach ($details as $detail) {
+                if (!$detail->product) {
+                    continue;
+                }
+
+                // Check if this product code matches any of the module's product codes
+                if (in_array($detail->product->code, $productCodes)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Add buffer licenses for all selected modules (1 month)
+     */
+    protected function addBufferLicenses(SoftwareHandover $record, int $accountId, int $companyId, array $modules, string $handoverId): array
+    {
+        try {
+            $crmService = app(\App\Services\CRMApiService::class);
+
+            // Buffer license: 1 month starting from today
+            $bufferStartDate = now()->format('Y-m-d');
+            $bufferEndDate = now()->addMonth()->subDay()->format('Y-m-d');
+
+            \Illuminate\Support\Facades\Log::info("Adding buffer licenses", [
+                'handover_id' => $handoverId,
+                'buffer_start' => $bufferStartDate,
+                'buffer_end' => $bufferEndDate,
+                'modules' => $modules
+            ]);
+
+            // Map module checkboxes to application names
+            $moduleMapping = [
+                'ta' => 'Attendance',
+                'tl' => 'Leave',
+                'tc' => 'Claim',
+                'tp' => 'Payroll',
+                'tapp' => 'Appraisal',
+                'thire' => 'Hire',
+                'tacc' => 'Access',
+                'tpbi' => 'PowerBI',
+            ];
+
+            $results = [];
+            $successCount = 0;
+            $failCount = 0;
+
+            foreach ($moduleMapping as $moduleKey => $appName) {
+                if (!empty($modules[$moduleKey])) {
+                    $licenseData = [
+                        'application' => $appName,
+                        'startDate' => $bufferStartDate,
+                        'endDate' => $bufferEndDate,
+                        'userId' => auth()->id(),
+                    ];
+
+                    \Illuminate\Support\Facades\Log::info("Adding buffer license for module", [
+                        'handover_id' => $handoverId,
+                        'application' => $appName,
+                        'license_data' => $licenseData
+                    ]);
+
+                    $result = $crmService->addBufferLicense($accountId, $companyId, $licenseData);
+
+                    $results[$appName] = $result;
+
+                    if ($result['success']) {
+                        $successCount++;
+                        \Illuminate\Support\Facades\Log::info("Buffer license added successfully", [
+                            'handover_id' => $handoverId,
+                            'application' => $appName,
+                            'period_id' => $result['data']['periodId'] ?? null
+                        ]);
+                    } else {
+                        $failCount++;
+                        \Illuminate\Support\Facades\Log::error("Failed to add buffer license", [
+                            'handover_id' => $handoverId,
+                            'application' => $appName,
+                            'error' => $result['error'] ?? 'Unknown error'
+                        ]);
+                    }
+                }
+            }
+
+            return [
+                'success' => $successCount > 0,
+                'results' => $results,
+                'success_count' => $successCount,
+                'fail_count' => $failCount
+            ];
+
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error("Failed to add buffer licenses", [
+                'handover_id' => $handoverId,
+                'error' => $e->getMessage()
+            ]);
+
+            return ['success' => false, 'error' => $e->getMessage()];
+        }
+    }
+
+    /**
+     * Add paid application licenses based on selected modules and quotation details
+     */
+    protected function addPaidApplicationLicenses(SoftwareHandover $record, int $accountId, int $companyId, array $modules, string $handoverId): array
+    {
+        try {
+            $crmService = app(\App\Services\CRMApiService::class);
+
+            // Get all PI IDs from proforma_invoice_product and proforma_invoice_hrdf
+            $allPiIds = [];
+
+            if (!empty($record->proforma_invoice_product)) {
+                $productPis = is_string($record->proforma_invoice_product)
+                    ? json_decode($record->proforma_invoice_product, true)
+                    : $record->proforma_invoice_product;
+                if (is_array($productPis)) {
+                    $allPiIds = array_merge($allPiIds, $productPis);
+                }
+            }
+
+            if (!empty($record->proforma_invoice_hrdf)) {
+                $hrdfPis = is_string($record->proforma_invoice_hrdf)
+                    ? json_decode($record->proforma_invoice_hrdf, true)
+                    : $record->proforma_invoice_hrdf;
+                if (is_array($hrdfPis)) {
+                    $allPiIds = array_merge($allPiIds, $hrdfPis);
+                }
+            }
+
+            if (empty($allPiIds)) {
+                \Illuminate\Support\Facades\Log::warning("No proforma invoices found", [
+                    'handover_id' => $handoverId
+                ]);
+                return ['success' => false, 'error' => 'No proforma invoices found'];
+            }
+
+            \Illuminate\Support\Facades\Log::info("Processing paid licenses for PIs", [
+                'handover_id' => $handoverId,
+                'pi_ids' => $allPiIds
+            ]);
+
+            // Get license periods from quotations
+            $licensePeriods = $this->getLicensePeriodsFromQuotations($allPiIds, $handoverId);
+
+            if (empty($licensePeriods)) {
+                \Illuminate\Support\Facades\Log::warning("No valid license periods found", [
+                    'handover_id' => $handoverId,
+                    'pi_ids' => $allPiIds
+                ]);
+                return ['success' => false, 'error' => 'No valid license periods found in quotations'];
+            }
+
+            // Map module checkboxes to application names and product codes
+            $moduleMapping = [
+                'ta' => ['app' => 'Attendance', 'codes' => ['TCL_TA USER-NEW', 'TCL_TA USER-ADDON', 'TCL_TA USER-ADDON(R)', 'TCL_TA USER-RENEWAL', 'TCL_FULL USER-NEW']],
+                'tl' => ['app' => 'Leave', 'codes' => ['TCL_LEAVE USER-NEW', 'TCL_LEAVE USER-ADDON', 'TCL_LEAVE USER-ADDON(R)', 'TCL_LEAVE USER-RENEWAL', 'TCL_FULL USER-NEW']],
+                'tc' => ['app' => 'Claim', 'codes' => ['TCL_CLAIM USER-NEW', 'TCL_CLAIM USER-ADDON', 'TCL_CLAIM USER-ADDON(R)', 'TCL_CLAIM USER-RENEWAL', 'TCL_FULL USER-NEW']],
+                'tp' => ['app' => 'Payroll', 'codes' => ['TCL_PAYROLL USER-NEW', 'TCL_PAYROLL USER-ADDON', 'TCL_PAYROLL USER-ADDON(R)', 'TCL_PAYROLL USER-RENEWAL', 'TCL_FULL USER-NEW']],
+                'tapp' => ['app' => 'Appraisal', 'codes' => ['TCL_APPRAISAL USER-NEW']],
+                'thire' => ['app' => 'Hire', 'codes' => ['TCL_HIRE-NEW', 'TCL_HIRE-RENEWAL']],
+                'tacc' => ['app' => 'Access', 'codes' => ['TCL_ACCESS-NEW', 'TCL_ACCESS-RENEWAL']],
+                'tpbi' => ['app' => 'PowerBI', 'codes' => ['TCL_POWER BI']],
+            ];
+
+            $results = [];
+
+            // Paid license: starts the day after buffer ends (1 month from now)
+            $paidStartDate = now()->addMonth()->format('Y-m-d');
+
+            \Illuminate\Support\Facades\Log::info("Paid license start date", [
+                'handover_id' => $handoverId,
+                'paid_start' => $paidStartDate
+            ]);
+
+            $successCount = 0;
+            $failCount = 0;
+
+            foreach ($moduleMapping as $moduleKey => $moduleInfo) {
+                if (!empty($modules[$moduleKey])) {
+                    $appName = $moduleInfo['app'];
+                    $productCodes = $moduleInfo['codes'];
+
+                    // Find matching license period and calculate paid end date
+                    $paidEndDate = $this->findEndDateForModule($productCodes, $licensePeriods, $paidStartDate, $handoverId);
+
+                    if (!$paidEndDate) {
+                        \Illuminate\Support\Facades\Log::warning("No end date found for module", [
+                            'handover_id' => $handoverId,
+                            'application' => $appName,
+                            'product_codes' => $productCodes
+                        ]);
+                        continue;
+                    }
+
+                    $licenseData = [
+                        'application' => $appName,
+                        'startDate' => $paidStartDate,
+                        'endDate' => $paidEndDate,
+                        'userId' => auth()->id(),
+                    ];
+
+                    \Illuminate\Support\Facades\Log::info("Adding paid application license", [
+                        'handover_id' => $handoverId,
+                        'application' => $appName,
+                        'license_data' => $licenseData
+                    ]);
+
+                    $result = $crmService->addPaidApplicationLicense($accountId, $companyId, $licenseData);
+
+                    $results[$appName] = $result;
+
+                    if ($result['success']) {
+                        $successCount++;
+                        \Illuminate\Support\Facades\Log::info("Paid application license added", [
+                            'handover_id' => $handoverId,
+                            'application' => $appName,
+                            'period_id' => $result['data']['periodId'] ?? null,
+                            'start_date' => $paidStartDate,
+                            'end_date' => $paidEndDate
+                        ]);
+                    } else {
+                        $failCount++;
+                        \Illuminate\Support\Facades\Log::error("Failed to add paid application license", [
+                            'handover_id' => $handoverId,
+                            'application' => $appName,
+                            'error' => $result['error'] ?? 'Unknown error'
+                        ]);
+                    }
+                }
+            }
+
+            return [
+                'success' => $successCount > 0,
+                'results' => $results,
+                'success_count' => $successCount,
+                'fail_count' => $failCount
+            ];
+
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error("Failed to add paid application licenses", [
+                'handover_id' => $handoverId,
+                'error' => $e->getMessage()
+            ]);
+
+            return ['success' => false, 'error' => $e->getMessage()];
+        }
+    }
+
+    /**
+     * Get license periods from quotations - groups by module type and sums periods
+     */
+    protected function getLicensePeriodsFromQuotations(array $piIds, string $handoverId): array
+    {
+        $licensePeriods = [];
+        $quotations = \App\Models\Quotation::whereIn('id', $piIds)->get();
+
+        $moduleGroups = [
+            'Attendance' => ['TCL_TA USER-NEW', 'TCL_TA USER-ADDON', 'TCL_TA USER-ADDON(R)', 'TCL_TA USER-RENEWAL', 'TCL_FULL USER-NEW'],
+            'Leave' => ['TCL_LEAVE USER-NEW', 'TCL_LEAVE USER-ADDON', 'TCL_LEAVE USER-ADDON(R)', 'TCL_LEAVE USER-RENEWAL', 'TCL_FULL USER-NEW'],
+            'Claim' => ['TCL_CLAIM USER-NEW', 'TCL_CLAIM USER-ADDON', 'TCL_CLAIM USER-ADDON(R)', 'TCL_CLAIM USER-RENEWAL', 'TCL_FULL USER-NEW'],
+            'Payroll' => ['TCL_PAYROLL USER-NEW', 'TCL_PAYROLL USER-ADDON', 'TCL_PAYROLL USER-ADDON(R)', 'TCL_PAYROLL USER-RENEWAL', 'TCL_FULL USER-NEW'],
+            'Appraisal' => ['TCL_APPRAISAL USER-NEW'],
+            'Hire' => ['TCL_HIRE-NEW', 'TCL_HIRE-RENEWAL'],
+            'Access' => ['TCL_ACCESS-NEW', 'TCL_ACCESS-RENEWAL'],
+            'PowerBI' => ['TCL_POWER BI'],
+        ];
+
+        $periodsByModule = [];
+
+        foreach ($quotations as $quotation) {
+            $details = \App\Models\QuotationDetail::where('quotation_id', $quotation->id)->with('product')->get();
+
+            foreach ($details as $detail) {
+                if (!$detail->product) continue;
+
+                $productCode = $detail->product->code;
+                $subscriptionPeriod = $detail->subscription_period ?? $detail->product->subscription_period ?? 12;
+
+                $moduleName = null;
+                foreach ($moduleGroups as $module => $codes) {
+                    if (in_array($productCode, $codes)) {
+                        $moduleName = $module;
+                        break;
+                    }
+                }
+
+                if (!$moduleName) continue;
+
+                if (!isset($periodsByModule[$moduleName])) {
+                    $periodsByModule[$moduleName] = [
+                        'module_name' => $moduleName,
+                        'total_months' => 0,
+                        'product_codes' => [],
+                    ];
+                }
+
+                $periodsByModule[$moduleName]['total_months'] += (int)$subscriptionPeriod;
+                $periodsByModule[$moduleName]['product_codes'][] = $productCode;
+            }
+        }
+
+        $paidStartDate = now()->addMonth();
+
+        foreach ($periodsByModule as $moduleName => $data) {
+            $totalMonths = $data['total_months'];
+            $endDate = $paidStartDate->copy()->addMonths($totalMonths)->subDay()->format('Y-m-d');
+
+            $licensePeriods[] = [
+                'module_name' => $moduleName,
+                'product_codes' => array_unique($data['product_codes']),
+                'subscription_period' => $totalMonths,
+                'end_date' => $endDate,
+            ];
+        }
+
+        return $licensePeriods;
+    }
+
+    /**
+     * Find end date for a specific module based on product codes
+     */
+    protected function findEndDateForModule(array $productCodes, array $licensePeriods, string $startDate, string $handoverId): ?string
+    {
+        foreach ($licensePeriods as $period) {
+            $intersection = array_intersect($productCodes, $period['product_codes']);
+
+            if (!empty($intersection)) {
+                return $period['end_date'];
+            }
+        }
+
+        return null;
     }
 
     private function formatDuration(int $years, int $months): string
