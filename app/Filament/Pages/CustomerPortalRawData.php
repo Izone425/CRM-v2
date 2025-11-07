@@ -117,23 +117,67 @@ class CustomerPortalRawData extends Page implements HasTable
                     ->searchable(false)
                     ->sortable(false),
 
-                // TextColumn::make('email')
-                //     ->label('Email Address')
-                //     ->searchable()
-                //     ->sortable(),
+                TextColumn::make('db_creation')
+                    ->label('DB Creation')
+                    ->getStateUsing(function ($record) {
+                        if ($record->lead_id) {
+                            $handover = SoftwareHandover::where('lead_id', $record->lead_id)
+                                ->orderBy('id', 'desc')
+                                ->first();
 
-                // TextColumn::make('password_display')
-                //     ->label('Password')
-                //     ->getStateUsing(function ($record) {
-                //         return '••••••••••••'; // Hidden for security
-                //     })
-                //     ->tooltip('Password is hidden for security')
-                //     ->searchable(false)
-                //     ->sortable(false)
-                //     ->color('gray'),
+                            if ($handover && $handover->completed_at) {
+                                return \Carbon\Carbon::parse($handover->completed_at)->format('d M Y');
+                            }
+                        }
+                        return '-';
+                    })
+                    ->searchable(false)
+                    ->sortable(false),
+
+                TextColumn::make('total_days')
+                    ->label('Total Days')
+                    ->getStateUsing(function ($record) {
+                        if ($record->lead_id) {
+                            $handover = SoftwareHandover::where('lead_id', $record->lead_id)
+                                ->orderBy('id', 'desc')
+                                ->first();
+
+                            if ($handover && $handover->completed_at) {
+                                try {
+                                    $completedDate = \Carbon\Carbon::parse($handover->completed_at);
+
+                                    // Check if go_live_date exists, if yes use it, otherwise use today
+                                    if ($handover->go_live_date) {
+                                        $endDate = \Carbon\Carbon::parse($handover->go_live_date);
+                                    } else {
+                                        $endDate = \Carbon\Carbon::now();
+                                    }
+
+                                    // Calculate weekdays only (excluding weekends)
+                                    $weekdayCount = 0;
+                                    $currentDate = $completedDate->copy();
+
+                                    while ($currentDate->lte($endDate)) {
+                                        // Check if it's a weekday (Monday = 1, Sunday = 7)
+                                        if ($currentDate->isWeekday()) {
+                                            $weekdayCount++;
+                                        }
+                                        $currentDate->addDay();
+                                    }
+
+                                    return $weekdayCount . ' ' . \Illuminate\Support\Str::plural('day', $weekdayCount);
+                                } catch (\Exception $e) {
+                                    return 'Error';
+                                }
+                            }
+                        }
+                        return '-';
+                    })
+                    ->searchable(false)
+                    ->sortable(false),
 
                 TextColumn::make('created_at')
-                    ->label('Date Time - Submission')
+                    ->label('Submission')
                     ->getStateUsing(function ($record) {
                         // Get SW_ID directly from the customer record
                         $swId = $record->sw_id;
@@ -164,7 +208,7 @@ class CustomerPortalRawData extends Page implements HasTable
                     ->default('Not submitted'),
 
                 TextColumn::make('latest_kickoff_date')
-                    ->label('Kick-off Meeting')
+                    ->label('Kick-Off')
                     ->getStateUsing(function ($record) {
                         // Get SW_ID directly from the customer record
                         $swId = $record->sw_id;
@@ -245,36 +289,18 @@ class CustomerPortalRawData extends Page implements HasTable
                     ->searchable(false)
                     ->sortable(false),
 
-                // TextColumn::make('completed_at')
-                //     ->label('Date Time - Completed')
-                //     ->getStateUsing(function ($record) {
-                //         // Get the SW_ID (project_code) for this customer
-                //         if ($record->lead_id) {
-                //             $handover = SoftwareHandover::where('lead_id', $record->lead_id)
-                //                 ->orderBy('id', 'desc')
-                //                 ->first();
+                TextColumn::make('email')
+                    ->label('Email Address')
+                    ->searchable()
+                    ->sortable()
+                    ->copyable()
+                    ->toggleable(isToggledHiddenByDefault: true),
 
-                //             if ($handover) {
-                //                 $projectCode = $handover->id;
-
-                //                 // Get the latest completed appointment based on SW_ID
-                //                 $completedAppointment = \App\Models\ImplementerAppointment::where('software_handover_id', $projectCode)
-                //                     ->where('type', 'KICK OFF MEETING SESSION')
-                //                     ->where('status', 'Done')
-                //                     ->orderBy('updated_at', 'desc')
-                //                     ->first();
-
-                //                 return $completedAppointment
-                //                     ? $completedAppointment->updated_at->format('d M Y H:i:s')
-                //                     : 'Not completed';
-                //             }
-                //         }
-
-                //         return 'Not completed';
-                //     })
-                //     ->searchable(false)
-                //     ->sortable(false)
-                //     ->default('Not completed'),
+                TextColumn::make('plain_password')
+                    ->label('Password')
+                    ->searchable()
+                    ->copyable()
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 Filters\SelectFilter::make('implementer')
@@ -375,7 +401,14 @@ class CustomerPortalRawData extends Page implements HasTable
                         }
                     }),
             ])
-            ->defaultSort('created_at', 'desc')
+            ->modifyQueryUsing(function (Builder $query) {
+                return $query->orderByDesc(
+                    SoftwareHandover::select('id')
+                        ->whereColumn('software_handovers.lead_id', 'customers.lead_id')
+                        ->orderBy('id', 'desc')
+                        ->limit(1)
+                );
+            })
             ->paginated([50, 100])
             ->poll('60s'); // Auto refresh every 60 seconds
     }

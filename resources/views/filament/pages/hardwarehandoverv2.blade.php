@@ -499,7 +499,7 @@
                      :class="{'selected': selectedStat === 'new-task'}"
                      @click="setSelectedStat('new-task')">
                     <div class="stat-info">
-                        <div class="stat-label">New Task</div>
+                        <div class="stat-label">Invoice</div>
                     </div>
                     <div class="stat-count">{{ $newTaskCount }}</div>
                 </div>

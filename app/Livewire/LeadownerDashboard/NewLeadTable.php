@@ -194,8 +194,90 @@ class NewLeadTable extends Component implements HasForms, HasTable
                 BulkAction::make('Assign to Me')
                     ->label('Assign Selected Leads to Me')
                     ->requiresConfirmation()
+                    ->modalHeading('Bulk Assign Leads')
+                    ->form(function ($records) {
+                        // Check for duplicates across all selected leads
+                        $duplicateInfo = [];
+
+                        foreach ($records as $record) {
+                            $companyName = optional($record?->companyDetail)->company_name;
+
+                            // Normalize company name
+                            $normalizedCompanyName = null;
+                            if ($companyName) {
+                                $normalizedCompanyName = strtoupper($companyName);
+                                $normalizedCompanyName = preg_replace('/\b(SDN\.?\s*BHD\.?|SDN|BHD|BERHAD|SENDIRIAN BERHAD)\b/i', '', $normalizedCompanyName);
+                                $normalizedCompanyName = preg_replace('/^\s*(\[.*?\]|\(.*?\)|WEBINAR:|MEETING:)\s*/', '', $normalizedCompanyName);
+                                $normalizedCompanyName = preg_replace('/[^\p{L}\p{N}\s]/u', ' ', $normalizedCompanyName);
+                                $normalizedCompanyName = preg_replace('/\s+/', ' ', $normalizedCompanyName);
+                                $normalizedCompanyName = trim($normalizedCompanyName);
+                            }
+
+                            $duplicateLeads = Lead::query()
+                                ->where(function ($query) use ($record, $normalizedCompanyName) {
+                                    if ($normalizedCompanyName) {
+                                        $query->whereHas('companyDetail', function ($q) use ($normalizedCompanyName) {
+                                            $q->whereRaw("UPPER(TRIM(company_name)) LIKE ?", ['%' . $normalizedCompanyName . '%']);
+                                        });
+                                    }
+
+                                    if (!empty($record?->email)) {
+                                        $query->orWhere('email', $record->email)
+                                            ->orWhereHas('companyDetail', function ($q) use ($record) {
+                                                $q->where('email', $record->email);
+                                            });
+                                    }
+
+                                    if (!empty($record?->companyDetail?->email)) {
+                                        $query->orWhere('email', $record->companyDetail->email)
+                                            ->orWhereHas('companyDetail', function ($q) use ($record) {
+                                                $q->where('email', $record->companyDetail->email);
+                                            });
+                                    }
+
+                                    if (!empty($record?->phone)) {
+                                        $query->orWhere('phone', $record->phone)
+                                            ->orWhereHas('companyDetail', function ($q) use ($record) {
+                                                $q->where('contact_no', $record->phone);
+                                            });
+                                    }
+
+                                    if (!empty($record?->companyDetail?->contact_no)) {
+                                        $query->orWhere('phone', $record->companyDetail->contact_no)
+                                            ->orWhereHas('companyDetail', function ($q) use ($record) {
+                                                $q->where('contact_no', $record->companyDetail->contact_no);
+                                            });
+                                    }
+                                })
+                                ->where('id', '!=', optional($record)->id)
+                                ->get(['id']);
+
+                            if ($duplicateLeads->isNotEmpty()) {
+                                $duplicateIds = $duplicateLeads->map(fn ($lead) => "LEAD ID " . str_pad($lead->id, 5, '0', STR_PAD_LEFT))
+                                    ->implode(", ");
+
+                                $duplicateInfo[] = "⚠️ <strong>" . ($companyName ?? 'Lead ' . $record->id) . "</strong>: " . $duplicateIds;
+                            }
+                        }
+
+                        $hasDuplicates = !empty($duplicateInfo);
+
+                        $warningMessage = $hasDuplicates
+                            ? "⚠️⚠️⚠️ <strong style='color: red;'>Warning: Some leads have duplicates!</strong><br><br>" . implode("<br><br>", $duplicateInfo) . "<br><br>Do you still want to assign these leads to yourself?"
+                            : "You are about to assign <strong>" . count($records) . "</strong> lead(s) to yourself. Make sure to confirm assignment before contacting the leads to avoid duplicate efforts by other team members.";
+
+                        return [
+                            Placeholder::make('warning')
+                                ->content(new \Illuminate\Support\HtmlString($warningMessage))
+                                ->hiddenLabel()
+                                ->extraAttributes([
+                                    'style' => $hasDuplicates ? 'color: red; font-weight: bold;' : '',
+                                ]),
+                        ];
+                    })
                     ->action(fn ($records) => $this->bulkAssignToMe($records))
-                    ->color('primary'),
+                    ->color('primary')
+                    ->modalWidth('xl'),
             ]);
     }
 

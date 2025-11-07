@@ -51,6 +51,8 @@ class ProcessFullPaymentHardwareHandover extends Command
 
                 // Check if all invoices have "Full Payment" status using the same logic as InvoicesTable
                 $allFullyPaid = true;
+                $updatedInvoiceData = []; // ✅ Store updated invoice data with new payment status
+
                 foreach ($invoiceData as $invoice) {
                     if (!isset($invoice['invoice_no'])) {
                         $this->warn("Missing invoice_no in handover #{$handover->id}");
@@ -59,6 +61,13 @@ class ProcessFullPaymentHardwareHandover extends Command
                     }
 
                     $paymentStatus = $this->getPaymentStatusForInvoice($invoice['invoice_no']);
+
+                    // ✅ Build updated invoice data with current payment status
+                    $updatedInvoiceData[] = [
+                        'invoice_no' => strtoupper($invoice['invoice_no']),
+                        'invoice_file' => $invoice['invoice_file'] ?? null,
+                        'payment_status' => $paymentStatus
+                    ];
 
                     if ($paymentStatus !== 'Full Payment') {
                         $allFullyPaid = false;
@@ -78,6 +87,7 @@ class ProcessFullPaymentHardwareHandover extends Command
                 if ($newStatus) {
                     $handover->update([
                         'status' => $newStatus,
+                        'invoice_data' => json_encode($updatedInvoiceData), // ✅ Update invoice_data with new payment statuses
                         'fully_paid_at' => now(),
                         'installation_pending_at' => now(),
                         'updated_at' => now(),
@@ -86,7 +96,9 @@ class ProcessFullPaymentHardwareHandover extends Command
                     $processedCount++;
                     $this->info("Updated handover #{$handover->id} from 'Pending Payment' to '{$newStatus}' (Installation: {$handover->installation_type})");
 
-                    Log::info("Processed handover #{$handover->id}: {$handover->installation_type} -> {$newStatus}");
+                    Log::info("Processed handover #{$handover->id}: {$handover->installation_type} -> {$newStatus}", [
+                        'updated_invoice_data' => $updatedInvoiceData
+                    ]);
                 } else {
                     $this->warn("Unknown installation type '{$handover->installation_type}' for handover #{$handover->id}");
                 }
