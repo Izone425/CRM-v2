@@ -929,81 +929,6 @@ class SoftwareHandoverNew extends Component implements HasForms, HasTable
                                         ->placeholder('Select an implementer'),
                                 ]),
 
-                            Grid::make(1)
-                                ->schema([
-                                    Section::make('Module Selection')
-                                        ->schema([
-                                            Grid::make(2)
-                                                ->schema([
-                                                    Checkbox::make('ta')
-                                                        ->label('Time Attendance (TA)')
-                                                        ->inline()
-                                                        ->disabled()
-                                                        ->dehydrated(true)
-                                                        ->default(function (SoftwareHandover $record) {
-                                                            return $this->shouldModuleBeChecked($record, ['TCL_TA USER-NEW', 'TCL_TA USER-ADDON', 'TCL_TA USER-ADDON(R)', 'TCL_TA USER-RENEWAL', 'TCL_FULL USER-NEW']);
-                                                        }),
-                                                    Checkbox::make('tapp')
-                                                        ->label('TimeTec Appraisal (T-APP)')
-                                                        ->inline()
-                                                        ->disabled()
-                                                        ->dehydrated(true)
-                                                        ->default(function (SoftwareHandover $record) {
-                                                            return $this->shouldModuleBeChecked($record, ['TCL_APPRAISAL USER-NEW']);
-                                                        }),
-                                                    Checkbox::make('tl')
-                                                        ->label('TimeTec Leave (TL)')
-                                                        ->inline()
-                                                        ->disabled()
-                                                        ->dehydrated(true)
-                                                        ->default(function (SoftwareHandover $record) {
-                                                            return $this->shouldModuleBeChecked($record, ['TCL_LEAVE USER-NEW', 'TCL_LEAVE USER-ADDON', 'TCL_LEAVE USER-ADDON(R)', 'TCL_LEAVE USER-RENEWAL', 'TCL_FULL USER-NEW']);
-                                                        }),
-                                                    Checkbox::make('thire')
-                                                        ->label('TimeTec Hire (T-HIRE)')
-                                                        ->inline()
-                                                        ->disabled()
-                                                        ->dehydrated(true)
-                                                        ->default(function (SoftwareHandover $record) {
-                                                            return $this->shouldModuleBeChecked($record, ['TCL_HIRE-NEW', 'TCL_HIRE-RENEWAL']);
-                                                        }),
-                                                    Checkbox::make('tc')
-                                                        ->label('TimeTec Claim (TC)')
-                                                        ->inline()
-                                                        ->disabled()
-                                                        ->dehydrated(true)
-                                                        ->default(function (SoftwareHandover $record) {
-                                                            return $this->shouldModuleBeChecked($record, ['TCL_CLAIM USER-NEW', 'TCL_CLAIM USER-ADDON', 'TCL_CLAIM USER-ADDON(R)', 'TCL_CLAIM USER-RENEWAL', 'TCL_FULL USER-NEW']);
-                                                        }),
-                                                    Checkbox::make('tacc')
-                                                        ->label('TimeTec Access (T-ACC)')
-                                                        ->inline()
-                                                        ->disabled()
-                                                        ->dehydrated(true)
-                                                        ->default(function (SoftwareHandover $record) {
-                                                            return $this->shouldModuleBeChecked($record, ['TCL_ACCESS-NEW', 'TCL_ACCESS-RENEWAL']);
-                                                        }),
-                                                    Checkbox::make('tp')
-                                                        ->label('TimeTec Payroll (TP)')
-                                                        ->inline()
-                                                        ->disabled()
-                                                        ->dehydrated(true)
-                                                        ->default(function (SoftwareHandover $record) {
-                                                            return $this->shouldModuleBeChecked($record, ['TCL_PAYROLL USER-NEW', 'TCL_PAYROLL USER-ADDON', 'TCL_PAYROLL USER-ADDON(R)', 'TCL_PAYROLL USER-RENEWAL', 'TCL_FULL USER-NEW']);
-                                                        }),
-                                                    Checkbox::make('tpbi')
-                                                        ->label('TimeTec Power BI (T-PBI)')
-                                                        ->inline()
-                                                        ->disabled()
-                                                        ->dehydrated(true)
-                                                        ->default(function (SoftwareHandover $record) {
-                                                            return $this->shouldModuleBeChecked($record, ['TCL_POWER BI']);
-                                                        }),
-                                                ])
-                                        ])
-                                        ->hidden() // Hide the entire section
-                                ]),
-
                             FileUpload::make('invoice_file')
                                 ->label('Upload Invoice')
                                 ->disk('public')
@@ -1069,14 +994,14 @@ class SoftwareHandoverNew extends Component implements HasForms, HasTable
                                 'status' => 'Completed',
                                 'completed_at' => now(),
                                 'implementer' => $implementerName,
-                                'ta' => $data['ta'] ?? false,
-                                'tl' => $data['tl'] ?? false,
-                                'tc' => $data['tc'] ?? false,
-                                'tp' => $data['tp'] ?? false,
-                                'tapp' => $data['tapp'] ?? false,
-                                'thire' => $data['thire'] ?? false,
-                                'tacc' => $data['tacc'] ?? false,
-                                'tpbi' => $data['tpbi'] ?? false,
+                                'ta' => $this->shouldModuleBeChecked($record, ['TCL_TA USER-NEW', 'TCL_TA USER-ADDON', 'TCL_TA USER-ADDON(R)', 'TCL_TA USER-RENEWAL', 'TCL_FULL USER-NEW']),
+                                'tl' => $this->shouldModuleBeChecked($record, ['TCL_LEAVE USER-NEW', 'TCL_LEAVE USER-ADDON', 'TCL_LEAVE USER-ADDON(R)', 'TCL_LEAVE USER-RENEWAL', 'TCL_FULL USER-NEW']),
+                                'tc' => $this->shouldModuleBeChecked($record, ['TCL_CLAIM USER-NEW', 'TCL_CLAIM USER-ADDON', 'TCL_CLAIM USER-ADDON(R)', 'TCL_CLAIM USER-RENEWAL', 'TCL_FULL USER-NEW']),
+                                'tp' => $this->shouldModuleBeChecked($record, ['TCL_PAYROLL USER-NEW', 'TCL_PAYROLL USER-ADDON', 'TCL_PAYROLL USER-ADDON(R)', 'TCL_PAYROLL USER-RENEWAL', 'TCL_FULL USER-NEW']),
+                                'tapp' => $this->shouldModuleBeChecked($record, ['TCL_APPRAISAL USER-NEW']),
+                                'thire' => $this->shouldModuleBeChecked($record, ['TCL_HIRE-NEW', 'TCL_HIRE-RENEWAL']),
+                                'tacc' => $this->shouldModuleBeChecked($record, ['TCL_ACCESS-NEW', 'TCL_ACCESS-RENEWAL']),
+                                'tpbi' => $this->shouldModuleBeChecked($record, ['TCL_POWER BI']),
                                 'follow_up_date' => now(),
                                 'follow_up_counter' => true,
                             ];

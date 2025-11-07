@@ -97,13 +97,13 @@ class SoftwareHandoverRelationManager extends RelationManager
                 ->live()
                 ->visible(fn () => auth()->user()->role_id === 3),
 
-            Section::make('Step 1: Database')
+            Section::make('Step 1: Database Details')
                 ->schema([
                     Grid::make(3)
                         ->schema([
                             TextInput::make('company_name')
                                 ->label('Company Name')
-                                ->readOnly()
+                                ->hidden()
                                 ->dehydrated(true)
                                 ->default(fn (?SoftwareHandover $record = null) =>
                                     $record?->company_name ?? $this->getOwnerRecord()->companyDetail->company_name ?? null),
@@ -128,7 +128,7 @@ class SoftwareHandoverRelationManager extends RelationManager
                                 ->label('Salesperson')
                                 ->default(fn (?SoftwareHandover $record = null) =>
                                     $record?->salesperson ?? ($this->getOwnerRecord()->salesperson ? User::find($this->getOwnerRecord()->salesperson)->name : null))
-                                ->visible(fn (Forms\Get $get) => $get('hr_version') !== '2'), // Hide for HR Version 2
+                                ->hidden(),
 
                             TextInput::make('headcount')
                                 ->numeric()
@@ -143,7 +143,7 @@ class SoftwareHandoverRelationManager extends RelationManager
                                 ->disabled()
                                 ->dehydrated(true)
                                 ->default(fn (?SoftwareHandover $record = null) => $record?->headcount ?? null)
-                                ->visible(fn (Forms\Get $get) => $get('hr_version') !== '2'), // Hide for HR Version 2
+                                ->hidden(),
 
                             TextInput::make('category')
                                 ->label('Company Size')
@@ -162,7 +162,7 @@ class SoftwareHandoverRelationManager extends RelationManager
                                     return null;
                                 })
                                 ->readOnly()
-                                ->visible(fn (Forms\Get $get) => $get('hr_version') !== '2'), // Hide for HR Version 2
+                                ->hidden(),
                         ]),
                 ]),
 
@@ -259,12 +259,19 @@ class SoftwareHandoverRelationManager extends RelationManager
                         ->label('Remarks')
                         ->hiddenLabel(true)
                         ->schema([
-                            Grid::make(2)
+                            Grid::make(1)
                             ->schema([
                                 Textarea::make('remark')
-                                    ->extraInputAttributes(['style' => 'text-transform: uppercase'])
-                                    ->afterStateHydrated(fn($state) => Str::upper($state))
-                                    ->afterStateUpdated(fn($state) => Str::upper($state))
+                                    ->extraAlpineAttributes([
+                                        'x-on:input' => '
+                                            const start = $el.selectionStart;
+                                            const end = $el.selectionEnd;
+                                            const value = $el.value;
+                                            $el.value = value.toUpperCase();
+                                            $el.setSelectionRange(start, end);
+                                        '
+                                    ])
+                                    ->dehydrateStateUsing(fn ($state) => strtoupper($state))
                                     ->hiddenLabel(true)
                                     ->label(function (Forms\Get $get, ?string $state, $livewire) {
                                         // Get the current array key from the state path
@@ -276,9 +283,9 @@ class SoftwareHandoverRelationManager extends RelationManager
                                         }
                                         return 'Remark';
                                     })
-                                    ->placeholder('Enter remark here')
+                                    ->placeholder('Write Remark')
                                     ->autosize()
-                                    ->rows(3),
+                                    ->rows(2),
 
                                 // FileUpload::make('attachments')
                                 //     ->hiddenLabel(true)
@@ -837,8 +844,8 @@ class SoftwareHandoverRelationManager extends RelationManager
                         ->schema([
                             Textarea::make('renewal_note')
                                 ->label('Renewal Note')
-                                ->placeholder('Enter renewal notes here...')
-                                ->rows(4)
+                                ->placeholder('Write Renewal Notes')
+                                ->rows(2)
                                 ->maxLength(1000)
                                 ->extraAlpineAttributes([
                                     'x-on:input' => '

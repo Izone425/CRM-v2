@@ -93,6 +93,7 @@ class SoftwareHandover extends Model
         'hr_user_id',
         'hr_version',
         'license_type',
+        'invoice_number',
 
         'crm_buffer_license_id',
         'crm_paid_license_ids',
@@ -311,6 +312,27 @@ class SoftwareHandover extends Model
         }
     }
 
+    public function getHeadcountCompanySizeLabelAttribute()
+    {
+        if (!$this->headcount) {
+            return 'Unknown';
+        }
+
+        $headcount = (int) $this->headcount;
+
+        if ($headcount >= 1 && $headcount <= 24) {
+            return 'Small';
+        } elseif ($headcount >= 25 && $headcount <= 99) {
+            return 'Medium';
+        } elseif ($headcount >= 100 && $headcount <= 500) {
+            return 'Large';
+        } elseif ($headcount >= 501) {
+            return 'Enterprise';
+        }
+
+        return 'Unknown';
+    }
+
     public function projectPlans()
     {
         return $this->hasMany(ProjectPlan::class, 'sw_id');
@@ -333,5 +355,17 @@ class SoftwareHandover extends Model
         if ($this->tp) $modules[] = 'payroll';
 
         return $modules;
+    }
+
+    public function customer()
+    {
+        return $this->hasOneThrough(
+            Customer::class,
+            Lead::class,
+            'id',
+            'lead_id',
+            'lead_id',
+            'id'
+        );
     }
 }

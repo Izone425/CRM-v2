@@ -325,46 +325,46 @@
     $pendingTaskGroupCount = $pendingLicenseCount;
 @endphp
 
-<div id="software-handover-container" class="hardware-handover-container"
-     x-data="{
-         selectedGroup: null,
-         selectedStat: null,
+<div id="software-handover-v1-container" class="hardware-handover-container"
+    x-data="{
+        selectedGroup: null,
+        selectedStat: null,
 
-         setSelectedGroup(value) {
-             if (this.selectedGroup === value) {
-                 this.selectedGroup = null;
-                 this.selectedStat = null;
-             } else {
-                 this.selectedGroup = value;
+        setSelectedGroup(value) {
+            if (this.selectedGroup === value) {
+                this.selectedGroup = null;
+                this.selectedStat = null;
+            } else {
+                this.selectedGroup = value;
 
-                 // Set default stat for each group
-                 if (value === 'all-items') {
-                     this.selectedStat = 'all-items';
-                 } else if (value === 'new-task') {
-                     this.selectedStat = 'new-task';
-                 } else if (value === 'pending-task') {
-                     this.selectedStat = 'pending-license';
-                 } else if (value === 'completed-task') {
-                     this.selectedStat = 'completed-task';
-                 } else {
-                     this.selectedStat = null;
-                 }
-             }
-         },
+                // Set default stat for each group
+                if (value === 'all-items') {
+                    this.selectedStat = 'all-items';
+                } else if (value === 'new-task') {
+                    this.selectedStat = 'new-task';
+                } else if (value === 'pending-task') {
+                    this.selectedStat = 'pending-license';
+                } else if (value === 'completed-task') {
+                    this.selectedStat = 'completed-task';
+                } else {
+                    this.selectedStat = null;
+                }
+            }
+        },
 
-         setSelectedStat(value) {
-             if (this.selectedStat === value) {
-                 this.selectedStat = null;
-             } else {
-                 this.selectedStat = value;
-             }
-         },
+        setSelectedStat(value) {
+            if (this.selectedStat === value) {
+                this.selectedStat = null;
+            } else {
+                this.selectedStat = value;
+            }
+        },
 
-         init() {
-             console.log('Software handover Alpine component initialized');
-         }
-     }"
-     x-init="init()">
+        init() {
+            console.log('Software handover V1 Alpine component initialized');
+        }
+    }"
+    x-init="init()">
 
     <!-- New container structure -->
     <div class="dashboard-layout" wire:poll.300s>
@@ -542,21 +542,21 @@
 </div>
 
 <script>
-    // When the page loads, setup handlers for this component
+    // When the page loads, setup handlers for V1 component
     document.addEventListener('DOMContentLoaded', function() {
-        // Function to reset the software component
-        window.resetSoftwareHandover = function() {
-            const container = document.getElementById('software-handover-container');
+        // Function to reset the V1 software component
+        window.resetSoftwareHandoverV1 = function() {
+            const container = document.getElementById('software-handover-v1-container');
             if (container && container.__x) {
                 container.__x.$data.selectedGroup = null;
                 container.__x.$data.selectedStat = null;
-                console.log('Software handover reset via global function');
+                console.log('Software handover V1 reset via global function');
             }
         };
 
-        // Listen for our custom reset event
-        window.addEventListener('reset-software-dashboard', function() {
-            window.resetSoftwareHandover();
+        // Listen for our custom reset event for V1
+        window.addEventListener('reset-software-dashboard-v1', function() {
+            window.resetSoftwareHandoverV1();
         });
     });
 </script>

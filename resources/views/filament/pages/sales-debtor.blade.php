@@ -145,7 +145,7 @@
         }
     </style>
     <!-- Dashboard Cards -->
-    <div class="debtor-dashboard-grid" wire:poll.2s>
+    <div class="debtor-dashboard-grid" wire:poll.5s>
         <!-- Box 1: All Debtor -->
         <div class="debtor-card">
             <div class="debtor-card-content">

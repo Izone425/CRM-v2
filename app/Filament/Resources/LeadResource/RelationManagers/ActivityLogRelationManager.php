@@ -1440,7 +1440,7 @@ class ActivityLogRelationManager extends RelationManager
                                     $variables = [$lead->lead_owner]; // Only the lead's name for Chinese template
                                 } else {
                                     // Regular templates need both lead name and lead owner
-                                    $variables = [$lead->name, $lead->lead_owner];
+                                    $variables = [$lead->companyDetail->name ?? $lead->name, $lead->lead_owner];
                                 }
 
                                 $whatsappController = new \App\Http\Controllers\WhatsAppController();
