@@ -135,8 +135,9 @@ class QuotationService
 
         /**
          * update quotation reference no to ensure that this is unique.
+         * Use authenticated user's code instead of original quotation's sales person
          */
-        $newQuotation->quotation_reference_no = $this->update_reference_no($newQuotation);
+        $newQuotation->quotation_reference_no = $this->update_reference_no_for_auth_user($newQuotation);
         $newQuotation->save();
 
         $items = $quotation->items;
@@ -149,7 +150,7 @@ class QuotationService
     public function update_reference_no(Quotation $quotation): string
     {
         /**
-         * change reference code
+         * change reference code using quotation's sales person
          */
         $max_num = 9999;
         $starting_number = 0;
@@ -157,7 +158,16 @@ class QuotationService
         $year = now()->format('y');
         $num = $reference_number%$max_num == 0 ? $max_num : ($reference_number%$max_num);
         return 'TTC/' .  Str::upper($quotation->sales_person->code) . '/' . sprintf('%02d%04d', $year,$num);
-        // return  $year . sprintf('%04d',$num) . '/' . Str::upper(auth()->user()->code);
+    }
+
+    public function update_reference_no_for_auth_user(Quotation $quotation): string
+    {
+        $max_num = 9999;
+        $starting_number = 0;
+        $reference_number = $starting_number + $quotation->id;
+        $year = now()->format('y');
+        $num = $reference_number%$max_num == 0 ? $max_num : ($reference_number%$max_num);
+        return 'TTC/' .  Str::upper(auth()->user()->code) . '/' . sprintf('%02d%04d', $year,$num);
     }
 
     public function update_pi_reference_no(Quotation $quotation): string

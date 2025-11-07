@@ -283,7 +283,8 @@ class SalesAdminInvoice extends Page implements HasTable
             foreach (static::$salespersonUserIds as $salespersonName => $userId) {
                 // Build query with filters
                 $invoiceQuery = Invoice::query()
-                    ->where('salesperson', $salespersonName);
+                    ->where('salesperson', $salespersonName)
+                    ->where('invoice_status', '!=', 'V');
 
                 // Apply year filter
                 if ($yearFilter) {
@@ -388,7 +389,9 @@ class SalesAdminInvoice extends Page implements HasTable
                 $creditNotesForSalesperson = $creditNoteQuery->get();
 
                 foreach ($creditNotesForSalesperson as $creditNote) {
-                    $invoice = Invoice::where('invoice_no', $creditNote->invoice_number)->first();
+                    $invoice = Invoice::where('invoice_no', $creditNote->invoice_number)
+                        ->where('invoice_status', '!=', 'V') // Exclude voided invoices
+                        ->first();
 
                     if (!$invoice) continue;
 
@@ -611,6 +614,7 @@ class SalesAdminInvoice extends Page implements HasTable
                 $allowedSalespersons = array_keys(static::$salespersonUserIds);
 
                 $query->whereIn('salesperson', $allowedSalespersons)
+                    ->where('invoice_status', '!=', 'V') // Exclude voided invoices
                     ->orderBy('invoice_date', 'desc');
 
                 if (Auth::check() && Auth::user()->role_id === 2) {
