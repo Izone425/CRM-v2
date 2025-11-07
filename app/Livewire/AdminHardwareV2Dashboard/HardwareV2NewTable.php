@@ -291,6 +291,9 @@ class HardwareV2NewTable extends Component implements HasForms, HasTable
                         default => ucfirst($state ?? 'Unknown')
                     }),
 
+                TextColumn::make('invoice_type')
+                    ->label('INV Type'),
+
                 TextColumn::make('status')
                     ->label('Status')
                     ->formatStateUsing(fn (string $state): HtmlString => match ($state) {
