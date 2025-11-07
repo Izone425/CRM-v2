@@ -43,6 +43,25 @@ return [
             'foreign_key_constraints' => env('DB_FOREIGN_KEYS', true),
         ],
 
+        'ticketingsystem_live' => [
+            'driver' => 'mysql',
+            'host' => env('DB_HOST_TICKETING', '127.0.0.1'),
+            'port' => env('DB_PORT_TICKETING', '3306'),
+            'database' => env('DB_DATABASE_TICKETING', 'ticketingsystem_live'),
+            'username' => env('DB_USERNAME_TICKETING', 'forge'),
+            'password' => env('DB_PASSWORD_TICKETING', ''),
+            'unix_socket' => env('DB_SOCKET', ''),
+            'charset' => 'utf8mb4',
+            'collation' => 'utf8mb4_unicode_ci',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'strict' => true,
+            'engine' => null,
+            'options' => extension_loaded('pdo_mysql') ? array_filter([
+                PDO::MYSQL_ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
+            ]) : [],
+        ],
+
         'frontenddb' => [
             'driver' => 'mysql',
             'host' => env('DB_HOST_FRONTEND', '127.0.0.1'),

@@ -86,6 +86,7 @@ use App\Filament\Pages\SupportCalendar;
 use App\Filament\Pages\SupportCallLog;
 use App\Filament\Pages\TechnicianAppointment;
 use App\Filament\Pages\TechnicianCalendar;
+use App\Filament\Pages\TicketList;
 use App\Filament\Pages\TrainingCalendar;
 use App\Filament\Pages\TrainingCalendarBulkManagement;
 use App\Filament\Pages\WeeklyCalendarV2;
@@ -119,7 +120,6 @@ use App\Filament\Resources\SoftwareAttachmentResource;
 use App\Filament\Resources\SoftwareHandoverResource;
 use App\Filament\Resources\SoftwareResource;
 use App\Filament\Resources\SparePartResource;
-use App\Filament\Resources\TicketResource;
 use App\Filament\Resources\TrainingBookingResource;
 use App\Filament\Widgets\LeadChartWidget;
 use App\Livewire\FutureEnhancement;
@@ -282,7 +282,6 @@ class AdminPanelProvider extends PanelProvider
                 ShippingDeviceModelResource::class,
                 SalesPricingResource::class,
                 ProjectTaskResource::class,
-                TicketResource::class,
             ])
             // ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->pages([
@@ -360,6 +359,7 @@ class AdminPanelProvider extends PanelProvider
                 CustomerPortalRawData::class,
                 HrdfClaimTracker::class,
                 AdminPortalHrV2::class,
+                TicketList::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([

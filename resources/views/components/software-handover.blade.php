@@ -85,6 +85,31 @@
             $salespersonName = $salesperson->name;
         }
     }
+
+    // Calculate company size based on all PI items
+    $companySize = $record->headcount ?? 0;
+    $allPIs = collect()
+        ->merge($productPIs)
+        ->merge($softwareHardwarePIs)
+        ->merge($nonHrdfPIs)
+        ->merge($hrdfPIs);
+
+    foreach ($allPIs as $pi) {
+        if ($pi && $pi->items) {
+            foreach ($pi->items as $item) {
+                // Extract quantity from description or item details
+                if (isset($item->quantity)) {
+                    $companySize += (int)$item->quantity;
+                }
+            }
+        }
+    }
+
+    // Generate database email
+    $databaseEmail = 'sw_' . str_pad($record->id, 6, '0', STR_PAD_LEFT) . '@timeteccloud.com';
+
+    // Get primary contact from implementation PICs
+    $primaryContact = $implementationPics[0] ?? null;
 @endphp
 
 <style>
@@ -356,6 +381,54 @@
                     <span class="sw-value">{{ $record->implementer ?? '-' }}</span>
                 </div>
 
+                <div class="sw-remark-container" x-data="{ databaseOpen: false }">
+                    <span class="sw-label">Database Details:</span>
+                    <a href="#" @click.prevent="databaseOpen = true" class="sw-view-link">View</a>
+
+                    <div x-show="databaseOpen" x-cloak x-transition @click.outside="databaseOpen = false" class="sw-modal">
+                        <div class="sw-modal-content" @click.away="databaseOpen = false">
+                            <div class="sw-modal-header">
+                                <h3 class="sw-modal-title">Database Details</h3>
+                                <button type="button" @click="databaseOpen = false" class="sw-modal-close">
+                                    <svg fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                            <div class="sw-modal-body">
+                                <table class="sw-table">
+                                    <tbody>
+                                        <tr>
+                                            <td style="font-weight: 600; width: 40%; background-color: #f3f4f6;">Company Name</td>
+                                            <td>{{ $companyDetail->company_name ?? $record->company_name ?? 'N/A' }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td style="font-weight: 600; width: 40%; background-color: #f3f4f6;">Company Size</td>
+                                            <td>{{ $record->headcount }} users</td>
+                                        </tr>
+                                        <tr>
+                                            <td style="font-weight: 600; width: 40%; background-color: #f3f4f6;">SalesPerson Name</td>
+                                            <td>{{ $salespersonName }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td style="font-weight: 600; width: 40%; background-color: #f3f4f6;">Contact Name</td>
+                                            <td>{{ $record->pic_name ?? 'N/A' }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td style="font-weight: 600; width: 40%; background-color: #f3f4f6;">HP Number</td>
+                                            <td>{{ $record->pic_phone ?? 'N/A' }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td style="font-weight: 600; width: 40%; background-color: #f3f4f6;">Email</td>
+                                            <td>{{ $record->customer->email ?? 'N/A' }}</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Implementation Details -->
                 @if(count($implementationPics) > 0)
                 <div class="sw-remark-container" x-data="{ implementationOpen: false }">
@@ -481,6 +554,13 @@
                         @else
                             {{ $record->speaker_category ?? 'Not specified' }}
                         @endif
+                    </span>
+                </div>
+
+                <div class="sw-info-item">
+                    <span class="sw-label">Company Size:</span>
+                    <span class="sw-value">
+                        {{ $record->headcount_company_size_label }}
                     </span>
                 </div>
             </div>

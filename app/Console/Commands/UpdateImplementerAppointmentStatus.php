@@ -24,13 +24,14 @@ class UpdateImplementerAppointmentStatus extends Command
         $cancelledCount = 0;
 
         foreach ($appointments as $appointment) {
-            // Check if this is a "skip_email_teams" type appointment
-            if (!$appointment->required_attendees && !$appointment->event_id && !$appointment->meeting_link) {
-                // Mark these special appointments as Cancelled instead of Done
+            if ($appointment->type === 'BACKUP SUPPORT') {
+                $appointment->updateQuietly(['status' => 'Done']);
+                $updatedCount++;
+            }
+            elseif (!$appointment->required_attendees && !$appointment->event_id && !$appointment->meeting_link) {
                 $appointment->updateQuietly(['status' => 'Cancelled']);
                 $cancelledCount++;
             } else {
-                // Regular appointments get marked as Done
                 $appointment->updateQuietly(['status' => 'Done']);
                 $updatedCount++;
             }
