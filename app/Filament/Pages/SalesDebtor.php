@@ -115,8 +115,10 @@ class SalesDebtor extends Page implements HasTable
     // Helper method to get total invoice amount from invoice_details (excluding certain item codes)
     protected function getTotalInvoiceAmount(string $invoiceNo): float
     {
-        // Get the invoice first
-        $invoice = Invoice::where('invoice_no', $invoiceNo)->first();
+        // Get the invoice first - exclude voided invoices
+        $invoice = Invoice::where('invoice_no', $invoiceNo)
+            ->where('invoice_status', '!=', 'V')
+            ->first();
 
         if (!$invoice) {
             return 0;
@@ -223,6 +225,14 @@ class SalesDebtor extends Page implements HasTable
         // Filter only for unpaid or partial payment debtors
         $query->where('outstanding', '>', 0);
 
+        // Get non-voided invoice numbers first
+        $nonVoidedInvoiceNumbers = Invoice::where('invoice_status', '!=', 'V')
+            ->pluck('invoice_no')
+            ->toArray();
+
+        // Filter by non-voided invoices
+        $query->whereIn('invoice_number', $nonVoidedInvoiceNumbers);
+
         // Filter by the filtered salespeople
         // If additional salesperson filters are selected, use those instead
         if (!empty($this->filterSalesperson)) {
@@ -243,6 +253,7 @@ class SalesDebtor extends Page implements HasTable
             // Get invoice numbers where outstanding matches actual invoice amount
             $unpaidInvoiceNumbers = [];
             $allRecords = DebtorAging::whereIn('salesperson', $this->filteredSalespeople)
+                ->whereIn('invoice_number', $nonVoidedInvoiceNumbers)
                 ->where('outstanding', '>', 0)
                 ->get();
 
@@ -257,6 +268,7 @@ class SalesDebtor extends Page implements HasTable
             // Get invoice numbers where outstanding is less than actual invoice amount
             $partialInvoiceNumbers = [];
             $allRecords = DebtorAging::whereIn('salesperson', $this->filteredSalespeople)
+                ->whereIn('invoice_number', $nonVoidedInvoiceNumbers)
                 ->where('outstanding', '>', 0)
                 ->get();
 
@@ -359,9 +371,14 @@ class SalesDebtor extends Page implements HasTable
 
     public function table(Table $table): Table
     {
+        $nonVoidedInvoiceNumbers = Invoice::where('invoice_status', '!=', 'V')
+            ->pluck('invoice_no')
+            ->toArray();
+
         return $table
             ->query(DebtorAging::query()
                 ->whereIn('salesperson', $this->filteredSalespeople)
+                ->whereIn('invoice_number', $nonVoidedInvoiceNumbers)
                 ->where('outstanding', '>', 0))
                 ->defaultSort('invoice_date', 'desc')
                 ->columns([
@@ -428,7 +445,9 @@ class SalesDebtor extends Page implements HasTable
                     TextColumn::make('outstanding_rm')
                         ->label('Outstanding (RM)')
                         ->getStateUsing(function (DebtorAging $record): float {
-                            return $this->getRecalculatedOutstanding($record);
+                            return $record->currency_code === 'MYR'
+                                ? $record->outstanding
+                                : ($record->outstanding * $record->exchange_rate);
                         })
                         ->numeric(
                             decimalPlaces: 2,
@@ -497,9 +516,15 @@ class SalesDebtor extends Page implements HasTable
                             $this->filterPaymentStatus = $data['value'];
                             $this->loadData();
 
+                            // Get non-voided invoice numbers
+                            $nonVoidedInvoiceNumbers = Invoice::where('invoice_status', '!=', 'V')
+                                ->pluck('invoice_no')
+                                ->toArray();
+
                             // Get matching invoice numbers based on recalculated payment status
                             $matchingInvoiceNumbers = [];
                             $allRecords = DebtorAging::whereIn('salesperson', $this->filteredSalespeople)
+                                ->whereIn('invoice_number', $nonVoidedInvoiceNumbers)
                                 ->where('outstanding', '>', 0)
                                 ->get();
 
@@ -655,9 +680,15 @@ class SalesDebtor extends Page implements HasTable
 
     protected function getBaseQuery()
     {
+        // Get non-voided invoice numbers
+        $nonVoidedInvoiceNumbers = Invoice::where('invoice_status', '!=', 'V')
+            ->pluck('invoice_no')
+            ->toArray();
+
         $query = DebtorAging::query();
         $query->where('outstanding', '>', 0);
         $query->whereIn('salesperson', $this->filteredSalespeople);
+        $query->whereIn('invoice_number', $nonVoidedInvoiceNumbers);
         return $query;
     }
 
