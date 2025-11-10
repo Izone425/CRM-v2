@@ -40,10 +40,8 @@ class TicketList extends Page implements HasTable, HasActions, HasForms
     {
         return $table
             ->query(
-                Ticket::query()
-                    ->whereIn('product_id', [
-                        '1', '2'
-                    ])
+                Ticket::on('ticketingsystem_live')
+                    ->whereIn('product_id', [1, 2])
             )
             ->columns([
                 Tables\Columns\TextColumn::make('id')
@@ -106,9 +104,6 @@ class TicketList extends Page implements HasTable, HasActions, HasForms
 
                 Tables\Columns\TextColumn::make('zoho_id')
                     ->label('Zoho Ticket'),
-
-                Tables\Columns\TextColumn::make('created_by')
-                    ->label('Created By'),
 
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Created At')
@@ -331,6 +326,18 @@ class TicketList extends Page implements HasTable, HasActions, HasForms
                         // Add default values
                         $data['status'] = 'New';
                         $data['created_by'] = auth()->user()?->name ?? 'Guest';
+
+                        if (isset($data['module_id'])) {
+                            $module = TicketModule::on('ticketingsystem_live')->find($data['module_id']);
+                            $data['module'] = $module?->name ?? null;
+                            unset($data['module_id']);
+                        }
+
+                        if (isset($data['priority_id'])) {
+                            $priority = TicketPriority::on('ticketingsystem_live')->find($data['priority_id']);
+                            $data['priority'] = $priority?->name ?? null;
+                            unset($data['priority_id']);
+                        }
 
                         // Create ticket
                         $ticket = Ticket::create($data);

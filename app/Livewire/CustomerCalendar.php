@@ -226,6 +226,21 @@ class CustomerCalendar extends Component
             ->orderBy('date', 'desc') // Show most recent first
             ->get()
             ->map(function ($booking) {
+                // ✅ Format the type to show session number for review sessions
+                $displayType = $booking->type;
+
+                // If it's a generic "REVIEW SESSION" without a number, add the count
+                if ($booking->type === 'REVIEW SESSION') {
+                    // Count how many review sessions were completed before this one
+                    $previousReviewCount = ImplementerAppointment::where('lead_id', $booking->lead_id)
+                        ->where('type', 'LIKE', 'REVIEW SESSION%')
+                        ->where('status', 'Done')
+                        ->where('created_at', '<', $booking->created_at)
+                        ->count();
+
+                    $displayType = "REVIEW SESSION " . ($previousReviewCount + 1);
+                }
+
                 return [
                     'id' => $booking->id,
                     'date' => Carbon::parse($booking->date)->format('l, d F Y'),
@@ -236,7 +251,7 @@ class CustomerCalendar extends Component
                     'status' => $booking->status,
                     'request_status' => $booking->request_status,
                     'appointment_type' => $booking->appointment_type,
-                    'type' => $booking->type, // Add this to show the meeting type
+                    'type' => $displayType, // ✅ Use the formatted type with count
                     'raw_date' => $booking->date,
                     'start_time' => $booking->start_time,
                     'end_time' => $booking->end_time,
@@ -261,21 +276,29 @@ class CustomerCalendar extends Component
             ->where('status', 'Done')
             ->exists();
 
-        // If there's a completed kick-off meeting, next should be review session
-        if ($hasCompletedKickOff) {
-            return 'REVIEW SESSION';
+        // If no completed kick-off meeting, next should be kick-off
+        if (!$hasCompletedKickOff) {
+            return 'KICK OFF MEETING SESSION';
         }
 
-        // Otherwise, it should be kick-off meeting
-        return 'KICK OFF MEETING SESSION';
+        // ✅ Count completed review sessions
+        $completedReviewCount = ImplementerAppointment::where('lead_id', $customer->lead_id)
+            ->where('type', 'LIKE', 'REVIEW SESSION%')
+            ->where('status', 'Done')
+            ->count();
+
+        // ✅ Return next review session number
+        $nextReviewNumber = $completedReviewCount + 1;
+        return "REVIEW SESSION {$nextReviewNumber}";
     }
 
     public function getSessionTitle()
     {
         $nextSessionType = $this->getNextSessionType();
 
-        if ($nextSessionType === 'REVIEW SESSION') {
-            return 'Schedule Your Review Session';
+        // ✅ Check if it's a review session
+        if (strpos($nextSessionType, 'REVIEW SESSION') !== false) {
+            return 'Schedule Your ' . $nextSessionType;
         }
 
         return 'Schedule Your Kick-Off Meeting';

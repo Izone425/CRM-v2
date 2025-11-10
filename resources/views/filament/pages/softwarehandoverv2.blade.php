@@ -327,46 +327,46 @@
     $pendingTaskGroupCount = $pendingLicenseCount;
 @endphp
 
-<div id="software-handover-container" class="hardware-handover-container"
-     x-data="{
-         selectedGroup: null,
-         selectedStat: null,
+<div id="software-handover-v2-container" class="hardware-handover-container"
+    x-data="{
+        selectedGroup: null,
+        selectedStat: null,
 
-         setSelectedGroup(value) {
-             if (this.selectedGroup === value) {
-                 this.selectedGroup = null;
-                 this.selectedStat = null;
-             } else {
-                 this.selectedGroup = value;
+        setSelectedGroup(value) {
+            if (this.selectedGroup === value) {
+                this.selectedGroup = null;
+                this.selectedStat = null;
+            } else {
+                this.selectedGroup = value;
 
-                 // Set default stat for each group
-                 if (value === 'all-items') {
-                     this.selectedStat = 'all-items';
-                 } else if (value === 'new-task') {
-                     this.selectedStat = 'new-task';
-                 } else if (value === 'pending-task') {
-                     this.selectedStat = 'pending-license';
-                 } else if (value === 'completed-task') {
-                     this.selectedStat = 'completed-task';
-                 } else {
-                     this.selectedStat = null;
-                 }
-             }
-         },
+                // Set default stat for each group
+                if (value === 'all-items') {
+                    this.selectedStat = 'all-items';
+                } else if (value === 'new-task-v2') {
+                    this.selectedStat = 'new-task-v2';
+                } else if (value === 'pending-task') {
+                    this.selectedStat = 'pending-license';
+                } else if (value === 'completed-task') {
+                    this.selectedStat = 'completed-task';
+                } else {
+                    this.selectedStat = null;
+                }
+            }
+        },
 
-         setSelectedStat(value) {
-             if (this.selectedStat === value) {
-                 this.selectedStat = null;
-             } else {
-                 this.selectedStat = value;
-             }
-         },
+        setSelectedStat(value) {
+            if (this.selectedStat === value) {
+                this.selectedStat = null;
+            } else {
+                this.selectedStat = value;
+            }
+        },
 
-         init() {
-             console.log('Software handover Alpine component initialized');
-         }
-     }"
-     x-init="init()">
+        init() {
+            console.log('Software handover V2 Alpine component initialized');
+        }
+    }"
+    x-init="init()">
 
     <!-- New container structure -->
     <div class="dashboard-layout" wire:poll.300s>
@@ -382,8 +382,8 @@
 
                 <!-- Group: New Task (DASHBOARD 01) -->
                 <div class="group-box group-new-task"
-                     :class="{'selected': selectedGroup === 'new-task'}"
-                     @click="setSelectedGroup('new-task')">
+                     :class="{'selected': selectedGroup === 'new-task-v2'}"
+                     @click="setSelectedGroup('new-task-v2')">
                     <div class="group-title">New Tasks</div>
                     <div class="group-count">{{ $newTaskGroupCount }}</div>
                 </div>
@@ -421,10 +421,10 @@
             </div>
 
             <!-- NEW TASK Categories (DASHBOARD 01) -->
-            <div class="category-container" x-show="selectedGroup === 'new-task'">
+            <div class="category-container" x-show="selectedGroup === 'new-task-v2'">
                 <div class="stat-box new-task"
-                     :class="{'selected': selectedStat === 'new-task'}"
-                     @click="setSelectedStat('new-task')">
+                     :class="{'selected': selectedStat === 'new-task-v2'}"
+                     @click="setSelectedStat('new-task-v2')">
                     <div class="stat-info">
                         <div class="stat-label">New Task</div>
                     </div>
@@ -432,8 +432,8 @@
                 </div>
 
                 <div class="stat-box draft"
-                    :class="{'selected': selectedStat === 'draft'}"
-                    @click="setSelectedStat('draft')">
+                    :class="{'selected': selectedStat === 'draft-v2'}"
+                    @click="setSelectedStat('draft-v2')">
                     <div class="stat-info">
                         <div class="stat-label">Draft</div>
                     </div>
@@ -510,12 +510,12 @@
                     </div>
                 </div>
 
-                <div>
+                <div x-show="selectedStat === 'draft-v2'" x-transition>
                     @livewire('software-handover-v2-draft')
                 </div>
 
                 <!-- New Task (from DASHBOARD 01) -->
-                <div x-show="selectedStat === 'new-task'" x-transition>
+                <div x-show="selectedStat === 'new-task-v2'" x-transition>
                     <livewire:salesperson-dashboard.software-handover-v2-new />
                 </div>
 
@@ -544,21 +544,21 @@
 </div>
 
 <script>
-    // When the page loads, setup handlers for this component
+    // When the page loads, setup handlers for V2 component
     document.addEventListener('DOMContentLoaded', function() {
-        // Function to reset the software component
-        window.resetSoftwareHandover = function() {
-            const container = document.getElementById('software-handover-container');
+        // Function to reset the V2 software component
+        window.resetSoftwareHandoverV2 = function() {
+            const container = document.getElementById('software-handover-v2-container');
             if (container && container.__x) {
                 container.__x.$data.selectedGroup = null;
                 container.__x.$data.selectedStat = null;
-                console.log('Software handover reset via global function');
+                console.log('Software handover V2 reset via global function');
             }
         };
 
-        // Listen for our custom reset event
-        window.addEventListener('reset-software-dashboard', function() {
-            window.resetSoftwareHandover();
+        // Listen for our custom reset event for V2
+        window.addEventListener('reset-software-dashboard-v2', function() {
+            window.resetSoftwareHandoverV2();
         });
     });
 </script>

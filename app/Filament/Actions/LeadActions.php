@@ -205,138 +205,303 @@ class LeadActions
     public static function getAssignToMeAction(): Action
     {
         return Action::make('updateLeadOwner')
-        ->label(__('Assign to Me'))
-        ->requiresConfirmation()
-        ->modalDescription('')
-        ->form(function (?Lead $record) {
-            $companyName = optional($record?->companyDetail)->company_name;
+            ->label(__('Assign to Me'))
+            ->requiresConfirmation()
+            ->modalDescription('')
+            ->form(function (?Lead $record) {
+                $companyName = optional($record?->companyDetail)->company_name;
 
-            // More thorough normalization of company names
-            $normalizedCompanyName = null;
-            if ($companyName) {
-                // Convert to uppercase for case-insensitive comparison
-                $normalizedCompanyName = strtoupper($companyName);
+                // Normalize company name
+                $normalizedCompanyName = null;
+                if ($companyName) {
+                    $normalizedCompanyName = strtoupper($companyName);
+                    $normalizedCompanyName = preg_replace('/\b(SDN\.?\s*BHD\.?|SDN|BHD|BERHAD|SENDIRIAN BERHAD)\b/i', '', $normalizedCompanyName);
+                    $normalizedCompanyName = preg_replace('/^\s*(\[.*?\]|\(.*?\)|WEBINAR:|MEETING:)\s*/', '', $normalizedCompanyName);
+                    $normalizedCompanyName = preg_replace('/[^\p{L}\p{N}\s]/u', ' ', $normalizedCompanyName);
+                    $normalizedCompanyName = preg_replace('/\s+/', ' ', $normalizedCompanyName);
+                    $normalizedCompanyName = trim($normalizedCompanyName);
+                }
 
-                // Remove common Malaysian company suffixes with variations in spacing/punctuation
-                $normalizedCompanyName = preg_replace('/\b(SDN\.?\s*BHD\.?|SDN|BHD|BERHAD|SENDIRIAN BERHAD)\b/i', '', $normalizedCompanyName);
+                // ✅ Get all existing company names for fuzzy matching
+                $allCompanyNames = Lead::query()
+                    ->with('companyDetail')
+                    ->whereHas('companyDetail')
+                    ->where('id', '!=', optional($record)->id)
+                    ->get()
+                    ->pluck('companyDetail.company_name')
+                    ->filter()
+                    ->unique();
 
-                // Remove common prefixes like WEBINAR, MEETING, etc.
-                $normalizedCompanyName = preg_replace('/^\s*(\[.*?\]|\(.*?\)|WEBINAR:|MEETING:)\s*/', '', $normalizedCompanyName);
+                $duplicateLeads = collect();
+                $fuzzyMatches = [];
 
-                // Remove all punctuation and extra spaces
-                $normalizedCompanyName = preg_replace('/[^\p{L}\p{N}\s]/u', ' ', $normalizedCompanyName);
-                $normalizedCompanyName = preg_replace('/\s+/', ' ', $normalizedCompanyName);
+                // ✅ Check for fuzzy duplicates using Levenshtein distance
+                if ($normalizedCompanyName) {
+                    foreach ($allCompanyNames as $existingCompanyName) {
+                        $normalizedExisting = strtoupper($existingCompanyName);
+                        $normalizedExisting = preg_replace('/\b(SDN\.?\s*BHD\.?|SDN|BHD|BERHAD|SENDIRIAN BERHAD)\b/i', '', $normalizedExisting);
+                        $normalizedExisting = preg_replace('/^\s*(\[.*?\]|\(.*?\)|WEBINAR:|MEETING:)\s*/', '', $normalizedExisting);
+                        $normalizedExisting = preg_replace('/[^\p{L}\p{N}\s]/u', ' ', $normalizedExisting);
+                        $normalizedExisting = preg_replace('/\s+/', ' ', $normalizedExisting);
+                        $normalizedExisting = trim($normalizedExisting);
 
-                // Trim whitespace
-                $normalizedCompanyName = trim($normalizedCompanyName);
-            }
+                        // ✅ Calculate Levenshtein distance
+                        $distance = levenshtein($normalizedCompanyName, $normalizedExisting);
 
-            $duplicateLeads = Lead::query()
-                ->where(function ($query) use ($record, $normalizedCompanyName) {
-                    // If we have a normalized company name, use it for more accurate matching
-                    if ($normalizedCompanyName) {
-                        // Look for similar company names (normalized)
-                        $query->whereHas('companyDetail', function ($q) use ($normalizedCompanyName) {
-                            // Use simpler SQL that works in all MySQL versions
-                            $q->whereRaw("UPPER(TRIM(company_name)) LIKE ?",
-                                ['%' . $normalizedCompanyName . '%']);
-                        });
+                        // ✅ If distance < 3, consider it a potential duplicate
+                        if ($distance > 0 && $distance < 3) {
+                            $fuzzyMatches[] = $existingCompanyName;
+                        }
                     }
+                }
 
-                    // Check email in both Lead and CompanyDetail
-                    if (!empty($record?->email)) {
-                        $query->orWhere('email', $record->email)
-                            ->orWhereHas('companyDetail', function ($q) use ($record) {
-                                $q->where('email', $record->email);
+                $duplicateLeads = Lead::query()
+                    ->with('companyDetail') // ✅ Eager load company details
+                    ->where(function ($query) use ($record, $normalizedCompanyName) {
+                        if ($normalizedCompanyName) {
+                            $query->whereHas('companyDetail', function ($q) use ($normalizedCompanyName) {
+                                $q->whereRaw("UPPER(TRIM(company_name)) LIKE ?", ['%' . $normalizedCompanyName . '%']);
                             });
-                    }
+                        }
 
-                    // Check email from CompanyDetail if it exists
-                    if (!empty($record?->companyDetail?->email)) {
-                        $query->orWhere('email', $record->companyDetail->email)
-                            ->orWhereHas('companyDetail', function ($q) use ($record) {
-                                $q->where('email', $record->companyDetail->email);
+                        if (!empty($record?->email)) {
+                            $query->orWhere('email', $record->email)
+                                ->orWhereHas('companyDetail', function ($q) use ($record) {
+                                    $q->where('email', $record->email);
+                                });
+                        }
+
+                        if (!empty($record?->companyDetail?->email)) {
+                            $query->orWhere('email', $record->companyDetail->email)
+                                ->orWhereHas('companyDetail', function ($q) use ($record) {
+                                    $q->where('email', $record->companyDetail->email);
+                                });
+                        }
+
+                        if (!empty($record?->phone)) {
+                            $query->orWhere('phone', $record->phone)
+                                ->orWhereHas('companyDetail', function ($q) use ($record) {
+                                    $q->where('contact_no', $record->phone);
+                                });
+                        }
+
+                        if (!empty($record?->companyDetail?->contact_no)) {
+                            $query->orWhere('phone', $record->companyDetail->contact_no)
+                                ->orWhereHas('companyDetail', function ($q) use ($record) {
+                                    $q->where('contact_no', $record->companyDetail->contact_no);
+                                });
+                        }
+                    })
+                    ->where('id', '!=', optional($record)->id)
+                    ->get();
+
+                $isDuplicate = $duplicateLeads->isNotEmpty();
+
+                // ✅ Format duplicate info with company name and lead ID
+                $duplicateInfo = $duplicateLeads->map(function ($lead) {
+                    $dupCompanyName = $lead->companyDetail->company_name ?? 'Unknown Company';
+                    $leadId = str_pad($lead->id, 5, '0', STR_PAD_LEFT);
+                    return "<strong>{$dupCompanyName}</strong> (LEAD ID {$leadId})";
+                })->implode(", ");
+
+                $content = $isDuplicate
+                    ? "⚠️⚠️⚠️ <strong style='color: red;'>Warning: This lead is a duplicate!</strong><br><br>"
+                    . "Matches found: " . $duplicateInfo . "<br><br>"
+                    . "<strong style='color: red;'>Please contact Faiz before proceeding. Assignment is blocked.</strong>"
+                    : "Do you want to assign this lead to yourself? Make sure to confirm assignment before contacting the lead to avoid duplicate efforts by other team members.";
+
+                return [
+                    Placeholder::make('warning')
+                        ->content(Str::of($content)->toHtmlString())
+                        ->hiddenLabel()
+                        ->extraAttributes([
+                            'style' => $isDuplicate ? 'color: red; font-weight: bold;' : '',
+                        ]),
+                ];
+            })
+            ->color('success')
+            ->icon('heroicon-o-pencil-square')
+            ->visible(fn (?Lead $record) => $record && is_null($record->lead_owner) && auth()->user()->role_id !== 2)
+            // ✅ Hide confirm button if duplicates exist
+            ->modalSubmitAction(function ($action, ?Lead $record) {
+                if (!$record) return $action;
+
+                $companyName = optional($record?->companyDetail)->company_name;
+                $normalizedCompanyName = null;
+
+                if ($companyName) {
+                    $normalizedCompanyName = strtoupper($companyName);
+                    $normalizedCompanyName = preg_replace('/\b(SDN\.?\s*BHD\.?|SDN|BHD|BERHAD|SENDIRIAN BERHAD)\b/i', '', $normalizedCompanyName);
+                    $normalizedCompanyName = preg_replace('/^\s*(\[.*?\]|\(.*?\)|WEBINAR:|MEETING:)\s*/', '', $normalizedCompanyName);
+                    $normalizedCompanyName = preg_replace('/[^\p{L}\p{N}\s]/u', ' ', $normalizedCompanyName);
+                    $normalizedCompanyName = preg_replace('/\s+/', ' ', $normalizedCompanyName);
+                    $normalizedCompanyName = trim($normalizedCompanyName);
+                }
+
+                $allCompanyNames = Lead::query()
+                    ->with('companyDetail')
+                    ->whereHas('companyDetail')
+                    ->where('id', '!=', $record->id)
+                    ->get()
+                    ->pluck('companyDetail.company_name')
+                    ->filter()
+                    ->unique();
+
+                $fuzzyMatches = [];
+                if ($normalizedCompanyName) {
+                    foreach ($allCompanyNames as $existingCompanyName) {
+                        $normalizedExisting = strtoupper($existingCompanyName);
+                        $normalizedExisting = preg_replace('/\b(SDN\.?\s*BHD\.?|SDN|BHD|BERHAD|SENDIRIAN BERHAD)\b/i', '', $normalizedExisting);
+                        $normalizedExisting = preg_replace('/^\s*(\[.*?\]|\(.*?\)|WEBINAR:|MEETING:)\s*/', '', $normalizedExisting);
+                        $normalizedExisting = preg_replace('/[^\p{L}\p{N}\s]/u', ' ', $normalizedExisting);
+                        $normalizedExisting = preg_replace('/\s+/', ' ', $normalizedExisting);
+                        $normalizedExisting = trim($normalizedExisting);
+
+                        $distance = levenshtein($normalizedCompanyName, $normalizedExisting);
+                        if ($distance > 0 && $distance < 3) {
+                            $fuzzyMatches[] = $existingCompanyName;
+                        }
+                    }
+                }
+
+                $hasDuplicates = Lead::query()
+                    ->where(function ($query) use ($record, $normalizedCompanyName) {
+                        if ($normalizedCompanyName) {
+                            $query->whereHas('companyDetail', function ($q) use ($normalizedCompanyName) {
+                                $q->whereRaw("UPPER(TRIM(company_name)) LIKE ?", ['%' . $normalizedCompanyName . '%']);
                             });
-                    }
+                        }
 
-                    // Check phone in both Lead and CompanyDetail
-                    if (!empty($record?->phone)) {
-                        $query->orWhere('phone', $record->phone)
-                            ->orWhereHas('companyDetail', function ($q) use ($record) {
-                                $q->where('contact_no', $record->phone);
+                        if (!empty($record?->email)) {
+                            $query->orWhere('email', $record->email)
+                                ->orWhereHas('companyDetail', function ($q) use ($record) {
+                                    $q->where('email', $record->email);
+                                });
+                        }
+
+                        if (!empty($record?->companyDetail?->email)) {
+                            $query->orWhere('email', $record->companyDetail->email)
+                                ->orWhereHas('companyDetail', function ($q) use ($record) {
+                                    $q->where('email', $record->companyDetail->email);
+                                });
+                        }
+
+                        if (!empty($record?->phone)) {
+                            $query->orWhere('phone', $record->phone)
+                                ->orWhereHas('companyDetail', function ($q) use ($record) {
+                                    $q->where('contact_no', $record->phone);
+                                });
+                        }
+
+                        if (!empty($record?->companyDetail?->contact_no)) {
+                            $query->orWhere('phone', $record->companyDetail->contact_no)
+                                ->orWhereHas('companyDetail', function ($q) use ($record) {
+                                    $q->where('contact_no', $record->companyDetail->contact_no);
+                                });
+                        }
+                    })
+                    ->where('id', '!=', optional($record)->id)
+                    ->exists();
+
+                // ✅ Hide button if duplicates found
+                return $hasDuplicates ? $action->hidden() : $action;
+            })
+            ->action(function (Lead $record) {
+                // ✅ Re-check for duplicates before assignment
+                $companyName = optional($record?->companyDetail)->company_name;
+
+                // Normalize company name
+                $normalizedCompanyName = null;
+                if ($companyName) {
+                    $normalizedCompanyName = strtoupper($companyName);
+                    $normalizedCompanyName = preg_replace('/\b(SDN\.?\s*BHD\.?|SDN|BHD|BERHAD|SENDIRIAN BERHAD)\b/i', '', $normalizedCompanyName);
+                    $normalizedCompanyName = preg_replace('/^\s*(\[.*?\]|\(.*?\)|WEBINAR:|MEETING:)\s*/', '', $normalizedCompanyName);
+                    $normalizedCompanyName = preg_replace('/[^\p{L}\p{N}\s]/u', ' ', $normalizedCompanyName);
+                    $normalizedCompanyName = preg_replace('/\s+/', ' ', $normalizedCompanyName);
+                    $normalizedCompanyName = trim($normalizedCompanyName);
+                }
+
+                $hasDuplicates = Lead::query()
+                    ->where(function ($query) use ($record, $normalizedCompanyName) {
+                        if ($normalizedCompanyName) {
+                            $query->whereHas('companyDetail', function ($q) use ($normalizedCompanyName) {
+                                $q->whereRaw("UPPER(TRIM(company_name)) LIKE ?", ['%' . $normalizedCompanyName . '%']);
                             });
-                    }
+                        }
 
-                    // Check contact_no from CompanyDetail if it exists
-                    if (!empty($record?->companyDetail?->contact_no)) {
-                        $query->orWhere('phone', $record->companyDetail->contact_no)
-                            ->orWhereHas('companyDetail', function ($q) use ($record) {
-                                $q->where('contact_no', $record->companyDetail->contact_no);
-                            });
-                    }
-                })
-                ->where('id', '!=', optional($record)->id)
-                ->get(['id']);
+                        if (!empty($record?->email)) {
+                            $query->orWhere('email', $record->email)
+                                ->orWhereHas('companyDetail', function ($q) use ($record) {
+                                    $q->where('email', $record->email);
+                                });
+                        }
 
-            $isDuplicate = $duplicateLeads->isNotEmpty();
+                        if (!empty($record?->companyDetail?->email)) {
+                            $query->orWhere('email', $record->companyDetail->email)
+                                ->orWhereHas('companyDetail', function ($q) use ($record) {
+                                    $q->where('email', $record->companyDetail->email);
+                                });
+                        }
 
-            $duplicateIds = $duplicateLeads->map(fn ($lead) => "LEAD ID " . str_pad($lead->id, 5, '0', STR_PAD_LEFT))
-                ->implode("\n\n");
+                        if (!empty($record?->phone)) {
+                            $query->orWhere('phone', $record->phone)
+                                ->orWhereHas('companyDetail', function ($q) use ($record) {
+                                    $q->where('contact_no', $record->phone);
+                                });
+                        }
 
-            $content = $isDuplicate
-                ? "⚠️⚠️⚠️ Warning: This lead is a duplicate based on company name, email, or phone. Do you want to assign this lead to yourself?\n\n$duplicateIds"
-                : "Do you want to assign this lead to yourself? Make sure to confirm assignment before contacting the lead to avoid duplicate efforts by other team members.";
+                        if (!empty($record?->companyDetail?->contact_no)) {
+                            $query->orWhere('phone', $record->companyDetail->contact_no)
+                                ->orWhereHas('companyDetail', function ($q) use ($record) {
+                                    $q->where('contact_no', $record->companyDetail->contact_no);
+                                });
+                        }
+                    })
+                    ->where('id', '!=', optional($record)->id)
+                    ->exists();
 
-            return [
-                Placeholder::make('warning')
-                    ->content(Str::of($content)->replace("\n", '<br>')->toHtmlString())
-                    ->hiddenLabel()
-                    ->extraAttributes([
-                        'style' => $isDuplicate ? 'color: red; font-weight: bold;' : '',
-                    ]),
-            ];
-        })
-        ->color('success')
-        ->icon('heroicon-o-pencil-square')
-        ->visible(fn (?Lead $record) => $record && is_null($record->lead_owner) && auth()->user()->role_id !== 2)
-        ->action(function (Lead $record) {
-            // Update the lead owner and related fields
-            $record->update([
-                'lead_owner' => auth()->user()->name,
-                'categories' => 'Active',
-                'stage' => 'Transfer',
-                'lead_status' => 'New',
-                'pickup_date' => now()
-            ]);
+                if ($hasDuplicates) {
+                    Notification::make()
+                        ->title('Assignment Blocked')
+                        ->body('Duplicate leads detected. Please contact Faiz before proceeding.')
+                        ->danger()
+                        ->send();
+                    return;
+                }
 
-            // Update the latest activity log
-            $latestActivityLog = ActivityLog::where('subject_id', $record->id)
-                ->orderByDesc('created_at')
-                ->first();
-
-            if ($latestActivityLog && $latestActivityLog->description !== 'Lead assigned to Lead Owner: ' . auth()->user()->name) {
-                $latestActivityLog->update([
-                    'description' => 'Lead assigned to Lead Owner: ' . auth()->user()->name,
+                // Update the lead owner and related fields
+                $record->update([
+                    'lead_owner' => auth()->user()->name,
+                    'categories' => 'Active',
+                    'stage' => 'Transfer',
+                    'lead_status' => 'New',
+                    'pickup_date' => now()
                 ]);
 
-                activity()
-                    ->causedBy(auth()->user())
-                    ->performedOn($record);
-            }
+                // Update the latest activity log
+                $latestActivityLog = ActivityLog::where('subject_id', $record->id)
+                    ->orderByDesc('created_at')
+                    ->first();
 
-            try {
-                // Get all users from the database
-                $allUsers = \App\Models\User::all();
+                if ($latestActivityLog && $latestActivityLog->description !== 'Lead assigned to Lead Owner: ' . auth()->user()->name) {
+                    $latestActivityLog->update([
+                        'description' => 'Lead assigned to Lead Owner: ' . auth()->user()->name,
+                    ]);
 
-                // Create and send notification to all users
-                Notification::make()
-                    ->title('Lead Owner Assigned Successfully')
-                    ->success()
-                    ->send();
-            } catch (\Exception $e) {
-                \Illuminate\Support\Facades\Log::error('Notification error: ' . $e->getMessage());
-            }
-        });
+                    activity()
+                        ->causedBy(auth()->user())
+                        ->performedOn($record);
+                }
+
+                try {
+                    Notification::make()
+                        ->title('Lead Owner Assigned Successfully')
+                        ->success()
+                        ->send();
+                } catch (\Exception $e) {
+                    \Illuminate\Support\Facades\Log::error('Notification error: ' . $e->getMessage());
+                }
+            });
     }
 
     public static function getAssignLeadAction(): Action

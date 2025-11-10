@@ -11,11 +11,10 @@ class Ticket extends Model
 {
     use HasFactory;
 
-    protected $connection = 'ticketingsystem_live';
+    // protected $connection = 'ticketingsystem_live';
     protected $table = 'tickets';
 
     protected $fillable = [
-        'ticket_id',
         'title',
         'status',
         'closure_reason',
@@ -27,8 +26,12 @@ class Ticket extends Model
         'isPassed',
         'passed_at',
         'product_id',
+        'product',
+        'module',
         'module_id',
-        'priority_id',
+        'zoho_ticket_number',
+        'priority',
+        'zoho_ticket_id',
         'company_name',
         'description',
         'zoho_id',
@@ -43,8 +46,9 @@ class Ticket extends Model
         'device_id',
         'os_version',
         'app_version',
-        'windows_version',
+        'windows_os_version',
         'version_screenshot',
+        'created_by',
     ];
 
     protected $casts = [

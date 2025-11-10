@@ -250,7 +250,7 @@ class ProjectFollowUpNone extends Component implements HasForms, HasTable
                         ->icon('heroicon-o-eye')
                         ->color('secondary')
                         ->modalHeading(false)
-                        ->modalWidth('6xl')
+                        ->modalWidth('4xl')
                         ->modalSubmitAction(false)
                         ->modalCancelAction(false)
                         // Use a callback function instead of arrow function for more control
