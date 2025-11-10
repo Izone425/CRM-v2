@@ -283,16 +283,21 @@ class CompanyTabs
                                                             ->pluck('name', 'id')
                                                     )
                                                     ->default(fn ($record) => $record?->salesperson)
-                                                    ->required()
                                                     ->searchable(),
                                             ]
                                         ))
                                         ->action(function ($record, $data) {
+                                            // Initialize variables
+                                            $salespersonName = null;
+                                            $leadOwnerName = null;
+
+                                            // Check and update salesperson if it's not null
                                             if (!empty($data['salesperson'])) {
                                                 $salespersonName = \App\Models\User::find($data['salesperson'])?->name ?? 'Unknown Salesperson';
-                                                $record->update(['salesperson' => $data['salesperson'],
+                                                $record->update([
+                                                    'salesperson' => $data['salesperson'],
                                                     'salesperson_assigned_date' => now(),
-                                                    ]);
+                                                ]);
                                             }
 
                                             // Check and update lead_owner if it's not null
@@ -310,31 +315,40 @@ class CompanyTabs
                                             if (auth()->user()->role_id == 3) {
                                                 $causer_id = auth()->user()->id;
                                                 $causer_name = \App\Models\User::find($causer_id)->name;
-                                                $latestActivityLogs[0]->update([
-                                                    'description' => 'Lead Owner updated by '. $causer_name . ": " . $leadOwnerName,
-                                                ]);
+
+                                                if (isset($latestActivityLogs[0]) && $leadOwnerName) {
+                                                    $latestActivityLogs[0]->update([
+                                                        'description' => 'Lead Owner updated by '. $causer_name . ": " . $leadOwnerName,
+                                                    ]);
+                                                }
 
                                                 // Update the second activity log
-                                                $latestActivityLogs[1]->update([
-                                                    'description' => 'Salesperson updated by '. $causer_name . ": " . $salespersonName,
-                                                ]);
-                                            }else{
+                                                if (isset($latestActivityLogs[1]) && $salespersonName) {
+                                                    $latestActivityLogs[1]->update([
+                                                        'description' => 'Salesperson updated by '. $causer_name . ": " . $salespersonName,
+                                                    ]);
+                                                }
+                                            } else {
                                                 $causer_id = auth()->user()->id;
                                                 $causer_name = \App\Models\User::find($causer_id)->name;
-                                                // $latestActivityLogs[0]->delete();
-                                                $latestActivityLogs[0]->update([
-                                                    'description' => 'Salesperson updated by '. $causer_name . ": " . $salespersonName,
-                                                ]);
+
+                                                if (isset($latestActivityLogs[0]) && $salespersonName) {
+                                                    $latestActivityLogs[0]->update([
+                                                        'description' => 'Salesperson updated by '. $causer_name . ": " . $salespersonName,
+                                                    ]);
+                                                }
                                             }
+
                                             // Log the activity for auditing
                                             activity()
                                                 ->causedBy(auth()->user())
-                                                ->performedOn($record);
+                                                ->performedOn($record)
+                                                ->log('Sales in-charge updated');
 
                                             Notification::make()
-                                            ->title('Sales In-Charge Edited Successfully')
-                                            ->success()
-                                            ->send();
+                                                ->title('Sales In-Charge Edited Successfully')
+                                                ->success()
+                                                ->send();
                                         })
                                         ->modalHeading('Edit Sales In-Charge')
                                         ->modalDescription('Changing the Lead Owner and Salesperson will allow the new staff

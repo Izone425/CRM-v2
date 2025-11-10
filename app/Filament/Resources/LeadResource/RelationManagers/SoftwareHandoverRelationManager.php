@@ -939,6 +939,46 @@ class SoftwareHandoverRelationManager extends RelationManager
 
                     $data['license_type'] = $existingHandovers ? 'addon module' : 'new sales';
 
+                    if (empty($data['company_name'])) {
+                        $data['company_name'] = $this->getOwnerRecord()->companyDetail->company_name ?? null;
+                    }
+
+                    if (empty($data['salesperson'])) {
+                        $salespersonId = $this->getOwnerRecord()->salesperson;
+                        $data['salesperson'] = $salespersonId ? User::find($salespersonId)?->name : null;
+                    }
+
+                    if (empty($data['headcount'])) {
+                        // Try to get headcount from proforma_invoice selections
+                        $headcount = null;
+
+                        // Check from proforma_invoice_product
+                        if (!empty($data['proforma_invoice_product'])) {
+                            $quotationIds = is_array($data['proforma_invoice_product'])
+                                ? $data['proforma_invoice_product']
+                                : json_decode($data['proforma_invoice_product'], true);
+
+                            if (!empty($quotationIds)) {
+                                $headcount = \App\Models\QuotationDetail::whereIn('quotation_id', $quotationIds)
+                                    ->max('quantity');
+                            }
+                        }
+
+                        // Check from software_hardware_pi if still null
+                        if (!$headcount && !empty($data['software_hardware_pi'])) {
+                            $quotationIds = is_array($data['software_hardware_pi'])
+                                ? $data['software_hardware_pi']
+                                : json_decode($data['software_hardware_pi'], true);
+
+                            if (!empty($quotationIds)) {
+                                $headcount = \App\Models\QuotationDetail::whereIn('quotation_id', $quotationIds)
+                                    ->max('quantity');
+                            }
+                        }
+
+                        $data['headcount'] = $headcount;
+                    }
+
                     // Process JSON encoding for array fields
                     if (isset($data['remarks']) && is_array($data['remarks'])) {
                         foreach ($data['remarks'] as $key => $remark) {

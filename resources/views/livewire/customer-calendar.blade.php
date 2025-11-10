@@ -1065,7 +1065,7 @@ use Carbon\Carbon;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 
             /* Auto-show animation every 10 seconds */
-            animation: tooltipAutoShow 10s infinite;
+            animation: tooltipAutoShow 5s infinite;
         }
 
         .help-tooltip::after {

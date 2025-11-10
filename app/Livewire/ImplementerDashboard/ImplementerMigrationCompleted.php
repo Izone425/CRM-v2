@@ -243,7 +243,7 @@ class ImplementerMigrationCompleted extends Component implements HasForms, HasTa
                         ->icon('heroicon-o-eye')
                         ->color('secondary')
                         ->modalHeading(false)
-                        ->modalWidth('6xl')
+                        ->modalWidth('4xl')
                         ->modalSubmitAction(false)
                         ->modalCancelAction(false)
                         // Use a callback function instead of arrow function for more control

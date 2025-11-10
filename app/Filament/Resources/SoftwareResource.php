@@ -48,375 +48,289 @@ class SoftwareResource extends Resource
     {
         return $form
             ->schema([
-                // Section: Company Details
-                Section::make('Company Information')
+                Grid::make(3)
                     ->schema([
-                        Grid::make(4)
-                            ->schema([
-                                TextInput::make('company_name')
-                                    ->label('Company Name')
-                                    ->readonly()
-                                    ->maxLength(255),
-                                TextInput::make('salesperson')
-                                    ->label('Salesperson')
-                                    ->placeholder('Select salesperson')
-                                    ->readonly(),
+                    Grid::make(1)
+                        ->schema([
+                            // Section: Company Details
+                            Section::make('Company Information')
+                                ->schema([
+                                    TextInput::make('company_name')
+                                        ->label('Company Name')
+                                        ->readonly()
+                                        ->maxLength(255),
+                                    TextInput::make('salesperson')
+                                        ->label('Salesperson')
+                                        ->placeholder('Select salesperson')
+                                        ->readonly(),
+                                ])->columnSpan(1),
 
-                                TextInput::make('category')
-                                    ->label('Company Size')
-                                    ->formatStateUsing(function ($state, $record) {
-                                        // If the record has headcount, derive category from it
-                                        if ($record && isset($record->headcount)) {
-                                            $categoryService = app(CategoryService::class);
-                                            return $categoryService->retrieve($record->headcount);
-                                        }
+                            Section::make('Project Information')
+                                ->columnSpan(1)
+                                ->schema([
+                                    Select::make('implementer')
+                                        ->label('Implementer')
+                                        ->options(function () {
+                                            return \App\Models\User::whereIn('role_id', [4, 5])
+                                            ->orderBy('name')
+                                                ->pluck('name', 'name')
+                                                ->toArray();
+                                        })
+                                        ->required()
+                                        ->disabled(fn() => !in_array(auth()->user()->role_id, [3, 5]))
+                                        ->default(function (SoftwareHandover $record) {
+                                            // First try to use existing implementer_id if record exists
+                                            if ($record && $record->implementer) {
+                                                return $record->implementer;
+                                            }
 
-                                        // Otherwise, return the stored category value
-                                        return $state;
-                                    })
-                                    ->dehydrated(false)
-                                    ->readonly(),
-
-                                TextInput::make('headcount')
-                                    ->numeric()
-                                    ->readonly(),
-                            ]),
-                    ]),
-
-                Grid::make(6)
-                    ->schema([
-                        // Section: Modules
-                        Section::make('Module Selection')
-                            ->columnSpan(3)
-                            ->schema([
-                                Grid::make(3)
-                                    ->schema([
-                                        Checkbox::make('ta')
-                                            ->label('Time Attendance (TA)')
-                                            ->disabled()
-                                            ->inline(),
-
-                                        Checkbox::make('tapp')
-                                            ->label('TimeTec Appraisal (T-APP)')
-                                            ->disabled()
-                                            ->inline(),
-
-                                        Checkbox::make('tl')
-                                            ->label('TimeTec Leave (TL)')
-                                            ->disabled()
-                                            ->inline(),
-
-                                        Checkbox::make('thire')
-                                            ->label('TimeTec Hire (T-HIRE)')
-                                            ->disabled()
-                                            ->inline(),
-
-                                        Checkbox::make('tc')
-                                            ->label('TimeTec Claim (TC)')
-                                            ->disabled()
-                                            ->inline(),
-
-                                        Checkbox::make('tacc')
-                                            ->label('TimeTec Access (T-ACC)')
-                                            ->disabled()
-                                            ->inline(),
-
-                                        Checkbox::make('tp')
-                                            ->label('TimeTec Payroll (TP)')
-                                            ->disabled()
-                                            ->inline(),
-
-                                        Checkbox::make('tpbi')
-                                            ->label('TimeTec PBI (TPBI)')
-                                            ->disabled()
-                                            ->inline(),
-                                    ])
-                            ]),
-
-                        // Section: Implementation Details
-                        Section::make('Implementation Timeline')
-                            ->columnSpan(2)
-                            ->schema([
-                                Grid::make(2)
-                                    ->schema([
-                                        TextInput::make('formatted_date')
-                                            ->label('DB Creation Date')
-                                            ->formatStateUsing(function ($state, $record) {
-                                                return $record->completed_at ? \Carbon\Carbon::parse($record->completed_at)->format('d M Y') : '-';
-                                            })
-                                            ->disabled()
-                                            ->dehydrated(false),
-                                        DatePicker::make('kick_off_meeting')
-                                            ->label('Online Kick Off Meeting')
-                                            ->disabled()
-                                            ->native(false)
-                                            ->displayFormat('d M Y'),
-                                    ]),
-
-                                Grid::make(2)
-                                    ->schema([
-                                        DatePicker::make('webinar_training')
-                                            ->label('Online Webinar Training')
-                                            ->disabled()
-                                            ->native(false)
-                                            ->displayFormat('d M Y'),
-
-                                        DatePicker::make('go_live_date')
-                                            ->label('System Go Live')
-                                            ->native(false)
-                                            ->displayFormat('d M Y')
-                                            ->live() // Make it react to changes
-                                            ->afterStateUpdated(function (Forms\Set $set, ?string $state) {
-                                                // If a go_live_date is set (not null or empty), set status to Closed
-                                                if (!empty($state)) {
-                                                    $set('status_handover', 'Closed');
-                                                }
-                                            })
-                                            ->disabled()
-                                            ->dehydrated(function () {
-                                                // Even if disabled, we still want to save any existing value
-                                                // This ensures the field value is still submitted when the form is saved
-                                                return true;
-                                            }),
-                                    ]),
-                            ]),
-
-                        Section::make('Project Information')
-                            ->columnSpan(1)
-                            ->schema([
-                                Select::make('implementer')
-                                    ->label('Implementer')
-                                    ->options(function () {
-                                        return \App\Models\User::whereIn('role_id', [4, 5])
-                                        ->orderBy('name')
-                                            ->pluck('name', 'name')
-                                            ->toArray();
-                                    })
-                                    ->required()
-                                    ->disabled(fn() => !in_array(auth()->user()->role_id, [3, 5]))
-                                    ->default(function (SoftwareHandover $record) {
-                                        // First try to use existing implementer_id if record exists
-                                        if ($record && $record->implementer) {
-                                            return $record->implementer;
-                                        }
-
-                                        // Otherwise try to find the first available implementer
-                                        $firstImplementer = \App\Models\User::whereIn('role_id', [4, 5])->first();
-                                        return $firstImplementer ? $firstImplementer->id : null;
-                                    })
-                                    ->searchable()
-                                    ->placeholder('Select an implementer')
-                                    ->afterStateUpdated(function ($state, $old, $record, $component) {
-                                        // Only send email if this is an existing record and the implementer actually changed
-                                        if ($record && $record->exists && $old !== $state && $old !== null) {
-                                            // Add debug logging to see what's happening
-                                            \Illuminate\Support\Facades\Log::info("Implementer change detected", [
-                                                'record_id' => $record->id,
-                                                'old_implementer' => $old,
-                                                'new_implementer' => $state
-                                            ]);
-
-                                            // Initialize variables with safe defaults
-                                            $emailContent = [];
-                                            $recipients = [];
-
-                                            try {
-                                                // Find the implementers - use firstOrFail() to catch missing users
-                                                $newImplementer = \App\Models\User::where('name', $state)->first();
-
-                                                // For old implementer, don't fail if not found
-                                                $oldImplementer = \App\Models\User::where('name', $old)->first();
-                                                $oldImplementerName = $oldImplementer ? $oldImplementer->name : $old;
-
-                                                // Only proceed if new implementer exists
-                                                if ($newImplementer) {
-                                                    $viewName = 'emails.handover_changeimplementer';
-
-                                                    // Get company name with fallbacks
-                                                    $companyName = $record->company_name;
-                                                    if (empty($companyName) && isset($record->lead) && isset($record->lead->companyDetail)) {
-                                                        $companyName = $record->lead->companyDetail->company_name;
-                                                    }
-                                                    if (empty($companyName)) {
-                                                        $companyName = 'Unknown Company';
-                                                    }
-
-                                                    // Get salesperson with safety checks
-                                                    $salesperson = null;
-                                                    $salespersonName = 'Unknown';
-                                                    if (isset($record->lead) && isset($record->lead->salesperson)) {
-                                                        $salesperson = \App\Models\User::find($record->lead->salesperson);
-                                                        if ($salesperson) {
-                                                            $salespersonName = $salesperson->name;
-                                                        }
-                                                    }
-
-                                                    // Format the handover ID properly
-                                                    $handoverId = 'SW_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
-
-                                                    // Get the handover PDF URL
-                                                    $handoverFormUrl = $record->handover_pdf ? url('storage/' . $record->handover_pdf) : null;
-
-                                                    // Process invoice files safely
-                                                    $invoiceFiles = [];
-                                                    if ($record->invoice_file) {
-                                                        $invoiceFileArray = is_string($record->invoice_file)
-                                                            ? json_decode($record->invoice_file, true)
-                                                            : $record->invoice_file;
-
-                                                        if (is_array($invoiceFileArray)) {
-                                                            foreach ($invoiceFileArray as $file) {
-                                                                $invoiceFiles[] = url('storage/' . $file);
-                                                            }
-                                                        }
-                                                    }
-
-                                                    // Create email content structure with safe data
-                                                    $emailContent = [
-                                                        'implementer' => [
-                                                            'name' => $newImplementer->name,
-                                                        ],
-                                                        'oldImplementer' => [
-                                                            'name' => $oldImplementerName,
-                                                        ],
-                                                        'company' => [
-                                                            'name' => $companyName,
-                                                        ],
-                                                        'salesperson' => [
-                                                            'name' => $salespersonName,
-                                                        ],
-                                                        'handover_id' => $handoverId,
-                                                        'createdAt' => $record->completed_at
-                                                            ? \Carbon\Carbon::parse($record->completed_at)->format('d M Y')
-                                                            : now()->format('d M Y'),
-                                                        'handoverFormUrl' => $handoverFormUrl,
-                                                        'invoiceFiles' => $invoiceFiles,
-                                                    ];
-
-                                                    // Initialize recipients array with admin email
-                                                    // $recipients = ['faiz@timeteccloud.com']; // UNCOMMENTED - Always include admin
-
-                                                    // Add new implementer email if valid
-                                                    if ($newImplementer->email && filter_var($newImplementer->email, FILTER_VALIDATE_EMAIL)) {
-                                                        $recipients[] = $newImplementer->email;
-                                                    }
-
-                                                    // Add old implementer email if valid and user exists
-                                                    if ($oldImplementer && $oldImplementer->email && filter_var($oldImplementer->email, FILTER_VALIDATE_EMAIL)) {
-                                                        $recipients[] = $oldImplementer->email;
-                                                    }
-
-                                                    // Add salesperson email if valid and user exists
-                                                    if ($salesperson && $salesperson->email && filter_var($salesperson->email, FILTER_VALIDATE_EMAIL)) {
-                                                        $recipients[] = $salesperson->email;
-                                                    }
-
-                                                    // Get authenticated user's email for sender with fallbacks
-                                                    $authUser = auth()->user();
-                                                    $senderEmail = $authUser->email ?? 'no-reply@timeteccloud.com';
-                                                    $senderName = $authUser->name ?? 'TimeTec System';
-
-                                                    // Log what we're about to do
-                                                    \Illuminate\Support\Facades\Log::info("About to send email", [
-                                                        'recipients' => $recipients,
-                                                        'sender' => $senderEmail,
-                                                        'subject' => "SOFTWARE HANDOVER ID {$handoverId} | {$companyName}"
-                                                    ]);
-
-                                                    // Send email with template and custom subject format if we have recipients
-                                                    if (count($recipients) > 0) {
-                                                        \Illuminate\Support\Facades\Mail::send($viewName, ['emailContent' => $emailContent], function ($message) use ($recipients, $senderEmail, $senderName, $handoverId, $companyName) {
-                                                            $message->from($senderEmail, $senderName)
-                                                                ->to($recipients)
-                                                                ->subject("SOFTWARE HANDOVER ID {$handoverId} | {$companyName}");
-                                                        });
-
-                                                        \Illuminate\Support\Facades\Log::info("Project assignment email - Change Implementer sent successfully from {$senderEmail} to: " . implode(', ', $recipients));
-                                                    } else {
-                                                        \Illuminate\Support\Facades\Log::warning("No valid recipients for email notification");
-                                                    }
-                                                } else {
-                                                    \Illuminate\Support\Facades\Log::warning("New implementer not found: {$state}");
-                                                }
-                                            } catch (\Exception $e) {
-                                                // Better error logging with context
-                                                \Illuminate\Support\Facades\Log::error("Email sending failed for handover #{$record->id}: " . $e->getMessage(), [
-                                                    'exception' => $e,
-                                                    'trace' => $e->getTraceAsString(),
+                                            // Otherwise try to find the first available implementer
+                                            $firstImplementer = \App\Models\User::whereIn('role_id', [4, 5])->first();
+                                            return $firstImplementer ? $firstImplementer->id : null;
+                                        })
+                                        ->searchable()
+                                        ->placeholder('Select an implementer')
+                                        ->afterStateUpdated(function ($state, $old, $record, $component) {
+                                            // Only send email if this is an existing record and the implementer actually changed
+                                            if ($record && $record->exists && $old !== $state && $old !== null) {
+                                                // Add debug logging to see what's happening
+                                                \Illuminate\Support\Facades\Log::info("Implementer change detected", [
+                                                    'record_id' => $record->id,
                                                     'old_implementer' => $old,
                                                     'new_implementer' => $state
                                                 ]);
 
-                                                // Only try to log email content if it was created
-                                                if (!empty($emailContent)) {
-                                                    \Illuminate\Support\Facades\Log::debug("Email content for handover #{$record->id}:", $emailContent);
+                                                // Initialize variables with safe defaults
+                                                $emailContent = [];
+                                                $recipients = [];
+
+                                                try {
+                                                    // Find the implementers - use firstOrFail() to catch missing users
+                                                    $newImplementer = \App\Models\User::where('name', $state)->first();
+
+                                                    // For old implementer, don't fail if not found
+                                                    $oldImplementer = \App\Models\User::where('name', $old)->first();
+                                                    $oldImplementerName = $oldImplementer ? $oldImplementer->name : $old;
+
+                                                    // Only proceed if new implementer exists
+                                                    if ($newImplementer) {
+                                                        $viewName = 'emails.handover_changeimplementer';
+
+                                                        // Get company name with fallbacks
+                                                        $companyName = $record->company_name;
+                                                        if (empty($companyName) && isset($record->lead) && isset($record->lead->companyDetail)) {
+                                                            $companyName = $record->lead->companyDetail->company_name;
+                                                        }
+                                                        if (empty($companyName)) {
+                                                            $companyName = 'Unknown Company';
+                                                        }
+
+                                                        // Get salesperson with safety checks
+                                                        $salesperson = null;
+                                                        $salespersonName = 'Unknown';
+                                                        if (isset($record->lead) && isset($record->lead->salesperson)) {
+                                                            $salesperson = \App\Models\User::find($record->lead->salesperson);
+                                                            if ($salesperson) {
+                                                                $salespersonName = $salesperson->name;
+                                                            }
+                                                        }
+
+                                                        // Format the handover ID properly
+                                                        $handoverId = 'SW_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+
+                                                        // Get the handover PDF URL
+                                                        $handoverFormUrl = $record->handover_pdf ? url('storage/' . $record->handover_pdf) : null;
+
+                                                        // Process invoice files safely
+                                                        $invoiceFiles = [];
+                                                        if ($record->invoice_file) {
+                                                            $invoiceFileArray = is_string($record->invoice_file)
+                                                                ? json_decode($record->invoice_file, true)
+                                                                : $record->invoice_file;
+
+                                                            if (is_array($invoiceFileArray)) {
+                                                                foreach ($invoiceFileArray as $file) {
+                                                                    $invoiceFiles[] = url('storage/' . $file);
+                                                                }
+                                                            }
+                                                        }
+
+                                                        // Create email content structure with safe data
+                                                        $emailContent = [
+                                                            'implementer' => [
+                                                                'name' => $newImplementer->name,
+                                                            ],
+                                                            'oldImplementer' => [
+                                                                'name' => $oldImplementerName,
+                                                            ],
+                                                            'company' => [
+                                                                'name' => $companyName,
+                                                            ],
+                                                            'salesperson' => [
+                                                                'name' => $salespersonName,
+                                                            ],
+                                                            'handover_id' => $handoverId,
+                                                            'createdAt' => $record->completed_at
+                                                                ? \Carbon\Carbon::parse($record->completed_at)->format('d M Y')
+                                                                : now()->format('d M Y'),
+                                                            'handoverFormUrl' => $handoverFormUrl,
+                                                            'invoiceFiles' => $invoiceFiles,
+                                                        ];
+
+                                                        // Initialize recipients array with admin email
+                                                        // $recipients = ['faiz@timeteccloud.com']; // UNCOMMENTED - Always include admin
+
+                                                        // Add new implementer email if valid
+                                                        if ($newImplementer->email && filter_var($newImplementer->email, FILTER_VALIDATE_EMAIL)) {
+                                                            $recipients[] = $newImplementer->email;
+                                                        }
+
+                                                        // Add old implementer email if valid and user exists
+                                                        if ($oldImplementer && $oldImplementer->email && filter_var($oldImplementer->email, FILTER_VALIDATE_EMAIL)) {
+                                                            $recipients[] = $oldImplementer->email;
+                                                        }
+
+                                                        // Add salesperson email if valid and user exists
+                                                        if ($salesperson && $salesperson->email && filter_var($salesperson->email, FILTER_VALIDATE_EMAIL)) {
+                                                            $recipients[] = $salesperson->email;
+                                                        }
+
+                                                        // Get authenticated user's email for sender with fallbacks
+                                                        $authUser = auth()->user();
+                                                        $senderEmail = $authUser->email ?? 'no-reply@timeteccloud.com';
+                                                        $senderName = $authUser->name ?? 'TimeTec System';
+
+                                                        // Log what we're about to do
+                                                        \Illuminate\Support\Facades\Log::info("About to send email", [
+                                                            'recipients' => $recipients,
+                                                            'sender' => $senderEmail,
+                                                            'subject' => "SOFTWARE HANDOVER ID {$handoverId} | {$companyName}"
+                                                        ]);
+
+                                                        // Send email with template and custom subject format if we have recipients
+                                                        if (count($recipients) > 0) {
+                                                            \Illuminate\Support\Facades\Mail::send($viewName, ['emailContent' => $emailContent], function ($message) use ($recipients, $senderEmail, $senderName, $handoverId, $companyName) {
+                                                                $message->from($senderEmail, $senderName)
+                                                                    ->to($recipients)
+                                                                    ->subject("SOFTWARE HANDOVER ID {$handoverId} | {$companyName}");
+                                                            });
+
+                                                            \Illuminate\Support\Facades\Log::info("Project assignment email - Change Implementer sent successfully from {$senderEmail} to: " . implode(', ', $recipients));
+                                                        } else {
+                                                            \Illuminate\Support\Facades\Log::warning("No valid recipients for email notification");
+                                                        }
+                                                    } else {
+                                                        \Illuminate\Support\Facades\Log::warning("New implementer not found: {$state}");
+                                                    }
+                                                } catch (\Exception $e) {
+                                                    // Better error logging with context
+                                                    \Illuminate\Support\Facades\Log::error("Email sending failed for handover #{$record->id}: " . $e->getMessage(), [
+                                                        'exception' => $e,
+                                                        'trace' => $e->getTraceAsString(),
+                                                        'old_implementer' => $old,
+                                                        'new_implementer' => $state
+                                                    ]);
+
+                                                    // Only try to log email content if it was created
+                                                    if (!empty($emailContent)) {
+                                                        \Illuminate\Support\Facades\Log::debug("Email content for handover #{$record->id}:", $emailContent);
+                                                    }
                                                 }
                                             }
-                                        }
-                                    }),
-                                TextInput::make('payroll_code')
-                                    ->label('Payroll Code')
-                                    ->maxLength(50)
-                                    ->disabled()
-                                    ->dehydrated(true),
+                                        }),
+                                    TextInput::make('payroll_code')
+                                        ->label('Payroll Code')
+                                        ->maxLength(50)
+                                        ->disabled()
+                                        ->dehydrated(true),
                             ]),
-                        // Section::make('Handover Status')
-                        // ->columnSpan(1)
-                        // ->schema([
-                        //     Select::make('status_handover')
-                        //         ->label('Project Status')
-                        //         ->options(function (callable $get) {
-                        //             // Check if user has permissions to set Closed status
-                        //             $user = auth()->user();
-                        //             $canSetClosed = ($user->role_id == 3 || $user->id == 26);
+                        ])->columnSpan(1),
 
-                        //             // First check if go_live_date has been selected or user has special permission
-                        //             if (!empty($get('go_live_date')) && $canSetClosed) {
-                        //                 // Include Closed option
-                        //                 return [
-                        //                     'Open' => 'Open',
-                        //                     'InActive' => 'InActive',
-                        //                     'Delay' => 'Delay',
-                        //                     'Closed' => 'Closed',
-                        //                 ];
-                        //             } else {
-                        //                 // If no go_live_date and user doesn't have special permissions, don't include Closed option
-                        //                 return [
-                        //                     'Open' => 'Open',
-                        //                     'InActive' => 'InActive',
-                        //                     'Delay' => 'Delay',
-                        //                 ];
-                        //             }
-                        //         })
-                        //         ->default(function (callable $get, SoftwareHandover $record) {
-                        //             // If go_live_date is set, default to Closed
-                        //             if (!empty($get('go_live_date')) || ($record && $record->go_live_date)) {
-                        //                 return 'Closed';
-                        //             }
+                    // Section: Modules
+                    Section::make('Module Selection')
+                        ->schema([
+                            Checkbox::make('ta')
+                                ->label('Time Attendance (TA)')
+                                ->disabled()
+                                ->inline(),
 
-                        //             // Otherwise use existing status or fall back to Open
-                        //             // If the current status is 'Closed' but go_live_date is removed, reset to 'Open'
-                        //             $currentStatus = $record->status_handover ?? 'Open';
-                        //             return ($currentStatus === 'Closed' && empty($get('go_live_date')) && empty($record->go_live_date))
-                        //                 ? 'Open'
-                        //                 : $currentStatus;
-                        //         })
-                        //         ->live() // Make it react to changes
-                        //         ->required(),
+                            Checkbox::make('tl')
+                                ->label('TimeTec Leave (TL)')
+                                ->disabled()
+                                ->inline(),
 
-                        //     Textarea::make('inactive_reason')
-                        //         ->label('Inactive Reason')
-                        //         ->placeholder('Please explain why this project is inactive')
-                        //         ->rows(3)
-                        //         ->maxLength(500)
-                        //         ->extraInputAttributes(['style' => 'text-transform: uppercase'])
-                        //         ->afterStateHydrated(fn($state) => Str::upper($state))
-                        //         ->afterStateUpdated(fn($state) => Str::upper($state))
-                        //         ->hidden(fn (callable $get): bool => $get('status_handover') !== 'InActive')
-                        //         ->requiredIf('status_handover', 'InActive')
-                        // ]),
-                    ]),
+                            Checkbox::make('tc')
+                                ->label('TimeTec Claim (TC)')
+                                ->disabled()
+                                ->inline(),
 
+                            Checkbox::make('tp')
+                                ->label('TimeTec Payroll (TP)')
+                                ->disabled()
+                                ->inline(),
+
+                            Checkbox::make('tapp')
+                                ->label('TimeTec Appraisal (T-APP)')
+                                ->disabled()
+                                ->inline(),
+
+                            Checkbox::make('thire')
+                                ->label('TimeTec Hire (T-HIRE)')
+                                ->disabled()
+                                ->inline(),
+
+                            Checkbox::make('tacc')
+                                ->label('TimeTec Access (T-ACC)')
+                                ->disabled()
+                                ->inline(),
+
+                            Checkbox::make('tpbi')
+                                ->label('TimeTec PBI (TPBI)')
+                                ->disabled()
+                                ->inline(),
+                        ])->columnSpan(1),
+
+                    // Section: Implementation Details
+                    Section::make('Implementation Timeline')
+                        ->schema([
+                            TextInput::make('formatted_date')
+                                ->label('DB Creation Date')
+                                ->formatStateUsing(function ($state, $record) {
+                                    return $record->completed_at ? \Carbon\Carbon::parse($record->completed_at)->format('d M Y') : '-';
+                                })
+                                ->disabled()
+                                ->dehydrated(false),
+                            DatePicker::make('kick_off_meeting')
+                                ->label('Online Kick Off Meeting')
+                                ->disabled()
+                                ->native(false)
+                                ->displayFormat('d M Y'),
+
+                            DatePicker::make('webinar_training')
+                                ->label('Online Webinar Training')
+                                ->disabled()
+                                ->native(false)
+                                ->displayFormat('d M Y'),
+
+                            DatePicker::make('go_live_date')
+                                ->label('System Go Live')
+                                ->native(false)
+                                ->displayFormat('d M Y')
+                                ->live() // Make it react to changes
+                                ->afterStateUpdated(function (Forms\Set $set, ?string $state) {
+                                    // If a go_live_date is set (not null or empty), set status to Closed
+                                    if (!empty($state)) {
+                                        $set('status_handover', 'Closed');
+                                    }
+                                })
+                                ->disabled()
+                                ->dehydrated(function () {
+                                    // Even if disabled, we still want to save any existing value
+                                    // This ensures the field value is still submitted when the form is saved
+                                    return true;
+                                }),
+                        ])->columnSpan(1),
+                ]),
             ]);
     }
 

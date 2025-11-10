@@ -54,6 +54,8 @@ use Spatie\Activitylog\Traits\LogsActivity;
 use Livewire\Attributes\On;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Components\Fieldset;
+use Filament\Tables\Filters\SelectFilter;
+
 class ImplementerAppointmentRelationManager extends RelationManager
 {
     protected static string $relationship = 'implementerAppointment';
@@ -512,6 +514,44 @@ class ImplementerAppointmentRelationManager extends RelationManager
             ->emptyState(fn () => view('components.empty-state-question'))
             ->headerActions($this->headerActions())
             ->defaultPaginationPageOption('all')
+            ->filters([
+                SelectFilter::make('status')
+                    ->label('Status Filter')
+                    ->options([
+                        'new_done' => 'New + Done',
+                        'cancelled' => 'Cancelled Only',
+                    ])
+                    ->default('new_done') // ✅ Default to "New + Done"
+                    ->query(function (Builder $query, array $data) {
+                        $value = $data['value'] ?? 'new_done';
+
+                        if ($value === 'new_done') {
+                            // Show only New and Done statuses
+                            return $query->whereIn('status', ['New', 'Done']);
+                        } elseif ($value === 'cancelled') {
+                            // Show only Cancelled status
+                            return $query->where('status', 'Cancelled');
+                        }
+                        return $query;
+                    })
+                    ->indicateUsing(function (array $data): ?string {
+                        $value = $data['value'] ?? null;
+
+                        if (!$value || $value === 'new_done') {
+                            return 'Showing: New + Done';
+                        }
+
+                        if ($value === 'all') {
+                            return 'Showing: All Status';
+                        }
+
+                        if ($value === 'cancelled') {
+                            return 'Showing: Cancelled Only';
+                        }
+
+                        return null;
+                    }),
+            ])
             ->columns([
                 TextColumn::make('implementer')
                     ->label('IMPLEMENTER')
@@ -1291,6 +1331,29 @@ class ImplementerAppointmentRelationManager extends RelationManager
                     $lead = $this->getOwnerRecord();
 
                     try {
+                        $updatedAppointments = \App\Models\ImplementerAppointment::where('lead_id', $lead->id)
+                            ->where('status', 'New')
+                            ->whereIn('type', ['KICK OFF MEETING SESSION', 'REVIEW SESSION'])
+                            ->update([
+                                'status' => 'Done',
+                                'updated_at' => now(),
+                            ]);
+
+                        if ($updatedAppointments > 0) {
+                            Log::info("Auto-updated {$updatedAppointments} appointment(s) to Done status", [
+                                'lead_id' => $lead->id,
+                                'company' => $lead->companyDetail?->company_name,
+                                'updated_by' => auth()->user()->name,
+                                'action' => 'activate_sessions'
+                            ]);
+
+                            Notification::make()
+                                ->title('Appointments Updated')
+                                ->success()
+                                ->body("{$updatedAppointments} appointment(s) automatically marked as Done")
+                                ->send();
+                        }
+
                         if (isset($data['create_customer_account']) && $data['create_customer_account']) {
                             $customer = \App\Models\Customer::where('lead_id', $lead->id)->first();
 

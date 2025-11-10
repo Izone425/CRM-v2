@@ -33,6 +33,7 @@ class NewLeadTable extends Component implements HasForms, HasTable
 
     public $selectedUser; // Allow dynamic filtering
     public $lastRefreshTime;
+    public $hasDuplicatesInBulkAssign = false;
 
     public function mount()
     {
@@ -196,8 +197,16 @@ class NewLeadTable extends Component implements HasForms, HasTable
                     ->requiresConfirmation()
                     ->modalHeading('Bulk Assign Leads')
                     ->form(function ($records) {
-                        // Check for duplicates across all selected leads
+                        // ✅ Single duplicate check - cache the result
                         $duplicateInfo = [];
+                        $hasDuplicates = false;
+
+                        $allCompanyNames = Lead::query()
+                            ->with('companyDetail')
+                            ->whereHas('companyDetail')
+                            ->get()
+                            ->pluck('companyDetail.company_name', 'id')
+                            ->filter();
 
                         foreach ($records as $record) {
                             $companyName = optional($record?->companyDetail)->company_name;
@@ -213,11 +222,37 @@ class NewLeadTable extends Component implements HasForms, HasTable
                                 $normalizedCompanyName = trim($normalizedCompanyName);
                             }
 
+                            $fuzzyMatches = [];
+                                if ($normalizedCompanyName) {
+                                    foreach ($allCompanyNames as $leadId => $existingCompanyName) {
+                                        if ($leadId == $record->id) continue;
+
+                                        $normalizedExisting = strtoupper($existingCompanyName);
+                                        $normalizedExisting = preg_replace('/\b(SDN\.?\s*BHD\.?|SDN|BHD|BERHAD|SENDIRIAN BERHAD)\b/i', '', $normalizedExisting);
+                                        $normalizedExisting = preg_replace('/^\s*(\[.*?\]|\(.*?\)|WEBINAR:|MEETING:)\s*/', '', $normalizedExisting);
+                                        $normalizedExisting = preg_replace('/[^\p{L}\p{N}\s]/u', ' ', $normalizedExisting);
+                                        $normalizedExisting = preg_replace('/\s+/', ' ', $normalizedExisting);
+                                        $normalizedExisting = trim($normalizedExisting);
+
+                                        $distance = levenshtein($normalizedCompanyName, $normalizedExisting);
+                                        if ($distance > 0 && $distance < 3) {
+                                            $fuzzyMatches[] = $existingCompanyName;
+                                        }
+                                    }
+                                }
+
                             $duplicateLeads = Lead::query()
+                                ->with('companyDetail')
                                 ->where(function ($query) use ($record, $normalizedCompanyName) {
                                     if ($normalizedCompanyName) {
                                         $query->whereHas('companyDetail', function ($q) use ($normalizedCompanyName) {
                                             $q->whereRaw("UPPER(TRIM(company_name)) LIKE ?", ['%' . $normalizedCompanyName . '%']);
+                                        });
+                                    }
+
+                                    if (!empty($fuzzyMatches)) {
+                                        $query->orWhereHas('companyDetail', function ($q) use ($fuzzyMatches) {
+                                            $q->whereIn('company_name', $fuzzyMatches);
                                         });
                                     }
 
@@ -250,20 +285,28 @@ class NewLeadTable extends Component implements HasForms, HasTable
                                     }
                                 })
                                 ->where('id', '!=', optional($record)->id)
-                                ->get(['id']);
+                                ->get();
 
                             if ($duplicateLeads->isNotEmpty()) {
-                                $duplicateIds = $duplicateLeads->map(fn ($lead) => "LEAD ID " . str_pad($lead->id, 5, '0', STR_PAD_LEFT))
-                                    ->implode(", ");
+                                $hasDuplicates = true;
 
-                                $duplicateInfo[] = "⚠️ <strong>" . ($companyName ?? 'Lead ' . $record->id) . "</strong>: " . $duplicateIds;
+                                $duplicateDetails = $duplicateLeads->map(function ($lead) {
+                                    $dupCompanyName = $lead->companyDetail->company_name ?? 'Unknown Company';
+                                    $leadId = str_pad($lead->id, 5, '0', STR_PAD_LEFT);
+                                    return "<strong>{$dupCompanyName}</strong> (LEAD ID {$leadId})";
+                                })->implode(", ");
+
+                                $duplicateInfo[] = "⚠️ <strong>" . ($companyName ?? 'Lead ' . $record->id) . "</strong> matches: " . $duplicateDetails;
                             }
                         }
 
-                        $hasDuplicates = !empty($duplicateInfo);
+                        // ✅ Cache the result in component property
+                        $this->hasDuplicatesInBulkAssign = $hasDuplicates;
 
                         $warningMessage = $hasDuplicates
-                            ? "⚠️⚠️⚠️ <strong style='color: red;'>Warning: Some leads have duplicates!</strong><br><br>" . implode("<br><br>", $duplicateInfo) . "<br><br>Do you still want to assign these leads to yourself?"
+                            ? "⚠️⚠️⚠️ <strong style='color: red;'>Warning: Some leads have duplicates!</strong><br><br>"
+                            . implode("<br><br>", $duplicateInfo)
+                            . "<br><br><strong style='color: red;'>Please contact Faiz before proceeding. Assignment is blocked.</strong>"
                             : "You are about to assign <strong>" . count($records) . "</strong> lead(s) to yourself. Make sure to confirm assignment before contacting the leads to avoid duplicate efforts by other team members.";
 
                         return [
@@ -275,9 +318,25 @@ class NewLeadTable extends Component implements HasForms, HasTable
                                 ]),
                         ];
                     })
-                    ->action(fn ($records) => $this->bulkAssignToMe($records))
+                    ->action(function ($records) {
+                        // ✅ Use cached result - no re-check needed
+                        if ($this->hasDuplicatesInBulkAssign) {
+                            Notification::make()
+                                ->title('Assignment Blocked')
+                                ->body('Duplicate leads detected. Please contact Faiz before proceeding.')
+                                ->danger()
+                                ->send();
+                            return;
+                        }
+
+                        $this->bulkAssignToMe($records);
+                    })
                     ->color('primary')
-                    ->modalWidth('xl'),
+                    ->modalWidth('xl')
+                    // ✅ Use cached result to hide button
+                    ->modalSubmitAction(fn ($action) =>
+                        $this->hasDuplicatesInBulkAssign ? $action->hidden() : $action
+                    ),
             ]);
     }
 

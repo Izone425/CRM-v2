@@ -916,6 +916,34 @@ class SoftwareHandoverNew extends Component implements HasForms, HasTable
                                         })
                                         ->dehydrated(false),
 
+                                    \Filament\Forms\Components\Placeholder::make('company_size')
+                                        ->label(false)
+                                        ->content(function (SoftwareHandover $record) {
+                                            $companySizeLabel = $record->headcount_company_size_label ?? 'Unknown';
+                                            $headcount = $record->headcount ?? 'N/A';
+
+                                            return new HtmlString(
+                                                '<span style="font-weight: 600; color: #475569; font-size: 14px;">' . 'Company Size: ' .
+                                                $companySizeLabel . ' (' . $headcount . ' employees)' .
+                                                '</span>'
+                                            );
+                                        }),
+
+                                    // ✅ PLACEHOLDER 2: Project Sequence Link
+                                    \Filament\Forms\Components\Placeholder::make('project_sequence')
+                                        ->label(false)
+                                        ->content(function (SoftwareHandover $record) {
+                                            return new HtmlString(
+                                                '<span style="font-weight: 600; color: #475569; font-size: 14px;">Project Sequence: ' . '<a href="https://crm.timeteccloud.com/admin/implementer-audit-list"
+                                                target="_blank"
+                                                style="color: #3b82f6; text-decoration: none; font-weight: 500; font-size: 14px; display: inline-flex; align-items: center; gap: 4px;"
+                                                onmouseover="this.style.textDecoration=\'underline\'; this.style.color=\'#2563eb\'"
+                                                onmouseout="this.style.textDecoration=\'none\'; this.style.color=\'#3b82f6\'">
+                                                Click Here
+                                                </a></span>'
+                                            );
+                                        }),
+
                                     Select::make('implementer_id')
                                         ->label('Implementer')
                                         ->options(function () {

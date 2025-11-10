@@ -404,7 +404,7 @@
                                         </tr>
                                         <tr>
                                             <td style="font-weight: 600; width: 40%; background-color: #f3f4f6;">Company Size</td>
-                                            <td>{{ $record->headcount }} users</td>
+                                            <td>{{ $record->headcount_company_size_label }}</td>
                                         </tr>
                                         <tr>
                                             <td style="font-weight: 600; width: 40%; background-color: #f3f4f6;">SalesPerson Name</td>
