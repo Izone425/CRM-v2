@@ -22,7 +22,7 @@ use Filament\Notifications\Notification;
 use Filament\Tables\Filters\SelectFilter;
 use Livewire\Attributes\On;
 
-class ActiveBigCompTable extends Component implements HasForms, HasTable
+class ApolloActiveBigCompTable extends Component implements HasForms, HasTable
 {
     use InteractsWithTable;
     use InteractsWithForms;
@@ -58,7 +58,7 @@ class ActiveBigCompTable extends Component implements HasForms, HasTable
             ->where('company_size', '!=', '1-24') // Exclude small companies
             ->whereNull('salesperson') // Salesperson must be NULL
             ->whereNotNull('lead_owner')
-            ->where('lead_code', 'NOT LIKE', 'Apollo%')
+            ->where('lead_code', 'LIKE', 'Apollo%')
             ->where('categories', '!=', 'Inactive') // Exclude Inactive leads
             ->where(function ($query) {
                 $query->whereNull('done_call') // Include NULL values
@@ -229,6 +229,6 @@ class ActiveBigCompTable extends Component implements HasForms, HasTable
 
     public function render()
     {
-        return view('livewire.leadowner_dashboard.active-big-comp-table');
+        return view('livewire.leadowner_dashboard.apollo-active-big-comp-table');
     }
 }

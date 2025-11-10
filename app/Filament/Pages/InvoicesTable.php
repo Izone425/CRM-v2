@@ -68,9 +68,6 @@ class InvoicesTable extends Page implements HasTable
 
         $excludedItemCodes = [
             'SHIPPING',
-            'Not',
-            'Rem Code',
-            'In',
             'BANKCHG',
             'DEPOSIT-MYR',
             'F.COMMISSION',

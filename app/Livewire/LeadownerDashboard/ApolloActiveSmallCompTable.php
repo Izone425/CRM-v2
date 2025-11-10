@@ -6,6 +6,7 @@ use App\Classes\Encryptor;
 use App\Filament\Actions\LeadActions;
 use App\Models\Lead;
 use App\Models\User;
+use App\Services\CategoryService;
 use Filament\Tables\Actions\Action;
 use Filament\Tables\Table;
 use Filament\Forms\Contracts\HasForms;
@@ -22,7 +23,7 @@ use Filament\Notifications\Notification;
 use Filament\Tables\Filters\SelectFilter;
 use Livewire\Attributes\On;
 
-class ActiveBigCompTable extends Component implements HasForms, HasTable
+class ApolloActiveSmallCompTable extends Component implements HasForms, HasTable
 {
     use InteractsWithTable;
     use InteractsWithForms;
@@ -52,29 +53,29 @@ class ActiveBigCompTable extends Component implements HasForms, HasTable
         $this->lastRefreshTime = now()->format('Y-m-d H:i:s');
     }
 
-    public function getActiveBigCompanyLeads()
+    public function getActiveSmallCompanyLeads()
     {
         return Lead::query()
-            ->where('company_size', '!=', '1-24') // Exclude small companies
+            ->where('company_size', '=', '1-24') // Match exact '1-24'
             ->whereNull('salesperson') // Salesperson must be NULL
             ->whereNotNull('lead_owner')
-            ->where('lead_code', 'NOT LIKE', 'Apollo%')
+            ->where('lead_code', 'LIKE', 'Apollo%')
             ->where('categories', '!=', 'Inactive') // Exclude Inactive leads
             ->where(function ($query) {
                 $query->whereNull('done_call') // Include NULL values
                     ->orWhere('done_call', 0); // Include 0 values
             })
-            ->selectRaw('*, DATEDIFF(NOW(), created_at) as pending_time');
+            ->selectRaw('*, DATEDIFF(NOW(), created_at) as pending_days');
     }
 
     public function table(Table $table): Table
     {
         return $table
             ->poll('300s')
-            ->query($this->getActiveBigCompanyLeads())
+            ->query($this->getActiveSmallCompanyLeads())
             ->defaultSort('created_at', 'desc')
             ->emptyState(fn () => view('components.empty-state-question'))
-            // ->heading(fn () => 'Active (25 Above) - ' . $this->getActiveBigCompanyLeads()->count() . ' Records') // Display count
+            // ->heading(fn () => 'Active (1-24) - ' . $this->getActiveSmallCompanyLeads()->count() . ' Records') // Display count
             ->defaultPaginationPageOption(5)
             ->paginated([5])
             ->filters([
@@ -204,7 +205,7 @@ class ActiveBigCompTable extends Component implements HasForms, HasTable
                 TextColumn::make('call_attempt')
                     ->label('Call Attempt')
                     ->sortable(),
-                // TextColumn::make('pending_time')
+                // TextColumn::make('pending_days')
                 //     ->label('Pending Days')
                 //     ->sortable()
                 //     ->formatStateUsing(fn ($record) => $record->created_at->diffInDays(now()) . ' days')
@@ -223,12 +224,12 @@ class ActiveBigCompTable extends Component implements HasForms, HasTable
                     LeadActions::getRequestChangeLeadOwnerAction(),
                 ])
                 ->button()
-                ->color(fn (Lead $record) => $record->follow_up_needed ? 'primary' : 'danger')
+                ->color(fn (Lead $record) => $record->follow_up_needed ? 'warning' : 'danger')
             ]);
     }
 
     public function render()
     {
-        return view('livewire.leadowner_dashboard.active-big-comp-table');
+        return view('livewire.leadowner_dashboard.apollo-active-small-comp-table');
     }
 }

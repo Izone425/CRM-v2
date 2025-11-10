@@ -569,7 +569,6 @@ class HardwareV2PendingPaymentTable extends Component implements HasForms, HasTa
                                 }
                             }
 
-                            // Rest of your existing code...
                             $invoiceData = [];
                             foreach ($data['invoices'] as $invoice) {
                                 $invoiceData[] = [

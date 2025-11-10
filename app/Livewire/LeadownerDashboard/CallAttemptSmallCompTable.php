@@ -57,6 +57,7 @@ class CallAttemptSmallCompTable extends Component implements HasForms, HasTable
         return Lead::query()
             ->where('done_call', '=', '1')
             ->whereNull('salesperson') // Salesperson is NULL
+            ->where('lead_code', 'NOT LIKE', 'Apollo%')
             ->where('company_size', '=', '1-24') // Only small companies (1-24)
             ->where('categories', '!=', 'Inactive') // Exclude Inactive leads
             ->selectRaw('*, DATEDIFF(NOW(), created_at) as pending_time');

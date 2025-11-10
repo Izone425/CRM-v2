@@ -425,6 +425,22 @@
         ->getFollowUpBigCompanyLeads()
         ->count();
 
+    $apolloActiveSmallCompCount = app(\App\Livewire\LeadownerDashboard\ApolloActiveSmallCompTable::class)
+        ->getActiveSmallCompanyLeads()
+        ->count();
+
+    $apolloActiveBigCompCount = app(\App\Livewire\LeadownerDashboard\ApolloActiveBigCompTable::class)
+        ->getActiveBigCompanyLeads()
+        ->count();
+
+    $apolloCallAttemptSmallCount = app(\App\Livewire\LeadownerDashboard\ApolloCallAttemptSmallCompTable::class)
+        ->getFollowUpSmallCompanyLeads()
+        ->count();
+
+    $apolloCallAttemptBigCount = app(\App\Livewire\LeadownerDashboard\ApolloCallAttemptBigCompTable::class)
+        ->getFollowUpBigCompanyLeads()
+        ->count();
+
     $salespersonSmallCount = app(\App\Livewire\LeadownerDashboard\SalespersonSmallCompTable::class)
         ->getActiveSmallCompanyLeadsWithSalesperson()
         ->count();
@@ -477,6 +493,8 @@
                         this.selectedStat = 'apollo-new-leads';
                     } else if (value === 'active') {
                         this.selectedStat = 'active-small';
+                    } else if (value === 'apollo-active') {
+                        this.selectedStat = 'apollo-active-small';
                     } else if (value === 'inactive') {
                         this.selectedStat = 'inactive-small1';
                     } else if (value === 'salesperson') {
@@ -508,14 +526,14 @@
                     <div class="group-box group-new"
                          :class="{'selected': selectedGroup === 'new'}"
                          @click="setSelectedGroup('new')">
-                        <div class="group-title">New Leads</div>
+                        <div class="group-title">New Marketing Leads</div>
                         <div class="group-count">{{ $newLeadsCount + $pendingLeadsCount + $reminderTodayCount + $reminderOverdueCount }}</div>
                     </div>
 
                     <div class="group-box group-new"
                          :class="{'selected': selectedGroup === 'apollo-new'}"
                          @click="setSelectedGroup('apollo-new')">
-                        <div class="group-title">Apollo New Leads</div>
+                        <div class="group-title">New Apollo Leads</div>
                         <div class="group-count">{{ $apolloNewLeadsCount + $apolloPendingLeadsCount + $apolloReminderTodayCount + $apolloReminderOverdueCount}}</div>
                     </div>
 
@@ -523,11 +541,19 @@
                     <div class="group-box group-active"
                          :class="{'selected': selectedGroup === 'active'}"
                          @click="setSelectedGroup('active')">
-                        <div class="group-title">Active Leads</div>
+                        <div class="group-title">Active Marketing Leads</div>
                         <div class="group-count">{{ $activeSmallCompCount + $activeBigCompCount + $callAttemptSmallCount + $callAttemptBigCount }}</div>
                     </div>
 
-                    <!-- Group 3: Inactive Leads -->
+                    <!-- Group 3: Active Apollo Leads -->
+                    <div class="group-box group-active"
+                        :class="{'selected': selectedGroup === 'apollo-active'}"
+                        @click="setSelectedGroup('apollo-active')">
+                        <div class="group-title">Active Apollo Leads</div>
+                        <div class="group-count">{{ $apolloActiveSmallCompCount + $apolloActiveBigCompCount + $apolloCallAttemptSmallCount + $apolloCallAttemptBigCount }}</div>
+                    </div>
+
+                    <!-- Group 4: Inactive Leads -->
                     <div class="group-box group-inactive"
                          :class="{'selected': selectedGroup === 'inactive'}"
                          @click="setSelectedGroup('inactive')">
@@ -535,7 +561,7 @@
                         <div class="group-count">{{ $inactiveSmall1Count + $inactiveBig1Count + $inactiveSmall2Count + $inactiveBig2Count }}</div>
                     </div>
 
-                    <!-- Group 4: Salesperson -->
+                    <!-- Group 5: Salesperson -->
                     <div class="group-box group-salesperson"
                          :class="{'selected': selectedGroup === 'salesperson'}"
                          @click="setSelectedGroup('salesperson')">
@@ -665,6 +691,44 @@
                             <div class="stat-label">Call Attempt | Big Company</div>
                         </div>
                         <div class="stat-count">{{ $callAttemptBigCount }}</div>
+                    </div>
+                </div>
+
+                <div class="category-container" x-show="selectedGroup === 'apollo-active'">
+                    <div class="stat-box active-small"
+                        :class="{'selected': selectedStat === 'apollo-active-small'}"
+                        @click="setSelectedStat('apollo-active-small')">
+                        <div class="stat-info">
+                            <div class="stat-label">Apollo Active | Small Company</div>
+                        </div>
+                        <div class="stat-count">{{ $apolloActiveSmallCompCount }}</div>
+                    </div>
+
+                    <div class="stat-box active-big"
+                        :class="{'selected': selectedStat === 'apollo-active-big'}"
+                        @click="setSelectedStat('apollo-active-big')">
+                        <div class="stat-info">
+                            <div class="stat-label">Apollo Active | Big Company</div>
+                        </div>
+                        <div class="stat-count">{{ $apolloActiveBigCompCount }}</div>
+                    </div>
+
+                    <div class="stat-box call-attempt-small"
+                        :class="{'selected': selectedStat === 'apollo-call-attempt-small'}"
+                        @click="setSelectedStat('apollo-call-attempt-small')">
+                        <div class="stat-info">
+                            <div class="stat-label">Apollo Call Attempt | Small Company</div>
+                        </div>
+                        <div class="stat-count">{{ $apolloCallAttemptSmallCount }}</div>
+                    </div>
+
+                    <div class="stat-box call-attempt-big"
+                        :class="{'selected': selectedStat === 'apollo-call-attempt-big'}"
+                        @click="setSelectedStat('apollo-call-attempt-big')">
+                        <div class="stat-info">
+                            <div class="stat-label">Apollo Call Attempt | Big Company</div>
+                        </div>
+                        <div class="stat-count">{{ $apolloCallAttemptBigCount }}</div>
                     </div>
                 </div>
 
@@ -809,6 +873,22 @@
 
                     <div x-show="selectedStat === 'call-attempt-big'" x-transition :key="selectedStat + '-call-attempt-big'">
                         <livewire:leadowner-dashboard.call-attempt-big-comp-table />
+                    </div>
+
+                    <div x-show="selectedStat === 'apollo-active-small'" x-transition :key="selectedStat + '-apollo-active-small'">
+                        <livewire:leadowner-dashboard.apollo-active-small-comp-table />
+                    </div>
+
+                    <div x-show="selectedStat === 'apollo-active-big'" x-transition :key="selectedStat + '-apollo-active-big'">
+                        <livewire:leadowner-dashboard.apollo-active-big-comp-table />
+                    </div>
+
+                    <div x-show="selectedStat === 'apollo-call-attempt-small'" x-transition :key="selectedStat + '-apollo-call-attempt-small'">
+                        <livewire:leadowner-dashboard.apollo-call-attempt-small-comp-table />
+                    </div>
+
+                    <div x-show="selectedStat === 'apollo-call-attempt-big'" x-transition :key="selectedStat + '-apollo-call-attempt-big'">
+                        <livewire:leadowner-dashboard.apollo-call-attempt-big-comp-table />
                     </div>
 
                     <div x-show="selectedStat === 'salesperson-small'" x-transition :key="selectedStat + '-salesperson-small'">

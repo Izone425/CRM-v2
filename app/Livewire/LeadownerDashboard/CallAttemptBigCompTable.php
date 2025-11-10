@@ -57,6 +57,7 @@ class CallAttemptBigCompTable extends Component implements HasForms, HasTable
         return Lead::query()
             ->where('done_call', '=', '1')
             ->whereNull('salesperson') // Salesperson is NULL
+            ->where('lead_code', 'NOT LIKE', 'Apollo%')
             ->whereBetween('call_attempt', [1, 10])
             ->where('categories', '!=', 'Inactive') // Exclude Inactive leads
             ->where('company_size', '!=', '1-24') // Exclude small companies (1-24)
