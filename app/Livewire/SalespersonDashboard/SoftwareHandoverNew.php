@@ -900,6 +900,7 @@ class SoftwareHandoverNew extends Component implements HasForms, HasTable
                         ->label('Mark as Completed')
                         ->icon('heroicon-o-check-badge')
                         ->color('success')
+                        ->modalWidth('xl')
                         ->form([
                             Grid::make(2)
                                 ->schema([
@@ -916,6 +917,21 @@ class SoftwareHandoverNew extends Component implements HasForms, HasTable
                                         })
                                         ->dehydrated(false),
 
+                                    Select::make('implementer_id')
+                                        ->label('Implementer')
+                                        ->options(function () {
+                                            return \App\Models\User::whereIn('role_id', [4,5])
+                                                ->orderBy('name')
+                                                ->pluck('name', 'id')
+                                                ->toArray();
+                                        })
+                                        ->required()
+                                        ->searchable()
+                                        ->placeholder('Select an implementer'),
+                                ]),
+
+                            Grid::make(2)
+                                ->schema([
                                     \Filament\Forms\Components\Placeholder::make('company_size')
                                         ->label(false)
                                         ->content(function (SoftwareHandover $record) {
@@ -924,7 +940,7 @@ class SoftwareHandoverNew extends Component implements HasForms, HasTable
 
                                             return new HtmlString(
                                                 '<span style="font-weight: 600; color: #475569; font-size: 14px;">' . 'Company Size: ' .
-                                                $companySizeLabel . ' (' . $headcount . ' employees)' .
+                                                $companySizeLabel .
                                                 '</span>'
                                             );
                                         }),
@@ -943,18 +959,6 @@ class SoftwareHandoverNew extends Component implements HasForms, HasTable
                                                 </a></span>'
                                             );
                                         }),
-
-                                    Select::make('implementer_id')
-                                        ->label('Implementer')
-                                        ->options(function () {
-                                            return \App\Models\User::whereIn('role_id', [4,5])
-                                                ->orderBy('name')
-                                                ->pluck('name', 'id')
-                                                ->toArray();
-                                        })
-                                        ->required()
-                                        ->searchable()
-                                        ->placeholder('Select an implementer'),
                                 ]),
 
                             FileUpload::make('invoice_file')
@@ -966,7 +970,6 @@ class SoftwareHandoverNew extends Component implements HasForms, HasTable
                                 ->multiple()
                                 ->maxFiles(10)
                                 ->minFiles(1)
-                                ->helperText('Upload invoice files (PDF, JPG, PNG formats accepted)')
                                 ->openable()
                                 ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
                                     $companyName = Str::slug($get('company_name') ?? 'invoice');
@@ -1184,9 +1187,7 @@ class SoftwareHandoverNew extends Component implements HasForms, HasTable
                                 \Illuminate\Support\Facades\Log::error('Customer activation emails failed: ' . $e->getMessage());
                             }
                         })
-                        ->modalWidth('3xl')
                         ->modalHeading('Complete Software Handover')
-                        ->requiresConfirmation(false)
                         ->hidden(
                             fn(SoftwareHandover $record): bool =>
                             $record->status !== 'New' || auth()->user()->role_id === 2
