@@ -292,7 +292,8 @@ class HardwareV2NewTable extends Component implements HasForms, HasTable
                     }),
 
                 TextColumn::make('invoice_type')
-                    ->label('INV Type'),
+                    ->label('Invoice')
+                    ->formatStateUsing(fn (?string $state): string => $state ? ucfirst($state) : '-'),
 
                 TextColumn::make('status')
                     ->label('Status')

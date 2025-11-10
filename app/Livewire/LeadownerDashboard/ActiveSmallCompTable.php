@@ -59,6 +59,7 @@ class ActiveSmallCompTable extends Component implements HasForms, HasTable
             ->where('company_size', '=', '1-24') // Match exact '1-24'
             ->whereNull('salesperson') // Salesperson must be NULL
             ->whereNotNull('lead_owner')
+            ->where('lead_code', 'NOT LIKE', 'Apollo%')
             ->where('categories', '!=', 'Inactive') // Exclude Inactive leads
             ->where(function ($query) {
                 $query->whereNull('done_call') // Include NULL values

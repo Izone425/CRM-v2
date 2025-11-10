@@ -22,7 +22,7 @@ use Filament\Notifications\Notification;
 use Filament\Tables\Filters\SelectFilter;
 use Livewire\Attributes\On;
 
-class ActiveBigCompTable extends Component implements HasForms, HasTable
+class ApolloCallAttemptBigCompTable extends Component implements HasForms, HasTable
 {
     use InteractsWithTable;
     use InteractsWithForms;
@@ -52,18 +52,15 @@ class ActiveBigCompTable extends Component implements HasForms, HasTable
         $this->lastRefreshTime = now()->format('Y-m-d H:i:s');
     }
 
-    public function getActiveBigCompanyLeads()
+    public function getFollowUpBigCompanyLeads()
     {
         return Lead::query()
-            ->where('company_size', '!=', '1-24') // Exclude small companies
-            ->whereNull('salesperson') // Salesperson must be NULL
-            ->whereNotNull('lead_owner')
-            ->where('lead_code', 'NOT LIKE', 'Apollo%')
+            ->where('done_call', '=', '1')
+            ->whereNull('salesperson') // Salesperson is NULL
+            ->where('lead_code', 'LIKE', 'Apollo%')
+            ->whereBetween('call_attempt', [1, 10])
             ->where('categories', '!=', 'Inactive') // Exclude Inactive leads
-            ->where(function ($query) {
-                $query->whereNull('done_call') // Include NULL values
-                    ->orWhere('done_call', 0); // Include 0 values
-            })
+            ->where('company_size', '!=', '1-24') // Exclude small companies (1-24)
             ->selectRaw('*, DATEDIFF(NOW(), created_at) as pending_time');
     }
 
@@ -71,10 +68,10 @@ class ActiveBigCompTable extends Component implements HasForms, HasTable
     {
         return $table
             ->poll('300s')
-            ->query($this->getActiveBigCompanyLeads())
+            ->query($this->getFollowUpBigCompanyLeads())
             ->defaultSort('created_at', 'desc')
             ->emptyState(fn () => view('components.empty-state-question'))
-            // ->heading(fn () => 'Active (25 Above) - ' . $this->getActiveBigCompanyLeads()->count() . ' Records') // Display count
+            // ->heading(fn () => 'Call Attempt (25 Above) - ' . $this->getFollowUpBigCompanyLeads()->count() . ' Records') // Display count
             ->defaultPaginationPageOption(5)
             ->paginated([5])
             ->filters([
@@ -210,6 +207,7 @@ class ActiveBigCompTable extends Component implements HasForms, HasTable
                 //     ->formatStateUsing(fn ($record) => $record->created_at->diffInDays(now()) . ' days')
                 //     ->color(fn ($record) => $record->created_at->diffInDays(now()) == 0 ? 'draft' : 'danger'),
             ])
+            ->headerActions($this->headerActions())
             ->actions([
                 ActionGroup::make([
                     LeadActions::getAddDemoAction(),
@@ -219,7 +217,6 @@ class ActiveBigCompTable extends Component implements HasForms, HasTable
                     LeadActions::getArchiveAction(),
                     LeadActions::getViewAction(),
                     LeadActions::getViewRemark(),
-                    LeadActions::getTransferCallAttempt(),
                     LeadActions::getRequestChangeLeadOwnerAction(),
                 ])
                 ->button()
@@ -227,8 +224,59 @@ class ActiveBigCompTable extends Component implements HasForms, HasTable
             ]);
     }
 
+    public function headerActions(): array
+    {
+        return [
+            Action::make('reset_done_call')
+                ->label('Reset Done Calls')
+                ->icon('heroicon-o-arrow-path')
+                ->color('danger')
+                ->visible(fn () => $this->getFollowUpBigCompanyLeads()->count() > 0)
+                ->modalHeading('Reset Done Calls')
+                ->modalDescription('Are you sure you want to reset "Done Calls" to 0? This action cannot be undone.')
+                ->action(function () {
+                    DB::beginTransaction(); // Start transaction
+
+                    try {
+                        $affectedRows = Lead::where('done_call', '=', '1')
+                            ->whereNull('salesperson')
+                            ->where('done_call', '=', '1')
+                            ->where('company_size', '!=', '1-24')
+                            ->update(['done_call' => 0]);
+
+                        // If no leads were updated, show a warning
+                        if ($affectedRows === 0) {
+                            Notification::make()
+                                ->title('No Done Calls Were Reset')
+                                ->warning()
+                                ->send();
+                            DB::rollBack(); // Rollback since nothing changed
+                            return;
+                        }
+
+                        DB::commit(); // Commit transaction
+
+                        // Show success notification
+                        Notification::make()
+                            ->title('Done Calls Reset Successfully')
+                            ->success()
+                            ->send();
+
+                    } catch (\Exception $e) {
+                        DB::rollBack(); // Rollback on failure
+
+                        Notification::make()
+                            ->title('Error Resetting Done Calls')
+                            ->danger()
+                            ->body($e->getMessage())
+                            ->send();
+                    }
+                }),
+        ];
+    }
+
     public function render()
     {
-        return view('livewire.leadowner_dashboard.active-big-comp-table');
+        return view('livewire.leadowner_dashboard.apollo-call-attempt-big-comp-table');
     }
 }
