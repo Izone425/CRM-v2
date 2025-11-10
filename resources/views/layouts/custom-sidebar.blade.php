@@ -1727,7 +1727,7 @@
                         </div>
 
                         <div class="submenu" id="ticketing-submenu">
-                            <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
+                            <a href="{{ route('filament.admin.pages.ticket-dashboard') }}" class="submenu-item">
                                 <span class="module-font">Dashboard</span>
                             </a>
                             <a href="{{ route('filament.admin.pages.ticket-list') }}" class="submenu-item">
