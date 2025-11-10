@@ -86,6 +86,7 @@ use App\Filament\Pages\SupportCalendar;
 use App\Filament\Pages\SupportCallLog;
 use App\Filament\Pages\TechnicianAppointment;
 use App\Filament\Pages\TechnicianCalendar;
+use App\Filament\Pages\TicketDashboard;
 use App\Filament\Pages\TicketList;
 use App\Filament\Pages\TrainingCalendar;
 use App\Filament\Pages\TrainingCalendarBulkManagement;
@@ -360,6 +361,7 @@ class AdminPanelProvider extends PanelProvider
                 HrdfClaimTracker::class,
                 AdminPortalHrV2::class,
                 TicketList::class,
+                TicketDashboard::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([
