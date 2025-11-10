@@ -1138,26 +1138,6 @@
                     </div>
                 </div>
 
-                <!-- Invoice Files Section -->
-                <div class="hw-section">
-                    <div class="hw-info-item">
-                        <span class="hw-label">Invoice TimeTec Penang:</span>
-                        @php $hasInvoiceFiles = false; @endphp
-                        @for($i = 1; $i <= 4; $i++)
-                            @if(isset($invoiceFiles[$i-1]))
-                                @if($hasInvoiceFiles) / @endif
-                                <a href="{{ url('storage/' . $invoiceFiles[$i-1]) }}" target="_blank" class="hw-view-link">
-                                    File {{ $i }}
-                                </a>
-                                @php $hasInvoiceFiles = true; @endphp
-                            @endif
-                        @endfor
-                        @if(!$hasInvoiceFiles)
-                            <span class="hw-not-available">Not Available</span>
-                        @endif
-                    </div>
-                </div>
-
                 <hr class="my-6 border-t border-gray-300">
 
                 @if(!empty($record->sales_order_number))
