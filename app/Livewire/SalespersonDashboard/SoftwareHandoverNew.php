@@ -909,9 +909,7 @@ class SoftwareHandoverNew extends Component implements HasForms, HasTable
                                         ->readOnly()
                                         ->default(function (SoftwareHandover $record) {
                                             if ($record && $record->speaker_category) {
-
                                                 return ucwords($record->speaker_category);
-
                                             }
                                             return ucwords($record->speaker_category) ?? 'Not specified';
                                         })
@@ -927,7 +925,29 @@ class SoftwareHandoverNew extends Component implements HasForms, HasTable
                                         })
                                         ->required()
                                         ->searchable()
-                                        ->placeholder('Select an implementer'),
+                                        ->placeholder('Select an implementer')
+                                        ->default(function (SoftwareHandover $record) {
+                                            // ✅ If speaker category is Mandarin, auto-select John Low
+                                            if ($record && strtolower($record->speaker_category) === 'mandarin') {
+                                                $johnLow = \App\Models\User::whereIn('role_id', [4,5])
+                                                    ->where('name', 'LIKE', '%John Low%')
+                                                    ->first();
+
+                                                if ($johnLow) {
+                                                    \Illuminate\Support\Facades\Log::info("Auto-selecting John Low for Mandarin speaker", [
+                                                        'handover_id' => $record->id,
+                                                        'john_low_id' => $johnLow->id,
+                                                    ]);
+                                                    return $johnLow->id;
+                                                }
+                                            }
+                                            return null;
+                                        })
+                                        ->disabled(function (SoftwareHandover $record) {
+                                            // ✅ Make readonly if speaker category is Mandarin
+                                            return $record && strtolower($record->speaker_category) === 'mandarin';
+                                        })
+                                        ->dehydrated(true),
                                 ]),
 
                             Grid::make(2)
