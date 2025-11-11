@@ -709,7 +709,7 @@ class HardwareHandoverV2RelationManager extends RelationManager
                                 ->multiple()
                                 ->maxFiles(10)
                                 ->openable()
-                                ->visible(fn() => in_array(auth()->id(), [1, 25])) // Only show for user ID 1 and 25
+                                ->hidden()
                                 ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
                                     $companyName = Str::slug($get('company_name') ?? 'invoice');
                                     $date = now()->format('Y-m-d');

@@ -31,16 +31,9 @@ class ImplementerSoftwareHandoverTabs
     public static function getSchema(): array
     {
         return [
-            Tabs::make('Handovers')
-                ->tabs([
-                    Tabs\Tab::make('Software Handover')
-                        ->schema([
-                            \Njxqlus\Filament\Components\Forms\RelationManager::make()
-                                ->manager(\App\Filament\Resources\LeadResource\RelationManagers\SHTableRelationManager::class
-                            ),
-                        ]),
-                ])
-                ->columnSpan(2),
+            \Njxqlus\Filament\Components\Forms\RelationManager::make()
+                ->manager(\App\Filament\Resources\LeadResource\RelationManagers\SHTableRelationManager::class
+            ),
         ];
     }
 }

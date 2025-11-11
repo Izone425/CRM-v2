@@ -87,4 +87,19 @@ class Ticket extends Model
     {
         return $this->belongsTo(User::class, 'assignee_id');
     }
+
+    public function comments()
+    {
+        return $this->hasMany(TicketComment::class)->orderBy('created_at', 'desc');
+    }
+
+    public function attachments()
+    {
+        return $this->hasMany(TicketAttachment::class)->orderBy('created_at', 'desc');
+    }
+
+    public function creator()
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
 }
