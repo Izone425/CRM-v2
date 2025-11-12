@@ -256,86 +256,86 @@ class ViewLeadRecord extends ViewRecord
                         ->success()
                         ->send();
                 }),
-            Action::make('updateLeadOwner')
-                ->label(__('Assign to Me'))
-                ->requiresConfirmation()
-                ->modalDescription('')
-                ->size(ActionSize::Large)
-                ->form(function (Lead $record) {
-                    $duplicateLeads = Lead::query()
-                        ->where(function ($query) use ($record) {
-                            if (optional($record?->companyDetail)->company_name) {
-                                $query->where('company_name', $record->companyDetail->company_name);
-                            }
+            // Action::make('updateLeadOwner')
+            //     ->label(__('Assign to Me'))
+            //     ->requiresConfirmation()
+            //     ->modalDescription('')
+            //     ->size(ActionSize::Large)
+            //     ->form(function (Lead $record) {
+            //         $duplicateLeads = Lead::query()
+            //             ->where(function ($query) use ($record) {
+            //                 if (optional($record?->companyDetail)->company_name) {
+            //                     $query->where('company_name', $record->companyDetail->company_name);
+            //                 }
 
-                            if (!empty($record?->email)) {
-                                $query->orWhere('email', $record->email);
-                            }
+            //                 if (!empty($record?->email)) {
+            //                     $query->orWhere('email', $record->email);
+            //                 }
 
-                            if (!empty($record?->phone)) {
-                                $query->orWhere('phone', $record->phone);
-                            }
-                        })
-                        ->where('id', '!=', optional($record)->id)
-                        ->where(function ($query) {
-                            $query->whereNull('company_name')
-                                ->orWhereRaw("company_name NOT LIKE '%SDN BHD%'")
-                                ->orWhereRaw("company_name NOT LIKE '%SDN. BHD.%'");
-                        })
-                        ->get(['id']);
+            //                 if (!empty($record?->phone)) {
+            //                     $query->orWhere('phone', $record->phone);
+            //                 }
+            //             })
+            //             ->where('id', '!=', optional($record)->id)
+            //             ->where(function ($query) {
+            //                 $query->whereNull('company_name')
+            //                     ->orWhereRaw("company_name NOT LIKE '%SDN BHD%'")
+            //                     ->orWhereRaw("company_name NOT LIKE '%SDN. BHD.%'");
+            //             })
+            //             ->get(['id']);
 
-                    $isDuplicate = $duplicateLeads->isNotEmpty();
+            //         $isDuplicate = $duplicateLeads->isNotEmpty();
 
-                    $duplicateIds = $duplicateLeads->map(fn ($lead) => "LEAD ID " . str_pad($lead->id, 5, '0', STR_PAD_LEFT))
-                        ->implode("\n\n");
+            //         $duplicateIds = $duplicateLeads->map(fn ($lead) => "LEAD ID " . str_pad($lead->id, 5, '0', STR_PAD_LEFT))
+            //             ->implode("\n\n");
 
-                    $content = $isDuplicate
-                        ? "⚠️⚠️⚠️ Warning: This lead is a duplicate based on company name, email, or phone. Do you want to assign this lead to yourself?\n\n$duplicateIds"
-                        : "Do you want to assign this lead to yourself? Make sure to confirm assignment before contacting the lead to avoid duplicate efforts by other team members.";
+            //         $content = $isDuplicate
+            //             ? "⚠️⚠️⚠️ Warning: This lead is a duplicate based on company name, email, or phone. Do you want to assign this lead to yourself?\n\n$duplicateIds"
+            //             : "Do you want to assign this lead to yourself? Make sure to confirm assignment before contacting the lead to avoid duplicate efforts by other team members.";
 
-                    return [
-                        Placeholder::make('warning')
-                            ->content(Str::of($content)->replace("\n", '<br>')->toHtmlString())
-                            ->hiddenLabel()
-                            ->extraAttributes([
-                                'style' => $isDuplicate ? 'color: red; font-weight: bold;' : '',
-                            ]),
-                    ];
-                })
-                ->color('success')
-                ->icon('heroicon-o-pencil-square')
-                ->visible(fn (Lead $record) => is_null($record->lead_owner) && auth()->user()->role_id !== 2
-                && is_null($record->salesperson))
-                ->action(function (Lead $record) {
-                    // Update the lead owner and related fields
-                    $record->update([
-                        'lead_owner' => auth()->user()->name,
-                        'categories' => 'Active',
-                        'stage' => 'Transfer',
-                        'lead_status' => 'New',
-                        'pickup_date' => now(),
-                    ]);
+            //         return [
+            //             Placeholder::make('warning')
+            //                 ->content(Str::of($content)->replace("\n", '<br>')->toHtmlString())
+            //                 ->hiddenLabel()
+            //                 ->extraAttributes([
+            //                     'style' => $isDuplicate ? 'color: red; font-weight: bold;' : '',
+            //                 ]),
+            //         ];
+            //     })
+            //     ->color('success')
+            //     ->icon('heroicon-o-pencil-square')
+            //     ->visible(fn (Lead $record) => is_null($record->lead_owner) && auth()->user()->role_id !== 2
+            //     && is_null($record->salesperson))
+            //     ->action(function (Lead $record) {
+            //         // Update the lead owner and related fields
+            //         $record->update([
+            //             'lead_owner' => auth()->user()->name,
+            //             'categories' => 'Active',
+            //             'stage' => 'Transfer',
+            //             'lead_status' => 'New',
+            //             'pickup_date' => now(),
+            //         ]);
 
-                    // Update the latest activity log
-                    $latestActivityLog = ActivityLog::where('subject_id', $record->id)
-                        ->orderByDesc('created_at')
-                        ->first();
+            //         // Update the latest activity log
+            //         $latestActivityLog = ActivityLog::where('subject_id', $record->id)
+            //             ->orderByDesc('created_at')
+            //             ->first();
 
-                    if ($latestActivityLog && $latestActivityLog->description !== 'Lead assigned to Lead Owner: ' . auth()->user()->name) {
-                        $latestActivityLog->update([
-                            'description' => 'Lead assigned to Lead Owner: ' . auth()->user()->name,
-                        ]);
+            //         if ($latestActivityLog && $latestActivityLog->description !== 'Lead assigned to Lead Owner: ' . auth()->user()->name) {
+            //             $latestActivityLog->update([
+            //                 'description' => 'Lead assigned to Lead Owner: ' . auth()->user()->name,
+            //             ]);
 
-                        activity()
-                            ->causedBy(auth()->user())
-                            ->performedOn($record);
-                    }
+            //             activity()
+            //                 ->causedBy(auth()->user())
+            //                 ->performedOn($record);
+            //         }
 
-                    Notification::make()
-                        ->title('Lead Owner Assigned Successfully')
-                        ->success()
-                        ->send();
-                })
+            //         Notification::make()
+            //             ->title('Lead Owner Assigned Successfully')
+            //             ->success()
+            //             ->send();
+            //     })
         ];
     }
 }

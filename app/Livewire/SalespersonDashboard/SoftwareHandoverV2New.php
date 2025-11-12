@@ -45,6 +45,7 @@ use Illuminate\Support\HtmlString;
 use Illuminate\View\View;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Filament\Tables\Actions\Action;
+use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\On;
 
 class SoftwareHandoverV2New extends Component implements HasForms, HasTable
@@ -712,14 +713,92 @@ class SoftwareHandoverV2New extends Component implements HasForms, HasTable
                                                 ->multiple()
                                                 ->maxFiles(10)
                                                 ->required()
-                                                ->helperText('Upload invoice files (PDF, JPG, PNG formats accepted)')
                                                 ->openable()
+                                                ->afterStateUpdated(function (Set $set, ?array $state) {
+                                                    Log::info("Invoice upload state received", [
+                                                        'state_is_null' => is_null($state),
+                                                        'state_is_empty' => empty($state),
+                                                        'state_type' => gettype($state),
+                                                        'state_count' => is_array($state) ? count($state) : 0,
+                                                        'state_keys' => is_array($state) ? array_keys($state) : [],
+                                                    ]);
+
+                                                    if (empty($state)) {
+                                                        Log::info("No files uploaded - state is empty");
+                                                        return;
+                                                    }
+
+                                                    // ✅ Collect paths for ALL uploaded files
+                                                    $filePaths = [];
+
+                                                    if (is_array($state)) {
+                                                        foreach ($state as $file) {
+                                                            $tempPath = null;
+
+                                                            if ($file instanceof \Livewire\Features\SupportFileUploads\TemporaryUploadedFile) {
+                                                                $tempPath = $file->getRealPath();
+                                                            } elseif (is_string($file)) {
+                                                                $tempPath = storage_path('app/livewire-tmp/' . $file);
+                                                            } elseif (is_object($file) && method_exists($file, 'getRealPath')) {
+                                                                $tempPath = $file->getRealPath();
+                                                            }
+
+                                                            if ($tempPath && file_exists($tempPath)) {
+                                                                $filePaths[] = $tempPath;
+                                                            }
+                                                        }
+                                                    }
+
+                                                    if (empty($filePaths)) {
+                                                        Log::warning("No valid file paths extracted from uploaded files");
+                                                        return;
+                                                    }
+
+                                                    Log::info("Extracted file paths for OCR processing", [
+                                                        'total_files' => count($filePaths),
+                                                        'paths' => $filePaths
+                                                    ]);
+
+                                                    try {
+                                                        $ocrService = app(\App\Services\InvoiceOcrService::class);
+
+                                                        // ✅ Scan ALL uploaded files
+                                                        $invoiceNumber = $ocrService->extractInvoiceNumberFromMultipleFiles($filePaths);
+
+                                                        if ($invoiceNumber) {
+                                                            $set('invoice_number', $invoiceNumber);
+
+                                                            \Filament\Notifications\Notification::make()
+                                                                ->title('Invoice Number Detected')
+                                                                ->success()
+                                                                ->body("Found: {$invoiceNumber} (scanned " . count($filePaths) . " file(s))")
+                                                                ->send();
+                                                        } else {
+                                                            \Filament\Notifications\Notification::make()
+                                                                ->title('Invoice Number Not Found')
+                                                                ->warning()
+                                                                ->body('Could not detect invoice number in any of the ' . count($filePaths) . ' uploaded file(s). Please verify manually.')
+                                                                ->send();
+                                                        }
+                                                    } catch (\Exception $e) {
+                                                        Log::error("Invoice OCR failed", [
+                                                            'error' => $e->getMessage(),
+                                                            'file_count' => count($filePaths)
+                                                        ]);
+
+                                                        \Filament\Notifications\Notification::make()
+                                                            ->title('OCR Processing Error')
+                                                            ->danger()
+                                                            ->body('Failed to process invoices: ' . $e->getMessage())
+                                                            ->send();
+                                                    }
+                                                })
+                                                ->live(debounce: 2000)
                                                 ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
                                                     $companyName = Str::slug($get('company_name') ?? 'invoice');
                                                     $date = now()->format('Y-m-d');
                                                     $random = Str::random(5);
                                                     $extension = $file->getClientOriginalExtension();
-
                                                     return "{$companyName}-invoice-{$date}-{$random}.{$extension}";
                                                 })
                                                 ->default(function (SoftwareHandover $record) {
@@ -901,6 +980,7 @@ class SoftwareHandoverV2New extends Component implements HasForms, HasTable
                         ->label('Mark as Completed')
                         ->icon('heroicon-o-check-badge')
                         ->color('success')
+                        ->modalWidth('xl')
                         ->form([
                             Grid::make(2)
                                 ->schema([
@@ -925,83 +1005,72 @@ class SoftwareHandoverV2New extends Component implements HasForms, HasTable
                                         })
                                         ->required()
                                         ->searchable()
-                                        ->placeholder('Select an implementer'),
+                                        ->placeholder('Select an implementer')
+                                        ->default(function (SoftwareHandover $record) {
+                                            // ✅ If speaker category is Mandarin, auto-select John Low
+                                            if ($record && strtolower($record->speaker_category) === 'mandarin') {
+                                                $johnLow = \App\Models\User::whereIn('role_id', [4,5])
+                                                    ->where('name', 'LIKE', '%John Low%')
+                                                    ->first();
+
+                                                if ($johnLow) {
+                                                    \Illuminate\Support\Facades\Log::info("Auto-selecting John Low for Mandarin speaker", [
+                                                        'handover_id' => $record->id,
+                                                        'john_low_id' => $johnLow->id,
+                                                    ]);
+                                                    return $johnLow->id;
+                                                }
+                                            }
+                                            return null;
+                                        })
+                                        ->disabled(function (SoftwareHandover $record) {
+                                            // ✅ Make readonly if speaker category is Mandarin
+                                            return $record && strtolower($record->speaker_category) === 'mandarin';
+                                        })
+                                        ->dehydrated(true),
                                 ]),
 
-                            Grid::make(1)
-                                ->schema([
-                                    Section::make('Module Selection')
-                                        ->schema([
-                                            Grid::make(2)
-                                                ->schema([
-                                                    Checkbox::make('ta')
-                                                        ->label('Time Attendance (TA)')
-                                                        ->inline()
-                                                        ->disabled()
-                                                        ->dehydrated(true)
-                                                        ->default(function (SoftwareHandover $record) {
-                                                            return $this->shouldModuleBeChecked($record, ['TCL_TA USER-NEW', 'TCL_TA USER-ADDON', 'TCL_TA USER-ADDON(R)', 'TCL_TA USER-RENEWAL', 'TCL_FULL USER-NEW']);
-                                                        }),
-                                                    Checkbox::make('tapp')
-                                                        ->label('TimeTec Appraisal (T-APP)')
-                                                        ->inline()
-                                                        ->disabled()
-                                                        ->dehydrated(true)
-                                                        ->default(function (SoftwareHandover $record) {
-                                                            return $this->shouldModuleBeChecked($record, ['TCL_APPRAISAL USER-NEW']);
-                                                        }),
-                                                    Checkbox::make('tl')
-                                                        ->label('TimeTec Leave (TL)')
-                                                        ->inline()
-                                                        ->disabled()
-                                                        ->dehydrated(true)
-                                                        ->default(function (SoftwareHandover $record) {
-                                                            return $this->shouldModuleBeChecked($record, ['TCL_LEAVE USER-NEW', 'TCL_LEAVE USER-ADDON', 'TCL_LEAVE USER-ADDON(R)', 'TCL_LEAVE USER-RENEWAL', 'TCL_FULL USER-NEW']);
-                                                        }),
-                                                    Checkbox::make('thire')
-                                                        ->label('TimeTec Hire (T-HIRE)')
-                                                        ->inline()
-                                                        ->disabled()
-                                                        ->dehydrated(true)
-                                                        ->default(function (SoftwareHandover $record) {
-                                                            return $this->shouldModuleBeChecked($record, ['TCL_HIRE-NEW', 'TCL_HIRE-RENEWAL']);
-                                                        }),
-                                                    Checkbox::make('tc')
-                                                        ->label('TimeTec Claim (TC)')
-                                                        ->inline()
-                                                        ->disabled()
-                                                        ->dehydrated(true)
-                                                        ->default(function (SoftwareHandover $record) {
-                                                            return $this->shouldModuleBeChecked($record, ['TCL_CLAIM USER-NEW', 'TCL_CLAIM USER-ADDON', 'TCL_CLAIM USER-ADDON(R)', 'TCL_CLAIM USER-RENEWAL', 'TCL_FULL USER-NEW']);
-                                                        }),
-                                                    Checkbox::make('tacc')
-                                                        ->label('TimeTec Access (T-ACC)')
-                                                        ->inline()
-                                                        ->disabled()
-                                                        ->dehydrated(true)
-                                                        ->default(function (SoftwareHandover $record) {
-                                                            return $this->shouldModuleBeChecked($record, ['TCL_ACCESS-NEW', 'TCL_ACCESS-RENEWAL']);
-                                                        }),
-                                                    Checkbox::make('tp')
-                                                        ->label('TimeTec Payroll (TP)')
-                                                        ->inline()
-                                                        ->disabled()
-                                                        ->dehydrated(true)
-                                                        ->default(function (SoftwareHandover $record) {
-                                                            return $this->shouldModuleBeChecked($record, ['TCL_PAYROLL USER-NEW', 'TCL_PAYROLL USER-ADDON', 'TCL_PAYROLL USER-ADDON(R)', 'TCL_PAYROLL USER-RENEWAL', 'TCL_FULL USER-NEW']);
-                                                        }),
-                                                    Checkbox::make('tpbi')
-                                                        ->label('TimeTec Power BI (T-PBI)')
-                                                        ->inline()
-                                                        ->disabled()
-                                                        ->dehydrated(true)
-                                                        ->default(function (SoftwareHandover $record) {
-                                                            return $this->shouldModuleBeChecked($record, ['TCL_POWER BI']);
-                                                        }),
-                                                ])
-                                        ])
-                                        ->hidden() // Hide the entire section
-                                ]),
+                                Grid::make(2)
+                                    ->schema([
+                                        \Filament\Forms\Components\Placeholder::make('company_size')
+                                            ->label(false)
+                                            ->content(function (SoftwareHandover $record) {
+                                                $companySizeLabel = $record->headcount_company_size_label ?? 'Unknown';
+                                                $headcount = $record->headcount ?? 'N/A';
+
+                                                return new HtmlString(
+                                                    '<span style="font-weight: 600; color: #475569; font-size: 14px;">' . 'Company Size: ' .
+                                                    $companySizeLabel .
+                                                    '</span>'
+                                                );
+                                            }),
+
+                                        \Filament\Forms\Components\Placeholder::make('project_sequence')
+                                            ->label(false)
+                                            ->content(function (SoftwareHandover $record) {
+                                                return new HtmlString(
+                                                    '<span style="font-weight: 600; color: #475569; font-size: 14px;">Project Sequence: ' . '<a href="https://crm.timeteccloud.com/admin/implementer-audit-list"
+                                                    target="_blank"
+                                                    style="color: #3b82f6; text-decoration: none; font-weight: 500; font-size: 14px; display: inline-flex; align-items: center; gap: 4px;"
+                                                    onmouseover="this.style.textDecoration=\'underline\'; this.style.color=\'#2563eb\'"
+                                                    onmouseout="this.style.textDecoration=\'none\'; this.style.color=\'#3b82f6\'">
+                                                    Click Here
+                                                    </a></span>'
+                                                );
+                                            }),
+                                    ]),
+
+                            Select::make('buffer_license_months')
+                                ->label('Buffer License Duration')
+                                ->options([
+                                    '1' => '1 month (Default)',
+                                    '2' => '2 months',
+                                    '3' => '3 months',
+                                ])
+                                ->default('1')
+                                ->required()
+                                ->helperText('This will be the trial period before customer needs to activate paid licenses')
+                                ->columnSpanFull(),
 
                             FileUpload::make('invoice_file')
                                 ->label('Upload Invoice')
@@ -1011,16 +1080,341 @@ class SoftwareHandoverV2New extends Component implements HasForms, HasTable
                                 ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
                                 ->multiple()
                                 ->maxFiles(10)
-                                ->minFiles(1)
-                                ->helperText('Upload invoice files (PDF, JPG, PNG formats accepted)')
+                                ->required()
                                 ->openable()
+                                ->live() // ✅ Enable live updates without debounce
+                                ->reactive() // ✅ Make it reactive to all changes
+                                ->afterStateUpdated(function (Set $set, Get $get, ?array $state, ?array $old) {
+                                    Log::info("📥 Invoice upload state changed (MARK COMPLETED FORM)", [
+                                        'state_is_null' => is_null($state),
+                                        'state_is_empty' => empty($state),
+                                        'state_type' => gettype($state),
+                                        'state_count' => is_array($state) ? count($state) : 0,
+                                        'old_count' => is_array($old) ? count($old) : 0,
+                                        'state_keys' => is_array($state) ? array_keys($state) : [],
+                                        'old_keys' => is_array($old) ? array_keys($old) : [],
+                                    ]);
+
+                                    // ✅ IF ALL FILES REMOVED, CLEAR INVOICE NUMBER
+                                    if (empty($state)) {
+                                        Log::info("🗑️ All files removed - clearing invoice number");
+                                        $set('invoice_number', null);
+
+                                        Notification::make()
+                                            ->title('Invoice Number Cleared')
+                                            ->info()
+                                            ->body('All invoice files removed - invoice number has been cleared')
+                                            ->send();
+
+                                        return;
+                                    }
+
+                                    // ✅ CHECK IF FILES WERE REMOVED (state count < old count)
+                                    $oldCount = is_array($old) ? count($old) : 0;
+                                    $newCount = is_array($state) ? count($state) : 0;
+
+                                    Log::info("📊 File count comparison", [
+                                        'old_count' => $oldCount,
+                                        'new_count' => $newCount,
+                                        'files_removed' => $oldCount - $newCount
+                                    ]);
+
+                                    if ($newCount < $oldCount && $oldCount > 0) {
+                                        Log::info("🔄 Files were removed - re-scanning remaining files", [
+                                            'old_count' => $oldCount,
+                                            'new_count' => $newCount,
+                                            'files_removed' => $oldCount - $newCount
+                                        ]);
+
+                                        // ✅ RE-SCAN ALL REMAINING FILES
+                                        $filePaths = [];
+                                        foreach ($state as $key => $file) {
+                                            $tempPath = null;
+
+                                            if ($file instanceof \Livewire\Features\SupportFileUploads\TemporaryUploadedFile) {
+                                                $tempPath = $file->getRealPath();
+                                            } elseif (is_string($file)) {
+                                                $tempPath = storage_path('app/livewire-tmp/' . $file);
+                                            } elseif (is_object($file) && method_exists($file, 'getRealPath')) {
+                                                $tempPath = $file->getRealPath();
+                                            }
+
+                                            if ($tempPath && file_exists($tempPath)) {
+                                                $filePaths[] = $tempPath;
+                                                Log::info("✅ Found remaining file", [
+                                                    'path' => $tempPath,
+                                                    'size' => filesize($tempPath)
+                                                ]);
+                                            }
+                                        }
+
+                                        if (empty($filePaths)) {
+                                            Log::info("🗑️ No valid files remaining after removal");
+                                            $set('invoice_number', null);
+
+                                            Notification::make()
+                                                ->title('Invoice Number Cleared')
+                                                ->info()
+                                                ->body('No valid files remaining')
+                                                ->send();
+
+                                            return;
+                                        }
+
+                                        // ✅ Re-scan and replace invoice numbers
+                                        try {
+                                            $ocrService = app(\App\Services\InvoiceOcrService::class);
+                                            $invoiceNumber = $ocrService->extractInvoiceNumberFromMultipleFiles($filePaths);
+
+                                            if ($invoiceNumber) {
+                                                $set('invoice_number', $invoiceNumber);
+
+                                                Notification::make()
+                                                    ->title('Invoice Numbers Updated')
+                                                    ->success()
+                                                    ->body("Found: {$invoiceNumber} from {$newCount} remaining file(s)")
+                                                    ->send();
+
+                                                Log::info("✅ Invoice numbers updated after file removal", [
+                                                    'invoice_number' => $invoiceNumber,
+                                                    'remaining_files' => $newCount
+                                                ]);
+                                            } else {
+                                                $set('invoice_number', null);
+
+                                                Notification::make()
+                                                    ->title('No Invoice Numbers Found')
+                                                    ->warning()
+                                                    ->body('Could not detect invoice numbers in remaining files')
+                                                    ->send();
+
+                                                Log::info("⚠️ No invoice numbers found in remaining files");
+                                            }
+                                        } catch (\Exception $e) {
+                                            Log::error("❌ Invoice OCR failed after file removal", [
+                                                'error' => $e->getMessage(),
+                                                'file_count' => count($filePaths)
+                                            ]);
+                                        }
+
+                                        return;
+                                    }
+
+                                    // ✅ NEW FILES ADDED - Only scan new ones
+                                    $oldKeys = is_array($old) ? array_keys($old) : [];
+                                    $newKeys = is_array($state) ? array_diff(array_keys($state), $oldKeys) : [];
+
+                                    if (empty($newKeys)) {
+                                        Log::info("ℹ️ No new files to scan");
+                                        return;
+                                    }
+
+                                    Log::info("📄 New files detected for scanning", [
+                                        'new_files_count' => count($newKeys),
+                                        'total_files' => count($state ?? [])
+                                    ]);
+
+                                    // ✅ Collect paths ONLY for NEW files
+                                    $filePaths = [];
+                                    foreach ($newKeys as $key) {
+                                        $file = $state[$key];
+                                        $tempPath = null;
+
+                                        if ($file instanceof \Livewire\Features\SupportFileUploads\TemporaryUploadedFile) {
+                                            $tempPath = $file->getRealPath();
+                                        } elseif (is_string($file)) {
+                                            $tempPath = storage_path('app/livewire-tmp/' . $file);
+                                        } elseif (is_object($file) && method_exists($file, 'getRealPath')) {
+                                            $tempPath = $file->getRealPath();
+                                        }
+
+                                        if ($tempPath && file_exists($tempPath)) {
+                                            $filePaths[] = $tempPath;
+                                            Log::info("✅ Added NEW file for scanning", [
+                                                'key' => $key,
+                                                'path' => $tempPath,
+                                                'size' => filesize($tempPath)
+                                            ]);
+                                        }
+                                    }
+
+                                    if (empty($filePaths)) {
+                                        Log::warning("⚠️ No valid file paths extracted from NEW files");
+                                        return;
+                                    }
+
+                                    try {
+                                        $ocrService = app(\App\Services\InvoiceOcrService::class);
+                                        $newInvoiceNumbers = $ocrService->extractInvoiceNumberFromMultipleFiles($filePaths);
+
+                                        if ($newInvoiceNumbers) {
+                                            $existingInvoiceNumbers = $get('invoice_number');
+
+                                            if (!empty($existingInvoiceNumbers)) {
+                                                $existingArray = array_map('trim', explode(',', $existingInvoiceNumbers));
+                                                $newArray = array_map('trim', explode(',', $newInvoiceNumbers));
+                                                $mergedArray = array_unique(array_merge($existingArray, $newArray));
+                                                $finalInvoiceNumbers = implode(', ', $mergedArray);
+
+                                                Log::info("🔗 Appending new invoice numbers to existing", [
+                                                    'existing' => $existingInvoiceNumbers,
+                                                    'new' => $newInvoiceNumbers,
+                                                    'merged' => $finalInvoiceNumbers
+                                                ]);
+                                            } else {
+                                                $finalInvoiceNumbers = $newInvoiceNumbers;
+                                            }
+
+                                            $set('invoice_number', $finalInvoiceNumbers);
+
+                                            Notification::make()
+                                                ->title('Invoice Numbers Detected')
+                                                ->success()
+                                                ->body("Found: {$finalInvoiceNumbers}")
+                                                ->send();
+
+                                            Log::info("✅ Invoice numbers updated", [
+                                                'final_invoice_numbers' => $finalInvoiceNumbers,
+                                                'new_files_scanned' => count($filePaths)
+                                            ]);
+                                        }
+                                    } catch (\Exception $e) {
+                                        Log::error("❌ Invoice OCR failed", [
+                                            'error' => $e->getMessage()
+                                        ]);
+                                    }
+                                })
+                                ->dehydrated(true)
                                 ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
                                     $companyName = Str::slug($get('company_name') ?? 'invoice');
                                     $date = now()->format('Y-m-d');
                                     $random = Str::random(5);
                                     $extension = $file->getClientOriginalExtension();
                                     return "{$companyName}-invoice-{$date}-{$random}.{$extension}";
+                                })
+                                ->default(function (SoftwareHandover $record) {
+                                    if (!$record || !$record->invoice_file) {
+                                        return [];
+                                    }
+                                    if (is_string($record->invoice_file)) {
+                                        return json_decode($record->invoice_file, true) ?? [];
+                                    }
+                                    return is_array($record->invoice_file) ? $record->invoice_file : [];
                                 }),
+
+                            TextInput::make('invoice_number')
+                                ->label('Detected Invoice Number')
+                                ->readOnly()
+                                ->reactive()
+                                ->dehydrated(true)
+                                ->default(fn(SoftwareHandover $record) => $record->invoice_number ?? null)
+                                ->suffixAction(
+                                    \Filament\Forms\Components\Actions\Action::make('refresh_invoice_number')
+                                        ->icon('heroicon-o-arrow-path')
+                                        ->label('Refresh')
+                                        ->color('primary')
+                                        ->action(function (Set $set, Get $get) {
+                                            $invoiceFiles = $get('invoice_file');
+
+                                            Log::info("🔄 Manual refresh invoice number triggered", [
+                                                'files_count' => is_array($invoiceFiles) ? count($invoiceFiles) : 0,
+                                                'files_type' => gettype($invoiceFiles)
+                                            ]);
+
+                                            if (empty($invoiceFiles)) {
+                                                Notification::make()
+                                                    ->title('No Invoices to Scan')
+                                                    ->warning()
+                                                    ->body('Please upload invoice files first')
+                                                    ->send();
+                                                return;
+                                            }
+
+                                            // ✅ Collect paths for ALL uploaded files
+                                            $filePaths = [];
+
+                                            if (is_array($invoiceFiles)) {
+                                                foreach ($invoiceFiles as $key => $file) {
+                                                    $tempPath = null;
+
+                                                    if ($file instanceof \Livewire\Features\SupportFileUploads\TemporaryUploadedFile) {
+                                                        $tempPath = $file->getRealPath();
+                                                    } elseif (is_string($file)) {
+                                                        $tempPath = storage_path('app/livewire-tmp/' . $file);
+                                                    } elseif (is_object($file) && method_exists($file, 'getRealPath')) {
+                                                        $tempPath = $file->getRealPath();
+                                                    }
+
+                                                    if ($tempPath && file_exists($tempPath)) {
+                                                        $filePaths[] = $tempPath;
+                                                        Log::info("✅ Found file for refresh scan", [
+                                                            'key' => $key,
+                                                            'path' => $tempPath,
+                                                            'size' => filesize($tempPath)
+                                                        ]);
+                                                    }
+                                                }
+                                            }
+
+                                            if (empty($filePaths)) {
+                                                Log::warning("⚠️ No valid file paths found for refresh");
+
+                                                Notification::make()
+                                                    ->title('No Valid Files')
+                                                    ->warning()
+                                                    ->body('Could not find valid invoice files to scan')
+                                                    ->send();
+                                                return;
+                                            }
+
+                                            Log::info("🔍 Starting manual refresh scan", [
+                                                'total_files' => count($filePaths)
+                                            ]);
+
+                                            try {
+                                                $ocrService = app(\App\Services\InvoiceOcrService::class);
+                                                $invoiceNumbers = $ocrService->extractInvoiceNumberFromMultipleFiles($filePaths);
+
+                                                if ($invoiceNumbers) {
+                                                    $set('invoice_number', $invoiceNumbers);
+
+                                                    Notification::make()
+                                                        ->title('Invoice Numbers Refreshed')
+                                                        ->success()
+                                                        ->body("Found: {$invoiceNumbers} (scanned " . count($filePaths) . " file(s))")
+                                                        ->send();
+
+                                                    Log::info("✅ Manual refresh completed successfully", [
+                                                        'invoice_numbers' => $invoiceNumbers,
+                                                        'files_scanned' => count($filePaths)
+                                                    ]);
+                                                } else {
+                                                    $set('invoice_number', null);
+
+                                                    Notification::make()
+                                                        ->title('No Invoice Numbers Found')
+                                                        ->warning()
+                                                        ->body('Could not detect invoice numbers in the uploaded files')
+                                                        ->send();
+
+                                                    Log::warning("⚠️ Manual refresh found no invoice numbers", [
+                                                        'files_scanned' => count($filePaths)
+                                                    ]);
+                                                }
+                                            } catch (\Exception $e) {
+                                                Log::error("❌ Manual refresh OCR failed", [
+                                                    'error' => $e->getMessage(),
+                                                    'trace' => $e->getTraceAsString()
+                                                ]);
+
+                                                Notification::make()
+                                                    ->title('Scan Failed')
+                                                    ->danger()
+                                                    ->body('Error: ' . $e->getMessage())
+                                                    ->send();
+                                            }
+                                        })
+                                ),
                         ])
                         ->action(function (SoftwareHandover $record, array $data): void {
                             // Handle invoice file encoding
@@ -1058,17 +1452,66 @@ class SoftwareHandoverV2New extends Component implements HasForms, HasTable
                                 'remark' => "Project assigned to {$implementerName} for {$record->company_name}",
                             ]);
 
-                            // Extract module selections for license setup
-                            $moduleSelections = [
-                                'ta' => $data['ta'] ?? false,
-                                'tl' => $data['tl'] ?? false,
-                                'tc' => $data['tc'] ?? false,
-                                'tp' => $data['tp'] ?? false,
-                                'tapp' => $data['tapp'] ?? false,
-                                'thire' => $data['thire'] ?? false,
-                                'tacc' => $data['tacc'] ?? false,
-                                'tpbi' => $data['tpbi'] ?? false,
+                            // ✅ Get buffer license duration
+                            $bufferLicenseMonths = (int)($data['buffer_license_months'] ?? 1);
+
+                            // ✅ AUTO-DETECT MODULES & SEATS FROM QUOTATIONS (BACKEND ONLY)
+                            $licenseService = app(\App\Services\LicenseSeatService::class);
+                            $handoverId = 'SW_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+
+                            // Get all PI IDs
+                            $allPiIds = [];
+                            if (!empty($record->proforma_invoice_product)) {
+                                $productPis = is_string($record->proforma_invoice_product)
+                                    ? json_decode($record->proforma_invoice_product, true)
+                                    : $record->proforma_invoice_product;
+                                if (is_array($productPis)) {
+                                    $allPiIds = array_merge($allPiIds, $productPis);
+                                }
+                            }
+                            if (!empty($record->proforma_invoice_hrdf)) {
+                                $hrdfPis = is_string($record->proforma_invoice_hrdf)
+                                    ? json_decode($record->proforma_invoice_hrdf, true)
+                                    : $record->proforma_invoice_hrdf;
+                                if (is_array($hrdfPis)) {
+                                    $allPiIds = array_merge($allPiIds, $hrdfPis);
+                                }
+                            }
+
+                            // ✅ Auto-detect which modules are purchased
+                            $selectedModules = [
+                                'ta' => $this->shouldModuleBeChecked($record, ['TCL_TA USER-NEW', 'TCL_TA USER-ADDON', 'TCL_TA USER-ADDON(R)', 'TCL_TA USER-RENEWAL', 'TCL_FULL USER-NEW']),
+                                'tl' => $this->shouldModuleBeChecked($record, ['TCL_LEAVE USER-NEW', 'TCL_LEAVE USER-ADDON', 'TCL_LEAVE USER-ADDON(R)', 'TCL_LEAVE USER-RENEWAL', 'TCL_FULL USER-NEW']),
+                                'tc' => $this->shouldModuleBeChecked($record, ['TCL_CLAIM USER-NEW', 'TCL_CLAIM USER-ADDON', 'TCL_CLAIM USER-ADDON(R)', 'TCL_CLAIM USER-RENEWAL', 'TCL_FULL USER-NEW']),
+                                'tp' => $this->shouldModuleBeChecked($record, ['TCL_PAYROLL USER-NEW', 'TCL_PAYROLL USER-ADDON', 'TCL_PAYROLL USER-ADDON(R)', 'TCL_PAYROLL USER-RENEWAL', 'TCL_FULL USER-NEW']),
+                                'tapp' => $this->shouldModuleBeChecked($record, ['TCL_APPRAISAL USER-NEW']),
+                                'thire' => $this->shouldModuleBeChecked($record, ['TCL_HIRE-NEW', 'TCL_HIRE-RENEWAL']),
+                                'tacc' => $this->shouldModuleBeChecked($record, ['TCL_ACCESS-NEW', 'TCL_ACCESS-RENEWAL']),
+                                'tpbi' => $this->shouldModuleBeChecked($record, ['TCL_POWER BI']),
                             ];
+
+                            // ✅ Auto-detect seat limits from quotations
+                            $seatLimits = $licenseService->getSeatLimitsFromQuotations($allPiIds, $handoverId);
+
+                            // ✅ Build buffer seat limits array (only for selected modules)
+                            $bufferSeatLimits = [];
+                            $moduleMapping = [
+                                'ta' => 'Attendance',
+                                'tl' => 'Leave',
+                                'tc' => 'Claim',
+                                'tp' => 'Payroll',
+                                'tapp' => 'Appraisal',
+                                'thire' => 'Hire',
+                                'tacc' => 'Access',
+                                'tpbi' => 'PowerBI',
+                            ];
+
+                            foreach ($moduleMapping as $key => $appName) {
+                                if ($selectedModules[$key]) {
+                                    // Use seat limit from quotation if exists, otherwise null (unlimited)
+                                    $bufferSeatLimits[$appName] = $seatLimits[$appName] ?? null;
+                                }
+                            }
 
                             // Prepare update data
                             $updateData = [
@@ -1076,16 +1519,17 @@ class SoftwareHandoverV2New extends Component implements HasForms, HasTable
                                 'status' => 'Completed',
                                 'completed_at' => now(),
                                 'implementer' => $implementerName,
-                                'ta' => $moduleSelections['ta'],
-                                'tl' => $moduleSelections['tl'],
-                                'tc' => $moduleSelections['tc'],
-                                'tp' => $moduleSelections['tp'],
-                                'tapp' => $moduleSelections['tapp'],
-                                'thire' => $moduleSelections['thire'],
-                                'tacc' => $moduleSelections['tacc'],
-                                'tpbi' => $moduleSelections['tpbi'],
+                                'ta' => $selectedModules['ta'],
+                                'tl' => $selectedModules['tl'],
+                                'tc' => $selectedModules['tc'],
+                                'tp' => $selectedModules['tp'],
+                                'tapp' => $selectedModules['tapp'],
+                                'thire' => $selectedModules['thire'],
+                                'tacc' => $selectedModules['tacc'],
+                                'tpbi' => $selectedModules['tpbi'],
                                 'follow_up_date' => now(),
                                 'follow_up_counter' => true,
+                                'invoice_number' => $data['invoice_number'] ?? null,
                             ];
 
                             if (isset($data['invoice_file'])) {
@@ -1096,16 +1540,132 @@ class SoftwareHandoverV2New extends Component implements HasForms, HasTable
                             $record->update($updateData);
 
                             // Create CRM Account
-                            $handoverId = 'SW_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
                             $crmResult = $this->createCRMAccount($record, $handoverId);
 
-                            // ✅ Setup CRM Licenses if account creation was successful
-                            if ($crmResult['success'] && !empty($crmResult['data'])) {
-                                $this->setupCRMLicenses($record, $crmResult['data'], $moduleSelections, $handoverId);
-                            } else {
-                                \Illuminate\Support\Facades\Log::warning("Skipping license setup - CRM account creation failed", [
-                                    'handover_id' => $handoverId
-                                ]);
+                            // ✅ IF HRV2 AND CRM ACCOUNT CREATED, ADD BUFFER LICENSES WITH AUTO-DETECTED MODULES & SEATS
+                            if ($record->hr_version == 2 && $crmResult['success']) {
+                                $accountId = $crmResult['data']['accountId'] ?? $record->hr_account_id;
+                                $companyId = $crmResult['data']['companyId'] ?? $record->hr_company_id;
+
+                                if ($accountId && $companyId) {
+                                    // ✅ Check if any modules were detected
+                                    $hasSelectedModules = !empty(array_filter($selectedModules));
+
+                                    if ($hasSelectedModules) {
+                                        Log::info("Creating buffer license with AUTO-DETECTED modules and seat limits", [
+                                            'handover_id' => $handoverId,
+                                            'buffer_months' => $bufferLicenseMonths,
+                                            'selected_modules' => array_keys(array_filter($selectedModules)),
+                                            'seat_limits' => $bufferSeatLimits,
+                                        ]);
+
+                                        // ✅ Add buffer license with SELECTED modules and seat limits
+                                        $bufferResult = $licenseService->addBufferLicenses(
+                                            $record,
+                                            $accountId,
+                                            $companyId,
+                                            $selectedModules,
+                                            $handoverId,
+                                            null, // start date
+                                            null, // end date
+                                            $bufferLicenseMonths
+                                        );
+                                    } else {
+                                        Log::info("No modules detected - creating unlimited buffer license", [
+                                            'handover_id' => $handoverId,
+                                            'buffer_months' => $bufferLicenseMonths,
+                                        ]);
+
+                                        // ✅ Fallback: Create unlimited buffer license
+                                        $bufferResult = $licenseService->addBufferLicenseUnlimited(
+                                            $record,
+                                            $accountId,
+                                            $companyId,
+                                            $handoverId,
+                                            $bufferLicenseMonths
+                                        );
+                                    }
+
+                                    // ✅ Create license certificate
+                                    $companyName = $record->company_name ?? $record->lead->companyDetail->company_name ?? 'Unknown Company';
+                                    $bufferStartDate = now();
+                                    $bufferEndDate = now()->copy()->addMonths($bufferLicenseMonths)->subDay();
+
+                                    // Calculate total paid months for reference
+                                    $totalPaidMonths = 12;
+                                    if (!empty($allPiIds)) {
+                                        $licensePeriods = $licenseService->getLicensePeriodsFromQuotations($allPiIds, $handoverId);
+                                        foreach ($licensePeriods as $period) {
+                                            if ($period['subscription_period'] > $totalPaidMonths) {
+                                                $totalPaidMonths = $period['subscription_period'];
+                                            }
+                                        }
+                                    }
+
+                                    $certificate = \App\Models\LicenseCertificate::create([
+                                        'company_name' => $companyName,
+                                        'software_handover_id' => $record->id,
+                                        'buffer_license_set_id' => $bufferResult['results']['data']['licenseSetId'] ?? null,
+                                        'buffer_license_data' => $bufferResult['results']['data'] ?? null,
+                                        'kick_off_date' => $record->kick_off_meeting ?? now(),
+                                        'buffer_license_start' => $bufferStartDate,
+                                        'buffer_license_end' => $bufferEndDate,
+                                        'buffer_months' => $bufferLicenseMonths,
+                                        'buffer_seat_limits' => !empty($bufferSeatLimits) ? $bufferSeatLimits : null,
+                                        'paid_license_start' => null,
+                                        'paid_license_end' => null,
+                                        'paid_months' => $totalPaidMonths,
+                                        'next_renewal_date' => null,
+                                        'license_years' => 0,
+                                        'status' => 'buffer_only',
+                                        'created_by' => auth()->id(),
+                                        'updated_by' => auth()->id(),
+                                    ]);
+
+                                    $record->update([
+                                        'license_certification_id' => $certificate->id,
+                                        'license_activated_at' => now(),
+                                    ]);
+
+                                    $certificateId = 'LC_' . str_pad($certificate->id, 4, '0', STR_PAD_LEFT);
+
+                                    if ($bufferResult['success']) {
+                                        $moduleList = implode(', ', array_map(function($key) use ($moduleMapping) {
+                                            return $moduleMapping[$key] ?? $key;
+                                        }, array_keys(array_filter($selectedModules))));
+
+                                        $seatInfo = [];
+                                        foreach ($bufferSeatLimits as $app => $limit) {
+                                            $seatInfo[] = "{$app}: " . ($limit === null ? 'unlimited' : $limit);
+                                        }
+                                        $seatInfoStr = !empty($seatInfo) ? implode(', ', $seatInfo) : 'unlimited for all';
+
+                                        Notification::make()
+                                            ->title('HRV2 Buffer License Activated')
+                                            ->success()
+                                            ->body("Certificate {$certificateId} created with {$bufferLicenseMonths} month(s) trial.\n\nModules: {$moduleList}\n\nSeats: {$seatInfoStr}")
+                                            ->send();
+
+                                        Log::info("Buffer license activated with auto-detected config", [
+                                            'handover_id' => $handoverId,
+                                            'certificate_id' => $certificateId,
+                                            'buffer_months' => $bufferLicenseMonths,
+                                            'modules' => $moduleList,
+                                            'seat_limits' => $bufferSeatLimits,
+                                        ]);
+                                    } else {
+                                        Notification::make()
+                                            ->title('Buffer License Activation Failed')
+                                            ->danger()
+                                            ->body("Failed to activate buffer license: " . ($bufferResult['error'] ?? 'Unknown error'))
+                                            ->send();
+
+                                        Log::error("Buffer license activation failed", [
+                                            'handover_id' => $handoverId,
+                                            'error' => $bufferResult['error'] ?? 'Unknown error'
+                                        ]);
+                                    }
+                                }
                             }
 
                             // Send notification emails
@@ -1118,9 +1678,7 @@ class SoftwareHandoverV2New extends Component implements HasForms, HasTable
                                 ->success()
                                 ->send();
                         })
-                        ->modalWidth('3xl')
                         ->modalHeading('Complete Software Handover')
-                        ->requiresConfirmation(false)
                         ->hidden(
                             fn(SoftwareHandover $record): bool =>
                             $record->status !== 'New' || auth()->user()->role_id === 2
@@ -1152,6 +1710,55 @@ class SoftwareHandoverV2New extends Component implements HasForms, HasTable
     protected function createCRMAccount(SoftwareHandover $record, string $handoverId)
     {
         try {
+            // ✅ CHECK FOR EXISTING SOFTWARE HANDOVER WITH CRM ACCOUNT
+            $existingHandover = SoftwareHandover::where('lead_id', $record->lead_id)
+                ->whereNotNull('hr_company_id')
+                ->whereNotNull('hr_account_id')
+                ->whereNotNull('hr_user_id')
+                ->where('id', '!=', $record->id) // Exclude current record
+                ->first();
+
+            // ✅ IF EXISTING HANDOVER FOUND, REUSE CRM ACCOUNT
+            if ($existingHandover) {
+                \Illuminate\Support\Facades\Log::info("Reusing existing HRV2 account for handover", [
+                    'new_handover_id' => $handoverId,
+                    'existing_handover_id' => $existingHandover->id,
+                    'lead_id' => $record->lead_id,
+                    'hr_account_id' => $existingHandover->hr_account_id,
+                    'hr_company_id' => $existingHandover->hr_company_id,
+                    'hr_user_id' => $existingHandover->hr_user_id
+                ]);
+
+                // Update current record with existing CRM account details
+                $record->update([
+                    'hr_account_id' => $existingHandover->hr_account_id,
+                    'hr_company_id' => $existingHandover->hr_company_id,
+                    'hr_user_id' => $existingHandover->hr_user_id,
+                ]);
+
+                Notification::make()
+                    ->title('Existing HRV2 Account Found')
+                    ->success()
+                    ->body("Reusing existing HRV2 account from previous handover (ID: SW_250" . str_pad($existingHandover->id, 3, '0', STR_PAD_LEFT) . ")")
+                    ->send();
+
+                return [
+                    'success' => true,
+                    'reused' => true,
+                    'data' => [
+                        'accountId' => $existingHandover->hr_account_id,
+                        'companyId' => $existingHandover->hr_company_id,
+                        'userId' => $existingHandover->hr_user_id,
+                    ]
+                ];
+            }
+
+            // ✅ NO EXISTING ACCOUNT FOUND - CREATE NEW ONE
+            \Illuminate\Support\Facades\Log::info("No existing HRV2 account found - creating new account", [
+                'handover_id' => $handoverId,
+                'lead_id' => $record->lead_id
+            ]);
+
             $lead = $record->lead;
 
             // Get country details
@@ -1170,26 +1777,28 @@ class SoftwareHandoverV2New extends Component implements HasForms, HasTable
             // Process phone number from implementation PICs
             $phoneData = $this->processPhoneNumber($record, $countryData, $handoverId);
 
-            // Prepare CRM account data
+            // ✅ Use the SAME password from customer credentials
             $crmAccountData = [
                 'company_name' => $record->company_name,
                 'country_id' => (int)$countryData['id'],
                 'name' => $credentials['name'],
                 'email' => $credentials['email'],
-                'password' => $credentials['password'],
+                'password' => $credentials['password'], // ✅ SAME password as customer portal
                 'phone_code' => $phoneData['phone_code'],
                 'phone' => $phoneData['clean_phone'],
                 'timezone' => $countryData['timezone'] ?? 'Asia/Kuala_Lumpur',
             ];
 
-            \Illuminate\Support\Facades\Log::info("Calling CRM API", [
+            \Illuminate\Support\Facades\Log::info("Calling HRV2 API with customer credentials", [
                 'handover_id' => $handoverId,
                 'company_name' => $crmAccountData['company_name'],
                 'email' => $crmAccountData['email'],
                 'phone_code' => $crmAccountData['phone_code'],
+                'password_length' => strlen($crmAccountData['password']),
                 'phone' => $crmAccountData['phone'],
                 'country_id' => $crmAccountData['country_id'],
-                'timezone' => $crmAccountData['timezone']
+                'timezone' => $crmAccountData['timezone'],
+                'password_source' => $credentials['customer'] ? 'existing_customer' : 'newly_generated'
             ]);
 
             // Create account via CRM API
@@ -1200,19 +1809,19 @@ class SoftwareHandoverV2New extends Component implements HasForms, HasTable
                 $this->saveCRMAccountData($record, $crmResult['data'], $credentials, $phoneData['raw_phone']);
 
                 Notification::make()
-                    ->title('CRM Account Created Successfully')
+                    ->title('New CRM Account Created Successfully')
                     ->success()
                     ->body("Account ID: {$crmResult['data']['accountId']} | Company ID: {$crmResult['data']['companyId']}")
                     ->send();
             } else {
-                \Illuminate\Support\Facades\Log::error("CRM Account creation failed", [
+                \Illuminate\Support\Facades\Log::error("HRV2 Account creation failed", [
                     'handover_id' => $handoverId,
                     'error' => $crmResult['error'],
                     'status' => $crmResult['status'] ?? 'unknown'
                 ]);
 
                 Notification::make()
-                    ->title('CRM Account Creation Failed')
+                    ->title('HRV2 Account Creation Failed')
                     ->warning()
                     ->body($crmResult['error'] ?: 'Unknown error occurred')
                     ->send();
@@ -1221,14 +1830,14 @@ class SoftwareHandoverV2New extends Component implements HasForms, HasTable
             return $crmResult;
 
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error("CRM Account creation exception", [
+            \Illuminate\Support\Facades\Log::error("HRV2 Account creation exception", [
                 'handover_id' => $handoverId,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
 
             Notification::make()
-                ->title('CRM Account Creation Error')
+                ->title('HRV2 Account Creation Error')
                 ->danger()
                 ->body($e->getMessage())
                 ->send();
@@ -1250,33 +1859,42 @@ class SoftwareHandoverV2New extends Component implements HasForms, HasTable
                 'handover_id' => $handoverId,
                 'customer_id' => $customer->id,
                 'email' => $customer->email,
+                'password_exists' => !empty($customer->plain_password),
+                'password_length' => $customer->plain_password ? strlen($customer->plain_password) : 0
             ]);
 
+            // ✅ IMPORTANT: Use the SAME password from customer table
             return [
                 'email' => $customer->email,
-                'password' => $customer->plain_password,
+                'password' => $customer->plain_password, // ✅ Use existing customer password
                 'name' => $customer->name,
                 'customer' => $customer,
             ];
         }
 
-        // Generate new credentials
+        // ✅ Generate new credentials (this will now CREATE the customer)
         $credentials = $activationController->generateCRMAccountCredentials(
             $record->lead_id,
             $handoverId
         );
 
-        \Illuminate\Support\Facades\Log::info("Generated new customer credentials", [
+        \Illuminate\Support\Facades\Log::info("New customer created via generateCRMAccountCredentials", [
             'handover_id' => $handoverId,
             'email' => $credentials['email'],
-            'name' => $credentials['name']
+            'name' => $credentials['name'],
+            'password_length' => strlen($credentials['password']),
+            'customer_was_created' => !($credentials['customer_exists'] ?? false)
         ]);
 
+        // ✅ Fetch the newly created customer record
+        $customer = \App\Models\Customer::where('lead_id', $record->lead_id)->first();
+
+        // ✅ Return credentials with customer object
         return [
             'email' => $credentials['email'],
-            'password' => $credentials['password'],
+            'password' => $credentials['password'], // ✅ Use password from newly created customer
             'name' => $credentials['name'],
-            'customer' => null,
+            'customer' => $customer, // ✅ Pass the customer object
         ];
     }
 
@@ -1358,14 +1976,48 @@ class SoftwareHandoverV2New extends Component implements HasForms, HasTable
             'hr_user_id' => $crmData['userId'] ?? null,
         ]);
 
-        // Update or create customer record
-        if ($credentials['customer']) {
-            $credentials['customer']->update([
+        // ✅ Get customer (should already exist from generateCRMAccountCredentials or getOrCreateCustomerCredentials)
+        $customer = $credentials['customer'];
+
+        if (!$customer) {
+            // ✅ Fallback: try to find customer by lead_id
+            $customer = \App\Models\Customer::where('lead_id', $record->lead_id)->first();
+
+            \Illuminate\Support\Facades\Log::warning("Customer not passed in credentials - found via lead_id lookup", [
+                'lead_id' => $record->lead_id,
+                'customer_id' => $customer ? $customer->id : null
+            ]);
+        }
+
+        if ($customer) {
+            // ✅ Update existing customer with CRM account details
+            $customer->update([
                 'hr_account_id' => $crmData['accountId'] ?? null,
                 'hr_company_id' => $crmData['companyId'] ?? null,
                 'hr_user_id' => $crmData['userId'] ?? null,
+                'sw_id' => $record->id, // Link to software handover
+                'phone' => $rawPhone, // Update phone if needed
+                'status' => 'active', // Activate customer
+                'email_verified_at' => now(), // Mark as verified
+                // ✅ Password is NOT updated - it remains the same
+            ]);
+
+            \Illuminate\Support\Facades\Log::info("Updated existing customer with CRM account details", [
+                'customer_id' => $customer->id,
+                'email' => $customer->email,
+                'plain_password' => $customer->plain_password, // ✅ Log to verify password unchanged
+                'password_unchanged' => true,
+                'hrv2_account_linked' => true
             ]);
         } else {
+            // ✅ This should NEVER happen now, but keep as safety fallback
+            \Illuminate\Support\Facades\Log::error("CRITICAL: Customer not found after all checks - this should not happen!", [
+                'lead_id' => $record->lead_id,
+                'handover_id' => $record->id,
+                'credentials_had_customer' => isset($credentials['customer'])
+            ]);
+
+            // Last resort: create customer
             \App\Models\Customer::create([
                 'name' => $credentials['name'],
                 'email' => $credentials['email'],
@@ -1382,9 +2034,14 @@ class SoftwareHandoverV2New extends Component implements HasForms, HasTable
                 'hr_company_id' => $crmData['companyId'] ?? null,
                 'hr_user_id' => $crmData['userId'] ?? null,
             ]);
+
+            \Illuminate\Support\Facades\Log::warning("Created customer as emergency fallback", [
+                'email' => $credentials['email'],
+                'lead_id' => $lead->id
+            ]);
         }
 
-        \Illuminate\Support\Facades\Log::info("CRM Account data saved successfully", [
+        \Illuminate\Support\Facades\Log::info("HRV2 Account data saved successfully", [
             'software_handover_id' => $record->id,
             'account_id' => $crmData['accountId'],
             'company_id' => $crmData['companyId'],
@@ -1520,85 +2177,6 @@ class SoftwareHandoverV2New extends Component implements HasForms, HasTable
 
             \Illuminate\Support\Facades\Log::error('Customer activation emails failed', [
                 'error' => $e->getMessage()
-            ]);
-        }
-    }
-
-    /**
-     * Setup CRM licenses (buffer + paid applications)
-     */
-    protected function setupCRMLicenses(SoftwareHandover $record, array $crmData, array $modules, string $handoverId): void
-    {
-        $accountId = $crmData['accountId'] ?? null;
-        $companyId = $crmData['companyId'] ?? null;
-
-        if (!$accountId || !$companyId) {
-            \Illuminate\Support\Facades\Log::warning("Cannot setup licenses - missing account or company ID", [
-                'handover_id' => $handoverId,
-                'account_id' => $accountId,
-                'company_id' => $companyId
-            ]);
-            return;
-        }
-
-        // Add buffer license
-        $bufferResult = $this->addBufferLicense($record, $accountId, $companyId, $handoverId);
-
-        if ($bufferResult['success']) {
-            // Store buffer license ID
-            $record->update([
-                'crm_buffer_license_id' => $bufferResult['data']['licenseSetId'] ?? null
-            ]);
-
-            Notification::make()
-                ->title('Buffer License Added')
-                ->success()
-                ->body('30-day buffer license has been added')
-                ->send();
-        } else {
-            Notification::make()
-                ->title('Buffer License Failed')
-                ->warning()
-                ->body($bufferResult['error'] ?? 'Failed to add buffer license')
-                ->send();
-        }
-
-        // Add paid application licenses based on selected modules
-        $licenseResults = $this->addPaidApplicationLicenses($record, $accountId, $companyId, $modules, $handoverId);
-
-        if ($licenseResults['success']) {
-            $successCount = 0;
-            $failCount = 0;
-            $licenseIds = [];
-
-            foreach ($licenseResults['results'] as $app => $result) {
-                if ($result['success']) {
-                    $successCount++;
-                    $licenseIds[$app] = $result['data']['periodId'] ?? null;
-                } else {
-                    $failCount++;
-                }
-            }
-
-            // Store paid license IDs as JSON
-            if (!empty($licenseIds)) {
-                $record->update([
-                    'crm_paid_license_ids' => json_encode($licenseIds)
-                ]);
-            }
-
-            Notification::make()
-                ->title('Application Licenses Setup')
-                ->success()
-                ->body("Successfully added {$successCount} application license(s)" .
-                    ($failCount > 0 ? ", {$failCount} failed" : ''))
-                ->send();
-
-            \Illuminate\Support\Facades\Log::info("License setup completed", [
-                'handover_id' => $handoverId,
-                'success_count' => $successCount,
-                'fail_count' => $failCount,
-                'license_ids' => $licenseIds
             ]);
         }
     }

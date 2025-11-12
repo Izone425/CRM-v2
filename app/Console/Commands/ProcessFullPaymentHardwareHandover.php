@@ -72,12 +72,21 @@ class ProcessFullPaymentHardwareHandover extends Command
                     if ($paymentStatus !== 'Full Payment') {
                         $allFullyPaid = false;
                         $this->line("Handover #{$handover->id} - Invoice {$invoice['invoice_no']} has status: {$paymentStatus}");
-                        break;
+                        // ❌ Don't break here - continue to process all invoices
                     }
                 }
 
+                // ✅ ALWAYS update invoice_data with current payment statuses
+                $handover->update([
+                    'invoice_data' => json_encode($updatedInvoiceData),
+                    'updated_at' => now(),
+                ]);
+
                 if (!$allFullyPaid) {
-                    $this->line("Handover #{$handover->id} - Not all invoices are fully paid, skipping");
+                    $this->line("Handover #{$handover->id} - Invoice data updated, but not all invoices are fully paid yet");
+                    Log::info("Updated invoice payment statuses for handover #{$handover->id}", [
+                        'updated_invoice_data' => $updatedInvoiceData
+                    ]);
                     continue;
                 }
 
@@ -87,14 +96,13 @@ class ProcessFullPaymentHardwareHandover extends Command
                 if ($newStatus) {
                     $handover->update([
                         'status' => $newStatus,
-                        'invoice_data' => json_encode($updatedInvoiceData), // ✅ Update invoice_data with new payment statuses
                         'fully_paid_at' => now(),
                         'installation_pending_at' => now(),
                         'updated_at' => now(),
                     ]);
 
                     $processedCount++;
-                    $this->info("Updated handover #{$handover->id} from 'Pending Payment' to '{$newStatus}' (Installation: {$handover->installation_type})");
+                    $this->info("✅ Updated handover #{$handover->id} from 'Pending Payment' to '{$newStatus}' (Installation: {$handover->installation_type})");
 
                     Log::info("Processed handover #{$handover->id}: {$handover->installation_type} -> {$newStatus}", [
                         'updated_invoice_data' => $updatedInvoiceData

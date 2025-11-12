@@ -1,4 +1,5 @@
 <?php
+// filepath: /var/www/html/timeteccrm/app/Filament/Pages/SalesDebtor.php
 
 namespace App\Filament\Pages;
 
@@ -179,30 +180,9 @@ class SalesDebtor extends Page implements HasTable
     // Helper method to get recalculated outstanding in MYR
     protected function getRecalculatedOutstanding(DebtorAging $record): float
     {
-        $actualInvoiceAmount = $this->getTotalInvoiceAmount($record->invoice_number);
-        $originalInvoiceAmount = (float)$record->invoice_amount;
-        $outstanding = (float)$record->outstanding;
-
-        // If invoice amounts match, return original outstanding
-        if (abs($originalInvoiceAmount - $actualInvoiceAmount) < 0.01) {
-            return $record->currency_code === 'MYR'
-                ? $outstanding
-                : ($outstanding * $record->exchange_rate);
-        }
-
-        // Calculate the ratio and adjust outstanding
-        if ($originalInvoiceAmount > 0) {
-            $ratio = $actualInvoiceAmount / $originalInvoiceAmount;
-            $adjustedOutstanding = $outstanding * $ratio;
-
-            return $record->currency_code === 'MYR'
-                ? $adjustedOutstanding
-                : ($adjustedOutstanding * $record->exchange_rate);
-        }
-
         return $record->currency_code === 'MYR'
-            ? $outstanding
-            : ($outstanding * $record->exchange_rate);
+            ? $record->outstanding
+            : ($record->outstanding * $record->exchange_rate);
     }
 
     protected function loadData(): void
@@ -218,7 +198,7 @@ class SalesDebtor extends Page implements HasTable
         $this->partialPaymentDebtorStats = $this->getPartialPaymentDebtorStats($baseQuery);
     }
 
-    protected function getFilteredBaseQuery()
+    protected function getFilteredBaseQuery(): Builder
     {
         $query = DebtorAging::query();
 
@@ -313,7 +293,7 @@ class SalesDebtor extends Page implements HasTable
         return $query;
     }
 
-    protected function applyInvoiceAgeDaysFilter($query, $daysFilter)
+    protected function applyInvoiceAgeDaysFilter(Builder $query, string $daysFilter): void
     {
         $today = Carbon::now()->startOfDay();
 
@@ -337,7 +317,7 @@ class SalesDebtor extends Page implements HasTable
         }
     }
 
-    protected function applyDebtorAgingFilter($query, $agingFilter)
+    protected function applyDebtorAgingFilter(Builder $query, string $agingFilter): void
     {
         $now = Carbon::now();
 
@@ -678,7 +658,7 @@ class SalesDebtor extends Page implements HasTable
                 ->paginationPageOptions([50, 100]);
     }
 
-    protected function getBaseQuery()
+    protected function getBaseQuery(): Builder
     {
         // Get non-voided invoice numbers
         $nonVoidedInvoiceNumbers = Invoice::where('invoice_status', '!=', 'V')
@@ -692,12 +672,12 @@ class SalesDebtor extends Page implements HasTable
         return $query;
     }
 
-    protected function determinePaymentStatus($record)
+    protected function determinePaymentStatus(DebtorAging $record): string
     {
         return $this->getRecalculatedPaymentStatus($record);
     }
 
-    protected function determineInvoiceType($invoiceNumber)
+    protected function determineInvoiceType(string $invoiceNumber): string
     {
         if (strpos($invoiceNumber, 'EPIN') === 0) {
             return 'Product';
@@ -709,7 +689,7 @@ class SalesDebtor extends Page implements HasTable
     }
 
     // Updated stats methods to use recalculated amounts
-    protected function getAllDebtorStats($baseQuery)
+    protected function getAllDebtorStats(Builder $baseQuery): array
     {
         $query = clone $baseQuery;
         $records = $query->get();
@@ -728,7 +708,7 @@ class SalesDebtor extends Page implements HasTable
         ];
     }
 
-    protected function getHrdfDebtorStats($baseQuery)
+    protected function getHrdfDebtorStats(Builder $baseQuery): array
     {
         $query = clone $baseQuery;
         $query->where('invoice_number', 'like', 'EHIN%');
@@ -748,7 +728,7 @@ class SalesDebtor extends Page implements HasTable
         ];
     }
 
-    protected function getProductDebtorStats($baseQuery)
+    protected function getProductDebtorStats(Builder $baseQuery): array
     {
         $query = clone $baseQuery;
         $query->where('invoice_number', 'like', 'EPIN%');
@@ -768,7 +748,7 @@ class SalesDebtor extends Page implements HasTable
         ];
     }
 
-    protected function getUnpaidDebtorStats($baseQuery)
+    protected function getUnpaidDebtorStats(Builder $baseQuery): array
     {
         $query = clone $baseQuery;
         $records = $query->get();
@@ -790,7 +770,7 @@ class SalesDebtor extends Page implements HasTable
         ];
     }
 
-    protected function getPartialPaymentDebtorStats($baseQuery)
+    protected function getPartialPaymentDebtorStats(Builder $baseQuery): array
     {
         $query = clone $baseQuery;
         $records = $query->get();

@@ -5,8 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class Ticket extends Model
+class TicketRemote extends Model
 {
     use HasFactory;
 
@@ -14,7 +15,6 @@ class Ticket extends Model
     protected $table = 'tickets';
 
     protected $fillable = [
-        'ticket_id',
         'title',
         'status',
         'closure_reason',
@@ -26,13 +26,18 @@ class Ticket extends Model
         'isPassed',
         'passed_at',
         'product_id',
+        'product',
+        'module',
         'module_id',
+        'zoho_ticket_number',
+        'priority',
         'priority_id',
+        'zoho_ticket_id',
         'company_name',
         'description',
         'zoho_id',
         'requestor_id',
-        'assignee_ids',
+        'assignee_id',
         'created_date',
         'eta_release',
         'live_release',
@@ -42,8 +47,9 @@ class Ticket extends Model
         'device_id',
         'os_version',
         'app_version',
-        'windows_version',
+        'windows_os_version',
         'version_screenshot',
+        'created_by',
     ];
 
     protected $casts = [
@@ -52,14 +58,10 @@ class Ticket extends Model
         'live_release' => 'date',
         'passed_at' => 'datetime',
         'completion_date' => 'date',
-        'isPassed' => 'boolean',
+        'isPassed' => 'integer', // ✅ Changed from boolean to integer
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
-        'srs_links' => 'array',
-        'assignee_ids' => 'array',
     ];
-
-    public $incrementing = true;
 
     // ✅ Relationships
     public function product(): BelongsTo
@@ -82,19 +84,23 @@ class Ticket extends Model
         return $this->belongsTo(User::class, 'requestor_id');
     }
 
-    public function comments()
+    public function assignee(): BelongsTo
     {
-        return $this->hasMany(TicketComment::class)->orderBy('created_at', 'desc');
+        return $this->belongsTo(User::class, 'assignee_id');
     }
 
-    public function attachments()
+    public function comments(): HasMany
     {
-        return $this->hasMany(TicketAttachment::class)->orderBy('created_at', 'desc');
+        return $this->hasMany(TicketComment::class, 'ticket_id')->orderBy('created_at', 'desc');
     }
 
-    // ✅ Add logs relationship
-    public function logs()
+    public function attachments(): HasMany
     {
-        return $this->hasMany(TicketLog::class, 'ticket_id')->orderBy('created_at', 'desc');
+        return $this->hasMany(TicketAttachment::class, 'ticket_id')->orderBy('created_at', 'desc');
+    }
+
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
     }
 }

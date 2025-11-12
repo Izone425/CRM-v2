@@ -11,6 +11,8 @@ class TicketAttachment extends Model
 {
     use HasFactory;
 
+    protected $connection = 'ticketingsystem_live';
+
     protected $fillable = [
         'ticket_id',
         'original_filename',

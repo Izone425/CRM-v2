@@ -960,7 +960,7 @@ class SoftwareHandoverNew extends Component implements HasForms, HasTable
 
                                             return new HtmlString(
                                                 '<span style="font-weight: 600; color: #475569; font-size: 14px;">' . 'Company Size: ' .
-                                                $companySizeLabel .
+                                                '<span style="font-weight: 700; color: #DC2626;">' . $companySizeLabel . '</span>' .
                                                 '</span>'
                                             );
                                         }),

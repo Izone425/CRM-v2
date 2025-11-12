@@ -238,7 +238,7 @@ class LeadActions
                 // ✅ Check for fuzzy duplicates using Levenshtein distance
                 if ($normalizedCompanyName) {
                     foreach ($allCompanyNames as $existingCompanyName) {
-                        $normalizedExisting = strtoupper($existingCompanyName);
+                        $normalizedExisting = strtoupper((string) $existingCompanyName);
                         $normalizedExisting = preg_replace('/\b(SDN\.?\s*BHD\.?|SDN|BHD|BERHAD|SENDIRIAN BERHAD)\b/i', '', $normalizedExisting);
                         $normalizedExisting = preg_replace('/^\s*(\[.*?\]|\(.*?\)|WEBINAR:|MEETING:)\s*/', '', $normalizedExisting);
                         $normalizedExisting = preg_replace('/[^\p{L}\p{N}\s]/u', ' ', $normalizedExisting);
@@ -326,6 +326,10 @@ class LeadActions
             ->modalSubmitAction(function ($action, ?Lead $record) {
                 if (!$record) return $action;
 
+                if ($record->lead_code === 'Apollo') {
+                    return $action;
+                }
+
                 $companyName = optional($record?->companyDetail)->company_name;
                 $normalizedCompanyName = null;
 
@@ -350,7 +354,7 @@ class LeadActions
                 $fuzzyMatches = [];
                 if ($normalizedCompanyName) {
                     foreach ($allCompanyNames as $existingCompanyName) {
-                        $normalizedExisting = strtoupper($existingCompanyName);
+                        $normalizedExisting = strtoupper((string) $existingCompanyName);
                         $normalizedExisting = preg_replace('/\b(SDN\.?\s*BHD\.?|SDN|BHD|BERHAD|SENDIRIAN BERHAD)\b/i', '', $normalizedExisting);
                         $normalizedExisting = preg_replace('/^\s*(\[.*?\]|\(.*?\)|WEBINAR:|MEETING:)\s*/', '', $normalizedExisting);
                         $normalizedExisting = preg_replace('/[^\p{L}\p{N}\s]/u', ' ', $normalizedExisting);

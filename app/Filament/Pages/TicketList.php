@@ -1,10 +1,10 @@
 <?php
-
 namespace App\Filament\Pages;
 
 use App\Models\Ticket;
-use App\Models\TicketPriority; // ✅ Add this import
-use App\Models\TicketModule; // ✅ Add this import
+use App\Models\TicketLog;
+use App\Models\TicketPriority;
+use App\Models\TicketModule;
 use Filament\Actions\Action;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Grid;
@@ -40,11 +40,10 @@ class TicketList extends Page implements HasTable, HasActions, HasForms
     {
         return $table
             ->query(
-                Ticket::on('ticketingsystem_live')
-                    ->whereIn('product_id', [1, 2])
+                Ticket::whereIn('product_id', [1, 2]) // ✅ Removed ->on() since model has connection
             )
             ->columns([
-                Tables\Columns\TextColumn::make('id')
+                Tables\Columns\TextColumn::make('ticket_id')
                     ->label('ID')
                     ->sortable()
                     ->searchable(),
@@ -110,13 +109,13 @@ class TicketList extends Page implements HasTable, HasActions, HasForms
                     ->dateTime('d M Y, H:i'),
             ])
             ->filters([
-                Tables\Filters\SelectFilter::make('product')
+                Tables\Filters\SelectFilter::make('product_id') // ✅ Changed from 'product'
+                    ->label('Product')
                     ->options([
-                        'TimeTec HR - Version 1' => 'Version 1',
-                        'TimeTec HR - Version 2' => 'Version 2',
+                        1 => 'Version 1',
+                        2 => 'Version 2',
                     ]),
 
-                // ✅ Updated to fetch from database
                 Tables\Filters\SelectFilter::make('module_id')
                     ->label('Module')
                     ->options(
@@ -133,7 +132,6 @@ class TicketList extends Page implements HasTable, HasActions, HasForms
                         'Closed' => 'Closed',
                     ]),
 
-                // ✅ Updated to fetch from database
                 Tables\Filters\SelectFilter::make('priority_id')
                     ->label('Priority')
                     ->options(
@@ -160,15 +158,14 @@ class TicketList extends Page implements HasTable, HasActions, HasForms
                 ->form([
                     Grid::make(2)
                         ->schema([
-                            Select::make('product')
+                            Select::make('product_id') // ✅ Changed from 'product'
                                 ->label('Product')
                                 ->required()
                                 ->options([
-                                    'TimeTec HR - Version 1' => 'TimeTec HR - Version 1',
-                                    'TimeTec HR - Version 2' => 'TimeTec HR - Version 2',
+                                    1 => 'TimeTec HR - Version 1',
+                                    2 => 'TimeTec HR - Version 2',
                                 ]),
 
-                            // ✅ Updated to fetch from database
                             Select::make('module_id')
                                 ->label('Module')
                                 ->options(
@@ -252,7 +249,7 @@ class TicketList extends Page implements HasTable, HasActions, HasForms
 
                     Grid::make(2)
                         ->schema([
-                            TextInput::make('windows_os_version')
+                            TextInput::make('windows_version') // ✅ Changed from windows_os_version
                                 ->label('Windows/OS Version')
                                 ->placeholder('e.g., Windows 11, macOS 13.1 (optional)')
                                 ->visible(fn (Get $get): bool => $get('device_type') === 'Browser')
@@ -260,7 +257,6 @@ class TicketList extends Page implements HasTable, HasActions, HasForms
                         ])
                         ->visible(fn (Get $get): bool => $get('device_type') === 'Browser'),
 
-                    // ✅ Updated to fetch from database
                     Select::make('priority_id')
                         ->label('Priority')
                         ->required()
@@ -307,7 +303,7 @@ class TicketList extends Page implements HasTable, HasActions, HasForms
                         })
                         ->columnSpanFull(),
 
-                    TextInput::make('zoho_ticket_number')
+                    TextInput::make('zoho_id') // ✅ Changed from zoho_ticket_number
                         ->label('Zoho Ticket Number')
                         ->columnSpanFull(),
 
@@ -319,33 +315,62 @@ class TicketList extends Page implements HasTable, HasActions, HasForms
 
                     RichEditor::make('description')
                         ->label('Description')
+                        ->required() // ✅ Added required since DB field is NOT NULL
                         ->columnSpanFull(),
                 ])
                 ->action(function (array $data): void {
                     try {
-                        // Add default values
+                        $authUser = auth()->user();
+
+                        $ticketSystemUser = null;
+                        if ($authUser) {
+                            $ticketSystemUser = \Illuminate\Support\Facades\DB::connection('ticketingsystem_live')
+                                ->table('users')
+                                ->where('name', $authUser->name)
+                                ->first();
+                        }
+
+                        $requestorId = $ticketSystemUser?->id ?? 22;
+
                         $data['status'] = 'New';
-                        $data['created_by'] = auth()->user()?->name ?? 'Guest';
+                        $data['requestor_id'] = $requestorId;
+                        $data['created_date'] = now()->toDateString();
+                        $data['isPassed'] = 0;
 
-                        if (isset($data['module_id'])) {
-                            $module = TicketModule::on('ticketingsystem_live')->find($data['module_id']);
-                            $data['module'] = $module?->name ?? null;
-                            unset($data['module_id']);
+                        $productCode = $data['product_id'] == 1 ? 'HR1' : 'HR2';
+
+                        $lastTicket = Ticket::where('ticket_id', 'like', "TC-{$productCode}-%")
+                            ->orderBy('id', 'desc')
+                            ->first();
+
+                        if ($lastTicket && $lastTicket->ticket_id) {
+                            preg_match('/TC-' . $productCode . '-(\d+)/', $lastTicket->ticket_id, $matches);
+                            $lastNumber = isset($matches[1]) ? (int)$matches[1] : 0;
+                            $nextNumber = $lastNumber + 1;
+                        } else {
+                            $nextNumber = 1;
                         }
 
-                        if (isset($data['priority_id'])) {
-                            $priority = TicketPriority::on('ticketingsystem_live')->find($data['priority_id']);
-                            $data['priority'] = $priority?->name ?? null;
-                            unset($data['priority_id']);
-                        }
+                        // Format: TC-HR1-0009
+                        $data['ticket_id'] = sprintf('TC-%s-%04d', $productCode, $nextNumber);
 
-                        // Create ticket
                         $ticket = Ticket::create($data);
+
+                        TicketLog::create([
+                            'ticket_id' => $ticket->id,
+                            'old_status' => null,
+                            'new_status' => 'New',
+                            'updated_by' => $requestorId,
+                            'user_name' => $ticketSystemUser?->name ?? 'HRcrm User',
+                            'user_role' => $ticketSystemUser?->role ?? 'test role',
+                            'change_type' => 'ticket_creation',
+                            'source' => 'manual',
+                        ]);
 
                         Notification::make()
                             ->title('Ticket Created')
                             ->success()
-                            ->body("Ticket #{$ticket->id} has been created successfully.")
+                            ->body("Ticket {$data['ticket_id']} (ID: #{$ticket->id}) has been created successfully.")
                             ->send();
 
                         // Refresh table

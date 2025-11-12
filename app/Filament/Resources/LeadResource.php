@@ -836,6 +836,31 @@ class LeadResource extends Resource
                             : null;
                     }),
 
+                SelectFilter::make('exclude_apollo')
+                    ->label(false)
+                    ->options([
+                        'exclude' => 'Exclude Apollo',
+                        'include' => 'Include Apollo',
+                        'only' => 'Only Apollo',
+                    ])
+                    ->default('exclude') // ✅ Default to exclude Apollo
+                    ->query(function (Builder $query, array $data) {
+                        $value = $data['value'] ?? 'exclude';
+
+                        return match($value) {
+                            'exclude' => $query->where(function($q) {
+                                $q->where('lead_code', '!=', 'Apollo')
+                                ->orWhereNull('lead_code');
+                            }),
+                            'only' => $query->where('lead_code', 'Apollo'),
+                            'include' => $query, // No filtering - show all
+                            default => $query->where(function($q) {
+                                $q->where('lead_code', '!=', 'Apollo')
+                                ->orWhereNull('lead_code');
+                            }),
+                        };
+                    })
+                    ->placeholder('Select Apollo Filter'),
             ], layout: FiltersLayout::AboveContent)
             ->filtersFormColumns(6)
             ->columns([
@@ -949,136 +974,142 @@ class LeadResource extends Resource
                     ->orderBy('updated_at', 'desc');
             })
             ->bulkActions([
-            \Filament\Tables\Actions\BulkAction::make('changeLeadOwner')
-                ->label('Change Lead Owner')
-                ->icon('heroicon-o-user-circle')
-                ->visible(fn () => auth()->user()?->role_id === 3)
-                ->form([
-                    \Filament\Forms\Components\Select::make('lead_owner')
-                        ->label('New Lead Owner')
-                        ->options(
-                            \App\Models\User::where('role_id', 1)->pluck('name', 'name')->toArray()
-                        )
-                        ->searchable()
-                        ->required(),
-                ])
-                ->action(function (\Illuminate\Support\Collection $records, array $data) {
-                    foreach ($records as $lead) {
-                        $lead->update([
-                            'lead_owner' => $data['lead_owner'],
-                        ]);
-
-                        // Update latest activity log description
-                        $latestActivityLog = \App\Models\ActivityLog::where('subject_id', $lead->id)
-                            ->orderByDesc('created_at')
-                            ->first();
-
-                        if ($latestActivityLog) {
-                            $latestActivityLog->update([
-                                'description' => 'Lead Owner changed by Manager',
+                \Filament\Tables\Actions\BulkAction::make('changeLeadOwner')
+                    ->label('Change Lead Owner')
+                    ->icon('heroicon-o-user-circle')
+                    ->visible(fn () => auth()->user()?->role_id === 3)
+                    ->form([
+                        \Filament\Forms\Components\Select::make('lead_owner')
+                            ->label('New Lead Owner')
+                            ->options(
+                                \App\Models\User::where('role_id', 1)->pluck('name', 'name')->toArray()
+                            )
+                            ->searchable()
+                            ->required(),
+                    ])
+                    ->action(function (\Illuminate\Support\Collection $records, array $data): void {
+                        /** @var \Illuminate\Support\Collection<int, \App\Models\Lead> $records */
+                        foreach ($records as $lead) {
+                            /** @var \App\Models\Lead $lead */
+                            $lead->update([
+                                'lead_owner' => $data['lead_owner'],
                             ]);
+
+                            // Update latest activity log description
+                            $latestActivityLog = \App\Models\ActivityLog::where('subject_id', $lead->id)
+                                ->orderByDesc('created_at')
+                                ->first();
+
+                            if ($latestActivityLog) {
+                                $latestActivityLog->update([
+                                    'description' => 'Lead Owner changed by Manager',
+                                ]);
+                            }
+
+                            // Optional: Create new activity log entry
+                            activity()
+                                ->causedBy(auth()->user())
+                                ->performedOn($lead)
+                                ->log('Bulk lead owner changed to: '.$data['lead_owner']);
                         }
 
-                        // Optional: Create new activity log entry
-                        activity()
-                            ->causedBy(auth()->user())
-                            ->performedOn($lead)
-                            ->log('Bulk lead owner changed to: '.$data['lead_owner']);
-                    }
+                        \Filament\Notifications\Notification::make()
+                            ->title('Lead Owner Updated')
+                            ->success()
+                            ->body(count($records).' leads updated with new Lead Owner.')
+                            ->send();
+                    }),
 
-                    \Filament\Notifications\Notification::make()
-                        ->title('Lead Owner Updated')
-                        ->success()
-                        ->body(count($records).' leads updated with new Lead Owner.')
-                        ->send();
-                }),
+                \Filament\Tables\Actions\BulkAction::make('changeSalesperson')
+                    ->label('Change Salesperson')
+                    ->icon('heroicon-o-user-group')
+                    ->visible(fn () => auth()->user()?->role_id === 3)
+                    ->form([
+                        \Filament\Forms\Components\Select::make('salesperson')
+                            ->label('New Salesperson')
+                            ->options(
+                                \App\Models\User::where('role_id', 2)->pluck('name', 'id')->toArray()
+                            )
+                            ->searchable()
+                            ->required(),
+                    ])
+                    ->action(function (\Illuminate\Support\Collection $records, array $data): void {
+                        /** @var \Illuminate\Support\Collection<int, \App\Models\Lead> $records */
+                        $salespersonId = $data['salesperson'];
+                        $salespersonName = \App\Models\User::find($salespersonId)?->name ?? 'Unknown';
 
-            \Filament\Tables\Actions\BulkAction::make('changeSalesperson')
-                ->label('Change Salesperson')
-                ->icon('heroicon-o-user-group')
-                ->visible(fn () => auth()->user()?->role_id === 3)
-                ->form([
-                    \Filament\Forms\Components\Select::make('salesperson')
-                        ->label('New Salesperson')
-                        ->options(
-                            \App\Models\User::where('role_id', 2)->pluck('name', 'id')->toArray()
-                        )
-                        ->searchable()
-                        ->required(),
-                ])
-                ->action(function (\Illuminate\Support\Collection $records, array $data) {
-                    $salespersonId = $data['salesperson'];
-                    $salespersonName = \App\Models\User::find($salespersonId)?->name ?? 'Unknown';
+                        foreach ($records as $lead) {
+                            /** @var \App\Models\Lead $lead */
+                            // Store old salesperson for logging
+                            $oldSalespersonId = $lead->salesperson;
+                            $oldSalespersonName = \App\Models\User::find($oldSalespersonId)?->name ?? 'None';
 
-                    foreach ($records as $lead) {
-                        // Store old salesperson for logging
-                        $oldSalespersonId = $lead->salesperson;
-                        $oldSalespersonName = \App\Models\User::find($oldSalespersonId)?->name ?? 'None';
+                            // Update the salesperson and assigned date
+                            $lead->update([
+                                'salesperson' => $salespersonId,
+                                'salesperson_assigned_date' => now(),
+                            ]);
 
-                        // Update the salesperson and assigned date
-                        $lead->update([
-                            'salesperson' => $salespersonId,
-                            'salesperson_assigned_date' => now(),
-                        ]);
+                            // Optional: Create activity log entry
+                            activity()
+                                ->causedBy(auth()->user())
+                                ->performedOn($lead)
+                                ->log('Bulk changed salesperson from '.$oldSalespersonName.' to '.$salespersonName);
+                        }
 
-                        // Optional: Create activity log entry
-                        activity()
-                            ->causedBy(auth()->user())
-                            ->performedOn($lead)
-                            ->log('Bulk changed salesperson from '.$oldSalespersonName.' to '.$salespersonName);
-                    }
+                        \Filament\Notifications\Notification::make()
+                            ->title('Salesperson Updated')
+                            ->success()
+                            ->body(count($records).' leads updated with new Salesperson: '.$salespersonName)
+                            ->send();
+                    }),
 
-                    \Filament\Notifications\Notification::make()
-                        ->title('Salesperson Updated')
-                        ->success()
-                        ->body(count($records).' leads updated with new Salesperson: '.$salespersonName)
-                        ->send();
-                }),
+                \Filament\Tables\Actions\BulkAction::make('changeLeadSource')
+                    ->label('Change Lead Source')
+                    ->icon('heroicon-o-tag')
+                    ->visible(fn () => auth()->user()?->role_id === 3)
+                    ->form([
+                        \Filament\Forms\Components\Select::make('lead_code')
+                            ->label('New Lead Source')
+                            ->options(function () {
+                                // Get all unique lead_code values from the database
+                                $leadCodes = \App\Models\Lead::select('lead_code')
+                                    ->distinct()
+                                    ->whereNotNull('lead_code')
+                                    ->pluck('lead_code')
+                                    ->toArray();
 
-            \Filament\Tables\Actions\BulkAction::make('changeLeadSource')
-                ->label('Change Lead Source')
-                ->icon('heroicon-o-tag')
-                ->visible(fn () => auth()->user()?->role_id === 3)
-                ->form([
-                    \Filament\Forms\Components\Select::make('lead_code')
-                        ->label('New Lead Source')
-                        ->options(function () {
-                            // Get all unique lead_code values from the database
-                            $leadCodes = \App\Models\Lead::select('lead_code')
-                                ->distinct()
-                                ->whereNotNull('lead_code')
-                                ->pluck('lead_code')
-                                ->toArray();
+                                // Create options from the unique codes
+                                return array_combine($leadCodes, $leadCodes);
+                            })
+                            ->searchable()
+                            ->required(),
+                    ])
+                    ->action(function (\Illuminate\Support\Collection $records, array $data): void {
+                        /** @var \Illuminate\Support\Collection<int, \App\Models\Lead> $records */
+                        $newLeadCode = $data['lead_code'];
 
-                            // Create options from the unique codes
-                            return array_combine($leadCodes, $leadCodes);
-                        })
-                        ->searchable()
-                        ->required(),
-                ])
-                ->action(function (\Illuminate\Support\Collection $records, array $data) {
-                    $newLeadCode = $data['lead_code'];
+                        foreach ($records as $lead) {
+                            /** @var \App\Models\Lead $lead */
+                            $oldLeadCode = $lead->lead_code ?? 'None';
 
-                    foreach ($records as $lead) {
-                        $oldLeadCode = $lead->lead_code ?? 'None';
+                            $lead->update([
+                                'lead_code' => $newLeadCode,
+                            ]);
 
-                        $lead->update([
-                            'lead_code' => $newLeadCode,
-                        ]);
+                            // Optional: Create activity log entry
+                            activity()
+                                ->causedBy(auth()->user())
+                                ->performedOn($lead)
+                                ->log('Bulk changed lead source from "'.$oldLeadCode.'" to "'.$newLeadCode.'"');
+                        }
 
-                        // Optional: Create activity log entry
-                        activity()
-                            ->causedBy(auth()->user())
-                            ->performedOn($lead)
-                            ->log('Bulk changed lead source from "'.$oldLeadCode.'" to "'.$newLeadCode.'"');
-                    }
-
-                    \Filament\Notifications\Notification::make()
-                        ->title('Lead Source Updated')
-                        ->success()
-                        ->body(count($records).' leads updated with new Lead Source: '.$newLeadCode)
-                        ->send();
-                }),
+                        \Filament\Notifications\Notification::make()
+                            ->title('Lead Source Updated')
+                            ->success()
+                            ->body(count($records).' leads updated with new Lead Source: '.$newLeadCode)
+                            ->send();
+                    }),
             ])
             ->actions([
                 Tables\Actions\ActionGroup::make([
