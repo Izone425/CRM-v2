@@ -383,8 +383,101 @@ class QuotationRelationManager extends RelationManager
                     Tables\Actions\Action::make('Accept')
                         ->icon('heroicon-o-clipboard-document-check')
                         ->requiresConfirmation()
+                        ->modalHeading('Convert to Proforma Invoice')
+                        ->form(function (Quotation $record) {
+                            // ✅ Check if any products cannot be pushed to PI
+                            $hasNonPushableProducts = $record->items()
+                                ->whereHas('product', function ($query) {
+                                    $query->where('convert_pi', false)
+                                        ->orWhereNull('convert_pi');
+                                })
+                                ->exists();
+
+                            if ($hasNonPushableProducts) {
+                                // ✅ Get the list of products that cannot be pushed
+                                $nonPushableProducts = $record->items()
+                                    ->with('product')
+                                    ->whereHas('product', function ($query) {
+                                        $query->where('convert_pi', false)
+                                            ->orWhereNull('convert_pi');
+                                    })
+                                    ->get()
+                                    ->pluck('product.description') // ✅ Changed from 'product.name' to 'product.description'
+                                    ->filter()
+                                    ->unique()
+                                    ->values();
+
+                                $productList = $nonPushableProducts->isEmpty()
+                                    ? 'Some products'
+                                    : '<ul style="margin: 10px 0; padding-left: 20px;">' .
+                                    $nonPushableProducts->map(fn($name) => "<li>{$name}</li>")->implode('') .
+                                    '</ul>';
+
+                                return [
+                                    Forms\Components\Placeholder::make('warning')
+                                        ->content(new HtmlString(
+                                            '<div style="padding: 16px; background: #FEF2F2; border: 1px solid #FCA5A5; border-radius: 8px; color: #991B1B;">
+                                                <div style="display: flex; align-items: start; gap: 12px;">
+                                                    <svg style="width: 24px; height: 24px; flex-shrink: 0; margin-top: 2px;" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clip-rule="evenodd"/>
+                                                    </svg>
+                                                    <div>
+                                                        <h4 style="margin: 0 0 8px 0; font-weight: 600; font-size: 16px;">Cannot Convert to Proforma Invoice</h4>
+                                                        <p style="margin: 0 0 8px 0; font-size: 14px;">
+                                                            Your quotation contains product(s) that cannot be pushed to Proforma Invoice:
+                                                        </p>
+                                                        ' . $productList . '
+                                                        <p style="margin: 8px 0 0 0; font-size: 14px; font-weight: 500;">
+                                                            Please remove these products or update their settings before converting to PI.
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>'
+                                        ))
+                                        ->hiddenLabel(),
+                                ];
+                            }
+
+                            // ✅ If all products can be pushed, show normal confirmation
+                            return [
+                                Forms\Components\Placeholder::make('confirmation')
+                                    ->content(new HtmlString(
+                                        '<div style="padding: 16px; background: #F0FDF4; border: 1px solid #86EFAC; border-radius: 8px; color: #166534;">
+                                            <div style="display: flex; align-items: start; gap: 12px;">
+                                                <svg style="width: 24px; height: 24px; flex-shrink: 0; margin-top: 2px;" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd"/>
+                                                </svg>
+                                                <div>
+                                                    <h4 style="margin: 0 0 8px 0; font-weight: 600; font-size: 16px;">Ready to Convert</h4>
+                                                    <p style="margin: 0; font-size: 14px;">
+                                                        This quotation is ready to be converted to a Proforma Invoice. Click "Accept" to proceed.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>'
+                                    ))
+                                    ->hiddenLabel(),
+                            ];
+                        })
                         ->action(
                             function (Quotation $quotation, QuotationService $quotationService, array $data) {
+                                // ✅ Double-check before processing
+                                $hasNonPushableProducts = $quotation->items()
+                                    ->whereHas('product', function ($query) {
+                                        $query->where('convert_pi', false)
+                                            ->orWhereNull('convert_pi');
+                                    })
+                                    ->exists();
+
+                                if ($hasNonPushableProducts) {
+                                    Notification::make()
+                                        ->danger()
+                                        ->title('Cannot Convert to PI')
+                                        ->body('This quotation contains products that cannot be pushed to Proforma Invoice.')
+                                        ->send();
+                                    return;
+                                }
+
                                 $quotation->pi_reference_no = $quotationService->update_pi_reference_no($quotation);
                                 $quotation->status = QuotationStatusEnum::accepted;
                                 $quotation->save();
@@ -393,16 +486,16 @@ class QuotationRelationManager extends RelationManager
                                 $currentUser = User::find(auth('web')->user()->id);
                                 $notifyUsers = $notifyUsers->push($currentUser);
 
-                                $lead = $quotation->lead; // Assuming the 'lead' relationship exists in Quotation
+                                $lead = $quotation->lead;
 
-                                // Create a new ActivityLog entry with the desired description
+                                // Create a new ActivityLog entry
                                 ActivityLog::create([
-                                    'subject_id' => $lead->id, // Associate the log with the lead
+                                    'subject_id' => $lead->id,
                                     'description' => 'Order Uploaded. Pending Approval to close lead.',
-                                    'causer_id' => auth()->id(), // Log the current user's ID
-                                    'causer_type' => get_class(auth()->user()), // Log the user's model class
-                                    'properties' => json_encode([ // Serialize properties to JSON
-                                        'attributes' => [ // Store as a JSON array under "attributes"
+                                    'causer_id' => auth()->id(),
+                                    'causer_type' => get_class(auth()->user()),
+                                    'properties' => json_encode([
+                                        'attributes' => [
                                             'quotation_reference_no' => $quotation->quotation_reference_no,
                                             'lead_status' => $lead->lead_status,
                                             'stage' => $lead->stage,
@@ -410,12 +503,11 @@ class QuotationRelationManager extends RelationManager
                                     ]),
                                 ]);
 
-                                // Optionally log activity for auditing
                                 activity()
                                     ->causedBy(auth()->user())
                                     ->performedOn($lead)
                                     ->withProperties([
-                                        'attributes' => [ // Store as a JSON array under "attributes"
+                                        'attributes' => [
                                             'quotation_reference_no' => $quotation->quotation_reference_no,
                                             'lead_status' => $lead->lead_status,
                                             'stage' => $lead->stage,
@@ -429,10 +521,29 @@ class QuotationRelationManager extends RelationManager
                                     ->send();
                             }
                         )
-                        // ->url(fn(Quotation $quotation) => route('pdf.print-proforma-invoice', $quotation))
-                        // ->openUrlInNewTab()
                         ->closeModalByClickingAway(false)
                         ->modalWidth(MaxWidth::Medium)
+                        // ✅ Hide submit button if products cannot be pushed to PI
+                        ->modalSubmitAction(function ($action, Quotation $record) {
+                            $hasNonPushableProducts = $record->items()
+                                ->whereHas('product', function ($query) {
+                                    $query->where('convert_pi', false)
+                                        ->orWhereNull('convert_pi');
+                                })
+                                ->exists();
+
+                            return $hasNonPushableProducts ? $action->hidden() : $action;
+                        })
+                        ->modalCancelActionLabel(function (Quotation $record) {
+                            $hasNonPushableProducts = $record->items()
+                                ->whereHas('product', function ($query) {
+                                    $query->where('convert_pi', false)
+                                        ->orWhereNull('convert_pi');
+                                })
+                                ->exists();
+
+                            return $hasNonPushableProducts ? 'Close' : 'Cancel';
+                        })
                         ->visible(fn(Quotation $quotation) =>
                             $quotation->status !== QuotationStatusEnum::accepted &&
                             $quotation->lead?->lead_status === 'Closed'

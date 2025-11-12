@@ -271,6 +271,16 @@ class Whatsapp extends Page
     {
         $twilioNumber = preg_replace('/[^0-9]/', '', env('TWILIO_WHATSAPP_FROM', ''));
 
+        // ✅ Clean the search phone number to match database format
+        $cleanSearchPhone = !empty($this->searchPhone)
+            ? preg_replace('/[^0-9]/', '', $this->searchPhone)
+            : '';
+
+        // ✅ Clean and normalize company search
+        $cleanSearchCompany = !empty($this->searchCompany)
+            ? trim($this->searchCompany)
+            : '';
+
         // Start with a more efficient base query
         $baseQuery = DB::table('chat_messages')
             ->select([
@@ -278,8 +288,47 @@ class Whatsapp extends Page
                 DB::raw('GREATEST(sender, receiver) AS user2'),
                 DB::raw('MAX(created_at) as last_message_time'),
                 DB::raw('MAX(id) as latest_message_id')
-            ])
-            ->groupBy('user1', 'user2');
+            ]);
+
+        // ✅ Apply phone filter at database level
+        if ($cleanSearchPhone) {
+            $baseQuery->where(function($query) use ($cleanSearchPhone) {
+                $query->where('sender', 'LIKE', "%{$cleanSearchPhone}%")
+                    ->orWhere('receiver', 'LIKE', "%{$cleanSearchPhone}%");
+            });
+        }
+
+        // ✅ NEW: Apply company filter at database level BEFORE limiting
+        if ($cleanSearchCompany) {
+            $baseQuery->where(function($query) use ($cleanSearchCompany, $twilioNumber) {
+                // Get the participant phone number (not Twilio number)
+                $query->whereExists(function ($subQuery) use ($cleanSearchCompany, $twilioNumber) {
+                    $subQuery->select(DB::raw(1))
+                        ->from('leads')
+                        ->join('company_details', 'leads.company_name', '=', 'company_details.id')
+                        ->whereRaw("
+                            (CASE
+                                WHEN LEAST(chat_messages.sender, chat_messages.receiver) = ? THEN GREATEST(chat_messages.sender, chat_messages.receiver)
+                                ELSE LEAST(chat_messages.sender, chat_messages.receiver)
+                            END) = leads.phone
+                        ", [$twilioNumber])
+                        ->where('company_details.company_name', 'LIKE', "%{$cleanSearchCompany}%");
+                })
+                ->orWhereExists(function ($subQuery) use ($cleanSearchCompany, $twilioNumber) {
+                    $subQuery->select(DB::raw(1))
+                        ->from('company_details')
+                        ->whereRaw("
+                            (CASE
+                                WHEN LEAST(chat_messages.sender, chat_messages.receiver) = ? THEN GREATEST(chat_messages.sender, chat_messages.receiver)
+                                ELSE LEAST(chat_messages.sender, chat_messages.receiver)
+                            END) = company_details.contact_no
+                        ", [$twilioNumber])
+                        ->where('company_details.company_name', 'LIKE', "%{$cleanSearchCompany}%");
+                });
+            });
+        }
+
+        $baseQuery->groupBy('user1', 'user2');
 
         // Apply date filter early to reduce dataset
         if ($this->startDate && $this->endDate) {
@@ -289,7 +338,7 @@ class Whatsapp extends Page
             ]);
         }
 
-        // Get more records than needed if filtering unreplied (since we'll filter in PHP)
+        // ✅ NOW apply the limit AFTER filtering
         $limit = $this->filterUnreplied ? $this->contactsLimit * 3 : $this->contactsLimit * 2;
 
         $chatPairs = $baseQuery->orderByDesc('last_message_time')
@@ -309,12 +358,13 @@ class Whatsapp extends Page
             return ($user1 === $twilioNumber) ? $user2 : $user1;
         })->unique();
 
-        // Load leads and companies in bulk
+        // ✅ Load leads with companyDetail relationship
         $leads = Lead::with('companyDetail')
             ->whereIn('phone', $allPhones)
             ->get()
             ->groupBy('phone');
 
+        // ✅ Also search by contact_no in company_details
         $companies = CompanyDetail::whereIn('contact_no', $allPhones)
             ->get()
             ->groupBy('contact_no');
@@ -334,17 +384,16 @@ class Whatsapp extends Page
             $chat->is_from_customer = $lastMessage->is_from_customer ?? null;
             $chat->is_read = $lastMessage->is_read ?? null;
 
-            // Check for unread messages - CORRECTED LOGIC
-            // Only consider it "no reply" if the LATEST message is from customer AND unread
+            // Check for unread messages
             $hasNoReply = $lastMessage &&
                         $lastMessage->is_from_customer &&
                         !$lastMessage->is_read;
 
             $chat->has_no_reply = $hasNoReply;
 
-            // APPLY UNREPLIED FILTER HERE (in PHP after getting the latest message)
+            // APPLY UNREPLIED FILTER
             if ($this->filterUnreplied && !$hasNoReply) {
-                continue; // Skip this chat if filtering unreplied and this chat doesn't need a reply
+                continue;
             }
 
             // Apply lead owner filter
@@ -359,27 +408,8 @@ class Whatsapp extends Page
                 if (!$hasMatchingOwner) continue;
             }
 
-            // Apply company search filter
-            if (!empty($this->searchCompany)) {
-                $participantLeads = $leads->get($chatParticipant, collect());
-                $participantCompanies = $companies->get($chatParticipant, collect());
-
-                $matchesCompanySearch = $participantLeads->contains(function ($lead) {
-                    return $lead->companyDetail &&
-                        stripos($lead->companyDetail->company_name, $this->searchCompany) !== false;
-                }) || $participantCompanies->contains(function ($company) {
-                    return stripos($company->company_name, $this->searchCompany) !== false;
-                });
-
-                if (!$matchesCompanySearch) continue;
-            }
-
-            // Apply phone search filter
-            if (!empty($this->searchPhone)) {
-                if (stripos($chatParticipant, $this->searchPhone) === false) {
-                    continue;
-                }
-            }
+            // ✅ REMOVED - Company filter now applied at database level
+            // No need to filter again here
 
             // Set participant name from pre-loaded data
             $participantLeads = $leads->get($chatParticipant, collect());
@@ -387,10 +417,10 @@ class Whatsapp extends Page
 
             if ($participantLeads->isNotEmpty()) {
                 $lead = $participantLeads->first();
-                $chat->participant_name = $lead->companyDetail->name ?? $lead->name;
+                $chat->participant_name = $lead->companyDetail->company_name ?? $lead->companyDetail->name ?? $lead->name;
             } elseif ($participantCompanies->isNotEmpty()) {
                 $company = $participantCompanies->first();
-                $chat->participant_name = $company->name ?? $chatParticipant;
+                $chat->participant_name = $company->company_name ?? $company->name ?? $chatParticipant;
             } else {
                 $chat->participant_name = $chatParticipant;
             }
