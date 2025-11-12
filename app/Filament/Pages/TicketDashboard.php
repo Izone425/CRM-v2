@@ -49,11 +49,13 @@ class TicketDashboard extends Page implements HasActions, HasForms
     public $selectedTicket = null;
     public $showTicketModal = false;
     public $newComment = '';
+    public $attachments = [];
 
     public function mount(): void
     {
         $this->currentMonth = Carbon::now()->month;
         $this->currentYear = Carbon::now()->year;
+        $this->selectedDate = Carbon::now()->format('Y-m-d');
     }
 
     // ✅ Add header actions for Create Ticket button
@@ -294,6 +296,67 @@ class TicketDashboard extends Page implements HasActions, HasForms
         ];
     }
 
+    public function uploadAttachments(): void
+    {
+        $this->validate([
+            'attachments.*' => 'file|max:10240', // Max 10MB per file
+        ]);
+
+        if (empty($this->attachments) || !$this->selectedTicket) {
+            Notification::make()
+                ->title('No files selected')
+                ->warning()
+                ->send();
+            return;
+        }
+
+        try {
+            $authUser = auth()->user();
+            $ticketSystemUser = \Illuminate\Support\Facades\DB::connection('ticketingsystem_live')
+                ->table('users')
+                ->where('name', $authUser->name)
+                ->first();
+
+            $userId = $ticketSystemUser?->id ?? 22;
+
+            foreach ($this->attachments as $file) {
+                $originalFilename = $file->getClientOriginalName();
+                $storedFilename = uniqid() . '_' . $originalFilename;
+                $path = $file->storeAs('ticket_attachments', $storedFilename, 'public');
+
+                \App\Models\TicketAttachment::create([
+                    'ticket_id' => $this->selectedTicket->id,
+                    'original_filename' => $originalFilename,
+                    'stored_filename' => $storedFilename,
+                    'file_path' => 'storage/' . $path,
+                    'file_size' => $file->getSize(),
+                    'mime_type' => $file->getMimeType(),
+                    'file_hash' => md5_file($file->getRealPath()),
+                    'uploaded_by' => $userId,
+                ]);
+            }
+
+            $this->attachments = [];
+            $this->selectedTicket->refresh();
+            $this->selectedTicket->load('attachments');
+
+            Notification::make()
+                ->title('Files Uploaded')
+                ->success()
+                ->body(count($this->attachments) . ' file(s) uploaded successfully')
+                ->send();
+
+        } catch (\Exception $e) {
+            Log::error('Error uploading attachments: ' . $e->getMessage());
+
+            Notification::make()
+                ->title('Upload Failed')
+                ->danger()
+                ->body('Failed to upload files: ' . $e->getMessage())
+                ->send();
+        }
+    }
+
     public function viewTicket($ticketId): void
     {
         try {
@@ -304,6 +367,8 @@ class TicketDashboard extends Page implements HasActions, HasForms
                 'product',
                 'module',
                 'requestor',
+                'attachments',
+                'attachments.uploader',
             ])->find($ticketId);
 
             if ($this->selectedTicket) {
@@ -320,6 +385,7 @@ class TicketDashboard extends Page implements HasActions, HasForms
         $this->showTicketModal = false;
         $this->selectedTicket = null;
         $this->newComment = '';
+        $this->attachments = []; // ✅ Reset attachments
     }
 
     public function addComment(): void
@@ -411,7 +477,7 @@ class TicketDashboard extends Page implements HasActions, HasForms
             $priorityName = strtolower($ticket->priority?->name ?? '');
 
             return str_contains($priorityName, 'bug') ||
-                   str_contains($priorityName, 'software');
+                str_contains($priorityName, 'software');
         });
 
         return [
@@ -419,6 +485,7 @@ class TicketDashboard extends Page implements HasActions, HasForms
             'new' => $bugs->where('status', 'New')->count(),
             'review' => $bugs->where('status', 'In Review')->count(),
             'progress' => $bugs->where('status', 'In Progress')->count(),
+            'reopen' => $bugs->where('status', 'Reopen')->count(), // ✅ Add Reopen count
             'closed' => $bugs->where('status', 'Closed')->count(),
         ];
     }
@@ -429,8 +496,8 @@ class TicketDashboard extends Page implements HasActions, HasForms
             $priorityName = strtolower($ticket->priority?->name ?? '');
 
             return str_contains($priorityName, 'backend') ||
-                   str_contains($priorityName, 'assistance') ||
-                   str_contains(str_replace(' ', '', $priorityName), 'backend');
+                str_contains($priorityName, 'assistance') ||
+                str_contains(str_replace(' ', '', $priorityName), 'backend');
         });
 
         return [
@@ -438,6 +505,7 @@ class TicketDashboard extends Page implements HasActions, HasForms
             'new' => $backend->where('status', 'New')->count(),
             'review' => $backend->where('status', 'In Review')->count(),
             'progress' => $backend->where('status', 'In Progress')->count(),
+            'reopen' => $backend->where('status', 'Reopen')->count(),
             'closed' => $backend->where('status', 'Closed')->count(),
         ];
     }
@@ -624,17 +692,61 @@ class TicketDashboard extends Page implements HasActions, HasForms
             $ticket = Ticket::find($ticketId);
 
             if ($ticket) {
+                $authUser = auth()->user();
+
+                $ticketSystemUser = null;
+                if ($authUser) {
+                    $ticketSystemUser = \Illuminate\Support\Facades\DB::connection('ticketingsystem_live')
+                        ->table('users')
+                        ->where('name', $authUser->name)
+                        ->first();
+                }
+
+                $userId = $ticketSystemUser?->id ?? 22;
+                $userName = $ticketSystemUser?->name ?? 'HRcrm User';
+                $userRole = $ticketSystemUser?->role ?? 'Internal Staff';
+
+                $oldStatus = $ticket->status;
+
+                // ✅ Update ticket to Failed and Reopen status
                 $ticket->update([
                     'isPassed' => 0,
                     'passed_at' => now(),
+                    'status' => 'Reopen', // ✅ Change status to Reopen
+                ]);
+
+                // ✅ Create a log entry for status change
+                TicketLog::create([
+                    'ticket_id' => $ticket->id,
+                    'old_status' => $oldStatus,
+                    'new_status' => 'Reopen',
+                    'updated_by' => $userId,
+                    'user_name' => $userName,
+                    'user_role' => $userRole,
+                    'change_type' => 'status_change',
+                    'source' => 'manual',
+                    'remarks' => 'Ticket marked as failed and reopened',
                 ]);
 
                 if ($this->selectedTicket && $this->selectedTicket->id === $ticketId) {
                     $this->selectedTicket->refresh();
                 }
+
+                // ✅ Show success notification
+                Notification::make()
+                    ->title('Ticket Marked as Failed')
+                    ->body("Ticket status changed to Reopen")
+                    ->warning()
+                    ->send();
             }
         } catch (\Exception $e) {
             Log::error('Error marking ticket as failed: ' . $e->getMessage());
+
+            Notification::make()
+                ->title('Error')
+                ->body('Failed to update ticket status')
+                ->danger()
+                ->send();
         }
     }
 }

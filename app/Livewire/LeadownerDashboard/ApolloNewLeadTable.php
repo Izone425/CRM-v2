@@ -33,6 +33,7 @@ class ApolloNewLeadTable extends Component implements HasForms, HasTable
 
     public $selectedUser; // Allow dynamic filtering
     public $lastRefreshTime;
+    public $hasDuplicatesInBulkAssign = false;
 
     public function mount()
     {
@@ -318,16 +319,6 @@ class ApolloNewLeadTable extends Component implements HasForms, HasTable
                         ];
                     })
                     ->action(function ($records) {
-                        // ✅ Use cached result - no re-check needed
-                        if ($this->hasDuplicatesInBulkAssign) {
-                            Notification::make()
-                                ->title('Assignment Blocked')
-                                ->body('Duplicate leads detected. Please contact Faiz before proceeding.')
-                                ->danger()
-                                ->send();
-                            return;
-                        }
-
                         $this->bulkAssignToMe($records);
                     })
                     ->color('primary')
