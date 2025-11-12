@@ -11,6 +11,8 @@ class TicketComment extends Model
 {
     use HasFactory;
 
+    protected $connection = 'ticketingsystem_live';
+
     protected $fillable = [
         'ticket_id',
         'user_id',

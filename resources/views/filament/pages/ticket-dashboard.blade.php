@@ -421,6 +421,16 @@
             <h1 class="page-title">Ticket Dashboard</h1>
 
             <div class="filter-dropdowns">
+                <button type="button"
+                        wire:click="mountAction('createTicket')"
+                        style="padding: 8px 16px; background: #6366F1; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: all 0.2s;"
+                        onmouseover="this.style.background='#4F46E5'"
+                        onmouseout="this.style.background='#6366F1'">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" style="width: 16px; height: 16px;">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                    </svg>
+                    Create Ticket
+                </button>
                 <select class="filter-select" wire:model.live="selectedProduct">
                     <option>All Products</option>
                     @foreach($products as $product)
@@ -449,23 +459,23 @@
                         <div class="category-badge">{{ $softwareBugs['total'] }}</div>
                     </div>
                     <div class="status-grid">
-                        <div class="status-box {{ $selectedCategory === 'softwareBugs' && $selectedStatus === 'RND - New' ? 'active' : '' }}"
-                             wire:click="selectCategory('softwareBugs', 'RND - New')">
+                        <div class="status-box {{ $selectedCategory === 'softwareBugs' && $selectedStatus === 'New' ? 'active' : '' }}"
+                             wire:click="selectCategory('softwareBugs', 'New')">
                             <div class="status-number">{{ $softwareBugs['new'] }}</div>
                             <div class="status-text">New</div>
                         </div>
-                        <div class="status-box {{ $selectedCategory === 'softwareBugs' && $selectedStatus === 'RND - In Review' ? 'active' : '' }}"
-                             wire:click="selectCategory('softwareBugs', 'RND - In Review')">
+                        <div class="status-box {{ $selectedCategory === 'softwareBugs' && $selectedStatus === 'In Review' ? 'active' : '' }}"
+                             wire:click="selectCategory('softwareBugs', 'In Review')">
                             <div class="status-number">{{ $softwareBugs['review'] }}</div>
                             <div class="status-text">Review</div>
                         </div>
-                        <div class="status-box {{ $selectedCategory === 'softwareBugs' && $selectedStatus === 'RND - In Progress' ? 'active' : '' }}"
-                             wire:click="selectCategory('softwareBugs', 'RND - In Progress')">
+                        <div class="status-box {{ $selectedCategory === 'softwareBugs' && $selectedStatus === 'In Progress' ? 'active' : '' }}"
+                             wire:click="selectCategory('softwareBugs', 'In Progress')">
                             <div class="status-number">{{ $softwareBugs['progress'] }}</div>
                             <div class="status-text">In Progress</div>
                         </div>
-                        <div class="status-box {{ $selectedCategory === 'softwareBugs' && $selectedStatus === 'RND - Closed' ? 'active' : '' }}"
-                             wire:click="selectCategory('softwareBugs', 'RND - Closed')">
+                        <div class="status-box {{ $selectedCategory === 'softwareBugs' && $selectedStatus === 'Closed' ? 'active' : '' }}"
+                             wire:click="selectCategory('softwareBugs', 'Closed')">
                             <div class="status-number">{{ $softwareBugs['closed'] }}</div>
                             <div class="status-text">Closed</div>
                         </div>
@@ -480,23 +490,23 @@
                         <div class="category-badge">{{ $backendAssistance['total'] }}</div>
                     </div>
                     <div class="status-grid">
-                        <div class="status-box {{ $selectedCategory === 'backendAssistance' && $selectedStatus === 'RND - New' ? 'active' : '' }}"
-                             wire:click="selectCategory('backendAssistance', 'RND - New')">
+                        <div class="status-box {{ $selectedCategory === 'backendAssistance' && $selectedStatus === 'New' ? 'active' : '' }}"
+                             wire:click="selectCategory('backendAssistance', 'New')">
                             <div class="status-number">{{ $backendAssistance['new'] }}</div>
                             <div class="status-text">New</div>
                         </div>
-                        <div class="status-box {{ $selectedCategory === 'backendAssistance' && $selectedStatus === 'RND - In Review' ? 'active' : '' }}"
-                             wire:click="selectCategory('backendAssistance', 'RND - In Review')">
+                        <div class="status-box {{ $selectedCategory === 'backendAssistance' && $selectedStatus === 'In Review' ? 'active' : '' }}"
+                             wire:click="selectCategory('backendAssistance', 'In Review')">
                             <div class="status-number">{{ $backendAssistance['review'] }}</div>
                             <div class="status-text">Review</div>
                         </div>
-                        <div class="status-box {{ $selectedCategory === 'backendAssistance' && $selectedStatus === 'RND - In Progress' ? 'active' : '' }}"
-                             wire:click="selectCategory('backendAssistance', 'RND - In Progress')">
+                        <div class="status-box {{ $selectedCategory === 'backendAssistance' && $selectedStatus === 'In Progress' ? 'active' : '' }}"
+                             wire:click="selectCategory('backendAssistance', 'In Progress')">
                             <div class="status-number">{{ $backendAssistance['progress'] }}</div>
                             <div class="status-text">In Progress</div>
                         </div>
-                        <div class="status-box {{ $selectedCategory === 'backendAssistance' && $selectedStatus === 'RND - Closed' ? 'active' : '' }}"
-                             wire:click="selectCategory('backendAssistance', 'RND - Closed')">
+                        <div class="status-box {{ $selectedCategory === 'backendAssistance' && $selectedStatus === 'Closed' ? 'active' : '' }}"
+                             wire:click="selectCategory('backendAssistance', 'Closed')">
                             <div class="status-number">{{ $backendAssistance['closed'] }}</div>
                             <div class="status-text">Closed</div>
                         </div>
@@ -678,24 +688,57 @@
                                     <th style="padding: 12px; text-align: left; font-size: 12px; color: #6B7280; font-weight: 600;">COMPANY</th>
                                     <th style="padding: 12px; text-align: left; font-size: 12px; color: #6B7280; font-weight: 600;">STATUS</th>
                                     <th style="padding: 12px; text-align: left; font-size: 12px; color: #6B7280; font-weight: 600;">CREATED</th>
+                                    <th style="padding: 12px; text-align: center; font-size: 12px; color: #6B7280; font-weight: 600;">PASS/FAIL</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @foreach($tickets as $ticket)
-                                    <tr style="border-bottom: 1px solid #F3F4F6; cursor: pointer; transition: background 0.2s;"
-                                        wire:click="viewTicket({{ $ticket->id }})"
-                                        onmouseover="this.style.background='#F9FAFB'"
-                                        onmouseout="this.style.background='white'">
-                                        <td style="padding: 12px; font-size: 13px; font-weight: 600;">#{{ $ticket->id }}</td>
-                                        <td style="padding: 12px; font-size: 13px;">{{ \Str::limit($ticket->title, 50) }}</td>
-                                        <td style="padding: 12px; font-size: 13px;">{{ strtoupper($ticket->company_name) }}</td>
-                                        <td style="padding: 12px;">
+                                    <tr style="border-bottom: 1px solid #F3F4F6;">
+                                        <td style="padding: 12px; font-size: 13px; font-weight: 600; cursor: pointer;" wire:click="viewTicket({{ $ticket->id }})">
+                                            {{ $ticket->ticket_id }}
+                                        </td>
+                                        <td style="padding: 12px; font-size: 13px; cursor: pointer;" wire:click="viewTicket({{ $ticket->id }})">
+                                            {{ \Str::limit($ticket->title, 50) }}
+                                        </td>
+                                        <td style="padding: 12px; font-size: 13px; cursor: pointer;" wire:click="viewTicket({{ $ticket->id }})">
+                                            {{ strtoupper($ticket->company_name) }}
+                                        </td>
+                                        <td style="padding: 12px; cursor: pointer;" wire:click="viewTicket({{ $ticket->id }})">
                                             <span style="padding: 4px 8px; border-radius: 4px; font-size: 11px; background: #F3F4F6; color: #6B7280;">
                                                 {{ $ticket->status }}
                                             </span>
                                         </td>
-                                        <td style="padding: 12px; font-size: 13px; color: #6B7280;">
+                                        <td style="padding: 12px; font-size: 13px; color: #6B7280; cursor: pointer;" wire:click="viewTicket({{ $ticket->id }})">
                                             {{ $ticket->created_at->format('d M Y') }}
+                                        </td>
+                                        <td style="padding: 12px; text-align: center;" onclick="event.stopPropagation();">
+                                            @if($ticket->isPassed == 0)
+                                                <div style="display: inline-flex; gap: 8px;">
+                                                    <button wire:click="markAsPassed({{ $ticket->id }})"
+                                                            style="padding: 6px 12px; background: #10B981; color: white; border: none; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s;"
+                                                            onmouseover="this.style.background='#059669'"
+                                                            onmouseout="this.style.background='#10B981'">
+                                                        ✓ Pass
+                                                    </button>
+                                                    <button wire:click="markAsFailed({{ $ticket->id }})"
+                                                            style="padding: 6px 12px; background: #EF4444; color: white; border: none; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s;"
+                                                            onmouseover="this.style.background='#DC2626'"
+                                                            onmouseout="this.style.background='#EF4444'">
+                                                        ✕ Fail
+                                                    </button>
+                                                </div>
+                                            @else
+                                                <div style="display: inline-flex; align-items: center; gap: 8px;">
+                                                    <span style="padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; {{ $ticket->isPassed == 1 ? 'background: #D1FAE5; color: #059669;' : 'background: #FEE2E2; color: #DC2626;' }}">
+                                                        {{ $ticket->isPassed == 1 ? '✓ Passed' : '✕ Failed' }}
+                                                    </span>
+                                                    @if($ticket->passed_at)
+                                                        <span style="font-size: 11px; color: #9CA3AF;">
+                                                            {{ $ticket->passed_at->format('d M Y H:i') }}
+                                                        </span>
+                                                    @endif
+                                                </div>
+                                            @endif
                                         </td>
                                     </tr>
                                 @endforeach
@@ -722,7 +765,7 @@
     @if($showTicketModal && $selectedTicket)
         <div style="position: fixed; inset: 0; background: rgba(0, 0, 0, 0.5); z-index: 50; display: flex; align-items: center; justify-content: center;"
             wire:click="closeTicketModal">
-            <div style="background: white; border-radius: 16px; width: 90%; max-width: 1000px; max-height: 90vh; overflow: hidden; display: flex; flex-direction: column;"
+            <div style="background: white; border-radius: 16px; width: 100%; max-width: 1150px; max-height: 90vh; overflow: hidden; display: flex; flex-direction: column;"
                 wire:click.stop>
 
                 <!-- Modal Header -->
@@ -746,18 +789,21 @@
                     <!-- Left Side - Main Content -->
                     <div style="padding: 24px; border-right: 1px solid #E5E7EB;">
                         <!-- Title -->
-                        <h1 style="font-size: 24px; font-weight: 700; color: #111827; margin: 0 0 16px 0;">
+                        <h1 style="font-size: 24px; font-weight: 700; color: #111827; margin: 0 0 24px 0;">
                             {{ $selectedTicket->title }}
                         </h1>
 
+                        <!-- Description Section (Always visible at top) -->
+                        <div style="margin-bottom: 24px;">
+                            <div style="font-size: 14px; font-weight: 600; color: #6B7280; margin-bottom: 12px;">Description</div>
+                            <div style="background: #f7f7fe; padding: 16px; border-radius: 8px; border: 1px solid #E5E7EB;">
+                                {!! $selectedTicket->description ?? 'No description provided.' !!}
+                            </div>
+                        </div>
+
                         <!-- Tabs -->
-                        <div x-data="{ activeTab: 'description' }" style="margin-bottom: 24px;">
+                        <div x-data="{ activeTab: 'comments' }" style="margin-bottom: 24px;">
                             <div style="display: flex; gap: 24px; border-bottom: 2px solid #F3F4F6;">
-                                <button @click="activeTab = 'description'"
-                                        :style="activeTab === 'description' ? 'border-bottom: 2px solid #6366F1; color: #6366F1;' : 'color: #9CA3AF;'"
-                                        style="padding: 12px 0; font-weight: 600; font-size: 14px; background: transparent; border: none; cursor: pointer; margin-bottom: -2px;">
-                                    Description
-                                </button>
                                 <button @click="activeTab = 'comments'"
                                         :style="activeTab === 'comments' ? 'border-bottom: 2px solid #6366F1; color: #6366F1;' : 'color: #9CA3AF;'"
                                         style="padding: 12px 0; font-weight: 600; font-size: 14px; background: transparent; border: none; cursor: pointer; margin-bottom: -2px;">
@@ -775,86 +821,97 @@
                                 </button>
                             </div>
 
-                            <!-- Description Tab -->
-                            <div x-show="activeTab === 'description'" style="padding: 24px 0;">
-                                <div style="background: #F9FAFB; padding: 16px; border-radius: 8px;">
-                                    <p style="color: #374151; line-height: 1.6; margin: 0;">
-                                        {{ $selectedTicket->description ?? 'No description provided.' }}
-                                    </p>
-                                </div>
-                            </div>
-
                             <!-- Comments Tab -->
                             <div x-show="activeTab === 'comments'" style="padding: 24px 0;">
                                 <!-- Add Comment -->
                                 <div style="margin-bottom: 24px;">
                                     <textarea wire:model="newComment"
                                             placeholder="Add a comment..."
-                                            style="width: 100%; padding: 12px; border: 1px solid #E5E7EB; border-radius: 8px; font-size: 14px; resize: vertical; min-height: 80px;"></textarea>
-                                    <button wire:click="addComment"
-                                            style="margin-top: 8px; padding: 8px 16px; background: #6366F1; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer;">
-                                        Post Comment
-                                    </button>
+                                            style="width: 100%; padding: 12px; border: 1px solid #E5E7EB; border-radius: 8px; font-size: 14px; resize: vertical; min-height: 100px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;"
+                                            onfocus="this.style.borderColor='#6366F1'; this.style.outline='none';"
+                                            onblur="this.style.borderColor='#E5E7EB';"></textarea>
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+                                        <div style="font-size: 12px; color: #9CA3AF;">
+                                            <!-- Optional: Add character count or other info -->
+                                        </div>
+                                        <button wire:click="addComment"
+                                                style="padding: 8px 20px; background: #6366F1; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 14px; transition: all 0.2s;"
+                                                onmouseover="this.style.background='#4F46E5'"
+                                                onmouseout="this.style.background='#6366F1'">
+                                            Add
+                                        </button>
+                                    </div>
                                 </div>
 
                                 <!-- Previous Comments -->
-                                <div style="border-left: 3px solid #6366F1; padding-left: 16px;">
-                                    <h3 style="font-size: 14px; font-weight: 600; color: #6B7280; margin-bottom: 16px;">Previous Comments</h3>
-
-                                    @forelse($selectedTicket->comments as $comment)
-                                        <div style="margin-bottom: 16px; padding: 16px; background: #F9FAFB; border-radius: 8px;">
-                                            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
-                                                <div style="width: 32px; height: 32px; border-radius: 50%; background: #6366F1; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 14px;">
-                                                    {{ strtoupper(substr($comment->user->name ?? 'U', 0, 1)) }}
-                                                </div>
-                                                <div>
-                                                    <div style="font-weight: 600; font-size: 14px; color: #111827;">
-                                                        {{ $comment->user->name ?? 'Unknown User' }}
-                                                        @if($comment->user->role_id)
-                                                            <span style="background: #DBEAFE; color: #1E40AF; padding: 2px 8px; border-radius: 4px; font-size: 11px; margin-left: 8px;">
-                                                                FE (IMPLEMENTOR)
+                                @if($selectedTicket->comments->count() > 0)
+                                    <div style="margin-top: 24px;">
+                                        <h4 style="font-size: 14px; font-weight: 600; color: #111827; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid #E5E7EB;">
+                                            Previous Comments
+                                        </h4>
+                                        @foreach($selectedTicket->comments as $comment)
+                                            <div style="margin-bottom: 20px; padding: 16px; background: #F9FAFB; border-radius: 8px; border-left: 3px solid #6366F1;">
+                                                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                                                    <div style="width: 36px; height: 36px; border-radius: 50%; background: #6366F1; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 14px;">
+                                                        {{ strtoupper(substr($comment->user->name ?? 'U', 0, 1)) }}
+                                                    </div>
+                                                    <div style="flex: 1; display: flex; align-items: center; justify-content: space-between;">
+                                                        <div style="display: flex; align-items: center; gap: 8px;">
+                                                            <span style="font-weight: 600; font-size: 14px; color: #111827;">
+                                                                {{ $comment->user->name ?? 'Unknown User' }}
                                                             </span>
-                                                        @endif
-                                                    </div>
-                                                    <div style="font-size: 12px; color: #9CA3AF;">
-                                                        {{ $comment->created_at->diffForHumans() }}
+                                                            <span style="padding: 2px 8px; background: #E0E7FF; color: #4F46E5; border-radius: 4px; font-size: 11px; font-weight: 600;">
+                                                                {{ $comment->user->role ?? 'HRcrm User' }}
+                                                            </span>
+                                                        </div>
+                                                        <div style="font-size: 12px; color: #9CA3AF;">
+                                                            {{ $comment->created_at->diffForHumans() }}
+                                                        </div>
                                                     </div>
                                                 </div>
+                                                <p style="color: #374151; margin: 0; font-size: 14px; line-height: 1.6; white-space: pre-wrap;">{{ $comment->comment }}</p>
                                             </div>
-                                            <p style="color: #374151; margin: 0; font-size: 14px;">{{ $comment->comment }}</p>
-                                        </div>
-                                    @empty
-                                        <p style="color: #9CA3AF; font-size: 14px;">No comments yet.</p>
-                                    @endforelse
-                                </div>
+                                        @endforeach
+                                    </div>
+                                @else
+                                    <div style="text-align: center; padding: 60px 20px;">
+                                        <div style="font-size: 48px; opacity: 0.3; margin-bottom: 16px;">💬</div>
+                                        <p style="color: #9CA3AF; font-size: 14px;">No comments yet</p>
+                                    </div>
+                                @endif
                             </div>
 
                             <!-- Attachments Tab -->
                             <div x-show="activeTab === 'attachments'" style="padding: 24px 0;">
-                                <h3 style="font-size: 14px; font-weight: 600; color: #111827; margin-bottom: 16px;">Current Attachments</h3>
+                                @if($selectedTicket->attachments->count() > 0)
+                                    <h3 style="font-size: 14px; font-weight: 600; color: #111827; margin-bottom: 16px;">Current Attachments</h3>
 
-                                @forelse($selectedTicket->attachments as $attachment)
-                                    <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px; background: #F9FAFB; border-radius: 8px; margin-bottom: 8px;">
-                                        <div style="flex: 1;">
-                                            <div style="font-weight: 600; font-size: 14px; color: #111827;">{{ $attachment->original_filename }}</div>
-                                            <div style="font-size: 12px; color: #6B7280; margin-top: 4px;">
-                                                {{ $attachment->file_size_formatted }} • {{ $attachment->created_at->format('d M Y, H:i A') }}
-                                                <br>
-                                                <span style="font-style: italic;">by {{ $attachment->uploader->name ?? 'Unknown' }}</span>
+                                    @foreach($selectedTicket->attachments as $attachment)
+                                        <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px; background: #F9FAFB; border-radius: 8px; margin-bottom: 8px;">
+                                            <div style="flex: 1;">
+                                                <div style="font-weight: 600; font-size: 14px; color: #111827;">{{ $attachment->original_filename }}</div>
+                                                <div style="font-size: 12px; color: #6B7280; margin-top: 4px;">
+                                                    {{ $attachment->file_size_formatted }} • {{ $attachment->created_at->format('d M Y, H:i A') }}
+                                                    <br>
+                                                    <span style="font-style: italic;">by {{ $attachment->uploader->name ?? 'Unknown' }}</span>
+                                                </div>
+                                            </div>
+                                            <div style="display: flex; gap: 8px;">
+                                                <a href="{{ url($attachment->file_path) }}" target="_blank" style="padding: 6px 12px; background: white; border: 1px solid #E5E7EB; border-radius: 6px; cursor: pointer; text-decoration: none; color: #374151;">
+                                                    👁️ View
+                                                </a>
+                                                <a href="{{ url($attachment->file_path) }}" download style="padding: 6px 12px; background: white; border: 1px solid #E5E7EB; border-radius: 6px; cursor: pointer; text-decoration: none; color: #374151;">
+                                                    ⬇️ Download
+                                                </a>
                                             </div>
                                         </div>
-                                        <div style="display: flex; gap: 8px;">
-                                            <a href="{{ url($attachment->file_path) }}" target="_blank" style="padding: 6px 12px; background: white; border: 1px solid #E5E7EB; border-radius: 6px; cursor: pointer; text-decoration: none; color: #374151;">
-                                                👁️ View
-                                            </a>
-                                            <a href="{{ url($attachment->file_path) }}" download style="padding: 6px 12px; background: white; border: 1px solid #E5E7EB; border-radius: 6px; cursor: pointer; text-decoration: none; color: #374151;">
-                                                ⬇️ Download
-                                            </a>
-                                        </div>
+                                    @endforeach
+                                @else
+                                    <div style="text-align: center; padding: 60px 20px;">
+                                        <div style="font-size: 48px; opacity: 0.3; margin-bottom: 16px;">📎</div>
+                                        <p style="color: #9CA3AF; font-size: 14px;">No attachments</p>
                                     </div>
-                                @empty
-                                    <p style="color: #9CA3AF; font-size: 14px;">No attachments.</p>
-                                @endforelse
+                                @endif
 
                                 <!-- Upload New Attachments -->
                                 <div style="margin-top: 24px; padding: 24px; border: 2px dashed #E5E7EB; border-radius: 8px; text-align: center;">
@@ -876,81 +933,106 @@
 
                     <!-- Right Side - Other Information -->
                     <div style="padding: 24px; background: #F9FAFB;">
-                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 20px;">
-                            <h3 style="font-size: 14px; font-weight: 600; color: #6B7280; margin: 0;">OTHER INFORMATION</h3>
-                            <span style="color: #9CA3AF;">›</span>
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
+                            <h3 style="font-size: 14px; font-weight: 600; color: #6B7280; margin: 0;">Other Information</h3>
+                            <button type="button" title="Hide information panel" style="background: transparent; border: none; color: #9CA3AF; cursor: pointer; padding: 4px;">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="9 18 15 12 9 6"></polyline>
+                                </svg>
+                            </button>
                         </div>
 
                         <!-- Priority -->
                         <div style="margin-bottom: 16px;">
-                            <div style="font-size: 11px; color: #9CA3AF; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">Priority</div>
-                            <div style="font-weight: 600; color: #111827;">{{ $selectedTicket->priority }}</div>
+                            <div style="font-size: 11px; color: #9CA3AF; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 500;">Priority</div>
+                            <div style="font-weight: 500; color: #111827; font-size: 14px;">{{ $selectedTicket->priority->name ?? $selectedTicket->priority ?? '-' }}</div>
                         </div>
 
                         <!-- Status -->
                         <div style="margin-bottom: 16px;">
-                            <div style="font-size: 11px; color: #9CA3AF; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">Status</div>
-                            <div style="font-weight: 600; color: #111827;">{{ $selectedTicket->status }}</div>
+                            <div style="font-size: 11px; color: #9CA3AF; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 500;">Status</div>
+                            <div style="font-weight: 500; color: #111827; font-size: 14px;">{{ $selectedTicket->status ?? '-' }}</div>
                         </div>
 
-                        <!-- Assignee -->
+                        <!-- Due Date -->
                         <div style="margin-bottom: 16px;">
-                            <div style="font-size: 11px; color: #9CA3AF; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">Assignee</div>
-                            <select style="width: 100%; padding: 8px; border: 1px solid #E5E7EB; border-radius: 6px; font-size: 14px;">
-                                <option>Select Assignee</option>
-                            </select>
+                            <div style="font-size: 11px; color: #9CA3AF; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 500;">Due Date</div>
+                            <div style="font-weight: 500; color: #111827; font-size: 14px;">-</div>
                         </div>
 
-                        <!-- Product -->
-                        <div style="margin-bottom: 16px;">
-                            <div style="font-size: 11px; color: #9CA3AF; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">Product</div>
-                            <div style="font-weight: 600; color: #111827;">{{ $selectedTicket->product }}</div>
+                        <!-- ETA Release Date & Live Release Date -->
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+                            <div>
+                                <div style="font-size: 11px; color: #9CA3AF; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 500;">ETA Release Date</div>
+                                <div style="font-weight: 500; color: #111827; font-size: 14px;">{{ $selectedTicket->eta_release ? $selectedTicket->eta_release->format('M d, Y') : '-' }}</div>
+                            </div>
+                            <div>
+                                <div style="font-size: 11px; color: #9CA3AF; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 500;">Live Release Date</div>
+                                <div style="font-weight: 500; color: #111827; font-size: 14px;">{{ $selectedTicket->live_release ? $selectedTicket->live_release->format('M d, Y') : '-' }}</div>
+                            </div>
                         </div>
 
-                        <!-- Module -->
-                        <div style="margin-bottom: 16px;">
-                            <div style="font-size: 11px; color: #9CA3AF; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">Module</div>
-                            <div style="font-weight: 600; color: #111827;">{{ $selectedTicket->module }}</div>
+                        <!-- Divider -->
+                        <div style="border-top: 1px solid #E5E7EB; margin: 20px 0;"></div>
+
+                        <!-- Product & Module -->
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+                            <div>
+                                <div style="font-size: 11px; color: #9CA3AF; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 500;">Product</div>
+                                <div style="font-weight: 500; color: #111827; font-size: 14px;">{{ $selectedTicket->product->name ?? $selectedTicket->product ?? '-' }}</div>
+                            </div>
+                            <div>
+                                <div style="font-size: 11px; color: #9CA3AF; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 500;">Module</div>
+                                <div style="font-weight: 500; color: #111827; font-size: 14px;">{{ $selectedTicket->module->name ?? $selectedTicket->module ?? '-' }}</div>
+                            </div>
                         </div>
 
-                        <!-- Company Name -->
-                        <div style="margin-bottom: 16px;">
-                            <div style="font-size: 11px; color: #9CA3AF; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">Company Name</div>
-                            <div style="font-weight: 600; color: #111827;">{{ $selectedTicket->company_name }}</div>
+                        <!-- Company Name & Requester -->
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+                            <div>
+                                <div style="font-size: 11px; color: #9CA3AF; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 500;">Company Name</div>
+                                <div style="font-weight: 500; color: #111827; font-size: 14px;">{{ $selectedTicket->company_name ?? '-' }}</div>
+                            </div>
+                            <div>
+                                <div style="font-size: 11px; color: #9CA3AF; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 500;">Requester</div>
+                                <div style="font-weight: 500; color: #111827; font-size: 14px;">{{ $selectedTicket->requestor->name ?? $selectedTicket->created_by ?? '-' }}</div>
+                            </div>
                         </div>
 
-                        <!-- Requester -->
-                        <div style="margin-bottom: 16px;">
-                            <div style="font-size: 11px; color: #9CA3AF; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">Requester</div>
-                            <div style="font-weight: 600; color: #111827;">{{ $selectedTicket->created_by ?? 'Unknown' }}</div>
+                        <!-- Zoho Ticket Number & Created Date -->
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+                            <div>
+                                <div style="font-size: 11px; color: #9CA3AF; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 500;">Zoho Ticket Number</div>
+                                <div style="font-weight: 500; color: #111827; font-size: 14px;">{{ $selectedTicket->zoho_ticket_number ?? '-' }}</div>
+                            </div>
+                            <div>
+                                <div style="font-size: 11px; color: #9CA3AF; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 500;">Created Date</div>
+                                <div style="font-weight: 500; color: #111827; font-size: 14px;">{{ $selectedTicket->created_at ? $selectedTicket->created_at->format('M d, Y') : '-' }}</div>
+                            </div>
                         </div>
 
-                        <!-- Created Date -->
-                        <div style="margin-bottom: 16px;">
-                            <div style="font-size: 11px; color: #9CA3AF; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">Created Date</div>
-                            <div style="font-weight: 600; color: #111827;">{{ $selectedTicket->created_at->format('M d, Y') }}</div>
-                        </div>
+                        <!-- Divider -->
+                        <div style="border-top: 1px solid #E5E7EB; margin: 20px 0;"></div>
 
-                        <!-- Device Type -->
-                        <div style="margin-bottom: 16px;">
-                            <div style="font-size: 11px; color: #9CA3AF; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">Device Type</div>
-                            <div style="font-weight: 600; color: #111827;">{{ $selectedTicket->device_type ?? '-' }}</div>
-                        </div>
-
-                        <!-- Browser Type -->
-                        <div style="margin-bottom: 16px;">
-                            <div style="font-size: 11px; color: #9CA3AF; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">Browser Type</div>
-                            <div style="font-weight: 600; color: #111827;">{{ $selectedTicket->browser_type ?? '-' }}</div>
-                        </div>
-
-                        <!-- Windows Version -->
-                        <div style="margin-bottom: 16px;">
-                            <div style="font-size: 11px; color: #9CA3AF; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">Windows Version</div>
-                            <div style="font-weight: 600; color: #111827;">{{ $selectedTicket->windows_os_version ?? '-' }}</div>
+                        <!-- Device Type, Browser Type & Windows Version -->
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                            <div>
+                                <div style="font-size: 11px; color: #9CA3AF; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 500;">Device Type</div>
+                                <div style="font-weight: 500; color: #111827; font-size: 14px;">{{ $selectedTicket->device_type ?? '-' }}</div>
+                            </div>
+                            <div>
+                                <div style="font-size: 11px; color: #9CA3AF; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 500;">Browser Type</div>
+                                <div style="font-weight: 500; color: #111827; font-size: 14px;">{{ $selectedTicket->browser_type ?? '-' }}</div>
+                            </div>
+                            <div style="grid-column: 1 / -1;">
+                                <div style="font-size: 11px; color: #9CA3AF; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 500;">Windows Version</div>
+                                <div style="font-weight: 500; color: #111827; font-size: 14px;">{{ $selectedTicket->windows_os_version ?? '-' }}</div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
     @endif
+    <x-filament-actions::modals />
 </x-filament-panels::page>
