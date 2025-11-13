@@ -29,6 +29,7 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Illuminate\View\View as IlluminateView;
 use App\Classes\Encryptor;
+use App\Services\IrbmService;
 
 class SubscriberDetailsTabs
 {
@@ -118,7 +119,64 @@ class SubscriberDetailsTabs
                                                     ])
                                                     ->dehydrateStateUsing(fn ($state) => strtoupper($state))
                                                     ->required()
-                                                    ->maxLength(255),
+                                                    ->maxLength(255)
+                                                    ->suffixAction(
+                                                        Action::make('searchTin')
+                                                            ->icon('heroicon-o-magnifying-glass')
+                                                            ->color('primary')
+                                                            ->action(function ($state, $set, $get) {
+                                                                if (empty($state)) {
+                                                                    Notification::make()
+                                                                        ->title('Business Register Number Required')
+                                                                        ->body('Please enter a Business Register Number before searching.')
+                                                                        ->warning()
+                                                                        ->send();
+                                                                    return;
+                                                                }
+
+                                                                try {
+                                                                    // Get company name from the form
+                                                                    $companyName = $get('company_name') ?? '';
+
+                                                                    // Call IRBM service to search TIN
+                                                                    $irbmService = new IrbmService();
+                                                                    $tin = $irbmService->searchTaxPayerTin(
+                                                                        name: '',
+                                                                        idType: 'BRN',
+                                                                        idValue: strtoupper($state)
+                                                                    );
+
+                                                                    if (!empty($tin)) {
+                                                                        // Set the TIN in the tax_identification_number field
+                                                                        $set('tax_identification_number', $tin);
+
+                                                                        Notification::make()
+                                                                            ->title('TIN Found')
+                                                                            ->body("Tax Identification Number: {$tin}")
+                                                                            ->success()
+                                                                            ->send();
+
+                                                                        Log::channel('irbm_log')->info("TIN found for BRN {$state}: {$tin}");
+                                                                    } else {
+                                                                        Notification::make()
+                                                                            ->title('TIN Not Found')
+                                                                            ->body('No Tax Identification Number found for this Business Register Number.')
+                                                                            ->warning()
+                                                                            ->send();
+
+                                                                        Log::channel('irbm_log')->warning("No TIN found for BRN: {$state}");
+                                                                    }
+                                                                } catch (\Exception $e) {
+                                                                    Notification::make()
+                                                                        ->title('Search Failed')
+                                                                        ->body('Failed to search TIN: ' . $e->getMessage())
+                                                                        ->danger()
+                                                                        ->send();
+
+                                                                    Log::channel('irbm_log')->error('TIN search error: ' . $e->getMessage());
+                                                                }
+                                                            })
+                                                    ),
 
                                                 TextInput::make('tax_identification_number')
                                                     ->label('Tax Identification Number')
@@ -132,22 +190,65 @@ class SubscriberDetailsTabs
                                                         '
                                                     ])
                                                     ->dehydrateStateUsing(fn ($state) => strtoupper($state))
+                                                    ->readOnly()
+                                                    ->dehydrated(true)
                                                     ->maxLength(255),
 
-                                                TextInput::make('msic_code')
+                                                Select::make('msic_code')
                                                     ->label('MSIC Code')
-                                                    ->extraAlpineAttributes([
-                                                        'x-on:input' => '
-                                                            $el.value = $el.value.replace(/[^0-9]/g, "");
-                                                        '
-                                                    ])
-                                                    ->rules(['regex:/^[0-9]+$/'])
+                                                    ->searchable()
+                                                    ->preload()
+                                                    ->options(function () {
+                                                        try {
+                                                            $msicCodes = IrbmService::getMSICCodes();
+
+                                                            // Format: "code - description"
+                                                            return collect($msicCodes)->mapWithKeys(function ($item, $key) {
+                                                                return [$item['Code'] => "{$item['Code']} - {$item['Description']}"];
+                                                            })->toArray();
+                                                        } catch (\Exception $e) {
+                                                            Log::channel('irbm_log')->error('Error loading MSIC codes: ' . $e->getMessage());
+                                                            return [];
+                                                        }
+                                                    })
                                                     ->default(function ($record) {
                                                         // First try eInvoiceDetail, then companyDetail
-                                                        return $record->eInvoiceDetail->postcode ??
-                                                            $record->companyDetail->postcode ?? '';
+                                                        return $record->eInvoiceDetail->msic_code ??
+                                                            $record->companyDetail->msic_code ?? '';
                                                     })
-                                                    ->maxLength(5),
+                                                    ->getSearchResultsUsing(function (string $search) {
+                                                        try {
+                                                            $msicCodes = IrbmService::getMSICCodes();
+                                                            // Search by code or description
+
+                                                            return collect($msicCodes)
+                                                                ->filter(function ($item, $key) use ($search) {
+                                                                    return stripos($item['Code'], $search) !== false ||
+                                                                        stripos($item['Description'], $search) !== false;
+                                                                })
+                                                                ->mapWithKeys(function ($item, $key) {
+                                                                    return [$item['Code'] => "{$item['Code']} - {$item['Description']}"];
+                                                                })
+                                                                ->take(50) // Limit results
+                                                                ->toArray();
+                                                        } catch (\Exception $e) {
+                                                            Log::channel('irbm_log')->error('Error searching MSIC codes: ' . $e->getMessage());
+                                                            return [];
+                                                        }
+                                                    })
+                                                    ->getOptionLabelUsing(function ($value) {
+                                                        try {
+                                                            if (empty($value)) {
+                                                                return '';
+                                                            }
+
+                                                            $description = IrbmService::getMSICCodes($value);
+                                                            return "{$value} - {$description}";
+                                                        } catch (\Exception $e) {
+                                                            return $value;
+                                                        }
+                                                    })
+                                                    ->required(),
                                             ]),
                                     ]),
 

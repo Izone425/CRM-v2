@@ -43,55 +43,48 @@ class FinanceHandoverRelationManager extends RelationManager
         return [
             Section::make('Step 1: Reseller Details')
                 ->schema([
-                    Select::make('related_hardware_handovers')
-                        ->label('Select Hardware Handovers to Combine With')
-                        ->multiple()
-                        ->searchable()
-                        ->preload()
-                        ->options(function () {
-                            $leadId = $this->getOwnerRecord()->id;
+                    Grid::make(2)
+                        ->schema([
+                        Select::make('related_hardware_handovers')
+                            ->label('Hardware Handover')
+                            ->multiple()
+                            ->searchable()
+                            ->preload()
+                            ->options(function () {
+                                $leadId = $this->getOwnerRecord()->id;
 
-                            return HardwareHandoverV2::where('lead_id', $leadId)
-                                ->get()
-                                ->mapWithKeys(function ($handover) {
-                                    // Format the display name with ID and any relevant info
-                                    $formattedId = 'HW_250' . str_pad($handover->id, 4, '0', STR_PAD_LEFT);
-                                    $displayName = $formattedId;
+                                return HardwareHandoverV2::where('lead_id', $leadId)
+                                    ->get()
+                                    ->mapWithKeys(function ($handover) {
+                                        // Format the display name with ID and any relevant info
+                                        $formattedId = 'HW_250' . str_pad($handover->id, 4, '0', STR_PAD_LEFT);
+                                        $displayName = $formattedId;
 
-                                    // Add additional info if available (e.g., status, date)
-                                    if ($handover->status) {
-                                        $displayName .= ' - ' . $handover->status;
-                                    }
+                                        // Add additional info if available (e.g., status, date)
+                                        if ($handover->status) {
+                                            $displayName .= ' - ' . $handover->status;
+                                        }
 
-                                    if ($handover->created_at) {
-                                        $displayName .= ' (' . $handover->created_at->format('d M Y') . ')';
-                                    }
+                                        if ($handover->created_at) {
+                                            $displayName .= ' (' . $handover->created_at->format('d M Y') . ')';
+                                        }
 
-                                    return [$handover->id => $displayName];
-                                })
-                                ->toArray();
-                        })
-                        ->required(),
+                                        return [$handover->id => $displayName];
+                                    })
+                                    ->toArray();
+                            })
+                            ->required(),
 
-                    Select::make('reseller_id')
-                        ->label('Reseller Company Name')
-                        ->required()
-                        ->options(function () {
-                            return Reseller::pluck('company_name', 'id')->toArray();
-                        })
-                        ->searchable()
-                        ->preload()
-                        ->live(),
-                        // ->afterStateUpdated(function ($state, Forms\Set $set) {
-                        //     if ($state) {
-                        //         $reseller = Reseller::find($state);
-                        //         if ($reseller) {
-                        //             $set('pic_name', $reseller->name ?? '');
-                        //             $set('pic_phone', $reseller->phone ?? '');
-                        //             $set('pic_email', $reseller->email ?? '');
-                        //         }
-                        //     }
-                        // }),
+                        Select::make('reseller_id')
+                            ->label('Reseller')
+                            ->required()
+                            ->options(function () {
+                                return Reseller::pluck('company_name', 'id')->toArray();
+                            })
+                            ->searchable()
+                            ->preload()
+                            ->live(),
+                    ]),
 
                     Grid::make(3)
                         ->schema([

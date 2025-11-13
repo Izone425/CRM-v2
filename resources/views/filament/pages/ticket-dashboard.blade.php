@@ -734,32 +734,36 @@
                                             </span>
                                         </td>
                                         <td style="padding: 12px; text-align: center;" onclick="event.stopPropagation();">
-                                            @if($ticket->isPassed == 0)
-                                                <div style="display: inline-flex; gap: 8px;">
-                                                    <button wire:click="markAsPassed({{ $ticket->id }})"
-                                                            style="padding: 6px 12px; background: #10B981; color: white; border: none; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s;"
-                                                            onmouseover="this.style.background='#059669'"
-                                                            onmouseout="this.style.background='#10B981'">
-                                                        ✓ Pass
-                                                    </button>
-                                                    <button wire:click="markAsFailed({{ $ticket->id }})"
-                                                            style="padding: 6px 12px; background: #EF4444; color: white; border: none; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s;"
-                                                            onmouseover="this.style.background='#DC2626'"
-                                                            onmouseout="this.style.background='#EF4444'">
-                                                        ✕ Fail
-                                                    </button>
-                                                </div>
-                                            @else
-                                                <div style="display: inline-flex; align-items: center; gap: 8px;">
-                                                    <span style="padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; {{ $ticket->isPassed == 1 ? 'background: #D1FAE5; color: #059669;' : 'background: #FEE2E2; color: #DC2626;' }}">
-                                                        {{ $ticket->isPassed == 1 ? '✓ Passed' : '✕ Failed' }}
-                                                    </span>
-                                                    @if($ticket->passed_at)
-                                                        <span style="font-size: 11px; color: #9CA3AF;">
-                                                            {{ $ticket->passed_at->format('d M Y H:i') }}
+                                            @if(in_array($ticket->status, ['Tickets: Completed', 'Tickets: Live']))
+                                                @if($ticket->isPassed == 0)
+                                                    <div style="display: inline-flex; gap: 8px;">
+                                                        <button wire:click="markAsPassed({{ $ticket->id }})"
+                                                                style="padding: 6px 12px; background: #10B981; color: white; border: none; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s;"
+                                                                onmouseover="this.style.background='#059669'"
+                                                                onmouseout="this.style.background='#10B981'">
+                                                            ✓ Pass
+                                                        </button>
+                                                        <button wire:click="markAsFailed({{ $ticket->id }})"
+                                                                style="padding: 6px 12px; background: #EF4444; color: white; border: none; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s;"
+                                                                onmouseover="this.style.background='#DC2626'"
+                                                                onmouseout="this.style.background='#EF4444'">
+                                                            ✕ Fail
+                                                        </button>
+                                                    </div>
+                                                @else
+                                                    <div style="display: inline-flex; align-items: center; gap: 8px;">
+                                                        <span style="padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; {{ $ticket->isPassed == 1 ? 'background: #D1FAE5; color: #059669;' : 'background: #FEE2E2; color: #DC2626;' }}">
+                                                            {{ $ticket->isPassed == 1 ? '✓ Passed' : '✕ Failed' }}
                                                         </span>
-                                                    @endif
-                                                </div>
+                                                        @if($ticket->passed_at)
+                                                            <span style="font-size: 11px; color: #9CA3AF;">
+                                                                {{ $ticket->passed_at->format('d M Y H:i') }}
+                                                            </span>
+                                                        @endif
+                                                    </div>
+                                                @endif
+                                            @else
+                                                <span style="font-size: 12px; color: #9CA3AF;">-</span>
                                             @endif
                                         </td>
                                     </tr>
