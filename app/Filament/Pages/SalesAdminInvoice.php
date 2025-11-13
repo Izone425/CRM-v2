@@ -31,7 +31,6 @@ class SalesAdminInvoice extends Page implements HasTable
     protected static string $view = 'filament.pages.sales-admin-invoice';
     protected static ?string $slug = 'sales-admin-invoices';
 
-    // Map of salesperson names to their user IDs - Only these 7 will be shown
     protected static $salespersonUserIds = [
         'MUIM' => 6,
         'YASMIN' => 7,
@@ -46,6 +45,7 @@ class SalesAdminInvoice extends Page implements HasTable
 
     // Cache for invoice amounts
     protected $invoiceAmountCache = [];
+    protected $creditNoteCache = [];
 
     // Cache for payment statuses
     protected $paymentStatusCache = [];
@@ -58,7 +58,6 @@ class SalesAdminInvoice extends Page implements HasTable
     // Helper method to get total invoice amount from invoice_details (with caching)
     protected function getTotalInvoiceAmount(string $docKey): float
     {
-        // Check cache first
         if (isset($this->invoiceAmountCache[$docKey])) {
             return $this->invoiceAmountCache[$docKey];
         }
@@ -78,7 +77,6 @@ class SalesAdminInvoice extends Page implements HasTable
             ->whereNotIn('item_code', $excludedItemCodes)
             ->sum('local_sub_total');
 
-        // Store in cache
         $this->invoiceAmountCache[$docKey] = $amount;
 
         return $amount;
@@ -110,12 +108,10 @@ class SalesAdminInvoice extends Page implements HasTable
             ->pluck('total', 'doc_key')
             ->toArray();
 
-        // Cache all results
         foreach ($results as $docKey => $amount) {
             $this->invoiceAmountCache[$docKey] = (float) $amount;
         }
 
-        // Fill in missing doc_keys with 0
         foreach ($docKeys as $docKey) {
             if (!isset($this->invoiceAmountCache[$docKey])) {
                 $this->invoiceAmountCache[$docKey] = 0.0;
@@ -125,13 +121,78 @@ class SalesAdminInvoice extends Page implements HasTable
         return $this->invoiceAmountCache;
     }
 
+    // ✅ Batch load credit notes with exclusions
+    protected function batchLoadCreditNotes(array $invoiceNos): void
+    {
+        if (empty($invoiceNos)) {
+            return;
+        }
+
+        $excludedItemCodes = [
+            'SHIPPING',
+            'BANKCHG',
+            'DEPOSIT-MYR',
+            'F.COMMISSION',
+            'L.COMMISSION',
+            'L.ENTITLEMENT',
+            'MGT FEES',
+            'PG.COMMISSION'
+        ];
+
+        $results = DB::table('credit_notes as cn')
+            ->join('credit_note_details as cnd', 'cn.id', '=', 'cnd.credit_note_id')
+            ->whereIn('cn.invoice_number', $invoiceNos)
+            ->whereNotIn('cnd.item_code', $excludedItemCodes)
+            ->select('cn.invoice_number', DB::raw('SUM(cnd.local_sub_total) as total_credit'))
+            ->groupBy('cn.invoice_number')
+            ->get();
+
+        foreach ($results as $row) {
+            $this->creditNoteCache[$row->invoice_number] = (float) $row->total_credit;
+        }
+
+        foreach ($invoiceNos as $invoiceNo) {
+            if (!isset($this->creditNoteCache[$invoiceNo])) {
+                $this->creditNoteCache[$invoiceNo] = 0.0;
+            }
+        }
+    }
+
+    // ✅ Get credit note amount with exclusions
+    protected function getCreditNoteAmount(string $invoiceNo): float
+    {
+        if (isset($this->creditNoteCache[$invoiceNo])) {
+            return $this->creditNoteCache[$invoiceNo];
+        }
+
+        $excludedItemCodes = [
+            'SHIPPING',
+            'BANKCHG',
+            'DEPOSIT-MYR',
+            'F.COMMISSION',
+            'L.COMMISSION',
+            'L.ENTITLEMENT',
+            'MGT FEES',
+            'PG.COMMISSION'
+        ];
+
+        $amount = DB::table('credit_notes as cn')
+            ->join('credit_note_details as cnd', 'cn.id', '=', 'cnd.credit_note_id')
+            ->where('cn.invoice_number', $invoiceNo)
+            ->whereNotIn('cnd.item_code', $excludedItemCodes)
+            ->sum('cnd.local_sub_total');
+
+        $this->creditNoteCache[$invoiceNo] = (float) $amount;
+
+        return (float) $amount;
+    }
+
     protected function getCurrentFilters(): array
     {
         $tableFilters = $this->tableFilters ?? [];
 
         $filters = [];
 
-        // Extract filter values
         $filterKeys = ['year', 'month', 'invoice_type', 'salesperson', 'sales_admin', 'payment_status'];
 
         foreach ($filterKeys as $key) {
@@ -151,15 +212,12 @@ class SalesAdminInvoice extends Page implements HasTable
         $this->loadSalespersonData($filters);
     }
 
-    // Helper method to get payment status for an invoice (with caching)
     protected function getPaymentStatusForInvoice(string $invoiceNo): string
     {
-        // Check cache first
         if (isset($this->paymentStatusCache[$invoiceNo])) {
             return $this->paymentStatusCache[$invoiceNo];
         }
 
-        // Get the invoice record
         $invoice = Invoice::where('invoice_no', $invoiceNo)->first();
 
         if (!$invoice) {
@@ -167,63 +225,49 @@ class SalesAdminInvoice extends Page implements HasTable
             return 'Charge Out';
         }
 
-        // Get total invoice amount from invoice_details
         $totalInvoiceAmount = $this->getTotalInvoiceAmount($invoice->doc_key);
 
-        // If total amount is 0 or less, don't process
         if ($totalInvoiceAmount <= 0) {
             $this->paymentStatusCache[$invoiceNo] = 'Charge Out';
             return 'Charge Out';
         }
 
-        // Look for this invoice in debtor_agings table
         $debtorAging = DB::table('debtor_agings')
             ->where('invoice_number', $invoiceNo)
             ->first();
 
-        $status = 'Full Payment'; // Default
+        $status = 'Full Payment';
 
-        // If no matching record in debtor_agings or outstanding is 0
         if (!$debtorAging || (float)$debtorAging->outstanding === 0.0) {
             $status = 'Full Payment';
-        }
-        // If outstanding equals total invoice amount
-        elseif ((float)$debtorAging->outstanding === (float)$totalInvoiceAmount) {
+        } elseif ((float)$debtorAging->outstanding === (float)$totalInvoiceAmount) {
             $status = 'UnPaid';
-        }
-        // If outstanding is less than invoice amount but greater than 0
-        elseif ((float)$debtorAging->outstanding < (float)$totalInvoiceAmount && (float)$debtorAging->outstanding > 0) {
+        } elseif ((float)$debtorAging->outstanding < (float)$totalInvoiceAmount && (float)$debtorAging->outstanding > 0) {
             $status = 'Partial Payment';
-        }
-        else {
+        } else {
             $status = 'UnPaid';
         }
 
-        // Store in cache
         $this->paymentStatusCache[$invoiceNo] = $status;
 
         return $status;
     }
 
-    // Batch load payment statuses for multiple invoice numbers
     protected function batchLoadPaymentStatuses(array $invoiceNos): void
     {
         if (empty($invoiceNos)) {
             return;
         }
 
-        // Get invoices and their doc_keys
         $invoices = Invoice::whereIn('invoice_no', $invoiceNos)
             ->get()
             ->keyBy('invoice_no');
 
-        // Get debtor aging data
         $debtorAgings = DB::table('debtor_agings')
             ->whereIn('invoice_number', $invoiceNos)
             ->get()
             ->keyBy('invoice_number');
 
-        // Batch load invoice amounts
         $docKeys = $invoices->pluck('doc_key')->toArray();
         $this->batchLoadInvoiceAmounts($docKeys);
 
@@ -244,7 +288,7 @@ class SalesAdminInvoice extends Page implements HasTable
 
             $debtorAging = $debtorAgings->get($invoiceNo);
 
-            $status = 'Full Payment'; // Default
+            $status = 'Full Payment';
 
             if (!$debtorAging || (float)$debtorAging->outstanding === 0.0) {
                 $status = 'Full Payment';
@@ -270,7 +314,6 @@ class SalesAdminInvoice extends Page implements HasTable
             $allYearStart = Carbon::create($currentYear - 1, 1, 1);
             $allYearEnd = $today;
 
-            // Extract filter values if provided
             $yearFilter = $filters['year'] ?? null;
             $monthFilter = $filters['month'] ?? null;
             $invoiceTypeFilter = $filters['invoice_type'] ?? null;
@@ -281,29 +324,24 @@ class SalesAdminInvoice extends Page implements HasTable
             $data = [];
 
             foreach (static::$salespersonUserIds as $salespersonName => $userId) {
-                // Build query with filters
                 $invoiceQuery = Invoice::query()
                     ->where('salesperson', $salespersonName)
                     ->where('invoice_status', '!=', 'V');
 
-                // Apply year filter
                 if ($yearFilter) {
                     $invoiceQuery->whereYear('invoice_date', $yearFilter);
                 } else {
                     $invoiceQuery->whereBetween('invoice_date', [$allYearStart, $allYearEnd]);
                 }
 
-                // Apply month filter
                 if ($monthFilter) {
                     $invoiceQuery->whereMonth('invoice_date', $monthFilter);
                 }
 
-                // Apply invoice type filter
                 if ($invoiceTypeFilter) {
                     $invoiceQuery->where('invoice_no', 'like', $invoiceTypeFilter . '%');
                 }
 
-                // Apply salesperson filter (for admin view)
                 if ($salespersonFilter && $salespersonFilter !== $salespersonName) {
                     $data[$salespersonName] = [
                         'jaja_amount' => 0,
@@ -312,7 +350,6 @@ class SalesAdminInvoice extends Page implements HasTable
                     continue;
                 }
 
-                // Apply sales admin filter
                 if ($salesAdminFilter !== null) {
                     if ($salesAdminFilter === '') {
                         $invoiceQuery->where(function ($q) {
@@ -326,7 +363,6 @@ class SalesAdminInvoice extends Page implements HasTable
 
                 $invoices = $invoiceQuery->get();
 
-                // Batch load data
                 if ($invoices->isNotEmpty()) {
                     $docKeys = $invoices->pluck('doc_key')->toArray();
                     $invoiceNos = $invoices->pluck('invoice_no')->toArray();
@@ -347,7 +383,6 @@ class SalesAdminInvoice extends Page implements HasTable
 
                     $paymentStatus = $this->getPaymentStatusForInvoice($invoice->invoice_no);
 
-                    // Apply payment status filter
                     if ($paymentStatusFilter && $paymentStatus !== $paymentStatusFilter) {
                         continue;
                     }
@@ -365,37 +400,50 @@ class SalesAdminInvoice extends Page implements HasTable
                     }
                 }
 
-                // Handle credit notes with filters
-                $creditNoteQuery = DB::table('credit_notes')
-                    ->where('salesperson', $salespersonName);
+                // ✅ Handle credit notes with exclusions using credit_note_details
+                $excludedItemCodes = [
+                    'SHIPPING',
+                    'BANKCHG',
+                    'DEPOSIT-MYR',
+                    'F.COMMISSION',
+                    'L.COMMISSION',
+                    'L.ENTITLEMENT',
+                    'MGT FEES',
+                    'PG.COMMISSION'
+                ];
 
-                // Apply date filters to credit notes
+                $creditNoteQuery = DB::table('credit_notes as cn')
+                    ->join('credit_note_details as cnd', 'cn.id', '=', 'cnd.credit_note_id')
+                    ->where('cn.salesperson', $salespersonName)
+                    ->whereNotIn('cnd.item_code', $excludedItemCodes);
+
                 if ($yearFilter && $monthFilter) {
-                    $creditNoteQuery->whereYear('credit_note_date', $yearFilter)
-                                ->whereMonth('credit_note_date', $monthFilter);
+                    $creditNoteQuery->whereYear('cn.credit_note_date', $yearFilter)
+                                ->whereMonth('cn.credit_note_date', $monthFilter);
                 } elseif ($yearFilter) {
-                    $creditNoteQuery->whereYear('credit_note_date', $yearFilter);
+                    $creditNoteQuery->whereYear('cn.credit_note_date', $yearFilter);
                 } elseif ($monthFilter) {
-                    $creditNoteQuery->whereMonth('credit_note_date', $monthFilter);
+                    $creditNoteQuery->whereMonth('cn.credit_note_date', $monthFilter);
                 } else {
-                    $creditNoteQuery->whereBetween('credit_note_date', [$allYearStart, $allYearEnd]);
+                    $creditNoteQuery->whereBetween('cn.credit_note_date', [$allYearStart, $allYearEnd]);
                 }
 
-                // Apply invoice type filter to credit notes
                 if ($invoiceTypeFilter) {
-                    $creditNoteQuery->where('invoice_number', 'like', $invoiceTypeFilter . '%');
+                    $creditNoteQuery->where('cn.invoice_number', 'like', $invoiceTypeFilter . '%');
                 }
 
-                $creditNotesForSalesperson = $creditNoteQuery->get();
+                $creditNotesForSalesperson = $creditNoteQuery
+                    ->select('cn.invoice_number', 'cn.id', DB::raw('SUM(cnd.local_sub_total) as total_credit'))
+                    ->groupBy('cn.invoice_number', 'cn.id')
+                    ->get();
 
                 foreach ($creditNotesForSalesperson as $creditNote) {
                     $invoice = Invoice::where('invoice_no', $creditNote->invoice_number)
-                        ->where('invoice_status', '!=', 'V') // Exclude voided invoices
+                        ->where('invoice_status', '!=', 'V')
                         ->first();
 
                     if (!$invoice) continue;
 
-                    // Apply sales admin filter to credit notes
                     if ($salesAdminFilter !== null) {
                         if ($salesAdminFilter === '') {
                             if (!empty($invoice->sales_admin)) continue;
@@ -405,11 +453,10 @@ class SalesAdminInvoice extends Page implements HasTable
                     }
 
                     $salesAdmin = $this->getSalesAdminFromInvoice($invoice);
-                    $creditAmount = (float)$creditNote->amount;
+                    $creditAmount = (float)$creditNote->total_credit;
 
                     $paymentStatus = $this->getPaymentStatusForInvoice($creditNote->invoice_number);
 
-                    // Apply payment status filter to credit notes
                     if ($paymentStatusFilter && $paymentStatus !== $paymentStatusFilter) {
                         continue;
                     }
@@ -444,7 +491,7 @@ class SalesAdminInvoice extends Page implements HasTable
             ->query(Invoice::query())
             ->defaultPaginationPageOption(50)
             ->heading('Invoices')
-            ->deferLoading() // Defer loading for better performance
+            ->deferLoading()
             ->columns([
                 Tables\Columns\TextColumn::make('salesperson')
                     ->label('SalesPerson')
@@ -482,7 +529,6 @@ class SalesAdminInvoice extends Page implements HasTable
                             ->using(function ($query) {
                                 $groupedResults = $query->get();
 
-                                // Batch load all invoice amounts
                                 $docKeys = $groupedResults->pluck('doc_key')->toArray();
                                 $this->batchLoadInvoiceAmounts($docKeys);
 
@@ -491,13 +537,10 @@ class SalesAdminInvoice extends Page implements HasTable
                                     $grandTotal += $this->getTotalInvoiceAmount($record->doc_key);
                                 }
 
-                                // Now deduct credit notes that were issued in the same date range
                                 $allowedSalespersons = array_keys(static::$salespersonUserIds);
 
-                                // Get the active table filters
                                 $tableFilters = $this->tableFilters ?? [];
 
-                                // Extract filter values safely
                                 $year = null;
                                 $month = null;
                                 $invoiceType = null;
@@ -534,31 +577,35 @@ class SalesAdminInvoice extends Page implements HasTable
                                     $salesAdminFilter = $tableFilters['sales_admin'];
                                 }
 
-                                // Build the credit note query based on credit_note_date
-                                $creditNoteQuery = DB::table('credit_notes')
-                                    ->whereIn('salesperson', $allowedSalespersons);
+                                // ✅ Build credit note query with exclusions
+                                $excludedItemCodes = [
+                                    'SHIPPING', 'BANKCHG',
+                                    'DEPOSIT-MYR', 'F.COMMISSION', 'L.COMMISSION',
+                                    'L.ENTITLEMENT', 'MGT FEES', 'PG.COMMISSION'
+                                ];
 
-                                // Apply year filter if set
+                                $creditNoteQuery = DB::table('credit_notes as cn')
+                                    ->join('credit_note_details as cnd', 'cn.id', '=', 'cnd.credit_note_id')
+                                    ->whereIn('cn.salesperson', $allowedSalespersons)
+                                    ->whereNotIn('cnd.item_code', $excludedItemCodes);
+
                                 if ($year) {
-                                    $creditNoteQuery->whereYear('credit_note_date', $year);
+                                    $creditNoteQuery->whereYear('cn.credit_note_date', $year);
                                 }
 
-                                // Apply month filter if set
                                 if ($month) {
-                                    $creditNoteQuery->whereMonth('credit_note_date', $month);
+                                    $creditNoteQuery->whereMonth('cn.credit_note_date', $month);
                                 }
 
-                                // Apply invoice type filter if set
                                 if ($invoiceType) {
-                                    $creditNoteQuery->where('invoice_number', 'like', $invoiceType . '%');
+                                    $creditNotePrefix = str_replace('EPIN', 'EPCN', str_replace('EHIN', 'ECN', $invoiceType));
+                                    $creditNoteQuery->where('cn.credit_note_number', 'like', $creditNotePrefix . '%');
                                 }
 
-                                // Apply salesperson filter if set
                                 if ($salespersonFilter) {
-                                    $creditNoteQuery->where('salesperson', $salespersonFilter);
+                                    $creditNoteQuery->where('cn.salesperson', $salespersonFilter);
                                 }
 
-                                // Apply sales_admin filter if set
                                 if ($salesAdminFilter !== null) {
                                     $invoiceNosWithSalesAdmin = Invoice::query()
                                         ->whereIn('salesperson', $allowedSalespersons);
@@ -576,21 +623,19 @@ class SalesAdminInvoice extends Page implements HasTable
                                         ->pluck('invoice_no')
                                         ->toArray();
 
-                                    $creditNoteQuery->whereIn('invoice_number', $matchingInvoiceNos);
+                                    $creditNoteQuery->whereIn('cn.invoice_number', $matchingInvoiceNos);
                                 }
 
-                                // For role_id 2, filter by their own salesperson name
                                 if (Auth::check() && Auth::user()->role_id === 2) {
                                     $userId = Auth::id();
                                     $salespersonName = array_search($userId, static::$salespersonUserIds);
                                     if ($salespersonName) {
-                                        $creditNoteQuery->where('salesperson', $salespersonName);
+                                        $creditNoteQuery->where('cn.salesperson', $salespersonName);
                                     }
                                 }
 
-                                $totalCreditNotes = $creditNoteQuery->sum('amount');
+                                $totalCreditNotes = $creditNoteQuery->sum('cnd.local_sub_total');
 
-                                // Deduct credit notes from grand total
                                 $grandTotal -= $totalCreditNotes;
 
                                 return 'RM ' . number_format($grandTotal, 2);
@@ -614,7 +659,7 @@ class SalesAdminInvoice extends Page implements HasTable
                 $allowedSalespersons = array_keys(static::$salespersonUserIds);
 
                 $query->whereIn('salesperson', $allowedSalespersons)
-                    ->where('invoice_status', '!=', 'V') // Exclude voided invoices
+                    ->where('invoice_status', '!=', 'V')
                     ->orderBy('invoice_date', 'desc');
 
                 if (Auth::check() && Auth::user()->role_id === 2) {
@@ -628,7 +673,6 @@ class SalesAdminInvoice extends Page implements HasTable
                     }
                 }
 
-                // Batch load data for current page
                 $results = $query->get();
                 if ($results->isNotEmpty()) {
                     $docKeys = $results->pluck('doc_key')->toArray();
@@ -693,7 +737,6 @@ class SalesAdminInvoice extends Page implements HasTable
                         $targetStatus = $data['value'];
                         $allowedSalespersons = array_keys(static::$salespersonUserIds);
 
-                        // OPTIMIZED: Use raw SQL
                         $excludedItemCodes = [
                             'SHIPPING',
                             'BANKCHG',
