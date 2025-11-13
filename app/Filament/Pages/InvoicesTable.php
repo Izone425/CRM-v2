@@ -283,10 +283,23 @@ class InvoicesTable extends Page implements HasTable
             return;
         }
 
-        $results = DB::table('credit_notes')
-            ->whereIn('invoice_number', $invoiceNos)
-            ->select('invoice_number', DB::raw('SUM(amount) as total_credit'))
-            ->groupBy('invoice_number')
+        $excludedItemCodes = [
+            'SHIPPING',
+            'BANKCHG',
+            'DEPOSIT-MYR',
+            'F.COMMISSION',
+            'L.COMMISSION',
+            'L.ENTITLEMENT',
+            'MGT FEES',
+            'PG.COMMISSION'
+        ];
+
+        $results = DB::table('credit_notes as cn')
+            ->join('credit_note_details as cnd', 'cn.id', '=', 'cnd.credit_note_id')
+            ->whereIn('cn.invoice_number', $invoiceNos)
+            ->whereNotIn('cnd.item_code', $excludedItemCodes)
+            ->select('cn.invoice_number', DB::raw('SUM(cnd.local_sub_total) as total_credit'))
+            ->groupBy('cn.invoice_number')
             ->get();
 
         foreach ($results as $row) {
@@ -302,15 +315,47 @@ class InvoicesTable extends Page implements HasTable
     }
 
     // Helper method to get credit note amount for an invoice
+    protected function getCreditNoteAmountWithExclusions(int $creditNoteId): float
+    {
+        $excludedItemCodes = [
+            'SHIPPING',
+            'BANKCHG',
+            'DEPOSIT-MYR',
+            'F.COMMISSION',
+            'L.COMMISSION',
+            'L.ENTITLEMENT',
+            'MGT FEES',
+            'PG.COMMISSION'
+        ];
+
+        return DB::table('credit_note_details')
+            ->where('credit_note_id', $creditNoteId)
+            ->whereNotIn('item_code', $excludedItemCodes)
+            ->sum('local_sub_total');
+    }
+
     protected function getCreditNoteAmount(string $invoiceNo): float
     {
         if (isset($this->creditNoteCache[$invoiceNo])) {
             return $this->creditNoteCache[$invoiceNo];
         }
 
-        $amount = DB::table('credit_notes')
-            ->where('invoice_number', $invoiceNo)
-            ->sum('amount');
+        $excludedItemCodes = [
+            'SHIPPING',
+            'BANKCHG',
+            'DEPOSIT-MYR',
+            'F.COMMISSION',
+            'L.COMMISSION',
+            'L.ENTITLEMENT',
+            'MGT FEES',
+            'PG.COMMISSION'
+        ];
+
+        $amount = DB::table('credit_notes as cn')
+            ->join('credit_note_details as cnd', 'cn.id', '=', 'cnd.credit_note_id')
+            ->where('cn.invoice_number', $invoiceNo)
+            ->whereNotIn('cnd.item_code', $excludedItemCodes)
+            ->sum('cnd.local_sub_total');
 
         $this->creditNoteCache[$invoiceNo] = (float) $amount;
 
@@ -366,26 +411,27 @@ class InvoicesTable extends Page implements HasTable
             HAVING total_amount > 0
         ", $params);
 
-        // Get credit note amounts based on credit_note_date
-        $creditNoteParams = array_merge($allowedSalespersons, [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')]);
+        // ✅ Get credit note amounts based on credit_note_date (WITH EXCLUSIONS)
+        $creditNoteParams = array_merge($excludedItemCodes, $allowedSalespersons, [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')]);
 
         $creditNoteTypeCondition = '';
         if ($invoicePrefix) {
-            // Map invoice prefix to credit note prefix
             $creditNotePrefix = str_replace('EPIN', 'EPCN', str_replace('EHIN', 'ECN', $invoicePrefix));
-            $creditNoteTypeCondition = " AND credit_note_number LIKE ?";
+            $creditNoteTypeCondition = " AND cn.credit_note_number LIKE ?";
             $creditNoteParams[] = $creditNotePrefix . '%';
         }
 
         $creditNotes = DB::select("
             SELECT
-                salesperson,
-                SUM(amount) as total_credit
-            FROM credit_notes
-            WHERE salesperson IN ($salespersonPlaceholders)
-                AND credit_note_date BETWEEN ? AND ?
+                cn.salesperson,
+                SUM(cnd.local_sub_total) as total_credit
+            FROM credit_notes cn
+            JOIN credit_note_details cnd ON cn.id = cnd.credit_note_id
+            WHERE cnd.item_code NOT IN ($placeholders)
+                AND cn.salesperson IN ($salespersonPlaceholders)
+                AND cn.credit_note_date BETWEEN ? AND ?
                 $creditNoteTypeCondition
-            GROUP BY salesperson
+            GROUP BY cn.salesperson
         ", $creditNoteParams);
 
         // Create a map of credit notes by salesperson
@@ -526,9 +572,16 @@ class InvoicesTable extends Page implements HasTable
                                     $salespersonFilter = $tableFilters['salesperson'];
                                 }
 
-                                // Build the credit note query based on credit_note_date
-                                $creditNoteQuery = DB::table('credit_notes')
-                                    ->whereIn('salesperson', $allowedSalespersons);
+                                $excludedItemCodes = [
+                                    'SHIPPING', 'BANKCHG',
+                                    'DEPOSIT-MYR', 'F.COMMISSION', 'L.COMMISSION',
+                                    'L.ENTITLEMENT', 'MGT FEES', 'PG.COMMISSION'
+                                ];
+
+                                $creditNoteQuery = DB::table('credit_notes as cn')
+                                    ->join('credit_note_details as cnd', 'cn.id', '=', 'cnd.credit_note_id')
+                                    ->whereIn('cn.salesperson', $allowedSalespersons)
+                                    ->whereNotIn('cnd.item_code', $excludedItemCodes);
 
                                 // Apply year filter if set
                                 if ($year) {
@@ -560,7 +613,7 @@ class InvoicesTable extends Page implements HasTable
                                     }
                                 }
 
-                                $totalCreditNotes = $creditNoteQuery->sum('amount');
+                                $totalCreditNotes = $creditNoteQuery->sum('cnd.local_sub_total');
 
                                 // Deduct credit notes from grand total
                                 $grandTotal -= $totalCreditNotes;

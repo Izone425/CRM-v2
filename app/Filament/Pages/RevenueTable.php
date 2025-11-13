@@ -28,9 +28,6 @@ class RevenueTable extends Page
     // Excluded item codes for invoice calculations
     protected array $excludedItemCodes = [
         'SHIPPING',
-        'Not',
-        'Rem Code',
-        'In',
         'BANKCHG',
         'DEPOSIT-MYR',
         'F.COMMISSION',
@@ -116,21 +113,24 @@ class RevenueTable extends Page
             GROUP BY UPPER(i.salesperson), MONTH(i.invoice_date)
         ", $invoiceParams);
 
-        // Get credit note revenue
+        // ✅ Get credit note revenue using credit_note_details with exclusions
         $creditNoteParams = array_merge(
+            $this->excludedItemCodes,
             [$startOfYear->format('Y-m-d'), $endOfYear->format('Y-m-d')],
             $this->excludedSalespeople
         );
 
         $creditNoteRevenue = DB::select("
             SELECT
-                UPPER(salesperson) as salesperson,
-                MONTH(credit_note_date) as month,
-                SUM(amount) as total_amount
-            FROM credit_notes
-            WHERE credit_note_date BETWEEN ? AND ?
-                AND (salesperson IS NULL OR UPPER(salesperson) NOT IN ($excludedPlaceholders))
-            GROUP BY UPPER(salesperson), MONTH(credit_note_date)
+                UPPER(cn.salesperson) as salesperson,
+                MONTH(cn.credit_note_date) as month,
+                COALESCE(SUM(cnd.local_sub_total), 0) as total_amount
+            FROM credit_notes cn
+            INNER JOIN credit_note_details cnd ON cn.id = cnd.credit_note_id
+            WHERE cnd.item_code NOT IN ($placeholders)
+                AND cn.credit_note_date BETWEEN ? AND ?
+                AND (cn.salesperson IS NULL OR UPPER(cn.salesperson) NOT IN ($excludedPlaceholders))
+            GROUP BY UPPER(cn.salesperson), MONTH(cn.credit_note_date)
         ", $creditNoteParams);
 
         // Process invoices
@@ -150,7 +150,7 @@ class RevenueTable extends Page
             }
         }
 
-        // Process credit notes
+        // ✅ Process credit notes (now using credit_note_details)
         foreach ($creditNoteRevenue as $creditNote) {
             $month = (int) $creditNote->month;
             $salesperson = $creditNote->salesperson;
