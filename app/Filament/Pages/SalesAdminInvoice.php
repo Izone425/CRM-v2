@@ -695,6 +695,41 @@ class SalesAdminInvoice extends Page implements HasTable
                                 ->select('sales_admin')
                                 ->distinct()
                                 ->whereIn('salesperson', $allowedSalespersons)
+                                ->whereNotNull('sales_admin')
+                                ->where('sales_admin', '!=', '')
+                                ->orderBy('sales_admin')
+                                ->pluck('sales_admin', 'sales_admin')
+                                ->merge(['unassigned' => 'Unassigned']) // Add Unassigned option
+                                ->toArray();
+                        } catch (\Exception $e) {
+                            return [];
+                        }
+                    })
+                    ->query(function (Builder $query, array $data): Builder {
+                        if (empty($data['value'])) {
+                            return $query;
+                        }
+
+                        if ($data['value'] === 'unassigned') {
+                            return $query->where(function ($q) {
+                                $q->whereNull('sales_admin')
+                                ->orWhere('sales_admin', '');
+                            });
+                        }
+
+                        return $query->where('sales_admin', $data['value']);
+                    }),
+
+                SelectFilter::make('sales_admin')
+                    ->label('Sales Admin')
+                    ->options(function () {
+                        $allowedSalespersons = array_keys(static::$salespersonUserIds);
+
+                        try {
+                            return Invoice::query()
+                                ->select('sales_admin')
+                                ->distinct()
+                                ->whereIn('salesperson', $allowedSalespersons)
                                 ->orderBy('sales_admin')
                                 ->get()
                                 ->mapWithKeys(function ($item) {
