@@ -284,6 +284,63 @@ class HardwareV2PendingPaymentTable extends Component implements HasForms, HasTa
                         default => ucfirst($state ?? 'Unknown')
                     }),
 
+                TextColumn::make('invoice_count')
+                    ->label('Invoices')
+                    ->toggleable(isToggledHiddenByDefault: true)
+                    ->getStateUsing(function (HardwareHandoverV2 $record) {
+                        $invoiceData = $record->invoice_data
+                            ? (is_string($record->invoice_data)
+                                ? json_decode($record->invoice_data, true)
+                                : $record->invoice_data)
+                            : [];
+
+                        if (!is_array($invoiceData) || count($invoiceData) === 0) {
+                            return '-';
+                        }
+
+                        $epinCount = 0;
+                        $ehinCount = 0;
+
+                        foreach ($invoiceData as $invoice) {
+                            $invoiceNo = $invoice['invoice_no'] ?? '';
+                            if (stripos($invoiceNo, 'EPIN') !== false) {
+                                $epinCount++;
+                            } elseif (stripos($invoiceNo, 'EHIN') !== false) {
+                                $ehinCount++;
+                            }
+                        }
+
+                        $parts = [];
+                        if ($epinCount > 0) {
+                            $parts[] = "EPIN: {$epinCount}";
+                        }
+                        if ($ehinCount > 0) {
+                            $parts[] = "EHIN: {$ehinCount}";
+                        }
+
+                        return !empty($parts) ? implode(' | ', $parts) : '-';
+                    })
+                    ->html()
+                    ->action(
+                        Action::make('viewInvoiceDetails')
+                            ->modalHeading('Invoice Details')
+                            ->modalWidth('2xl')
+                            ->modalSubmitAction(false)
+                            ->modalCancelAction(false)
+                            ->modalContent(function (HardwareHandoverV2 $record): View {
+                                $invoiceData = $record->invoice_data
+                                    ? (is_string($record->invoice_data)
+                                        ? json_decode($record->invoice_data, true)
+                                        : $record->invoice_data)
+                                    : [];
+
+                                return view('components.hardware-invoice-details', [
+                                    'invoices' => $invoiceData,
+                                    'record' => $record
+                                ]);
+                            })
+                    ),
+
                 TextColumn::make('status')
                     ->label('Status')
                     ->formatStateUsing(fn (string $state): HtmlString => match ($state) {

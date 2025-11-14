@@ -1045,14 +1045,14 @@ class SoftwareHandoverNew extends Component implements HasForms, HasTable
                                 'status' => 'Completed',
                                 'completed_at' => now(),
                                 'implementer' => $implementerName,
-                                'ta' => $this->shouldModuleBeChecked($record, ['TCL_TA USER-NEW', 'TCL_TA USER-ADDON', 'TCL_TA USER-ADDON(R)', 'TCL_TA USER-RENEWAL', 'TCL_FULL USER-NEW']),
-                                'tl' => $this->shouldModuleBeChecked($record, ['TCL_LEAVE USER-NEW', 'TCL_LEAVE USER-ADDON', 'TCL_LEAVE USER-ADDON(R)', 'TCL_LEAVE USER-RENEWAL', 'TCL_FULL USER-NEW']),
-                                'tc' => $this->shouldModuleBeChecked($record, ['TCL_CLAIM USER-NEW', 'TCL_CLAIM USER-ADDON', 'TCL_CLAIM USER-ADDON(R)', 'TCL_CLAIM USER-RENEWAL', 'TCL_FULL USER-NEW']),
-                                'tp' => $this->shouldModuleBeChecked($record, ['TCL_PAYROLL USER-NEW', 'TCL_PAYROLL USER-ADDON', 'TCL_PAYROLL USER-ADDON(R)', 'TCL_PAYROLL USER-RENEWAL', 'TCL_FULL USER-NEW']),
-                                'tapp' => $this->shouldModuleBeChecked($record, ['TCL_APPRAISAL USER-NEW']),
-                                'thire' => $this->shouldModuleBeChecked($record, ['TCL_HIRE-NEW', 'TCL_HIRE-RENEWAL']),
-                                'tacc' => $this->shouldModuleBeChecked($record, ['TCL_ACCESS-NEW', 'TCL_ACCESS-RENEWAL']),
-                                'tpbi' => $this->shouldModuleBeChecked($record, ['TCL_POWER BI']),
+                                'ta' => $this->shouldModuleBeChecked($record, [31, 118, 114, 108, 60]), // TCL_TA USER-NEW, TCL_TA USER-ADDON, TCL_TA USER-ADDON(R), TCL_TA USER-RENEWAL
+                                'tl' => $this->shouldModuleBeChecked($record, [38, 119, 115, 109, 60]), // TCL_LEAVE USER-NEW, TCL_LEAVE USER-ADDON, TCL_LEAVE USER-ADDON(R), TCL_LEAVE USER-RENEWAL
+                                'tc' => $this->shouldModuleBeChecked($record, [39, 120, 116, 110, 60]), // TCL_CLAIM USER-NEW, TCL_CLAIM USER-ADDON, TCL_CLAIM USER-ADDON(R), TCL_CLAIM USER-RENEWAL
+                                'tp' => $this->shouldModuleBeChecked($record, [40, 121, 117, 111, 60]), // TCL_PAYROLL USER-NEW, TCL_PAYROLL USER-ADDON, TCL_PAYROLL USER-ADDON(R), TCL_PAYROLL USER-RENEWAL
+                                'tapp' => $this->shouldModuleBeChecked($record, [59]), // TCL_APPRAISAL USER-NEW
+                                'thire' => $this->shouldModuleBeChecked($record, [41, 112]), // TCL_HIRE-NEW, TCL_HIRE-RENEWAL
+                                'tacc' => $this->shouldModuleBeChecked($record, [93, 113]), // TCL_ACCESS-NEW, TCL_ACCESS-RENEWAL
+                                'tpbi' => $this->shouldModuleBeChecked($record, [42]), // TCL_POWER BI
                                 'follow_up_date' => now(),
                                 'follow_up_counter' => true,
                             ];
@@ -1232,7 +1232,7 @@ class SoftwareHandoverNew extends Component implements HasForms, HasTable
             ]);
     }
 
-    protected function shouldModuleBeChecked(SoftwareHandover $record, array $productCodes): bool
+    protected function shouldModuleBeChecked(SoftwareHandover $record, array $productIds): bool
     {
         // Get all PI IDs from proforma_invoice_product and proforma_invoice_hrdf
         $allPiIds = [];
@@ -1259,32 +1259,29 @@ class SoftwareHandoverNew extends Component implements HasForms, HasTable
             return false;
         }
 
-        // Get quotation details for these PIs
-        $quotations = \App\Models\Quotation::whereIn('id', $allPiIds)->get();
+        // ✅ Check if any quotation details have these product IDs
+        $hasProduct = \App\Models\QuotationDetail::whereIn('quotation_id', $allPiIds)
+            ->whereIn('product_id', $productIds)
+            ->exists();
 
-        foreach ($quotations as $quotation) {
-            $details = \App\Models\QuotationDetail::where('quotation_id', $quotation->id)
-                ->with('product')
-                ->get();
+        if ($hasProduct) {
+            // Get the matched product for logging
+            $matchedDetail = \App\Models\QuotationDetail::whereIn('quotation_id', $allPiIds)
+                ->whereIn('product_id', $productIds)
+                ->with('product', 'quotation')
+                ->first();
 
-            foreach ($details as $detail) {
-                if (!$detail->product) {
-                    continue;
-                }
-
-                // Check if this product code matches any of the module's product codes
-                if (in_array($detail->product->code, $productCodes)) {
-                    \Illuminate\Support\Facades\Log::info("Module auto-checked based on quotation", [
-                        'product_code' => $detail->product->code,
-                        'pi_reference' => $quotation->pi_reference_no,
-                        'handover_id' => $record->id
-                    ]);
-                    return true;
-                }
+            if ($matchedDetail) {
+                \Illuminate\Support\Facades\Log::info("Module auto-checked based on quotation", [
+                    'product_code' => $matchedDetail->product->code ?? 'Unknown',
+                    'product_id' => $matchedDetail->product_id,
+                    'pi_reference' => $matchedDetail->quotation->pi_reference_no ?? 'Unknown',
+                    'handover_id' => $record->id
+                ]);
             }
         }
 
-        return false;
+        return $hasProduct;
     }
 
     public function render()

@@ -11,6 +11,7 @@ use App\Enums\QuotationStatusEnum;
 use Carbon\Carbon;
 use Filament\Forms\Components\Actions\Action;
 use Filament\Forms\Components\Card;
+use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Fieldset;
 use Filament\Forms\Components\Grid;
@@ -180,142 +181,138 @@ class ARFollowUpTabs
                                                 ->required(),
                                         ]),
 
-                                    Section::make('Quotation Attachments')
+                                    Grid::make(2)
                                         ->schema([
-                                            Grid::make(2)
-                                                ->schema([
-                                                    Select::make('quotation_product')
-                                                        ->label('Product Quotations')
-                                                        ->options(function ($record) {
-                                                            if (!$record) {
-                                                                return [];
-                                                            }
+                                            Select::make('quotation_product')
+                                                ->label('Product Quotations')
+                                                ->options(function ($record) {
+                                                    if (!$record) {
+                                                        return [];
+                                                    }
 
-                                                            return Quotation::where('lead_id', $record->id)
-                                                                ->where('quotation_type', 'product')
-                                                                ->where('sales_type', 'RENEWAL SALES')
-                                                                ->get()
-                                                                ->filter(function ($quotation) {
-                                                                    // Only include quotations that have existing PDF files
-                                                                    return self::checkQuotationPDFExists($quotation);
-                                                                })
-                                                                ->mapWithKeys(function ($quotation) {
-                                                                    $label = $quotation->quotation_reference_no ?? 'No Reference - ID: ' . $quotation->id;
-                                                                    return [$quotation->id => $label];
-                                                                })
-                                                                ->toArray();
+                                                    return Quotation::where('lead_id', $record->id)
+                                                        ->where('quotation_type', 'product')
+                                                        ->where('sales_type', 'RENEWAL SALES')
+                                                        ->get()
+                                                        ->filter(function ($quotation) {
+                                                            // Only include quotations that have existing PDF files
+                                                            return self::checkQuotationPDFExists($quotation);
                                                         })
-                                                        ->multiple()
-                                                        ->searchable()
-                                                        ->preload()
-                                                        ->helperText('Select product quotations to attach to the email (Only quotations with existing PDFs are shown)'),
-
-                                                    Select::make('quotation_hrdf')
-                                                        ->label('HRDF Quotations')
-                                                        ->options(function ($record) {
-                                                            if (!$record) {
-                                                                return [];
-                                                            }
-
-                                                            return Quotation::where('lead_id', $record->id)
-                                                                ->where('quotation_type', 'hrdf')
-                                                                ->where('sales_type', 'RENEWAL SALES')
-                                                                ->get()
-                                                                ->filter(function ($quotation) {
-                                                                    // Only include quotations that have existing PDF files
-                                                                    return self::checkQuotationPDFExists($quotation);
-                                                                })
-                                                                ->mapWithKeys(function ($quotation) {
-                                                                    $label = $quotation->quotation_reference_no ?? 'No Reference - ID: ' . $quotation->id;
-                                                                    return [$quotation->id => $label];
-                                                                })
-                                                                ->toArray();
+                                                        ->mapWithKeys(function ($quotation) {
+                                                            $label = $quotation->quotation_reference_no ?? 'No Reference - ID: ' . $quotation->id;
+                                                            return [$quotation->id => $label];
                                                         })
-                                                        ->multiple()
-                                                        ->searchable()
-                                                        ->preload()
-                                                        ->helperText('Select HRDF quotations to attach to the email (Only quotations with existing PDFs are shown)'),
-                                                ])
-                                        ])
-                                        ->visible(fn ($get) => $get('send_email'))
-                                        ->collapsible()
-                                        ->collapsed(),
+                                                        ->toArray();
+                                                })
+                                                ->visible(fn ($get) => $get('send_email'))
+                                                ->multiple()
+                                                ->searchable()
+                                                ->preload(),
+
+                                            Select::make('quotation_hrdf')
+                                                ->label('HRDF Quotations')
+                                                ->options(function ($record) {
+                                                    if (!$record) {
+                                                        return [];
+                                                    }
+
+                                                    return Quotation::where('lead_id', $record->id)
+                                                        ->where('quotation_type', 'hrdf')
+                                                        ->where('sales_type', 'RENEWAL SALES')
+                                                        ->get()
+                                                        ->filter(function ($quotation) {
+                                                            // Only include quotations that have existing PDF files
+                                                            return self::checkQuotationPDFExists($quotation);
+                                                        })
+                                                        ->mapWithKeys(function ($quotation) {
+                                                            $label = $quotation->quotation_reference_no ?? 'No Reference - ID: ' . $quotation->id;
+                                                            return [$quotation->id => $label];
+                                                        })
+                                                        ->toArray();
+                                                })
+                                                ->visible(fn ($get) => $get('send_email'))
+                                                ->multiple()
+                                                ->searchable()
+                                                ->preload(),
+                                        ]),
 
                                     Fieldset::make('Email Details')
                                         ->schema([
-                                            TextInput::make('required_attendees')
-                                                ->label('Required Attendees')
-                                                ->default(function (?Lead $record = null) {
-                                                    // Initialize emails array to store all collected emails
-                                                    $emails = [];
+                                            Grid::make(3)
+                                                ->schema([
+                                                    TextInput::make('required_attendees')
+                                                        ->label('Required Attendees')
+                                                        ->default(function (?Lead $record = null) {
+                                                            // Initialize emails array to store all collected emails
+                                                            $emails = [];
 
-                                                    if ($record) {
-                                                        $emails[] = $record->email;
+                                                            if ($record) {
+                                                                $emails[] = $record->email;
 
-                                                        // 1. Get email from companyDetail->email (primary company email)
-                                                        if ($record->companyDetail && ! empty($record->companyDetail->email)) {
-                                                            $emails[] = $record->companyDetail->email;
-                                                        }
+                                                                // 1. Get email from companyDetail->email (primary company email)
+                                                                if ($record->companyDetail && ! empty($record->companyDetail->email)) {
+                                                                    $emails[] = $record->companyDetail->email;
+                                                                }
 
-                                                        // 2. Get emails from company_detail->additional_pic
-                                                        if ($record->companyDetail && ! empty($record->companyDetail->additional_pic)) {
-                                                            try {
-                                                                $additionalPics = json_decode($record->companyDetail->additional_pic, true);
+                                                                // 2. Get emails from company_detail->additional_pic
+                                                                if ($record->companyDetail && ! empty($record->companyDetail->additional_pic)) {
+                                                                    try {
+                                                                        $additionalPics = json_decode($record->companyDetail->additional_pic, true);
 
-                                                                if (is_array($additionalPics)) {
-                                                                    foreach ($additionalPics as $pic) {
-                                                                        // Only include contacts with "Available" status
-                                                                        if (
-                                                                            ! empty($pic['email']) &&
-                                                                            isset($pic['status']) &&
-                                                                            $pic['status'] === 'Available'
-                                                                        ) {
-                                                                            $emails[] = $pic['email'];
+                                                                        if (is_array($additionalPics)) {
+                                                                            foreach ($additionalPics as $pic) {
+                                                                                // Only include contacts with "Available" status
+                                                                                if (
+                                                                                    ! empty($pic['email']) &&
+                                                                                    isset($pic['status']) &&
+                                                                                    $pic['status'] === 'Available'
+                                                                                ) {
+                                                                                    $emails[] = $pic['email'];
+                                                                                }
+                                                                            }
                                                                         }
+                                                                    } catch (\Exception $e) {
+                                                                        \Illuminate\Support\Facades\Log::error('Error parsing additional_pic JSON: '.$e->getMessage());
                                                                     }
                                                                 }
-                                                            } catch (\Exception $e) {
-                                                                \Illuminate\Support\Facades\Log::error('Error parsing additional_pic JSON: '.$e->getMessage());
                                                             }
-                                                        }
-                                                    }
 
-                                                    // Remove duplicates and return as semicolon-separated string
-                                                    $uniqueEmails = array_unique($emails);
+                                                            // Remove duplicates and return as semicolon-separated string
+                                                            $uniqueEmails = array_unique($emails);
 
-                                                    return ! empty($uniqueEmails) ? implode(';', $uniqueEmails) : null;
-                                                })
-                                                ->helperText('Separate each email with a semicolon (e.g., email1;email2;email3).'),
+                                                            return ! empty($uniqueEmails) ? implode(';', $uniqueEmails) : null;
+                                                        }),
 
-                                            Select::make('email_template')
-                                                ->label('Email Template')
-                                                ->options(function () {
-                                                    return EmailTemplate::whereIn('type', ['admin_renewal', 'admin_renewal_v1', 'admin_renewal_v2'])
-                                                        ->pluck('name', 'id')
-                                                        ->toArray();
-                                                })
-                                                ->searchable()
-                                                ->preload()
-                                                ->reactive()
-                                                ->afterStateUpdated(function ($state, callable $set) {
-                                                    if ($state) {
-                                                        $template = EmailTemplate::find($state);
-                                                        if ($template) {
-                                                            $set('email_subject', $template->subject);
-                                                            $set('email_content', $template->content);
-                                                        }
-                                                    }
-                                                }),
+                                                    Select::make('email_template')
+                                                        ->label('Email Template')
+                                                        ->options(function () {
+                                                            return EmailTemplate::whereIn('type', ['admin_renewal', 'admin_renewal_v1', 'admin_renewal_v2'])
+                                                                ->pluck('name', 'id')
+                                                                ->toArray();
+                                                        })
+                                                        ->searchable()
+                                                        ->preload()
+                                                        ->reactive()
+                                                        ->afterStateUpdated(function ($state, callable $set) {
+                                                            if ($state) {
+                                                                $template = EmailTemplate::find($state);
+                                                                if ($template) {
+                                                                    $set('email_subject', $template->subject);
+                                                                    $set('email_content', $template->content);
+                                                                }
+                                                            }
+                                                        }),
 
-                                            TextInput::make('email_subject')
-                                                ->label('Email Subject')
-                                                ->required(),
-
+                                                    TextInput::make('email_subject')
+                                                        ->label('Email Subject')
+                                                        ->required(),
+                                            ]),
                                             RichEditor::make('email_content')
                                                 ->label('Email Content')
                                                 ->disableToolbarButtons([
                                                     'attachFiles',
                                                 ])
+                                                ->columnSpanFull()
                                                 ->required(),
                                         ])
                                         ->visible(fn ($get) => $get('send_email')),
@@ -358,11 +355,36 @@ class ARFollowUpTabs
                                             'strike',
                                             'undo',
                                         ])
-                                        ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                                        ->extraInputAttributes([
+                                            'style' => 'text-transform: uppercase; min-height: 80px;'
+                                        ])
+                                        ->extraAttributes([
+                                            'style' => 'min-height: 100px;'
+                                        ])
                                         ->afterStateHydrated(fn ($state) => Str::upper($state))
                                         ->afterStateUpdated(fn ($state) => Str::upper($state))
                                         ->placeholder('Add your follow-up details here...')
                                         ->required(),
+
+                                    Checkbox::make('mark_as_completed')
+                                        ->label('Mark Follow Up as Completed')
+                                        ->helperText('Check this box to mark the follow up as completed and change the renewal progress to "Pending Confirmation".')
+                                        ->inline()
+                                        ->default(false)
+                                        ->visible(function ($record) {
+                                            $renewal = Renewal::where('lead_id', $record->id)->first();
+
+                                            return $renewal &&
+                                                $renewal->admin_renewal !== null &&
+                                                $renewal->renewal_progress === 'new';
+                                        })
+                                        ->reactive()
+                                        ->afterStateUpdated(function ($state, callable $set, callable $get, $record) {
+                                            if ($state === true) {
+                                                // Show confirmation dialog by setting a flag
+                                                $set('show_completion_confirmation', true);
+                                            }
+                                        }),
                                 ])
                                 ->modalHeading('Add New Follow-up')
                                 ->action(function (Lead $record, array $data) {
@@ -394,6 +416,51 @@ class ARFollowUpTabs
                                         'follow_up_date' => $data['follow_up_date'],
                                         'follow_up_counter' => true,
                                     ]);
+
+                                    if (isset($data['mark_as_completed']) && $data['mark_as_completed'] === true) {
+                                        try {
+                                            // Get current progress_history or initialize as empty array
+                                            $progressHistory = $renewal->progress_history
+                                                ? json_decode($renewal->progress_history, true)
+                                                : [];
+
+                                            // Add new log entry
+                                            $newLogEntry = [
+                                                'timestamp' => now(),
+                                                'action' => 'follow_up_completed',
+                                                'previous_status' => $renewal->renewal_progress,
+                                                'new_status' => 'pending_confirmation',
+                                                'performed_by' => auth()->user()->name,
+                                                'performed_by_id' => auth()->user()->id,
+                                                'description' => 'Follow up marked as completed - Status changed to Pending Confirmation',
+                                                'company_name' => $record->companyDetail->company_name ?? '',
+                                                'lead_id' => $record->id,
+                                            ];
+
+                                            // Add the new entry to progress history
+                                            $progressHistory[] = $newLogEntry;
+
+                                            // Update renewal record with pending_confirmation status
+                                            $renewal->update([
+                                                'renewal_progress' => 'pending_confirmation',
+                                                'progress_history' => json_encode($progressHistory),
+                                            ]);
+
+                                            Notification::make()
+                                                ->success()
+                                                ->title('Follow Up Completed')
+                                                ->body("Follow up has been marked as completed. Renewal progress updated to 'Pending Confirmation'.")
+                                                ->send();
+                                        } catch (\Exception $e) {
+                                            Log::error('Error updating follow up status: '.$e->getMessage());
+
+                                            Notification::make()
+                                                ->danger()
+                                                ->title('Error')
+                                                ->body('There was an error updating the follow up status. Please try again.')
+                                                ->send();
+                                        }
+                                    }
 
                                     if (isset($data['send_email']) && $data['send_email']) {
                                         try {

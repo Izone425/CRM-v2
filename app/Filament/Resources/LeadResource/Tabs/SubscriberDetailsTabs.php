@@ -247,8 +247,7 @@ class SubscriberDetailsTabs
                                                         } catch (\Exception $e) {
                                                             return $value;
                                                         }
-                                                    })
-                                                    ->required(),
+                                                    }),
                                             ]),
                                     ]),
 
