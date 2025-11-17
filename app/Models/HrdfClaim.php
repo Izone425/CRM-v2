@@ -27,6 +27,9 @@ class HrdfClaim extends Model
         'approved_date',
         'email_processed_at',
         'hrdf_mail_id',
+        'submitted_at',
+        'approved_at',
+        'received_at'
     ];
 
     protected $casts = [

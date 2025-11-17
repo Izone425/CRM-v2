@@ -326,6 +326,8 @@
     .software-handover-rejected .stat-count { color: #ef4444; }
     .hardware-handover-rejected { border-left: 4px solid #ef4444; }
     .hardware-handover-rejected .stat-count { color: #ef4444; }
+    .hrdf-handover-rejected { border-left: 4px solid #f97316; }
+    .hrdf-handover-rejected .stat-count { color: #f97316; }
 
     /* Selected state for hardware rejected */
     .stat-box.selected.hardware-handover-rejected {
@@ -495,6 +497,10 @@
 
     $softwareHandoverV2Rejected = app(\App\Livewire\SalespersonDashboard\SoftwareHandoverV2Rejected::class)
         ->getPendingKickOffs()
+        ->count();
+
+    $hrdfRejected = app(\App\Livewire\AdminHRDFDashboard\HrdfRejectedTable::class)
+        ->getNewHrdfHandovers()
         ->count();
 
     // All Debtors - Getting real counts now
@@ -796,6 +802,17 @@
                         <div class="stat-count">{{ $hardwareHandoverRejected }}</div>
                     </div>
                 </div>
+
+                <div class="stat-box hrdf-handover-rejected"
+                        :class="{'selected': selectedStat === 'hrdf-handover-rejected'}"
+                        @click="setSelectedStat('hrdf-handover-rejected')">
+                    <div class="stat-info">
+                        <div class="stat-label">HRDF Rejected</div>
+                    </div>
+                    <div class="stat-count">
+                        <div class="stat-count">{{ $hrdfRejected }}</div>
+                    </div>
+                </div>
             </div>
 
             <!-- OTHERS -->
@@ -902,12 +919,20 @@
                 <div x-show="selectedStat === 'sales-completed-kickoff'" x-transition>
                     <livewire:salesperson-dashboard.sales-completed-kick-off />
                 </div>
+
                 <div x-show="selectedStat === 'software-handover-rejected'" x-transition>
                     <livewire:salesperson-dashboard.software-handover-rejected />
                 </div>
                 <div x-show="selectedStat === 'software-handover-v2-rejected'" x-transition>
                     <livewire:salesperson-dashboard.software-handover-v2-rejected />
                 </div>
+                <div x-show="selectedStat === 'hrdf-handover-rejected'" x-transition>
+                    <livewire:admin-h-r-d-f-dashboard.hrdf-rejected-table />
+                </div>
+                <div x-show="selectedStat === 'hardware-handover-rejected'" x-transition>
+                    <livewire:salesperson-dashboard.hardware-handover-rejected :currentDashboard="'Salesperson'" />
+                </div>
+
                 <!-- Hardware Handover -->
                 <div x-show="selectedStat === 'hardware-handover-pending'" x-transition>
                     <div x-show="selectedStat === 'hardware-handover-pending'" x-transition>
@@ -916,9 +941,6 @@
                 </div>
                 <div x-show="selectedStat === 'hardware-handover-completed'" x-transition>
                     <livewire:salesperson-dashboard.hardware-handover-completed />
-                </div>
-                <div x-show="selectedStat === 'hardware-handover-rejected'" x-transition>
-                    <livewire:salesperson-dashboard.hardware-handover-rejected :currentDashboard="'Salesperson'" />
                 </div>
 
                 <!-- No Respond Leads -->

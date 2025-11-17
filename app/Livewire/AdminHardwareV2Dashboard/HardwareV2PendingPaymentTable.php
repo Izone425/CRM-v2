@@ -121,7 +121,7 @@ class HardwareV2PendingPaymentTable extends Component implements HasForms, HasTa
             ->defaultSort('created_at', 'desc')
             ->emptyState(fn () => view('components.empty-state-question'))
             ->defaultPaginationPageOption(5)
-            ->paginated([5])
+            ->paginated([5,'all'])
             ->headerActions([
                 Action::make('processFullPayment')
                     ->label('Process Data')

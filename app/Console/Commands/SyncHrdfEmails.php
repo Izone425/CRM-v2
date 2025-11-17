@@ -293,7 +293,8 @@ class SyncHrdfEmails extends Command
                 // Update the related HRDF claim status through the relationship
                 if ($hrdfHandover->hrdfClaim) {
                     $hrdfHandover->hrdfClaim->update([
-                        'claim_status' => 'APPROVED'
+                        'claim_status' => 'APPROVED',
+                        'approved_at' => now()
                     ]);
 
                     Log::info('HRDF Claim Status Updated to APPROVED', [

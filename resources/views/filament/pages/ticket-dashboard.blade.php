@@ -920,7 +920,8 @@
                                             </div>
                                         </div>
                                         <div style="display: flex; gap: 8px;">
-                                            <a href="{{ asset('storage/' . $selectedTicket->version_screenshot) }}" target="_blank"
+                                            <a href="{{ \Illuminate\Support\Facades\Storage::disk('s3')->temporaryUrl($selectedTicket->version_screenshot, now()->addMinutes(60)) }}"
+                                            target="_blank"
                                             style="padding: 6px 12px; background: white; border: 1px solid #E5E7EB; border-radius: 6px; cursor: pointer; text-decoration: none; color: #374151; display: flex; align-items: center; gap: 4px;">
                                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                                     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
@@ -928,20 +929,12 @@
                                                 </svg>
                                                 View
                                             </a>
-                                            <a href="{{ asset('storage/' . $selectedTicket->version_screenshot) }}" download
-                                            style="padding: 6px 12px; background: white; border: 1px solid #E5E7EB; border-radius: 6px; cursor: pointer; text-decoration: none; color: #374151; display: flex; align-items: center; gap: 4px;">
-                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                                    <polyline points="7 10 12 15 17 10"></polyline>
-                                                    <line x1="12" y1="15" x2="12" y2="3"></line>
-                                                </svg>
-                                                Download
-                                            </a>
                                         </div>
                                     </div>
 
                                     <div style="border-top: 1px solid #E5E7EB; margin: 24px 0;"></div>
                                 @endif
+
                                 @if($selectedTicket->attachments->count() > 0)
                                     <h3 style="font-size: 14px; font-weight: 600; color: #111827; margin-bottom: 16px;">Current Attachments</h3>
 
@@ -950,28 +943,20 @@
                                             <div style="flex: 1;">
                                                 <div style="font-weight: 600; font-size: 14px; color: #111827;">{{ $attachment->original_filename }}</div>
                                                 <div style="font-size: 12px; color: #6B7280; margin-top: 4px;">
-                                                    {{ $attachment->file_size_formatted }} • {{ $attachment->created_at->format('d M Y, H:i A') }}
+                                                    {{ number_format($attachment->file_size / 1024, 2) }} KB • {{ $attachment->created_at->format('d M Y, H:i A') }}
                                                     <br>
                                                     <span style="font-style: italic;">by {{ $attachment->uploader->name ?? 'Unknown' }}</span>
                                                 </div>
                                             </div>
                                             <div style="display: flex; gap: 8px;">
-                                                <a href="{{ asset($attachment->file_path) }}" target="_blank"
+                                                <a href="{{ \Illuminate\Support\Facades\Storage::disk('s3')->temporaryUrl($attachment->file_path, now()->addMinutes(60)) }}"
+                                                target="_blank"
                                                 style="padding: 6px 12px; background: white; border: 1px solid #E5E7EB; border-radius: 6px; cursor: pointer; text-decoration: none; color: #374151; display: flex; align-items: center; gap: 4px;">
                                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                                         <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
                                                         <circle cx="12" cy="12" r="3"></circle>
                                                     </svg>
                                                     View
-                                                </a>
-                                                <a href="{{ asset($attachment->file_path) }}" download
-                                                style="padding: 6px 12px; background: white; border: 1px solid #E5E7EB; border-radius: 6px; cursor: pointer; text-decoration: none; color: #374151; display: flex; align-items: center; gap: 4px;">
-                                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                                        <polyline points="7 10 12 15 17 10"></polyline>
-                                                        <line x1="12" y1="15" x2="12" y2="3"></line>
-                                                    </svg>
-                                                    Download
                                                 </a>
                                             </div>
                                         </div>
@@ -1172,11 +1157,6 @@
                     <div style="padding: 24px; background: #F9FAFB;">
                         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
                             <h3 style="font-size: 14px; font-weight: 600; color: #6B7280; margin: 0;">Other Information</h3>
-                            <button type="button" title="Hide information panel" style="background: transparent; border: none; color: #9CA3AF; cursor: pointer; padding: 4px;">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <polyline points="9 18 15 12 9 6"></polyline>
-                                </svg>
-                            </button>
                         </div>
 
                         <!-- Priority -->

@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\ProjectTaskResource\Pages;
@@ -8,6 +9,7 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class ProjectTaskResource extends Resource
 {
@@ -17,49 +19,194 @@ class ProjectTaskResource extends Resource
 
     protected static ?string $navigationGroup = 'Project Management';
 
-    protected static ?string $navigationLabel = 'Task Templates';
-
-    protected static ?string $modelLabel = 'Task Template';
-
-    protected static ?string $pluralModelLabel = 'Task Templates';
+    protected static ?string $navigationLabel = 'Project Task Templates';
 
     public static function form(Form $form): Form
     {
-        return $form
-            ->schema([
-                Forms\Components\Select::make('module')
-                    ->options(ProjectTask::getModules())
-                    ->required()
-                    ->live()
-                    ->afterStateUpdated(function ($state, Forms\Set $set) {
-                        $set('module_order', ProjectTask::getModuleOrder($state));
-                    }),
-                Forms\Components\TextInput::make('module_order')
-                    ->numeric()
-                    ->default(1)
-                    ->required()
-                    ->helperText('Order of this module in the project flow'),
-                Forms\Components\TextInput::make('phase_name')
-                    ->required()
-                    ->maxLength(255)
-                    ->helperText('e.g., Kickoff, Setup, Configuration, etc.'),
-                Forms\Components\TextInput::make('task_name')
-                    ->required()
-                    ->maxLength(255)
-                    ->helperText('e.g., Online Kick Off Meeting, Import User File, etc.'),
-                Forms\Components\TextInput::make('order')
-                    ->numeric()
-                    ->default(1)
-                    ->required()
-                    ->helperText('Order of task within the module'),
-                Forms\Components\TextInput::make('percentage')
-                    ->numeric()
-                    ->default(0)
-                    ->minValue(0)
-                    ->maxValue(100)
-                    ->suffix('%')
-                    ->helperText('Completion percentage for this task template'),
-            ]);
+        // Check if we're in edit mode
+        $isEdit = $form->getOperation() === 'edit';
+
+        if ($isEdit) {
+            return $form->schema(self::getEditSchema());
+        }
+
+        return $form->schema(self::getCreateSchema());
+    }
+
+    protected static function getCreateSchema(): array
+    {
+        return [
+            Forms\Components\Section::make('Module Information')
+                ->description('Define the module details that will be used across multiple tasks')
+                ->schema([
+                    Forms\Components\TextInput::make('module')
+                        ->label('Module Code')
+                        ->required()
+                        ->maxLength(255)
+                        ->reactive()
+                        ->afterStateUpdated(fn ($state, callable $set) => $set('module', strtolower($state))),
+
+                    Forms\Components\Select::make('hr_version')
+                        ->label('HR Version')
+                        ->options([
+                            '1' => 'Version 1',
+                            '2' => 'Version 2',
+                        ])
+                        ->required()
+                        ->default('1')
+                        ->reactive()
+                        ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                            // Auto-calculate next module_order based on HR version
+                            $latestOrder = \App\Models\ProjectTask::where('hr_version', $state)
+                                ->max('module_order') ?? 0;
+                            $set('module_order', $latestOrder + 1);
+                        }),
+
+                    Forms\Components\TextInput::make('module_name')
+                        ->label('Module Display Name')
+                        ->required()
+                        ->maxLength(255),
+
+                    Forms\Components\TextInput::make('module_order')
+                        ->label('Module Order')
+                        ->numeric()
+                        ->default(function (callable $get) {
+                            $hrVersion = $get('hr_version') ?? '1';
+                            $latestOrder = \App\Models\ProjectTask::where('hr_version', $hrVersion)
+                                ->max('module_order') ?? 0;
+                            return $latestOrder + 1;
+                        })
+                        ->required(),
+
+                    Forms\Components\TextInput::make('module_percentage')
+                        ->label('Module Weight (%)')
+                        ->numeric()
+                        ->minValue(0)
+                        ->maxValue(100)
+                        ->default(0)
+                        ->required(),
+                ])
+                ->columns(5)
+                ->collapsible(),
+
+            Forms\Components\Section::make('Tasks')
+                ->description('Add multiple tasks for this module')
+                ->schema([
+                    Forms\Components\Repeater::make('tasks')
+                        ->label('')
+                        ->schema([
+                            Forms\Components\TextInput::make('task_name')
+                                ->label('Task Name')
+                                ->required()
+                                ->maxLength(255),
+
+                            Forms\Components\TextInput::make('task_percentage')
+                                ->label('Task Weight (%)')
+                                ->numeric()
+                                ->minValue(0)
+                                ->maxValue(100)
+                                ->default(0)
+                                ->required(),
+
+                            Forms\Components\TextInput::make('order')
+                                ->label('Sort Order')
+                                ->numeric()
+                                ->default(0)
+                                ->required(),
+
+                            Forms\Components\Toggle::make('is_active')
+                                ->label('Active')
+                                ->default(true)
+                                ->inline(false),
+                        ])
+                        ->columns(5)
+                        ->defaultItems(1)
+                        ->minItems(1)
+                        ->required()
+                        ->addActionLabel('Add Another Task')
+                        ->itemLabel(fn (array $state): ?string => $state['task_name'] ?? 'New Task')
+                        ->cloneable()
+                        ->collapsible()
+                        ->deleteAction(
+                            fn (Forms\Components\Actions\Action $action) => $action
+                                ->requiresConfirmation()
+                        ),
+                ])
+                ->collapsible(),
+        ];
+    }
+
+    protected static function getEditSchema(): array
+    {
+        return [
+            Forms\Components\Section::make('Module Information')
+                ->description('Module details - Note: Changing module code will affect all tasks using this module')
+                ->schema([
+                    Forms\Components\TextInput::make('module')
+                        ->label('Module Code')
+                        ->required()
+                        ->maxLength(255)
+                        ->reactive()
+                        ->afterStateUpdated(fn ($state, callable $set) => $set('module', strtolower($state))),
+
+                    Forms\Components\TextInput::make('module_order')
+                        ->label('Module Order')
+                        ->helperText('Lower numbers appear first')
+                        ->numeric()
+                        ->required(),
+
+                    Forms\Components\Select::make('hr_version')
+                        ->label('HR Version')
+                        ->options([
+                            '1' => 'Version 1',
+                            '2' => 'Version 2',
+                        ])
+                        ->required()
+                        ->disabled()
+                        ->dehydrated(true),
+
+                    Forms\Components\TextInput::make('module_name')
+                        ->label('Module Display Name')
+                        ->required()
+                        ->maxLength(255),
+
+                    Forms\Components\TextInput::make('module_percentage')
+                        ->label('Module Weight (%)')
+                        ->numeric()
+                        ->minValue(0)
+                        ->maxValue(100)
+                        ->required(),
+                ])
+                ->columns(3)
+                ->collapsible(),
+
+            Forms\Components\Section::make('Task Information')
+                ->description('Edit this specific task')
+                ->schema([
+                    Forms\Components\TextInput::make('task_name')
+                        ->label('Task Name')
+                        ->required()
+                        ->maxLength(255),
+
+                    Forms\Components\TextInput::make('task_percentage')
+                        ->label('Task Weight (%)')
+                        ->numeric()
+                        ->minValue(0)
+                        ->maxValue(100)
+                        ->required(),
+
+                    Forms\Components\TextInput::make('order')
+                        ->label('Sort Order')
+                        ->numeric()
+                        ->required(),
+
+                    Forms\Components\Toggle::make('is_active')
+                        ->label('Active')
+                        ->default(true),
+                ])
+                ->columns(3)
+                ->collapsible(),
+        ];
     }
 
     public static function table(Table $table): Table
@@ -67,56 +214,92 @@ class ProjectTaskResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('module')
+                    ->label('Module Code')
+                    ->searchable()
+                    ->sortable()
+                    ->badge()
+                    ->color('info'),
+
+                Tables\Columns\TextColumn::make('module_name')
+                    ->label('Module Name')
+                    ->searchable()
+                    ->sortable(),
+
+                Tables\Columns\TextColumn::make('module_order')
+                    ->label('Order')
+                    ->sortable()
+                    ->alignCenter()
+                    ->badge()
+                    ->color('gray'),
+
+                Tables\Columns\TextColumn::make('module_percentage')
+                    ->label('Module %')
+                    ->sortable()
+                    ->suffix('%')
+                    ->alignCenter(),
+
+                Tables\Columns\TextColumn::make('hr_version')
+                    ->label('HR Version')
+                    ->searchable()
+                    ->sortable()
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
-                        'phase_1' => 'info',
-                        'phase_2' => 'success',
-                        'phase_3' => 'warning',
-                        'phase_4' => 'danger',
-                        'phase_5' => 'gray',
+                        '1' => 'warning',
+                        '2' => 'success',
                         default => 'gray',
                     })
-                    ->formatStateUsing(fn (string $state): string => ProjectTask::getModules()[$state] ?? ucfirst(str_replace('_', ' ', $state))),
-                Tables\Columns\TextColumn::make('module_order')
-                    ->label('Module Order')
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('phase_name')
-                    ->searchable(),
+                    ->formatStateUsing(fn (string $state): string => "v{$state}"),
+
                 Tables\Columns\TextColumn::make('task_name')
-                    ->searchable(),
+                    ->label('Task')
+                    ->searchable()
+                    ->sortable()
+                    ->wrap(),
+
+                Tables\Columns\TextColumn::make('task_percentage')
+                    ->label('Task %')
+                    ->sortable()
+                    ->suffix('%')
+                    ->alignCenter(),
+
                 Tables\Columns\TextColumn::make('order')
                     ->label('Task Order')
+                    ->sortable()
+                    ->alignCenter(),
+
+                Tables\Columns\ToggleColumn::make('is_active')
+                    ->label('Active')
                     ->sortable(),
-                Tables\Columns\TextColumn::make('percentage')
-                    ->suffix('%')
-                    ->badge()
-                    ->color(fn (int $state): string => match (true) {
-                        $state === 100 => 'success',
-                        $state >= 50 => 'warning',
-                        default => 'gray',
-                    }),
-                Tables\Columns\TextColumn::make('default_duration')
-                    ->suffix(' days')
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('projectPlans_count')
-                    ->counts('projectPlans')
-                    ->label('Used in Projects')
-                    ->badge(),
+
+                Tables\Columns\TextColumn::make('created_at')
+                    ->label('Created')
+                    ->dateTime('d M Y')
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
+            ->defaultSort('order')
             ->filters([
                 Tables\Filters\SelectFilter::make('module')
-                    ->options(ProjectTask::getModules()),
+                    ->label('Module')
+                    ->options(fn () => ProjectTask::select('module', 'module_name')
+                        ->distinct()
+                        ->pluck('module_name', 'module')
+                        ->toArray()),
+
+                Tables\Filters\TernaryFilter::make('is_active')
+                    ->label('Active Status')
+                    ->placeholder('All Tasks')
+                    ->trueLabel('Active Only')
+                    ->falseLabel('Inactive Only'),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
             ])
-            ->defaultSort('module_order')
-            ->defaultSort('order', 'asc')
-            ->groups([
-                Tables\Grouping\Group::make('module')
-                    ->label('Module')
-                    ->collapsible(),
+            ->bulkActions([
+                Tables\Actions\BulkActionGroup::make([
+                    Tables\Actions\DeleteBulkAction::make(),
+                ]),
             ]);
     }
 
@@ -127,5 +310,10 @@ class ProjectTaskResource extends Resource
             'create' => Pages\CreateProjectTask::route('/create'),
             'edit' => Pages\EditProjectTask::route('/{record}/edit'),
         ];
+    }
+
+    public static function getNavigationBadge(): ?string
+    {
+        return static::getModel()::where('is_active', true)->count();
     }
 }

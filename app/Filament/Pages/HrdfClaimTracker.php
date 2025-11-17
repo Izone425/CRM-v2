@@ -160,7 +160,8 @@ class HrdfClaimTracker extends Page implements HasTable
                     }),
 
                 TextColumn::make('invoice_number')
-                    ->label('Invoice Number'),
+                    ->label('Invoice Number')
+                    ->searchable(),
 
                 TextColumn::make('invoice_amount')
                     ->label('Invoice Amount')
@@ -181,6 +182,26 @@ class HrdfClaimTracker extends Page implements HasTable
                         'info' => 'RECEIVED',
                     ])
                     ->sortable(),
+
+                TextColumn::make('created_at')
+                    ->label('Created At')
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+
+                TextColumn::make('approved_at')
+                    ->label('Approved At')
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+
+                TextColumn::make('submitted_at')
+                    ->label('Submitted At')
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+
+                TextColumn::make('received_at')
+                    ->label('Received At')
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('hrdf_claim_id')
                     ->label('HRDF Claim ID')

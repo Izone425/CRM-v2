@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -13,7 +12,7 @@ class ProjectPlan extends Model
 
     protected $fillable = [
         'lead_id',
-        'sw_id', // Add sw_id to fillable
+        'sw_id',
         'project_task_id',
         'plan_start_date',
         'plan_end_date',
@@ -50,7 +49,7 @@ class ProjectPlan extends Model
     }
 
     // Calculate plan duration when dates are set
-    public function calculatePlanDuration()
+    public function calculatePlanDuration(): void
     {
         if ($this->plan_start_date && $this->plan_end_date) {
             $this->plan_duration = $this->plan_start_date->diffInDays($this->plan_end_date) + 1;
@@ -59,7 +58,7 @@ class ProjectPlan extends Model
     }
 
     // Calculate actual duration when dates are set
-    public function calculateActualDuration()
+    public function calculateActualDuration(): void
     {
         if ($this->actual_start_date && $this->actual_end_date) {
             $this->actual_duration = $this->actual_start_date->diffInDays($this->actual_end_date) + 1;
@@ -68,7 +67,7 @@ class ProjectPlan extends Model
     }
 
     // Auto-update status based on actual dates
-    public function updateStatusBasedOnDates()
+    public function updateStatusBasedOnDates(): void
     {
         if ($this->actual_end_date) {
             $this->status = 'completed';
@@ -81,8 +80,14 @@ class ProjectPlan extends Model
     }
 
     // Get percentage from the related ProjectTask
-    public function getPercentageAttribute()
+    public function getPercentageAttribute(): int
     {
-        return $this->projectTask ? $this->projectTask->percentage : 0;
+        return $this->projectTask ? $this->projectTask->task_percentage : 0;
+    }
+
+    // Get module percentage
+    public function getModulePercentageAttribute(): int
+    {
+        return $this->projectTask ? $this->projectTask->module_percentage : 0;
     }
 }

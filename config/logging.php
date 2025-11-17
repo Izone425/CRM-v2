@@ -131,6 +131,12 @@ return [
             'driver' => 'single',
             'path' => storage_path('logs/laravel-' . today()->format('Y-m-d') . '.log'),
             'level' => env('LOG_LEVEL', 'debug'),
+        ],
+
+        'irbm_log' => [
+            'driver' => 'single',
+            'path' => storage_path('logs/irbm-' . today()->format('Y-m-d') . '.log'),
+            'level' => env('LOG_LEVEL', 'debug'),
         ]
     ],
 

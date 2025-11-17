@@ -92,7 +92,8 @@ class SalesAdminAnalysisV1 extends Page
     public function fetchLeads()
     {
         $query = Lead::query()
-            ->where('lead_status', '!=', 'Closed');
+            ->where('lead_status', '!=', 'Closed')
+            ->whereNotIn('lead_code', ['Apollo', 'Existing Customer (Migration)']);
 
         if (!empty($this->selectedMonth)) {
             $date = Carbon::parse($this->selectedMonth);
@@ -135,6 +136,7 @@ class SalesAdminAnalysisV1 extends Page
                 ->where('categories', 'New')
                 ->whereNull('lead_owner')
                 ->whereNull('salesperson')
+                ->whereNotIn('lead_code', ['Apollo', 'Existing Customer (Migration)'])
                 ->when($start && $end, fn ($q) => $q->whereDate('created_at', '>=', $start)->whereDate('created_at', '<=', $end))
                 ->count(),
 
@@ -142,18 +144,21 @@ class SalesAdminAnalysisV1 extends Page
                 ->whereNull('salesperson')
                 ->whereNotNull('lead_owner')
                 ->where('categories', '!=', 'Inactive')
+                ->whereNotIn('lead_code', ['Apollo', 'Existing Customer (Migration)'])
                 ->when($start && $end, fn ($q) => $q->whereDate('created_at', '>=', $start)->whereDate('created_at', '<=', $end))
                 ->count(),
 
             'Sales' => Lead::query()
                 ->whereNotNull('salesperson')
                 ->where('categories', '!=', 'Inactive')
+                ->whereNotIn('lead_code', ['Apollo', 'Existing Customer (Migration)'])
                 ->when($start && $end, fn ($q) => $q->whereDate('created_at', '>=', $start)->whereDate('created_at', '<=', $end))
                 ->count(),
 
             'Inactive' => Lead::query()
                 ->where('categories', 'Inactive')
                 ->where('lead_status', '!=', 'Closed')
+                ->whereNotIn('lead_code', ['Apollo', 'Existing Customer (Migration)'])
                 ->when($start && $end, fn ($q) => $q->whereDate('created_at', '>=', $start)->whereDate('created_at', '<=', $end))
                 ->count(),
         ];
@@ -161,7 +166,8 @@ class SalesAdminAnalysisV1 extends Page
 
     public function fetchLeadsByCompanySize()
     {
-        $query = Lead::query();
+        $query = Lead::query()
+            ->whereNotIn('lead_code', ['Apollo', 'Existing Customer (Migration)']);
 
         if (!empty($this->selectedMonth)) {
             $date = Carbon::parse($this->selectedMonth);
@@ -207,6 +213,7 @@ class SalesAdminAnalysisV1 extends Page
                 ->whereNull('salesperson')
                 ->whereNotNull('lead_owner')
                 ->where('categories', '!=', 'Inactive')
+                ->whereNotIn('lead_code', ['Apollo', 'Existing Customer (Migration)'])
                 ->where(function ($query) {
                     $query->whereNull('done_call')
                         ->orWhere('done_call', 0);
@@ -222,6 +229,7 @@ class SalesAdminAnalysisV1 extends Page
                 ->whereNull('salesperson')
                 ->whereNotNull('lead_owner')
                 ->where('categories', '!=', 'Inactive')
+                ->whereNotIn('lead_code', ['Apollo', 'Existing Customer (Migration)'])
                 ->where(function ($query) {
                     $query->whereNull('done_call')
                         ->orWhere('done_call', 0);
@@ -238,6 +246,7 @@ class SalesAdminAnalysisV1 extends Page
                 ->whereNotNull('lead_owner')
                 ->where('company_size', '=', '1-24')
                 ->where('categories', '!=', 'Inactive')
+                ->whereNotIn('lead_code', ['Apollo', 'Existing Customer (Migration)'])
                 ->when($start && $end, fn ($query) =>
                     $query->whereDate('created_at', '>=', $start)
                         ->whereDate('created_at', '<=', $end)
@@ -251,6 +260,7 @@ class SalesAdminAnalysisV1 extends Page
                 ->whereBetween('call_attempt', [1, 10])
                 ->where('company_size', '!=', '1-24')
                 ->where('categories', '!=', 'Inactive')
+                ->whereNotIn('lead_code', ['Apollo', 'Existing Customer (Migration)'])
                 ->when($start && $end, fn ($query) =>
                     $query->whereDate('created_at', '>=', $start)
                         ->whereDate('created_at', '<=', $end)
@@ -266,7 +276,8 @@ class SalesAdminAnalysisV1 extends Page
     {
         $query = Lead::query()
             ->whereNotNull('salesperson') // Ensure salesperson is NOT NULL
-            ->whereIn('stage', ['Transfer', 'Demo', 'Follow Up']); // Filter stages
+            ->whereIn('stage', ['Transfer', 'Demo', 'Follow Up']) // Filter stages
+            ->whereNotIn('lead_code', ['Apollo', 'Existing Customer (Migration)']);
 
         if (!empty($this->selectedMonth)) {
             $date = Carbon::parse($this->selectedMonth);
@@ -297,7 +308,8 @@ class SalesAdminAnalysisV1 extends Page
     public function fetchInactiveLead()
     {
         $query = Lead::query()
-            ->whereIn('lead_status', ['Junk', 'Lost', 'On Hold', 'No Response']);
+            ->whereIn('lead_status', ['Junk', 'Lost', 'On Hold', 'No Response'])
+            ->whereNotIn('lead_code', ['Apollo', 'Existing Customer (Migration)']);
 
         if (!empty($this->selectedMonth)) {
             $date = Carbon::parse($this->selectedMonth);
@@ -331,7 +343,8 @@ class SalesAdminAnalysisV1 extends Page
     {
         $user = Auth::user();
 
-        $query = Lead::query();
+        $query = Lead::query()
+            ->whereNotIn('lead_code', ['Apollo', 'Existing Customer (Migration)']);
 
         // Apply owner filter based on label
         switch ($label) {
@@ -387,7 +400,8 @@ class SalesAdminAnalysisV1 extends Page
 
     public function openCategorySlideOver($category)
     {
-        $query = Lead::query();
+        $query = Lead::query()
+            ->whereNotIn('lead_code', ['Apollo', 'Existing Customer (Migration)']);
 
         // Map each category to the correct filtering logic
         switch ($category) {
@@ -436,6 +450,9 @@ class SalesAdminAnalysisV1 extends Page
 
     public function openCompanySizeSlideOver($label)
     {
+        $query = Lead::query()
+            ->whereNotIn('lead_code', ['Apollo', 'Existing Customer (Migration)']);
+
         $user = Auth::user();
 
         // Map label to actual `company_size` values
@@ -474,6 +491,7 @@ class SalesAdminAnalysisV1 extends Page
         $query = Lead::query()
             ->whereNull('salesperson')
             ->whereNotNull('lead_owner')
+            ->whereNotIn('lead_code', ['Apollo', 'Existing Customer (Migration)'])
             ->where('categories', '!=', 'Inactive');
 
         // Apply label-specific filters
@@ -528,7 +546,8 @@ class SalesAdminAnalysisV1 extends Page
     {
         $query = Lead::query()
             ->whereNotNull('salesperson')
-            ->where('stage', $stage);
+            ->where('stage', $stage)
+            ->whereNotIn('lead_code', ['Apollo', 'Existing Customer (Migration)']);
 
         if (!empty($this->selectedMonth)) {
             $date = Carbon::parse($this->selectedMonth);
@@ -544,7 +563,8 @@ class SalesAdminAnalysisV1 extends Page
     public function openInactiveStatusSlideOver($status)
     {
         $query = Lead::query()
-            ->where('lead_status', $status);
+            ->where('lead_status', $status)
+            ->whereNotIn('lead_code', ['Apollo', 'Existing Customer (Migration)']);
 
         if (!empty($this->selectedMonth)) {
             $date = Carbon::parse($this->selectedMonth);
