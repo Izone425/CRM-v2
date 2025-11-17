@@ -239,6 +239,7 @@ class HrdfNewTable extends Component implements HasForms, HasTable
                                     if ($record->hrdfClaim) {
                                         $record->hrdfClaim->update([
                                             'claim_status' => 'SUBMITTED',
+                                            'submitted_at' => now(),
                                             'hrdf_claim_id' => $data['hrdf_claim_id'], // Also update the claim ID in the claim record
                                             'invoice_number' => $record->autocount_invoice_number, // Add invoice number from handover
                                         ]);

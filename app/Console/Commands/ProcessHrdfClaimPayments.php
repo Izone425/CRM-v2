@@ -57,6 +57,7 @@ class ProcessHrdfClaimPayments extends Command
 
                     $claim->update([
                         'claim_status' => 'RECEIVED',
+                        'received_at' => now(),
                     ]);
 
                     $processedCount++;

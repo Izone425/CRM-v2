@@ -1917,6 +1917,12 @@
                                     <span class="module-font">Policy</span>
                                 </a>
                                 @endif
+
+                                @if(auth()->user()->hasRouteAccess('filament.admin.resources.project-tasks.index'))
+                                <a href="{{ route('filament.admin.resources.project-tasks.index') }}" class="submenu-item">
+                                    <span class="module-font">Project Task</span>
+                                </a>
+                                @endif
                             </div>
                         </div>
                         @endif

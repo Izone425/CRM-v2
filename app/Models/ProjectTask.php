@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -12,48 +11,106 @@ class ProjectTask extends Model
 
     protected $fillable = [
         'module',
-        'module_order',
-        'phase_name',
+        'module_name',
+        'module_order', // ✅ Added
+        'module_percentage',
+        'hr_version',
         'task_name',
+        'task_percentage',
         'order',
-        'percentage',
-        'default_duration',
-        'description',
+        'is_active',
     ];
 
     protected $casts = [
-        'module_order' => 'integer',
+        'module_percentage' => 'decimal:1',
+        'task_percentage' => 'decimal:1',
+        'module_order' => 'integer', // ✅ Added
         'order' => 'integer',
-        'percentage' => 'integer',
-        'default_duration' => 'integer',
+        'is_active' => 'boolean',
     ];
+
+    // ✅ Add accessor for percentage (alias for task_percentage)
+    public function getPercentageAttribute()
+    {
+        return $this->task_percentage;
+    }
 
     public function projectPlans(): HasMany
     {
         return $this->hasMany(ProjectPlan::class);
     }
 
-    public static function getModules(): array
+    // Get all active modules (by module_name)
+    public static function getActiveModules(): array
     {
-        return [
-            'phase_1' => 'Phase 1: Implementation',
-            'phase_2' => 'Phase 2: Configuration',
-            'phase_3' => 'Phase 3: Training',
-            'phase_4' => 'Phase 4: Go-Live',
-            'phase_5' => 'Phase 5: Support',
-        ];
+        return self::where('is_active', true)
+            ->select('module_name', 'module_order')
+            ->distinct()
+            ->orderBy('module_order')
+            ->orderBy('module_name')
+            ->get()
+            ->pluck('module_name', 'module_name')
+            ->toArray();
     }
 
-    public static function getModuleOrder(string $module): int
+    // Get tasks for a specific module_name
+    public static function getTasksForModuleName(string $moduleName): \Illuminate\Database\Eloquent\Collection
     {
-        $orders = [
-            'phase_1' => 1,
-            'phase_2' => 2,
-            'phase_3' => 3,
-            'phase_4' => 4,
-            'phase_5' => 5,
+        return self::where('module_name', $moduleName)
+            ->where('is_active', true)
+            ->orderBy('order')
+            ->get();
+    }
+
+    // ✅ Extract phase number from module_name
+    public static function extractPhaseNumber(string $moduleName): int
+    {
+        // Extract number from "Phase 1:", "Phase 2:", etc.
+        if (preg_match('/Phase\s+(\d+)/i', $moduleName, $matches)) {
+            return (int)$matches[1];
+        }
+        return 999; // Non-phase modules go last
+    }
+
+    // ✅ Get module_order from database or calculate it
+    public static function getModuleNameOrder(string $moduleName): int
+    {
+        // Try to get from database first
+        $task = self::where('module_name', $moduleName)->first();
+        if ($task && $task->module_order) {
+            return $task->module_order;
+        }
+
+        // Fallback to calculation
+        $phaseNumber = self::extractPhaseNumber($moduleName);
+        if ($phaseNumber !== 999) {
+            return $phaseNumber;
+        }
+
+        $orderMap = [
+            'Online Kick Off Meeting' => 100,
+            'Online Webinar Training' => 101,
+            'Attendance Management' => 102,
+            'Leave Management' => 103,
+            'Claim Management' => 104,
+            'Payroll Management' => 105,
         ];
 
-        return $orders[$module] ?? 99;
+        return $orderMap[$moduleName] ?? 999;
+    }
+
+    // Keep old method for backward compatibility
+    public static function getModuleOrder(string $module): int
+    {
+        $orderMap = [
+            'phase 1' => 1,
+            'phase 2' => 2,
+            'attendance' => 3,
+            'leave' => 4,
+            'claim' => 5,
+            'payroll' => 6,
+        ];
+
+        return $orderMap[strtolower($module)] ?? 999;
     }
 }

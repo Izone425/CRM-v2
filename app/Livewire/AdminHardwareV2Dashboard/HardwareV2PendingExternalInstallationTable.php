@@ -532,7 +532,6 @@ class HardwareV2PendingExternalInstallationTable extends Component implements Ha
                         Log::info("Available keys in category2Data: " . implode(', ', array_keys($category2Data)));
 
                         foreach ($category2Data as $key => $item) {
-                            Log::info("Checking key '{$key}': ", $item);
 
                             if (is_array($item) && isset($item['external_address']) && !empty($item['external_address'])) {
                                 $externalAddresses[] = [

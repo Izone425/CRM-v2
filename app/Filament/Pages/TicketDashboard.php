@@ -4,6 +4,7 @@ namespace App\Filament\Pages;
 
 use Filament\Pages\Page;
 use App\Models\Ticket;
+use App\Models\TicketAttachment;
 use App\Models\TicketLog;
 use App\Models\TicketComment;
 use App\Models\TicketModule;
@@ -321,17 +322,32 @@ class TicketDashboard extends Page implements HasActions, HasForms
 
             foreach ($this->attachments as $file) {
                 $originalFilename = $file->getClientOriginalName();
-                $storedFilename = uniqid() . '_' . $originalFilename;
-                $path = $file->storeAs('ticket_attachments', $storedFilename, 'public');
+                $extension = $file->getClientOriginalExtension();
 
-                \App\Models\TicketAttachment::create([
+                // ✅ Create unique stored filename
+                $storedFilename = time() . '_' . \Illuminate\Support\Str::random(10) . '_' .
+                                \Illuminate\Support\Str::slug(pathinfo($originalFilename, PATHINFO_FILENAME)) .
+                                '.' . $extension;
+
+                // ✅ Store to S3 with organized path
+                $path = $file->storeAs(
+                    'ticket_attachments/' . date('Y/m/d'),
+                    $storedFilename,
+                    's3'
+                );
+
+                // ✅ Calculate file hash
+                $fileHash = hash_file('md5', $file->getRealPath());
+
+                // ✅ Create attachment record
+                TicketAttachment::create([
                     'ticket_id' => $this->selectedTicket->id,
                     'original_filename' => $originalFilename,
                     'stored_filename' => $storedFilename,
-                    'file_path' => 'storage/' . $path,
+                    'file_path' => $path,
                     'file_size' => $file->getSize(),
                     'mime_type' => $file->getMimeType(),
-                    'file_hash' => md5_file($file->getRealPath()),
+                    'file_hash' => $fileHash,
                     'uploaded_by' => $userId,
                 ]);
             }
@@ -355,6 +371,25 @@ class TicketDashboard extends Page implements HasActions, HasForms
                 ->body('Failed to upload files: ' . $e->getMessage())
                 ->send();
         }
+    }
+
+    private function isImageFile($attachment): bool
+    {
+        if (str_starts_with($attachment->mime_type, 'image/')) {
+            return true;
+        }
+        $extension = strtolower(pathinfo($attachment->original_filename, PATHINFO_EXTENSION));
+        return in_array($extension, ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg', 'webp']);
+    }
+
+    private function handleVersionScreenshot($file): ?string
+    {
+        if ($file) {
+            $filename = time() . '_' . $file->getClientOriginalName();
+            $path = $file->storeAs('version_screenshot', $filename, 's3');
+            return $path;
+        }
+        return null;
     }
 
     public function viewTicket($ticketId): void

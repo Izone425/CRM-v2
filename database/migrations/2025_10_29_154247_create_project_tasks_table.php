@@ -11,7 +11,6 @@ return new class extends Migration
         Schema::create('project_tasks', function (Blueprint $table) {
             $table->id();
             $table->enum('module', ['general', 'attendance', 'leave', 'claim', 'payroll']);
-            $table->string('phase_name');
             $table->string('task_name');
             $table->integer('percentage')->default(0);
             $table->integer('order')->default(1);

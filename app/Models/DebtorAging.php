@@ -20,13 +20,15 @@ class DebtorAging extends Model
         'outstanding',
         'salesperson',
         'payment_status',
-        'invoice_type'
+        'invoice_type',
+        'last_modified_at',
     ];
 
     protected $casts = [
         'invoice_date' => 'date',
         'invoice_amount' => 'float',
         'outstanding' => 'float',
-        'exchange_rate' => 'float'
+        'exchange_rate' => 'float',
+        'last_modified_at' => 'datetime:Y-m-d H:i:s',
     ];
 }

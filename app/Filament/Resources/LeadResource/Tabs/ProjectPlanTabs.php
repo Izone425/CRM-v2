@@ -10,10 +10,14 @@ use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\ViewField;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Textarea;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
 use Filament\Support\Enums\ActionSize;
 use Filament\Notifications\Notification;
+use Illuminate\Support\Facades\DB;
+use Malzariey\FilamentDaterangepickerFilter\Fields\DateRangePicker;
+use Filament\Tables\Columns\TextColumn;
 
 class ProjectPlanTabs
 {
@@ -23,48 +27,54 @@ class ProjectPlanTabs
             Section::make('Project Plan')
                 ->headerActions([
                     \Filament\Forms\Components\Actions\Action::make('refreshModules')
-                        ->label('Refresh Modules')
+                        ->label('Sync Tasks from Template')
                         ->icon('heroicon-o-arrow-path')
                         ->color('info')
                         ->size(ActionSize::Small)
+                        ->requiresConfirmation()
+                        ->modalHeading('Sync Project Tasks')
+                        ->modalDescription('This will create project tasks based on the latest software handover modules and admin-defined task templates. Phase 1 and Phase 2 will always be included.')
                         ->action(function (Set $set, Get $get, $livewire) {
                             $leadId = $livewire->record?->id ?? $get('id') ?? 0;
 
-                            if ($leadId > 0) {
-                                $lead = Lead::find($leadId);
-
-                                // Get the latest software handover for this lead
-                                $softwareHandover = SoftwareHandover::where('lead_id', $leadId)
-                                    ->latest()
-                                    ->first();
-
-                                if ($softwareHandover) {
-                                    // Get modules from SoftwareHandover based on sw_id
-                                    $selectedModules = $softwareHandover->getSelectedModules();
-
-                                    // Create project plans for selected modules with the latest sw_id
-                                    self::createProjectPlansForModules($leadId, $softwareHandover->id, $selectedModules);
-
-                                    // Update the hidden field to trigger view refresh
-                                    $set('refresh_trigger', time());
-
-                                    Notification::make()
-                                        ->title('Modules Refreshed')
-                                        ->body('Project plans updated based on latest software handover (SW ID: ' . $softwareHandover->id . ') modules: ' . implode(', ', $selectedModules))
-                                        ->success()
-                                        ->send();
-                                } else {
-                                    Notification::make()
-                                        ->title('No Software Handover Found')
-                                        ->body('Please create a software handover first to define project modules')
-                                        ->warning()
-                                        ->send();
-                                }
+                            if ($leadId === 0) {
+                                Notification::make()
+                                    ->title('Error')
+                                    ->body('Please save the lead first')
+                                    ->danger()
+                                    ->send();
+                                return;
                             }
+
+                            $softwareHandover = SoftwareHandover::where('lead_id', $leadId)
+                                ->latest()
+                                ->first();
+
+                            if (!$softwareHandover) {
+                                Notification::make()
+                                    ->title('No Software Handover Found')
+                                    ->body('Please create a software handover first to define project modules')
+                                    ->warning()
+                                    ->send();
+                                return;
+                            }
+
+                            $selectedModules = $softwareHandover->getSelectedModules();
+                            $modulesToSync = array_unique(array_merge(['phase 1', 'phase 2'], $selectedModules));
+                            $createdCount = self::createProjectPlansForModules($leadId, $softwareHandover->id, $modulesToSync);
+
+                            $set('refresh_trigger', time());
+
+                            $modulesList = implode(', ', $modulesToSync);
+                            Notification::make()
+                                ->title('Tasks Synced Successfully')
+                                ->body("Created/updated {$createdCount} tasks from templates for modules: {$modulesList}")
+                                ->success()
+                                ->send();
                         }),
 
                     \Filament\Forms\Components\Actions\Action::make('setTaskDates')
-                        ->label('Set Task Dates')
+                        ->label('Update Task Dates & Status')
                         ->icon('heroicon-o-calendar')
                         ->color('success')
                         ->size(ActionSize::Small)
@@ -78,7 +88,6 @@ class ProjectPlanTabs
                                 ];
                             }
 
-                            // Get the latest software handover for this lead
                             $softwareHandover = SoftwareHandover::where('lead_id', $leadId)
                                 ->latest()
                                 ->first();
@@ -90,14 +99,27 @@ class ProjectPlanTabs
                                 ];
                             }
 
-                            // Get modules from SoftwareHandover by sw_id
                             $selectedModules = $softwareHandover->getSelectedModules();
+                            $allModules = array_unique(array_merge(['phase 1', 'phase 2'], $selectedModules));
 
-                            // Get project plans for this lead and software handover
+                            // ✅ Get all unique module_names from selected modules
+                            $moduleNames = ProjectTask::whereIn('module', $allModules)
+                                ->where('is_active', true)
+                                ->select('module_name', 'module_order')
+                                ->distinct()
+                                ->orderBy('module_order')
+                                ->orderBy('module_name')
+                                ->get()
+                                ->pluck('module_name')
+                                ->toArray();
+
+                            // Get project plans (only non-completed tasks)
                             $projectPlans = ProjectPlan::where('lead_id', $leadId)
                                 ->where('sw_id', $softwareHandover->id)
-                                ->whereHas('projectTask', function ($query) use ($selectedModules) {
-                                    $query->whereIn('module', $selectedModules);
+                                ->where('status', '!=', 'completed')
+                                ->whereHas('projectTask', function ($query) use ($moduleNames) {
+                                    $query->whereIn('module_name', $moduleNames)
+                                        ->where('is_active', true);
                                 })
                                 ->with('projectTask')
                                 ->orderBy('id')
@@ -106,63 +128,157 @@ class ProjectPlanTabs
                             if ($projectPlans->isEmpty()) {
                                 return [
                                     \Filament\Forms\Components\Placeholder::make('no_plans')
-                                        ->content('No project plans found for SW ID: ' . $softwareHandover->id . '. Click "Refresh Modules" to generate plans.')
+                                        ->content('All tasks are completed! 🎉 No pending tasks found.')
                                 ];
                             }
 
                             $schema = [];
 
-                            foreach ($selectedModules as $module) {
-                                $modulePlans = $projectPlans->filter(function ($plan) use ($module) {
-                                    return $plan->projectTask->module === $module;
+                            // ✅ Group by module_name (not module)
+                            foreach ($moduleNames as $moduleName) {
+                                $modulePlans = $projectPlans->filter(function ($plan) use ($moduleName) {
+                                    return $plan->projectTask && $plan->projectTask->module_name === $moduleName;
                                 });
 
+                                // Only show module if it has incomplete tasks
                                 if ($modulePlans->isNotEmpty()) {
-                                    $schema[] = Section::make(ucfirst($module) . ' Module')
-                                        ->schema($modulePlans->map(function ($plan) {
-                                            return Section::make($plan->projectTask->phase_name . ' - ' . $plan->projectTask->task_name)
-                                                ->description('Progress: ' . $plan->projectTask->percentage . '% (set by manager) | SW ID: ' . $plan->sw_id)
-                                                ->schema([
-                                                    DatePicker::make("plan_{$plan->id}_plan_start_date")
-                                                        ->label('Plan Start Date')
-                                                        ->default($plan->plan_start_date)
-                                                        ->live()
-                                                        ->afterStateUpdated(function ($state, Set $set, Get $get) use ($plan) {
-                                                            if ($state && $get("plan_{$plan->id}_plan_end_date")) {
-                                                                $start = \Carbon\Carbon::parse($state);
-                                                                $end = \Carbon\Carbon::parse($get("plan_{$plan->id}_plan_end_date"));
-                                                                $set("plan_{$plan->id}_plan_duration", $start->diffInDays($end) + 1);
-                                                            }
-                                                        }),
-                                                    DatePicker::make("plan_{$plan->id}_plan_end_date")
-                                                        ->label('Plan End Date')
-                                                        ->default($plan->plan_end_date)
-                                                        ->live()
-                                                        ->afterStateUpdated(function ($state, Set $set, Get $get) use ($plan) {
-                                                            if ($state && $get("plan_{$plan->id}_plan_start_date")) {
-                                                                $start = \Carbon\Carbon::parse($get("plan_{$plan->id}_plan_start_date"));
-                                                                $end = \Carbon\Carbon::parse($state);
-                                                                $set("plan_{$plan->id}_plan_duration", $start->diffInDays($end) + 1);
-                                                            }
-                                                        }),
-                                                    TextInput::make("plan_{$plan->id}_plan_duration")
-                                                        ->label('Plan Duration (days)')
-                                                        ->numeric()
-                                                        ->readOnly(),
-                                                    DatePicker::make("plan_{$plan->id}_actual_start_date")
-                                                        ->label('Actual Start Date')
-                                                        ->default($plan->actual_start_date),
-                                                    DatePicker::make("plan_{$plan->id}_actual_end_date")
-                                                        ->label('Actual End Date')
-                                                        ->default($plan->actual_end_date)
-                                                        ->helperText('Setting this date will mark the task as completed'),
-                                                    TextInput::make("plan_{$plan->id}_actual_duration")
-                                                        ->label('Actual Duration (days)')
-                                                        ->numeric()
-                                                        ->readOnly()
-                                                        ->default($plan->actual_duration),
-                                                ])->columns(6);
-                                        })->toArray());
+                                    $firstTask = $modulePlans->first()->projectTask;
+                                    $modulePercentage = $firstTask->module_percentage;
+                                    $moduleOrder = $firstTask->module_order ?? 999;
+
+                                    // Calculate module progress
+                                    $allModulePlans = ProjectPlan::where('lead_id', $leadId)
+                                        ->where('sw_id', $softwareHandover->id)
+                                        ->whereHas('projectTask', function ($query) use ($moduleName) {
+                                            $query->where('module_name', $moduleName)
+                                                ->where('is_active', true);
+                                        })
+                                        ->get();
+
+                                    $totalModuleTasks = $allModulePlans->count();
+                                    $completedModuleTasks = $allModulePlans->where('status', 'completed')->count();
+                                    $pendingTasks = $totalModuleTasks - $completedModuleTasks;
+                                    $progressPercentage = $totalModuleTasks > 0 ? round(($completedModuleTasks / $totalModuleTasks) * 100) : 0;
+
+                                    // Auto-expand logic
+                                    $isExpanded = false;
+                                    if ($progressPercentage > 0 && $progressPercentage < 100) {
+                                        $isExpanded = true;
+                                    } elseif ($progressPercentage == 0) {
+                                        static $firstPendingExpanded = false;
+                                        if (!$firstPendingExpanded) {
+                                            $isExpanded = true;
+                                            $firstPendingExpanded = true;
+                                        }
+                                    }
+
+                                    // ✅ Create table rows for this module
+                                    $tableRows = [];
+                                    foreach ($modulePlans as $plan) {
+                                        $task = $plan->projectTask;
+
+                                        $planDateRangeValue = null;
+                                        if ($plan->plan_start_date && $plan->plan_end_date) {
+                                            $planDateRangeValue = \Carbon\Carbon::parse($plan->plan_start_date)->format('d/m/Y') . ' - ' .
+                                                                  \Carbon\Carbon::parse($plan->plan_end_date)->format('d/m/Y');
+                                        }
+
+                                        $actualDateRangeValue = null;
+                                        if ($plan->actual_start_date && $plan->actual_end_date) {
+                                            $actualDateRangeValue = \Carbon\Carbon::parse($plan->actual_start_date)->format('d/m/Y') . ' - ' .
+                                                                    \Carbon\Carbon::parse($plan->actual_end_date)->format('d/m/Y');
+                                        }
+
+                                        $tableRows[] = [
+                                            TextInput::make("plan_{$plan->id}_task")
+                                                ->label('')
+                                                ->default($task->task_name)
+                                                ->disabled()
+                                                ->columnSpan(3),
+
+                                            DateRangePicker::make("plan_{$plan->id}_plan_date_range")
+                                                ->label('')
+                                                ->default($planDateRangeValue)
+                                                ->format('d/m/Y')
+                                                ->displayFormat('DD/MM/YYYY')
+                                                ->live()
+                                                ->afterStateUpdated(function ($state, Set $set) use ($plan) {
+                                                    if ($state) {
+                                                        [$start, $end] = explode(' - ', $state);
+                                                        $startDate = \Carbon\Carbon::createFromFormat('d/m/Y', $start);
+                                                        $endDate = \Carbon\Carbon::createFromFormat('d/m/Y', $end);
+                                                        $set("plan_{$plan->id}_plan_duration", $startDate->diffInDays($endDate) + 1);
+
+                                                        if ($plan->status === 'pending') {
+                                                            $set("plan_{$plan->id}_status", 'in_progress');
+                                                        }
+                                                    }
+                                                })
+                                                ->columnSpan(2),
+
+                                            TextInput::make("plan_{$plan->id}_plan_duration")
+                                                ->label('')
+                                                ->numeric()
+                                                ->default($plan->plan_duration)
+                                                ->readOnly()
+                                                ->suffix('days')
+                                                ->columnSpan(1),
+
+                                            DateRangePicker::make("plan_{$plan->id}_actual_date_range")
+                                                ->label('')
+                                                ->default($actualDateRangeValue)
+                                                ->format('d/m/Y')
+                                                ->displayFormat('DD/MM/YYYY')
+                                                ->live()
+                                                ->afterStateUpdated(function ($state, Set $set) use ($plan) {
+                                                    if ($state) {
+                                                        [$start, $end] = explode(' - ', $state);
+                                                        $startDate = \Carbon\Carbon::createFromFormat('d/m/Y', $start);
+                                                        $endDate = \Carbon\Carbon::createFromFormat('d/m/Y', $end);
+                                                        $set("plan_{$plan->id}_actual_duration", $startDate->diffInDays($endDate) + 1);
+                                                        $set("plan_{$plan->id}_status", 'completed');
+                                                    }
+                                                })
+                                                ->columnSpan(2),
+
+                                            TextInput::make("plan_{$plan->id}_actual_duration")
+                                                ->label(false)
+                                                ->numeric()
+                                                ->default($plan->actual_duration)
+                                                ->readOnly()
+                                                ->suffix('days')
+                                                ->columnSpan(1),
+
+                                            Select::make("plan_{$plan->id}_status")
+                                                ->label('')
+                                                ->options([
+                                                    'pending' => 'Pending',
+                                                    'in_progress' => 'In Progress',
+                                                    'completed' => 'Completed',
+                                                    'on_hold' => 'On Hold',
+                                                ])
+                                                ->disabled()
+                                                ->dehydrated(true)
+                                                ->default($plan->status)
+                                                ->required()
+                                                ->columnSpan(3),
+                                        ];
+                                    }
+
+                                    $moduleSchema = [];
+
+                                    // Task rows
+                                    foreach ($tableRows as $row) {
+                                        $moduleSchema[] = \Filament\Forms\Components\Grid::make(12)
+                                            ->schema($row);
+                                    }
+
+                                    // Add module section
+                                    $schema[] = Section::make($moduleName)
+                                        ->description("Module Weight: {$modulePercentage}% | Order: {$moduleOrder} | Progress: {$progressPercentage}% ({$completedModuleTasks}/{$totalModuleTasks}) | Pending: {$pendingTasks} | SW ID: {$softwareHandover->id}")
+                                        ->collapsible()
+                                        ->collapsed(!$isExpanded)
+                                        ->schema($moduleSchema);
                                 }
                             }
 
@@ -180,173 +296,116 @@ class ProjectPlanTabs
                                 return;
                             }
 
-                            // Get the latest software handover for this lead
-                            $softwareHandover = SoftwareHandover::where('lead_id', $leadId)
-                                ->latest()
-                                ->first();
+                            $updatedCount = 0;
 
-                            if (!$softwareHandover) {
-                                Notification::make()
-                                    ->title('Error')
-                                    ->body('No software handover found')
-                                    ->danger()
-                                    ->send();
-                                return;
-                            }
+                            DB::transaction(function () use ($data, $leadId, &$updatedCount) {
+                                foreach ($data as $key => $value) {
+                                    if (preg_match('/plan_(\d+)_plan_date_range/', $key, $matches)) {
+                                        $planId = $matches[1];
+                                        $plan = ProjectPlan::find($planId);
 
-                            foreach ($data as $key => $value) {
-                                if (preg_match('/plan_(\d+)_(.+)/', $key, $matches)) {
-                                    $planId = $matches[1];
-                                    $field = $matches[2];
+                                        if ($plan && $plan->lead_id == $leadId && $value) {
+                                            [$start, $end] = explode(' - ', $value);
+                                            $plan->plan_start_date = \Carbon\Carbon::createFromFormat('d/m/Y', $start)->format('Y-m-d');
+                                            $plan->plan_end_date = \Carbon\Carbon::createFromFormat('d/m/Y', $end)->format('Y-m-d');
 
-                                    $plan = ProjectPlan::find($planId);
-                                    if ($plan && $plan->lead_id == $leadId && !is_null($value)) {
-                                        // Update the field
-                                        $plan->{$field} = $value;
+                                            if ($plan->status === 'pending') {
+                                                $plan->status = 'in_progress';
+                                            }
 
-                                        // Make sure sw_id is stored with the latest software handover
-                                        if (!$plan->sw_id) {
-                                            $plan->sw_id = $softwareHandover->id;
-                                        }
-
-                                        $plan->save();
-
-                                        // Auto-calculate durations
-                                        if (in_array($field, ['plan_start_date', 'plan_end_date'])) {
+                                            $plan->save();
                                             $plan->calculatePlanDuration();
+                                            $updatedCount += 2;
                                         }
-                                        if (in_array($field, ['actual_start_date', 'actual_end_date'])) {
-                                            $plan->calculateActualDuration();
-                                        }
+                                    }
+                                    elseif (preg_match('/plan_(\d+)_actual_date_range/', $key, $matches)) {
+                                        $planId = $matches[1];
+                                        $plan = ProjectPlan::find($planId);
 
-                                        // Auto-update status based on dates
-                                        $plan->updateStatusBasedOnDates();
+                                        if ($plan && $plan->lead_id == $leadId && $value) {
+                                            [$start, $end] = explode(' - ', $state);
+                                            $plan->actual_start_date = \Carbon\Carbon::createFromFormat('d/m/Y', $start)->format('Y-m-d');
+                                            $plan->actual_end_date = \Carbon\Carbon::createFromFormat('d/m/Y', $end)->format('Y-m-d');
+                                            $plan->status = 'completed';
+
+                                            $plan->save();
+                                            $plan->calculateActualDuration();
+                                            $updatedCount += 2;
+                                        }
+                                    }
+                                    elseif (preg_match('/plan_(\d+)_status/', $key, $matches)) {
+                                        $planId = $matches[1];
+                                        $plan = ProjectPlan::find($planId);
+
+                                        if ($plan && $plan->lead_id == $leadId) {
+                                            $plan->status = $value;
+                                            $plan->save();
+                                            $updatedCount++;
+                                        }
                                     }
                                 }
-                            }
+                            });
 
-                            // Trigger view refresh
                             $set('refresh_trigger', time());
 
                             Notification::make()
-                                ->title('Task dates updated successfully')
-                                ->body('Updated for SW ID: ' . $softwareHandover->id)
+                                ->title('Tasks Updated Successfully')
                                 ->success()
                                 ->send();
                         })
-                        ->modalWidth('7xl'),
+                        ->modalWidth('7xl')
+                        ->slideOver(),
                 ])
                 ->schema([
-                    // Hidden field to trigger refresh
                     \Filament\Forms\Components\Hidden::make('refresh_trigger')
                         ->default(0)
                         ->live(),
 
                     ViewField::make('project_progress_view')
                         ->view('filament.resources.lead-resource.tabs.project-progress-view')
+                        ->live()
                         ->dehydrated(false),
                 ])
         ];
     }
 
-    protected static function updateViewData(Get $get, Set $set, ?int $leadId = null): void
+    protected static function createProjectPlansForModules(int $leadId, int $swId, array $modules): int
     {
-        // Trigger refresh by updating the hidden field
-        $set('refresh_trigger', time());
-    }
+        $createdCount = 0;
 
-    protected static function createProjectPlansForModules(int $leadId, int $swId, array $modules): void
-    {
         foreach ($modules as $module) {
-            $tasks = ProjectTask::where('module', $module)->orderBy('order')->get();
+            $moduleNames = ProjectTask::where('module', $module)
+                ->where('is_active', true)
+                ->select('module_name')
+                ->distinct()
+                ->get()
+                ->pluck('module_name');
 
-            foreach ($tasks as $task) {
-                ProjectPlan::firstOrCreate([
-                    'lead_id' => $leadId,
-                    'sw_id' => $swId, // Store the latest software handover ID
-                    'project_task_id' => $task->id,
-                ], [
-                    'status' => 'pending',
-                ]);
+            foreach ($moduleNames as $moduleName) {
+                $tasks = ProjectTask::where('module_name', $moduleName)
+                    ->where('is_active', true)
+                    ->orderBy('order')
+                    ->get();
+
+                foreach ($tasks as $task) {
+                    $plan = ProjectPlan::firstOrCreate(
+                        [
+                            'lead_id' => $leadId,
+                            'sw_id' => $swId,
+                            'project_task_id' => $task->id,
+                        ],
+                        [
+                            'status' => 'pending',
+                        ]
+                    );
+
+                    if ($plan->wasRecentlyCreated) {
+                        $createdCount++;
+                    }
+                }
             }
         }
-    }
 
-    protected static function getProjectPlans(int $leadId, int $swId, array $modules): array
-    {
-        if ($leadId === 0 || $swId === 0) {
-            return [];
-        }
-
-        return ProjectPlan::where('lead_id', $leadId)
-            ->where('sw_id', $swId)
-            ->whereHas('projectTask', function ($query) use ($modules) {
-                $query->whereIn('module', $modules);
-            })
-            ->with('projectTask')
-            ->get()
-            ->groupBy('projectTask.module')
-            ->map(function ($plans, $module) {
-                return $plans->map(function ($plan) {
-                    return array_merge($plan->toArray(), [
-                        'phase_name' => $plan->projectTask->phase_name,
-                        'task_name' => $plan->projectTask->task_name,
-                        'order' => $plan->projectTask->order,
-                        'module' => $plan->projectTask->module,
-                        'percentage' => $plan->projectTask->percentage,
-                    ]);
-                })->sortBy('order')->values();
-            })
-            ->toArray();
-    }
-
-    protected static function generateProgressOverview(int $leadId, int $swId, array $modules): array
-    {
-        if ($leadId === 0 || $swId === 0) {
-            return [
-                'tasks' => [],
-                'totalTasks' => 0,
-                'completedTasks' => 0,
-                'overallProgress' => 0
-            ];
-        }
-
-        $plans = ProjectPlan::where('lead_id', $leadId)
-            ->where('sw_id', $swId)
-            ->whereHas('projectTask', function ($query) use ($modules) {
-                $query->whereIn('module', $modules);
-            })
-            ->with('projectTask')
-            ->get();
-
-        if ($plans->isEmpty()) {
-            return [
-                'tasks' => [],
-                'totalTasks' => 0,
-                'completedTasks' => 0,
-                'overallProgress' => 0
-            ];
-        }
-
-        $totalTasks = $plans->count();
-        $completedTasks = $plans->where('status', 'completed')->count();
-        $overallProgress = $totalTasks > 0 ? round(($completedTasks / $totalTasks) * 100) : 0;
-
-        $tasksArray = $plans->map(function ($plan) {
-            return array_merge($plan->toArray(), [
-                'phase_name' => $plan->projectTask->phase_name,
-                'task_name' => $plan->projectTask->task_name,
-                'order' => $plan->projectTask->order,
-                'module' => $plan->projectTask->module,
-                'percentage' => $plan->projectTask->percentage,
-            ]);
-        })->sortBy('order')->values()->toArray();
-
-        return [
-            'tasks' => $tasksArray,
-            'totalTasks' => $totalTasks,
-            'completedTasks' => $completedTasks,
-            'overallProgress' => $overallProgress
-        ];
+        return $createdCount;
     }
 }
