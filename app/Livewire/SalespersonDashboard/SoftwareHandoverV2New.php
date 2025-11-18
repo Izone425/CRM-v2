@@ -203,7 +203,7 @@ class SoftwareHandoverV2New extends Component implements HasForms, HasTable
                         }
 
                         // Format ID with 250 prefix and pad with zeros to ensure at least 3 digits
-                        return 'SW_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+                        return $record->formatted_handover_id;
                     })
                     ->color('primary') // Makes it visually appear as a link
                     ->weight('bold')
@@ -311,7 +311,7 @@ class SoftwareHandoverV2New extends Component implements HasForms, HasTable
                     Action::make('edit_software_handover')
                         ->label(function (SoftwareHandover $record): string {
                             // Format ID with prefix 250 and pad with zeros to ensure at least 3 digits
-                            $formattedId = 'SW_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+                            $formattedId = $record->formatted_handover_id;
                             return "Edit Software Handover {$formattedId}";
                         })
                         ->icon('heroicon-o-pencil')
@@ -939,7 +939,7 @@ class SoftwareHandoverV2New extends Component implements HasForms, HasTable
                             $rejecterName = $rejecter->name ?? 'System';
                             $rejecterEmail = $rejecter->email;
 
-                            $handoverId = 'SW_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+                            $handoverId = $record->formatted_handover_id;
 
                             if ($salespersonEmail) {
                                 try {
@@ -1457,7 +1457,7 @@ class SoftwareHandoverV2New extends Component implements HasForms, HasTable
 
                             // ✅ AUTO-DETECT MODULES & SEATS FROM QUOTATIONS (BACKEND ONLY)
                             $licenseService = app(\App\Services\LicenseSeatService::class);
-                            $handoverId = 'SW_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+                            $handoverId = $record->formatted_handover_id;
 
                             // Get all PI IDs
                             $allPiIds = [];
@@ -2056,7 +2056,7 @@ class SoftwareHandoverV2New extends Component implements HasForms, HasTable
     {
         try {
             $companyName = $record->company_name ?? $record->lead->companyDetail->company_name ?? 'Unknown Company';
-            $handoverId = 'SW_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+            $handoverId = $record->formatted_handover_id;
             $handoverFormUrl = $record->handover_pdf ? url('storage/' . $record->handover_pdf) : null;
 
             // Get invoice files
@@ -2136,12 +2136,12 @@ class SoftwareHandoverV2New extends Component implements HasForms, HasTable
             }
 
             if (empty($picEmails)) {
-                $handoverId = 'SW_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+                $handoverId = $record->formatted_handover_id;
                 \Illuminate\Support\Facades\Log::warning("No valid PIC emails found for handover {$handoverId}");
                 return;
             }
 
-            $handoverId = 'SW_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+            $handoverId = $record->formatted_handover_id;
             $activationController = app(\App\Http\Controllers\CustomerActivationController::class);
 
             $activationController->sendGroupActivationEmail(

@@ -119,7 +119,7 @@ class ProjectPriorityTable extends Component implements HasForms, HasTable
                             return $filename;
                         }
 
-                        return 'SW_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+                        return $record->formatted_handover_id;
                     })
                     ->color('primary')
                     ->weight('bold'),

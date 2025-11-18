@@ -188,7 +188,7 @@ class HardwareAttachmentResource extends Resource
                         }
 
                         // Format ID with prefix and padding
-                        return 'SW_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+                        return $record->formatted_handover_id;
                     })
                     ->color('primary') // Makes it visually appear as a link
                     ->weight('bold')

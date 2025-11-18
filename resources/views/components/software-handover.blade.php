@@ -8,7 +8,7 @@
     }
 
     // Format the handover ID
-    $handoverId = 'SW_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+    $handoverId = $record->formatted_handover_id;
 
     // Get company detail
     $companyDetail = $record->lead->companyDetail ?? null;

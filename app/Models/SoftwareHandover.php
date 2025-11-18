@@ -368,4 +368,25 @@ class SoftwareHandover extends Model
             'id'
         );
     }
+
+    public function getFormattedHandoverIdAttribute(): string
+    {
+        $year = $this->created_at ? $this->created_at->format('y') : now()->format('y');
+        $maxNum = 9999; // Maximum 4-digit number
+        $num = $this->id % $maxNum == 0 ? $maxNum : ($this->id % $maxNum);
+
+        return sprintf('SW_%02d%04d', $year, $num);
+    }
+
+    public static function generateFormattedId(int $id, ?string $createdAt = null): string
+    {
+        $year = $createdAt
+            ? Carbon::parse($createdAt)->format('y')
+            : now()->format('y');
+
+        $maxNum = 9999;
+        $num = $id % $maxNum == 0 ? $maxNum : ($id % $maxNum);
+
+        return sprintf('SW_%02d%04d', $year, $num);
+    }
 }
