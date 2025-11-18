@@ -99,7 +99,6 @@ class ImplementerSequenceMedium extends Component implements HasForms, HasTable
             'Zulhilmie',
             'Muhamad Izzul Aiman',
             'Ahmad Syamim',
-            'Nurul Shaqinur Ain',
             'Siti Shahilah',
             'Nur Alia',
         ];

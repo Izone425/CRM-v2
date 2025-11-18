@@ -21,9 +21,11 @@ class CreateProjectTask extends CreateRecord
     protected function handleRecordCreation(array $data): Model
     {
         $moduleData = [
-            'module' => strtolower($data['module']), // Ensure lowercase
+            'module' => $data['module'],
             'module_name' => $data['module_name'],
+            'module_order' => $data['module_order'],
             'module_percentage' => $data['module_percentage'],
+            'hr_version' => $data['hr_version'], // ✅ Keep hr_version
         ];
 
         $tasks = $data['tasks'] ?? [];
