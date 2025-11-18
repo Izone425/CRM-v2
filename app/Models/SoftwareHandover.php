@@ -97,6 +97,8 @@ class SoftwareHandover extends Model
 
         'crm_buffer_license_id',
         'crm_paid_license_ids',
+        'project_plan_link',
+        'project_plan_generated_at',
     ];
 
     protected $casts = [
@@ -106,6 +108,7 @@ class SoftwareHandover extends Model
         'webinar_training' => 'date',
         'go_live_date' => 'date',
         'submitted_at' => 'datetime',
+        'project_plan_generated_at' => 'datetime',
 
         'ta' => 'boolean',
         'tl' => 'boolean',

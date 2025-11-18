@@ -39,12 +39,31 @@ class ProjectTaskResource extends Resource
             Forms\Components\Section::make('Module Information')
                 ->description('Define the module details that will be used across multiple tasks')
                 ->schema([
-                    Forms\Components\TextInput::make('module')
+                    Forms\Components\Select::make('module')
                         ->label('Module Code')
                         ->required()
-                        ->maxLength(255)
-                        ->reactive()
-                        ->afterStateUpdated(fn ($state, callable $set) => $set('module', strtolower($state))),
+                        ->searchable()
+                        ->options(function (callable $get) {
+                            $hrVersion = $get('hr_version') ?? '1';
+
+                            if ($hrVersion == '1') {
+                                return [
+                                    'attendance' => 'Attendance',
+                                    'leave' => 'Leave',
+                                    'claim' => 'Claim',
+                                    'payroll' => 'Payroll',
+                                ];
+                            }
+
+                            // Version 2 modules (you can customize these)
+                            return [
+                                'attendance' => 'Attendance',
+                                'leave' => 'Leave',
+                                'claim' => 'Claim',
+                                'payroll' => 'Payroll',
+                            ];
+                        })
+                        ->reactive(),
 
                     Forms\Components\Select::make('hr_version')
                         ->label('HR Version')
@@ -161,9 +180,7 @@ class ProjectTaskResource extends Resource
                             '1' => 'Version 1',
                             '2' => 'Version 2',
                         ])
-                        ->required()
-                        ->disabled()
-                        ->dehydrated(true),
+                        ->required(),
 
                     Forms\Components\TextInput::make('module_name')
                         ->label('Module Display Name')

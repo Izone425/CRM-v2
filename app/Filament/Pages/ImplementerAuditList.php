@@ -45,7 +45,6 @@ class ImplementerAuditList extends Page
             'Zulhilmie',
             'Muhamad Izzul Aiman',
             'Ahmad Syamim',
-            'Nurul Shaqinur Ain',
             'Siti Shahilah',
             'Nur Alia',
         ];
@@ -187,7 +186,6 @@ class ImplementerAuditList extends Page
             'Zulhilmie' => [245, 158, 11],
             'Muhamad Izzul Aiman' => [236, 72, 153],
             'Ahmad Syamim' => [59, 130, 246],
-            'Nurul Shaqinur Ain' => [139, 92, 246],
             'Siti Shahilah' => [168, 85, 247],
             'Nur Alia' => [34, 197, 94],
             default => [107, 114, 128],

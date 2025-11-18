@@ -568,18 +568,17 @@ class ImplementerCalendar extends Component
 
         // Define the custom order for implementers
         $customOrder = [
-            'Nurul Shaqinur Ain' => 1,
-            'Ahmad Syamim' => 2,
-            'Ahmad Syazwan' => 3,
-            'Siti Shahilah' => 4,
-            'Muhamad Izzul Aiman' => 5,
-            'Zulhilmie' => 6,
-            'Mohd Amirul Ashraf' => 7,
-            'John Low' => 8,
-            'Nur Alia' => 9,
-            'Nur Fazuliana' => 10,
-            'Ummu Najwa Fajrina' => 11,
-            'Noor Syazana' => 12
+            'Ahmad Syamim' => 1,
+            'Ahmad Syazwan' => 2,
+            'Siti Shahilah' => 3,
+            'Muhamad Izzul Aiman' => 4,
+            'Zulhilmie' => 5,
+            'Mohd Amirul Ashraf' => 6,
+            'John Low' => 7,
+            'Nur Alia' => 8,
+            'Nur Fazuliana' => 9,
+            'Ummu Najwa Fajrina' => 10,
+            'Noor Syazana' => 11
         ];
 
         // Get implementers data
@@ -849,7 +848,6 @@ class ImplementerCalendar extends Component
     {
         // Define the custom order for implementers
         $customOrder = [
-            'Nurul Shaqinur Ain' => 1,
             'Ahmad Syamim' => 2,
             'Ahmad Syazwan' => 3,
             'Siti Shahilah' => 4,

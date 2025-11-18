@@ -720,7 +720,8 @@
                     'filament.admin.resources.lead-sources.index',
                     'filament.admin.resources.invalid-lead-reasons.index',
                     'filament.admin.resources.resellers.index',
-                    'filament.admin.resources.users.index'
+                    'filament.admin.resources.users.index',
+                    'filament.admin.resources.project-tasks.index'
                 ]))
                     <div class="icon-link" data-section="settings">
                         <div class="icon-wrapper">
@@ -1831,7 +1832,8 @@
                         'filament.admin.resources.lead-sources.index',
                         'filament.admin.resources.invalid-lead-reasons.index',
                         'filament.admin.resources.resellers.index',
-                        'filament.admin.resources.users.index'
+                        'filament.admin.resources.users.index',
+                        'filament.admin.resources.project-tasks.index'
                     ]))
                         <!-- System Label Section -->
                         @if(auth()->user()->hasAccessToAny([
@@ -1840,7 +1842,8 @@
                             'filament.admin.resources.lead-sources.index',
                             'filament.admin.resources.invalid-lead-reasons.index',
                             'filament.admin.resources.resellers.index',
-                            'filament.admin.resources.installers.index'
+                            'filament.admin.resources.installers.index',
+                            'filament.admin.resources.project-tasks.index'
                         ]))
                         <div class="menu-block">
                             <div class="menu-item nested-dropdown-trigger" data-submenu="settings-system-label-submenu">

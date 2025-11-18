@@ -719,21 +719,20 @@ class Calendar extends Component
                 ['name' => 'Hanif Razali', 'order' => 19]
             ],
             'Implementer Department' => [
-                ['name' => 'Nurul Shaqinur Ain', 'order' => 20],
-                ['name' => 'Ahmad Syamim', 'order' => 21],
-                ['name' => 'Siti Shahilah', 'order' => 22],
-                ['name' => 'Muhamad Izzul Aiman', 'order' => 23],
-                ['name' => 'Zulhilmie', 'order' => 24],
-                ['name' => 'Nur Alia', 'order' => 25],
-                ['name' => 'John Low', 'order' => 26],
-                ['name' => 'Mohd Amirul Ashraf', 'order' => 27],
-                ['name' => 'Nur Fazuliana', 'order' => 28]
+                ['name' => 'Ahmad Syamim', 'order' => 20],
+                ['name' => 'Siti Shahilah', 'order' => 21],
+                ['name' => 'Muhamad Izzul Aiman', 'order' => 22],
+                ['name' => 'Zulhilmie', 'order' => 23],
+                ['name' => 'Nur Alia', 'order' => 24],
+                ['name' => 'John Low', 'order' => 25],
+                ['name' => 'Mohd Amirul Ashraf', 'order' => 26],
+                ['name' => 'Nur Fazuliana', 'order' => 27]
             ],
             'Trainer Department' => [
-                ['name' => 'Mohd Fairos', 'order' => 29]
+                ['name' => 'Mohd Fairos', 'order' => 28]
             ],
             'Technician Department' => [
-                ['name' => 'Khairul Izzuddin', 'order' => 30]
+                ['name' => 'Khairul Izzuddin', 'order' => 29]
             ]
         ];
 

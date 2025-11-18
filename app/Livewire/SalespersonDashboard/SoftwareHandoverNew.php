@@ -1301,14 +1301,14 @@ class SoftwareHandoverNew extends Component implements HasForms, HasTable
             }
         }
 
-        // if (!empty($record->proforma_invoice_hrdf)) {
-        //     $hrdfPis = is_string($record->proforma_invoice_hrdf)
-        //         ? json_decode($record->proforma_invoice_hrdf, true)
-        //         : $record->proforma_invoice_hrdf;
-        //     if (is_array($hrdfPis)) {
-        //         $allPiIds = array_merge($allPiIds, $hrdfPis);
-        //     }
-        // }
+        if (!empty($record->proforma_invoice_hrdf)) {
+            $hrdfPis = is_string($record->proforma_invoice_hrdf)
+                ? json_decode($record->proforma_invoice_hrdf, true)
+                : $record->proforma_invoice_hrdf;
+            if (is_array($hrdfPis)) {
+                $allPiIds = array_merge($allPiIds, $hrdfPis);
+            }
+        }
 
         // ✅ If both are empty, fall back to software_hardware_pi
         if (empty($allPiIds) && !empty($record->software_hardware_pi)) {

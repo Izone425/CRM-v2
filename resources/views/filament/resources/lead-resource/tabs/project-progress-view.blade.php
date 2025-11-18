@@ -12,6 +12,7 @@
         'overallProgress' => 0,
         'modules' => []
     ];
+    $projectPlanGeneratedAt = null;
 
     // Try to get the livewire component and lead record
     try {
@@ -26,6 +27,8 @@
                     ->first();
 
                 if ($softwareHandover) {
+                    $projectPlanGeneratedAt = $softwareHandover->project_plan_generated_at;
+
                     // Get modules from latest SoftwareHandover
                     $selectedModules = $softwareHandover->getSelectedModules();
 
@@ -655,6 +658,22 @@
         });
     });
 </script>
+
+@if($projectPlanGeneratedAt)
+    <div style="text-align: right;">
+        <div style="display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px; background-color: #F3F4F6; border-radius: 6px; border-left: 3px solid #3B82F6;">
+            <div style="font-size: 11px; color: #6B7280; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
+                📅 Project Plan Generated:
+            </div>
+            <div style="font-size: 13px; color: #1F2937; font-weight: 700;">
+                {{ \Carbon\Carbon::parse($projectPlanGeneratedAt)->format('d M Y, h:i A') }}
+            </div>
+            <div style="font-size: 10px; color: #9CA3AF; font-weight: 500;">
+                ({{ \Carbon\Carbon::parse($projectPlanGeneratedAt)->diffForHumans() }})
+            </div>
+        </div>
+    </div>
+@endif
 
 <div class="project-progress-container">
     @if(!empty($selectedModules) && !empty($progressOverview))

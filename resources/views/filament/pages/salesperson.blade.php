@@ -533,7 +533,7 @@
     $partialDebtorInvoiceCount = $partialDebtorsTable->getInvoiceCount();
     $partialDebtorAmount = $partialDebtorsTable->getTotalAmount();
 
-    $rejectedHandoverTotal = $softwareHandoverRejected + $hardwareHandoverRejected + $softwareHandoverV2Rejected;
+    $rejectedHandoverTotal = $softwareHandoverRejected + $hardwareHandoverRejected + $softwareHandoverV2Rejected + $hrdfRejected;
 
     // Total for badge display on group box
     $totalDebtorCount = $allDebtorCount;
