@@ -217,7 +217,6 @@
         padding-left: 16px;
         padding-bottom: 16px;
         padding-top: 16px;
-        padding-right: 280px; /* Space for tooltip on right */
     }
 
     .timeline-container {

@@ -136,7 +136,7 @@ class SoftwareResource extends Resource
                                                         }
 
                                                         // Format the handover ID properly
-                                                        $handoverId = 'SW_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+                                                        $handoverId = $record->formatted_handover_id;
 
                                                         // Get the handover PDF URL
                                                         $handoverFormUrl = $record->handover_pdf ? url('storage/' . $record->handover_pdf) : null;
@@ -385,7 +385,7 @@ class SoftwareResource extends Resource
                         }
 
                         // Format ID with 250 prefix and pad with zeros to ensure at least 3 digits
-                        return 'SW_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+                        return $record->formatted_handover_id;
                     })
                     ->color('primary') // Makes it visually appear as a link
                     ->weight('bold')
@@ -1028,7 +1028,7 @@ class SoftwareResource extends Resource
                             $count++;
 
                             // Format the handover ID properly
-                            $handoverId = 'SW_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+                            $handoverId = $record->formatted_handover_id;
 
                             // Get company name with fallbacks
                             $companyName = $record->company_name;

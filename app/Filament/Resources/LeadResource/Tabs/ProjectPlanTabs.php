@@ -6,6 +6,7 @@ use App\Models\ProjectPlan;
 use App\Models\Lead;
 use App\Models\SoftwareHandover;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\ViewField;
@@ -18,6 +19,12 @@ use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\DB;
 use Malzariey\FilamentDaterangepickerFilter\Fields\DateRangePicker;
 use Filament\Tables\Columns\TextColumn;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Style\Border;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ProjectPlanTabs
 {
@@ -26,6 +33,39 @@ class ProjectPlanTabs
         return [
             Section::make('Project Plan')
                 ->headerActions([
+                    \Filament\Forms\Components\Actions\Action::make('downloadExcel')
+                        ->label('Download Excel')
+                        ->icon('heroicon-o-arrow-down-tray')
+                        ->color('success')
+                        ->size(ActionSize::Small)
+                        ->action(function (Get $get, $livewire) {
+                            $leadId = $livewire->record?->id ?? $get('id') ?? 0;
+
+                            if ($leadId === 0) {
+                                Notification::make()
+                                    ->title('Error')
+                                    ->body('Please save the lead first')
+                                    ->danger()
+                                    ->send();
+                                return;
+                            }
+
+                            $lead = Lead::find($leadId);
+                            $softwareHandover = SoftwareHandover::where('lead_id', $leadId)
+                                ->latest()
+                                ->first();
+
+                            if (!$softwareHandover) {
+                                Notification::make()
+                                    ->title('No Software Handover Found')
+                                    ->warning()
+                                    ->send();
+                                return;
+                            }
+
+                            return self::downloadProjectPlanExcel($lead, $softwareHandover);
+                        }),
+
                     \Filament\Forms\Components\Actions\Action::make('refreshModules')
                         ->label('Sync Tasks from Template')
                         ->icon('heroicon-o-arrow-path')
@@ -172,8 +212,64 @@ class ProjectPlanTabs
                                         }
                                     }
 
-                                    // ✅ Create table rows for this module
                                     $tableRows = [];
+
+                                    $tableRows[] = [
+                                        \Filament\Forms\Components\Placeholder::make("header_{$moduleName}_task")
+                                            ->label('')
+                                            ->content(new \Illuminate\Support\HtmlString(
+                                                '<div>
+                                                    <strong style="font-size: 14px;">Task Name</strong>
+                                                </div>'
+                                            ))
+                                            ->columnSpan(4),
+
+                                        \Filament\Forms\Components\Placeholder::make("header_{$moduleName}_plan_date")
+                                            ->label('')
+                                            ->content(new \Illuminate\Support\HtmlString(
+                                                '<div>
+                                                    <strong style="font-size: 14px;">Planned Date</strong>
+                                                </div>'
+                                            ))
+                                            ->columnSpan(3),
+
+                                        \Filament\Forms\Components\Placeholder::make("header_{$moduleName}_plan_duration")
+                                            ->label('')
+                                            ->content(new \Illuminate\Support\HtmlString(
+                                                '<div>
+                                                    <strong style="font-size: 14px;">Duration</strong>
+                                                </div>'
+                                            ))
+                                            ->columnSpan(2),
+
+                                        \Filament\Forms\Components\Placeholder::make("header_{$moduleName}_actual_date")
+                                            ->label('')
+                                            ->content(new \Illuminate\Support\HtmlString(
+                                                '<div>
+                                                    <strong style="font-size: 14px;">Actual Date</strong>
+                                                </div>'
+                                            ))
+                                            ->columnSpan(3),
+
+                                        \Filament\Forms\Components\Placeholder::make("header_{$moduleName}_actual_duration")
+                                            ->label('')
+                                            ->content(new \Illuminate\Support\HtmlString(
+                                                '<div>
+                                                    <strong style="font-size: 14px;">Duration</strong>
+                                                </div>'
+                                            ))
+                                            ->columnSpan(2),
+
+                                        \Filament\Forms\Components\Placeholder::make("header_{$moduleName}_status")
+                                            ->label('')
+                                            ->content(new \Illuminate\Support\HtmlString(
+                                                '<div>
+                                                    <strong style="font-size: 14px;">Status</strong>
+                                                </div>'
+                                            ))
+                                            ->columnSpan(2),
+                                    ];
+
                                     foreach ($modulePlans as $plan) {
                                         $task = $plan->projectTask;
 
@@ -191,13 +287,13 @@ class ProjectPlanTabs
 
                                         $tableRows[] = [
                                             TextInput::make("plan_{$plan->id}_task")
-                                                ->label('')
+                                                ->hiddenLabel()
                                                 ->default($task->task_name)
                                                 ->disabled()
-                                                ->columnSpan(3),
+                                                ->columnSpan(4),
 
                                             DateRangePicker::make("plan_{$plan->id}_plan_date_range")
-                                                ->label('')
+                                                ->hiddenLabel()
                                                 ->default($planDateRangeValue)
                                                 ->format('d/m/Y')
                                                 ->displayFormat('DD/MM/YYYY')
@@ -207,25 +303,28 @@ class ProjectPlanTabs
                                                         [$start, $end] = explode(' - ', $state);
                                                         $startDate = \Carbon\Carbon::createFromFormat('d/m/Y', $start);
                                                         $endDate = \Carbon\Carbon::createFromFormat('d/m/Y', $end);
-                                                        $set("plan_{$plan->id}_plan_duration", $startDate->diffInDays($endDate) + 1);
+
+                                                        // ✅ Calculate weekdays only (excluding weekends)
+                                                        $weekdays = self::calculateWeekdays($startDate, $endDate);
+                                                        $set("plan_{$plan->id}_plan_duration", $weekdays);
 
                                                         if ($plan->status === 'pending') {
                                                             $set("plan_{$plan->id}_status", 'in_progress');
                                                         }
                                                     }
                                                 })
-                                                ->columnSpan(2),
+                                                ->columnSpan(3),
 
                                             TextInput::make("plan_{$plan->id}_plan_duration")
-                                                ->label('')
+                                                ->hiddenLabel()
                                                 ->numeric()
                                                 ->default($plan->plan_duration)
                                                 ->readOnly()
                                                 ->suffix('days')
-                                                ->columnSpan(1),
+                                                ->columnSpan(2),
 
                                             DateRangePicker::make("plan_{$plan->id}_actual_date_range")
-                                                ->label('')
+                                                ->hiddenLabel()
                                                 ->default($actualDateRangeValue)
                                                 ->format('d/m/Y')
                                                 ->displayFormat('DD/MM/YYYY')
@@ -235,22 +334,25 @@ class ProjectPlanTabs
                                                         [$start, $end] = explode(' - ', $state);
                                                         $startDate = \Carbon\Carbon::createFromFormat('d/m/Y', $start);
                                                         $endDate = \Carbon\Carbon::createFromFormat('d/m/Y', $end);
-                                                        $set("plan_{$plan->id}_actual_duration", $startDate->diffInDays($endDate) + 1);
+
+                                                        // ✅ Calculate weekdays only (excluding weekends)
+                                                        $weekdays = self::calculateWeekdays($startDate, $endDate);
+                                                        $set("plan_{$plan->id}_actual_duration", $weekdays);
                                                         $set("plan_{$plan->id}_status", 'completed');
                                                     }
                                                 })
-                                                ->columnSpan(2),
+                                                ->columnSpan(3),
 
                                             TextInput::make("plan_{$plan->id}_actual_duration")
-                                                ->label(false)
+                                                ->hiddenLabel()
                                                 ->numeric()
                                                 ->default($plan->actual_duration)
                                                 ->readOnly()
                                                 ->suffix('days')
-                                                ->columnSpan(1),
+                                                ->columnSpan(2),
 
                                             Select::make("plan_{$plan->id}_status")
-                                                ->label('')
+                                                ->hiddenLabel()
                                                 ->options([
                                                     'pending' => 'Pending',
                                                     'in_progress' => 'In Progress',
@@ -261,7 +363,7 @@ class ProjectPlanTabs
                                                 ->dehydrated(true)
                                                 ->default($plan->status)
                                                 ->required()
-                                                ->columnSpan(3),
+                                                ->columnSpan(2),
                                         ];
                                     }
 
@@ -269,7 +371,7 @@ class ProjectPlanTabs
 
                                     // Task rows
                                     foreach ($tableRows as $row) {
-                                        $moduleSchema[] = \Filament\Forms\Components\Grid::make(12)
+                                        $moduleSchema[] = \Filament\Forms\Components\Grid::make(16)
                                             ->schema($row);
                                     }
 
@@ -369,7 +471,249 @@ class ProjectPlanTabs
         ];
     }
 
-    protected static function createProjectPlansForModules(int $leadId, int $swId, array $modules): int
+    protected static function downloadProjectPlanExcel(Lead $lead, SoftwareHandover $softwareHandover): StreamedResponse
+    {
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+
+        // Set document properties
+        $companyName = $lead->companyDetail?->company_name ?? 'Unknown Company';
+        $implementerName = $softwareHandover->implementer ?? 'Not Assigned';
+
+        $spreadsheet->getProperties()
+            ->setCreator('TimeTec CRM')
+            ->setTitle("Project Plan - {$companyName}")
+            ->setSubject('Project Implementation Plan');
+
+        $currentRow = 1;
+
+        // ✅ Add header information (Company Name, Implementer, Progress Overview)
+
+        // Row 1: Company Name
+        $sheet->setCellValue("A{$currentRow}", 'Company Name');
+        $sheet->mergeCells("A{$currentRow}:B{$currentRow}");
+        $sheet->setCellValue("C{$currentRow}", $companyName);
+        $sheet->mergeCells("C{$currentRow}:J{$currentRow}");
+        $sheet->getStyle("A{$currentRow}:J{$currentRow}")->applyFromArray([
+            'font' => ['bold' => true, 'size' => 12],
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'E8F5E9']],
+            'borders' => [
+                'allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => '000000']],
+            ],
+        ]);
+        $currentRow++;
+
+        // Row 2: Implementer Name
+        $sheet->setCellValue("A{$currentRow}", 'Implementer Name');
+        $sheet->mergeCells("A{$currentRow}:B{$currentRow}");
+        $sheet->setCellValue("C{$currentRow}", $implementerName);
+        $sheet->mergeCells("C{$currentRow}:J{$currentRow}");
+        $sheet->getStyle("A{$currentRow}:J{$currentRow}")->applyFromArray([
+            'font' => ['bold' => true, 'size' => 12],
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'E3F2FD']],
+            'borders' => [
+                'allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => '000000']],
+            ],
+        ]);
+        $currentRow++;
+
+        // Row 3: Project Progress Overview
+        $sheet->setCellValue("A{$currentRow}", 'Project Progress Overview');
+        $sheet->mergeCells("A{$currentRow}:J{$currentRow}");
+        $sheet->getStyle("A{$currentRow}:J{$currentRow}")->applyFromArray([
+            'font' => ['bold' => true, 'size' => 14, 'color' => ['rgb' => 'FFFFFF']],
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '1976D2']],
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
+            'borders' => [
+                'allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => '000000']],
+            ],
+        ]);
+        $sheet->getRowDimension($currentRow)->setRowHeight(30);
+        $currentRow++;
+
+        // Add empty row for spacing
+        $currentRow++;
+
+        $selectedModules = $softwareHandover->getSelectedModules();
+        $allModules = array_unique(array_merge(['phase 1', 'phase 2'], $selectedModules));
+
+        $moduleNames = ProjectTask::whereIn('module', $allModules)
+            ->where('is_active', true)
+            ->select('module_name', 'module_order', 'module_percentage', 'module')
+            ->distinct()
+            ->orderBy('module_order')
+            ->orderBy('module_name')
+            ->get();
+
+        foreach ($moduleNames as $moduleData) {
+            $moduleName = $moduleData->module_name;
+            $modulePercentage = $moduleData->module_percentage;
+            $module = $moduleData->module; // ✅ Get the module field
+
+            $modulePlans = ProjectPlan::where('lead_id', $lead->id)
+                ->where('sw_id', $softwareHandover->id)
+                ->whereHas('projectTask', function ($query) use ($moduleName) {
+                    $query->where('module_name', $moduleName)
+                        ->where('is_active', true);
+                })
+                ->with('projectTask')
+                ->orderBy('id')
+                ->get();
+
+            if ($modulePlans->isEmpty()) {
+                continue;
+            }
+
+            // ✅ First row: Plan and Actual headers only
+            // Plan header (yellow) - merged cells E:G
+            $sheet->setCellValue("E{$currentRow}", 'Plan');
+            $sheet->mergeCells("E{$currentRow}:G{$currentRow}");
+
+            // Actual header (green) - merged cells H:J
+            $sheet->setCellValue("H{$currentRow}", 'Actual');
+            $sheet->mergeCells("H{$currentRow}:J{$currentRow}");
+
+            // Style Plan header (yellow background)
+            $sheet->getStyle("E{$currentRow}:G{$currentRow}")->applyFromArray([
+                'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'FFFF00']],
+                'font' => ['bold' => true],
+                'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
+            ]);
+
+            // Style Actual header (green background)
+            $sheet->getStyle("H{$currentRow}:J{$currentRow}")->applyFromArray([
+                'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '00FF00']],
+                'font' => ['bold' => true],
+                'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
+            ]);
+
+            $currentRow++;
+
+            // ✅ Second row: Module code + Module name + Sub-headers (same row)
+            $sheet->setCellValue("A{$currentRow}", ucfirst(strtolower($module)));
+            $sheet->setCellValue("B{$currentRow}", $moduleName);
+            $sheet->setCellValue("C{$currentRow}", 'Status');
+            $sheet->setCellValue("D{$currentRow}", $modulePercentage . '%');
+
+            // Style module name section (cyan background with BLACK font and borders)
+            $sheet->getStyle("A{$currentRow}:D{$currentRow}")->applyFromArray([
+                'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '00B0F0']],
+                'font' => ['bold' => true, 'color' => ['rgb' => '000000']], // ✅ Changed to black
+                'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
+                'borders' => [ // ✅ Added borders
+                    'allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => '000000']],
+                ],
+            ]);
+
+            // Sub-headers: Start Date/End Date/Duration (columns E-J)
+            $headers = ['Start Date', 'End Date', 'Duration', 'Start Date', 'End Date', 'Duration'];
+            $col = 'E';
+            foreach ($headers as $header) {
+                $sheet->setCellValue("{$col}{$currentRow}", $header);
+
+                // Apply yellow background to Plan columns (E, F, G)
+                if (in_array($col, ['E', 'F', 'G'])) {
+                    $sheet->getStyle("{$col}{$currentRow}")->applyFromArray([
+                        'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'FFFF00']],
+                        'font' => ['bold' => true, 'color' => ['rgb' => '000000']], // ✅ Added black font
+                        'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
+                        'borders' => [ // ✅ Added borders
+                            'allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => '000000']],
+                        ],
+                    ]);
+                }
+                // Apply green background to Actual columns (H, I, J)
+                elseif (in_array($col, ['H', 'I', 'J'])) {
+                    $sheet->getStyle("{$col}{$currentRow}")->applyFromArray([
+                        'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '00FF00']],
+                        'font' => ['bold' => true, 'color' => ['rgb' => '000000']], // ✅ Added black font
+                        'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
+                        'borders' => [ // ✅ Added borders
+                            'allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => '000000']],
+                        ],
+                    ]);
+                }
+
+                $col++;
+            }
+
+            $currentRow++;
+
+            // Task rows
+            $taskNumber = 1;
+            foreach ($modulePlans as $plan) {
+                $task = $plan->projectTask;
+
+                $sheet->setCellValue("A{$currentRow}", $taskNumber);
+                $sheet->setCellValue("B{$currentRow}", $task->task_name);
+                $sheet->setCellValue("C{$currentRow}", ucfirst($plan->status));
+                $sheet->setCellValue("D{$currentRow}", ($task->task_percentage ?? 0) . '%');
+
+                // ✅ Add center alignment for task percentage (column D)
+                $sheet->getStyle("D{$currentRow}")->applyFromArray([
+                    'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
+                ]);
+
+                // Plan dates
+                $sheet->setCellValue("E{$currentRow}", $plan->plan_start_date ? \Carbon\Carbon::parse($plan->plan_start_date)->format('d/m/Y') : '');
+                $sheet->setCellValue("F{$currentRow}", $plan->plan_end_date ? \Carbon\Carbon::parse($plan->plan_end_date)->format('d/m/Y') : '');
+                $sheet->setCellValue("G{$currentRow}", $plan->plan_duration ?? '');
+
+                // Actual dates
+                $sheet->setCellValue("H{$currentRow}", $plan->actual_start_date ? \Carbon\Carbon::parse($plan->actual_start_date)->format('d/m/Y') : '');
+                $sheet->setCellValue("I{$currentRow}", $plan->actual_end_date ? \Carbon\Carbon::parse($plan->actual_end_date)->format('d/m/Y') : '');
+                $sheet->setCellValue("J{$currentRow}", $plan->actual_duration ?? '');
+
+                // Add borders
+                $sheet->getStyle("A{$currentRow}:J{$currentRow}")->applyFromArray([
+                    'borders' => [
+                        'allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => '000000']],
+                    ],
+                ]);
+
+                $currentRow++;
+                $taskNumber++;
+            }
+
+            $currentRow++; // Add spacing between modules
+        }
+
+        // Auto-size columns
+        foreach (range('A', 'J') as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
+
+        // Generate filename
+        $filename = 'Project_Plan_' . str_replace(' ', '_', $companyName) . '_' . date('Y-m-d') . '.xlsx';
+
+        // Create response
+        return new StreamedResponse(function () use ($spreadsheet) {
+            $writer = new Xlsx($spreadsheet);
+            $writer->save('php://output');
+        }, 200, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+            'Cache-Control' => 'max-age=0',
+        ]);
+    }
+
+    protected static function calculateWeekdays(\Carbon\Carbon $startDate, \Carbon\Carbon $endDate): int
+    {
+        $weekdays = 0;
+        $current = $startDate->copy();
+
+        while ($current->lte($endDate)) {
+            // Check if current day is not Saturday (6) or Sunday (0)
+            if (!$current->isWeekend()) {
+                $weekdays++;
+            }
+            $current->addDay();
+        }
+
+        return $weekdays;
+    }
+
+    public static function createProjectPlansForModules(int $leadId, int $swId, array $modules): int
     {
         $createdCount = 0;
 

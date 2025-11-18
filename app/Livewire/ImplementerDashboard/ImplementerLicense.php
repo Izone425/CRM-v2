@@ -165,7 +165,7 @@ class ImplementerLicense extends Component implements HasForms, HasTable
                         }
 
                         // Format ID with 250 prefix and pad with zeros to ensure at least 3 digits
-                        return 'SW_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+                        return $record->formatted_handover_id;
                     })
                     ->color('primary') // Makes it visually appear as a link
                     ->weight('bold')
@@ -529,7 +529,7 @@ class ImplementerLicense extends Component implements HasForms, HasTable
                             ]);
 
                             // Format the handover ID properly
-                            $handoverId = 'SW_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+                            $handoverId = $record->formatted_handover_id;
                             $certificateId = 'LC_' . str_pad($certificate->id, 4, '0', STR_PAD_LEFT);
 
                             // Get the handover PDF URL

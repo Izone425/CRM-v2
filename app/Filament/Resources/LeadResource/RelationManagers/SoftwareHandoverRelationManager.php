@@ -1095,7 +1095,7 @@ class SoftwareHandoverRelationManager extends RelationManager
                         }
 
                         // Format ID with 250 prefix and pad with zeros to ensure at least 3 digits
-                        return 'SW_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+                        return $record->formatted_handover_id;
                     })
                     ->color('primary') // Makes it visually appear as a link
                     ->weight('bold')
@@ -1182,7 +1182,7 @@ class SoftwareHandoverRelationManager extends RelationManager
                     Action::make('edit_software_handover')
                         ->modalHeading(function (SoftwareHandover $record): string {
                             // Format ID with prefix 250 and pad with zeros to ensure at least 3 digits
-                            $formattedId = 'SW_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+                            $formattedId = $record->formatted_handover_id;
                             return "Edit Software Handover {$formattedId}";
                         })
                         ->label('Edit Software Handover')

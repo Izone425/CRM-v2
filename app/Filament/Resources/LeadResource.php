@@ -228,10 +228,10 @@ class LeadResource extends Resource
                 ->schema(ImplementerAppointmentTabs::getSchema());
         }
 
-        // if (in_array('project_plan', $activeTabs)) {
-        //     $tabs[] = Tabs\Tab::make('Project Plan')
-        //         ->schema(ProjectPlanTabs::getSchema());
-        // }
+        if (in_array('project_plan', $activeTabs)) {
+            $tabs[] = Tabs\Tab::make('Project Plan')
+                ->schema(ProjectPlanTabs::getSchema());
+        }
 
         // if (in_array('data_file', $activeTabs)) {
         //     $tabs[] = Tabs\Tab::make('Data Files')

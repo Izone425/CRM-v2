@@ -79,16 +79,16 @@ class HrdfClaimTracker extends Page implements HasTable
                 HrdfClaim::query()
                     ->leftJoin('hrdf_handovers', 'hrdf_claims.hrdf_grant_id', '=', 'hrdf_handovers.hrdf_grant_id')
                     ->select('hrdf_claims.*', 'hrdf_handovers.id as handover_id', 'hrdf_handovers.lead_id as handover_lead_id')
-                    ->orderByRaw('
-                        CASE hrdf_claims.claim_status
-                            WHEN "PENDING" THEN 1
-                            WHEN "SUBMITTED" THEN 2
-                            WHEN "APPROVED" THEN 3
-                            WHEN "RECEIVED" THEN 4
-                            ELSE 5
-                        END,
-                        hrdf_claims.created_at DESC
-                    ')
+                    // ->orderByRaw('
+                    //     CASE hrdf_claims.claim_status
+                    //         WHEN "PENDING" THEN 1
+                    //         WHEN "SUBMITTED" THEN 2
+                    //         WHEN "APPROVED" THEN 3
+                    //         WHEN "RECEIVED" THEN 4
+                    //         ELSE 5
+                    //     END,
+                    //     hrdf_claims.created_at DESC
+                    // ')
             )
             ->columns([
                 TextColumn::make('hrdfHandover.id')
@@ -181,7 +181,14 @@ class HrdfClaimTracker extends Page implements HasTable
                         'success' => 'APPROVED',
                         'info' => 'RECEIVED',
                     ])
-                    ->sortable(),
+                    ->sortable(query: function (Builder $query, string $direction): Builder {
+                        return $query->orderBy('hrdf_claims.claim_status', $direction);
+                    }),
+
+                TextColumn::make('updated_at')
+                    ->label('Last Modified At')
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('created_at')
                     ->label('Created At')
@@ -236,10 +243,16 @@ class HrdfClaimTracker extends Page implements HasTable
                     ->searchable()
                     ->preload(),
             ])
-            ->actions([
-
-            ])
-            ->defaultSort('created_at', 'desc')
+            ->defaultSort(fn (Builder $query) => $query->orderByRaw('
+                CASE hrdf_claims.claim_status
+                    WHEN "PENDING" THEN 1
+                    WHEN "SUBMITTED" THEN 2
+                    WHEN "APPROVED" THEN 3
+                    WHEN "RECEIVED" THEN 4
+                    ELSE 5
+                END,
+                hrdf_claims.created_at DESC
+            '))
             ->striped()
             ->paginated([50, 100]);
     }

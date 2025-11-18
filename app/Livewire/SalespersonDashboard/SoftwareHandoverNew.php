@@ -23,6 +23,7 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Actions\Action as FormAction;
 use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Placeholder;
 use Filament\Tables\Table;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Tables\Contracts\HasTable;
@@ -189,22 +190,20 @@ class SoftwareHandoverNew extends Component implements HasForms, HasTable
                 TextColumn::make('id')
                     ->label('ID')
                     ->formatStateUsing(function ($state, SoftwareHandover $record) {
-                        // If no state (ID) is provided, return a fallback
                         if (!$state) {
                             return 'Unknown';
                         }
 
                         // For handover_pdf, extract filename
                         if ($record->handover_pdf) {
-                            // Extract just the filename without extension
                             $filename = basename($record->handover_pdf, '.pdf');
                             return $filename;
                         }
 
-                        // Format ID with 250 prefix and pad with zeros to ensure at least 3 digits
-                        return 'SW_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+                        // ✅ Use model method for consistent formatting
+                        return $record->formatted_handover_id;
                     })
-                    ->color('primary') // Makes it visually appear as a link
+                    ->color('primary')
                     ->weight('bold')
                     ->action(
                         Action::make('viewHandoverDetails')
@@ -309,9 +308,7 @@ class SoftwareHandoverNew extends Component implements HasForms, HasTable
                         }),
                     Action::make('edit_software_handover')
                         ->label(function (SoftwareHandover $record): string {
-                            // Format ID with prefix 250 and pad with zeros to ensure at least 3 digits
-                            $formattedId = 'SW_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
-                            return "Edit Software Handover {$formattedId}";
+                            return "Edit Software Handover {$record->formatted_handover_id}";
                         })
                         ->icon('heroicon-o-pencil')
                         ->color('warning')
@@ -860,7 +857,7 @@ class SoftwareHandoverNew extends Component implements HasForms, HasTable
                             $rejecterName = $rejecter->name ?? 'System';
                             $rejecterEmail = $rejecter->email;
 
-                            $handoverId = 'SW_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+                            $handoverId = $record->formatted_handover_id;
 
                             if ($salespersonEmail) {
                                 try {
@@ -999,6 +996,36 @@ class SoftwareHandoverNew extends Component implements HasForms, HasTable
 
                                     return "{$companyName}-invoice-{$date}-{$random}.{$extension}";
                                 }),
+
+                            Placeholder::make('module_check_info')
+                                ->label(false)
+                                ->content(function (SoftwareHandover $record) {
+                                    // Check all modules
+                                    $ta = $this->shouldModuleBeChecked($record, [31, 118, 114, 108, 60]);
+                                    $tl = $this->shouldModuleBeChecked($record, [38, 119, 115, 109, 60]);
+                                    $tc = $this->shouldModuleBeChecked($record, [39, 120, 116, 110, 60]);
+                                    $tp = $this->shouldModuleBeChecked($record, [40, 121, 117, 111, 60]);
+                                    $tapp = $this->shouldModuleBeChecked($record, [59]);
+                                    $thire = $this->shouldModuleBeChecked($record, [41, 112]);
+                                    $tacc = $this->shouldModuleBeChecked($record, [93, 113]);
+                                    $tpbi = $this->shouldModuleBeChecked($record, [42]);
+
+                                    // If no modules are checked
+                                    if (!$ta && !$tl && !$tc && !$tp && !$tapp && !$thire && !$tacc && !$tpbi) {
+                                        return new HtmlString(
+                                            '<div style="background-color: #f94449; border-left: 4px solid #F59E0B; padding: 12px; margin-top: 8px; border-radius: 4px;">
+                                                <div style="display: flex; align-items: start; gap: 8px;">
+                                                    <div>
+                                                        <p style="color: #ffffff; font-weight: 600; margin: 0;">⚠️ No Modules Auto-Selected</p>
+                                                        <p style="color: #ffffff; margin: 4px 0 0 0; font-size: 14px;">
+                                                            No products found in the selected Proforma Invoice. Please inform Zi Lih. Thanks!
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>'
+                                        );
+                                    }
+                                }),
                         ])
                         ->action(function (SoftwareHandover $record, array $data): void {
                             // Handle file array encoding for invoice_file
@@ -1065,6 +1092,34 @@ class SoftwareHandoverNew extends Component implements HasForms, HasTable
                             // Update the record
                             $record->update($updateData);
 
+                            try {
+                                $selectedModules = $record->getSelectedModules();
+                                $modulesToSync = array_unique(array_merge(['phase 1', 'phase 2'], $selectedModules));
+
+                                $createdCount = \App\Filament\Resources\LeadResource\Tabs\ProjectPlanTabs::createProjectPlansForModules(
+                                    $record->lead_id,
+                                    $record->id,
+                                    $modulesToSync
+                                );
+
+                                \Illuminate\Support\Facades\Log::info("Auto-created project plans on handover completion", [
+                                    'handover_id' => $record->id,
+                                    'lead_id' => $record->lead_id,
+                                    'modules' => $modulesToSync,
+                                    'created_count' => $createdCount
+                                ]);
+
+                                if ($createdCount > 0) {
+                                    Notification::make()
+                                        ->title('Project Plans Created')
+                                        ->body("Created {$createdCount} project tasks for modules: " . implode(', ', $modulesToSync))
+                                        ->success()
+                                        ->send();
+                                }
+                            } catch (\Exception $e) {
+                                \Illuminate\Support\Facades\Log::error("Failed to auto-create project plans: {$e->getMessage()}");
+                            }
+
                             // Send email notification
                             try {
                                 $viewName = 'emails.handover_notification';
@@ -1075,7 +1130,7 @@ class SoftwareHandoverNew extends Component implements HasForms, HasTable
                                 $salespersonName = $salesperson?->name ?? 'Unknown Salesperson';
 
                                 // Format the handover ID properly
-                                $handoverId = 'SW_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+                                $handoverId = $record->formatted_handover_id;
 
                                 // Get the handover PDF URL
                                 $handoverFormUrl = $record->handover_pdf ? url('storage/' . $record->handover_pdf) : null;
@@ -1171,7 +1226,7 @@ class SoftwareHandoverNew extends Component implements HasForms, HasTable
 
                                 if (!empty($picEmails)) {
                                     // Format the handover ID properly
-                                    $handoverId = 'SW_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+                                    $handoverId = $record->formatted_handover_id;
 
                                     // Send group email to all PICs with implementer as sender and CC
                                     $controller = app(\App\Http\Controllers\CustomerActivationController::class);
@@ -1246,12 +1301,22 @@ class SoftwareHandoverNew extends Component implements HasForms, HasTable
             }
         }
 
-        if (!empty($record->proforma_invoice_hrdf)) {
-            $hrdfPis = is_string($record->proforma_invoice_hrdf)
-                ? json_decode($record->proforma_invoice_hrdf, true)
-                : $record->proforma_invoice_hrdf;
-            if (is_array($hrdfPis)) {
-                $allPiIds = array_merge($allPiIds, $hrdfPis);
+        // if (!empty($record->proforma_invoice_hrdf)) {
+        //     $hrdfPis = is_string($record->proforma_invoice_hrdf)
+        //         ? json_decode($record->proforma_invoice_hrdf, true)
+        //         : $record->proforma_invoice_hrdf;
+        //     if (is_array($hrdfPis)) {
+        //         $allPiIds = array_merge($allPiIds, $hrdfPis);
+        //     }
+        // }
+
+        // ✅ If both are empty, fall back to software_hardware_pi
+        if (empty($allPiIds) && !empty($record->software_hardware_pi)) {
+            $softwareHardwarePis = is_string($record->software_hardware_pi)
+                ? json_decode($record->software_hardware_pi, true)
+                : $record->software_hardware_pi;
+            if (is_array($softwareHardwarePis)) {
+                $allPiIds = $softwareHardwarePis;
             }
         }
 
@@ -1276,7 +1341,10 @@ class SoftwareHandoverNew extends Component implements HasForms, HasTable
                     'product_code' => $matchedDetail->product->code ?? 'Unknown',
                     'product_id' => $matchedDetail->product_id,
                     'pi_reference' => $matchedDetail->quotation->pi_reference_no ?? 'Unknown',
-                    'handover_id' => $record->id
+                    'handover_id' => $record->id,
+                    'source' => !empty($record->proforma_invoice_product) || !empty($record->proforma_invoice_hrdf)
+                        ? 'proforma_invoice'
+                        : 'software_hardware_pi'
                 ]);
             }
         }
