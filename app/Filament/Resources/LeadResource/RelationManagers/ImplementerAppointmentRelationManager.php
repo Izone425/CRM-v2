@@ -1270,6 +1270,7 @@ class ImplementerAppointmentRelationManager extends RelationManager
                                                 '{customer_email}' => $customerEmail,
                                                 '{customer_password}' => $customerPassword,
                                                 '{customer_portal_url}' => str_replace('http://', 'https://', config('app.url')) . '/customer/login',
+                                                '{project_plan_link}' => $softwareHandover->project_plan_link ?? 'Not Generated Yet',
                                             ];
 
                                             $previewSubject = str_replace(array_keys($placeholders), array_values($placeholders), $subject);

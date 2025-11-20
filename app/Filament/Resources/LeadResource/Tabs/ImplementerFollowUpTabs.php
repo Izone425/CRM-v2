@@ -362,7 +362,6 @@ class ImplementerFollowUpTabs
                                                     $content .= $signature;
                                                 }
 
-                                                // ✅ REPLACE PLACEHOLDERS WITH ACTUAL DATA (INCLUDING FRESH CUSTOMER CREDENTIALS)
                                                 $placeholders = [
                                                     '{customer_name}' => $record->contact_name ?? '',
                                                     '{company_name}' => $softwareHandover->company_name ?? ($record->companyDetail?->company_name ?? 'Unknown Company'),
@@ -372,6 +371,7 @@ class ImplementerFollowUpTabs
                                                     '{customer_email}' => $customer ? $customer->email : 'Not Available',
                                                     '{customer_password}' => $customer ? $customer->plain_password : 'Not Available',
                                                     '{customer_portal_url}' => str_replace('http://', 'https://', config('app.url')) . '/customer/login',
+                                                    '{project_plan_link}' => $softwareHandover->project_plan_link ?? 'Not Generated Yet',
                                                 ];
 
                                                 $content = str_replace(array_keys($placeholders), array_values($placeholders), $content);
