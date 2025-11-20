@@ -255,7 +255,7 @@ class ProjectPlanTabs
                                                     <strong style="font-size: 14px;">Planned Date</strong>
                                                 </div>'
                                             ))
-                                            ->columnSpan(3),
+                                            ->columnSpan(4),
 
                                         \Filament\Forms\Components\Placeholder::make("header_{$moduleName}_plan_duration")
                                             ->label('')
@@ -273,22 +273,13 @@ class ProjectPlanTabs
                                                     <strong style="font-size: 14px;">Actual Date</strong>
                                                 </div>'
                                             ))
-                                            ->columnSpan(3),
+                                            ->columnSpan(6),
 
                                         \Filament\Forms\Components\Placeholder::make("header_{$moduleName}_actual_duration")
                                             ->label('')
                                             ->content(new \Illuminate\Support\HtmlString(
                                                 '<div>
                                                     <strong style="font-size: 14px;">Duration</strong>
-                                                </div>'
-                                            ))
-                                            ->columnSpan(2),
-
-                                        \Filament\Forms\Components\Placeholder::make("header_{$moduleName}_status")
-                                            ->label('')
-                                            ->content(new \Illuminate\Support\HtmlString(
-                                                '<div>
-                                                    <strong style="font-size: 14px;">Status</strong>
                                                 </div>'
                                             ))
                                             ->columnSpan(2),
@@ -316,53 +307,278 @@ class ProjectPlanTabs
                                                 ->disabled()
                                                 ->columnSpan(4),
 
-                                            DateRangePicker::make("plan_{$plan->id}_plan_date_range")
+                                            TextInput::make("plan_{$plan->id}_plan_date_range")
                                                 ->hiddenLabel()
                                                 ->default($planDateRangeValue)
-                                                ->format('d/m/Y')
-                                                ->displayFormat('DD/MM/YYYY')
-                                                ->live()
+                                                ->live(onBlur: true)
+                                                ->suffixAction(
+                                                    \Filament\Forms\Components\Actions\Action::make('selectPlanDateRange')
+                                                        ->icon('heroicon-m-calendar')
+                                                        ->tooltip('Select date range')
+                                                        ->modalHeading('Select Planned Date Range')
+                                                        ->modalWidth('md')
+                                                        ->form([
+                                                            DateRangePicker::make('date_range')
+                                                                ->label('Planned Date Range')
+                                                                ->format('d/m/Y')
+                                                                ->displayFormat('DD/MM/YYYY')
+                                                                ->required()
+                                                                ->columnSpanFull(),
+                                                        ])
+                                                        ->action(function (array $data, Set $set) use ($plan) {
+                                                            $dateRange = $data['date_range'];
+
+                                                            if ($dateRange) {
+                                                                $set("plan_{$plan->id}_plan_date_range", $dateRange);
+
+                                                                [$start, $end] = explode(' - ', $dateRange);
+                                                                $startDate = \Carbon\Carbon::createFromFormat('d/m/Y', trim($start));
+                                                                $endDate = \Carbon\Carbon::createFromFormat('d/m/Y', trim($end));
+
+                                                                $weekdays = self::calculateWeekdays($startDate, $endDate);
+                                                                $set("plan_{$plan->id}_plan_duration", $weekdays);
+
+                                                                if ($plan->status === 'pending') {
+                                                                    $set("plan_{$plan->id}_status", 'in_progress');
+                                                                }
+
+                                                                Notification::make()
+                                                                    ->title('Planned Dates Set')
+                                                                    ->body("Duration: {$weekdays} days")
+                                                                    ->success()
+                                                                    ->send();
+                                                            }
+                                                        })
+                                                )
                                                 ->afterStateUpdated(function ($state, Set $set) use ($plan) {
-                                                    if ($state) {
-                                                        [$start, $end] = explode(' - ', $state);
-                                                        $startDate = \Carbon\Carbon::createFromFormat('d/m/Y', $start);
-                                                        $endDate = \Carbon\Carbon::createFromFormat('d/m/Y', $end);
+                                                    if ($state && str_contains($state, ' - ')) {
+                                                        try {
+                                                            [$start, $end] = explode(' - ', $state);
+                                                            $startDate = \Carbon\Carbon::createFromFormat('d/m/Y', trim($start));
+                                                            $endDate = \Carbon\Carbon::createFromFormat('d/m/Y', trim($end));
 
-                                                        // ✅ Calculate weekdays only (excluding weekends)
-                                                        $weekdays = self::calculateWeekdays($startDate, $endDate);
-                                                        $set("plan_{$plan->id}_plan_duration", $weekdays);
+                                                            $weekdays = self::calculateWeekdays($startDate, $endDate);
+                                                            $set("plan_{$plan->id}_plan_duration", $weekdays);
 
-                                                        if ($plan->status === 'pending') {
-                                                            $set("plan_{$plan->id}_status", 'in_progress');
+                                                            if ($plan->status === 'pending') {
+                                                                $set("plan_{$plan->id}_status", 'in_progress');
+                                                            }
+                                                        } catch (\Exception $e) {
+                                                            // Invalid format - just ignore
                                                         }
                                                     }
                                                 })
-                                                ->columnSpan(3),
+                                                ->columnSpan(4),
 
                                             TextInput::make("plan_{$plan->id}_plan_duration")
                                                 ->hiddenLabel()
                                                 ->numeric()
                                                 ->default($plan->plan_duration)
                                                 ->readOnly()
-                                                ->suffix('days')
                                                 ->columnSpan(2),
 
-                                            DateRangePicker::make("plan_{$plan->id}_actual_date_range")
+                                            TextInput::make("plan_{$plan->id}_actual_start_date")
                                                 ->hiddenLabel()
-                                                ->default($actualDateRangeValue)
-                                                ->format('d/m/Y')
-                                                ->displayFormat('DD/MM/YYYY')
-                                                ->live()
-                                                ->afterStateUpdated(function ($state, Set $set) use ($plan) {
-                                                    if ($state) {
-                                                        [$start, $end] = explode(' - ', $state);
-                                                        $startDate = \Carbon\Carbon::createFromFormat('d/m/Y', $start);
-                                                        $endDate = \Carbon\Carbon::createFromFormat('d/m/Y', $end);
+                                                ->default($plan->actual_start_date ? \Carbon\Carbon::parse($plan->actual_start_date)->format('d/m/Y') : '')
+                                                ->placeholder('DD/MM/YYYY')
+                                                ->live(onBlur: true)
+                                                ->suffixAction(
+                                                    \Filament\Forms\Components\Actions\Action::make('selectActualStartDate')
+                                                        ->icon('heroicon-m-calendar')
+                                                        ->tooltip('Select start date')
+                                                        ->modalHeading('Select Actual Start Date')
+                                                        ->modalWidth('md')
+                                                        ->form([
+                                                            DatePicker::make('start_date')
+                                                                ->label('Actual Start Date')
+                                                                ->format('Y-m-d')
+                                                                ->displayFormat('d/m/Y')
+                                                                ->required()
+                                                                ->columnSpanFull(),
+                                                        ])
+                                                        ->action(function (array $data, Set $set, Get $get) use ($plan) {
+                                                            $startDate = $data['start_date'];
 
-                                                        // ✅ Calculate weekdays only (excluding weekends)
-                                                        $weekdays = self::calculateWeekdays($startDate, $endDate);
-                                                        $set("plan_{$plan->id}_actual_duration", $weekdays);
-                                                        $set("plan_{$plan->id}_status", 'completed');
+                                                            if ($startDate) {
+                                                                $start = \Carbon\Carbon::parse($startDate);
+                                                                $set("plan_{$plan->id}_actual_start_date", $start->format('d/m/Y'));
+
+                                                                // Check if end date exists and is before start date
+                                                                $endDateDisplay = $get("plan_{$plan->id}_actual_end_date");
+                                                                if ($endDateDisplay) {
+                                                                    try {
+                                                                        $end = \Carbon\Carbon::createFromFormat('d/m/Y', $endDateDisplay);
+
+                                                                        if ($end->lt($start)) {
+                                                                            $set("plan_{$plan->id}_actual_end_date", null);
+                                                                            $set("plan_{$plan->id}_actual_duration", null);
+
+                                                                            Notification::make()
+                                                                                ->title('End Date Cleared')
+                                                                                ->body('End date was before start date and has been cleared')
+                                                                                ->warning()
+                                                                                ->send();
+                                                                        } else {
+                                                                            // Recalculate duration
+                                                                            $weekdays = self::calculateWeekdays($start, $end);
+                                                                            $set("plan_{$plan->id}_actual_duration", $weekdays);
+                                                                        }
+                                                                    } catch (\Exception $e) {
+                                                                        // Invalid end date format
+                                                                    }
+                                                                }
+
+                                                                // Update status to in_progress when start date is set
+                                                                if ($plan->status === 'pending') {
+                                                                    $set("plan_{$plan->id}_status", 'in_progress');
+                                                                }
+
+                                                                Notification::make()
+                                                                    ->title('Start Date Set')
+                                                                    ->body($start->format('d/m/Y'))
+                                                                    ->success()
+                                                                    ->send();
+                                                            }
+                                                        })
+                                                )
+                                                ->afterStateUpdated(function ($state, Set $set, Get $get) use ($plan) {
+                                                    if ($state) {
+                                                        try {
+                                                            $start = \Carbon\Carbon::createFromFormat('d/m/Y', trim($state));
+
+                                                            // Check if end date exists
+                                                            $endDateDisplay = $get("plan_{$plan->id}_actual_end_date");
+                                                            if ($endDateDisplay) {
+                                                                $end = \Carbon\Carbon::createFromFormat('d/m/Y', trim($endDateDisplay));
+
+                                                                if ($end->lt($start)) {
+                                                                    $set("plan_{$plan->id}_actual_end_date", null);
+                                                                    $set("plan_{$plan->id}_actual_duration", null);
+                                                                } else {
+                                                                    $weekdays = self::calculateWeekdays($start, $end);
+                                                                    $set("plan_{$plan->id}_actual_duration", $weekdays);
+                                                                }
+                                                            }
+
+                                                            if ($plan->status === 'pending') {
+                                                                $set("plan_{$plan->id}_status", 'in_progress');
+                                                            }
+                                                        } catch (\Exception $e) {
+                                                            // Invalid format
+                                                        }
+                                                    }
+                                                })
+                                                ->columnSpan(3),
+
+                                            TextInput::make("plan_{$plan->id}_actual_end_date")
+                                                ->hiddenLabel()
+                                                ->default($plan->actual_end_date ? \Carbon\Carbon::parse($plan->actual_end_date)->format('d/m/Y') : '')
+                                                ->live(onBlur: true)
+                                                ->suffixAction(
+                                                    \Filament\Forms\Components\Actions\Action::make('selectActualEndDate')
+                                                        ->icon('heroicon-m-calendar')
+                                                        ->tooltip('Select end date')
+                                                        ->modalHeading('Select Actual End Date')
+                                                        ->modalWidth('md')
+                                                        ->form(function (Get $get) use ($plan) {
+                                                            $startDateDisplay = $get("plan_{$plan->id}_actual_start_date");
+                                                            $minDate = null;
+
+                                                            if ($startDateDisplay) {
+                                                                try {
+                                                                    $minDate = \Carbon\Carbon::createFromFormat('d/m/Y', $startDateDisplay);
+                                                                } catch (\Exception $e) {
+                                                                    // Invalid start date format
+                                                                }
+                                                            }
+
+                                                            return [
+                                                                DatePicker::make('end_date')
+                                                                    ->label('Actual End Date')
+                                                                    ->format('Y-m-d')
+                                                                    ->displayFormat('d/m/Y')
+                                                                    ->required()
+                                                                    ->minDate($minDate)
+                                                                    ->columnSpanFull(),
+                                                            ];
+                                                        })
+                                                        ->action(function (array $data, Set $set, Get $get) use ($plan) {
+                                                            $endDate = $data['end_date'];
+
+                                                            if ($endDate) {
+                                                                $startDateDisplay = $get("plan_{$plan->id}_actual_start_date");
+
+                                                                if (!$startDateDisplay) {
+                                                                    Notification::make()
+                                                                        ->title('Start Date Required')
+                                                                        ->body('Please select actual start date first')
+                                                                        ->warning()
+                                                                        ->send();
+                                                                    return;
+                                                                }
+
+                                                                try {
+                                                                    $end = \Carbon\Carbon::parse($endDate);
+                                                                    $start = \Carbon\Carbon::createFromFormat('d/m/Y', $startDateDisplay);
+
+                                                                    // Validate end date is not before start date
+                                                                    if ($end->lt($start)) {
+                                                                        Notification::make()
+                                                                            ->title('Invalid End Date')
+                                                                            ->body('End date cannot be before start date')
+                                                                            ->danger()
+                                                                            ->send();
+                                                                        return;
+                                                                    }
+
+                                                                    $set("plan_{$plan->id}_actual_end_date", $end->format('d/m/Y'));
+
+                                                                    // Calculate duration
+                                                                    $weekdays = self::calculateWeekdays($start, $end);
+                                                                    $set("plan_{$plan->id}_actual_duration", $weekdays);
+
+                                                                    // Set status to completed when end date is entered
+                                                                    $set("plan_{$plan->id}_status", 'completed');
+
+                                                                    Notification::make()
+                                                                        ->title('Task Completed')
+                                                                        ->body("Duration: {$weekdays} days | Status: Completed")
+                                                                        ->success()
+                                                                        ->send();
+                                                                } catch (\Exception $e) {
+                                                                    Notification::make()
+                                                                        ->title('Invalid Date Format')
+                                                                        ->body('Please check the start date format')
+                                                                        ->danger()
+                                                                        ->send();
+                                                                }
+                                                            }
+                                                        })
+                                                )
+                                                ->afterStateUpdated(function ($state, Set $set, Get $get) use ($plan) {
+                                                    if ($state) {
+                                                        try {
+                                                            $startDateDisplay = $get("plan_{$plan->id}_actual_start_date");
+
+                                                            if (!$startDateDisplay) {
+                                                                return;
+                                                            }
+
+                                                            $start = \Carbon\Carbon::createFromFormat('d/m/Y', trim($startDateDisplay));
+                                                            $end = \Carbon\Carbon::createFromFormat('d/m/Y', trim($state));
+
+                                                            if ($end->lt($start)) {
+                                                                $set("plan_{$plan->id}_actual_end_date", null);
+                                                                $set("plan_{$plan->id}_actual_duration", null);
+                                                                return;
+                                                            }
+
+                                                            $weekdays = self::calculateWeekdays($start, $end);
+                                                            $set("plan_{$plan->id}_actual_duration", $weekdays);
+                                                            $set("plan_{$plan->id}_status", 'completed');
+                                                        } catch (\Exception $e) {
+                                                            // Invalid format
+                                                        }
                                                     }
                                                 })
                                                 ->columnSpan(3),
@@ -372,21 +588,38 @@ class ProjectPlanTabs
                                                 ->numeric()
                                                 ->default($plan->actual_duration)
                                                 ->readOnly()
-                                                ->suffix('days')
                                                 ->columnSpan(2),
 
-                                            Select::make("plan_{$plan->id}_status")
+                                            Textarea::make("plan_{$plan->id}_remarks")
                                                 ->hiddenLabel()
-                                                ->options([
-                                                    'pending' => 'Pending',
-                                                    'in_progress' => 'In Progress',
-                                                    'completed' => 'Completed',
-                                                    'on_hold' => 'On Hold',
-                                                ])
-                                                ->disabled()
-                                                ->dehydrated(true)
-                                                ->default($plan->status)
-                                                ->required()
+                                                ->default($plan->remarks)
+                                                ->placeholder('Add remarks...')
+                                                ->live(onBlur: true)
+                                                ->rows(2)
+                                                ->autosize()
+                                                ->columnSpan(16),
+
+                                            Placeholder::make("plan_{$plan->id}_status")
+                                                ->hiddenLabel()
+                                                ->content(function (Get $get) use ($plan) {
+                                                    // Map status codes to display labels
+                                                    $statusLabels = [
+                                                        'pending' => 'Pending',
+                                                        'in_progress' => 'In Progress',
+                                                        'completed' => 'Completed',
+                                                        'on_hold' => 'On Hold',
+                                                    ];
+
+                                                    // ✅ Try to get the current state from the form first, fallback to database value
+                                                    $currentStatus = $get("plan_{$plan->id}_status") ?? $plan->status;
+                                                    $statusLabel = $statusLabels[$currentStatus] ?? ucfirst(str_replace('_', ' ', $currentStatus));
+
+                                                    return new \Illuminate\Support\HtmlString(
+                                                        '<div style="text-align: center;">
+                                                            ' . $statusLabel . '
+                                                        </div>'
+                                                    );
+                                                })
                                                 ->columnSpan(2),
                                         ];
                                     }
@@ -395,7 +628,7 @@ class ProjectPlanTabs
 
                                     // Task rows
                                     foreach ($tableRows as $row) {
-                                        $moduleSchema[] = \Filament\Forms\Components\Grid::make(16)
+                                        $moduleSchema[] = \Filament\Forms\Components\Grid::make(18)
                                             ->schema($row);
                                     }
 
@@ -431,32 +664,56 @@ class ProjectPlanTabs
                                         $plan = ProjectPlan::find($planId);
 
                                         if ($plan && $plan->lead_id == $leadId && $value) {
-                                            [$start, $end] = explode(' - ', $value);
-                                            $plan->plan_start_date = \Carbon\Carbon::createFromFormat('d/m/Y', $start)->format('Y-m-d');
-                                            $plan->plan_end_date = \Carbon\Carbon::createFromFormat('d/m/Y', $end)->format('Y-m-d');
+                                            try {
+                                                [$start, $end] = explode(' - ', $value);
+                                                $plan->plan_start_date = \Carbon\Carbon::createFromFormat('d/m/Y', trim($start))->format('Y-m-d');
+                                                $plan->plan_end_date = \Carbon\Carbon::createFromFormat('d/m/Y', trim($end))->format('Y-m-d');
 
-                                            if ($plan->status === 'pending') {
-                                                $plan->status = 'in_progress';
+                                                if ($plan->status === 'pending') {
+                                                    $plan->status = 'in_progress';
+                                                }
+
+                                                $plan->save();
+                                                $plan->calculatePlanDuration();
+                                                $updatedCount++;
+                                            } catch (\Exception $e) {
+                                                // Invalid date format
                                             }
-
-                                            $plan->save();
-                                            $plan->calculatePlanDuration();
-                                            $updatedCount += 2;
                                         }
                                     }
-                                    elseif (preg_match('/plan_(\d+)_actual_date_range/', $key, $matches)) {
+                                    elseif (preg_match('/plan_(\d+)_actual_start_date/', $key, $matches)) {
                                         $planId = $matches[1];
                                         $plan = ProjectPlan::find($planId);
 
                                         if ($plan && $plan->lead_id == $leadId && $value) {
-                                            [$start, $end] = explode(' - ', $value);
-                                            $plan->actual_start_date = \Carbon\Carbon::createFromFormat('d/m/Y', $start)->format('Y-m-d');
-                                            $plan->actual_end_date = \Carbon\Carbon::createFromFormat('d/m/Y', $end)->format('Y-m-d');
-                                            $plan->status = 'completed';
+                                            try {
+                                                $plan->actual_start_date = \Carbon\Carbon::createFromFormat('d/m/Y', trim($value))->format('Y-m-d');
 
-                                            $plan->save();
-                                            $plan->calculateActualDuration();
-                                            $updatedCount += 2;
+                                                if ($plan->status === 'pending') {
+                                                    $plan->status = 'in_progress';
+                                                }
+
+                                                $plan->save();
+                                                $updatedCount++;
+                                            } catch (\Exception $e) {
+                                                // Invalid date format
+                                            }
+                                        }
+                                    }
+                                    elseif (preg_match('/plan_(\d+)_actual_end_date/', $key, $matches)) {
+                                        $planId = $matches[1];
+                                        $plan = ProjectPlan::find($planId);
+
+                                        if ($plan && $plan->lead_id == $leadId && $value) {
+                                            try {
+                                                $plan->actual_end_date = \Carbon\Carbon::createFromFormat('d/m/Y', trim($value))->format('Y-m-d');
+                                                $plan->status = 'completed';
+                                                $plan->save();
+                                                $plan->calculateActualDuration();
+                                                $updatedCount++;
+                                            } catch (\Exception $e) {
+                                                // Invalid date format
+                                            }
                                         }
                                     }
                                     elseif (preg_match('/plan_(\d+)_status/', $key, $matches)) {
@@ -469,6 +726,16 @@ class ProjectPlanTabs
                                             $updatedCount++;
                                         }
                                     }
+                                    elseif (preg_match('/plan_(\d+)_remarks/', $key, $matches)) {
+                                        $planId = $matches[1];
+                                        $plan = ProjectPlan::find($planId);
+
+                                        if ($plan && $plan->lead_id == $leadId) {
+                                            $plan->remarks = $value;
+                                            $plan->save();
+                                            $updatedCount++;
+                                        }
+                                    }
                                 }
                             });
 
@@ -476,6 +743,7 @@ class ProjectPlanTabs
 
                             Notification::make()
                                 ->title('Tasks Updated Successfully')
+                                ->body("Updated {$updatedCount} field(s)")
                                 ->success()
                                 ->send();
                         })

@@ -49,6 +49,7 @@ class User extends Authenticatable implements FilamentUser, HasAvatar
         'additional_role',
         'api_user_id',
         'is_timetec_hr',
+        'azure_user_id',
     ];
 
 
