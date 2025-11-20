@@ -1,4 +1,4 @@
-<!-- filepath: /var/www/html/timeteccrm/resources/views/customer/dashboard.blade.php -->
+{{-- filepath: /var/www/html/timeteccrm/resources/views/customer/dashboard.blade.php --}}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -56,36 +56,92 @@
             background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
         }
 
-        .floating-animation {
-            animation: float 6s ease-in-out infinite;
+        /* Header Styles */
+        .main-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
         }
 
-        @keyframes float {
-            0%, 100% {
-                transform: translateY(0px);
-            }
-            50% {
-                transform: translateY(-20px);
-            }
+        /* Sidebar Styles */
+        .sidebar {
+            position: absolute;
+            left: 0;
+            top: 140px;
+            width: 260px;
+            z-index: 50;
         }
 
-        .pulse-ring {
-            animation: pulse-ring 1.25s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+        .sidebar-menu {
+            padding: 20px;
         }
 
-        @keyframes pulse-ring {
-            0% {
-                transform: scale(.33);
-            }
-            80%, 100% {
+        .menu-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 16px;
+            margin-bottom: 8px;
+            border-radius: 10px;
+            color: #64748b;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            font-weight: 500;
+            border: none;
+            background: transparent;
+            width: 100%;
+            text-align: left;
+        }
+
+        .menu-item:hover {
+            background: #f1f5f9;
+            color: #667eea;
+            transform: translateX(4px);
+        }
+
+        .menu-item.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .menu-item i {
+            font-size: 18px;
+            width: 24px;
+            text-align: center;
+        }
+
+        /* Main Content with Sidebar */
+        .main-wrapper {
+            margin-left: 200px;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from {
                 opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
             }
         }
     </style>
 </head>
 <body class="min-h-screen bg-gray-50">
-    <!-- Header with Gradient -->
-    <header class="relative overflow-hidden shadow-xl gradient-bg">
+    <!-- Fixed Header with Gradient -->
+    <header class="relative overflow-hidden shadow-xl main-header gradient-bg">
         <div class="absolute inset-0 bg-black opacity-10"></div>
         <div class="relative px-4 py-8 mx-auto max-w-7xl sm:px-6 lg:px-8">
             <div class="flex items-center justify-between">
@@ -105,6 +161,7 @@
 
                             // Get the latest software handover based on lead_id
                             $implementerName = 'Not Available';
+                            $hasProjectPlan = false;
 
                             if ($customer->lead_id) {
                                 $latestHandover = \App\Models\SoftwareHandover::where('lead_id', $customer->lead_id)
@@ -113,6 +170,13 @@
 
                                 if ($latestHandover) {
                                     $implementerName = $latestHandover->implementer ?? 'Not Assigned';
+
+                                    // Check if there are any project plans for this lead
+                                    $projectPlansCount = \App\Models\ProjectPlan::where('lead_id', $customer->lead_id)
+                                        ->where('sw_id', $latestHandover->id)
+                                        ->count();
+
+                                    $hasProjectPlan = $projectPlansCount > 0;
                                 }
                             }
                         @endphp
@@ -132,26 +196,52 @@
         </div>
     </header>
 
-    <!-- Main Content -->
-    <main class="relative">
-        <div class="mx-auto max-w-7xl sm:px-6 lg:px-8">
-            <!-- Calendar Section -->
-            <div class="p-8">
-                @livewire('customer-calendar')
-            </div>
+    <!-- Left Sidebar (Below Header) -->
+    <div class="sidebar">
+        <div class="sidebar-menu">
+            <button onclick="switchTab('calendar')"
+                    id="calendar-tab"
+                    class="menu-item active">
+                <i class="fas fa-calendar-alt"></i>
+                <span>Meeting Schedule</span>
+            </button>
+
+            @if($hasProjectPlan)
+                <button onclick="switchTab('project')"
+                        id="project-tab"
+                        class="menu-item">
+                    <i class="fas fa-tasks"></i>
+                    <span>Project Plan</span>
+                </button>
+            @endif
         </div>
-    </main>
+    </div>
+
+    <!-- Main Content Wrapper -->
+    <div class="main-wrapper">
+        <!-- Main Content -->
+        <main class="relative">
+            <div class="mx-auto max-w-7xl sm:px-6 lg:px-8">
+                <!-- Calendar Tab Content -->
+                <div id="calendar-content" class="p-8 tab-content active">
+                    @livewire('customer-calendar')
+                </div>
+
+                <!-- Project Plan Tab Content -->
+                @if($hasProjectPlan)
+                    <div id="project-content" class="p-8 tab-content">
+                        @livewire('customer-project-plan')
+                    </div>
+                @endif
+            </div>
+        </main>
+    </div>
 
     <!-- Footer -->
     <footer class="relative overflow-hidden text-white bg-gray-900">
         <div class="absolute inset-0 opacity-50 bg-gradient-to-r from-indigo-900 to-purple-900"></div>
         <div class="relative px-4 py-12 mx-auto max-w-7xl sm:px-6 lg:px-8">
             <div class="text-center">
-                {{-- <div class="flex items-center justify-center w-16 h-16 mx-auto mb-4 bg-white rounded-full bg-opacity-10">
-                    <i class="text-2xl fas fa-clock"></i>
-                </div>
-                <h3 class="mb-2 text-2xl font-bold">TimeTec CRM</h3>
-                <p class="mb-4 text-gray-300">Your trusted HR Solutions partner</p> --}}
                 <p class="text-sm text-gray-400">
                     © {{ date('Y') }} TimeTec CRM. All rights reserved.
                 </p>
@@ -163,7 +253,45 @@
 
     <!-- Enhanced JavaScript -->
     <script>
+        const hasProjectPlan = @json($hasProjectPlan);
+
+        function switchTab(tab) {
+            // Hide all tab contents
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+
+            // Remove active class from all buttons
+            document.querySelectorAll('.menu-item').forEach(button => {
+                button.classList.remove('active');
+            });
+
+            // Show selected tab content
+            const tabContent = document.getElementById(tab + '-content');
+            const tabButton = document.getElementById(tab + '-tab');
+
+            if (tabContent && tabButton) {
+                tabContent.classList.add('active');
+                tabButton.classList.add('active');
+
+                // Store active tab in localStorage
+                localStorage.setItem('activeTab', tab);
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
+            let activeTab = localStorage.getItem('activeTab') || 'calendar';
+
+            // If project plan doesn't exist and user tries to access it, fallback to calendar
+            if (activeTab === 'project' && !hasProjectPlan) {
+                activeTab = 'calendar';
+                localStorage.setItem('activeTab', 'calendar');
+            }
+
+            if (activeTab !== 'calendar') {
+                switchTab(activeTab);
+            }
+
             // Smooth scroll to calendar
             const calendarLink = document.querySelector('a[href="#calendar"]');
             if (calendarLink) {

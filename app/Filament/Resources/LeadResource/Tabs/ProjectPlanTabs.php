@@ -34,8 +34,8 @@ class ProjectPlanTabs
             Section::make('Project Plan')
                 ->headerActions([
                     \Filament\Forms\Components\Actions\Action::make('downloadExcel')
-                        ->label('Generate Excel Link')
-                        ->icon('heroicon-o-link')
+                        ->label('Generate Project Plan Excel')
+                        ->icon('heroicon-o-document-arrow-down')
                         ->color('success')
                         ->size(ActionSize::Small)
                         ->action(function (Get $get, $livewire) {
@@ -63,31 +63,19 @@ class ProjectPlanTabs
                                 return;
                             }
 
-                            $url = self::generateProjectPlanExcel($lead, $softwareHandover);
+                            $filePath = self::generateProjectPlanExcel($lead, $softwareHandover);
 
-                            $viewerUrl = 'https://view.officeapps.live.com/op/view.aspx?src=' . urlencode($url);
+                            if ($filePath) {
+                                $softwareHandover->update([
+                                    'project_plan_generated_at' => now(),
+                                ]);
 
-                            $softwareHandover->update([
-                                'project_plan_link' => $viewerUrl, // ← Changed from $url to $viewerUrl
-                                'project_plan_generated_at' => now(),
-                            ]);
-
-                            Notification::make()
-                                ->title('Excel File Generated Successfully')
-                                ->body('Your project plan is ready and the link has been saved. Click below to view online or copy the link.')
-                                ->success()
-                                ->actions([
-                                    \Filament\Notifications\Actions\Action::make('view')
-                                        ->label('View Online')
-                                        ->icon('heroicon-o-eye')
-                                        ->url($viewerUrl)
-                                        ->openUrlInNewTab()
-                                        ->button()
-                                        ->color('primary'),
-                                ])
-                                ->persistent()
-                                ->duration(null)
-                                ->send();
+                                Notification::make()
+                                    ->title('Excel File Generated Successfully')
+                                    ->body('Project plan Excel file has been generated and saved.')
+                                    ->success()
+                                    ->send();
+                            }
                         }),
 
                     \Filament\Forms\Components\Actions\Action::make('refreshModules')
@@ -1005,7 +993,7 @@ class ProjectPlanTabs
         ]);
 
         // ✅ Return URL using the new route
-        return route('project-plans.view', ['filename' => $filename]);
+        return storage_path('app/public/' . $filePath);
     }
 
     protected static function calculateWeekdays(\Carbon\Carbon $startDate, \Carbon\Carbon $endDate): int
