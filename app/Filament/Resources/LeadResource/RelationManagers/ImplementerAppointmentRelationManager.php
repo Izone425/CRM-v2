@@ -4,6 +4,7 @@ namespace App\Filament\Resources\LeadResource\RelationManagers;
 
 use App\Enums\LeadStageEnum;
 use App\Enums\LeadStatusEnum;
+use App\Filament\Actions\ImplementerActions;
 use App\Mail\CancelRepairAppointmentNotification;
 use App\Mail\RepairAppointmentNotification;
 use App\Models\ActivityLog;
@@ -1031,6 +1032,324 @@ class ImplementerAppointmentRelationManager extends RelationManager
                                 ->title('You have cancelled an implementation appointment')
                                 ->danger()
                                 ->send();
+                        }),
+
+                    Tables\Actions\Action::make('add_session_follow_up')
+                        ->label('Send Session Summary')
+                        ->color('success')
+                        ->icon('heroicon-o-envelope')
+                        ->modalWidth('6xl')
+                        ->modalHeading(function () {
+                            $lead = $this->getOwnerRecord();
+                            $companyName = 'Unknown Company';
+
+                            if ($lead->companyDetail && $lead->companyDetail->company_name) {
+                                $companyName = $lead->companyDetail->company_name;
+                            } else {
+                                $softwareHandover = \App\Models\SoftwareHandover::where('lead_id', $lead->id)
+                                    ->orderBy('created_at', 'desc')
+                                    ->first();
+
+                                if ($softwareHandover && $softwareHandover->company_name) {
+                                    $companyName = $softwareHandover->company_name;
+                                }
+                            }
+
+                            return "Add Follow-up for {$companyName}";
+                        })
+                        ->hidden(function() {
+                            $user = auth()->user();
+                            $lead = $this->getOwnerRecord();
+                            if (!$lead) return true;
+
+                            if ($user->role_id == 3) {
+                                return false;
+                            }
+
+                            $softwareHandover = \App\Models\SoftwareHandover::where('lead_id', $lead->id)
+                                ->latest()
+                                ->first();
+
+                            if ($softwareHandover && $softwareHandover->implementer === $user->name) {
+                                return false;
+                            }
+
+                            return true;
+                        })
+                        ->form([
+                            Grid::make(4)
+                                ->schema([
+                                    DatePicker::make('follow_up_date')
+                                        ->label('Next Follow-up Date')
+                                        ->default(function() {
+                                            $today = now();
+                                            $daysUntilNextTuesday = (9 - $today->dayOfWeek) % 7;
+                                            if ($daysUntilNextTuesday === 0) {
+                                                $daysUntilNextTuesday = 7;
+                                            }
+                                            return $today->addDays($daysUntilNextTuesday);
+                                        })
+                                        ->minDate(now()->subDay())
+                                        ->required(),
+
+                                    Select::make('manual_follow_up_count')
+                                        ->label('Follow Up Count')
+                                        ->required()
+                                        ->options([
+                                            0 => '0',
+                                            1 => '1',
+                                            2 => '2',
+                                            3 => '3',
+                                            4 => '4',
+                                        ])
+                                        ->default(function () {
+                                            $lead = $this->getOwnerRecord();
+                                            if (!$lead) return 1;
+
+                                            $softwareHandover = SoftwareHandover::where('lead_id', $lead->id)
+                                                ->orderBy('created_at', 'desc')
+                                                ->first();
+
+                                            if (!$softwareHandover) return 1;
+
+                                            $currentCount = $softwareHandover->manual_follow_up_count ?? 0;
+                                            $nextCount = ($currentCount >= 4) ? 0 : $currentCount + 1;
+
+                                            return $nextCount;
+                                        }),
+
+                                    Toggle::make('send_email')
+                                        ->label('Send Email?')
+                                        ->onIcon('heroicon-o-bell-alert')
+                                        ->offIcon('heroicon-o-bell-slash')
+                                        ->onColor('primary')
+                                        ->inline(false)
+                                        ->offColor('gray')
+                                        ->default(false)
+                                        ->live(onBlur: true),
+
+                                    Select::make('scheduler_type')
+                                        ->label('Scheduler Type')
+                                        ->options([
+                                            'instant' => 'Instant',
+                                        ])
+                                        ->default('instant')
+                                        ->visible(fn ($get) => $get('send_email'))
+                                        ->required(),
+                                ]),
+
+                            Grid::make(2)
+                                ->schema([
+                                    Select::make('project_plan_files')
+                                        ->label('Project Plan Files')
+                                        ->options(function () {
+                                            $lead = $this->getOwnerRecord();
+                                            if (!$lead) {
+                                                return [];
+                                            }
+
+                                            $companyName = $lead->companyDetail?->company_name ?? 'Unknown';
+                                            $companySlug = \Illuminate\Support\Str::slug($companyName);
+
+                                            $files = \Illuminate\Support\Facades\Storage::disk('public')
+                                                ->files('project-plans');
+
+                                            $matchingFiles = [];
+                                            foreach ($files as $file) {
+                                                if (str_contains($file, $companySlug)) {
+                                                    $fullPath = storage_path('app/public/' . $file);
+                                                    $matchingFiles[] = [
+                                                        'path' => $file,
+                                                        'name' => basename($file),
+                                                        'modified' => file_exists($fullPath) ? filemtime($fullPath) : 0
+                                                    ];
+                                                }
+                                            }
+
+                                            usort($matchingFiles, function($a, $b) {
+                                                return $b['modified'] - $a['modified'];
+                                            });
+
+                                            $options = [];
+                                            if (!empty($matchingFiles)) {
+                                                $latestFile = $matchingFiles[0];
+                                                $options[$latestFile['path']] = $latestFile['name'] . ' (Latest)';
+                                            }
+
+                                            return $options;
+                                        })
+                                        ->default(function () {
+                                            $lead = $this->getOwnerRecord();
+                                            if (!$lead) {
+                                                return null;
+                                            }
+
+                                            $companyName = $lead->companyDetail?->company_name ?? 'Unknown';
+                                            $companySlug = \Illuminate\Support\Str::slug($companyName);
+
+                                            $files = \Illuminate\Support\Facades\Storage::disk('public')
+                                                ->files('project-plans');
+
+                                            $matchingFiles = [];
+                                            foreach ($files as $file) {
+                                                if (str_contains($file, $companySlug)) {
+                                                    $fullPath = storage_path('app/public/' . $file);
+                                                    $matchingFiles[] = [
+                                                        'path' => $file,
+                                                        'modified' => file_exists($fullPath) ? filemtime($fullPath) : 0
+                                                    ];
+                                                }
+                                            }
+
+                                            usort($matchingFiles, function($a, $b) {
+                                                return $b['modified'] - $a['modified'];
+                                            });
+
+                                            return !empty($matchingFiles) ? [$matchingFiles[0]['path']] : null;
+                                        })
+                                        ->visible(fn ($get) => $get('send_email'))
+                                        ->multiple()
+                                        ->searchable()
+                                        ->preload(),
+                                ]),
+
+                            Fieldset::make('Email Details')
+                                ->schema([
+                                    TextInput::make('required_attendees')
+                                        ->label('Required Attendees')
+                                        ->default(function () {
+                                            $lead = $this->getOwnerRecord();
+                                            $emails = [];
+
+                                            if ($lead) {
+                                                $softwareHandover = SoftwareHandover::where('lead_id', $lead->id)->latest()->first();
+
+                                                if ($softwareHandover && !empty($softwareHandover->implementation_pics) && is_string($softwareHandover->implementation_pics)) {
+                                                    try {
+                                                        $contacts = json_decode($softwareHandover->implementation_pics, true);
+
+                                                        if (is_array($contacts)) {
+                                                            foreach ($contacts as $contact) {
+                                                                if (!empty($contact['pic_email_impl'])) {
+                                                                    $emails[] = $contact['pic_email_impl'];
+                                                                }
+                                                            }
+                                                        }
+                                                    } catch (\Exception $e) {
+                                                        Log::error('Error parsing implementation_pics JSON: ' . $e->getMessage());
+                                                    }
+                                                }
+
+                                                if ($lead->companyDetail && !empty($lead->companyDetail->additional_pic)) {
+                                                    try {
+                                                        $additionalPics = json_decode($lead->companyDetail->additional_pic, true);
+
+                                                        if (is_array($additionalPics)) {
+                                                            foreach ($additionalPics as $pic) {
+                                                                if (
+                                                                    !empty($pic['email']) &&
+                                                                    isset($pic['status']) &&
+                                                                    $pic['status'] === 'Available'
+                                                                ) {
+                                                                    $emails[] = $pic['email'];
+                                                                }
+                                                            }
+                                                        }
+                                                    } catch (\Exception $e) {
+                                                        Log::error('Error parsing additional_pic JSON: ' . $e->getMessage());
+                                                    }
+                                                }
+                                            }
+
+                                            $uniqueEmails = array_unique($emails);
+                                            return !empty($uniqueEmails) ? implode(';', $uniqueEmails) : null;
+                                        })
+                                        ->helperText('Separate each email with a semicolon (e.g., email1;email2;email3).'),
+
+                                    Select::make('email_template')
+                                        ->label('Email Template')
+                                        ->options(function () {
+                                            return \App\Models\EmailTemplate::whereIn('type', ['implementer'])
+                                                ->pluck('name', 'id')
+                                                ->toArray();
+                                        })
+                                        ->searchable()
+                                        ->preload()
+                                        ->reactive()
+                                        ->afterStateUpdated(function ($state, callable $set) {
+                                            if ($state) {
+                                                $template = \App\Models\EmailTemplate::find($state);
+                                                if ($template) {
+                                                    $set('email_subject', $template->subject);
+                                                    $set('email_content', $template->content);
+                                                }
+                                            }
+                                        })
+                                        ->required(),
+
+                                    TextInput::make('email_subject')
+                                        ->label('Email Subject')
+                                        ->required(),
+
+                                    RichEditor::make('email_content')
+                                        ->label('Email Content')
+                                        ->disableToolbarButtons([
+                                            'attachFiles',
+                                        ])
+                                        ->required(),
+                                ])
+                                ->visible(fn ($get) => $get('send_email')),
+
+                            Hidden::make('implementer_name')
+                                ->default(auth()->user()->name ?? ''),
+
+                            Hidden::make('implementer_designation')
+                                ->default('Implementer'),
+
+                            Hidden::make('implementer_company')
+                                ->default('TimeTec Cloud Sdn Bhd'),
+
+                            Hidden::make('implementer_phone')
+                                ->default('03-80709933'),
+
+                            Hidden::make('implementer_email')
+                                ->default(auth()->user()->email ?? ''),
+
+                            RichEditor::make('notes')
+                                ->label('Remarks')
+                                ->disableToolbarButtons([
+                                    'attachFiles',
+                                    'blockquote',
+                                    'codeBlock',
+                                    'h2',
+                                    'h3',
+                                    'link',
+                                    'redo',
+                                    'strike',
+                                    'undo',
+                                ])
+                                ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                                ->placeholder('Add your follow-up details here...')
+                                ->required()
+                        ])
+                        ->action(function (array $data) {
+                            $lead = $this->getOwnerRecord();
+
+                            $softwareHandover = SoftwareHandover::where('lead_id', $lead->id)->latest()->first();
+
+                            if (!$softwareHandover) {
+                                Notification::make()
+                                    ->title('Error: Software Handover record not found')
+                                    ->danger()
+                                    ->send();
+                                return;
+                            }
+
+                            // Call the centralized method from ImplementerActions
+                            ImplementerActions::processFollowUpWithEmail($softwareHandover, $data);
+
+                            // Refresh the table
+                            $this->dispatch('refresh');
                         }),
                 ])->icon('heroicon-m-list-bullet')
                 ->size(ActionSize::Small)

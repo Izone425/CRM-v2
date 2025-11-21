@@ -19,6 +19,7 @@ use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\DB;
 use Malzariey\FilamentDaterangepickerFilter\Fields\DateRangePicker;
 use Filament\Tables\Columns\TextColumn;
+use Illuminate\Support\Facades\Log;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
@@ -70,11 +71,72 @@ class ProjectPlanTabs
                                     'project_plan_generated_at' => now(),
                                 ]);
 
-                                Notification::make()
-                                    ->title('Excel File Generated Successfully')
-                                    ->body('Project plan Excel file has been generated and saved.')
-                                    ->success()
-                                    ->send();
+                                // ✅ Get file details for the notification actions
+                                $companyName = $lead->companyDetail?->company_name ?? 'Unknown';
+                                $companySlug = \Illuminate\Support\Str::slug($companyName);
+
+                                // Find the latest file
+                                $files = \Illuminate\Support\Facades\Storage::disk('public')->files('project-plans');
+                                $matchingFiles = [];
+
+                                foreach ($files as $file) {
+                                    if (str_contains($file, $companySlug)) {
+                                        $fullPath = storage_path('app/public/' . $file);
+                                        $matchingFiles[] = [
+                                            'path' => $file,
+                                            'modified' => file_exists($fullPath) ? filemtime($fullPath) : 0
+                                        ];
+                                    }
+                                }
+
+                                if (!empty($matchingFiles)) {
+                                    usort($matchingFiles, function($a, $b) {
+                                        return $b['modified'] - $a['modified'];
+                                    });
+
+                                    $latestFile = $matchingFiles[0];
+                                    $fileName = basename($latestFile['path']);
+                                    $fileFullPath = storage_path('app/public/' . $latestFile['path']);
+
+                                    // ✅ Notification with View and Download actions
+                                    Notification::make()
+                                        ->title('Excel File Generated Successfully')
+                                        ->body('Project plan Excel file has been generated. Click below to view or download.')
+                                        ->success()
+                                        ->duration(10000) // 10 seconds to give time to click
+                                        ->actions([
+                                            \Filament\Notifications\Actions\Action::make('view')
+                                                ->label('View in Office Online')
+                                                ->icon('heroicon-o-eye')
+                                                ->color('info')
+                                                ->url(function () use ($latestFile) {
+                                                    // ✅ Generate public URL for the file
+                                                    $publicUrl = url('storage/' . $latestFile['path']);
+
+                                                    // ✅ Use Office Web Viewer
+                                                    return 'https://view.officeapps.live.com/op/view.aspx?src=' . urlencode($publicUrl);
+                                                })
+                                                ->openUrlInNewTab(),
+
+                                            \Filament\Notifications\Actions\Action::make('download')
+                                                ->label('Download')
+                                                ->icon('heroicon-o-arrow-down-tray')
+                                                ->color('success')
+                                                ->url(function () use ($latestFile) {
+                                                    return route('download.project-plan', [
+                                                        'file' => basename($latestFile['path'])
+                                                    ]);
+                                                })
+                                                ->openUrlInNewTab(),
+                                        ])
+                                        ->send();
+                                } else {
+                                    Notification::make()
+                                        ->title('Excel File Generated')
+                                        ->body('Project plan Excel file has been generated and saved.')
+                                        ->success()
+                                        ->send();
+                                }
                             }
                         }),
 
@@ -368,7 +430,6 @@ class ProjectPlanTabs
                                             TextInput::make("plan_{$plan->id}_actual_start_date")
                                                 ->hiddenLabel()
                                                 ->default($plan->actual_start_date ? \Carbon\Carbon::parse($plan->actual_start_date)->format('d/m/Y') : '')
-                                                ->placeholder('DD/MM/YYYY')
                                                 ->live(onBlur: true)
                                                 ->suffixAction(
                                                     \Filament\Forms\Components\Actions\Action::make('selectActualStartDate')
@@ -380,6 +441,7 @@ class ProjectPlanTabs
                                                             DatePicker::make('start_date')
                                                                 ->label('Actual Start Date')
                                                                 ->format('Y-m-d')
+                                                                ->native(false)
                                                                 ->displayFormat('d/m/Y')
                                                                 ->required()
                                                                 ->columnSpanFull(),
@@ -397,6 +459,7 @@ class ProjectPlanTabs
                                                                     try {
                                                                         $end = \Carbon\Carbon::createFromFormat('d/m/Y', $endDateDisplay);
 
+                                                                        // ✅ Changed: Only clear if end is BEFORE start
                                                                         if ($end->lt($start)) {
                                                                             $set("plan_{$plan->id}_actual_end_date", null);
                                                                             $set("plan_{$plan->id}_actual_duration", null);
@@ -439,6 +502,7 @@ class ProjectPlanTabs
                                                             if ($endDateDisplay) {
                                                                 $end = \Carbon\Carbon::createFromFormat('d/m/Y', trim($endDateDisplay));
 
+                                                                // ✅ Changed: Only clear if end is BEFORE start (not same day)
                                                                 if ($end->lt($start)) {
                                                                     $set("plan_{$plan->id}_actual_end_date", null);
                                                                     $set("plan_{$plan->id}_actual_duration", null);
@@ -485,8 +549,9 @@ class ProjectPlanTabs
                                                                     ->label('Actual End Date')
                                                                     ->format('Y-m-d')
                                                                     ->displayFormat('d/m/Y')
+                                                                    ->native(false)
                                                                     ->required()
-                                                                    ->minDate($minDate)
+                                                                    ->minDate($minDate?->subDay())
                                                                     ->columnSpanFull(),
                                                             ];
                                                         })
@@ -506,18 +571,9 @@ class ProjectPlanTabs
                                                                 }
 
                                                                 try {
-                                                                    $end = \Carbon\Carbon::parse($endDate);
-                                                                    $start = \Carbon\Carbon::createFromFormat('d/m/Y', $startDateDisplay);
-
-                                                                    // Validate end date is not before start date
-                                                                    if ($end->lt($start)) {
-                                                                        Notification::make()
-                                                                            ->title('Invalid End Date')
-                                                                            ->body('End date cannot be before start date')
-                                                                            ->danger()
-                                                                            ->send();
-                                                                        return;
-                                                                    }
+                                                                    // ✅ FIX: Parse both dates consistently
+                                                                    $start = \Carbon\Carbon::createFromFormat('d/m/Y', $startDateDisplay)->startOfDay();
+                                                                    $end = \Carbon\Carbon::parse($endDate)->startOfDay(); // From calendar comes in Y-m-d format
 
                                                                     $set("plan_{$plan->id}_actual_end_date", $end->format('d/m/Y'));
 
@@ -530,13 +586,13 @@ class ProjectPlanTabs
 
                                                                     Notification::make()
                                                                         ->title('Task Completed')
-                                                                        ->body("Duration: {$weekdays} days | Status: Completed")
+                                                                        ->body("Start: {$start->format('d/m/Y')} | End: {$end->format('d/m/Y')} | Duration: {$weekdays} days")
                                                                         ->success()
                                                                         ->send();
                                                                 } catch (\Exception $e) {
                                                                     Notification::make()
                                                                         ->title('Invalid Date Format')
-                                                                        ->body('Please check the start date format')
+                                                                        ->body('Error: ' . $e->getMessage())
                                                                         ->danger()
                                                                         ->send();
                                                                 }
@@ -552,8 +608,15 @@ class ProjectPlanTabs
                                                                 return;
                                                             }
 
-                                                            $start = \Carbon\Carbon::createFromFormat('d/m/Y', trim($startDateDisplay));
-                                                            $end = \Carbon\Carbon::createFromFormat('d/m/Y', trim($state));
+                                                            // ✅ FIX: Parse consistently - state could be in Y-m-d or d/m/Y format
+                                                            $start = \Carbon\Carbon::createFromFormat('d/m/Y', trim($startDateDisplay))->startOfDay();
+
+                                                            // Try d/m/Y format first, then Y-m-d format
+                                                            try {
+                                                                $end = \Carbon\Carbon::createFromFormat('d/m/Y', trim($state))->startOfDay();
+                                                            } catch (\Exception $e) {
+                                                                $end = \Carbon\Carbon::parse(trim($state))->startOfDay();
+                                                            }
 
                                                             if ($end->lt($start)) {
                                                                 $set("plan_{$plan->id}_actual_end_date", null);
@@ -565,7 +628,7 @@ class ProjectPlanTabs
                                                             $set("plan_{$plan->id}_actual_duration", $weekdays);
                                                             $set("plan_{$plan->id}_status", 'completed');
                                                         } catch (\Exception $e) {
-                                                            // Invalid format
+                                                            Log::error('Error calculating duration: ' . $e->getMessage());
                                                         }
                                                     }
                                                 })
@@ -731,12 +794,18 @@ class ProjectPlanTabs
 
                             Notification::make()
                                 ->title('Tasks Updated Successfully')
-                                ->body("Updated {$updatedCount} field(s)")
+                                ->body("Updated {$updatedCount} field(s). The progress view will refresh automatically.")
                                 ->success()
                                 ->send();
+
+                            $livewire->dispatch('refresh-project-progress');
                         })
                         ->modalWidth('7xl')
-                        ->slideOver(),
+                        ->slideOver()
+                        ->after(function ($livewire) {
+                            // ✅ Force a full component refresh after modal closes
+                            $livewire->dispatch('$refresh');
+                        }),
                 ])
                 ->schema([
                     \Filament\Forms\Components\Hidden::make('refresh_trigger')

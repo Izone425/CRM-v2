@@ -82,6 +82,7 @@ use App\Filament\Pages\SearchLead;
 use App\Filament\Pages\SearchLicense;
 use App\Filament\Pages\SoftwareHandoverAnalysis;
 use App\Filament\Pages\SoftwareHandoverAnalysisV2;
+use App\Filament\Pages\SubmitHrdfAttendanceLog;
 use App\Filament\Pages\SupportCalendar;
 use App\Filament\Pages\SupportCallLog;
 use App\Filament\Pages\TechnicianAppointment;
@@ -150,6 +151,7 @@ use Filament\Notifications\Notification;
 use App\Models\ChatMessage;
 use App\Models\Invoice;
 use App\Models\Policy;
+use App\Models\ProjectPlan;
 use App\Models\Role;
 use App\Models\SparePart;
 use Beta\Microsoft\Graph\Model\Admin;
@@ -362,6 +364,7 @@ class AdminPanelProvider extends PanelProvider
                 AdminPortalHrV2::class,
                 TicketList::class,
                 TicketDashboard::class,
+                SubmitHrdfAttendanceLog::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([

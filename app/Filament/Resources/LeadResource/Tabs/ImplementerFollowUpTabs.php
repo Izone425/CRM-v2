@@ -168,7 +168,6 @@ class ImplementerFollowUpTabs
                                         ->schema([
                                             Select::make('project_plan_files')
                                                 ->label('Project Plan Files')
-                                                ->required()
                                                 ->options(function ($record) {
                                                     if (!$record) {
                                                         return [];
@@ -198,13 +197,45 @@ class ImplementerFollowUpTabs
                                                         return $b['modified'] - $a['modified'];
                                                     });
 
-                                                    // Build options array
+                                                    // Build options array - only show the latest file
                                                     $options = [];
-                                                    foreach ($matchingFiles as $file) {
-                                                        $options[$file['path']] = $file['name'];
+                                                    if (!empty($matchingFiles)) {
+                                                        $latestFile = $matchingFiles[0];
+                                                        $options[$latestFile['path']] = $latestFile['name'] . ' (Latest)';
                                                     }
 
                                                     return $options;
+                                                })
+                                                ->default(function ($record) {
+                                                    if (!$record) {
+                                                        return null;
+                                                    }
+
+                                                    // Get the latest file and auto-select it
+                                                    $companyName = $record->companyDetail?->company_name ?? 'Unknown';
+                                                    $companySlug = \Illuminate\Support\Str::slug($companyName);
+
+                                                    $files = \Illuminate\Support\Facades\Storage::disk('public')
+                                                        ->files('project-plans');
+
+                                                    $matchingFiles = [];
+                                                    foreach ($files as $file) {
+                                                        if (str_contains($file, $companySlug)) {
+                                                            $fullPath = storage_path('app/public/' . $file);
+                                                            $matchingFiles[] = [
+                                                                'path' => $file,
+                                                                'modified' => file_exists($fullPath) ? filemtime($fullPath) : 0
+                                                            ];
+                                                        }
+                                                    }
+
+                                                    // Sort by modified time (newest first)
+                                                    usort($matchingFiles, function($a, $b) {
+                                                        return $b['modified'] - $a['modified'];
+                                                    });
+
+                                                    // Return the latest file path as array (for multiple select)
+                                                    return !empty($matchingFiles) ? [$matchingFiles[0]['path']] : null;
                                                 })
                                                 ->visible(fn ($get) => $get('send_email'))
                                                 ->multiple()
