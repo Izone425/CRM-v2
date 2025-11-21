@@ -1160,6 +1160,9 @@
                                 <a href="{{ route('filament.admin.pages.hrdf-claim-tracker') }}" class="submenu-item">
                                     <span class="module-font">HRDF Claim Tracker</span>
                                 </a>
+                                <a href="{{ route('filament.admin.pages.hrdf-attendance-log') }}" class="submenu-item">
+                                    <span class="module-font">HRDF Attendance Log</span>
+                                </a>
                             </div>
                         </div>
 
