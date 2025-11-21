@@ -281,23 +281,6 @@
                                         Admin - Headcount
                                     </button>
 
-
-                                    <button
-                                        wire:click="toggleDashboard('AdminHRDF')"
-                                        style="
-                                            display: block;
-                                            width: 100%;
-                                            padding: 10px 16px;
-                                            text-align: left;
-                                            border: none;
-                                            background: {{ $currentDashboard === 'AdminHRDF' ? '#f3f3f3' : 'white' }};
-                                            cursor: pointer;
-                                            font-size: 14px;
-                                        "
-                                    >
-                                        Admin - HRDF Claim
-                                    </button>
-
                                     <button
                                         wire:click="toggleDashboard('AdminHRDFAttLog')"
                                         style="
@@ -314,6 +297,22 @@
                                         "
                                     >
                                         <span>Admin - HRDF Att Log</span>
+                                    </button>
+
+                                    <button
+                                        wire:click="toggleDashboard('AdminHRDF')"
+                                        style="
+                                            display: block;
+                                            width: 100%;
+                                            padding: 10px 16px;
+                                            text-align: left;
+                                            border: none;
+                                            background: {{ $currentDashboard === 'AdminHRDF' ? '#f3f3f3' : 'white' }};
+                                            cursor: pointer;
+                                            font-size: 14px;
+                                        "
+                                    >
+                                        Admin - HRDF Claim
                                     </button>
 
                                     <button
@@ -901,36 +900,6 @@
                                             </button>
 
                                             <button
-                                                wire:click="toggleDashboard('AdminHRDF')"
-                                                style="
-                                                    display: flex;
-                                                    justify-content: space-between;
-                                                    align-items: center;
-                                                    width: 100%;
-                                                    padding: 10px 16px;
-                                                    text-align: left;
-                                                    border: none;
-                                                    background: {{ $currentDashboard === 'AdminHRDF' ? '#f3f3f3' : 'white' }};
-                                                    cursor: pointer;
-                                                    font-size: 14px;
-                                                "
-                                            >
-                                                <span>Admin - HRDF Claim</span>
-                                                @if($adminHrdfTotal > 0)
-                                                    <span style="
-                                                        background: #ef4444;
-                                                        color: white;
-                                                        border-radius: 12px;
-                                                        padding: 2px 8px;
-                                                        font-size: 12px;
-                                                        font-weight: bold;
-                                                        min-width: 20px;
-                                                        text-align: center;
-                                                    ">{{ $adminHrdfTotal }}</span>
-                                                @endif
-                                            </button>
-
-                                            <button
                                                 wire:click="toggleDashboard('AdminHRDFAttLog')"
                                                 style="
                                                     display: flex;
@@ -957,6 +926,36 @@
                                                         min-width: 20px;
                                                         text-align: center;
                                                     ">{{ $adminHrdfAttLogTotal }}</span>
+                                                @endif
+                                            </button>
+
+                                            <button
+                                                wire:click="toggleDashboard('AdminHRDF')"
+                                                style="
+                                                    display: flex;
+                                                    justify-content: space-between;
+                                                    align-items: center;
+                                                    width: 100%;
+                                                    padding: 10px 16px;
+                                                    text-align: left;
+                                                    border: none;
+                                                    background: {{ $currentDashboard === 'AdminHRDF' ? '#f3f3f3' : 'white' }};
+                                                    cursor: pointer;
+                                                    font-size: 14px;
+                                                "
+                                            >
+                                                <span>Admin - HRDF Claim</span>
+                                                @if($adminHrdfTotal > 0)
+                                                    <span style="
+                                                        background: #ef4444;
+                                                        color: white;
+                                                        border-radius: 12px;
+                                                        padding: 2px 8px;
+                                                        font-size: 12px;
+                                                        font-weight: bold;
+                                                        min-width: 20px;
+                                                        text-align: center;
+                                                    ">{{ $adminHrdfTotal }}</span>
                                                 @endif
                                             </button>
 
@@ -1235,23 +1234,6 @@
                                             Admin - Headcount
                                         </button>
 
-
-                                        <button
-                                            wire:click="toggleDashboard('AdminHRDF')"
-                                            style="
-                                                display: block;
-                                                width: 100%;
-                                                padding: 10px 16px;
-                                                text-align: left;
-                                                border: none;
-                                                background: {{ $currentDashboard === 'AdminHRDF' ? '#f3f3f3' : 'white' }};
-                                                cursor: pointer;
-                                                font-size: 14px;
-                                            "
-                                        >
-                                            Admin - HRDF Claim
-                                        </button>
-
                                         <button
                                             wire:click="toggleDashboard('AdminHRDFAttLog')"
                                             style="
@@ -1268,6 +1250,22 @@
                                             "
                                         >
                                             <span>Admin - HRDF Att Log</span>
+                                        </button>
+
+                                        <button
+                                            wire:click="toggleDashboard('AdminHRDF')"
+                                            style="
+                                                display: block;
+                                                width: 100%;
+                                                padding: 10px 16px;
+                                                text-align: left;
+                                                border: none;
+                                                background: {{ $currentDashboard === 'AdminHRDF' ? '#f3f3f3' : 'white' }};
+                                                cursor: pointer;
+                                                font-size: 14px;
+                                            "
+                                        >
+                                            Admin - HRDF Claim
                                         </button>
 
                                         <button

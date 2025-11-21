@@ -223,7 +223,7 @@
                 :class="{'selected': selectedGroup === 'hrdf-att-log-all'}"
                 @click="setSelectedGroup('hrdf-att-log-all')">
                 <div class="group-info">
-                    <div class="group-title">All Logs</div>
+                    <div class="group-title">HRDF Attendance Log</div>
                 </div>
                 <div class="group-count">{{ $hrdfAttLogAllCount }}</div>
             </div>
@@ -233,7 +233,7 @@
                 :class="{'selected': selectedGroup === 'hrdf-att-log-new'}"
                 @click="setSelectedGroup('hrdf-att-log-new')">
                 <div class="group-info">
-                    <div class="group-title">New Logs</div>
+                    <div class="group-title">New Task</div>
                 </div>
                 <div class="group-count">{{ $hrdfAttLogNewCount }}</div>
             </div>
@@ -243,7 +243,7 @@
                 :class="{'selected': selectedGroup === 'hrdf-att-log-completed'}"
                 @click="setSelectedGroup('hrdf-att-log-completed')">
                 <div class="group-info">
-                    <div class="group-title">Completed</div>
+                    <div class="group-title">Completed Task</div>
                 </div>
                 <div class="group-count">{{ $hrdfAttLogCompletedCount }}</div>
             </div>

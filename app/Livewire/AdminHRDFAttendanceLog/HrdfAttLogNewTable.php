@@ -28,6 +28,31 @@ class HrdfAttLogNewTable extends Component implements HasTable, HasForms
     use InteractsWithTable;
     use InteractsWithForms;
 
+    public $lastRefreshTime;
+
+    public function mount()
+    {
+        $this->lastRefreshTime = now()->format('Y-m-d H:i:s');
+    }
+
+    public function refreshTable()
+    {
+        $this->resetTable();
+        $this->lastRefreshTime = now()->format('Y-m-d H:i:s');
+
+        Notification::make()
+            ->title('Table refreshed')
+            ->success()
+            ->send();
+    }
+
+    #[On('refresh-hrdf-tables')]
+    public function refreshData()
+    {
+        $this->resetTable();
+        $this->lastRefreshTime = now()->format('Y-m-d H:i:s');
+    }
+
     public function getNewHrdfAttendanceLogs()
     {
         return HrdfAttendanceLog::where('status', 'new')
@@ -80,7 +105,7 @@ class HrdfAttLogNewTable extends Component implements HasTable, HasForms
                     ->dateTime('d/m/Y H:i')
                     ->sortable(),
 
-                BadgeColumn::make('status')
+                TextColumn::make('status')
                     ->label('Status')
                     ->colors([
                         'warning' => 'new',
@@ -88,12 +113,7 @@ class HrdfAttLogNewTable extends Component implements HasTable, HasForms
                         'success' => 'completed',
                         'danger' => 'cancelled',
                     ])
-                    ->icons([
-                        'heroicon-o-clock' => 'new',
-                        'heroicon-o-arrow-path' => 'in_progress',
-                        'heroicon-o-check-circle' => 'completed',
-                        'heroicon-o-x-circle' => 'cancelled',
-                    ])
+                    ->formatStateUsing(fn (string $state): string => ucfirst(str_replace('_', ' ', $state)))
                     ->sortable(),
             ])
             ->defaultSort('created_at', 'desc')
@@ -101,16 +121,16 @@ class HrdfAttLogNewTable extends Component implements HasTable, HasForms
                 ActionGroup::make([
                     Action::make('accept')
                         ->label('Accept')
+                        ->modalHeading(false)
                         ->icon('heroicon-o-check-circle')
                         ->color('success')
+                        ->modalWidth('xl')
                         ->form([
                             \Filament\Forms\Components\TextInput::make('grant_id')
                                 ->label('Grant ID')
                                 ->required()
                                 ->alphaNum()
-                                ->placeholder('Enter Grant ID (alphanumeric only)')
                                 ->maxLength(50)
-                                ->rules(['regex:/^[A-Z0-9]+$/'])
                                 ->extraAlpineAttributes([
                                     'x-on:input' => '
                                         const start = $el.selectionStart;
@@ -119,11 +139,10 @@ class HrdfAttLogNewTable extends Component implements HasTable, HasForms
                                         $el.setSelectionRange(start, end);
                                     '
                                 ])
-                                ->helperText('Only uppercase letters and numbers are allowed')
                                 ->columnSpanFull(),
 
                             \Filament\Forms\Components\Select::make('salesperson_id')
-                                ->label('Salesperson Name')
+                                ->label('Name')
                                 ->required()
                                 ->options(function () {
                                     // Get all users with role_id = 2 (salespersons) + user ID 5
@@ -134,11 +153,10 @@ class HrdfAttLogNewTable extends Component implements HasTable, HasForms
                                         ->toArray();
                                 })
                                 ->searchable()
-                                ->placeholder('Select salesperson')
                                 ->columnSpanFull(),
 
                             \Filament\Forms\Components\FileUpload::make('documents')
-                                ->label('All Required Documents (4 PDF Files)')
+                                ->label('JD14 Form + 3Days Attendance Log')
                                 ->required()
                                 ->multiple()
                                 ->minFiles(4)
@@ -152,22 +170,12 @@ class HrdfAttLogNewTable extends Component implements HasTable, HasForms
                                 ->openable()
                                 ->reorderable()
                                 ->columnSpanFull()
-                                ->helperText('JD14 Form + Day 1, Day 2, Day 3 Attendance Logs')
                         ])
                         ->action(function (HrdfAttendanceLog $record, array $data) {
                             if (!isset($data['documents']) || !is_array($data['documents']) || count($data['documents']) !== 4) {
                                 Notification::make()
                                     ->title('Error')
                                     ->body('Please upload exactly 4 PDF files (1 JD14 Form + 3 Attendance Logs)')
-                                    ->danger()
-                                    ->send();
-                                return;
-                            }
-
-                            if (!preg_match('/^[A-Z0-9]+$/', $data['grant_id'])) {
-                                Notification::make()
-                                    ->title('Error')
-                                    ->body('Grant ID must contain only uppercase letters and numbers')
                                     ->danger()
                                     ->send();
                                 return;
@@ -204,7 +212,7 @@ class HrdfAttLogNewTable extends Component implements HasTable, HasForms
 
                                 Mail::send('emails.hrd_attendance_log_notification', $emailData, function($message) use ($salesperson, $record) {
                                     $message->to($salesperson->email)
-                                            ->subject("HRDF Attendance Log Completed - {$record->formatted_log_id}");
+                                            ->subject("HRDF ATTENDANCE LOG - {$record->company_name}");
                                 });
 
                                 $emailSent = true;

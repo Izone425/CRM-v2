@@ -28,6 +28,31 @@ class HrdfAttLogAllTable extends Component implements HasTable, HasForms
     use InteractsWithTable;
     use InteractsWithForms;
 
+    public $lastRefreshTime;
+
+    public function mount()
+    {
+        $this->lastRefreshTime = now()->format('Y-m-d H:i:s');
+    }
+
+    public function refreshTable()
+    {
+        $this->resetTable();
+        $this->lastRefreshTime = now()->format('Y-m-d H:i:s');
+
+        Notification::make()
+            ->title('Table refreshed')
+            ->success()
+            ->send();
+    }
+
+    #[On('refresh-hrdf-tables')]
+    public function refreshData()
+    {
+        $this->resetTable();
+        $this->lastRefreshTime = now()->format('Y-m-d H:i:s');
+    }
+
     public function getAllHrdfAttendanceLogs()
     {
         return HrdfAttendanceLog::query(); // ✅ Return query builder, not collection
@@ -79,7 +104,7 @@ class HrdfAttLogAllTable extends Component implements HasTable, HasForms
                     ->dateTime('d/m/Y H:i')
                     ->sortable(),
 
-                BadgeColumn::make('status')
+                TextColumn::make('status')
                     ->label('Status')
                     ->colors([
                         'warning' => 'new',
@@ -87,12 +112,7 @@ class HrdfAttLogAllTable extends Component implements HasTable, HasForms
                         'success' => 'completed',
                         'danger' => 'cancelled',
                     ])
-                    ->icons([
-                        'heroicon-o-clock' => 'new',
-                        'heroicon-o-arrow-path' => 'in_progress',
-                        'heroicon-o-check-circle' => 'completed',
-                        'heroicon-o-x-circle' => 'cancelled',
-                    ])
+                    ->formatStateUsing(fn (string $state): string => ucfirst(str_replace('_', ' ', $state)))
                     ->sortable(),
             ])
             ->defaultSort('created_at', 'desc');
