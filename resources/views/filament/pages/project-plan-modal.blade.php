@@ -1,10 +1,12 @@
-{{-- filepath: /var/www/html/timeteccrm/resources/views/filament/resources/lead-resource/tabs/project-progress-view.blade.php --}}
+{{-- filepath: /var/www/html/timeteccrm/resources/views/filament/pages/project-plan-modal.blade.php --}}
 @php
-    // Get the data directly from the Livewire component
-    $leadId = null;
+    // Get data from the software handover record
+    $leadId = $softwareHandover->lead_id ?? null;
+    $swId = $softwareHandover->id ?? null;
+    $projectPlanGeneratedAt = $softwareHandover->project_plan_generated_at ?? null;
+
+    // Use the same logic from project-progress-view.blade.php
     $selectedModules = [];
-    $swId = null;
-    $projectPlans = [];
     $progressOverview = [];
     $overallSummary = [
         'totalTasks' => 0,
@@ -12,139 +14,106 @@
         'overallProgress' => 0,
         'modules' => []
     ];
-    $projectPlanGeneratedAt = null;
 
-    // Try to get the livewire component and lead record
-    try {
-        if (isset($this) && method_exists($this, 'getRecord')) {
-            $record = $this->getRecord();
-            if ($record) {
-                $leadId = $record->id;
+    if ($softwareHandover) {
+        $selectedModules = $softwareHandover->getSelectedModules();
+        $selectedModules = array_unique(array_merge(['phase 1', 'phase 2'], $selectedModules));
 
-                // Get the latest software handover for this lead
-                $softwareHandover = \App\Models\SoftwareHandover::where('lead_id', $leadId)
-                    ->latest()
-                    ->first();
+        usort($selectedModules, function($a, $b) {
+            return \App\Models\ProjectTask::getModuleOrder($a) - \App\Models\ProjectTask::getModuleOrder($b);
+        });
 
-                if ($softwareHandover) {
-                    $projectPlanGeneratedAt = $softwareHandover->project_plan_generated_at;
+        $totalTasksAll = 0;
+        $completedTasksAll = 0;
 
-                    // Get modules from latest SoftwareHandover
-                    $selectedModules = $softwareHandover->getSelectedModules();
+        foreach ($selectedModules as $module) {
+            $moduleNames = \App\Models\ProjectTask::where('module', $module)
+                ->where('is_active', true)
+                ->select('module_name')
+                ->distinct()
+                ->get()
+                ->pluck('module_name')
+                ->toArray();
 
-                    // Always include Phase 1 and Phase 2 (NO UNDERSCORES)
-                    $selectedModules = array_unique(array_merge(['phase 1', 'phase 2'], $selectedModules));
+            usort($moduleNames, function($a, $b) {
+                $orderA = \App\Models\ProjectTask::where('module_name', $a)->value('module_order') ?? 999;
+                $orderB = \App\Models\ProjectTask::where('module_name', $b)->value('module_order') ?? 999;
+                return $orderA - $orderB;
+            });
 
-                    $swId = $softwareHandover->id;
+            foreach ($moduleNames as $moduleName) {
+                $modulePlans = \App\Models\ProjectPlan::where('lead_id', $leadId)
+                    ->where('sw_id', $swId)
+                    ->whereHas('projectTask', function ($query) use ($moduleName) {
+                        $query->where('module_name', $moduleName)
+                            ->where('is_active', true);
+                    })
+                    ->with('projectTask')
+                    ->get();
 
-                    // Sort modules by module_order
-                    usort($selectedModules, function($a, $b) {
-                        return \App\Models\ProjectTask::getModuleOrder($a) - \App\Models\ProjectTask::getModuleOrder($b);
+                if ($modulePlans->isNotEmpty()) {
+                    $totalTasks = $modulePlans->count();
+                    $completedTasks = $modulePlans->where('status', 'completed')->count();
+                    $overallProgress = $totalTasks > 0 ? round(($completedTasks / $totalTasks) * 100) : 0;
+
+                    $totalTasksAll += $totalTasks;
+                    $completedTasksAll += $completedTasks;
+
+                    $sortedPlans = $modulePlans->sortBy(function($plan) {
+                        return $plan->projectTask->order ?? 0;
                     });
 
-                    // Generate progress overview BY MODULE
-                    $totalTasksAll = 0;
-                    $completedTasksAll = 0;
+                    $tasksArray = $sortedPlans->map(function ($plan) {
+                        return [
+                            'id' => $plan->id,
+                            'task_name' => $plan->projectTask->task_name ?? 'N/A',
+                            'order' => $plan->projectTask->order ?? 0,
+                            'module' => $plan->projectTask->module ?? '',
+                            'module_name' => $plan->projectTask->module_name ?? '',
+                            'percentage' => $plan->projectTask->task_percentage ?? 0,
+                            'status' => $plan->status ?? 'pending',
+                            'plan_start_date' => $plan->plan_start_date,
+                            'plan_end_date' => $plan->plan_end_date,
+                            'actual_start_date' => $plan->actual_start_date,
+                            'actual_end_date' => $plan->actual_end_date,
+                        ];
+                    })->values()->toArray();
 
-                    foreach ($selectedModules as $module) {
-                        // ✅ Get all unique module_names for this module
-                        $moduleNames = \App\Models\ProjectTask::where('module', $module)
-                            ->where('is_active', true)
-                            ->select('module_name')
-                            ->distinct()
-                            ->get()
-                            ->pluck('module_name')
-                            ->toArray();
+                    $moduleOrder = \App\Models\ProjectTask::where('module_name', $moduleName)
+                        ->value('module_order') ?? 999;
 
-                        // Sort module_names by phase number
-                        usort($moduleNames, function($a, $b) {
-                            $orderA = \App\Models\ProjectTask::where('module_name', $a)->value('module_order') ?? 999;
-                            $orderB = \App\Models\ProjectTask::where('module_name', $b)->value('module_order') ?? 999;
-                            return $orderA - $orderB;
-                        });
+                    $progressOverview[$moduleName] = [
+                        'tasks' => $tasksArray,
+                        'totalTasks' => $totalTasks,
+                        'completedTasks' => $completedTasks,
+                        'overallProgress' => $overallProgress,
+                        'module_order' => $moduleOrder,
+                        'module_name' => $moduleName
+                    ];
 
-                        foreach ($moduleNames as $moduleName) {
-                            $modulePlans = \App\Models\ProjectPlan::where('lead_id', $leadId)
-                                ->where('sw_id', $swId)
-                                ->whereHas('projectTask', function ($query) use ($moduleName) {
-                                    $query->where('module_name', $moduleName)
-                                        ->where('is_active', true);
-                                })
-                                ->with('projectTask')
-                                ->get();
-
-                            if ($modulePlans->isNotEmpty()) {
-                                $totalTasks = $modulePlans->count();
-                                $completedTasks = $modulePlans->where('status', 'completed')->count();
-                                $overallProgress = $totalTasks > 0 ? round(($completedTasks / $totalTasks) * 100) : 0;
-
-                                $totalTasksAll += $totalTasks;
-                                $completedTasksAll += $completedTasks;
-
-                                // Sort tasks by order
-                                $sortedPlans = $modulePlans->sortBy(function($plan) {
-                                    return $plan->projectTask->order ?? 0;
-                                });
-
-                                $tasksArray = $sortedPlans->map(function ($plan) {
-                                    return [
-                                        'id' => $plan->id,
-                                        'task_name' => $plan->projectTask->task_name ?? 'N/A',
-                                        'order' => $plan->projectTask->order ?? 0,
-                                        'module' => $plan->projectTask->module ?? '',
-                                        'module_name' => $plan->projectTask->module_name ?? '',
-                                        'percentage' => $plan->projectTask->task_percentage ?? 0,
-                                        'status' => $plan->status ?? 'pending',
-                                        'plan_start_date' => $plan->plan_start_date,
-                                        'plan_end_date' => $plan->plan_end_date,
-                                        'actual_start_date' => $plan->actual_start_date,
-                                        'actual_end_date' => $plan->actual_end_date,
-                                    ];
-                                })->values()->toArray();
-
-                                $moduleOrder = \App\Models\ProjectTask::getModuleNameOrder($moduleName);
-
-                                $progressOverview[$moduleName] = [
-                                    'tasks' => $tasksArray,
-                                    'totalTasks' => $totalTasks,
-                                    'completedTasks' => $completedTasks,
-                                    'overallProgress' => $overallProgress,
-                                    'module_order' => $moduleOrder,
-                                    'module_name' => $moduleName
-                                ];
-
-                                // Add to overall summary
-                                $overallSummary['modules'][] = [
-                                    'module' => $module,
-                                    'module_name' => $moduleName,
-                                    'module_order' => $moduleOrder,
-                                    'progress' => $overallProgress,
-                                    'completed' => $completedTasks,
-                                    'total' => $totalTasks
-                                ];
-                            }
-                        }
-                    }
-
-                    // Sort overall summary modules by module_order
-                    usort($overallSummary['modules'], function($a, $b) {
-                        return $a['module_order'] - $b['module_order'];
-                    });
-
-                    // Calculate overall progress
-                    $overallSummary['totalTasks'] = $totalTasksAll;
-                    $overallSummary['completedTasks'] = $completedTasksAll;
-                    $overallSummary['overallProgress'] = $totalTasksAll > 0 ? round(($completedTasksAll / $totalTasksAll) * 100) : 0;
+                    $overallSummary['modules'][] = [
+                        'module' => $module,
+                        'module_name' => $moduleName,
+                        'module_order' => $moduleOrder,
+                        'progress' => $overallProgress,
+                        'completed' => $completedTasks,
+                        'total' => $totalTasks
+                    ];
                 }
             }
         }
-    } catch (Exception $e) {
-        // Fallback to empty data if there's any error
-        \Log::error('Project Progress View Error: ' . $e->getMessage());
-        \Log::error('Stack trace: ' . $e->getTraceAsString());
+
+        usort($overallSummary['modules'], function($a, $b) {
+            return $a['module_order'] - $b['module_order'];
+        });
+
+        $overallSummary['totalTasks'] = $totalTasksAll;
+        $overallSummary['completedTasks'] = $completedTasksAll;
+        $overallSummary['overallProgress'] = $totalTasksAll > 0 ? round(($completedTasksAll / $totalTasksAll) * 100) : 0;
     }
 @endphp
 
+{{-- Copy all styles from project-progress-view.blade.php --}}
 <style>
     .project-progress-container {
         display: flex;
@@ -179,16 +148,6 @@
         font-weight: 700;
         margin: 0;
         color: #1e40af;
-    }
-
-    .overall-sw-badge {
-        display: inline-block;
-        padding: 4px 12px;
-        background-color: #dbeafe;
-        color: #1e40af;
-        font-size: 12px;
-        font-weight: 600;
-        border-radius: 12px;
     }
 
     .overall-stats {
@@ -239,10 +198,6 @@
         align-items: center;
         flex-shrink: 0;
         min-width: 0;
-    }
-
-    .timeline-task:hover {
-        z-index: 999;
     }
 
     .timeline-circle {
@@ -347,18 +302,6 @@
         color: #1f2937;
     }
 
-    .timeline-period {
-        margin-top: 4px;
-        font-size: 9px;
-        color: #6b7280;
-        white-space: nowrap;
-        font-weight: 500;
-    }
-
-    .timeline-period.has-dates {
-        color: #3b82f6;
-    }
-
     .timeline-line {
         flex: 1;
         height: 2px;
@@ -404,16 +347,6 @@
         font-weight: 700;
         color: #1e40af;
         margin: 0;
-    }
-
-    .sw-id-badge {
-        display: inline-block;
-        padding: 4px 12px;
-        background-color: #dbeafe;
-        color: #1e40af;
-        font-size: 12px;
-        font-weight: 600;
-        border-radius: 12px;
     }
 
     .module-stats {
@@ -463,12 +396,6 @@
         color: #6b7280;
     }
 
-    /* Hide original tooltips */
-    .timeline-circle > .task-tooltip {
-        display: none !important;
-    }
-
-    /* Tooltip Container - Fixed Position */
     #tooltip-container {
         position: fixed;
         top: 0;
@@ -500,7 +427,6 @@
         visibility: visible !important;
     }
 
-    /* Arrow pointing DOWN (tooltip on top) */
     #tooltip-container .task-tooltip::after {
         content: '';
         position: absolute;
@@ -516,24 +442,6 @@
         font-size: 13px;
         margin-bottom: 6px;
         color: #93c5fd;
-    }
-
-    .tooltip-doc-no {
-        font-size: 11px;
-        color: #d1d5db;
-        margin-bottom: 2px;
-    }
-
-    .tooltip-role {
-        font-size: 11px;
-        color: #d1d5db;
-        margin-bottom: 2px;
-    }
-
-    .tooltip-person {
-        font-size: 11px;
-        color: #d1d5db;
-        margin-bottom: 6px;
     }
 
     .tooltip-divider {
@@ -560,18 +468,6 @@
         color: #9ca3af;
     }
 
-    .tooltip-dates {
-        font-size: 11px;
-        color: #d1d5db;
-        margin-bottom: 4px;
-    }
-
-    .tooltip-progress {
-        font-size: 11px;
-        font-weight: 600;
-        color: #93c5fd;
-    }
-
     .tooltip-date-label {
         font-size: 10px;
         color: #9ca3af;
@@ -583,6 +479,12 @@
         font-size: 11px;
         color: #d1d5db;
         margin-bottom: 6px;
+    }
+
+    .tooltip-progress {
+        font-size: 11px;
+        font-weight: 600;
+        color: #93c5fd;
     }
 
     .tooltip-day-counter {
@@ -613,6 +515,10 @@
         background-color: #d1fae5;
         color: #065f46;
     }
+
+    .timeline-circle > .task-tooltip {
+        display: none !important;
+    }
 </style>
 
 <script>
@@ -623,36 +529,23 @@
         }
     }
 
-    // ✅ Extract tooltip initialization into a reusable function
-    function initializeTooltips() {
+    document.addEventListener('DOMContentLoaded', function() {
         const container = document.getElementById('tooltip-container');
         if (!container) return;
 
-        // ✅ Remove old event listeners by cloning circles
         document.querySelectorAll('.timeline-circle').forEach(circle => {
-            // Remove existing tooltip if any
-            if (circle.tooltipElement) {
-                circle.tooltipElement.remove();
-                circle.tooltipElement = null;
-            }
-
             const tooltipOriginal = circle.querySelector('.task-tooltip');
             if (!tooltipOriginal) return;
 
             const tooltipHtml = tooltipOriginal.innerHTML;
 
-            // Clone to remove old event listeners
-            const newCircle = circle.cloneNode(true);
-            circle.parentNode.replaceChild(newCircle, circle);
-
-            newCircle.addEventListener('mouseenter', function(e) {
+            circle.addEventListener('mouseenter', function(e) {
                 const rect = this.getBoundingClientRect();
 
                 const tooltip = document.createElement('div');
                 tooltip.className = 'task-tooltip show';
                 tooltip.innerHTML = tooltipHtml;
 
-                // Position tooltip ABOVE the circle
                 tooltip.style.bottom = (window.innerHeight - rect.top + 12) + 'px';
                 tooltip.style.left = (rect.left + rect.width / 2) + 'px';
                 tooltip.style.transform = 'translateX(-50%)';
@@ -661,43 +554,19 @@
                 this.tooltipElement = tooltip;
             });
 
-            newCircle.addEventListener('mouseleave', function() {
+            circle.addEventListener('mouseleave', function() {
                 if (this.tooltipElement) {
                     this.tooltipElement.remove();
                     this.tooltipElement = null;
                 }
             });
         });
-    }
-
-    // ✅ Initialize on page load
-    document.addEventListener('DOMContentLoaded', function() {
-        initializeTooltips();
     });
-
-    // ✅ Listen for Livewire refresh events
-    document.addEventListener('livewire:initialized', () => {
-        Livewire.on('refresh-project-progress', () => {
-            // Wait for DOM to update, then reinitialize tooltips
-            setTimeout(() => {
-                initializeTooltips();
-            }, 100);
-        });
-    });
-
-    // ✅ Also listen for Livewire's message.processed hook
-    if (typeof Livewire !== 'undefined') {
-        Livewire.hook('message.processed', (message, component) => {
-            // Reinitialize tooltips after any Livewire update
-            setTimeout(() => {
-                initializeTooltips();
-            }, 100);
-        });
-    }
 </script>
 
+{{-- Rest of the HTML remains the same as project-progress-view.blade.php --}}
 @if($projectPlanGeneratedAt)
-    <div style="text-align: right;">
+    <div style="text-align: right; margin-bottom: 16px;">
         <div style="display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px; background-color: #F3F4F6; border-radius: 6px; border-left: 3px solid #3B82F6;">
             <div style="font-size: 11px; color: #6B7280; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
                 📅 Project Plan Generated:
@@ -714,7 +583,7 @@
 
 <div class="project-progress-container">
     @if(!empty($selectedModules) && !empty($progressOverview))
-        {{-- OVERALL PROJECT PROGRESS OVERVIEW --}}
+        {{-- Overall Progress Card --}}
         <div class="overall-progress-card">
             <div class="overall-header">
                 <div class="overall-title-section">
@@ -727,7 +596,7 @@
                 </div>
             </div>
 
-            {{-- Modules Timeline (Similar to Task Timeline) --}}
+            {{-- Modules Timeline --}}
             <div class="progress-timeline">
                 <div class="timeline-container">
                     @foreach($overallSummary['modules'] as $index => $moduleSummary)
@@ -747,7 +616,6 @@
 
                         <div class="timeline-task">
                             <div class="timeline-circle {{ $moduleStatus }}" onclick="toggleModuleDetails('{{ $moduleKey }}')" style="width: 48px; height: 48px;">
-                                {{-- Module Tooltip --}}
                                 <div class="task-tooltip">
                                     <div class="tooltip-task-name">{{ ucfirst($moduleSummary['module']) }}</div>
                                     <div class="tooltip-task-name">{{ $moduleSummary['module_name'] }}</div>
@@ -791,13 +659,12 @@
             </div>
         </div>
 
-        {{-- MODULE BY MODULE DETAILS --}}
+        {{-- Module Details --}}
         @foreach($progressOverview as $moduleName => $moduleData)
             @php
                 $moduleKey = str_replace([' ', ':'], '-', $moduleName);
                 $moduleProgress = $moduleData['overallProgress'];
 
-                // Auto-open logic
                 $showByDefault = false;
                 if ($moduleProgress > 0 && $moduleProgress < 100) {
                     $showByDefault = true;
@@ -822,22 +689,16 @@
                     </div>
                 </div>
 
-                {{-- Progress Timeline for this module --}}
                 <div class="progress-timeline">
                     <div class="timeline-container">
                         @foreach($moduleData['tasks'] as $index => $task)
                             @php
                                 $taskStatus = $task['status'] ?? 'pending';
-
-                                // Planned dates
                                 $planStartDate = $task['plan_start_date'] ? \Carbon\Carbon::parse($task['plan_start_date']) : null;
                                 $planEndDate = $task['plan_end_date'] ? \Carbon\Carbon::parse($task['plan_end_date']) : null;
-
-                                // Actual dates
                                 $actualStartDate = $task['actual_start_date'] ? \Carbon\Carbon::parse($task['actual_start_date']) : null;
                                 $actualEndDate = $task['actual_end_date'] ? \Carbon\Carbon::parse($task['actual_end_date']) : null;
 
-                                // ✅ UPDATED LOGIC: Determine visual status based on dates AND database status
                                 $visualStatus = $taskStatus;
                                 $isCompleted = false;
                                 $isInProgress = false;
@@ -854,17 +715,14 @@
                                     $isPending = true;
                                 }
 
-                                // Determine tooltip status text
                                 $tooltipStatusText = ucfirst(str_replace('_', ' ', $visualStatus));
                                 $tooltipStatusClass = $visualStatus === 'completed' ? 'completed' : ($visualStatus === 'in_progress' ? 'in-progress' : 'pending');
 
-                                // Format planned period for tooltip
                                 $plannedPeriod = '';
                                 if ($planStartDate && $planEndDate) {
                                     $plannedPeriod = $planStartDate->format('d M Y') . ' - ' . $planEndDate->format('d M Y');
                                 }
 
-                                // Format actual period for tooltip
                                 $actualPeriod = '';
                                 if ($actualStartDate && $actualEndDate) {
                                     $actualPeriod = $actualStartDate->format('d M Y') . ' - ' . $actualEndDate->format('d M Y');
@@ -872,7 +730,6 @@
                                     $actualPeriod = $actualStartDate->format('d M Y') . ' - Now';
                                 }
 
-                                // Calculate days left
                                 $daysLeft = null;
                                 $dayCounterClass = 'normal';
                                 $dayCounterText = '';
@@ -901,13 +758,9 @@
                             @endphp
 
                             <div class="timeline-task">
-                                <div class="timeline-circle {{ $visualStatus }}"
-                                    style="cursor: pointer;">
-                                    {{-- Task Tooltip --}}
+                                <div class="timeline-circle {{ $visualStatus }}">
                                     <div class="task-tooltip">
                                         <div class="tooltip-task-name">{{ $task['task_name'] ?? 'N/A' }}</div>
-
-                                        {{-- ✅ Show status in tooltip --}}
                                         <div class="tooltip-status {{ $tooltipStatusClass }}">
                                             Status: {{ $tooltipStatusText }}
                                         </div>
@@ -963,7 +816,7 @@
     @else
         <div class="empty-state">
             <svg class="empty-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012-2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
             </svg>
             <p class="empty-title">No project plans found</p>
             <p class="empty-description">Please create a software handover first, then click "Sync Tasks from Template"</p>

@@ -86,7 +86,6 @@ class ImplementerFollowUpFuture extends Component implements HasForms, HasTable
             ->where('status_handover', '!=', 'InActive')
             ->whereDate('follow_up_date', '>', today())
             ->where('follow_up_counter', true)
-            ->orderBy('created_at', 'asc')
             ->selectRaw('*, DATEDIFF(NOW(), follow_up_date) as pending_days');
 
         if ($this->selectedUser === 'all-implementer') {
@@ -115,7 +114,7 @@ class ImplementerFollowUpFuture extends Component implements HasForms, HasTable
         return $table
             ->poll('300s')
             ->query($this->getOverdueHardwareHandovers())
-            ->defaultSort('created_at', 'asc')
+            ->defaultSort('created_at', 'desc')
             ->emptyState(fn () => view('components.empty-state-question'))
             ->defaultPaginationPageOption(5)
             ->paginated([5])
@@ -200,8 +199,6 @@ class ImplementerFollowUpFuture extends Component implements HasForms, HasTable
                     })
                     ->placeholder('All Implementers')
                     ->multiple(),
-
-                SortFilter::make("sort_by"),
             ])
             ->columns([
                 TextColumn::make('id')
@@ -272,7 +269,7 @@ class ImplementerFollowUpFuture extends Component implements HasForms, HasTable
                     })
                     ->html(),
 
-               TextColumn::make('pending_days')
+                TextColumn::make('pending_days')
                     ->label('Pending Days')
                     ->formatStateUsing(function ($state, $record) {
                         // Calculate days left from now until follow_up_date
@@ -284,6 +281,9 @@ class ImplementerFollowUpFuture extends Component implements HasForms, HasTable
                         } else {
                             return $daysLeft . ' days';
                         }
+                    })
+                    ->sortable(query: function (Builder $query, string $direction): Builder {
+                        return $query->orderBy('follow_up_date', $direction);
                     })
                     ->color(function ($record) {
                         // Get days left

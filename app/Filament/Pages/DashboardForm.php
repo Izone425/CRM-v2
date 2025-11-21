@@ -102,6 +102,7 @@ class DashboardForm extends Page
             'Training',
             'Finance',
             'HRDF',
+            'AdminHRDFAttLog',
             'AdminRenewalv1',
             'AdminRenewalv2',
             'AdminHRDF',

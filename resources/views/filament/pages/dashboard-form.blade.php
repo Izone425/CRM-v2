@@ -67,6 +67,10 @@
             ->getNewHrdfHandovers()
             ->count();
 
+        $adminHrdfAttLogTotal = app(\App\Livewire\AdminHRDFAttendanceLog\HrdfAttLogNewTable::class)
+            ->getNewHrdfAttendanceLogs()
+            ->count();
+
         // ADMIN HARDWARE V2 counts
         $newTaskCount = app(\App\Livewire\AdminHardwareV2Dashboard\HardwareV2NewTable::class)
             ->getNewHardwareHandovers()
@@ -178,8 +182,8 @@
                                         font-weight: bold;
                                         border: none;
                                         border-radius: 20px;
-                                        background: {{ in_array($currentDashboard, ['MainAdminDashboard', 'SoftwareAdmin', 'HardwareAdmin', 'HardwareAdminV2', 'AdminRepair', 'AdminRenewalv1', 'AdminRenewalv2', 'AdminHRDF', 'AdminHeadcount']) ? '#431fa1' : 'transparent' }};
-                                        color: {{ in_array($currentDashboard, ['MainAdminDashboard', 'SoftwareAdmin', 'HardwareAdmin', 'HardwareAdminV2', 'AdminRepair', 'AdminRenewalv1', 'AdminRenewalv2', 'AdminHRDF', 'AdminHeadcount']) ? '#ffffff' : '#555' }};
+                                        background: {{ in_array($currentDashboard, ['MainAdminDashboard', 'SoftwareAdmin', 'HardwareAdmin', 'HardwareAdminV2', 'AdminRepair', 'AdminRenewalv1', 'AdminRenewalv2', 'AdminHRDF', 'AdminHRDFAttLog', 'AdminHeadcount']) ? '#431fa1' : 'transparent' }};
+                                        color: {{ in_array($currentDashboard, ['MainAdminDashboard', 'SoftwareAdmin', 'HardwareAdmin', 'HardwareAdminV2', 'AdminRepair', 'AdminRenewalv1', 'AdminRenewalv2', 'AdminHRDF', 'AdminHRDFAttLog', 'AdminHeadcount']) ? '#ffffff' : '#555' }};
                                         cursor: pointer;
                                         display: flex;
                                         align-items: center;
@@ -291,7 +295,25 @@
                                             font-size: 14px;
                                         "
                                     >
-                                        Admin - HRDF
+                                        Admin - HRDF Claim
+                                    </button>
+
+                                    <button
+                                        wire:click="toggleDashboard('AdminHRDFAttLog')"
+                                        style="
+                                            display: flex;
+                                            justify-content: space-between;
+                                            align-items: center;
+                                            width: 100%;
+                                            padding: 10px 16px;
+                                            text-align: left;
+                                            border: none;
+                                            background: {{ $currentDashboard === 'AdminHRDFAttLog' ? '#f3f3f3' : 'white' }};
+                                            cursor: pointer;
+                                            font-size: 14px;
+                                        "
+                                    >
+                                        <span>Admin - HRDF Att Log</span>
                                     </button>
 
                                     <button
@@ -710,8 +732,8 @@
                                                 font-weight: bold;
                                                 border: none;
                                                 border-radius: 20px;
-                                                background: {{ in_array($currentDashboard, ['MainAdminDashboard','SoftwareAdmin', 'SoftwareAdminV2', 'HardwareAdmin', 'HardwareAdminV2', 'AdminRepair', 'AdminRenewalv1', 'AdminRenewalv2', 'AdminHRDF', 'AdminHeadcount']) ? '#431fa1' : 'transparent' }};
-                                                color: {{ in_array($currentDashboard, ['MainAdminDashboard','SoftwareAdmin','SoftwareAdminV2', 'HardwareAdmin', 'HardwareAdminV2', 'AdminRepair', 'AdminRenewalv1', 'AdminRenewalv2', 'AdminHRDF', 'AdminHeadcount']) ? '#ffffff' : '#555' }};
+                                                background: {{ in_array($currentDashboard, ['MainAdminDashboard','SoftwareAdmin', 'SoftwareAdminV2', 'HardwareAdmin', 'HardwareAdminV2', 'AdminRepair', 'AdminRenewalv1', 'AdminRenewalv2', 'AdminHRDF', 'AdminHRDFAttLog', 'AdminHeadcount']) ? '#431fa1' : 'transparent' }};
+                                                color: {{ in_array($currentDashboard, ['MainAdminDashboard','SoftwareAdmin','SoftwareAdminV2', 'HardwareAdmin', 'HardwareAdminV2', 'AdminRepair', 'AdminRenewalv1', 'AdminRenewalv2', 'AdminHRDF', 'AdminHRDFAttLog', 'AdminHeadcount']) ? '#ffffff' : '#555' }};
                                                 cursor: pointer;
                                                 display: flex;
                                                 align-items: center;
@@ -893,7 +915,7 @@
                                                     font-size: 14px;
                                                 "
                                             >
-                                                <span>Admin - HRDF</span>
+                                                <span>Admin - HRDF Claim</span>
                                                 @if($adminHrdfTotal > 0)
                                                     <span style="
                                                         background: #ef4444;
@@ -905,6 +927,36 @@
                                                         min-width: 20px;
                                                         text-align: center;
                                                     ">{{ $adminHrdfTotal }}</span>
+                                                @endif
+                                            </button>
+
+                                            <button
+                                                wire:click="toggleDashboard('AdminHRDFAttLog')"
+                                                style="
+                                                    display: flex;
+                                                    justify-content: space-between;
+                                                    align-items: center;
+                                                    width: 100%;
+                                                    padding: 10px 16px;
+                                                    text-align: left;
+                                                    border: none;
+                                                    background: {{ $currentDashboard === 'AdminHRDFAttLog' ? '#f3f3f3' : 'white' }};
+                                                    cursor: pointer;
+                                                    font-size: 14px;
+                                                "
+                                            >
+                                                <span>Admin - HRDF Att Log</span>
+                                                @if($adminHrdfAttLogTotal > 0)
+                                                    <span style="
+                                                        background: #ef4444;
+                                                        color: white;
+                                                        border-radius: 12px;
+                                                        padding: 2px 8px;
+                                                        font-size: 12px;
+                                                        font-weight: bold;
+                                                        min-width: 20px;
+                                                        text-align: center;
+                                                    ">{{ $adminHrdfAttLogTotal }}</span>
                                                 @endif
                                             </button>
 
@@ -1084,8 +1136,8 @@
                                             font-weight: bold;
                                             border: none;
                                             border-radius: 20px;
-                                            background: {{ in_array($currentDashboard, ['MainAdminDashboard','SoftwareAdmin', 'HardwareAdmin', 'HardwareAdminV2', 'AdminRepair', 'AdminRenewalv1', 'AdminRenewalv2', 'AdminHRDF', 'AdminHeadcount']) ? '#431fa1' : 'transparent' }};
-                                            color: {{ in_array($currentDashboard, ['SoftwareAdmin', 'HardwareAdmin', 'HardwareAdminV2', 'AdminRepair', 'AdminRenewalv1', 'AdminRenewalv2', 'AdminHRDF', 'AdminHeadcount']) ? '#ffffff' : '#555' }};
+                                            background: {{ in_array($currentDashboard, ['MainAdminDashboard','SoftwareAdmin', 'HardwareAdmin', 'HardwareAdminV2', 'AdminRepair', 'AdminRenewalv1', 'AdminRenewalv2', 'AdminHRDF', 'AdminHRDFAttLog', 'AdminHeadcount']) ? '#431fa1' : 'transparent' }};
+                                            color: {{ in_array($currentDashboard, ['SoftwareAdmin', 'HardwareAdmin', 'HardwareAdminV2', 'AdminRepair', 'AdminRenewalv1', 'AdminRenewalv2', 'AdminHRDF', 'AdminHRDFAttLog', 'AdminHeadcount']) ? '#ffffff' : '#555' }};
                                             cursor: pointer;
                                             display: flex;
                                             align-items: center;
@@ -1197,7 +1249,25 @@
                                                 font-size: 14px;
                                             "
                                         >
-                                            Admin - HRDF
+                                            Admin - HRDF Claim
+                                        </button>
+
+                                        <button
+                                            wire:click="toggleDashboard('AdminHRDFAttLog')"
+                                            style="
+                                                display: flex;
+                                                justify-content: space-between;
+                                                align-items: center;
+                                                width: 100%;
+                                                padding: 10px 16px;
+                                                text-align: left;
+                                                border: none;
+                                                background: {{ $currentDashboard === 'AdminHRDFAttLog' ? '#f3f3f3' : 'white' }};
+                                                cursor: pointer;
+                                                font-size: 14px;
+                                            "
+                                        >
+                                            <span>Admin - HRDF Att Log</span>
                                         </button>
 
                                         <button
@@ -1315,6 +1385,8 @@
                             @include('filament.pages.adminrenewal')
                         @elseif ($currentDashboard === 'AdminHRDF')
                             @include('filament.pages.adminhrdf')
+                        @elseif ($currentDashboard === 'AdminHRDFAttLog')
+                            @include('filament.pages.adminhrdfattlog')
                         @elseif ($currentDashboard === 'AdminHeadcount')
                             @include('filament.pages.adminheadcount')
                         @elseif ($currentDashboard === 'SoftwareAdmin')

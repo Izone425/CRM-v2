@@ -628,6 +628,53 @@ class SoftwareResource extends Resource
                     ->label('Webinar Date')
                     ->date('d M Y')
                     ->toggleable(isToggledHiddenByDefault: true),
+
+                TextColumn::make('progress')
+                    ->label('Project Progress')
+                    ->getStateUsing(function (SoftwareHandover $record) {
+                        if (!$record->lead_id) {
+                            return '0%';
+                        }
+
+                        $totalTasks = \App\Models\ProjectPlan::where('lead_id', $record->lead_id)
+                            ->where('sw_id', $record->id)
+                            ->count();
+
+                        if ($totalTasks === 0) {
+                            return '-';
+                        }
+
+                        $completedTasks = \App\Models\ProjectPlan::where('lead_id', $record->lead_id)
+                            ->where('sw_id', $record->id)
+                            ->where('status', 'completed')
+                            ->count();
+
+                        $progress = round(($completedTasks / $totalTasks) * 100);
+                        return $progress . '%';
+                    })
+                    ->alignCenter()
+                    ->color(function ($state) {
+                        if ($state === '-') return 'gray';
+
+                        $percentage = (int) str_replace('%', '', $state);
+
+                        if ($percentage >= 75) return 'success';
+                        if ($percentage >= 50) return 'warning';
+                        if ($percentage >= 25) return 'info';
+                        return 'danger';
+                    })
+                    ->action(
+                        Action::make('viewProjectProgress')
+                            ->modalHeading(fn (SoftwareHandover $record) => 'Project Progress - ' . $record->company_name)
+                            ->modalContent(fn (SoftwareHandover $record) => view('filament.pages.project-plan-modal', [
+                                'softwareHandover' => $record,
+                            ]))
+                            ->modalWidth('7xl')
+                            ->slideOver()
+                            ->modalSubmitAction(false)
+                            ->modalCancelActionLabel('Close')
+                    )
+                    ->toggleable(),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('webinar_training_status')

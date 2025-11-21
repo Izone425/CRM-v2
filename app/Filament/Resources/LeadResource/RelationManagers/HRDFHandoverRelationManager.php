@@ -261,7 +261,7 @@ class HRDFHandoverRelationManager extends RelationManager
                             TextInput::make('autocount_invoice_number')
                                 ->label('AutoCount Invoice Number')
                                 ->required()
-                                ->placeholder('Will be auto-populated when HRDF Grant is selected')
+                                // ->placeholder('Will be auto-populated when HRDF Grant is selected')
                                 ->maxLength(50)
                                 ->extraAlpineAttributes([
                                     'x-on:input' => '
