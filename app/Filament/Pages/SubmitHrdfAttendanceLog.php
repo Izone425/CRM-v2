@@ -2,6 +2,7 @@
 namespace App\Filament\Pages;
 
 use App\Models\HrdfAttendanceLog;
+use App\Models\PublicHoliday;
 use Filament\Pages\Page;
 use Filament\Tables\Table;
 use Filament\Tables\Contracts\HasTable;
@@ -15,6 +16,8 @@ use Filament\Support\Enums\ActionSize;
 use Illuminate\Support\Facades\Auth;
 use Malzariey\FilamentDaterangepickerFilter\Fields\DateRangePicker;
 use Carbon\Carbon;
+use Filament\Forms\Components\Grid;
+use Filament\Forms\Get;
 
 class SubmitHrdfAttendanceLog extends Page implements HasTable
 {
@@ -22,7 +25,7 @@ class SubmitHrdfAttendanceLog extends Page implements HasTable
 
     protected static ?string $navigationIcon = 'heroicon-o-document-text';
     protected static ?string $navigationLabel = 'HRDF Attendance Log';
-    protected static ?string $title = 'HRDF Attendance Log Submission';
+    protected static ?string $title = 'HRDF Attendance Log';
     protected static string $view = 'filament.pages.submit-hrdf-attendance-log';
     protected static ?string $navigationGroup = 'HRDF Management';
     protected static ?int $navigationSort = 1;
@@ -32,8 +35,8 @@ class SubmitHrdfAttendanceLog extends Page implements HasTable
     {
         return [
             \Filament\Actions\Action::make('createLog')
-                ->label('Create New Log')
-                ->icon('heroicon-o-plus-circle')
+                ->label('Create')
+                ->icon('heroicon-o-plus')
                 ->color('success')
                 ->size(ActionSize::Large)
                 ->form([
@@ -42,95 +45,209 @@ class SubmitHrdfAttendanceLog extends Page implements HasTable
                         ->required()
                         ->maxLength(255)
                         ->placeholder('Enter company name')
-                        ->columnSpanFull(),
-
-                    DateRangePicker::make('training_dates')
-                        ->label('Select 3 Training Dates')
-                        ->required()
-                        ->format('d/m/Y')
-                        ->displayFormat('DD/MM/YYYY')
-                        ->placeholder('Select date range covering 3 training dates')
-                        ->helperText('Please select a date range that includes exactly 3 weekdays (Monday-Friday)')
                         ->columnSpanFull()
-                        ->minDate(now()->subMonths(3)->format('Y-m-d'))
-                        ->maxDate(now()->addMonths(1)->format('Y-m-d')),
+                        ->extraAlpineAttributes([
+                            'x-on:input' => '
+                                const start = $el.selectionStart;
+                                const end = $el.selectionEnd;
+                                const value = $el.value;
+                                $el.value = value.toUpperCase();
+                                $el.setSelectionRange(start, end);
+                            '
+                        ])
+                        ->dehydrateStateUsing(fn ($state) => strtoupper($state)),
+
+                    Grid::make(3)
+                        ->schema([
+                            DatePicker::make('training_date_1')
+                                ->label('Training Date 1')
+                                ->required()
+                                ->native(false)
+                                ->displayFormat('d/m/Y')
+                                ->minDate(now()->subDay())
+                                ->maxDate(now()->addMonths(2))
+                                ->live(onBlur: true)
+                                ->afterStateUpdated(function ($state, callable $set) {
+                                    if (!$state) {
+                                        $set('training_date_2', null);
+                                        $set('training_date_3', null);
+                                        return;
+                                    }
+
+                                    // Auto-calculate next working days
+                                    $date1 = Carbon::parse($state);
+                                    $date2 = $this->getNextWorkingDay($date1);
+                                    $date3 = $this->getNextWorkingDay($date2);
+
+                                    $set('training_date_2', $date2->format('Y-m-d'));
+                                    $set('training_date_3', $date3->format('Y-m-d'));
+                                })
+                                ->disabledDates(function () {
+                                    $disabledDates = [];
+                                    $start = now()->subDay();
+                                    $end = now()->addMonths(2);
+
+                                    // Add weekends
+                                    for ($date = $start->copy(); $date->lte($end); $date->addDay()) {
+                                        if ($date->isWeekend()) {
+                                            $disabledDates[] = $date->format('Y-m-d');
+                                        }
+                                    }
+
+                                    // Add public holidays
+                                    $publicHolidays = PublicHoliday::whereBetween('date', [$start->format('Y-m-d'), $end->format('Y-m-d')])
+                                        ->pluck('date')
+                                        ->map(fn($date) => Carbon::parse($date)->format('Y-m-d'))
+                                        ->toArray();
+
+                                    return array_unique(array_merge($disabledDates, $publicHolidays));
+                                }),
+
+                            DatePicker::make('training_date_2')
+                                ->label('Training Date 2')
+                                ->required()
+                                ->native(false)
+                                ->displayFormat('d/m/Y')
+                                ->minDate(now()->subDay())
+                                ->maxDate(now()->addMonths(2))
+                                ->closeOnDateSelection()
+                                ->disabled(fn (Get $get) => !$get('training_date_1'))
+                                ->disabledDates(function () {
+                                    $disabledDates = [];
+                                    $start = now()->subDay();
+                                    $end = now()->addMonths(2);
+
+                                    for ($date = $start->copy(); $date->lte($end); $date->addDay()) {
+                                        if ($date->isWeekend()) {
+                                            $disabledDates[] = $date->format('Y-m-d');
+                                        }
+                                    }
+
+                                    $publicHolidays = PublicHoliday::whereBetween('date', [$start->format('Y-m-d'), $end->format('Y-m-d')])
+                                        ->pluck('date')
+                                        ->map(fn($date) => Carbon::parse($date)->format('Y-m-d'))
+                                        ->toArray();
+
+                                    return array_unique(array_merge($disabledDates, $publicHolidays));
+                                }),
+
+                            DatePicker::make('training_date_3')
+                                ->label('Training Date 3')
+                                ->required()
+                                ->native(false)
+                                ->displayFormat('d/m/Y')
+                                ->minDate(now()->subDay())
+                                ->maxDate(now()->addMonths(2))
+                                ->closeOnDateSelection()
+                                ->disabled(fn (Get $get) => !$get('training_date_1'))
+                                ->disabledDates(function () {
+                                    $disabledDates = [];
+                                    $start = now()->subDay();
+                                    $end = now()->addMonths(2);
+
+                                    for ($date = $start->copy(); $date->lte($end); $date->addDay()) {
+                                        if ($date->isWeekend()) {
+                                            $disabledDates[] = $date->format('Y-m-d');
+                                        }
+                                    }
+
+                                    $publicHolidays = PublicHoliday::whereBetween('date', [$start->format('Y-m-d'), $end->format('Y-m-d')])
+                                        ->pluck('date')
+                                        ->map(fn($date) => Carbon::parse($date)->format('Y-m-d'))
+                                        ->toArray();
+
+                                    return array_unique(array_merge($disabledDates, $publicHolidays));
+                                }),
+                        ])->columnSpanFull(),
                 ])
                 ->action(function (array $data) {
-                    if (!isset($data['training_dates']) || empty($data['training_dates'])) {
-                        Notification::make()
-                            ->title('Error')
-                            ->body('Please select a valid date range')
-                            ->danger()
-                            ->send();
-                        return;
-                    }
+                    // Validate that all dates are weekdays and not public holidays
+                    $dates = [
+                        Carbon::parse($data['training_date_1']),
+                        Carbon::parse($data['training_date_2']),
+                        Carbon::parse($data['training_date_3']),
+                    ];
 
-                    // ✅ Parse the date range
-                    $dateRange = $data['training_dates'];
-                    [$startDateStr, $endDateStr] = explode(' - ', $dateRange);
+                    $publicHolidays = PublicHoliday::whereIn('date', [
+                        $data['training_date_1'],
+                        $data['training_date_2'],
+                        $data['training_date_3'],
+                    ])->pluck('name', 'date')->toArray();
 
-                    $startDate = Carbon::createFromFormat('d/m/Y', trim($startDateStr));
-                    $endDate = Carbon::createFromFormat('d/m/Y', trim($endDateStr));
+                    foreach ($dates as $index => $date) {
+                        $dateString = $date->format('Y-m-d');
 
-                    // ✅ Extract all weekdays from the range
-                    $weekdays = [];
-                    $currentDate = $startDate->copy();
-
-                    while ($currentDate->lte($endDate)) {
-                        if (!$currentDate->isWeekend()) {
-                            $weekdays[] = $currentDate->format('Y-m-d');
+                        if ($date->isWeekend()) {
+                            Notification::make()
+                                ->title('Error')
+                                ->body('Training Date ' . ($index + 1) . ' must be a weekday (Monday-Friday)')
+                                ->danger()
+                                ->send();
+                            return;
                         }
-                        $currentDate->addDay();
-                    }
 
-                    // ✅ Validate that we have exactly 3 weekdays
-                    if (count($weekdays) < 3) {
-                        Notification::make()
-                            ->title('Error')
-                            ->body('The selected date range must contain at least 3 weekdays. Found only ' . count($weekdays) . ' weekday(s).')
-                            ->danger()
-                            ->send();
-                        return;
+                        if (isset($publicHolidays[$dateString])) {
+                            Notification::make()
+                                ->title('Error')
+                                ->body('Training Date ' . ($index + 1) . ' is a public holiday: ' . $publicHolidays[$dateString])
+                                ->danger()
+                                ->send();
+                            return;
+                        }
                     }
-
-                    // ✅ Take the first 3 weekdays
-                    $trainingDates = array_slice($weekdays, 0, 3);
 
                     // Create the log
                     $log = HrdfAttendanceLog::create([
                         'company_name' => $data['company_name'],
-                        'training_date_1' => $trainingDates[0],
-                        'training_date_2' => $trainingDates[1],
-                        'training_date_3' => $trainingDates[2],
+                        'training_date_1' => $data['training_date_1'],
+                        'training_date_2' => $data['training_date_2'],
+                        'training_date_3' => $data['training_date_3'],
                         'submitted_by' => Auth::id(),
                         'status' => 'new',
                     ]);
 
                     $formattedDates = implode(', ', array_map(function($date) {
                         return Carbon::parse($date)->format('d/m/Y (D)');
-                    }, $trainingDates));
+                    }, [$data['training_date_1'], $data['training_date_2'], $data['training_date_3']]));
 
                     Notification::make()
                         ->title('Log Created Successfully')
-                        ->body("HRDF Attendance Log #{$log->id} has been created for {$data['company_name']}<br>Training Dates: {$formattedDates}")
+                        ->body("HRDF Attendance Log #{$log->formatted_log_id} has been created for {$data['company_name']}<br>Training Dates: {$formattedDates}")
                         ->success()
                         ->send();
 
-                    // Refresh the table
                     $this->resetTable();
                 })
                 ->modalWidth('3xl')
                 ->modalHeading('Create New HRDF Attendance Log')
-                ->modalDescription('Please enter company name and select 3 training dates (must be weekdays)')
+                ->modalDescription('Please enter company name and select training date 1 (dates 2 & 3 will auto-populate)')
                 ->modalSubmitActionLabel('Create Log')
                 ->modalCancelActionLabel('Cancel'),
         ];
     }
 
+    // ✅ Helper method to get next working day (skip weekends AND public holidays)
+    protected function getNextWorkingDay(Carbon $date): Carbon
+    {
+        $nextDate = $date->copy()->addDay();
+
+        // Get all public holidays
+        $publicHolidays = PublicHoliday::pluck('date')
+            ->map(fn($date) => Carbon::parse($date)->format('Y-m-d'))
+            ->toArray();
+
+        // Keep looking for next working day
+        while ($nextDate->isWeekend() || in_array($nextDate->format('Y-m-d'), $publicHolidays)) {
+            $nextDate->addDay();
+        }
+
+        return $nextDate;
+    }
+
     public function table(Table $table): Table
     {
         return $table
-            ->query(HrdfAttendanceLog::query()->latest())
+            ->query(HrdfAttendanceLog::query()->where('submitted_by', Auth::id())->latest())
             ->columns([
                 TextColumn::make('formatted_log_id')
                     ->label('Log ID')
@@ -139,11 +256,9 @@ class SubmitHrdfAttendanceLog extends Page implements HasTable
                         return $query->orderBy('id', $direction);
                     })
                     ->searchable(query: function ($query, $search) {
-                        // Search by actual ID number
                         if (is_numeric($search)) {
                             return $query->where('id', $search);
                         }
-                        // Search by formatted ID (e.g., LOG_240001)
                         if (preg_match('/LOG[_\s]*(\d+)/', strtoupper($search), $matches)) {
                             return $query->where('id', $matches[1]);
                         }
@@ -185,7 +300,7 @@ class SubmitHrdfAttendanceLog extends Page implements HasTable
                     ->sortable()
                     ->toggleable(),
 
-                BadgeColumn::make('status')
+                TextColumn::make('status')
                     ->label('Status')
                     ->colors([
                         'warning' => 'new',
@@ -193,12 +308,7 @@ class SubmitHrdfAttendanceLog extends Page implements HasTable
                         'success' => 'completed',
                         'danger' => 'cancelled',
                     ])
-                    ->icons([
-                        'heroicon-o-clock' => 'new',
-                        'heroicon-o-arrow-path' => 'in_progress',
-                        'heroicon-o-check-circle' => 'completed',
-                        'heroicon-o-x-circle' => 'cancelled',
-                    ])
+                    ->formatStateUsing(fn (string $state): string => ucfirst(str_replace('_', ' ', $state)))
                     ->sortable(),
 
                 TextColumn::make('completed_at')
@@ -224,14 +334,7 @@ class SubmitHrdfAttendanceLog extends Page implements HasTable
                         }
                     }),
             ])
-            ->actions([
-                // Add actions here if needed (view, edit, delete)
-            ])
-            ->bulkActions([
-                // Add bulk actions here if needed
-            ])
-            ->emptyStateHeading('No HRDF Attendance Logs Yet')
-            ->emptyStateDescription('Click "Create New Log" to submit your first HRDF attendance log.')
-            ->emptyStateIcon('heroicon-o-document-text');
+            ->actions([])
+            ->bulkActions([]);
     }
 }

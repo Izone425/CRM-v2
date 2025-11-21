@@ -1,3 +1,6 @@
+<?php
+# filepath: /var/www/html/timeteccrm/resources/views/emails/hrd_attendance_log_notification.blade.php
+?>
 <!DOCTYPE html>
 <html>
 <head>
@@ -30,11 +33,22 @@
             font-size: 14px;
             margin-bottom: 20px;
         }
+        .company-name {
+            background-color: #fee2e2;
+            padding: 10px 15px;
+            border-radius: 6px;
+            margin: 20px 0 10px 0;
+            font-size: 15px;
+            border: 2px solid #ef4444;
+        }
+        .company-name strong {
+            color: #dc2626;
+        }
         .grant-id {
             background-color: #fef3c7;
             padding: 10px 15px;
             border-radius: 6px;
-            margin: 20px 0;
+            margin: 10px 0 20px 0;
             font-size: 15px;
         }
         .grant-id strong {
@@ -52,24 +66,34 @@
             color: #1e40af;
             font-size: 16px;
         }
+        .documents-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: nowrap;
+        }
         .view-link {
-            display: block;
-            padding: 12px 15px;
-            margin: 8px 0;
+            flex: 1;
+            max-width: 25%;
+            padding: 10px 8px;
             background-color: #dbeafe;
             border-radius: 6px;
             text-decoration: none;
             color: #1e40af;
             font-weight: 600;
+            font-size: 12px;
             transition: background-color 0.2s;
             border: 1px solid #bfdbfe;
+            text-align: center;
+            display: inline-block;
         }
         .view-link:hover {
             background-color: #bfdbfe;
         }
         .view-link::before {
             content: "📄 ";
-            margin-right: 8px;
+            display: block;
+            margin-bottom: 5px;
+            font-size: 16px;
         }
         .footer {
             text-align: center;
@@ -91,6 +115,10 @@
             <p>PLEASE REFER TO THE ATTACHMENT FOR THE HRDF ATTENDANCE LOG + JD14 FORM DOCUMENT.</p>
         </div>
 
+        <div class="company-name">
+            <strong>COMPANY NAME:</strong> <span style="color: #dc2626;">{{ $log->company_name }}</span>
+        </div>
+
         <div class="grant-id">
             <strong>GRANT ID:</strong> {{ $log->grant_id }}
         </div>
@@ -103,16 +131,14 @@
             @endphp
 
             @if($documents && is_array($documents))
-                @foreach($documents as $index => $document)
-                    <a href="{{ url('storage/' . $document) }}" class="view-link" target="_blank">
-                        {{ 'Document ' . ($index + 1) }}
-                    </a>
-                @endforeach
+                <div class="documents-row">
+                    @foreach($documents as $index => $document)
+                        <a href="{{ url('storage/' . $document) }}" class="view-link" target="_blank">
+                            {{ 'Doc ' . ($index + 1) }}
+                        </a>
+                    @endforeach
+                </div>
             @endif
-        </div>
-
-        <div class="footer">
-            <p>&copy; {{ date('Y') }} TimeTec CRM System</p>
         </div>
     </div>
 </body>
