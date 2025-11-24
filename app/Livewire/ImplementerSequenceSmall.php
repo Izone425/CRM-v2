@@ -101,6 +101,7 @@ class ImplementerSequenceSmall extends Component implements HasForms, HasTable
             'Ahmad Syamim',
             'Siti Shahilah',
             'Nur Alia',
+            'Ameerul Asyraf',
         ];
 
         $query = SoftwareHandover::query()

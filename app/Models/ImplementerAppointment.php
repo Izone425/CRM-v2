@@ -39,6 +39,8 @@ class ImplementerAppointment extends Model
         'cancelled_at',
         'implementer_remark',
         'sent_summary_email',
+        'session_recording_link',
+        'online_meeting_id',
     ];
 
     protected $casts = [

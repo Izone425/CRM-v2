@@ -1215,6 +1215,7 @@ class ImplementerActions
                             '{company_name}' => $lead->companyDetail->company_name ?? '',
                             '{implementer_name}' => $data['implementer_name'] ?? auth()->user()->name ?? '',
                             '{follow_up_date}' => $data['follow_up_date'] ? date('d M Y', strtotime($data['follow_up_date'])) : '',
+                            '{session_recording_link}' => $data['session_recording_link'] ?? 'Not provided', // ✅ Add this
                         ];
 
                         $content = str_replace(array_keys($placeholders), array_values($placeholders), $content);
@@ -1251,7 +1252,8 @@ class ImplementerActions
                                 'implementer_log_id' => $implementerLog->id,
                                 'template_name' => $templateName,
                                 'scheduler_type' => $schedulerType,
-                                'project_plan_attachments' => $data['project_plan_attachments'] ?? [], // ✅ Add this line
+                                'project_plan_attachments' => $data['project_plan_attachments'] ?? [],
+                                'session_recording_link' => $data['session_recording_link'] ?? null,
                             ];
 
                             // Handle different scheduler types

@@ -243,7 +243,7 @@ class FetchZohoLeads extends Command
                         'name'         => $lead['Full_Name'] ?? null,
                         'email'        => $lead['Email'] ?? null,
                         'country'      => $lead['Country'] ?? null,
-                        'company_size' => $this->normalizeCompanySize($lead['Company_Size'] ?? '1-24'), // ✅ Normalize before storing
+                        'company_size' => $this->normalizeCompanySize($lead['Company_Size'] ?? '1-24'),
                         'phone'        => $phoneNumber,
                         'lead_code'    => $leadSource,
                         'lead_owner'   => 'Sheena Liew',
@@ -258,7 +258,6 @@ class FetchZohoLeads extends Command
                         ->orderByDesc('created_at')
                         ->first();
 
-                    // ✅ Update the latest activity log description
                     if ($latestActivityLog) {
                         $latestActivityLog->update([
                             'description' => 'New lead created',
@@ -267,7 +266,6 @@ class FetchZohoLeads extends Command
 
                     sleep(1);
 
-                    // Add a new activity log for lead owner assignment
                     ActivityLog::create([
                         'subject_type' => Lead::class,
                         'subject_id'   => $newLead->id,
@@ -288,7 +286,47 @@ class FetchZohoLeads extends Command
                         'updated_at'   => now(),
                     ]);
 
-                    // ✅ Only create company if a new lead was inserted
+                    if (!empty($lead['Company'])) {
+                        $companyDetail = CompanyDetail::create([
+                            'company_name' => $lead['Company'],
+                            'linkedin_url' => $lead['Linkedin_Profile_URL'] ?? null,
+                            'lead_id'      => $newLead->id,
+                        ]);
+
+                        $newLead->updateQuietly([
+                            'company_name' => $companyDetail->id ?? null,
+                            'linkedin_url' => $lead['Linkedin_Profile_URL'] ?? null,
+                        ]);
+                    }
+                } elseif ($leadSource === 'Google AdWords (PG)') {
+                    // ✅ Handle Google AdWords (PG) - assign to salesperson ID 25
+                    $newLead = Lead::create([
+                        'zoho_id'      => $lead['id'] ?? null,
+                        'name'         => $lead['Full_Name'] ?? null,
+                        'email'        => $lead['Email'] ?? null,
+                        'country'      => $lead['Country'] ?? null,
+                        'company_size' => $this->normalizeCompanySize($lead['Company_Size'] ?? '1-24'),
+                        'phone'        => $phoneNumber,
+                        'lead_code'    => $leadSource,
+                        'salesperson'  => 25,
+                        'products'     => isset($lead['TimeTec_Products']) ? json_encode($lead['TimeTec_Products']) : null,
+                        'created_at'   => $leadCreatedTime,
+                        'categories'   => 'Active',
+                        'stage'        => 'Transfer',
+                        'lead_status'  => 'RFQ-Transfer',
+                    ]);
+
+                    $latestActivityLog = ActivityLog::where('subject_id', $newLead->id)
+                        ->orderByDesc('created_at')
+                        ->first();
+
+                    if ($latestActivityLog) {
+                        $salespersonName = \App\Models\User::find(25)?->name ?? 'Unknown Salesperson';
+                        $latestActivityLog->update([
+                            'description' => 'New lead created and assigned to Salesperson: ' . $salespersonName,
+                        ]);
+                    }
+
                     if (!empty($lead['Company'])) {
                         $companyDetail = CompanyDetail::create([
                             'company_name' => $lead['Company'],
@@ -313,7 +351,7 @@ class FetchZohoLeads extends Command
                         'name'         => $lead['Full_Name'] ?? null,
                         'email'        => $lead['Email'] ?? null,
                         'country'      => $lead['Country'] ?? null,
-                        'company_size' => $this->normalizeCompanySize($lead['Company_Size'] ?? '1-24'), // ✅ Normalize before storing
+                        'company_size' => $this->normalizeCompanySize($lead['Company_Size'] ?? '1-24'),
                         'phone'        => $phoneNumber,
                         'lead_code'    => $leadSource,
                         'salesperson'  => $salespersonUserId,
@@ -337,14 +375,12 @@ class FetchZohoLeads extends Command
                         ->orderByDesc('created_at')
                         ->first();
 
-                    // ✅ Update the latest activity log description
                     if ($latestActivityLog) {
                         $latestActivityLog->update([
                             'description' => 'New lead created and assigned to Salesperson: ' . ($lead['Salesperson'] ?? 'Unknown'),
                         ]);
                     }
 
-                    // ✅ Only create company if a new lead was inserted
                     if (!empty($lead['Company'])) {
                         $companyDetail = CompanyDetail::create([
                             'company_name' => $lead['Company'],
@@ -357,14 +393,14 @@ class FetchZohoLeads extends Command
                             'linkedin_url' => $lead['Linkedin_Profile_URL'] ?? null,
                         ]);
                     }
-                }else{
+                } else {
                     // ✅ Create a new lead (no updates for existing ones)
                     $newLead = Lead::create([
                         'zoho_id'      => $lead['id'] ?? null,
                         'name'         => $lead['Full_Name'] ?? null,
                         'email'        => $lead['Email'] ?? null,
                         'country'      => $lead['Country'] ?? null,
-                        'company_size' => $this->normalizeCompanySize($lead['Company_Size'] ?? '1-24'), // ✅ Normalize before storing
+                        'company_size' => $this->normalizeCompanySize($lead['Company_Size'] ?? '1-24'),
                         'phone'        => $phoneNumber,
                         'lead_code'    => $leadSource,
                         'products'     => isset($lead['TimeTec_Products']) ? json_encode($lead['TimeTec_Products']) : null,
@@ -385,14 +421,12 @@ class FetchZohoLeads extends Command
                         ->orderByDesc('created_at')
                         ->first();
 
-                    // ✅ Update the latest activity log description
                     if ($latestActivityLog) {
                         $latestActivityLog->update([
                             'description' => 'New lead created',
                         ]);
                     }
 
-                    // ✅ Only create company if a new lead was inserted
                     if (!empty($lead['Company'])) {
                         $companyDetail = CompanyDetail::create([
                             'company_name' => $lead['Company'],

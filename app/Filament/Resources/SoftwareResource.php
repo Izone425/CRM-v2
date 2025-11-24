@@ -470,7 +470,7 @@ class SoftwareResource extends Resource
                         return (string) $state;
                     })
                     ->alignCenter()
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('cancel_session_count')
                     ->label('Cancel')
@@ -484,7 +484,7 @@ class SoftwareResource extends Resource
                         return (string) $state;
                     })
                     ->alignCenter()
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('status_handover')
                     ->label('Status')
@@ -674,7 +674,7 @@ class SoftwareResource extends Resource
                             ->modalSubmitAction(false)
                             ->modalCancelActionLabel('Close')
                     )
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('webinar_training_status')

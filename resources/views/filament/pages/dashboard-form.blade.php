@@ -107,7 +107,7 @@
         $initialStageTotal = $newTaskCount + $pendingStockCount + $pendingCourierCount + $pendingAdminPickUpCount + $pendingExternalInstallationCount + $pendingInternalInstallationCount;
 
         // Calculate total admin count including Software V2
-        $adminTotal = $adminSoftwareTotal + $adminSoftwareV2Total + $adminHeadcountTotal + $adminHrdfTotal + $initialStageTotal + $adminUSDInvoiceTotal;
+        $adminTotal = $adminSoftwareTotal + $adminSoftwareV2Total + $adminHeadcountTotal + $adminHrdfTotal + $initialStageTotal + $adminUSDInvoiceTotal + $adminHrdfAttLogTotal;
     @endphp
 
     <div
