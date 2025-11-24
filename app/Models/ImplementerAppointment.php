@@ -38,6 +38,7 @@ class ImplementerAppointment extends Model
         'cancelled_by',
         'cancelled_at',
         'implementer_remark',
+        'sent_summary_email',
     ];
 
     protected $casts = [

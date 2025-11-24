@@ -47,6 +47,7 @@ class ImplementerAuditList extends Page
             'Ahmad Syamim',
             'Siti Shahilah',
             'Nur Alia',
+            'Ameerul Asyraf',
         ];
 
         $this->calculateStats();
@@ -188,6 +189,7 @@ class ImplementerAuditList extends Page
             'Ahmad Syamim' => [59, 130, 246],
             'Siti Shahilah' => [168, 85, 247],
             'Nur Alia' => [34, 197, 94],
+            'Ameerul Asyraf' => [234, 179, 8],
             default => [107, 114, 128],
         };
     }

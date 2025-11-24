@@ -392,4 +392,11 @@ class SoftwareHandover extends Model
 
         return sprintf('SW_%02d%04d', $year, $num);
     }
+
+    public function hardwareHandoverV2()
+    {
+        return $this->hasOne(HardwareHandoverV2::class, 'id', 'id')
+            ->whereRaw('JSON_CONTAINS(related_software_handovers, CAST(? AS JSON))', [$this->id])
+            ->latest();
+    }
 }

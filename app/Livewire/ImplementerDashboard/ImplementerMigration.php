@@ -148,7 +148,76 @@ class ImplementerMigration extends Component implements HasForms, HasTable
                     ->placeholder('All Implementers')
                     ->multiple(),
 
-                SortFilter::make("sort_by"),
+                SelectFilter::make('invoice_type')
+                    ->label('Filter by Invoice Type')
+                    ->options([
+                        'single' => 'Single Invoice',
+                        'combined' => 'Combined Invoice',
+                    ])
+                    ->placeholder('All Invoice Types')
+                    ->multiple()
+                    ->query(function ($query, array $data) {
+                        if (!empty($data['values'])) {
+                            $isSingleSelected = in_array('single', $data['values']);
+                            $isCombinedSelected = in_array('combined', $data['values']);
+
+                            // Get IDs from hardware handovers that match the selected invoice types
+                            $matchingIds = \App\Models\HardwareHandoverV2::whereIn('invoice_type', $data['values'])
+                                ->get()
+                                ->filter(function ($hw) {
+                                    if (!$hw->related_software_handovers) {
+                                        return false;
+                                    }
+
+                                    $relatedIds = is_string($hw->related_software_handovers)
+                                        ? json_decode($hw->related_software_handovers, true)
+                                        : $hw->related_software_handovers;
+
+                                    return is_array($relatedIds) && !empty($relatedIds);
+                                })
+                                ->flatMap(function ($hw) {
+                                    $relatedIds = is_string($hw->related_software_handovers)
+                                        ? json_decode($hw->related_software_handovers, true)
+                                        : $hw->related_software_handovers;
+
+                                    return is_array($relatedIds) ? $relatedIds : [];
+                                })
+                                ->unique()
+                                ->filter()
+                                ->values()
+                                ->toArray();
+
+                            // Get all software handover IDs that are NOT in any hardware handover's related_software_handovers
+                            $allRelatedIds = \App\Models\HardwareHandoverV2::whereNotNull('related_software_handovers')
+                                ->get()
+                                ->flatMap(function ($hw) {
+                                    $relatedIds = is_string($hw->related_software_handovers)
+                                        ? json_decode($hw->related_software_handovers, true)
+                                        : $hw->related_software_handovers;
+
+                                    return is_array($relatedIds) ? $relatedIds : [];
+                                })
+                                ->unique()
+                                ->toArray();
+
+                            // If 'single' is selected, include records not in any hardware handover
+                            if ($isSingleSelected && !empty($matchingIds)) {
+                                $query->where(function ($q) use ($matchingIds, $allRelatedIds) {
+                                    $q->whereIn('software_handovers.id', $matchingIds)
+                                    ->orWhereNotIn('software_handovers.id', $allRelatedIds);
+                                });
+                            } elseif ($isSingleSelected) {
+                                // Only 'single' selected but no matching IDs, show records not in any hardware handover
+                                $query->whereNotIn('software_handovers.id', $allRelatedIds);
+                            } elseif (!empty($matchingIds)) {
+                                // Only 'combined' selected or both selected with matches
+                                $query->whereIn('software_handovers.id', $matchingIds);
+                            } else {
+                                // No matches found, return empty result
+                                $query->whereRaw('1 = 0');
+                            }
+                        }
+                    }),
             ])
             ->columns([
                 TextColumn::make('id')
@@ -218,6 +287,33 @@ class ImplementerMigration extends Component implements HasForms, HasTable
                         return "<span title='{$state}'>{$state}</span>";
                     })
                     ->html(),
+
+                TextColumn::make('invoice_type')
+                    ->label('Invoice Type')
+                    ->getStateUsing(function (SoftwareHandover $record) {
+                        // Get all hardware handovers and check if this software handover ID is in related_software_handovers
+                        $hardwareHandover = \App\Models\HardwareHandoverV2::get()
+                            ->first(function ($hw) use ($record) {
+                                if (!$hw->related_software_handovers) {
+                                    return false;
+                                }
+
+                                $relatedIds = is_string($hw->related_software_handovers)
+                                    ? json_decode($hw->related_software_handovers, true)
+                                    : $hw->related_software_handovers;
+
+                                return is_array($relatedIds) && in_array((string)$record->id, $relatedIds);
+                            });
+
+                        // If no hardware handover found or no invoice type, default to 'single'
+                        return $hardwareHandover?->invoice_type ?? 'single';
+                    })
+                    ->formatStateUsing(fn (?string $state): string => match($state) {
+                        'single' => 'Single',
+                        'combined' => 'Combined',
+                        default => 'Single'
+                    })
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('status_handover')
                     ->label('Status'),

@@ -164,85 +164,6 @@ class ImplementerFollowUpTabs
                                                 ->required(),
                                         ]),
 
-                                    Grid::make(2)
-                                        ->schema([
-                                            Select::make('project_plan_files')
-                                                ->label('Project Plan Files')
-                                                ->options(function ($record) {
-                                                    if (!$record) {
-                                                        return [];
-                                                    }
-
-                                                    // Get all project plan files for this lead
-                                                    $companyName = $record->companyDetail?->company_name ?? 'Unknown';
-                                                    $companySlug = \Illuminate\Support\Str::slug($companyName);
-
-                                                    $files = \Illuminate\Support\Facades\Storage::disk('public')
-                                                        ->files('project-plans');
-
-                                                    $matchingFiles = [];
-                                                    foreach ($files as $file) {
-                                                        if (str_contains($file, $companySlug)) {
-                                                            $fullPath = storage_path('app/public/' . $file);
-                                                            $matchingFiles[] = [
-                                                                'path' => $file,
-                                                                'name' => basename($file),
-                                                                'modified' => file_exists($fullPath) ? filemtime($fullPath) : 0
-                                                            ];
-                                                        }
-                                                    }
-
-                                                    // Sort by modified time (newest first)
-                                                    usort($matchingFiles, function($a, $b) {
-                                                        return $b['modified'] - $a['modified'];
-                                                    });
-
-                                                    // Build options array - only show the latest file
-                                                    $options = [];
-                                                    if (!empty($matchingFiles)) {
-                                                        $latestFile = $matchingFiles[0];
-                                                        $options[$latestFile['path']] = $latestFile['name'] . ' (Latest)';
-                                                    }
-
-                                                    return $options;
-                                                })
-                                                ->default(function ($record) {
-                                                    if (!$record) {
-                                                        return null;
-                                                    }
-
-                                                    // Get the latest file and auto-select it
-                                                    $companyName = $record->companyDetail?->company_name ?? 'Unknown';
-                                                    $companySlug = \Illuminate\Support\Str::slug($companyName);
-
-                                                    $files = \Illuminate\Support\Facades\Storage::disk('public')
-                                                        ->files('project-plans');
-
-                                                    $matchingFiles = [];
-                                                    foreach ($files as $file) {
-                                                        if (str_contains($file, $companySlug)) {
-                                                            $fullPath = storage_path('app/public/' . $file);
-                                                            $matchingFiles[] = [
-                                                                'path' => $file,
-                                                                'modified' => file_exists($fullPath) ? filemtime($fullPath) : 0
-                                                            ];
-                                                        }
-                                                    }
-
-                                                    // Sort by modified time (newest first)
-                                                    usort($matchingFiles, function($a, $b) {
-                                                        return $b['modified'] - $a['modified'];
-                                                    });
-
-                                                    // Return the latest file path as array (for multiple select)
-                                                    return !empty($matchingFiles) ? [$matchingFiles[0]['path']] : null;
-                                                })
-                                                ->visible(fn ($get) => $get('send_email'))
-                                                ->multiple()
-                                                ->searchable()
-                                                ->preload(),
-                                        ]),
-
                                     Fieldset::make('Email Details')
                                         ->schema([
                                             TextInput::make('required_attendees')
@@ -416,19 +337,6 @@ class ImplementerFollowUpTabs
                                     if (isset($data['send_email']) && $data['send_email']) {
                                         $templateContent = $data['email_content'] ?? '';
 
-                                        if (str_contains($templateContent, '{project_plan_link}')) {
-                                            $softwareHandover = SoftwareHandover::where('lead_id', $record->id)->latest()->first();
-
-                                            if (!$softwareHandover || empty($softwareHandover->project_plan_link)) {
-                                                Notification::make()
-                                                    ->title('Project Plan Link Missing')
-                                                    ->body('Please generate the project plan Excel file first before sending this email.')
-                                                    ->warning()
-                                                    ->send();
-                                                return; // Stop the action
-                                            }
-                                        }
-
                                         try {
                                             // Get recipient emails
                                             $recipientStr = $data['required_attendees'] ?? '';
@@ -456,10 +364,6 @@ class ImplementerFollowUpTabs
                                                     $content .= $signature;
                                                 }
 
-                                                $projectPlanLinkHtml = $softwareHandover->project_plan_link
-                                                    ? '<a href="' . htmlspecialchars($softwareHandover->project_plan_link) . '" target="_blank" rel="noopener noreferrer" style="color: #667eea; text-decoration: underline;">Click here to view Project Plan</a>'
-                                                    : '<span style="color: red;">Project plan not generated yet</span>';
-
                                                 $placeholders = [
                                                     '{customer_name}' => $record->contact_name ?? '',
                                                     '{company_name}' => $softwareHandover->company_name ?? ($record->companyDetail?->company_name ?? 'Unknown Company'),
@@ -469,7 +373,6 @@ class ImplementerFollowUpTabs
                                                     '{customer_email}' => $customer ? $customer->email : 'Not Available',
                                                     '{customer_password}' => $customer ? $customer->plain_password : 'Not Available',
                                                     '{customer_portal_url}' => str_replace('http://', 'https://', config('app.url')) . '/customer/login',
-                                                    '{project_plan_link}' => $projectPlanLinkHtml, // ✅ Use HTML anchor instead of plain URL
                                                 ];
 
                                                 $content = str_replace(array_keys($placeholders), array_values($placeholders), $content);
@@ -505,7 +408,6 @@ class ImplementerFollowUpTabs
                                                         'implementer_log_id' => $implementerLog->id,
                                                         'template_name' => $templateName,
                                                         'scheduler_type' => $schedulerType,
-                                                        'project_plan_files' => $data['project_plan_files'] ?? [], // Add this line
                                                     ];
 
                                                     // Handle different scheduler types
@@ -638,19 +540,6 @@ class ImplementerFollowUpTabs
             }
 
             $attachments = [];
-
-            if (!empty($emailData['project_plan_files'])) {
-                foreach ($emailData['project_plan_files'] as $filePath) {
-                    $fullPath = storage_path('app/public/' . $filePath);
-                    if (file_exists($fullPath)) {
-                        $attachments[] = [
-                            'path' => $fullPath,
-                            'name' => basename($filePath),
-                            'mime' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-                        ];
-                    }
-                }
-            }
 
             // Send the email with attachments
             Mail::html($emailData['content'], function (Message $message) use ($emailData, $ccRecipients, $attachments) {

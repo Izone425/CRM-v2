@@ -1055,7 +1055,11 @@ class ImplementerAppointmentRelationManager extends RelationManager
                                 }
                             }
 
-                            return "Add Follow-up for {$companyName}";
+                            return "Add Session Summary for {$companyName}";
+                        })
+                        ->visible(function (ImplementerAppointment $record) {
+                            // ✅ Show only if summary email hasn't been sent
+                            return $record->sent_summary_email != 1;
                         })
                         ->hidden(function() {
                             $user = auth()->user();
@@ -1077,141 +1081,109 @@ class ImplementerAppointmentRelationManager extends RelationManager
                             return true;
                         })
                         ->form([
-                            Grid::make(4)
-                                ->schema([
-                                    DatePicker::make('follow_up_date')
-                                        ->label('Next Follow-up Date')
-                                        ->default(function() {
-                                            $today = now();
-                                            $daysUntilNextTuesday = (9 - $today->dayOfWeek) % 7;
-                                            if ($daysUntilNextTuesday === 0) {
-                                                $daysUntilNextTuesday = 7;
-                                            }
-                                            return $today->addDays($daysUntilNextTuesday);
-                                        })
-                                        ->minDate(now()->subDay())
-                                        ->required(),
+                            // ✅ Hide these fields
+                            Hidden::make('follow_up_date')
+                                ->default(function (ImplementerAppointment $record) {
+                                    return $record->date ?? now()->toDateString();
+                                }),
 
-                                    Select::make('manual_follow_up_count')
-                                        ->label('Follow Up Count')
-                                        ->required()
-                                        ->options([
-                                            0 => '0',
-                                            1 => '1',
-                                            2 => '2',
-                                            3 => '3',
-                                            4 => '4',
-                                        ])
-                                        ->default(function () {
-                                            $lead = $this->getOwnerRecord();
-                                            if (!$lead) return 1;
+                            Hidden::make('manual_follow_up_count')
+                                ->default(function () {
+                                    $lead = $this->getOwnerRecord();
+                                    if (!$lead) return 1;
 
-                                            $softwareHandover = SoftwareHandover::where('lead_id', $lead->id)
-                                                ->orderBy('created_at', 'desc')
-                                                ->first();
+                                    $softwareHandover = SoftwareHandover::where('lead_id', $lead->id)
+                                        ->orderBy('created_at', 'desc')
+                                        ->first();
 
-                                            if (!$softwareHandover) return 1;
+                                    if (!$softwareHandover) return 1;
 
-                                            $currentCount = $softwareHandover->manual_follow_up_count ?? 0;
-                                            $nextCount = ($currentCount >= 4) ? 0 : $currentCount + 1;
+                                    $currentCount = $softwareHandover->manual_follow_up_count ?? 0;
+                                    $nextCount = ($currentCount >= 4) ? 0 : $currentCount + 1;
 
-                                            return $nextCount;
-                                        }),
+                                    return $nextCount;
+                                }),
 
-                                    Toggle::make('send_email')
-                                        ->label('Send Email?')
-                                        ->onIcon('heroicon-o-bell-alert')
-                                        ->offIcon('heroicon-o-bell-slash')
-                                        ->onColor('primary')
-                                        ->inline(false)
-                                        ->offColor('gray')
-                                        ->default(false)
-                                        ->live(onBlur: true),
+                            Hidden::make('send_email')
+                                ->default(true),
 
-                                    Select::make('scheduler_type')
-                                        ->label('Scheduler Type')
-                                        ->options([
-                                            'instant' => 'Instant',
-                                        ])
-                                        ->default('instant')
-                                        ->visible(fn ($get) => $get('send_email'))
-                                        ->required(),
-                                ]),
+                            Hidden::make('scheduler_type')
+                                ->default('instant'),
 
-                            Grid::make(2)
-                                ->schema([
-                                    Select::make('project_plan_files')
-                                        ->label('Project Plan Files')
-                                        ->options(function () {
-                                            $lead = $this->getOwnerRecord();
-                                            if (!$lead) {
-                                                return [];
-                                            }
+                            // ✅ Add project plan files selector
+                            Select::make('project_plan_files')
+                                ->label('Project Plan Files')
+                                ->options(function () {
+                                    $lead = $this->getOwnerRecord();
+                                    if (!$lead) {
+                                        return [];
+                                    }
 
-                                            $companyName = $lead->companyDetail?->company_name ?? 'Unknown';
-                                            $companySlug = \Illuminate\Support\Str::slug($companyName);
+                                    $companyName = $lead->companyDetail?->company_name ?? 'Unknown';
+                                    $companySlug = \Illuminate\Support\Str::slug($companyName);
 
-                                            $files = \Illuminate\Support\Facades\Storage::disk('public')
-                                                ->files('project-plans');
+                                    $files = \Illuminate\Support\Facades\Storage::disk('public')
+                                        ->files('project-plans');
 
-                                            $matchingFiles = [];
-                                            foreach ($files as $file) {
-                                                if (str_contains($file, $companySlug)) {
-                                                    $fullPath = storage_path('app/public/' . $file);
-                                                    $matchingFiles[] = [
-                                                        'path' => $file,
-                                                        'name' => basename($file),
-                                                        'modified' => file_exists($fullPath) ? filemtime($fullPath) : 0
-                                                    ];
-                                                }
-                                            }
+                                    $matchingFiles = [];
+                                    foreach ($files as $file) {
+                                        if (str_contains($file, $companySlug)) {
+                                            $fullPath = storage_path('app/public/' . $file);
+                                            $matchingFiles[] = [
+                                                'path' => $file,
+                                                'name' => basename($file),
+                                                'modified' => file_exists($fullPath) ? filemtime($fullPath) : 0
+                                            ];
+                                        }
+                                    }
 
-                                            usort($matchingFiles, function($a, $b) {
-                                                return $b['modified'] - $a['modified'];
-                                            });
+                                    usort($matchingFiles, function($a, $b) {
+                                        return $b['modified'] - $a['modified'];
+                                    });
 
-                                            $options = [];
-                                            if (!empty($matchingFiles)) {
-                                                $latestFile = $matchingFiles[0];
-                                                $options[$latestFile['path']] = $latestFile['name'] . ' (Latest)';
-                                            }
+                                    $options = [];
+                                    foreach ($matchingFiles as $file) {
+                                        $label = $file['name'];
+                                        if (isset($matchingFiles[0]) && $file['path'] === $matchingFiles[0]['path']) {
+                                            $label .= ' (Latest)';
+                                        }
+                                        $options[$file['path']] = $label;
+                                    }
 
-                                            return $options;
-                                        })
-                                        ->default(function () {
-                                            $lead = $this->getOwnerRecord();
-                                            if (!$lead) {
-                                                return null;
-                                            }
+                                    return $options;
+                                })
+                                ->default(function () {
+                                    $lead = $this->getOwnerRecord();
+                                    if (!$lead) {
+                                        return null;
+                                    }
 
-                                            $companyName = $lead->companyDetail?->company_name ?? 'Unknown';
-                                            $companySlug = \Illuminate\Support\Str::slug($companyName);
+                                    $companyName = $lead->companyDetail?->company_name ?? 'Unknown';
+                                    $companySlug = \Illuminate\Support\Str::slug($companyName);
 
-                                            $files = \Illuminate\Support\Facades\Storage::disk('public')
-                                                ->files('project-plans');
+                                    $files = \Illuminate\Support\Facades\Storage::disk('public')
+                                        ->files('project-plans');
 
-                                            $matchingFiles = [];
-                                            foreach ($files as $file) {
-                                                if (str_contains($file, $companySlug)) {
-                                                    $fullPath = storage_path('app/public/' . $file);
-                                                    $matchingFiles[] = [
-                                                        'path' => $file,
-                                                        'modified' => file_exists($fullPath) ? filemtime($fullPath) : 0
-                                                    ];
-                                                }
-                                            }
+                                    $matchingFiles = [];
+                                    foreach ($files as $file) {
+                                        if (str_contains($file, $companySlug)) {
+                                            $fullPath = storage_path('app/public/' . $file);
+                                            $matchingFiles[] = [
+                                                'path' => $file,
+                                                'modified' => file_exists($fullPath) ? filemtime($fullPath) : 0
+                                            ];
+                                        }
+                                    }
 
-                                            usort($matchingFiles, function($a, $b) {
-                                                return $b['modified'] - $a['modified'];
-                                            });
+                                    usort($matchingFiles, function($a, $b) {
+                                        return $b['modified'] - $a['modified'];
+                                    });
 
-                                            return !empty($matchingFiles) ? [$matchingFiles[0]['path']] : null;
-                                        })
-                                        ->visible(fn ($get) => $get('send_email'))
-                                        ->multiple()
-                                        ->searchable()
-                                        ->preload(),
-                                ]),
+                                    return !empty($matchingFiles) ? [$matchingFiles[0]['path']] : null;
+                                })
+                                ->multiple()
+                                ->searchable()
+                                ->preload(),
 
                             Fieldset::make('Email Details')
                                 ->schema([
@@ -1264,6 +1236,7 @@ class ImplementerAppointmentRelationManager extends RelationManager
                                             $uniqueEmails = array_unique($emails);
                                             return !empty($uniqueEmails) ? implode(';', $uniqueEmails) : null;
                                         })
+                                        ->required()
                                         ->helperText('Separate each email with a semicolon (e.g., email1;email2;email3).'),
 
                                     Select::make('email_template')
@@ -1297,8 +1270,7 @@ class ImplementerAppointmentRelationManager extends RelationManager
                                             'attachFiles',
                                         ])
                                         ->required(),
-                                ])
-                                ->visible(fn ($get) => $get('send_email')),
+                                ]),
 
                             Hidden::make('implementer_name')
                                 ->default(auth()->user()->name ?? ''),
@@ -1332,7 +1304,7 @@ class ImplementerAppointmentRelationManager extends RelationManager
                                 ->placeholder('Add your follow-up details here...')
                                 ->required()
                         ])
-                        ->action(function (array $data) {
+                        ->action(function (array $data, ImplementerAppointment $record) {
                             $lead = $this->getOwnerRecord();
 
                             $softwareHandover = SoftwareHandover::where('lead_id', $lead->id)->latest()->first();
@@ -1345,8 +1317,49 @@ class ImplementerAppointmentRelationManager extends RelationManager
                                 return;
                             }
 
+                            // ✅ Add project plan files as attachments
+                            if (!empty($data['project_plan_files'])) {
+                                $attachments = [];
+                                foreach ($data['project_plan_files'] as $filePath) {
+                                    $fullPath = storage_path('app/public/' . $filePath);
+                                    if (file_exists($fullPath)) {
+                                        $attachments[] = $fullPath;
+                                    }
+                                }
+
+                                // Add attachments to data for ImplementerActions
+                                $data['project_plan_attachments'] = $attachments;
+
+                                Log::info('Project plan files prepared for email', [
+                                    'files' => $data['project_plan_files'],
+                                    'attachments' => $attachments,
+                                    'count' => count($attachments)
+                                ]);
+                            }
+
                             // Call the centralized method from ImplementerActions
                             ImplementerActions::processFollowUpWithEmail($softwareHandover, $data);
+
+                            // ✅ Update the appointment to mark summary email as sent
+                            $record->update([
+                                'sent_summary_email' => 1,
+                                'summary_email_sent_at' => now(),
+                                'summary_email_sent_by' => auth()->id(),
+                            ]);
+
+                            Log::info('Session summary email sent and marked', [
+                                'appointment_id' => $record->id,
+                                'lead_id' => $lead->id,
+                                'sent_by' => auth()->user()->name,
+                                'sent_at' => now(),
+                                'has_attachments' => !empty($data['project_plan_files']),
+                            ]);
+
+                            Notification::make()
+                                ->title('Session Summary Sent Successfully')
+                                ->success()
+                                ->body('The session summary email has been sent and the appointment has been marked.')
+                                ->send();
 
                             // Refresh the table
                             $this->dispatch('refresh');
@@ -2765,6 +2778,45 @@ class ImplementerAppointmentRelationManager extends RelationManager
     {
         $attachmentsData = [];
 
+        // ✅ Handle project plan attachments (from ImplementerActions)
+        if (!empty($emailData['project_plan_attachments'])) {
+            Log::info("Processing project plan attachments", [
+                'count' => count($emailData['project_plan_attachments']),
+                'files' => $emailData['project_plan_attachments']
+            ]);
+
+            foreach ($emailData['project_plan_attachments'] as $filePath) {
+                try {
+                    if (file_exists($filePath)) {
+                        $mimeType = mime_content_type($filePath);
+                        $displayName = basename($filePath);
+
+                        $attachmentsData[] = [
+                            'path' => $filePath,
+                            'name' => $displayName,
+                            'mime' => $mimeType,
+                            'type' => 'project_plan'
+                        ];
+
+                        Log::info("Project plan attachment added", [
+                            'name' => $displayName,
+                            'path' => $filePath,
+                            'mime' => $mimeType
+                        ]);
+                    } else {
+                        Log::error("Project plan file not found", [
+                            'path' => $filePath
+                        ]);
+                    }
+                } catch (\Exception $e) {
+                    Log::error("Error preparing project plan attachment", [
+                        'filePath' => $filePath,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
+        }
+
         // Handle user uploaded files
         if (!empty($emailData['email_attachments'])) {
             Log::info("Processing email attachments", [
@@ -2777,23 +2829,18 @@ class ImplementerAppointmentRelationManager extends RelationManager
                     $filePath = null;
                     $displayName = null;
 
-                    // Handle different file path formats
                     if (is_string($fileName)) {
-                        // Check if it's a regular file path
                         if (str_contains($fileName, 'temp_email_attachments/')) {
                             $filePath = storage_path('app/public/' . $fileName);
                             $displayName = basename($fileName);
                         } else {
-                            // Try as direct filename in temp directory
                             $filePath = storage_path('app/public/temp_email_attachments/' . $fileName);
                             $displayName = $fileName;
                         }
                     } elseif (is_object($fileName) && method_exists($fileName, 'getRealPath')) {
-                        // Handle TemporaryUploadedFile objects
                         $filePath = $fileName->getRealPath();
                         $displayName = $fileName->getClientOriginalName();
                     } elseif (is_array($fileName) && isset($fileName['tmp_name'])) {
-                        // Handle array format
                         $filePath = $fileName['tmp_name'];
                         $displayName = $fileName['name'] ?? 'unknown_file';
                     }
@@ -2801,7 +2848,6 @@ class ImplementerAppointmentRelationManager extends RelationManager
                     if ($filePath && file_exists($filePath)) {
                         $mimeType = mime_content_type($filePath);
 
-                        // Validate file type
                         $allowedTypes = [
                             'application/pdf',
                             'application/vnd.ms-excel',
@@ -2816,6 +2862,12 @@ class ImplementerAppointmentRelationManager extends RelationManager
                                 'mime' => $mimeType,
                                 'type' => 'user_upload'
                             ];
+
+                            Log::info("User attachment added successfully", [
+                                'name' => $displayName,
+                                'path' => $filePath,
+                                'mime' => $mimeType
+                            ]);
                         } else {
                             Log::warning("File type not allowed: {$displayName}", [
                                 'mime_type' => $mimeType,
@@ -2839,6 +2891,11 @@ class ImplementerAppointmentRelationManager extends RelationManager
         } else {
             Log::info("No email attachments found in email data");
         }
+
+        Log::info("Total attachments prepared", [
+            'count' => count($attachmentsData),
+            'attachments' => array_map(fn($a) => ['name' => $a['name'], 'type' => $a['type']], $attachmentsData)
+        ]);
 
         return $attachmentsData;
     }
