@@ -298,7 +298,6 @@ class ProjectAnalysis extends Page
             'Zulhilmie',
             'Muhamad Izzul Aiman',
             'Ahmad Syamim',
-            'Nurul Shaqinur Ain',
             'Siti Shahilah',
             'Nur Alia',
             'Ameerul Asyraf',
