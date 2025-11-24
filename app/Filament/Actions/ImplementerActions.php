@@ -1251,6 +1251,7 @@ class ImplementerActions
                                 'implementer_log_id' => $implementerLog->id,
                                 'template_name' => $templateName,
                                 'scheduler_type' => $schedulerType,
+                                'project_plan_attachments' => $data['project_plan_attachments'] ?? [], // ✅ Add this line
                             ];
 
                             // Handle different scheduler types
@@ -1342,31 +1343,25 @@ class ImplementerActions
 
             // Add implementer to CC if available and different from sender
             if ($softwareHandover->implementer) {
-                // Look up user by name instead of ID
                 $implementer = User::where('name', $softwareHandover->implementer)->first();
                 if ($implementer && $implementer->email && $implementer->email !== $emailData['sender_email']) {
                     $ccRecipients[] = $implementer->email;
                     Log::info("Added implementer to CC: {$implementer->name} <{$implementer->email}>");
-                } else {
-                    Log::info("Implementer not found or no valid email for: {$softwareHandover->implementer}");
                 }
             }
 
             // Add salesperson to CC if available and different from sender and implementer
             if ($softwareHandover->salesperson) {
-                // Look up user by name instead of ID
                 $salesperson = User::where('name', $softwareHandover->salesperson)->first();
                 if ($salesperson && $salesperson->email &&
                     $salesperson->email !== $emailData['sender_email'] &&
                     !in_array($salesperson->email, $ccRecipients)) {
                     $ccRecipients[] = $salesperson->email;
                     Log::info("Added salesperson to CC: {$salesperson->name} <{$salesperson->email}>");
-                } else {
-                    Log::info("Salesperson not found or no valid email for: {$softwareHandover->salesperson}");
                 }
             }
 
-            // Send the email with CC recipients
+            // Send the email with CC recipients and attachments
             Mail::html($emailData['content'], function (Message $message) use ($emailData, $ccRecipients) {
                 $message->to($emailData['recipients'])
                     ->subject($emailData['subject'])
@@ -1379,15 +1374,37 @@ class ImplementerActions
 
                 // BCC the sender as well
                 $message->bcc($emailData['sender_email']);
+
+                // ✅ Attach project plan files if they exist
+                if (!empty($emailData['project_plan_attachments'])) {
+                    foreach ($emailData['project_plan_attachments'] as $filePath) {
+                        if (file_exists($filePath)) {
+                            $message->attach($filePath, [
+                                'as' => basename($filePath),
+                                'mime' => mime_content_type($filePath)
+                            ]);
+
+                            Log::info('Attached project plan file to email', [
+                                'file' => basename($filePath),
+                                'path' => $filePath
+                            ]);
+                        } else {
+                            Log::warning('Project plan file not found for attachment', [
+                                'path' => $filePath
+                            ]);
+                        }
+                    }
+                }
             });
 
-            // Log email sent successfully
+            // Log email sent successfully with attachment count
             Log::info('Follow-up email sent successfully', [
                 'to' => $emailData['recipients'],
                 'cc' => $ccRecipients,
                 'subject' => $emailData['subject'],
                 'implementer_log_id' => $emailData['implementer_log_id'] ?? null,
-                'template' => $emailData['template_name'] ?? 'Unknown'
+                'template' => $emailData['template_name'] ?? 'Unknown',
+                'attachments_count' => count($emailData['project_plan_attachments'] ?? []), // ✅ Log attachment count
             ]);
         } catch (\Exception $e) {
             Log::error('Error in sendEmail method: ' . $e->getMessage(), [

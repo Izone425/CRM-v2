@@ -129,7 +129,6 @@ class HrdfAttLogNewTable extends Component implements HasTable, HasForms
                             \Filament\Forms\Components\TextInput::make('grant_id')
                                 ->label('Grant ID')
                                 ->required()
-                                ->alphaNum()
                                 ->maxLength(50)
                                 ->extraAlpineAttributes([
                                     'x-on:input' => '
@@ -139,10 +138,15 @@ class HrdfAttLogNewTable extends Component implements HasTable, HasForms
                                         $el.setSelectionRange(start, end);
                                     '
                                 ])
+                                ->unique(HrdfAttendanceLog::class, 'grant_id', ignoreRecord: true)
+                                ->validationMessages([
+                                    'unique' => 'This Grant ID already exists in the system. Please use a different Grant ID.',
+                                ])
+                                ->helperText('Grant ID must be unique')
                                 ->columnSpanFull(),
 
                             \Filament\Forms\Components\Select::make('salesperson_id')
-                                ->label('Name')
+                                ->label('SalesPerson Name')
                                 ->required()
                                 ->options(function () {
                                     // Get all users with role_id = 2 (salespersons) + user ID 5

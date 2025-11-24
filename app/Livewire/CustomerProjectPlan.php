@@ -92,8 +92,8 @@ class CustomerProjectPlan extends Component
         $sheet->setCellValue("A{$currentRow}", 'Company Name');
         $sheet->mergeCells("A{$currentRow}:B{$currentRow}");
         $sheet->setCellValue("C{$currentRow}", $companyName);
-        $sheet->mergeCells("C{$currentRow}:J{$currentRow}");
-        $sheet->getStyle("A{$currentRow}:J{$currentRow}")->applyFromArray([
+        $sheet->mergeCells("C{$currentRow}:K{$currentRow}"); // Changed from J to K
+        $sheet->getStyle("A{$currentRow}:K{$currentRow}")->applyFromArray([
             'font' => ['bold' => true, 'size' => 12],
             'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'E8F5E9']],
             'borders' => [
@@ -106,8 +106,8 @@ class CustomerProjectPlan extends Component
         $sheet->setCellValue("A{$currentRow}", 'Implementer Name');
         $sheet->mergeCells("A{$currentRow}:B{$currentRow}");
         $sheet->setCellValue("C{$currentRow}", $implementerName);
-        $sheet->mergeCells("C{$currentRow}:J{$currentRow}");
-        $sheet->getStyle("A{$currentRow}:J{$currentRow}")->applyFromArray([
+        $sheet->mergeCells("C{$currentRow}:K{$currentRow}"); // Changed from J to K
+        $sheet->getStyle("A{$currentRow}:K{$currentRow}")->applyFromArray([
             'font' => ['bold' => true, 'size' => 12],
             'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'E3F2FD']],
             'borders' => [
@@ -118,8 +118,8 @@ class CustomerProjectPlan extends Component
 
         // Row 3: Project Progress Overview
         $sheet->setCellValue("A{$currentRow}", 'Project Progress Overview');
-        $sheet->mergeCells("A{$currentRow}:J{$currentRow}");
-        $sheet->getStyle("A{$currentRow}:J{$currentRow}")->applyFromArray([
+        $sheet->mergeCells("A{$currentRow}:K{$currentRow}"); // Changed from J to K
+        $sheet->getStyle("A{$currentRow}:K{$currentRow}")->applyFromArray([
             'font' => ['bold' => true, 'size' => 14, 'color' => ['rgb' => 'FFFFFF']],
             'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '1976D2']],
             'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
@@ -205,8 +205,8 @@ class CustomerProjectPlan extends Component
                 ],
             ]);
 
-            // Sub-headers
-            $headers = ['Start Date', 'End Date', 'Duration', 'Start Date', 'End Date', 'Duration'];
+            // ✅ Sub-headers WITH REMARKS
+            $headers = ['Start Date', 'End Date', 'Duration', 'Start Date', 'End Date', 'Duration', 'Remarks'];
             $col = 'E';
             foreach ($headers as $header) {
                 $sheet->setCellValue("{$col}{$currentRow}", $header);
@@ -223,6 +223,16 @@ class CustomerProjectPlan extends Component
                 } elseif (in_array($col, ['H', 'I', 'J'])) {
                     $sheet->getStyle("{$col}{$currentRow}")->applyFromArray([
                         'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '00FF00']],
+                        'font' => ['bold' => true, 'color' => ['rgb' => '000000']],
+                        'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
+                        'borders' => [
+                            'allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => '000000']],
+                        ],
+                    ]);
+                } elseif ($col === 'K') {
+                    // ✅ Remarks column styling
+                    $sheet->getStyle("{$col}{$currentRow}")->applyFromArray([
+                        'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'FFE699']],
                         'font' => ['bold' => true, 'color' => ['rgb' => '000000']],
                         'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
                         'borders' => [
@@ -260,8 +270,12 @@ class CustomerProjectPlan extends Component
                 $sheet->setCellValue("I{$currentRow}", $plan->actual_end_date ? \Carbon\Carbon::parse($plan->actual_end_date)->format('d/m/Y') : '');
                 $sheet->setCellValue("J{$currentRow}", $plan->actual_duration ?? '');
 
-                // Add borders
-                $sheet->getStyle("A{$currentRow}:J{$currentRow}")->applyFromArray([
+                // ✅ Remarks column
+                $sheet->setCellValue("K{$currentRow}", $plan->remarks ?? '');
+                $sheet->getStyle("K{$currentRow}")->getAlignment()->setWrapText(true);
+
+                // ✅ Add borders to all columns including Remarks
+                $sheet->getStyle("A{$currentRow}:K{$currentRow}")->applyFromArray([
                     'borders' => [
                         'allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => '000000']],
                     ],
@@ -274,10 +288,13 @@ class CustomerProjectPlan extends Component
             $currentRow++;
         }
 
-        // Auto-size columns
+        // Auto-size columns A-J
         foreach (range('A', 'J') as $col) {
             $sheet->getColumnDimension($col)->setAutoSize(true);
         }
+
+        // ✅ Set fixed width for Remarks column
+        $sheet->getColumnDimension('K')->setWidth(40);
 
         // Save to temp directory
         $companySlug = \Illuminate\Support\Str::slug($companyName);

@@ -141,9 +141,9 @@ class ProjectAnalysis extends Page
             'Zulhilmie',
             'Muhamad Izzul Aiman',
             'Ahmad Syamim',
-            'Nurul Shaqinur Ain',
             'Siti Shahilah',
-            'Nur Alia'
+            'Nur Alia',
+            'Ameerul Asyraf',
         ];
 
         $implementers = [];
@@ -195,7 +195,9 @@ class ProjectAnalysis extends Page
             'Noor Syazana' => 'Noor Syazana',
             'Ahmad Syazwan' => 'Ahmad Syazwan',
             'ADZZIM' => 'Adzzim Bin Kassim',
-            'AZRUL' => 'Azrul Nizam'
+            'AZRUL' => 'Azrul Nizam',
+            'Nurul Shaqinur Ain' => 'Nurul Shaqinur Ain',
+
         ];
 
         $implementers = [];
@@ -298,7 +300,8 @@ class ProjectAnalysis extends Page
             'Ahmad Syamim',
             'Nurul Shaqinur Ain',
             'Siti Shahilah',
-            'Nur Alia'
+            'Nur Alia',
+            'Ameerul Asyraf',
         ];
     }
 
@@ -312,7 +315,8 @@ class ProjectAnalysis extends Page
             'Noor Syazana' => 'Noor Syazana',
             'Ahmad Syazwan' => 'Ahmad Syazwan',
             'ADZZIM' => 'Adzzim Bin Kassim',
-            'AZRUL' => 'Azrul Nizam'
+            'AZRUL' => 'Azrul Nizam',
+            'Nurul Shaqinur Ain' => 'Nurul Shaqinur Ain',
         ];
     }
 

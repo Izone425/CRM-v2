@@ -273,14 +273,10 @@ class SearchLicense extends Page implements HasForms
             $tempDate = $today->copy()->addMonths($exactMonths);
             $remainingDays = $tempDate->diffInDays($expiryDate, false);
 
-            // Calculate the fraction of the month
-            $daysInMonth = $tempDate->daysInMonth;
-            $monthFraction = $remainingDays / $daysInMonth;
-
-            // Apply rounding logic: if fraction > 0.5, add 1 month
+            // ✅ Simple rounding logic: if dayDiff >= 15, add 1 month
             $finalMonths = $exactMonths;
-            if (abs($monthFraction) > 0.5) {
-                $finalMonths += ($monthFraction > 0) ? 1 : -1;
+            if (abs($remainingDays) >= 15) {
+                $finalMonths += ($remainingDays > 0) ? 1 : -1;
             }
 
             // If the expiry date has passed, show negative months
@@ -302,9 +298,14 @@ class SearchLicense extends Page implements HasForms
                 'result_display' => $resultText
             ]);
 
+            // Calculate exact months for notification
+            $daysInMonth = $tempDate->daysInMonth;
+            $monthFraction = $remainingDays / $daysInMonth;
+            $exactValue = round($exactMonths + $monthFraction, 2);
+
             Notification::make()
                 ->title('Calculation Complete')
-                ->body($resultText . ' (Exact: ' . round($exactMonths + $monthFraction, 2) . ' months)')
+                ->body($resultText . ' (Exact: ' . $exactValue . ' months, Day difference: ' . abs($remainingDays) . ' days)')
                 ->color($statusColor)
                 ->send();
 

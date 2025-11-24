@@ -39,6 +39,7 @@ class SubmitHrdfAttendanceLog extends Page implements HasTable
                 ->icon('heroicon-o-plus')
                 ->color('success')
                 ->size(ActionSize::Large)
+                ->visible(fn () => in_array(Auth::id(), [1, 34]))
                 ->form([
                     TextInput::make('company_name')
                         ->label('Company Name')
@@ -64,7 +65,7 @@ class SubmitHrdfAttendanceLog extends Page implements HasTable
                                 ->required()
                                 ->native(false)
                                 ->displayFormat('d/m/Y')
-                                ->minDate(now()->subDay())
+                                ->minDate(now()->subweek(2))
                                 ->maxDate(now()->addMonths(2))
                                 ->live(onBlur: true)
                                 ->afterStateUpdated(function ($state, callable $set) {
@@ -108,7 +109,7 @@ class SubmitHrdfAttendanceLog extends Page implements HasTable
                                 ->required()
                                 ->native(false)
                                 ->displayFormat('d/m/Y')
-                                ->minDate(now()->subDay())
+                                ->minDate(now()->subweek(2))
                                 ->maxDate(now()->addMonths(2))
                                 ->closeOnDateSelection()
                                 ->disabled(fn (Get $get) => !$get('training_date_1'))
@@ -136,7 +137,7 @@ class SubmitHrdfAttendanceLog extends Page implements HasTable
                                 ->required()
                                 ->native(false)
                                 ->displayFormat('d/m/Y')
-                                ->minDate(now()->subDay())
+                                ->minDate(now()->subweek(2))
                                 ->maxDate(now()->addMonths(2))
                                 ->closeOnDateSelection()
                                 ->disabled(fn (Get $get) => !$get('training_date_1'))
@@ -320,6 +321,8 @@ class SubmitHrdfAttendanceLog extends Page implements HasTable
                     }),
             ])
             ->defaultSort('created_at', 'desc')
+            ->defaultPaginationPageOption(50)
+            ->paginationPageOptions([50, 100])
             ->filters([
                 \Malzariey\FilamentDaterangepickerFilter\Filters\DateRangeFilter::make('training_dates')
                     ->label('Filter by Training Dates')

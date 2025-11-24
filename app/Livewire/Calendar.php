@@ -726,13 +726,14 @@ class Calendar extends Component
                 ['name' => 'Nur Alia', 'order' => 24],
                 ['name' => 'John Low', 'order' => 25],
                 ['name' => 'Mohd Amirul Ashraf', 'order' => 26],
-                ['name' => 'Nur Fazuliana', 'order' => 27]
+                ['name' => 'Nur Fazuliana', 'order' => 27],
+                ['name' => 'Ameerul Asyraf', 'order' => 28],
             ],
             'Trainer Department' => [
-                ['name' => 'Mohd Fairos', 'order' => 28]
+                ['name' => 'Mohd Fairos', 'order' => 29]
             ],
             'Technician Department' => [
-                ['name' => 'Khairul Izzuddin', 'order' => 29]
+                ['name' => 'Khairul Izzuddin', 'order' => 30]
             ]
         ];
 
