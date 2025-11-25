@@ -91,6 +91,7 @@ class MarketingAnalysis extends Page
 
     public $excludeLeadCodes = [];
     public $isExcludingLeadCodes = false;
+    public $includePG = false;
 
     public static function canAccess(): bool
     {
@@ -145,8 +146,10 @@ class MarketingAnalysis extends Page
         ];
 
         $this->isExcludingLeadCodes = session('isExcludingLeadCodes', false);
+        $this->includePG = session('includePG', false);
 
         session(['isExcludingLeadCodes' => $this->isExcludingLeadCodes]);
+        session(['includePG' => $this->includePG]);
 
         // Store in session
         session(['selectedUser' => $this->selectedUser, 'selectedLeadCode' => $this->selectedLeadCode]);
@@ -165,11 +168,23 @@ class MarketingAnalysis extends Page
         $this->refreshDashboardData();
     }
 
+    public function togglePGFilter()
+    {
+        $this->includePG = !$this->includePG;
+        session(['includePG' => $this->includePG]);
+        $this->refreshDashboardData();
+    }
+
     private function applyLeadCodeExclusions($query)
     {
         if ($this->isExcludingLeadCodes && !empty($this->excludeLeadCodes)) {
             $query->whereNotIn('lead_code', $this->excludeLeadCodes);
         }
+
+        if (!$this->includePG) {
+            $query->where('lead_code', '!=', 'Google AdWords (PG)');
+        }
+
         return $query;
     }
 
@@ -187,6 +202,10 @@ class MarketingAnalysis extends Page
         // Apply lead code exclusions
         if ($this->isExcludingLeadCodes && !empty($this->excludeLeadCodes)) {
             $query->whereNotIn('lead_code', $this->excludeLeadCodes);
+        }
+
+        if (!$this->includePG) {
+            $query->where('lead_code', '!=', 'Google AdWords (PG)');
         }
 
         // Exclude existing customer and null company_size
@@ -245,6 +264,10 @@ class MarketingAnalysis extends Page
         // Apply lead code exclusions
         if ($this->isExcludingLeadCodes && !empty($this->excludeLeadCodes)) {
             $query->whereNotIn('lead_code', $this->excludeLeadCodes);
+        }
+
+        if (!$this->includePG) {
+            $query->where('lead_code', '!=', 'Google AdWords (PG)');
         }
 
         // Exclude existing customer and null company_size

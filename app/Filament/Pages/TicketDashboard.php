@@ -329,11 +329,11 @@ class TicketDashboard extends Page implements HasActions, HasForms
                                 \Illuminate\Support\Str::slug(pathinfo($originalFilename, PATHINFO_FILENAME)) .
                                 '.' . $extension;
 
-                // ✅ Store to S3 with organized path
+                // ✅ Store to s3-ticketing with organized path
                 $path = $file->storeAs(
                     'ticket_attachments/' . date('Y/m/d'),
                     $storedFilename,
-                    's3'
+                    's3-ticketing'
                 );
 
                 // ✅ Calculate file hash
@@ -386,7 +386,7 @@ class TicketDashboard extends Page implements HasActions, HasForms
     {
         if ($file) {
             $filename = time() . '_' . $file->getClientOriginalName();
-            $path = $file->storeAs('version_screenshot', $filename, 's3');
+            $path = $file->storeAs('version_screenshot', $filename, 's3-ticketing');
             return $path;
         }
         return null;

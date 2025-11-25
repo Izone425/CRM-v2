@@ -53,6 +53,7 @@ use App\Filament\Pages\ProjectCategoryClosed;
 use App\Filament\Pages\ProjectCategoryDelay;
 use App\Filament\Pages\ProjectCategoryInactive;
 use App\Filament\Pages\ProjectCategoryOpen;
+use App\Filament\Pages\ProjectPlanSummary;
 use App\Filament\Pages\ProjectPriority;
 use App\Filament\Pages\RankingForm;
 use App\Filament\Pages\RankingFormPage;
@@ -365,6 +366,7 @@ class AdminPanelProvider extends PanelProvider
                 TicketList::class,
                 TicketDashboard::class,
                 SubmitHrdfAttendanceLog::class,
+                ProjectPlanSummary::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([

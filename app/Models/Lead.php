@@ -56,6 +56,9 @@ class Lead extends Model
         'created_at',
         'updated_at',
         'closed_by',
+        'meta_lead_id',
+        'meta_event_sent_at',
+        'fbclid',
     ];
 
     public function getActivitylogOptions(): LogOptions

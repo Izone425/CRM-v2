@@ -920,7 +920,7 @@
                                             </div>
                                         </div>
                                         <div style="display: flex; gap: 8px;">
-                                            <a href="{{ \Illuminate\Support\Facades\Storage::disk('s3')->temporaryUrl($selectedTicket->version_screenshot, now()->addMinutes(60)) }}"
+                                            <a href="{{ \Illuminate\Support\Facades\Storage::disk('s3-ticketing')->temporaryUrl($selectedTicket->version_screenshot, now()->addMinutes(60)) }}"
                                             target="_blank"
                                             style="padding: 6px 12px; background: white; border: 1px solid #E5E7EB; border-radius: 6px; cursor: pointer; text-decoration: none; color: #374151; display: flex; align-items: center; gap: 4px;">
                                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -949,7 +949,7 @@
                                                 </div>
                                             </div>
                                             <div style="display: flex; gap: 8px;">
-                                                <a href="{{ \Illuminate\Support\Facades\Storage::disk('s3')->temporaryUrl($attachment->file_path, now()->addMinutes(60)) }}"
+                                                <a href="{{ \Illuminate\Support\Facades\Storage::disk('s3-ticketing')->temporaryUrl($attachment->file_path, now()->addMinutes(60)) }}"
                                                 target="_blank"
                                                 style="padding: 6px 12px; background: white; border: 1px solid #E5E7EB; border-radius: 6px; cursor: pointer; text-decoration: none; color: #374151; display: flex; align-items: center; gap: 4px;">
                                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

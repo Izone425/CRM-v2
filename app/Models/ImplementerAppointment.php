@@ -41,6 +41,7 @@ class ImplementerAppointment extends Model
         'sent_summary_email',
         'session_recording_link',
         'online_meeting_id',
+        'recording_fetched_at',
     ];
 
     protected $casts = [

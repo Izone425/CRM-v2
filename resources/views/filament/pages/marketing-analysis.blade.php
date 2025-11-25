@@ -505,6 +505,18 @@
                                 <i class="ml-2 bi bi-question-circle cursor-help"
                                 title="{{ $isExcludingLeadCodes ? 'Excluded: ' . implode(', ', $excludeLeadCodes) : 'Click to exclude out the leads' }}"></i>
                             </div>
+                            &nbsp;&nbsp;&nbsp;&nbsp;
+                            <div class="relative">
+                                <x-filament::button
+                                    wire:click="togglePGFilter"
+                                    color="{{ $includePG ? 'warning' : 'gray' }}"
+                                >
+                                    {{ $includePG ? 'PG Included' : 'PG Excluded' }}
+                                </x-filament::button>
+
+                                <i class="ml-2 bi bi-question-circle cursor-help"
+                                title="{{ $includePG ? 'Currently including Google AdWords (PG) leads' : 'Currently excluding Google AdWords (PG) leads' }}"></i>
+                            </div>
                         </div>
                     </div>
                 @endif

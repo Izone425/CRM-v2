@@ -56,6 +56,18 @@ return [
             'throw' => false,
         ],
 
+        // S3 for Ticketing System
+        's3-ticketing' => [
+            'driver' => 's3',
+            'key' => env('TICKETING_AWS_ACCESS_KEY_ID'),
+            'secret' => env('TICKETING_AWS_SECRET_ACCESS_KEY'),
+            'region' => env('TICKETING_AWS_DEFAULT_REGION'),
+            'bucket' => env('TICKETING_AWS_BUCKET'),
+            'url' => env('TICKETING_AWS_URL'),
+            'endpoint' => env('TICKETING_AWS_ENDPOINT'),
+            'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', false),
+            'throw' => false,
+        ],
     ],
 
     /*

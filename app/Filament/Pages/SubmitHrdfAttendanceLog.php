@@ -248,7 +248,7 @@ class SubmitHrdfAttendanceLog extends Page implements HasTable
     public function table(Table $table): Table
     {
         return $table
-            ->query(HrdfAttendanceLog::query()->where('submitted_by', Auth::id())->latest())
+            ->query(HrdfAttendanceLog::query())
             ->columns([
                 TextColumn::make('formatted_log_id')
                     ->label('Log ID')

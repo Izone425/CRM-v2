@@ -640,6 +640,11 @@ class ImplementerAppointmentRelationManager extends RelationManager
                             return 'Invalid Date/Time Format';
                         }
                     }),
+                TextColumn::make('session_recording_link')
+                    ->label('RECORDING LINK')
+                    ->sortable()
+                    ->limit(30)
+                    ->copyable(),
                 IconColumn::make('view_remark')
                     ->label('View Remark')
                     ->alignCenter()
@@ -1058,7 +1063,6 @@ class ImplementerAppointmentRelationManager extends RelationManager
                             return "Add Session Summary for {$companyName}";
                         })
                         ->visible(function (ImplementerAppointment $record) {
-                            // ✅ Show only if summary email hasn't been sent
                             return $record->sent_summary_email != 1;
                         })
                         ->hidden(function() {
@@ -1081,109 +1085,115 @@ class ImplementerAppointmentRelationManager extends RelationManager
                             return true;
                         })
                         ->form([
-                            // ✅ Hide these fields
-                            Hidden::make('follow_up_date')
-                                ->default(function (ImplementerAppointment $record) {
-                                    return $record->date ?? now()->toDateString();
-                                }),
-
-                            Hidden::make('manual_follow_up_count')
-                                ->default(function () {
-                                    $lead = $this->getOwnerRecord();
-                                    if (!$lead) return 1;
-
-                                    $softwareHandover = SoftwareHandover::where('lead_id', $lead->id)
-                                        ->orderBy('created_at', 'desc')
-                                        ->first();
-
-                                    if (!$softwareHandover) return 1;
-
-                                    $currentCount = $softwareHandover->manual_follow_up_count ?? 0;
-                                    $nextCount = ($currentCount >= 4) ? 0 : $currentCount + 1;
-
-                                    return $nextCount;
-                                }),
-
                             Hidden::make('send_email')
                                 ->default(true),
 
                             Hidden::make('scheduler_type')
                                 ->default('instant'),
 
-                            // ✅ Add project plan files selector
-                            Select::make('project_plan_files')
-                                ->label('Project Plan Files')
-                                ->options(function () {
-                                    $lead = $this->getOwnerRecord();
-                                    if (!$lead) {
-                                        return [];
-                                    }
+                            // ✅ Add Session Recording Link field
+                            Grid::make(2)
+                                ->schema([
+                                    Select::make('project_plan_files')
+                                        ->label('Project Plan Files')
+                                        ->options(function () {
+                                            $lead = $this->getOwnerRecord();
+                                            if (!$lead) {
+                                                return [];
+                                            }
 
-                                    $companyName = $lead->companyDetail?->company_name ?? 'Unknown';
-                                    $companySlug = \Illuminate\Support\Str::slug($companyName);
+                                            $companyName = $lead->companyDetail?->company_name ?? 'Unknown';
+                                            $companySlug = \Illuminate\Support\Str::slug($companyName);
 
-                                    $files = \Illuminate\Support\Facades\Storage::disk('public')
-                                        ->files('project-plans');
+                                            $files = \Illuminate\Support\Facades\Storage::disk('public')
+                                                ->files('project-plans');
 
-                                    $matchingFiles = [];
-                                    foreach ($files as $file) {
-                                        if (str_contains($file, $companySlug)) {
-                                            $fullPath = storage_path('app/public/' . $file);
-                                            $matchingFiles[] = [
-                                                'path' => $file,
-                                                'name' => basename($file),
-                                                'modified' => file_exists($fullPath) ? filemtime($fullPath) : 0
-                                            ];
-                                        }
-                                    }
+                                            $matchingFiles = [];
+                                            foreach ($files as $file) {
+                                                if (str_contains($file, $companySlug)) {
+                                                    $fullPath = storage_path('app/public/' . $file);
+                                                    $matchingFiles[] = [
+                                                        'path' => $file,
+                                                        'name' => basename($file),
+                                                        'modified' => file_exists($fullPath) ? filemtime($fullPath) : 0
+                                                    ];
+                                                }
+                                            }
 
-                                    usort($matchingFiles, function($a, $b) {
-                                        return $b['modified'] - $a['modified'];
-                                    });
+                                            usort($matchingFiles, function($a, $b) {
+                                                return $b['modified'] - $a['modified'];
+                                            });
 
-                                    $options = [];
-                                    foreach ($matchingFiles as $file) {
-                                        $label = $file['name'];
-                                        if (isset($matchingFiles[0]) && $file['path'] === $matchingFiles[0]['path']) {
-                                            $label .= ' (Latest)';
-                                        }
-                                        $options[$file['path']] = $label;
-                                    }
+                                            $options = [];
+                                            foreach ($matchingFiles as $file) {
+                                                $label = $file['name'];
+                                                if (isset($matchingFiles[0]) && $file['path'] === $matchingFiles[0]['path']) {
+                                                    $label .= ' (Latest)';
+                                                }
+                                                $options[$file['path']] = $label;
+                                            }
 
-                                    return $options;
-                                })
-                                ->default(function () {
-                                    $lead = $this->getOwnerRecord();
-                                    if (!$lead) {
-                                        return null;
-                                    }
+                                            return $options;
+                                        })
+                                        ->default(function () {
+                                            $lead = $this->getOwnerRecord();
+                                            if (!$lead) {
+                                                return null;
+                                            }
 
-                                    $companyName = $lead->companyDetail?->company_name ?? 'Unknown';
-                                    $companySlug = \Illuminate\Support\Str::slug($companyName);
+                                            $companyName = $lead->companyDetail?->company_name ?? 'Unknown';
+                                            $companySlug = \Illuminate\Support\Str::slug($companyName);
 
-                                    $files = \Illuminate\Support\Facades\Storage::disk('public')
-                                        ->files('project-plans');
+                                            $files = \Illuminate\Support\Facades\Storage::disk('public')
+                                                ->files('project-plans');
 
-                                    $matchingFiles = [];
-                                    foreach ($files as $file) {
-                                        if (str_contains($file, $companySlug)) {
-                                            $fullPath = storage_path('app/public/' . $file);
-                                            $matchingFiles[] = [
-                                                'path' => $file,
-                                                'modified' => file_exists($fullPath) ? filemtime($fullPath) : 0
-                                            ];
-                                        }
-                                    }
+                                            $matchingFiles = [];
+                                            foreach ($files as $file) {
+                                                if (str_contains($file, $companySlug)) {
+                                                    $fullPath = storage_path('app/public/' . $file);
+                                                    $matchingFiles[] = [
+                                                        'path' => $file,
+                                                        'modified' => file_exists($fullPath) ? filemtime($fullPath) : 0
+                                                    ];
+                                                }
+                                            }
 
-                                    usort($matchingFiles, function($a, $b) {
-                                        return $b['modified'] - $a['modified'];
-                                    });
+                                            usort($matchingFiles, function($a, $b) {
+                                                return $b['modified'] - $a['modified'];
+                                            });
 
-                                    return !empty($matchingFiles) ? [$matchingFiles[0]['path']] : null;
-                                })
-                                ->multiple()
-                                ->searchable()
-                                ->preload(),
+                                            return !empty($matchingFiles) ? [$matchingFiles[0]['path']] : null;
+                                        })
+                                        ->multiple()
+                                        ->searchable()
+                                        ->preload()
+                                        ->columnSpan(1),
+
+                                    TextInput::make('session_recording_link')
+                                        ->label('Session Recording Link')
+                                        ->placeholder('Recording Link Not Ready Yet')
+                                        ->default(function (ImplementerAppointment $record) {
+                                            return $record->session_recording_link ?: null;
+                                        })
+                                        ->disabled()
+                                        ->dehydrated(true)
+                                        ->helperText(fn (callable $get) =>
+                                            empty($get('session_recording_link'))
+                                                ? '⏳ Recording will be available after the meeting ends and is processed by Microsoft Teams (usually within 1-4 hours).'
+                                                : '✅ Recording is ready'
+                                        )
+                                        ->suffixIcon(fn (callable $get) =>
+                                            empty($get('session_recording_link'))
+                                                ? 'heroicon-o-clock'
+                                                : 'heroicon-o-check-circle'
+                                        )
+                                        ->suffixIconColor(fn (callable $get) =>
+                                            empty($get('session_recording_link'))
+                                                ? 'warning'
+                                                : 'success'
+                                        )
+                                        ->columnSpan(1),
+                                ]),
 
                             Fieldset::make('Email Details')
                                 ->schema([
@@ -1327,7 +1337,6 @@ class ImplementerAppointmentRelationManager extends RelationManager
                                     }
                                 }
 
-                                // Add attachments to data for ImplementerActions
                                 $data['project_plan_attachments'] = $attachments;
 
                                 Log::info('Project plan files prepared for email', [
@@ -1337,14 +1346,15 @@ class ImplementerAppointmentRelationManager extends RelationManager
                                 ]);
                             }
 
-                            // Call the centralized method from ImplementerActions
-                            ImplementerActions::processFollowUpWithEmail($softwareHandover, $data);
+                            $data['send_email'] = true;
 
-                            // ✅ Update the appointment to mark summary email as sent
+                            ImplementerActions::processFollowUpWithEmail($softwareHandover, $data, false);
+
                             $record->update([
                                 'sent_summary_email' => 1,
                                 'summary_email_sent_at' => now(),
                                 'summary_email_sent_by' => auth()->id(),
+                                'session_recording_link' => $data['session_recording_link'] ?? null,
                             ]);
 
                             Log::info('Session summary email sent and marked', [
@@ -1353,6 +1363,8 @@ class ImplementerAppointmentRelationManager extends RelationManager
                                 'sent_by' => auth()->user()->name,
                                 'sent_at' => now(),
                                 'has_attachments' => !empty($data['project_plan_files']),
+                                'has_recording_link' => !empty($data['session_recording_link']),
+                                'recording_link' => $data['session_recording_link'] ?? null,
                             ]);
 
                             Notification::make()
@@ -1361,7 +1373,6 @@ class ImplementerAppointmentRelationManager extends RelationManager
                                 ->body('The session summary email has been sent and the appointment has been marked.')
                                 ->send();
 
-                            // Refresh the table
                             $this->dispatch('refresh');
                         }),
                 ])->icon('heroicon-m-list-bullet')
@@ -2014,10 +2025,9 @@ class ImplementerAppointmentRelationManager extends RelationManager
                         $implementerName = $data['implementer'] ?? null;
                         $implementerUser = User::where('name', $implementerName)->first();
                         $meetingLink = null;
+                        $onlineMeetingId = null;
 
-                        if ($implementerUser && $implementerUser->email) {
-                            $organizerEmail = $implementerUser->email;
-
+                        if ($implementerUser && ($implementerUser->azure_user_id || $implementerUser->email)) {
                             // Initialize Microsoft Graph service
                             $accessToken = \App\Services\MicrosoftGraphService::getAccessToken();
                             $graph = new \Microsoft\Graph\Graph();
@@ -2047,7 +2057,7 @@ class ImplementerAppointmentRelationManager extends RelationManager
                                         $meetingPayload['attendees'][] = [
                                             'emailAddress' => [
                                                 'address' => $email,
-                                                'name' => $email // Using email as name since we don't have names
+                                                'name' => $email
                                             ],
                                             'type' => 'required'
                                         ];
@@ -2056,7 +2066,9 @@ class ImplementerAppointmentRelationManager extends RelationManager
                             }
 
                             try {
-                                // Use the correct endpoint for app-only authentication
+                                // ✅ STEP 1: Create the event using EMAIL (not azure_user_id)
+                                $organizerEmail = $implementerUser->email;
+
                                 $onlineMeeting = $graph->createRequest("POST", "/users/$organizerEmail/events")
                                     ->attachBody($meetingPayload)
                                     ->setReturnType(\Microsoft\Graph\Model\Event::class)
@@ -2064,16 +2076,135 @@ class ImplementerAppointmentRelationManager extends RelationManager
 
                                 $meetingInfo = $onlineMeeting->getOnlineMeeting();
                                 $meetingLink = $meetingInfo->getJoinUrl() ?? 'N/A';
+                                $eventId = $onlineMeeting->getId();
+
+                                Log::info('✅ Step 1: Event created successfully', [
+                                    'event_id' => $eventId,
+                                    'join_url' => $meetingLink,
+                                    'organizer_email' => $organizerEmail,
+                                    'has_azure_id' => !empty($implementerUser->azure_user_id)
+                                ]);
+
+                                // ✅ STEP 2: Query onlineMeetings using AZURE_USER_ID (if available) or EMAIL
+                                if ($meetingLink && $meetingLink !== 'N/A') {
+                                    try {
+                                        // ✅ Use azure_user_id for querying online meetings, fallback to email
+                                        $queryIdentifier = $implementerUser->azure_user_id ?? $organizerEmail;
+                                        $filterQuery = "joinWebUrl eq '$meetingLink'";
+
+                                        // Query to get the online meeting ID
+                                        $onlineMeetingResponse = $graph->createRequest("GET", "/users/$queryIdentifier/onlineMeetings?\$filter=$filterQuery")
+                                            ->execute();
+
+                                        $responseBody = $onlineMeetingResponse->getBody();
+
+                                        Log::info('✅ Step 2: Online meeting query response', [
+                                            'response' => $responseBody,
+                                            'join_url' => $meetingLink,
+                                            'query_identifier' => $queryIdentifier,
+                                            'used_azure_id' => !empty($implementerUser->azure_user_id),
+                                            'azure_user_id' => $implementerUser->azure_user_id ?? null,
+                                            'email' => $organizerEmail
+                                        ]);
+
+                                        // Extract the online meeting ID from response
+                                        if (isset($responseBody['value']) && count($responseBody['value']) > 0) {
+                                            $onlineMeetingId = $responseBody['value'][0]['id'] ?? null;
+
+                                            Log::info('✅ Step 2: Online meeting ID retrieved', [
+                                                'online_meeting_id' => $onlineMeetingId,
+                                                'event_id' => $eventId,
+                                                'join_url' => $meetingLink,
+                                                'query_identifier' => $queryIdentifier,
+                                                'query_method' => $implementerUser->azure_user_id ? 'azure_user_id' : 'email'
+                                            ]);
+
+                                            // ✅ STEP 3: Enable automatic recording using PATCH with online_meeting_id
+                                            if ($onlineMeetingId) {
+                                                try {
+                                                    $recordingPayload = [
+                                                        'recordAutomatically' => true
+                                                    ];
+
+                                                    $recordingResponse = $graph->createRequest("PATCH", "/users/$queryIdentifier/onlineMeetings/$onlineMeetingId")
+                                                        ->attachBody($recordingPayload)
+                                                        ->execute();
+
+                                                    Log::info('✅ Step 3: Automatic recording enabled', [
+                                                        'online_meeting_id' => $onlineMeetingId,
+                                                        'query_identifier' => $queryIdentifier,
+                                                        'response' => $recordingResponse->getBody()
+                                                    ]);
+
+                                                    Notification::make()
+                                                        ->title('Automatic Recording Enabled')
+                                                        ->success()
+                                                        ->body('The meeting will automatically start recording when it begins.')
+                                                        ->send();
+
+                                                } catch (\Exception $e) {
+                                                    Log::error('❌ Step 3: Failed to enable automatic recording', [
+                                                        'error' => $e->getMessage(),
+                                                        'online_meeting_id' => $onlineMeetingId,
+                                                        'query_identifier' => $queryIdentifier,
+                                                        'trace' => $e->getTraceAsString()
+                                                    ]);
+
+                                                    Notification::make()
+                                                        ->title('Recording Setup Warning')
+                                                        ->warning()
+                                                        ->body('Meeting created but automatic recording could not be enabled: ' . $e->getMessage())
+                                                        ->send();
+                                                }
+                                            }
+                                        } else {
+                                            Log::warning('⚠️ Step 2: No online meeting found with joinWebUrl', [
+                                                'join_url' => $meetingLink,
+                                                'response' => $responseBody,
+                                                'query_identifier' => $queryIdentifier
+                                            ]);
+                                        }
+                                    } catch (\Exception $e) {
+                                        Log::error('❌ Step 2: Failed to retrieve online meeting ID', [
+                                            'error' => $e->getMessage(),
+                                            'join_url' => $meetingLink,
+                                            'query_identifier' => $queryIdentifier ?? null,
+                                            'trace' => $e->getTraceAsString()
+                                        ]);
+                                    }
+                                }
+
+                                // ✅ STEP 4: Update appointment with both event_id and online_meeting_id
+                                $appointment->update([
+                                    'event_id' => $eventId,
+                                    'meeting_link' => $meetingLink,
+                                    'online_meeting_id' => $onlineMeetingId,
+                                ]);
+
+                                Log::info('✅ Step 4: Appointment updated with meeting details', [
+                                    'appointment_id' => $appointment->id,
+                                    'event_id' => $eventId,
+                                    'online_meeting_id' => $onlineMeetingId,
+                                    'meeting_link' => $meetingLink,
+                                    'recording_enabled' => !empty($onlineMeetingId),
+                                    'created_with' => 'email',
+                                    'queried_with' => $implementerUser->azure_user_id ? 'azure_user_id' : 'email',
+                                    'organizer_email' => $organizerEmail,
+                                    'azure_user_id' => $implementerUser->azure_user_id ?? null
+                                ]);
 
                                 Notification::make()
                                     ->title('Teams Meeting Created Successfully')
                                     ->success()
-                                    ->body('The meeting has been scheduled successfully.')
+                                    ->body('The meeting has been scheduled with automatic recording enabled.')
                                     ->send();
+
                             } catch (\Exception $e) {
                                 \Illuminate\Support\Facades\Log::error('Failed to create Teams meeting: ' . $e->getMessage(), [
                                     'request' => $meetingPayload,
-                                    'user' => $organizerEmail,
+                                    'organizer_email' => $organizerEmail ?? null,
+                                    'azure_user_id' => $implementerUser->azure_user_id ?? null,
+                                    'trace' => $e->getTraceAsString()
                                 ]);
 
                                 Notification::make()
