@@ -1150,9 +1150,10 @@ class ImplementerActions
      *
      * @param SoftwareHandover $record
      * @param array $data
+     * @param bool $createFollowUp Whether to create a follow-up entry (default: true)
      * @return ImplementerLogs|null
      */
-    public static function processFollowUpWithEmail(SoftwareHandover $record, array $data): ?ImplementerLogs
+    public static function processFollowUpWithEmail(SoftwareHandover $record, array $data, bool $createFollowUp = true): ?ImplementerLogs
     {
         if (!$record) {
             Notification::make()
@@ -1163,25 +1164,30 @@ class ImplementerActions
         }
 
         try {
-            // Update the SoftwareHandover record with follow-up information
-            $record->update([
-                'follow_up_date' => $data['follow_up_date'],
-                'follow_up_counter' => true,
-                'manual_follow_up_count' => $data['manual_follow_up_count'] ?? 0,
-            ]);
+            $implementerLog = null;
 
-            // Create description for the follow-up
-            $followUpDescription = 'Implementer Follow Up By ' . auth()->user()->name;
+            // ✅ Only create follow-up entry if explicitly requested
+            if ($createFollowUp) {
+                // Update the SoftwareHandover record with follow-up information
+                $record->update([
+                    'follow_up_date' => $data['follow_up_date'],
+                    'follow_up_counter' => true,
+                    'manual_follow_up_count' => $data['manual_follow_up_count'] ?? 0,
+                ]);
 
-            // Create a new implementer_logs entry with reference to SoftwareHandover
-            $implementerLog = ImplementerLogs::create([
-                'lead_id' => $record->lead_id,
-                'description' => $followUpDescription,
-                'causer_id' => auth()->id(),
-                'remark' => $data['notes'],
-                'subject_id' => $record->id,
-                'follow_up_date' => $data['follow_up_date'],
-            ]);
+                // Create description for the follow-up
+                $followUpDescription = 'Implementer Follow Up By ' . auth()->user()->name;
+
+                // Create a new implementer_logs entry with reference to SoftwareHandover
+                $implementerLog = ImplementerLogs::create([
+                    'lead_id' => $record->lead_id,
+                    'description' => $followUpDescription,
+                    'causer_id' => auth()->id(),
+                    'remark' => $data['notes'],
+                    'subject_id' => $record->id,
+                    'follow_up_date' => $data['follow_up_date'],
+                ]);
+            }
 
             if (isset($data['send_email']) && $data['send_email']) {
                 try {
@@ -1195,7 +1201,7 @@ class ImplementerActions
 
                         // Add signature to email content if provided
                         if (isset($data['implementer_name']) && !empty($data['implementer_name'])) {
-                            $signature = "Regards,<br>";
+                            $signature = "<br><br>Regards,<br>";
                             $signature .= "{$data['implementer_name']}<br>";
                             $signature .= "{$data['implementer_designation']}<br>";
                             $signature .= "{$data['implementer_company']}<br>";
@@ -1214,8 +1220,8 @@ class ImplementerActions
                             '{customer_name}' => $lead->contact_name ?? '',
                             '{company_name}' => $lead->companyDetail->company_name ?? '',
                             '{implementer_name}' => $data['implementer_name'] ?? auth()->user()->name ?? '',
-                            '{follow_up_date}' => $data['follow_up_date'] ? date('d M Y', strtotime($data['follow_up_date'])) : '',
-                            '{session_recording_link}' => $data['session_recording_link'] ?? 'Not provided', // ✅ Add this
+                            '{follow_up_date}' => $data['follow_up_date'] ?? date('d M Y'),
+                            '{session_recording_link}' => $data['session_recording_link'] ?? 'Not provided',
                         ];
 
                         $content = str_replace(array_keys($placeholders), array_values($placeholders), $content);
@@ -1249,7 +1255,7 @@ class ImplementerActions
                                 'sender_email' => $senderEmail,
                                 'sender_name' => $senderName,
                                 'lead_id' => $record->lead_id,
-                                'implementer_log_id' => $implementerLog->id,
+                                'implementer_log_id' => $implementerLog ? $implementerLog->id : null, // ✅ Handle null case
                                 'template_name' => $templateName,
                                 'scheduler_type' => $schedulerType,
                                 'project_plan_attachments' => $data['project_plan_attachments'] ?? [],
@@ -1297,10 +1303,13 @@ class ImplementerActions
                 }
             }
 
-            Notification::make()
-                ->title('Follow-up added successfully')
-                ->success()
-                ->send();
+            // ✅ Only show this notification if we created a follow-up
+            if ($createFollowUp) {
+                Notification::make()
+                    ->title('Follow-up added successfully')
+                    ->success()
+                    ->send();
+            }
 
             return $implementerLog;
         } catch (\Exception $e) {
