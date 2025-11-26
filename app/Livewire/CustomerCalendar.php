@@ -707,13 +707,60 @@ class CustomerCalendar extends Component
                 $implementationPics = $handover->implementation_pics;
             }
 
+            // Get lead with company details for checking additional PICs
+            $lead = \App\Models\Lead::with('companyDetail')->find($this->customerLeadId);
+
+            // Decode additional_pic from company details
+            $additionalPics = [];
+            if ($lead && $lead->companyDetail && $lead->companyDetail->additional_pic) {
+                if (is_string($lead->companyDetail->additional_pic)) {
+                    $additionalPics = json_decode($lead->companyDetail->additional_pic, true) ?? [];
+                } elseif (is_array($lead->companyDetail->additional_pic)) {
+                    $additionalPics = $lead->companyDetail->additional_pic;
+                }
+            }
+
             // Extract valid email addresses
             $emails = [];
             foreach ($implementationPics as $pic) {
-                if (isset($pic['pic_email_impl']) && !empty($pic['pic_email_impl'])) {
-                    $email = trim($pic['pic_email_impl']);
-                    if (filter_var($email, FILTER_VALIDATE_EMAIL) && !in_array($email, $emails)) {
-                        $emails[] = $email;
+                // Check if PIC has resigned
+                if (isset($pic['status']) && strtolower($pic['status']) === 'resign') {
+                    // Try to find replacement in additional_pic
+                    $picName = $pic['pic_name_impl'] ?? '';
+
+                    if ($picName && !empty($additionalPics)) {
+                        foreach ($additionalPics as $additionalPic) {
+                            // Match by name and check if status is Available
+                            if (isset($additionalPic['name']) &&
+                                strtolower(trim($additionalPic['name'])) === strtolower(trim($picName)) &&
+                                isset($additionalPic['status']) &&
+                                strtolower($additionalPic['status']) === 'available' &&
+                                isset($additionalPic['email']) &&
+                                !empty($additionalPic['email'])) {
+
+                                $email = trim($additionalPic['email']);
+                                if (filter_var($email, FILTER_VALIDATE_EMAIL) && !in_array($email, $emails)) {
+                                    $emails[] = $email;
+
+                                    Log::info('Replaced resigned PIC with updated email from additional_pic', [
+                                        'pic_name' => $picName,
+                                        'old_status' => 'Resign',
+                                        'new_status' => 'Available',
+                                        'new_email' => $email,
+                                        'lead_id' => $this->customerLeadId
+                                    ]);
+                                }
+                                break; // Found replacement, stop searching
+                            }
+                        }
+                    }
+                } else {
+                    // PIC is active, use their email from implementation_pics
+                    if (isset($pic['pic_email_impl']) && !empty($pic['pic_email_impl'])) {
+                        $email = trim($pic['pic_email_impl']);
+                        if (filter_var($email, FILTER_VALIDATE_EMAIL) && !in_array($email, $emails)) {
+                            $emails[] = $email;
+                        }
                     }
                 }
             }
@@ -724,6 +771,7 @@ class CustomerCalendar extends Component
         } catch (\Exception $e) {
             Log::error('Error retrieving required attendees from handover: ' . $e->getMessage(), [
                 'lead_id' => $this->customerLeadId,
+                'sw_id' => $this->swId,
                 'trace' => $e->getTraceAsString()
             ]);
             return '';

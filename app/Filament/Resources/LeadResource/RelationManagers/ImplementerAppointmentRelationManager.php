@@ -1063,7 +1063,7 @@ class ImplementerAppointmentRelationManager extends RelationManager
                             return "Add Session Summary for {$companyName}";
                         })
                         ->visible(function (ImplementerAppointment $record) {
-                            return $record->sent_summary_email != 1;
+                            return $record->sent_summary_email != 1 && $record->session_recording_link != null;
                         })
                         ->hidden(function() {
                             $user = auth()->user();
