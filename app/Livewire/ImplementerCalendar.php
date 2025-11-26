@@ -2060,7 +2060,6 @@ class ImplementerCalendar extends Component
         // Apply validation
         $this->validate($rules);
 
-
         // Get the company and lead data
         $companyDetail = \App\Models\CompanyDetail::find($this->selectedCompany);
         if (!$companyDetail) {
@@ -2126,7 +2125,7 @@ class ImplementerCalendar extends Component
             // Count existing appointments for this company
             $existingAppointmentsCount = \App\Models\ImplementerAppointment::where('lead_id', $leadId)
                 ->where('status', '!=', 'Cancelled')
-                ->where('type', 'REVIEW SESSION')  // Only count REVIEW SESSIONs
+                ->where('type', 'REVIEW SESSION')
                 ->count();
 
             // Create appointment
@@ -2137,6 +2136,7 @@ class ImplementerCalendar extends Component
             $meetingLink = null;
             $meetingId = null;
             $meetingPassword = null;
+            $onlineMeetingId = null; // ✅ Add this
 
             if (!$this->skipEmailAndTeams) {
                 try {
@@ -2154,7 +2154,6 @@ class ImplementerCalendar extends Component
 
                     $meetingTitle = "{$this->implementationDemoType} | {$companyDetail->company_name}";
                     $meetingBody = "Implementation session scheduled by {$implementer->name}";
-
 
                     // Create Teams meeting through Microsoft Graph API
                     $accessToken = \App\Services\MicrosoftGraphService::getAccessToken();
@@ -2191,8 +2190,9 @@ class ImplementerCalendar extends Component
                         'onlineMeetingProvider' => 'teamsForBusiness'
                     ];
 
-                    // Create the event in the implementer's calendar
+                    // ✅ STEP 1: Create the event using EMAIL
                     $organizerEmail = $implementer->email;
+
                     $response = $graph->createRequest("POST", "/users/$organizerEmail/events")
                         ->attachBody($meetingRequest)
                         ->setReturnType(\Microsoft\Graph\Model\Event::class)
@@ -2205,109 +2205,81 @@ class ImplementerCalendar extends Component
                     // Add null check before accessing getOnlineMeeting()
                     if ($response->getOnlineMeeting() !== null) {
                         $meetingLink = $response->getOnlineMeeting()->getJoinUrl();
-                        $onlineMeeting = $response->getOnlineMeeting();
-
-                        if ($onlineMeeting) {
-                            $meetingId = null;
-
-                            // Extract Conference ID if available
-                            if (method_exists($onlineMeeting, 'getConferenceId')) {
-                                $meetingId = $onlineMeeting->getConferenceId();
-                            }
-
-                            // Rest of your existing code for meeting ID extraction...
-                        }
-                    } else {
-                        // Log the issue for debugging
-                        Log::warning('Online meeting object is null in Teams meeting response', [
-                            'event_id' => $teamsEventId,
-                            'response' => json_encode($response->getProperties())
-                        ]);
-
-                        // Try to get meeting URL through another method if available
-                        try {
-                            // Some Microsoft Graph API versions provide the join URL at a different location
-                            $properties = $response->getProperties();
-                            if (isset($properties['onlineMeetingUrl'])) {
-                                $meetingLink = $properties['onlineMeetingUrl'];
-                            } elseif (isset($properties['onlineMeeting']['joinUrl'])) {
-                                $meetingLink = $properties['onlineMeeting']['joinUrl'];
-                            }
-                        } catch (\Exception $e) {
-                            Log::error('Error retrieving alternative meeting URL: ' . $e->getMessage());
-                        }
                     }
 
-                    $onlineMeeting = $response->getOnlineMeeting();
-                    if ($onlineMeeting) {
-                        $meetingId = null;
+                    Log::info('✅ Step 1: Event created successfully (Implementer Calendar)', [
+                        'event_id' => $teamsEventId,
+                        'join_url' => $meetingLink,
+                        'organizer_email' => $organizerEmail,
+                        'company' => $companyDetail->company_name,
+                        'session_type' => $this->implementationDemoType
+                    ]);
 
-                        // Extract Conference ID if available
-                        if (method_exists($onlineMeeting, 'getConferenceId')) {
-                            $meetingId = $onlineMeeting->getConferenceId();
-                        }
-
-                        // If not found, try to parse from the joinUrl
-                        if (!$meetingId && $meetingLink) {
-                            // The conference ID is often in the URL as a parameter
-                            $urlParts = parse_url($meetingLink);
-                            if (isset($urlParts['query'])) {
-                                parse_str($urlParts['query'], $queryParams);
-                                if (isset($queryParams['confid'])) {
-                                    $meetingId = $queryParams['confid'];
-                                }
-                            }
-                        }
-
-                        // For password, check all possible locations
-                        // Try getting from online meeting details directly
+                    // ✅ STEP 2: Query onlineMeetings using AZURE_USER_ID or EMAIL
+                    if ($meetingLink && $meetingLink !== 'N/A') {
                         try {
-                            // Different API versions might store the password in different locations
-                            if (method_exists($onlineMeeting, 'getPassword')) {
-                                $meetingPassword = $onlineMeeting->getPassword();
-                            } else if (property_exists($onlineMeeting, 'password')) {
-                                $meetingPassword = $onlineMeeting->password;
-                            } else {
-                                // Get the full JSON response to inspect all properties
-                                $onlineMeetingArray = $response->getProperties();
+                            $queryIdentifier = $implementer->azure_user_id ?? $organizerEmail;
+                            $filterQuery = "joinWebUrl eq '$meetingLink'";
 
-                                // Check common password field names
-                                $possiblePasswordFields = [
-                                    'password', 'passcode', 'meetingPassword', 'joinPassword',
-                                    'onlineMeeting.password', 'onlineMeeting.passcode'
-                                ];
+                            // Query to get the online meeting ID
+                            $onlineMeetingResponse = $graph->createRequest("GET", "/users/$queryIdentifier/onlineMeetings?\$filter=$filterQuery")
+                                ->execute();
 
-                                foreach ($possiblePasswordFields as $field) {
-                                    $fieldParts = explode('.', $field);
-                                    $value = $onlineMeetingArray;
+                            $responseBody = $onlineMeetingResponse->getBody();
 
-                                    foreach ($fieldParts as $part) {
-                                        if (is_array($value) && isset($value[$part])) {
-                                            $value = $value[$part];
-                                        } else {
-                                            $value = null;
-                                            break;
-                                        }
-                                    }
+                            Log::info('✅ Step 2: Online meeting query response (Implementer Calendar)', [
+                                'response' => $responseBody,
+                                'join_url' => $meetingLink,
+                                'query_identifier' => $queryIdentifier,
+                                'company' => $companyDetail->company_name
+                            ]);
 
-                                    if ($value) {
-                                        $meetingPassword = $value;
-                                        break;
+                            // Extract the online meeting ID from response
+                            if (isset($responseBody['value']) && count($responseBody['value']) > 0) {
+                                $onlineMeetingId = $responseBody['value'][0]['id'] ?? null;
+
+                                Log::info('✅ Step 2: Online meeting ID retrieved (Implementer Calendar)', [
+                                    'online_meeting_id' => $onlineMeetingId,
+                                    'event_id' => $teamsEventId,
+                                    'company' => $companyDetail->company_name
+                                ]);
+
+                                // ✅ STEP 3: Enable automatic recording
+                                if ($onlineMeetingId) {
+                                    try {
+                                        $recordingPayload = [
+                                            'recordAutomatically' => true
+                                        ];
+
+                                        $recordingResponse = $graph->createRequest("PATCH", "/users/$queryIdentifier/onlineMeetings/$onlineMeetingId")
+                                            ->attachBody($recordingPayload)
+                                            ->execute();
+
+                                        Log::info('✅ Step 3: Automatic recording enabled (Implementer Calendar)', [
+                                            'online_meeting_id' => $onlineMeetingId,
+                                            'company' => $companyDetail->company_name,
+                                            'session_type' => $this->implementationDemoType
+                                        ]);
+
+                                    } catch (\Exception $e) {
+                                        Log::error('❌ Step 3: Failed to enable automatic recording (Implementer Calendar)', [
+                                            'error' => $e->getMessage(),
+                                            'online_meeting_id' => $onlineMeetingId,
+                                            'company' => $companyDetail->company_name,
+                                            'trace' => $e->getTraceAsString()
+                                        ]);
                                     }
                                 }
                             }
                         } catch (\Exception $e) {
-                            // Log the exception but continue processing
-                            Log::warning('Error accessing meeting password: ' . $e->getMessage(), [
+                            Log::error('❌ Step 2: Failed to retrieve online meeting ID (Implementer Calendar)', [
+                                'error' => $e->getMessage(),
+                                'join_url' => $meetingLink,
+                                'company' => $companyDetail->company_name,
                                 'trace' => $e->getTraceAsString()
                             ]);
                         }
                     }
-
-                    Log::info('Teams meeting created successfully', [
-                        'event_id' => $teamsEventId,
-                        'meeting_link' => $meetingLink
-                    ]);
 
                 } catch (\Exception $e) {
                     Log::error('Failed to create Teams meeting: ' . $e->getMessage(), [
@@ -2353,9 +2325,22 @@ class ImplementerCalendar extends Component
                 'software_handover_id' => $softwareHandoverId,
                 'event_id' => $teamsEventId,
                 'meeting_link' => $meetingLink,
+                'online_meeting_id' => $onlineMeetingId, // ✅ Add this
             ]);
 
             $appointment->save();
+
+            // ✅ Log the final saved appointment details
+            Log::info('✅ Step 4: Implementer appointment saved with meeting details', [
+                'appointment_id' => $appointment->id,
+                'event_id' => $teamsEventId,
+                'online_meeting_id' => $onlineMeetingId,
+                'meeting_link' => $meetingLink,
+                'recording_enabled' => !empty($onlineMeetingId),
+                'company' => $companyDetail->company_name,
+                'session_type' => $this->implementationDemoType,
+                'implementer' => $implementer->name
+            ]);
 
             if(!$this->skipEmailAndTeams) {
                 // Parse required attendees
@@ -2370,12 +2355,12 @@ class ImplementerCalendar extends Component
                 // Calculate implementation session count
                 $implementationCount = $existingAppointmentsCount + 1;
                 if ($this->implementationDemoType === 'KICK OFF MEETING SESSION') {
-                    $implementationCount = 1; // Always count 1 for kick-off meeting
+                    $implementationCount = 1;
                 }
 
                 // Format the date for day display
                 $appointmentDate = Carbon::parse($this->bookingDate);
-                $formattedDate = $appointmentDate->format('d F Y / l'); // e.g. "14 July 2025 / Monday"
+                $formattedDate = $appointmentDate->format('d F Y / l');
 
                 try {
                     if (!empty($recipients)) {
@@ -2424,7 +2409,7 @@ class ImplementerCalendar extends Component
                             function ($message) use ($recipients, $senderEmail, $senderName, $implementer, $companyDetail) {
                                 $message->from($senderEmail, $senderName)
                                     ->to($recipients)
-                                    ->cc([$senderEmail]) // CC the implementer
+                                    ->cc([$senderEmail])
                                     ->subject("{$this->implementationDemoType} | {$companyDetail->company_name}");
                             }
                         );
@@ -2445,6 +2430,7 @@ class ImplementerCalendar extends Component
                         ->send();
                 }
             }
+
             // Close modals and reset form
             $this->showImplementationSessionModal = false;
             $this->reset(['selectedCompany', 'appointmentType', 'requiredAttendees', 'remarks', 'implementationDemoType','companySearch']);

@@ -893,6 +893,7 @@ class CustomerCalendar extends Component
             $meetingLink = null;
             $meetingId = null;
             $meetingPassword = null;
+            $onlineMeetingId = null; // ✅ Add this
 
             if ($this->appointmentType === 'ONLINE') {
                 try {
@@ -952,8 +953,9 @@ class CustomerCalendar extends Component
                         'onlineMeetingProvider' => 'teamsForBusiness'
                     ];
 
-                    // Create the event in the implementer's calendar
+                    // ✅ STEP 1: Create the event using EMAIL
                     $organizerEmail = $implementer->email;
+
                     $response = $graph->createRequest("POST", "/users/$organizerEmail/events")
                         ->attachBody($meetingRequest)
                         ->setReturnType(\Microsoft\Graph\Model\Event::class)
@@ -966,93 +968,81 @@ class CustomerCalendar extends Component
                     // Add null check before accessing getOnlineMeeting()
                     if ($response->getOnlineMeeting() !== null) {
                         $meetingLink = $response->getOnlineMeeting()->getJoinUrl();
-                        $onlineMeeting = $response->getOnlineMeeting();
-
-                        if ($onlineMeeting) {
-                            $meetingId = null;
-
-                            // Extract Conference ID if available
-                            if (method_exists($onlineMeeting, 'getConferenceId')) {
-                                $meetingId = $onlineMeeting->getConferenceId();
-                            }
-
-                            // If not found, try to parse from the joinUrl
-                            if (!$meetingId && $meetingLink) {
-                                $urlParts = parse_url($meetingLink);
-                                if (isset($urlParts['query'])) {
-                                    parse_str($urlParts['query'], $queryParams);
-                                    if (isset($queryParams['confid'])) {
-                                        $meetingId = $queryParams['confid'];
-                                    }
-                                }
-                            }
-
-                            // For password, check all possible locations
-                            try {
-                                if (method_exists($onlineMeeting, 'getPassword')) {
-                                    $meetingPassword = $onlineMeeting->getPassword();
-                                } else if (property_exists($onlineMeeting, 'password')) {
-                                    $meetingPassword = $onlineMeeting->password;
-                                } else {
-                                    // Get the full JSON response to inspect all properties
-                                    $onlineMeetingArray = $response->getProperties();
-
-                                    // Check common password field names
-                                    $possiblePasswordFields = [
-                                        'password', 'passcode', 'meetingPassword', 'joinPassword',
-                                        'onlineMeeting.password', 'onlineMeeting.passcode'
-                                    ];
-
-                                    foreach ($possiblePasswordFields as $field) {
-                                        $fieldParts = explode('.', $field);
-                                        $value = $onlineMeetingArray;
-
-                                        foreach ($fieldParts as $part) {
-                                            if (is_array($value) && isset($value[$part])) {
-                                                $value = $value[$part];
-                                            } else {
-                                                $value = null;
-                                                break;
-                                            }
-                                        }
-
-                                        if ($value) {
-                                            $meetingPassword = $value;
-                                            break;
-                                        }
-                                    }
-                                }
-                            } catch (\Exception $e) {
-                                Log::warning('Error accessing meeting password: ' . $e->getMessage());
-                            }
-                        }
-                    } else {
-                        // Log the issue for debugging
-                        Log::warning('Online meeting object is null in Teams meeting response', [
-                            'event_id' => $teamsEventId,
-                            'response' => json_encode($response->getProperties())
-                        ]);
-
-                        // Try to get meeting URL through another method if available
-                        try {
-                            $properties = $response->getProperties();
-                            if (isset($properties['onlineMeetingUrl'])) {
-                                $meetingLink = $properties['onlineMeetingUrl'];
-                            } elseif (isset($properties['onlineMeeting']['joinUrl'])) {
-                                $meetingLink = $properties['onlineMeeting']['joinUrl'];
-                            }
-                        } catch (\Exception $e) {
-                            Log::error('Error retrieving alternative meeting URL: ' . $e->getMessage());
-                        }
                     }
 
-                    Log::info('Teams meeting created successfully for customer booking', [
+                    Log::info('✅ Step 1: Event created successfully (Customer Booking)', [
                         'event_id' => $teamsEventId,
-                        'meeting_link' => $meetingLink,
+                        'join_url' => $meetingLink,
+                        'organizer_email' => $organizerEmail,
                         'customer' => $customer->company_name,
-                        'implementer' => $implementer->name,
                         'session_type' => $sessionType
                     ]);
+
+                    // ✅ STEP 2: Query onlineMeetings using AZURE_USER_ID or EMAIL
+                    if ($meetingLink && $meetingLink !== 'N/A') {
+                        try {
+                            $queryIdentifier = $implementer->azure_user_id ?? $organizerEmail;
+                            $filterQuery = "joinWebUrl eq '$meetingLink'";
+
+                            // Query to get the online meeting ID
+                            $onlineMeetingResponse = $graph->createRequest("GET", "/users/$queryIdentifier/onlineMeetings?\$filter=$filterQuery")
+                                ->execute();
+
+                            $responseBody = $onlineMeetingResponse->getBody();
+
+                            Log::info('✅ Step 2: Online meeting query response (Customer Booking)', [
+                                'response' => $responseBody,
+                                'join_url' => $meetingLink,
+                                'query_identifier' => $queryIdentifier,
+                                'customer' => $customer->company_name
+                            ]);
+
+                            // Extract the online meeting ID from response
+                            if (isset($responseBody['value']) && count($responseBody['value']) > 0) {
+                                $onlineMeetingId = $responseBody['value'][0]['id'] ?? null;
+
+                                Log::info('✅ Step 2: Online meeting ID retrieved (Customer Booking)', [
+                                    'online_meeting_id' => $onlineMeetingId,
+                                    'event_id' => $teamsEventId,
+                                    'customer' => $customer->company_name
+                                ]);
+
+                                // ✅ STEP 3: Enable automatic recording
+                                if ($onlineMeetingId) {
+                                    try {
+                                        $recordingPayload = [
+                                            'recordAutomatically' => true
+                                        ];
+
+                                        $recordingResponse = $graph->createRequest("PATCH", "/users/$queryIdentifier/onlineMeetings/$onlineMeetingId")
+                                            ->attachBody($recordingPayload)
+                                            ->execute();
+
+                                        Log::info('✅ Step 3: Automatic recording enabled (Customer Booking)', [
+                                            'online_meeting_id' => $onlineMeetingId,
+                                            'customer' => $customer->company_name,
+                                            'session_type' => $sessionType
+                                        ]);
+
+                                    } catch (\Exception $e) {
+                                        Log::error('❌ Step 3: Failed to enable automatic recording (Customer Booking)', [
+                                            'error' => $e->getMessage(),
+                                            'online_meeting_id' => $onlineMeetingId,
+                                            'customer' => $customer->company_name,
+                                            'trace' => $e->getTraceAsString()
+                                        ]);
+                                    }
+                                }
+                            }
+                        } catch (\Exception $e) {
+                            Log::error('❌ Step 2: Failed to retrieve online meeting ID (Customer Booking)', [
+                                'error' => $e->getMessage(),
+                                'join_url' => $meetingLink,
+                                'customer' => $customer->company_name,
+                                'trace' => $e->getTraceAsString()
+                            ]);
+                        }
+                    }
 
                 } catch (\Exception $e) {
                     Log::error('Failed to create Teams meeting for customer booking: ' . $e->getMessage(), [
@@ -1074,8 +1064,8 @@ class CustomerCalendar extends Component
             // Create appointment request using lead_id
             $appointment = new ImplementerAppointment();
             $appointment->fill([
-                'lead_id' => $customer->lead_id, // Use lead_id instead of customer_id
-                'type' => $sessionType, // Use the determined session type
+                'lead_id' => $customer->lead_id,
+                'type' => $sessionType,
                 'appointment_type' => $this->appointmentType,
                 'date' => $this->selectedDate,
                 'start_time' => $this->selectedSession['start_time'],
@@ -1091,10 +1081,23 @@ class CustomerCalendar extends Component
                 'meeting_link' => $meetingLink,
                 'meeting_id' => $meetingId,
                 'meeting_password' => $meetingPassword,
+                'online_meeting_id' => $onlineMeetingId, // ✅ Add this
                 'software_handover_id' => $this->swId,
             ]);
 
             $appointment->save();
+
+            // ✅ Log the final saved appointment details
+            Log::info('✅ Step 4: Customer appointment saved with meeting details', [
+                'appointment_id' => $appointment->id,
+                'event_id' => $teamsEventId,
+                'online_meeting_id' => $onlineMeetingId,
+                'meeting_link' => $meetingLink,
+                'recording_enabled' => !empty($onlineMeetingId),
+                'customer' => $customer->company_name,
+                'session_type' => $sessionType,
+                'implementer' => $this->selectedSession['implementer_name']
+            ]);
 
             DB::table('customers')
             ->where('id', $customer->id)
@@ -1120,7 +1123,7 @@ class CustomerCalendar extends Component
                 'implementer' => $appointment->implementer,
                 'session' => $appointment->session,
                 'type' => $appointment->appointment_type,
-                'session_type' => $sessionType, // Add this for the success modal
+                'session_type' => $sessionType,
                 'has_teams' => !empty($meetingLink),
                 'submitted_at' => now()->format('g:i A'),
             ];
