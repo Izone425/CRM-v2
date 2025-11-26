@@ -306,34 +306,94 @@ class QuotationResource extends Resource
                         Select::make('package_group')
                             ->label('Package')
                             ->placeholder('Select a package')
-                            ->options(
-                                \App\Models\Product::whereNotNull('package_group')
-                                    ->distinct()
-                                    ->pluck('package_group', 'package_group')
-                                    ->toArray()
-                            )
+                            ->options(function () {
+                                return \App\Models\Product::whereNotNull('package_group')
+                                    ->get()
+                                    ->pluck('package_group')
+                                    ->filter()
+                                    ->flatten()
+                                    ->unique()
+                                    ->filter(fn($value) => !empty($value))
+                                    ->mapWithKeys(function ($package) {
+                                        $packageLabels = [
+                                            'Package 1' => 'Package 1 - Standard Package',
+                                            'Package 2' => 'Package 2 - 1 Year Subscription',
+                                            'Package 3' => 'Package 3 - 2 Year Subscription',
+                                            'Package 4' => 'Package 4 - 3 Year Subscription',
+                                            'Package 5' => 'Package 5 - 4 Year Subscription',
+                                            'Package 6' => 'Package 6 - 5 Year Subscription',
+                                            'Other' => 'Other',
+                                        ];
+
+                                        return [$package => $packageLabels[$package] ?? $package];
+                                    })
+                                    ->toArray();
+                            })
                             ->searchable()
                             ->live()
                             ->visible(fn(Forms\Get $get) => $get('quotation_type') === 'product')
                             ->afterStateUpdated(function (?string $state, Forms\Get $get, Forms\Set $set) {
                                 if ($state) {
-                                    $products = \App\Models\Product::where('package_group', $state)
-                                        ->orderBy('package_sort_order')
-                                        ->get();
+                                    // ✅ Determine number of years based on package selection
+                                    $yearCount = match($state) {
+                                        'Package 2' => 1,
+                                        'Package 3' => 2,
+                                        'Package 4' => 3,
+                                        'Package 5' => 4,
+                                        'Package 6' => 5,
+                                        default => 1, // Package 1 or Other
+                                    };
 
-                                    $mappedItems = $products->map(function ($product) use ($get) {
-                                        return [
-                                            'product_id' => $product->id,
-                                            'quantity' => in_array($product->solution, ['software', 'hardware'])
-                                                ? ($product->quantity ?? 1)
-                                                : ($get('num_of_participant') ?? 1),
-                                            'unit_price' => $product->unit_price,
-                                            'subscription_period' => $product->subscription_period,
-                                            'description' => $product->description,
-                                        ];
-                                    });
+                                    // ✅ Get products for this package
+                                    $products = \App\Models\Product::where(function ($query) use ($state) {
+                                        $query->where(function ($q) use ($state) {
+                                            $q->whereNotNull('package_group')
+                                            ->whereRaw("JSON_CONTAINS(package_group, ?)", [json_encode($state)]);
+                                        })
+                                        ->orWhere('package_group', $state);
+                                    })
+                                    ->orderBy('package_sort_order')
+                                    ->get();
 
-                                    $finalItems = collect($mappedItems)->mapWithKeys(fn($item) => [
+                                    $mappedItems = collect();
+
+                                    // ✅ For each product, create entries based on year count
+                                    foreach ($products as $product) {
+                                        // Determine if this is a software product (needs year duplication)
+                                        $isSoftware = $product->solution === 'software';
+
+                                        if ($isSoftware && $yearCount > 1) {
+                                            // ✅ Create multiple entries for software products based on subscription years
+                                            for ($year = 1; $year <= $yearCount; $year++) {
+                                                $mappedItems->push([
+                                                    'product_id' => $product->id,
+                                                    'quantity' => in_array($product->solution, ['software', 'hardware'])
+                                                        ? ($product->quantity ?? 1)
+                                                        : ($get('num_of_participant') ?? 1),
+                                                    'unit_price' => $product->unit_price,
+                                                    // ✅ Set subscription period based on year position
+                                                    'subscription_period' => ($year < $yearCount)
+                                                        ? 12  // All years except last get 12 months
+                                                        : ($product->subscription_period ?? 12), // Last year gets product's default
+                                                    'description' => $product->description,
+                                                    'year' => "Year {$year}", // ✅ Set year label
+                                                ]);
+                                            }
+                                        } else {
+                                            // ✅ For non-software or single-year packages, add product once
+                                            $mappedItems->push([
+                                                'product_id' => $product->id,
+                                                'quantity' => in_array($product->solution, ['software', 'hardware'])
+                                                    ? ($product->quantity ?? 1)
+                                                    : ($get('num_of_participant') ?? 1),
+                                                'unit_price' => $product->unit_price,
+                                                'subscription_period' => $product->subscription_period,
+                                                'description' => $product->description,
+                                            ]);
+                                        }
+                                    }
+
+                                    $finalItems = $mappedItems->mapWithKeys(fn($item) => [
                                         (string) \Illuminate\Support\Str::uuid() => $item
                                     ])->toArray();
 

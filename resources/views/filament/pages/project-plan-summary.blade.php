@@ -894,6 +894,232 @@
         .timeline-circle .task-tooltip {
             display: none !important;
         }
+
+        .sort-controls-wrapper {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.75rem;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .sort-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 0.75rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 2px solid #f3f4f6;
+        }
+
+        .sort-header-title {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+            font-weight: 700;
+            color: #374151;
+            text-transform: uppercase;
+            letter-spacing: 0.025em;
+        }
+
+        .sort-header-title svg {
+            width: 1.25rem;
+            height: 1.25rem;
+            color: #818cf8;
+        }
+
+        .sort-clear-btn {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #ef4444;
+            padding: 0.375rem 0.75rem;
+            border-radius: 0.375rem;
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .sort-clear-btn:hover {
+            background: #fee2e2;
+            border-color: #fca5a5;
+        }
+
+        /* Active Rules - Compact Horizontal Layout */
+        .sort-active-rules {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .sort-rule-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.375rem;
+            padding: 0.5rem 0.75rem;
+            background: linear-gradient(135deg, #818cf8 0%, #6366f1 100%);
+            border-radius: 2rem;
+            font-size: 0.8125rem;
+            font-weight: 600;
+            color: white;
+            box-shadow: 0 2px 4px rgba(99, 102, 241, 0.2);
+            transition: all 0.2s;
+        }
+
+        .sort-rule-chip:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(99, 102, 241, 0.3);
+        }
+
+        .sort-chip-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 1.25rem;
+            height: 1.25rem;
+            background: rgba(255, 255, 255, 0.25);
+            border-radius: 50%;
+            font-size: 0.6875rem;
+            font-weight: 700;
+        }
+
+        .sort-chip-field {
+            flex: 1;
+        }
+
+        .sort-chip-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            margin-left: 0.25rem;
+            padding-left: 0.5rem;
+            border-left: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .sort-chip-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 1.5rem;
+            height: 1.5rem;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            border-radius: 0.25rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: white;
+        }
+
+        .sort-chip-btn:hover {
+            background: rgba(255, 255, 255, 0.35);
+        }
+
+        .sort-chip-btn svg {
+            width: 0.875rem;
+            height: 0.875rem;
+        }
+
+        /* Add Sort Buttons - Compact */
+        .sort-add-section {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.5rem;
+            padding-top: 0.75rem;
+            border-top: 1px solid #f3f4f6;
+        }
+
+        .sort-add-label {
+            font-size: 0.8125rem;
+            font-weight: 600;
+            color: #6b7280;
+        }
+
+        .sort-add-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.375rem;
+            padding: 0.5rem 0.875rem;
+            font-size: 0.8125rem;
+            font-weight: 600;
+            color: #4f46e5;
+            background: white;
+            border: 1px solid #e0e7ff;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .sort-add-btn:hover {
+            background: #f5f3ff;
+            border-color: #c7d2fe;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(79, 70, 229, 0.1);
+        }
+
+        .sort-add-btn svg {
+            width: 1rem;
+            height: 1rem;
+        }
+
+        /* Empty State */
+        .sort-empty-state {
+            text-align: center;
+            padding: 1rem;
+            color: #9ca3af;
+            font-size: 0.8125rem;
+            font-style: italic;
+        }
+
+        .sort-chip-btn.direction-btn {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .sort-chip-btn.direction-btn.desc {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);
+        }
+
+        .sort-chip-btn.direction-btn.asc {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            box-shadow: 0 2px 4px rgba(245, 158, 11, 0.3);
+        }
+
+        .sort-chip-btn.direction-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .sort-chip-btn.direction-btn.desc:hover {
+            background: linear-gradient(135deg, #059669 0%, #047857 100%);
+            box-shadow: 0 3px 6px rgba(16, 185, 129, 0.4);
+        }
+
+        .sort-chip-btn.direction-btn.asc:hover {
+            background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+            box-shadow: 0 3px 6px rgba(245, 158, 11, 0.4);
+        }
+
+        /* ✅ Add visual indicator for direction */
+        .sort-chip-btn svg {
+            width: 0.875rem;
+            height: 0.875rem;
+            filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
+        }
+
+        /* Responsive */
+        @media (max-width: 640px) {
+            .sort-active-rules {
+                flex-direction: column;
+            }
+
+            .sort-rule-chip {
+                width: 100%;
+                justify-content: space-between;
+            }
+        }
     </style>
 
     @script
@@ -1146,6 +1372,127 @@
                         </div>
                     </div>
                 @endif
+
+                <div class="sort-controls-wrapper">
+                    {{-- Header --}}
+                    <div class="sort-header">
+                        <div class="sort-header-title">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12"/>
+                            </svg>
+                            Sorting Rules
+                        </div>
+                        @if(count($sortRules) > 1)
+                            <button wire:click="clearAllSorts" class="sort-clear-btn">
+                                Clear All
+                            </button>
+                        @endif
+                    </div>
+
+                    {{-- Active Sort Rules --}}
+                    @if(count($sortRules) > 0)
+                        <div class="sort-active-rules">
+                            @foreach($sortRules as $index => $rule)
+                                <div class="sort-rule-chip">
+                                    {{-- Priority Badge --}}
+                                    <span class="sort-chip-badge">{{ $index + 1 }}</span>
+
+                                    {{-- Field Name --}}
+                                    <span class="sort-chip-field">
+                                        @if($rule['field'] === 'percentage') Progress %
+                                        @elseif($rule['field'] === 'headcount') Headcount
+                                        @elseif($rule['field'] === 'status') Status
+                                        @elseif($rule['field'] === 'company_name') Company
+                                        @endif
+                                    </span>
+
+                                    {{-- Actions --}}
+                                    <div class="sort-chip-actions">
+                                        {{-- ✅ UPDATED: Direction Toggle with Color Coding --}}
+                                        <button
+                                            wire:click="toggleSort('{{ $rule['field'] }}')"
+                                            class="sort-chip-btn direction-btn {{ $rule['direction'] }}"
+                                            title="Toggle direction (Currently: {{ strtoupper($rule['direction']) }})">
+                                            @if($rule['direction'] === 'desc')
+                                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/>
+                                                </svg>
+                                            @else
+                                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 15l7-7 7 7"/>
+                                                </svg>
+                                            @endif
+                                        </button>
+
+                                        {{-- Move Up --}}
+                                        @if($index > 0)
+                                            <button wire:click="moveSortUp({{ $index }})" class="sort-chip-btn" title="Move up">
+                                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/>
+                                                </svg>
+                                            </button>
+                                        @endif
+
+                                        {{-- Move Down --}}
+                                        @if($index < count($sortRules) - 1)
+                                            <button wire:click="moveSortDown({{ $index }})" class="sort-chip-btn" title="Move down">
+                                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                                </svg>
+                                            </button>
+                                        @endif
+
+                                        {{-- Remove --}}
+                                        @if(count($sortRules) > 1)
+                                            <button wire:click="removeSort({{ $index }})" class="sort-chip-btn" title="Remove">
+                                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                                </svg>
+                                            </button>
+                                        @endif
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    @else
+                        <div class="sort-empty-state">
+                            No sorting rules applied. Add a rule below to sort the list.
+                        </div>
+                    @endif
+
+                    {{-- Add Sort Buttons --}}
+                    <div class="sort-add-section">
+                        <span class="sort-add-label">Add Sort:</span>
+
+                        <button wire:click="toggleSort('percentage')" class="sort-add-btn">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                            </svg>
+                            Progress %
+                        </button>
+
+                        <button wire:click="toggleSort('headcount')" class="sort-add-btn">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                            </svg>
+                            Headcount
+                        </button>
+
+                        <button wire:click="toggleSort('status')" class="sort-add-btn">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                            </svg>
+                            Status
+                        </button>
+
+                        <button wire:click="toggleSort('company_name')" class="sort-add-btn">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                            </svg>
+                            Company
+                        </button>
+                    </div>
+                </div>
 
                 {{-- Company List --}}
                 <div class="summary-card">
