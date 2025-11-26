@@ -1311,7 +1311,7 @@ class SoftwareHandoverNew extends Component implements HasForms, HasTable
         }
 
         // ✅ If both are empty, fall back to software_hardware_pi
-        if (empty($allPiIds) && !empty($record->software_hardware_pi)) {
+        if (!empty($record->software_hardware_pi)) {
             $softwareHardwarePis = is_string($record->software_hardware_pi)
                 ? json_decode($record->software_hardware_pi, true)
                 : $record->software_hardware_pi;

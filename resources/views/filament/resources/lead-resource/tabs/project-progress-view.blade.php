@@ -99,6 +99,7 @@
                                         'plan_end_date' => $plan->plan_end_date,
                                         'actual_start_date' => $plan->actual_start_date,
                                         'actual_end_date' => $plan->actual_end_date,
+                                        'remarks' => $plan->remarks,
                                     ];
                                 })->values()->toArray();
 
@@ -931,6 +932,12 @@
                                         @endif
 
                                         <div class="tooltip-progress">Percentage: {{ $task['percentage'] ?? 0 }}%</div>
+
+                                        @if(!empty($task['remarks']))
+                                            <div class="tooltip-divider"></div>
+                                            <div class="tooltip-date-label">💬 Remarks:</div>
+                                            <div class="tooltip-date-value" style="white-space: normal; max-width: 200px;">{{ $task['remarks'] }}</div>
+                                        @endif
                                     </div>
 
                                     @if($isCompleted)

@@ -417,6 +417,7 @@ class ProjectPlanSummary extends Page
                     'plan_end_date' => $plan->plan_end_date,
                     'actual_start_date' => $plan->actual_start_date,
                     'actual_end_date' => $plan->actual_end_date,
+                    'remarks' => $plan->remarks,
                 ];
             })->values()->toArray();
 
