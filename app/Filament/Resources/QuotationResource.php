@@ -327,6 +327,7 @@ class QuotationResource extends Resource
 
                                         return [$package => $packageLabels[$package] ?? $package];
                                     })
+                                    ->sort()
                                     ->toArray();
                             })
                             ->searchable()

@@ -76,6 +76,7 @@
                             'plan_end_date' => $plan->plan_end_date,
                             'actual_start_date' => $plan->actual_start_date,
                             'actual_end_date' => $plan->actual_end_date,
+                            'remarks' => $plan->remarks,
                         ];
                     })->values()->toArray();
 
@@ -265,6 +266,18 @@
     .timeline-percentage.completed { color: #059669; }
     .timeline-percentage.in_progress { color: #d97706; }
     .timeline-percentage.pending { color: #6b7280; }
+
+    .timeline-remarks {
+        font-size: 10px;
+        color: #9ca3af;
+        font-style: italic;
+        margin-top: 2px;
+        margin-bottom: 6px;
+        line-height: 1.3;
+        max-width: 180px;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+    }
 
     .timeline-task-name {
         font-size: 11px;
@@ -479,6 +492,9 @@
         font-size: 11px;
         color: #d1d5db;
         margin-bottom: 6px;
+        white-space: normal;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
     }
 
     .tooltip-progress {
@@ -784,6 +800,12 @@
                                         @endif
 
                                         <div class="tooltip-progress">Percentage: {{ $task['percentage'] ?? 0 }}%</div>
+
+                                        @if(!empty($task['remarks']))
+                                            <div class="tooltip-divider"></div>
+                                            <div class="tooltip-date-label">💬 Remarks:</div>
+                                            <div class="tooltip-date-value" style="white-space: normal; max-width: 200px;">{{ $task['remarks'] }}</div>
+                                        @endif
                                     </div>
 
                                     @if($isCompleted)

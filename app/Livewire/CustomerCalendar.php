@@ -226,19 +226,24 @@ class CustomerCalendar extends Component
             ->orderBy('date', 'desc') // Show most recent first
             ->get()
             ->map(function ($booking) {
-                // ✅ Format the type to show session number for review sessions
+                // ✅ Format the type to show session number for review sessions (display only)
                 $displayType = $booking->type;
 
-                // If it's a generic "REVIEW SESSION" without a number, add the count
                 if ($booking->type === 'REVIEW SESSION') {
                     // Count how many review sessions were completed before this one
                     $previousReviewCount = ImplementerAppointment::where('lead_id', $booking->lead_id)
-                        ->where('type', 'LIKE', 'REVIEW SESSION%')
+                        ->where('type', 'REVIEW SESSION')
                         ->where('status', 'Done')
                         ->where('created_at', '<', $booking->created_at)
                         ->count();
 
-                    $displayType = "REVIEW SESSION " . ($previousReviewCount + 1);
+                    // For "New" status, it's the next session
+                    if ($booking->status === 'New') {
+                        $displayType = "REVIEW SESSION " . ($previousReviewCount + 1);
+                    } else {
+                        // For "Done" status, calculate the actual session number
+                        $displayType = "REVIEW SESSION " . ($previousReviewCount + 1);
+                    }
                 }
 
                 return [
@@ -251,7 +256,8 @@ class CustomerCalendar extends Component
                     'status' => $booking->status,
                     'request_status' => $booking->request_status,
                     'appointment_type' => $booking->appointment_type,
-                    'type' => $displayType, // ✅ Use the formatted type with count
+                    'type' => $displayType, // ✅ Use the formatted type with count for display
+                    'raw_type' => $booking->type, // ✅ Keep the raw type from database
                     'raw_date' => $booking->date,
                     'start_time' => $booking->start_time,
                     'end_time' => $booking->end_time,
@@ -281,27 +287,32 @@ class CustomerCalendar extends Component
             return 'KICK OFF MEETING SESSION';
         }
 
-        // ✅ Count completed review sessions
-        $completedReviewCount = ImplementerAppointment::where('lead_id', $customer->lead_id)
-            ->where('type', 'LIKE', 'REVIEW SESSION%')
-            ->where('status', 'Done')
-            ->count();
-
-        // ✅ Return next review session number
-        $nextReviewNumber = $completedReviewCount + 1;
-        return "REVIEW SESSION {$nextReviewNumber}";
+        // ✅ For review sessions, just return the base type (no number)
+        return 'REVIEW SESSION';
     }
 
     public function getSessionTitle()
     {
-        $nextSessionType = $this->getNextSessionType();
+        $customer = auth()->guard('customer')->user();
 
-        // ✅ Check if it's a review session
-        if (strpos($nextSessionType, 'REVIEW SESSION') !== false) {
-            return 'Schedule Your ' . $nextSessionType;
+        // Check if kick-off is completed
+        $hasCompletedKickOff = ImplementerAppointment::where('lead_id', $customer->lead_id)
+            ->where('type', 'KICK OFF MEETING SESSION')
+            ->where('status', 'Done')
+            ->exists();
+
+        if (!$hasCompletedKickOff) {
+            return 'Schedule Your Kick-Off Meeting';
         }
 
-        return 'Schedule Your Kick-Off Meeting';
+        // ✅ Count completed review sessions for display title
+        $completedReviewCount = ImplementerAppointment::where('lead_id', $customer->lead_id)
+            ->where('type', 'REVIEW SESSION')
+            ->where('status', 'Done')
+            ->count();
+
+        $nextReviewNumber = $completedReviewCount + 1;
+        return "Schedule Your Review Session {$nextReviewNumber}";
     }
 
     private function sendCancellationNotification($appointment)
@@ -887,6 +898,16 @@ class CustomerCalendar extends Component
 
             // Determine the correct session type
             $sessionType = $this->getNextSessionType();
+
+            $displaySessionType = $sessionType;
+            if ($sessionType === 'REVIEW SESSION') {
+                $completedReviewCount = ImplementerAppointment::where('lead_id', $customer->lead_id)
+                    ->where('type', 'REVIEW SESSION')
+                    ->where('status', 'Done')
+                    ->count();
+
+                $displaySessionType = "REVIEW SESSION " . ($completedReviewCount + 1);
+            }
 
             // Create Teams meeting if appointment type is ONLINE
             $teamsEventId = null;

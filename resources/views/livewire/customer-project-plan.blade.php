@@ -795,6 +795,12 @@
                                         @endif
 
                                         <div class="tooltip-progress">Percentage: {{ $task['percentage'] ?? 0 }}%</div>
+
+                                        @if(!empty($task['remarks']))
+                                            <div class="tooltip-divider"></div>
+                                            <div class="tooltip-date-label">💬 Remarks:</div>
+                                            <div class="tooltip-date-value" style="white-space: normal; max-width: 200px;">{{ $task['remarks'] }}</div>
+                                        @endif
                                     </div>
 
                                     @if($isCompleted)

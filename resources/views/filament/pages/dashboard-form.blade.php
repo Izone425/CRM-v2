@@ -104,6 +104,76 @@
             ->distinct('f_invoice_no')
             ->count('f_invoice_no');
 
+        $followUpTodayMYR = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpTodayMyr::class)
+            ->getTodayRenewals()
+            ->count();
+
+        $followUpOverdueMYR = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpOverdueMyr::class)
+            ->getOverdueRenewals()
+            ->count();
+
+        $followUpFutureMYR = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpUpcomingMyr::class)
+            ->getIncomingRenewals()
+            ->count();
+
+        $followUpAllMYR = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpAllMyr::class)
+            ->getOverdueRenewals()
+            ->count();
+
+        // Admin Renewal Follow Up Counts USD
+        $followUpTodayUSD = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpTodayUsd::class)
+            ->getTodayRenewals()
+            ->count();
+
+        $followUpOverdueUSD = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpOverdueUsd::class)
+            ->getOverdueRenewals()
+            ->count();
+
+        $followUpFutureUSD = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpUpcomingUsd::class)
+            ->getIncomingRenewals()
+            ->count();
+
+        $followUpAllUSD = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpAllUsd::class)
+            ->getOverdueRenewals()
+            ->count();
+
+        // Admin Renewal Follow Up Counts MYR V2 (Pending Payment)
+        $followUpTodayMYRv2 = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpTodayMyrV2::class)
+            ->getTodayRenewals()
+            ->count();
+
+        $followUpOverdueMYRv2 = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpOverdueMyrV2::class)
+            ->getOverdueRenewals()
+            ->count();
+
+        $followUpFutureMYRv2 = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpUpcomingMyrV2::class)
+            ->getIncomingRenewals()
+            ->count();
+
+        $followUpAllMYRv2 = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpAllMyrV2::class)
+            ->getOverdueRenewals()
+            ->count();
+
+        // Admin Renewal Follow Up Counts USD V2 (Pending Payment)
+        $followUpTodayUSDv2 = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpTodayUsdV2::class)
+            ->getTodayRenewals()
+            ->count();
+
+        $followUpOverdueUSDv2 = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpOverdueUsdV2::class)
+            ->getOverdueRenewals()
+            ->count();
+
+        $followUpFutureUSDv2 = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpUpcomingUsdV2::class)
+            ->getIncomingRenewals()
+            ->count();
+
+        $followUpAllUSDv2 = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpAllUsdV2::class)
+            ->getOverdueRenewals()
+            ->count();
+
+        // Calculate totals for both currencies
+        $adminRenewalFollowUp = $followUpTodayMYR + $followUpOverdueMYR + $followUpTodayUSD + $followUpOverdueUSD + $followUpTodayMYRv2 + $followUpOverdueMYRv2 + $followUpTodayUSDv2 + $followUpOverdueUSDv2;
+
         $initialStageTotal = $newTaskCount + $pendingStockCount + $pendingCourierCount + $pendingAdminPickUpCount + $pendingExternalInstallationCount + $pendingInternalInstallationCount;
 
         // Calculate total admin count including Software V2
@@ -1034,6 +1104,18 @@
                                                 "
                                             >
                                                 Admin - Renewal v1
+                                            @if($adminRenewalFollowUp > 0)
+                                                <span style="
+                                                    background: #ef4444;
+                                                    color: white;
+                                                    border-radius: 12px;
+                                                    padding: 2px 8px;
+                                                    font-size: 12px;
+                                                    font-weight: bold;
+                                                    min-width: 20px;
+                                                    text-align: center;
+                                                ">{{ $adminRenewalFollowUp }}</span>
+                                            @endif
                                             </button>
 
                                             <button
