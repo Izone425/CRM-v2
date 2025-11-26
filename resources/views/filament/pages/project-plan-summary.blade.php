@@ -388,12 +388,38 @@
         }
 
         .company-row:hover {
-            background-color: #f9fafb;
+            opacity: 0.9;
         }
 
         .company-row.active {
-            background-color: #eff6ff;
             border-left: 4px solid #4f46e5;
+        }
+
+        /* ✅ Status-based background colors */
+        .company-row.status-open {
+            background-color: #d1fae5; /* Light green */
+        }
+
+        .company-row.status-delay {
+            background-color: #fee2e2; /* Light red */
+        }
+
+        .company-row.status-open:hover {
+            background-color: #a7f3d0; /* Darker green on hover */
+        }
+
+        .company-row.status-delay:hover {
+            background-color: #fecaca; /* Darker red on hover */
+        }
+
+        .company-row.status-open.active {
+            background-color: #a7f3d0;
+            border-left: 4px solid #059669;
+        }
+
+        .company-row.status-delay.active {
+            background-color: #fecaca;
+            border-left: 4px solid #dc2626;
         }
 
         .company-row-content {
@@ -1058,7 +1084,7 @@
                                         {{ $row['average_percentage'] }}%
                                     </div>
                                     <div class="progress-fraction">
-                                        {{ number_format($row['total_progress']) }}/{{ number_format($row['total_projects'] * 100) }}
+                                        {{ $row['total_progress'] }}/{{ $row['total_tasks'] }}
                                     </div>
                                 </div>
                                 <svg class="arrow-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1128,7 +1154,9 @@
                             {{-- Company Row --}}
                             <div
                                 wire:click="selectCompany({{ $company['sw_id'] }})"
-                                class="company-row {{ $selectedSwId === $company['sw_id'] ? 'active' : '' }}"
+                                class="company-row
+                                    {{ $selectedSwId === $company['sw_id'] ? 'active' : '' }}
+                                    {{ strtolower($company['status']) === 'open' ? 'status-open' : 'status-delay' }}"
                             >
                                 <div class="company-row-content">
                                     <div class="company-row-info">

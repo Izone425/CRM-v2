@@ -26,6 +26,9 @@ class ProjectPlanSummary extends Page
         'status' => 'all',
     ];
 
+    public string $sortBy = 'percentage';
+    public string $sortDirection = 'desc';
+
     public function updatedSelectedSwId()
     {
         $this->dispatch('init-tooltips');
@@ -44,7 +47,7 @@ class ProjectPlanSummary extends Page
         $data = [];
 
         foreach ($implementers as $implementer) {
-            // Get all projects for this implementer with Open or Delay status
+            // ✅ Get all projects for this implementer with Open or Delay status (with or without project plans)
             $projects = SoftwareHandover::where('implementer', $implementer->name)
                 ->whereIn('status_handover', ['Open', 'Delay'])
                 ->with(['lead.companyDetail'])
@@ -59,21 +62,45 @@ class ProjectPlanSummary extends Page
             $delayCount = $projects->where('status_handover', 'Delay')->count();
             $totalProjects = $projects->count();
 
-            // ✅ Calculate overall progress based on completed tasks (like CustomerProjectPlan)
-            $totalProgressSum = 0;
+            // ✅ Calculate overall progress based on TOTAL TASKS across all projects
+            $totalTasksAll = 0;
+            $completedTasksAll = 0;
+
             foreach ($projects as $project) {
-                $projectProgress = $this->calculateProjectProgress($project);
-                $totalProgressSum += $projectProgress;
+                $lead = $project->lead;
+                if (!$lead) {
+                    continue;
+                }
+
+                $selectedModules = $project->getSelectedModules();
+                $allModules = array_unique(array_merge(['phase 1', 'phase 2'], $selectedModules));
+
+                foreach ($allModules as $module) {
+                    $modulePlans = ProjectPlan::where('lead_id', $lead->id)
+                        ->where('sw_id', $project->id)
+                        ->whereHas('projectTask', function ($query) use ($module) {
+                            $query->where('module', $module)
+                                ->where('is_active', true);
+                        })
+                        ->get();
+
+                    if ($modulePlans->isNotEmpty()) {
+                        $totalTasksAll += $modulePlans->count();
+                        $completedTasksAll += $modulePlans->where('status', 'completed')->count();
+                    }
+                }
             }
 
-            $averagePercentage = $totalProjects > 0 ? round($totalProgressSum / $totalProjects, 0) : 0;
+            // ✅ Calculate percentage: (completed tasks / total tasks) * 100
+            $averagePercentage = $totalTasksAll > 0 ? round(($completedTasksAll / $totalTasksAll) * 100, 0) : 0;
 
             $data[] = [
                 'implementer_name' => $implementer->name,
                 'open_count' => $openCount,
                 'delay_count' => $delayCount,
                 'total_projects' => $totalProjects,
-                'total_progress' => $totalProgressSum,
+                'total_progress' => $completedTasksAll, // ✅ Completed tasks count
+                'total_tasks' => $totalTasksAll, // ✅ Total tasks count
                 'average_percentage' => $averagePercentage,
                 'projects' => $projects,
             ];
@@ -98,6 +125,8 @@ class ProjectPlanSummary extends Page
         }
 
         $selectedModules = $softwareHandover->getSelectedModules();
+
+        // ✅ Include generic phases
         $allModules = array_unique(array_merge(['phase 1', 'phase 2'], $selectedModules));
 
         $totalTasks = 0;
@@ -131,7 +160,7 @@ class ProjectPlanSummary extends Page
             return [];
         }
 
-        // Filter by implementer and status_handover
+        // ✅ Filter by implementer and status_handover (with or without project plans)
         $softwareHandovers = SoftwareHandover::where('implementer', $this->selectedImplementer)
             ->whereIn('status_handover', ['Open', 'Delay'])
             ->with(['lead.companyDetail'])
@@ -141,6 +170,10 @@ class ProjectPlanSummary extends Page
 
         foreach ($softwareHandovers as $sw) {
             $lead = $sw->lead;
+            if (!$lead) {
+                continue;
+            }
+
             $companyName = $lead->companyDetail->company_name ?? 'Unknown Company';
 
             // ✅ Calculate project progress based on completed tasks
@@ -153,10 +186,46 @@ class ProjectPlanSummary extends Page
                 'project_code' => $sw->project_code,
                 'status' => $sw->status_handover,
                 'project_progress' => $projectProgress,
+                'headcount' => $sw->headcount ?? 0, // ✅ Add headcount
             ];
         }
 
+        // ✅ Sort the data based on sortBy and sortDirection
+        usort($data, function($a, $b) {
+            $direction = $this->sortDirection === 'asc' ? 1 : -1;
+
+            switch ($this->sortBy) {
+                case 'percentage':
+                    return ($b['project_progress'] <=> $a['project_progress']) * $direction;
+
+                case 'headcount':
+                    return ($b['headcount'] <=> $a['headcount']) * $direction;
+
+                case 'status':
+                    // Open first, then Delay
+                    $statusOrder = ['Open' => 1, 'Delay' => 2];
+                    $aStatus = $statusOrder[$a['status']] ?? 3;
+                    $bStatus = $statusOrder[$b['status']] ?? 3;
+                    return ($aStatus <=> $bStatus) * $direction;
+
+                default:
+                    return 0;
+            }
+        });
+
         return $data;
+    }
+
+    public function sortCompanies(string $sortBy): void
+    {
+        if ($this->sortBy === $sortBy) {
+            // Toggle direction if same column
+            $this->sortDirection = $this->sortDirection === 'desc' ? 'asc' : 'desc';
+        } else {
+            // Set new sort column with default direction
+            $this->sortBy = $sortBy;
+            $this->sortDirection = 'desc';
+        }
     }
 
     /**
@@ -190,22 +259,21 @@ class ProjectPlanSummary extends Page
             'overallSummary' => [
                 'totalTasks' => 0,
                 'completedTasks' => 0,
-                'overallProgress' => 0, // ✅ Will be calculated from tasks
+                'overallProgress' => 0,
                 'modules' => []
             ],
         ];
 
         $selectedModules = $softwareHandover->getSelectedModules();
-        $progressData['selectedModules'] = array_unique(array_merge(['phase 1', 'phase 2'], $selectedModules));
 
-        usort($progressData['selectedModules'], function($a, $b) {
-            return ProjectTask::getModuleOrder($a) - ProjectTask::getModuleOrder($b);
-        });
+        // ✅ Include generic phases along with selected modules
+        $allModules = array_unique(array_merge(['phase 1', 'phase 2'], $selectedModules));
 
         $totalTasksAll = 0;
         $completedTasksAll = 0;
 
-        foreach ($progressData['selectedModules'] as $module) {
+        // ✅ Get all module plans grouped by module_name
+        foreach ($allModules as $module) {
             $modulePlans = ProjectPlan::where('lead_id', $lead->id)
                 ->where('sw_id', $softwareHandover->id)
                 ->whereHas('projectTask', function ($query) use ($module) {
@@ -215,19 +283,26 @@ class ProjectPlanSummary extends Page
                 ->with('projectTask')
                 ->get();
 
-            if ($modulePlans->isNotEmpty()) {
-                $totalTasks = $modulePlans->count();
-                $completedTasks = $modulePlans->where('status', 'completed')->count();
+            if ($modulePlans->isEmpty()) {
+                continue;
+            }
+
+            // ✅ Group by module_name (e.g., "Phase 1", "Attendance Phase 1", "Attendance Phase 2")
+            $groupedByModuleName = $modulePlans->groupBy(function ($plan) {
+                return $plan->projectTask->module_name ?? 'Unknown';
+            });
+
+            foreach ($groupedByModuleName as $moduleName => $plans) {
+                $totalTasks = $plans->count();
+                $completedTasks = $plans->where('status', 'completed')->count();
                 $overallProgress = $totalTasks > 0 ? round(($completedTasks / $totalTasks) * 100) : 0;
 
                 $totalTasksAll += $totalTasks;
                 $completedTasksAll += $completedTasks;
 
-                $sortedPlans = $modulePlans->sortBy(function($plan) {
+                $sortedPlans = $plans->sortBy(function($plan) {
                     return $plan->projectTask->order ?? 0;
                 });
-
-                $moduleName = $modulePlans->first()->projectTask->module_name ?? ucfirst(str_replace('_', ' ', $module));
 
                 $tasksArray = $sortedPlans->map(function ($plan) {
                     return [
@@ -236,6 +311,7 @@ class ProjectPlanSummary extends Page
                         'task_name' => $plan->projectTask->task_name ?? 'N/A',
                         'order' => $plan->projectTask->order ?? 0,
                         'module' => $plan->projectTask->module ?? '',
+                        'module_name' => $plan->projectTask->module_name ?? 'N/A',
                         'percentage' => $plan->projectTask->task_percentage ?? 0,
                         'status' => $plan->status ?? 'pending',
                         'plan_start_date' => $plan->plan_start_date,
@@ -245,7 +321,7 @@ class ProjectPlanSummary extends Page
                     ];
                 })->values()->toArray();
 
-                $moduleOrder = ProjectTask::getModuleOrder($module);
+                $moduleOrder = $plans->first()->projectTask->module_order ?? 999;
 
                 $progressData['progressOverview'][$moduleName] = [
                     'tasks' => $tasksArray,
@@ -253,7 +329,8 @@ class ProjectPlanSummary extends Page
                     'completedTasks' => $completedTasks,
                     'overallProgress' => $overallProgress,
                     'module_order' => $moduleOrder,
-                    'module_name' => $moduleName
+                    'module_name' => $moduleName,
+                    'module' => $module
                 ];
 
                 $progressData['overallSummary']['modules'][] = [
@@ -264,8 +341,20 @@ class ProjectPlanSummary extends Page
                     'completed' => $completedTasks,
                     'total' => $totalTasks
                 ];
+
+                // ✅ Track unique module_names for selectedModules
+                if (!in_array($moduleName, $progressData['selectedModules'])) {
+                    $progressData['selectedModules'][] = $moduleName;
+                }
             }
         }
+
+        // ✅ Sort by module_order
+        usort($progressData['selectedModules'], function($a, $b) use ($progressData) {
+            $orderA = $progressData['progressOverview'][$a]['module_order'] ?? 999;
+            $orderB = $progressData['progressOverview'][$b]['module_order'] ?? 999;
+            return $orderA - $orderB;
+        });
 
         usort($progressData['overallSummary']['modules'], function($a, $b) {
             return $a['module_order'] - $b['module_order'];
@@ -273,7 +362,6 @@ class ProjectPlanSummary extends Page
 
         $progressData['overallSummary']['totalTasks'] = $totalTasksAll;
         $progressData['overallSummary']['completedTasks'] = $completedTasksAll;
-        // ✅ Calculate overall progress from completed tasks (like CustomerProjectPlan)
         $progressData['overallSummary']['overallProgress'] = $totalTasksAll > 0
             ? round(($completedTasksAll / $totalTasksAll) * 100)
             : 0;
@@ -329,7 +417,7 @@ class ProjectPlanSummary extends Page
             return null;
         }
 
-        // Filter by implementer and status_handover
+        // ✅ Filter by implementer and status_handover (with or without project plans)
         $projects = SoftwareHandover::where('implementer', $this->selectedImplementer)
             ->whereIn('status_handover', ['Open', 'Delay'])
             ->get();
