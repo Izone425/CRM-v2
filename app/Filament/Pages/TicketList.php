@@ -2,6 +2,8 @@
 namespace App\Filament\Pages;
 
 use App\Models\Ticket;
+use App\Models\TicketAttachment;
+use App\Models\TicketComment;
 use App\Models\TicketLog;
 use App\Models\TicketPriority;
 use App\Models\TicketModule;
@@ -23,6 +25,7 @@ use Filament\Actions\Concerns\InteractsWithActions;
 use Filament\Actions\Contracts\HasActions;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
+use Illuminate\Support\Facades\Log;
 
 class TicketList extends Page implements HasTable, HasActions, HasForms
 {
@@ -35,6 +38,21 @@ class TicketList extends Page implements HasTable, HasActions, HasForms
     protected static ?string $title = 'Ticket List';
     protected static ?int $navigationSort = 3;
     protected static string $view = 'filament.pages.ticket-list';
+
+    public $selectedTicket = null;
+    public $showTicketModal = false;
+    public $newComment = '';
+    public $attachments = [];
+
+    public function mount(): void
+    {
+        $this->form->fill();
+    }
+
+    public function getFormStatePath(): ?string
+    {
+        return null;
+    }
 
     public function table(Table $table): Table
     {
@@ -141,8 +159,13 @@ class TicketList extends Page implements HasTable, HasActions, HasForms
                     ),
             ])
             ->actions([
-
+                Tables\Actions\Action::make('view')
+                    ->label('View')
+                    ->icon('heroicon-o-eye')
+                    ->action(fn (Ticket $record) => $this->viewTicket($record->id))
             ])
+            ->recordAction('view') // ✅ Make rows clickable
+            ->recordUrl(null)
             ->defaultSort('created_at', 'desc')
             ->poll('30s');
     }
@@ -277,7 +300,7 @@ class TicketList extends Page implements HasTable, HasActions, HasForms
                                 ->table('crm_expiring_license')
                                 ->select('f_company_name', 'f_created_time')
                                 ->groupBy('f_company_name', 'f_created_time')
-                                ->orderBy('f_created_time', 'desc')
+                                ->orderBy('f_company_name', 'asc') // ✅ Sort alphabetically
                                 ->get()
                                 ->mapWithKeys(function ($company) {
                                     return [$company->f_company_name => strtoupper($company->f_company_name)];
@@ -290,7 +313,7 @@ class TicketList extends Page implements HasTable, HasActions, HasForms
                                 ->select('f_company_name', 'f_created_time')
                                 ->where('f_company_name', 'like', "%{$search}%")
                                 ->groupBy('f_company_name', 'f_created_time')
-                                ->orderBy('f_created_time', 'desc')
+                                ->orderBy('f_company_name', 'asc') // ✅ Sort search results alphabetically
                                 ->limit(50)
                                 ->get()
                                 ->mapWithKeys(function ($company) {
@@ -326,7 +349,11 @@ class TicketList extends Page implements HasTable, HasActions, HasForms
                         if ($authUser) {
                             $ticketSystemUser = \Illuminate\Support\Facades\DB::connection('ticketingsystem_live')
                                 ->table('users')
-                                ->where('name', $authUser->name)
+                                ->where(function ($query) use ($authUser) {
+                                    $query->where('name', $authUser->name)
+                                        ->orWhere('name', 'LIKE', '%' . $authUser->name . '%')
+                                        ->orWhere('email', $authUser->email);
+                                })
                                 ->first();
                         }
 
@@ -384,5 +411,197 @@ class TicketList extends Page implements HasTable, HasActions, HasForms
                     }
                 }),
         ];
+    }
+
+    public function viewTicket($ticketId): void
+    {
+        try {
+            $this->selectedTicket = Ticket::with([
+                'comments',
+                'logs',
+                'priority',
+                'product',
+                'module',
+                'requestor',
+                'attachments',
+                'attachments.uploader',
+            ])->find($ticketId);
+
+            if ($this->selectedTicket) {
+                $this->showTicketModal = true;
+            }
+        } catch (\Exception $e) {
+            Log::error('Error viewing ticket: ' . $e->getMessage());
+            $this->showTicketModal = false;
+        }
+    }
+
+    // ✅ Add closeTicketModal method
+    public function closeTicketModal(): void
+    {
+        $this->showTicketModal = false;
+        $this->selectedTicket = null;
+        $this->newComment = '';
+        $this->attachments = [];
+    }
+
+    // ✅ Add addComment method
+    public function addComment(): void
+    {
+        if (empty($this->newComment) || !$this->selectedTicket) {
+            return;
+        }
+
+        try {
+            $authUser = auth()->user();
+
+            $ticketSystemUser = null;
+            if ($authUser) {
+                $ticketSystemUser = \Illuminate\Support\Facades\DB::connection('ticketingsystem_live')
+                    ->table('users')
+                    ->where('name', $authUser->name)
+                    ->first();
+            }
+
+            $userId = $ticketSystemUser?->id ?? 22;
+
+            TicketComment::create([
+                'ticket_id' => $this->selectedTicket->id,
+                'user_id' => $userId,
+                'comment' => $this->newComment,
+            ]);
+
+            $this->newComment = '';
+
+            $this->selectedTicket->refresh();
+            $this->selectedTicket->load('comments');
+
+            Notification::make()
+                ->title('Comment Added')
+                ->success()
+                ->send();
+
+        } catch (\Exception $e) {
+            Log::error('Error adding comment: ' . $e->getMessage());
+
+            Notification::make()
+                ->title('Error')
+                ->danger()
+                ->body('Failed to add comment')
+                ->send();
+        }
+    }
+
+    // ✅ Add uploadAttachments method
+    public function uploadAttachments(): void
+    {
+        $this->validate([
+            'attachments.*' => 'file|max:10240',
+        ]);
+
+        if (empty($this->attachments) || !$this->selectedTicket) {
+            Notification::make()
+                ->title('No files selected')
+                ->warning()
+                ->send();
+            return;
+        }
+
+        try {
+            $authUser = auth()->user();
+            $ticketSystemUser = \Illuminate\Support\Facades\DB::connection('ticketingsystem_live')
+                ->table('users')
+                ->where('name', $authUser->name)
+                ->first();
+
+            $userId = $ticketSystemUser?->id ?? 22;
+
+            foreach ($this->attachments as $file) {
+                $originalFilename = $file->getClientOriginalName();
+                $extension = $file->getClientOriginalExtension();
+
+                $storedFilename = time() . '_' . \Illuminate\Support\Str::random(10) . '_' .
+                                \Illuminate\Support\Str::slug(pathinfo($originalFilename, PATHINFO_FILENAME)) .
+                                '.' . $extension;
+
+                $path = $file->storeAs(
+                    'ticket_attachments/' . date('Y/m/d'),
+                    $storedFilename,
+                    's3-ticketing'
+                );
+
+                $fileHash = hash_file('md5', $file->getRealPath());
+
+                TicketAttachment::create([
+                    'ticket_id' => $this->selectedTicket->id,
+                    'original_filename' => $originalFilename,
+                    'stored_filename' => $storedFilename,
+                    'file_path' => $path,
+                    'file_size' => $file->getSize(),
+                    'mime_type' => $file->getMimeType(),
+                    'file_hash' => $fileHash,
+                    'uploaded_by' => $userId,
+                ]);
+            }
+
+            $this->attachments = [];
+            $this->selectedTicket->refresh();
+            $this->selectedTicket->load('attachments');
+
+            Notification::make()
+                ->title('Files Uploaded')
+                ->success()
+                ->send();
+
+        } catch (\Exception $e) {
+            Log::error('Error uploading attachments: ' . $e->getMessage());
+
+            Notification::make()
+                ->title('Upload Failed')
+                ->danger()
+                ->body('Failed to upload files: ' . $e->getMessage())
+                ->send();
+        }
+    }
+
+    // ✅ Add form schema for comment
+    protected function getFormSchema(): array
+    {
+        return [
+            RichEditor::make('newComment')
+                ->label('')
+                ->placeholder('Add a comment...')
+                ->required()
+                ->fileAttachmentsDisk('s3-ticketing') // ✅ Add this
+                ->fileAttachmentsDirectory('comment_attachments/' . date('Y/m/d')) // ✅ Add this
+                ->fileAttachmentsVisibility('public') // ✅ Add this
+                ->toolbarButtons([
+                    'attachFiles',
+                    'bold',
+                    'italic',
+                    'underline',
+                    'strike',
+                    'bulletList',
+                    'orderedList',
+                    'h2',
+                    'h3',
+                    'link',
+                    'undo',
+                    'redo',
+                ])
+                ->disableToolbarButtons([
+                    'codeBlock',
+                ])
+        ];
+    }
+
+    // ✅ Add helper methods
+    private function isImageFile($attachment): bool
+    {
+        if (str_starts_with($attachment->mime_type, 'image/')) {
+            return true;
+        }
+        $extension = strtolower(pathinfo($attachment->original_filename, PATHINFO_EXTENSION));
+        return in_array($extension, ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg', 'webp']);
     }
 }

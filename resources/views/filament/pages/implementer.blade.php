@@ -457,6 +457,10 @@
         ->getAppointments()
         ->count();
 
+    $followUpAll = app(\App\Livewire\ImplementerDashboard\ImplementerFollowUpAll::class)
+        ->getOverdueHardwareHandovers()
+        ->count();
+
     $followUpNone = app(\App\Livewire\ImplementerDashboard\ProjectFollowUpNone::class)
         ->getOverdueHardwareHandovers()
         ->count();
@@ -493,7 +497,7 @@
     $projectStatusTotal = $allProjects;
     $licenseTotal = $pendingLicenseCount + $pendingMigrationCount;
     $migrationTotal = $pendingMigrationCount + $completedMigrationCount;
-    $followUpTotal = $followUpToday + $followUpOverdue;
+    $followUpTotal = $followUpToday + $followUpOverdue + $followUpFuture;
     $ticketingTotal = $internalTicketsToday + $internalTicketsOverdue + $externalTicketsToday + $externalTicketsOverdue;
     $requestTotal = $customizationPending + $customizationCompleted + $enhancementPending + $enhancementCompleted;
     $sessionsTotal = $sessionsToday + $sessionsTomorrow;
@@ -809,6 +813,15 @@
                     </div>
                     <div class="stat-count">{{ $followUpFuture }}</div>
                 </div>
+
+                <div class="stat-box follow-up-future"
+                    :class="{'selected': selectedStat === 'follow-up-all'}"
+                    @click="setSelectedStat('follow-up-all')">
+                    <div class="stat-info">
+                        <div class="stat-label">All Follow Up</div>
+                    </div>
+                    <div class="stat-count">{{ $followUpAll }}</div>
+                </div>
             </div>
 
             <!-- TICKETING SYSTEM Sub-tabs -->
@@ -1044,6 +1057,11 @@
                 <div x-show="selectedStat === 'follow-up-future'" x-transition>
                     <div class="p-4">
                         <livewire:implementer-dashboard.implementer-follow-up-future />
+                    </div>
+                </div>
+                <div x-show="selectedStat === 'follow-up-all'" x-transition>
+                    <div class="p-4">
+                        <livewire:implementer-dashboard.implementer-follow-up-all />
                     </div>
                 </div>
 

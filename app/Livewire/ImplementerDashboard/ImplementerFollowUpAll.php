@@ -31,7 +31,7 @@ use Illuminate\Support\HtmlString;
 use Illuminate\View\View;
 use Livewire\Attributes\On;
 
-class ImplementerFollowUpFuture extends Component implements HasForms, HasTable
+class ImplementerFollowUpAll extends Component implements HasForms, HasTable
 {
     use InteractsWithTable;
     use InteractsWithForms;
@@ -84,7 +84,6 @@ class ImplementerFollowUpFuture extends Component implements HasForms, HasTable
         $query =  SoftwareHandover::query()
             ->where('status_handover', '!=', 'Closed')
             ->where('status_handover', '!=', 'InActive')
-            ->whereDate('follow_up_date', '>', today())
             ->where('follow_up_counter', true)
             ->selectRaw('*, DATEDIFF(NOW(), follow_up_date) as pending_days');
 
@@ -347,7 +346,7 @@ class ImplementerFollowUpFuture extends Component implements HasForms, HasTable
 
     public function render()
     {
-        return view('livewire.implementer_dashboard.implementer-follow-up-future');
+        return view('livewire.implementer_dashboard.implementer-follow-up-all');
     }
 
     private function getWeekdayCount($startDate, $endDate)

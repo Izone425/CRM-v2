@@ -813,7 +813,7 @@
                 <div style="flex: 1; overflow-y: auto; display: grid; grid-template-columns: 1fr 350px;">
 
                     <!-- Left Side - Main Content -->
-                    <div style="padding: 24px; border-right: 1px solid #E5E7EB;">
+                    <div style="padding: 24px; border-right: 1px solid #E5E7EB; overflow-y: auto;">
                         <!-- Title -->
                         <h1 style="font-size: 24px; font-weight: 700; color: #111827; margin: 0 0 24px 0;">
                             {{ $selectedTicket->title }}
@@ -822,7 +822,7 @@
                         <!-- Description Section (Always visible at top) -->
                         <div style="margin-bottom: 24px;">
                             <div style="font-size: 14px; font-weight: 600; color: #6B7280; margin-bottom: 12px;">Description</div>
-                            <div style="background: #f7f7fe; padding: 16px; border-radius: 8px; border: 1px solid #E5E7EB;">
+                            <div style="background: #f7f7fe; padding: 16px; border-radius: 8px; border: 1px solid #E5E7EB; line-height: 1.6; color: #374151;">
                                 {!! $selectedTicket->description ?? 'No description provided.' !!}
                             </div>
                         </div>
@@ -851,22 +851,18 @@
                             <div x-show="activeTab === 'comments'" style="padding: 24px 0;">
                                 <!-- Add Comment -->
                                 <div style="margin-bottom: 24px;">
-                                    <textarea wire:model="newComment"
-                                            placeholder="Add a comment..."
-                                            style="width: 100%; padding: 12px; border: 1px solid #E5E7EB; border-radius: 8px; font-size: 14px; resize: vertical; min-height: 100px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;"
-                                            onfocus="this.style.borderColor='#6366F1'; this.style.outline='none';"
-                                            onblur="this.style.borderColor='#E5E7EB';"></textarea>
-                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
-                                        <div style="font-size: 12px; color: #9CA3AF;">
-                                            <!-- Optional: Add character count or other info -->
+                                    <form wire:submit.prevent="addComment">
+                                        {{ $this->form }}
+
+                                        <div style="margin-top: 12px;">
+                                            <button type="submit"
+                                                    style="padding: 8px 20px; background: #6366F1; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 14px; transition: all 0.2s;"
+                                                    onmouseover="this.style.background='#4F46E5'"
+                                                    onmouseout="this.style.background='#6366F1'">
+                                                Add Comment
+                                            </button>
                                         </div>
-                                        <button wire:click="addComment"
-                                                style="padding: 8px 20px; background: #6366F1; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 14px; transition: all 0.2s;"
-                                                onmouseover="this.style.background='#4F46E5'"
-                                                onmouseout="this.style.background='#6366F1'">
-                                            Add
-                                        </button>
-                                    </div>
+                                    </form>
                                 </div>
 
                                 <!-- Previous Comments -->
@@ -895,7 +891,9 @@
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <p style="color: #374151; margin: 0; font-size: 14px; line-height: 1.6; white-space: pre-wrap;">{{ $comment->comment }}</p>
+                                                <div style="color: #374151; margin: 0; font-size: 14px; line-height: 1.6;">
+                                                    {!! $comment->comment !!}
+                                                </div>
                                             </div>
                                         @endforeach
                                     </div>
@@ -1281,7 +1279,7 @@
                             @if($selectedTicket->version_screenshot)
                                 <div style="margin-bottom: 16px;">
                                     <div style="font-size: 11px; color: #9CA3AF; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 500;">Version Screenshot</div>
-                                    <a href="{{ asset('storage/' . $selectedTicket->version_screenshot) }}" target="_blank"
+                                    <a href="{{ \Illuminate\Support\Facades\Storage::disk('s3-ticketing')->temporaryUrl($selectedTicket->version_screenshot, now()->addMinutes(60)) }}" target="_blank"
                                     style="display: inline-flex; align-items: center; gap: 8px; padding: 8px 12px; background: white; border: 1px solid #E5E7EB; border-radius: 6px; text-decoration: none; color: #6366F1; font-size: 13px; font-weight: 500; transition: all 0.2s;"
                                     onmouseover="this.style.background='#F3F4F6'"
                                     onmouseout="this.style.background='white'">

@@ -1093,13 +1093,14 @@
                                             <button
                                                 wire:click="toggleDashboard('AdminRenewalv1')"
                                                 style="
-                                                    display: block;
+                                                    display: flex;
+                                                    justify-content: space-between;
+                                                    align-items: center;
                                                     width: 100%;
                                                     padding: 10px 16px;
                                                     text-align: left;
                                                     border: none;
-                                                    background: {{ $currentDashboard === 'AdminRenewalv1' ? '#f3f3f3' : 'white' }};
-                                                    cursor: pointer;
+                                                    background: {{ $currentDashboard === 'AdminUSDInvoice' ? '#f3f3f3' : 'white' }};
                                                     font-size: 14px;
                                                 "
                                             >
