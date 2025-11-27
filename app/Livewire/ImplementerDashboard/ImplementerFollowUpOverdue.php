@@ -179,16 +179,6 @@ class ImplementerFollowUpOverdue extends Component implements HasForms, HasTable
                     ])
                     ->placeholder('All Statuses')
                     ->multiple(),
-                SelectFilter::make('salesperson')
-                    ->label('Filter by Salesperson')
-                    ->options(function () {
-                        return User::where('role_id', '2')
-                            ->whereNot('id',15) // Exclude Testing Account
-                            ->pluck('name', 'name')
-                            ->toArray();
-                    })
-                    ->placeholder('All Salesperson')
-                    ->multiple(),
 
                 SelectFilter::make('implementer')
                     ->label('Filter by Implementer')
@@ -232,10 +222,6 @@ class ImplementerFollowUpOverdue extends Component implements HasForms, HasTable
                                     ->with('extraAttributes', ['record' => $record]);
                             })
                     ),
-
-                TextColumn::make('salesperson')
-                    ->label('SalesPerson')
-                    ->visible(fn(): bool => auth()->user()->role_id !== 2),
 
                 TextColumn::make('implementer')
                     ->label('Implementer')

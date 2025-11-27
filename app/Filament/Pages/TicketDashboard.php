@@ -190,7 +190,7 @@ class TicketDashboard extends Page implements HasActions, HasForms
                                 ->table('crm_expiring_license')
                                 ->select('f_company_name', 'f_created_time')
                                 ->groupBy('f_company_name', 'f_created_time')
-                                ->orderBy('f_created_time', 'desc')
+                                ->orderBy('f_company_name', 'asc') // ✅ Sort by company name alphabetically
                                 ->get()
                                 ->mapWithKeys(function ($company) {
                                     return [$company->f_company_name => strtoupper($company->f_company_name)];
@@ -203,7 +203,7 @@ class TicketDashboard extends Page implements HasActions, HasForms
                                 ->select('f_company_name', 'f_created_time')
                                 ->where('f_company_name', 'like', "%{$search}%")
                                 ->groupBy('f_company_name', 'f_created_time')
-                                ->orderBy('f_created_time', 'desc')
+                                ->orderBy('f_company_name', 'asc') // ✅ Sort search results alphabetically
                                 ->limit(50)
                                 ->get()
                                 ->mapWithKeys(function ($company) {
@@ -239,7 +239,11 @@ class TicketDashboard extends Page implements HasActions, HasForms
                         if ($authUser) {
                             $ticketSystemUser = \Illuminate\Support\Facades\DB::connection('ticketingsystem_live')
                                 ->table('users')
-                                ->where('name', $authUser->name)
+                                ->where(function ($query) use ($authUser) {
+                                    $query->where('name', $authUser->name)
+                                        ->orWhere('name', 'LIKE', '%' . $authUser->name . '%')
+                                        ->orWhere('email', $authUser->email);
+                                })
                                 ->first();
                         }
 
@@ -453,9 +457,50 @@ class TicketDashboard extends Page implements HasActions, HasForms
             $this->selectedTicket->refresh();
             $this->selectedTicket->load('comments');
 
+            Notification::make()
+                ->title('Comment Added')
+                ->success()
+                ->send();
+
         } catch (\Exception $e) {
             Log::error('Error adding comment: ' . $e->getMessage());
+
+            Notification::make()
+                ->title('Error')
+                ->danger()
+                ->body('Failed to add comment')
+                ->send();
         }
+    }
+
+    protected function getFormSchema(): array
+    {
+        return [
+            RichEditor::make('newComment')
+                ->label('')
+                ->placeholder('Add a comment...')
+                ->required()
+                ->fileAttachmentsDisk('s3-ticketing') // ✅ Add this
+                ->fileAttachmentsDirectory('comment_attachments/' . date('Y/m/d')) // ✅ Add this
+                ->fileAttachmentsVisibility('public') // ✅ Add this
+                ->toolbarButtons([
+                    'attachFiles',
+                    'bold',
+                    'italic',
+                    'underline',
+                    'strike',
+                    'bulletList',
+                    'orderedList',
+                    'h2',
+                    'h3',
+                    'link',
+                    'undo',
+                    'redo',
+                ])
+                ->disableToolbarButtons([
+                    'codeBlock',
+                ])
+        ];
     }
 
     public function getViewData(): array
