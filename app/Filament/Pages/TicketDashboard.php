@@ -480,9 +480,6 @@ class TicketDashboard extends Page implements HasActions, HasForms
                 ->label('')
                 ->placeholder('Add a comment...')
                 ->required()
-                ->fileAttachmentsDisk('s3-ticketing') // ✅ Add this
-                ->fileAttachmentsDirectory('comment_attachments/' . date('Y/m/d')) // ✅ Add this
-                ->fileAttachmentsVisibility('public') // ✅ Add this
                 ->toolbarButtons([
                     'attachFiles',
                     'bold',
