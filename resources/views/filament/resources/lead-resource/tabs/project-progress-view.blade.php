@@ -194,6 +194,16 @@
 
     .overall-stats {
         text-align: right;
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 16px;
+    }
+
+    .overall-percentage-section {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
     }
 
     .overall-percentage {
@@ -212,6 +222,39 @@
     .overall-meta {
         font-size: 11px;
         color: #9ca3af;
+    }
+
+    /* ✅ Expand/Collapse Checkbox Styling */
+    .expand-collapse-control {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 12px;
+        background-color: #f3f4f6;
+        border-radius: 6px;
+        font-size: 12px;
+        color: #374151;
+        cursor: pointer;
+        transition: all 0.2s;
+        user-select: none;
+        white-space: nowrap;
+    }
+
+    .expand-collapse-control:hover {
+        background-color: #e5e7eb;
+    }
+
+    .expand-collapse-control input[type="checkbox"] {
+        width: 16px;
+        height: 16px;
+        cursor: pointer;
+        margin: 0;
+    }
+
+    .expand-collapse-control label {
+        font-weight: 600;
+        cursor: pointer;
+        margin: 0;
     }
 
     .progress-timeline {
@@ -617,6 +660,17 @@
 </style>
 
 <script>
+    // ✅ Function to toggle all module details
+    function toggleAllModules(isExpanded) {
+        document.querySelectorAll('.progress-overview-card').forEach(card => {
+            if (isExpanded) {
+                card.classList.add('show');
+            } else {
+                card.classList.remove('show');
+            }
+        });
+    }
+
     function toggleModuleDetails(moduleKey) {
         const moduleCard = document.getElementById('module-' + moduleKey);
         if (moduleCard) {
@@ -629,9 +683,7 @@
         const container = document.getElementById('tooltip-container');
         if (!container) return;
 
-        // ✅ Remove old event listeners by cloning circles
         document.querySelectorAll('.timeline-circle').forEach(circle => {
-            // Remove existing tooltip if any
             if (circle.tooltipElement) {
                 circle.tooltipElement.remove();
                 circle.tooltipElement = null;
@@ -642,7 +694,6 @@
 
             const tooltipHtml = tooltipOriginal.innerHTML;
 
-            // Clone to remove old event listeners
             const newCircle = circle.cloneNode(true);
             circle.parentNode.replaceChild(newCircle, circle);
 
@@ -653,7 +704,6 @@
                 tooltip.className = 'task-tooltip show';
                 tooltip.innerHTML = tooltipHtml;
 
-                // Position tooltip ABOVE the circle
                 tooltip.style.bottom = (window.innerHeight - rect.top + 12) + 'px';
                 tooltip.style.left = (rect.left + rect.width / 2) + 'px';
                 tooltip.style.transform = 'translateX(-50%)';
@@ -671,27 +721,41 @@
         });
     }
 
-    // ✅ Initialize on page load
     document.addEventListener('DOMContentLoaded', function() {
         initializeTooltips();
+
+        // ✅ Initialize expand all checkbox as checked (expanded by default)
+        const expandAllCheckbox = document.getElementById('expand-all-phases');
+        if (expandAllCheckbox) {
+            expandAllCheckbox.checked = true;
+            toggleAllModules(true); // Expand all on page load
+        }
     });
 
-    // ✅ Listen for Livewire refresh events
     document.addEventListener('livewire:initialized', () => {
         Livewire.on('refresh-project-progress', () => {
-            // Wait for DOM to update, then reinitialize tooltips
             setTimeout(() => {
                 initializeTooltips();
+
+                // ✅ Re-apply expand state after refresh
+                const expandAllCheckbox = document.getElementById('expand-all-phases');
+                if (expandAllCheckbox && expandAllCheckbox.checked) {
+                    toggleAllModules(true);
+                }
             }, 100);
         });
     });
 
-    // ✅ Also listen for Livewire's message.processed hook
     if (typeof Livewire !== 'undefined') {
         Livewire.hook('message.processed', (message, component) => {
-            // Reinitialize tooltips after any Livewire update
             setTimeout(() => {
                 initializeTooltips();
+
+                // ✅ Re-apply expand state after Livewire updates
+                const expandAllCheckbox = document.getElementById('expand-all-phases');
+                if (expandAllCheckbox && expandAllCheckbox.checked) {
+                    toggleAllModules(true);
+                }
             }, 100);
         });
     }
@@ -723,8 +787,22 @@
                     <div class="overall-meta">{{ $overallSummary['completedTasks'] }}/{{ $overallSummary['totalTasks'] }} tasks completed</div>
                 </div>
                 <div class="overall-stats">
-                    <div class="overall-percentage">{{ $overallSummary['overallProgress'] }}%</div>
-                    <div class="overall-label">Overall Completion</div>
+                    {{-- ✅ Expand/Collapse All Checkbox - Now on same line --}}
+                    <div class="expand-collapse-control" onclick="document.getElementById('expand-all-phases').click();">
+                        <input
+                            type="checkbox"
+                            id="expand-all-phases"
+                            checked
+                            onclick="event.stopPropagation(); toggleAllModules(this.checked);"
+                        >
+                        <label for="expand-all-phases" onclick="event.stopPropagation();">
+                            Expand All Phases
+                        </label>
+                    </div>
+                    <div class="overall-percentage-section">
+                        <div class="overall-percentage">{{ $overallSummary['overallProgress'] }}%</div>
+                        <div class="overall-label">Overall Completion</div>
+                    </div>
                 </div>
             </div>
 
@@ -809,6 +887,8 @@
                         $firstPendingFound = true;
                     }
                 }
+
+                $showByDefault = true;
             @endphp
 
             <div class="progress-overview-card {{ $showByDefault ? 'show' : '' }}" id="module-{{ $moduleKey }}">
