@@ -6,6 +6,7 @@ use App\Classes\Encryptor;
 use App\Filament\Actions\LeadActions;
 use App\Models\ActivityLog;
 use App\Models\Lead;
+use App\Models\Request;
 use App\Models\User;
 use Filament\Forms\Components\Placeholder;
 use Filament\Tables\Actions\Action;
@@ -34,7 +35,6 @@ class NewLeadTable extends Component implements HasForms, HasTable
     public $selectedUser; // Allow dynamic filtering
     public $lastRefreshTime;
     public $hasDuplicatesInBulkAssign = false;
-    public $duplicateLeadIds = [];
 
     public function mount()
     {
@@ -198,9 +198,9 @@ class NewLeadTable extends Component implements HasForms, HasTable
                     ->requiresConfirmation()
                     ->modalHeading('Bulk Assign Leads')
                     ->form(function ($records) {
+                        // ✅ Single duplicate check - cache the result
                         $duplicateInfo = [];
                         $hasDuplicates = false;
-                        $duplicateLeadIds = [];
 
                         $allCompanyNames = Lead::query()
                             ->with('companyDetail')
@@ -212,6 +212,7 @@ class NewLeadTable extends Component implements HasForms, HasTable
                         foreach ($records as $record) {
                             $companyName = optional($record?->companyDetail)->company_name;
 
+                            // Normalize company name
                             $normalizedCompanyName = null;
                             if ($companyName) {
                                 $normalizedCompanyName = strtoupper($companyName);
@@ -223,27 +224,27 @@ class NewLeadTable extends Component implements HasForms, HasTable
                             }
 
                             $fuzzyMatches = [];
-                            if ($normalizedCompanyName) {
-                                foreach ($allCompanyNames as $leadId => $existingCompanyName) {
-                                    if ($leadId == $record->id) continue;
+                                if ($normalizedCompanyName) {
+                                    foreach ($allCompanyNames as $leadId => $existingCompanyName) {
+                                        if ($leadId == $record->id) continue;
 
-                                    $normalizedExisting = strtoupper($existingCompanyName);
-                                    $normalizedExisting = preg_replace('/\b(SDN\.?\s*BHD\.?|SDN|BHD|BERHAD|SENDIRIAN BERHAD)\b/i', '', $normalizedExisting);
-                                    $normalizedExisting = preg_replace('/^\s*(\[.*?\]|\(.*?\)|WEBINAR:|MEETING:)\s*/', '', $normalizedExisting);
-                                    $normalizedExisting = preg_replace('/[^\p{L}\p{N}\s]/u', ' ', $normalizedExisting);
-                                    $normalizedExisting = preg_replace('/\s+/', ' ', $normalizedExisting);
-                                    $normalizedExisting = trim($normalizedExisting);
+                                        $normalizedExisting = strtoupper($existingCompanyName);
+                                        $normalizedExisting = preg_replace('/\b(SDN\.?\s*BHD\.?|SDN|BHD|BERHAD|SENDIRIAN BERHAD)\b/i', '', $normalizedExisting);
+                                        $normalizedExisting = preg_replace('/^\s*(\[.*?\]|\(.*?\)|WEBINAR:|MEETING:)\s*/', '', $normalizedExisting);
+                                        $normalizedExisting = preg_replace('/[^\p{L}\p{N}\s]/u', ' ', $normalizedExisting);
+                                        $normalizedExisting = preg_replace('/\s+/', ' ', $normalizedExisting);
+                                        $normalizedExisting = trim($normalizedExisting);
 
-                                    $distance = levenshtein($normalizedCompanyName, $normalizedExisting);
-                                    if ($distance > 0 && $distance < 3) {
-                                        $fuzzyMatches[] = $existingCompanyName;
+                                        $distance = levenshtein($normalizedCompanyName, $normalizedExisting);
+                                        if ($distance > 0 && $distance < 3) {
+                                            $fuzzyMatches[] = $existingCompanyName;
+                                        }
                                     }
                                 }
-                            }
 
                             $duplicateLeads = Lead::query()
                                 ->with('companyDetail')
-                                ->where(function ($query) use ($record, $normalizedCompanyName, $fuzzyMatches) {
+                                ->where(function ($query) use ($record, $normalizedCompanyName) {
                                     if ($normalizedCompanyName) {
                                         $query->whereHas('companyDetail', function ($q) use ($normalizedCompanyName) {
                                             $q->whereRaw("UPPER(TRIM(company_name)) LIKE ?", ['%' . $normalizedCompanyName . '%']);
@@ -289,7 +290,6 @@ class NewLeadTable extends Component implements HasForms, HasTable
 
                             if ($duplicateLeads->isNotEmpty()) {
                                 $hasDuplicates = true;
-                                $duplicateLeadIds[] = $record->id;
 
                                 $duplicateDetails = $duplicateLeads->map(function ($lead) {
                                     $dupCompanyName = $lead->companyDetail->company_name ?? 'Unknown Company';
@@ -301,13 +301,13 @@ class NewLeadTable extends Component implements HasForms, HasTable
                             }
                         }
 
+                        // ✅ Cache the result in component property
                         $this->hasDuplicatesInBulkAssign = $hasDuplicates;
-                        $this->duplicateLeadIds = $duplicateLeadIds;
 
                         $warningMessage = $hasDuplicates
                             ? "⚠️⚠️⚠️ <strong style='color: red;'>Warning: Some leads have duplicates!</strong><br><br>"
                             . implode("<br><br>", $duplicateInfo)
-                            . "<br><br><strong style='color: red;'>You can request bypass approval from the manager by clicking 'Request Bypass' button below.</strong>"
+                            . "<br><br><strong style='color: red;'>Please contact Faiz before proceeding. Assignment is blocked.</strong>"
                             : "You are about to assign <strong>" . count($records) . "</strong> lead(s) to yourself. Make sure to confirm assignment before contacting the leads to avoid duplicate efforts by other team members.";
 
                         return [
@@ -320,10 +320,11 @@ class NewLeadTable extends Component implements HasForms, HasTable
                         ];
                     })
                     ->action(function ($records) {
+                        // ✅ Use cached result - no re-check needed
                         if ($this->hasDuplicatesInBulkAssign) {
                             Notification::make()
                                 ->title('Assignment Blocked')
-                                ->body('Duplicate leads detected. Please request bypass approval or cancel.')
+                                ->body('Duplicate leads detected. Please contact Faiz before proceeding.')
                                 ->danger()
                                 ->send();
                             return;
@@ -333,159 +334,199 @@ class NewLeadTable extends Component implements HasForms, HasTable
                     })
                     ->color('primary')
                     ->modalWidth('xl')
+                    // ✅ Use cached result to hide button
                     ->modalSubmitAction(fn ($action) =>
                         $this->hasDuplicatesInBulkAssign ? $action->hidden() : $action
-                    )
-                    ->extraModalFooterActions(function ($records) {
-                        // ✅ Calculate duplicate lead IDs here again for the action
-                        $duplicateLeadIds = [];
+                    ),
+                // BulkAction::make('bulkBypassDuplicate')
+                //     ->label('Request Bypass Duplicate')
+                //     ->icon('heroicon-o-shield-exclamation')
+                //     ->color('warning')
+                //     ->requiresConfirmation()
+                //     ->modalHeading('Bulk Request Bypass Duplicate Checking')
+                //     ->modalDescription(fn ($records) => 'Submit bypass requests for ' . count($records) . ' selected lead(s). Admin approval is required.')
+                //     ->form([
+                //         \Filament\Forms\Components\Textarea::make('reason')
+                //             ->label('Reason for Bypass Requests')
+                //             ->placeholder('Explain why these leads should bypass duplicate checking...')
+                //             ->required()
+                //             ->rows(4)
+                //             ->extraAlpineAttributes([
+                //                 'x-on:input' => '
+                //                     const start = $el.selectionStart;
+                //                     const end = $el.selectionEnd;
+                //                     const value = $el.value;
+                //                     $el.value = value.toUpperCase();
+                //                     $el.setSelectionRange(start, end);
+                //                 '
+                //             ])
+                //             ->dehydrateStateUsing(fn ($state) => strtoupper($state))
+                //             ->maxLength(500),
+                //     ])
+                //     ->action(function ($records, array $data) {
+                //         $user = auth()->user();
+                //         $successCount = 0;
 
-                        if ($this->hasDuplicatesInBulkAssign) {
-                            foreach ($records as $record) {
-                                $companyName = optional($record?->companyDetail)->company_name;
+                //         foreach ($records as $record) {
+                //             // Check if there's already a pending bypass request
+                //             $existingRequest = Request::where('lead_id', $record->id)
+                //                 ->where('request_type', 'bypass_duplicate')
+                //                 ->where('status', 'pending')
+                //                 ->exists();
 
-                                $normalizedCompanyName = null;
-                                if ($companyName) {
-                                    $normalizedCompanyName = strtoupper($companyName);
-                                    $normalizedCompanyName = preg_replace('/\b(SDN\.?\s*BHD\.?|SDN|BHD|BERHAD|SENDIRIAN BERHAD)\b/i', '', $normalizedCompanyName);
-                                    $normalizedCompanyName = preg_replace('/^\s*(\[.*?\]|\(.*?\)|WEBINAR:|MEETING:)\s*/', '', $normalizedCompanyName);
-                                    $normalizedCompanyName = preg_replace('/[^\p{L}\p{N}\s]/u', ' ', $normalizedCompanyName);
-                                    $normalizedCompanyName = preg_replace('/\s+/', ' ', $normalizedCompanyName);
-                                    $normalizedCompanyName = trim($normalizedCompanyName);
-                                }
+                //             if ($existingRequest) {
+                //                 continue; // Skip if already has pending request
+                //             }
 
-                                $duplicateLeads = Lead::query()
-                                    ->with('companyDetail')
-                                    ->where(function ($query) use ($record, $normalizedCompanyName) {
-                                        if ($normalizedCompanyName) {
-                                            $query->whereHas('companyDetail', function ($q) use ($normalizedCompanyName) {
-                                                $q->whereRaw("UPPER(TRIM(company_name)) LIKE ?", ['%' . $normalizedCompanyName . '%']);
-                                            });
-                                        }
+                //             // Find and store duplicate information
+                //             $companyName = optional($record?->companyDetail)->company_name;
+                //             $duplicateInfo = [];
 
-                                        if (!empty($record?->email)) {
-                                            $query->orWhere('email', $record->email)
-                                                ->orWhereHas('companyDetail', function ($q) use ($record) {
-                                                    $q->where('email', $record->email);
-                                                });
-                                        }
+                //             // Normalize company name for duplicate checking
+                //             $normalizedCompanyName = null;
+                //             if ($companyName) {
+                //                 $normalizedCompanyName = strtoupper($companyName);
+                //                 $normalizedCompanyName = preg_replace('/\b(SDN\.?\s*BHD\.?|SDN|BHD|BERHAD|SENDIRIAN BERHAD)\b/i', '', $normalizedCompanyName);
+                //                 $normalizedCompanyName = preg_replace('/^\s*(\[.*?\]|\(.*?\)|WEBINAR:|MEETING:)\s*/', '', $normalizedCompanyName);
+                //                 $normalizedCompanyName = preg_replace('/[^\p{L}\p{N}\s]/u', ' ', $normalizedCompanyName);
+                //                 $normalizedCompanyName = preg_replace('/\s+/', ' ', $normalizedCompanyName);
+                //                 $normalizedCompanyName = trim($normalizedCompanyName);
+                //             }
 
-                                        if (!empty($record?->companyDetail?->email)) {
-                                            $query->orWhere('email', $record->companyDetail->email)
-                                                ->orWhereHas('companyDetail', function ($q) use ($record) {
-                                                    $q->where('email', $record->companyDetail->email);
-                                                });
-                                        }
+                //             // Get all company names for fuzzy matching
+                //             $allCompanyNames = Lead::query()
+                //                 ->with('companyDetail')
+                //                 ->whereHas('companyDetail')
+                //                 ->get()
+                //                 ->pluck('companyDetail.company_name', 'id')
+                //                 ->filter();
 
-                                        if (!empty($record?->phone)) {
-                                            $query->orWhere('phone', $record->phone)
-                                                ->orWhereHas('companyDetail', function ($q) use ($record) {
-                                                    $q->where('contact_no', $record->phone);
-                                                });
-                                        }
+                //             $fuzzyMatches = [];
+                //             if ($normalizedCompanyName) {
+                //                 foreach ($allCompanyNames as $leadId => $existingCompanyName) {
+                //                     if ($leadId == $record->id) continue;
 
-                                        if (!empty($record?->companyDetail?->contact_no)) {
-                                            $query->orWhere('phone', $record->companyDetail->contact_no)
-                                                ->orWhereHas('companyDetail', function ($q) use ($record) {
-                                                    $q->where('contact_no', $record->companyDetail->contact_no);
-                                                });
-                                        }
-                                    })
-                                    ->where('id', '!=', optional($record)->id)
-                                    ->exists();
+                //                     $normalizedExisting = strtoupper($existingCompanyName);
+                //                     $normalizedExisting = preg_replace('/\b(SDN\.?\s*BHD\.?|SDN|BHD|BERHAD|SENDIRIAN BERHAD)\b/i', '', $normalizedExisting);
+                //                     $normalizedExisting = preg_replace('/^\s*(\[.*?\]|\(.*?\)|WEBINAR:|MEETING:)\s*/', '', $normalizedExisting);
+                //                     $normalizedExisting = preg_replace('/[^\p{L}\p{N}\s]/u', ' ', $normalizedExisting);
+                //                     $normalizedExisting = preg_replace('/\s+/', ' ', $normalizedExisting);
+                //                     $normalizedExisting = trim($normalizedExisting);
 
-                                if ($duplicateLeads) {
-                                    $duplicateLeadIds[] = $record->id;
-                                }
-                            }
-                        }
+                //                     $distance = levenshtein($normalizedCompanyName, $normalizedExisting);
+                //                     if ($distance > 0 && $distance < 3) {
+                //                         $fuzzyMatches[] = $existingCompanyName;
+                //                     }
+                //                 }
+                //             }
 
-                        return [
-                            \Filament\Tables\Actions\Action::make('request_bypass')
-                                ->label('Request Bypass')
-                                ->icon('heroicon-o-shield-exclamation')
-                                ->color('warning')
-                                ->visible(fn () => $this->hasDuplicatesInBulkAssign)
-                                ->requiresConfirmation()
-                                ->modalHeading('Request Bypass Approval')
-                                ->modalDescription('Submit a request to bypass duplicate lead checking. A manager must approve this request before you can proceed.')
-                                ->form([
-                                    \Filament\Forms\Components\Textarea::make('reason')
-                                        ->label('Reason for Bypass Request')
-                                        ->placeholder('Explain why you need to bypass duplicate checking...')
-                                        ->required()
-                                        ->rows(4)
-                                        ->columnSpanFull(),
-                                ])
-                                ->action(function (array $data) use ($records, $duplicateLeadIds) {
-                                    $user = auth()->user();
-                                    $createdCount = 0;
+                //             // Find duplicate leads
+                //             $duplicateLeads = Lead::query()
+                //                 ->with('companyDetail')
+                //                 ->where(function ($query) use ($record, $normalizedCompanyName, $fuzzyMatches) {
+                //                     if ($normalizedCompanyName) {
+                //                         $query->whereHas('companyDetail', function ($q) use ($normalizedCompanyName) {
+                //                             $q->whereRaw("UPPER(TRIM(company_name)) LIKE ?", ['%' . $normalizedCompanyName . '%']);
+                //                         });
+                //                     }
 
-                                    foreach ($records as $record) {
-                                        // Only create request for leads with duplicates
-                                        if (!in_array($record->id, $duplicateLeadIds)) {
-                                            continue;
-                                        }
+                //                     if (!empty($fuzzyMatches)) {
+                //                         $query->orWhereHas('companyDetail', function ($q) use ($fuzzyMatches) {
+                //                             $q->whereIn('company_name', $fuzzyMatches);
+                //                         });
+                //                     }
 
-                                        // Check if there's already a pending request
-                                        $existingRequest = \App\Models\Request::where('lead_id', $record->id)
-                                            ->where('request_type', 'bypass_duplicate')
-                                            ->where('status', 'pending')
-                                            ->first();
+                //                     if (!empty($record?->email)) {
+                //                         $query->orWhere('email', $record->email)
+                //                             ->orWhereHas('companyDetail', function ($q) use ($record) {
+                //                                 $q->where('email', $record->email);
+                //                             });
+                //                     }
 
-                                        if ($existingRequest) {
-                                            continue;
-                                        }
+                //                     if (!empty($record?->companyDetail?->email)) {
+                //                         $query->orWhere('email', $record->companyDetail->email)
+                //                             ->orWhereHas('companyDetail', function ($q) use ($record) {
+                //                                 $q->where('email', $record->companyDetail->email);
+                //                             });
+                //                     }
 
-                                        // Get duplicate info
-                                        $companyName = optional($record?->companyDetail)->company_name;
-                                        $duplicateInfo = [
-                                            'company_name' => $companyName,
-                                            'lead_id' => $record->id,
-                                            'email' => $record->email ?? $record->companyDetail?->email,
-                                            'phone' => $record->phone ?? $record->companyDetail?->contact_no,
-                                        ];
+                //                     if (!empty($record?->phone)) {
+                //                         $query->orWhere('phone', $record->phone)
+                //                             ->orWhereHas('companyDetail', function ($q) use ($record) {
+                //                                 $q->where('contact_no', $record->phone);
+                //                             });
+                //                     }
 
-                                        \App\Models\Request::create([
-                                            'lead_id' => $record->id,
-                                            'requested_by' => $user->id,
-                                            'request_type' => 'bypass_duplicate',
-                                            'duplicate_info' => $duplicateInfo,
-                                            'reason' => $data['reason'],
-                                            'status' => 'pending',
-                                        ]);
+                //                     if (!empty($record?->companyDetail?->contact_no)) {
+                //                         $query->orWhere('phone', $record->companyDetail->contact_no)
+                //                             ->orWhereHas('companyDetail', function ($q) use ($record) {
+                //                                 $q->where('contact_no', $record->companyDetail->contact_no);
+                //                             });
+                //                     }
+                //                 })
+                //                 ->where('id', '!=', optional($record)->id)
+                //                 ->get();
 
-                                        $createdCount++;
-                                    }
+                //             // Build duplicate info array
+                //             if ($duplicateLeads->isNotEmpty()) {
+                //                 foreach ($duplicateLeads as $duplicateLead) {
+                //                     $duplicateInfo[] = [
+                //                         'lead_id' => $duplicateLead->id,
+                //                         'company_name' => $duplicateLead->companyDetail->company_name ?? 'Unknown Company',
+                //                         'lead_code' => $duplicateLead->lead_code,
+                //                         'email' => $duplicateLead->email,
+                //                         'phone' => $duplicateLead->phone,
+                //                         'lead_owner' => $duplicateLead->lead_owner,
+                //                         'categories' => $duplicateLead->categories,
+                //                         'created_at' => $duplicateLead->created_at->format('Y-m-d H:i:s'),
+                //                         'match_type' => $this->getDuplicateMatchType($record, $duplicateLead, $normalizedCompanyName, $fuzzyMatches),
+                //                     ];
+                //                 }
+                //             }
 
-                                    if ($createdCount > 0) {
-                                        // Notify managers
-                                        $managers = User::where('role_id', 3)->get();
-                                        foreach ($managers as $manager) {
-                                            Notification::make()
-                                                ->title('Bypass Request Pending Approval')
-                                                ->body("{$user->name} requested to bypass duplicate checking for {$createdCount} lead(s). Reason: {$data['reason']}")
-                                                ->icon('heroicon-o-shield-exclamation')
-                                                ->warning()
-                                                ->sendToDatabase($manager);
-                                        }
+                //             // Create bypass request with duplicate info
+                //             Request::create([
+                //                 'lead_id' => $record->id,
+                //                 'requested_by' => $user->id,
+                //                 'current_owner_id' => null,
+                //                 'requested_owner_id' => $user->id,
+                //                 'reason' => $data['reason'],
+                //                 'status' => 'pending',
+                //                 'request_type' => 'bypass_duplicate',
+                //                 'duplicate_info' => json_encode([
+                //                     'current_lead' => [
+                //                         'lead_id' => $record->id,
+                //                         'company_name' => $companyName,
+                //                         'email' => $record->email,
+                //                         'phone' => $record->phone,
+                //                         'lead_code' => $record->lead_code,
+                //                     ],
+                //                     'duplicates_found' => $duplicateInfo,
+                //                     'total_duplicates' => count($duplicateInfo),
+                //                     'checked_at' => now()->format('Y-m-d H:i:s'),
+                //                 ]),
+                //             ]);
 
-                                        Notification::make()
-                                            ->title('Bypass Request Submitted')
-                                            ->body("Your request for {$createdCount} lead(s) has been submitted and is pending manager approval.")
-                                            ->success()
-                                            ->send();
-                                    } else {
-                                        Notification::make()
-                                            ->title('No New Requests Created')
-                                            ->body('All selected leads either have no duplicates or already have pending requests.')
-                                            ->warning()
-                                            ->send();
-                                    }
-                                })
-                                ->cancelParentActions(),
-                        ];
-                    }),
+                //             // Log activity
+                //             activity()
+                //                 ->causedBy($user)
+                //                 ->performedOn($record)
+                //                 ->withProperties([
+                //                     'reason' => $data['reason'],
+                //                     'request_type' => 'bypass_duplicate',
+                //                     'duplicates_count' => count($duplicateInfo),
+                //                 ])
+                //                 ->log('Requested bypass duplicate checking (bulk)');
+
+                //             $successCount++;
+                //         }
+
+                //         Notification::make()
+                //             ->title('Bypass Requests Submitted')
+                //             ->body("{$successCount} bypass request(s) submitted and pending admin approval.")
+                //             ->success()
+                //             ->send();
+                //     })
             ]);
     }
 
@@ -528,5 +569,55 @@ class NewLeadTable extends Component implements HasForms, HasTable
     public function render()
     {
         return view('livewire.leadowner_dashboard.new-lead-table');
+    }
+
+    private function getDuplicateMatchType($currentLead, $duplicateLead, $normalizedCompanyName, $fuzzyMatches)
+    {
+        $matchTypes = [];
+
+        // Check company name match
+        $duplicateCompanyName = optional($duplicateLead->companyDetail)->company_name;
+        if ($duplicateCompanyName) {
+            $normalizedDuplicateCompany = strtoupper($duplicateCompanyName);
+            $normalizedDuplicateCompany = preg_replace('/\b(SDN\.?\s*BHD\.?|SDN|BHD|BERHAD|SENDIRIAN BERHAD)\b/i', '', $normalizedDuplicateCompany);
+            $normalizedDuplicateCompany = preg_replace('/^\s*(\[.*?\]|\(.*?\)|WEBINAR:|MEETING:)\s*/', '', $normalizedDuplicateCompany);
+            $normalizedDuplicateCompany = preg_replace('/[^\p{L}\p{N}\s]/u', ' ', $normalizedDuplicateCompany);
+            $normalizedDuplicateCompany = preg_replace('/\s+/', ' ', $normalizedDuplicateCompany);
+            $normalizedDuplicateCompany = trim($normalizedDuplicateCompany);
+
+            if ($normalizedCompanyName && strpos($normalizedDuplicateCompany, $normalizedCompanyName) !== false) {
+                $matchTypes[] = 'company_name_exact';
+            } elseif (in_array($duplicateCompanyName, $fuzzyMatches)) {
+                $matchTypes[] = 'company_name_fuzzy';
+            }
+        }
+
+        // Check email match
+        if (!empty($currentLead->email) &&
+            ($currentLead->email == $duplicateLead->email ||
+            $currentLead->email == optional($duplicateLead->companyDetail)->email)) {
+            $matchTypes[] = 'email';
+        }
+
+        if (!empty(optional($currentLead->companyDetail)->email) &&
+            (optional($currentLead->companyDetail)->email == $duplicateLead->email ||
+            optional($currentLead->companyDetail)->email == optional($duplicateLead->companyDetail)->email)) {
+            $matchTypes[] = 'company_email';
+        }
+
+        // Check phone match
+        if (!empty($currentLead->phone) &&
+            ($currentLead->phone == $duplicateLead->phone ||
+            $currentLead->phone == optional($duplicateLead->companyDetail)->contact_no)) {
+            $matchTypes[] = 'phone';
+        }
+
+        if (!empty(optional($currentLead->companyDetail)->contact_no) &&
+            (optional($currentLead->companyDetail)->contact_no == $duplicateLead->phone ||
+            optional($currentLead->companyDetail)->contact_no == optional($duplicateLead->companyDetail)->contact_no)) {
+            $matchTypes[] = 'company_phone';
+        }
+
+        return implode(', ', $matchTypes ?: ['unknown']);
     }
 }

@@ -1230,12 +1230,37 @@ class ImplementerActions
 
                         // Replace placeholders with actual data
                         $lead = Lead::find($record->lead_id);
+                        $customerEmail = '';
+                        $customerPassword = '';
+                        if ($lead) {
+                            $customer = \App\Models\Customer::where('lead_id', $lead->id)->first();
+                            if ($customer) {
+                                $customerEmail = $customer->email ?? '';
+                                $customerPassword = $customer->plain_password ?? '';
+                            }
+                        }
+
+                        // Get software handover for additional placeholders
+                        $softwareHandover = SoftwareHandover::where('lead_id', $record->lead_id)
+                            ->latest()
+                            ->first();
+
                         $placeholders = [
                             '{customer_name}' => $lead->contact_name ?? '',
-                            '{company_name}' => $lead->companyDetail->company_name ?? '',
+                            '{company_name}' => $softwareHandover->company_name ?? ($lead->companyDetail?->company_name ?? 'Unknown Company'),
                             '{implementer_name}' => $data['implementer_name'] ?? auth()->user()->name ?? '',
+                            '{implementer_designation}' => $data['implementer_designation'] ?? 'Implementer',
+                            '{lead_owner}' => $lead->lead_owner ?? '',
                             '{follow_up_date}' => $data['follow_up_date'] ?? date('d M Y'),
-                            '{session_recording_link}' => $data['session_recording_link'] ?? 'Not provided',
+                            '{session_recording_link}' => !empty($data['session_recording_link']) && $data['session_recording_link'] !== 'Not provided'
+                                ? '<a href="' . $data['session_recording_link'] . '" target="_blank" style="color: #3b82f6; text-decoration: underline;">' . $data['session_recording_link'] . '</a>'
+                                : 'Not provided',
+                            '{customer_email}' => $customerEmail,
+                            '{customer_password}' => $customerPassword,
+                            '{customer_portal_url}' => '<a href="' . str_replace('http://', 'https://', config('app.url')) . '/customer/login" target="_blank" style="color: #3b82f6; text-decoration: underline;">' . str_replace('http://', 'https://', config('app.url')) . '/customer/login</a>',
+                            '{project_plan_link}' => !empty($softwareHandover->project_plan_link) && $softwareHandover->project_plan_link !== 'Not Generated Yet'
+                                ? '<a href="' . $softwareHandover->project_plan_link . '" target="_blank" style="color: #3b82f6; text-decoration: underline;">' . $softwareHandover->project_plan_link . '</a>'
+                                : 'Not Generated Yet',
                         ];
 
                         $content = str_replace(array_keys($placeholders), array_values($placeholders), $content);
@@ -1347,42 +1372,58 @@ class ImplementerActions
     public static function sendEmail(array $emailData): void
     {
         try {
-            // Get the implementer log record
-            $implementerLog = ImplementerLogs::find($emailData['implementer_log_id']);
-
-            if (!$implementerLog) {
-                Log::error("Implementer log not found for ID: {$emailData['implementer_log_id']}");
-                return;
+            // ✅ Handle case where implementer_log_id might be null
+            $implementerLog = null;
+            if (!empty($emailData['implementer_log_id'])) {
+                $implementerLog = ImplementerLogs::find($emailData['implementer_log_id']);
             }
 
-            // Find the software handover record using subject_id from implementer log
-            $softwareHandover = SoftwareHandover::find($implementerLog->subject_id);
+            // ✅ Try to find software handover using different methods
+            $softwareHandover = null;
 
+            // Method 1: If we have implementer log, use its subject_id
+            if ($implementerLog) {
+                $softwareHandover = SoftwareHandover::find($implementerLog->subject_id);
+            }
+
+            // Method 2: If no implementer log or no software handover found, try using lead_id directly
+            if (!$softwareHandover && !empty($emailData['lead_id'])) {
+                $softwareHandover = SoftwareHandover::where('lead_id', $emailData['lead_id'])
+                    ->latest()
+                    ->first();
+            }
+
+            // ✅ If still no software handover found, log warning but continue with email
             if (!$softwareHandover) {
-                Log::error("Software handover not found for subject_id: {$implementerLog->subject_id}");
-                return;
+                Log::warning("Software handover not found, sending email without CC", [
+                    'implementer_log_id' => $emailData['implementer_log_id'] ?? null,
+                    'lead_id' => $emailData['lead_id'] ?? null,
+                ]);
             }
 
             // Initialize CC recipients array
             $ccRecipients = [];
 
-            // Add implementer to CC if available and different from sender
-            if ($softwareHandover->implementer) {
-                $implementer = User::where('name', $softwareHandover->implementer)->first();
-                if ($implementer && $implementer->email && $implementer->email !== $emailData['sender_email']) {
-                    $ccRecipients[] = $implementer->email;
-                    Log::info("Added implementer to CC: {$implementer->name} <{$implementer->email}>");
+            // ✅ Only add implementer and salesperson to CC if we found a software handover
+            if ($softwareHandover) {
+                // Add implementer to CC if available and different from sender
+                if ($softwareHandover->implementer) {
+                    $implementer = User::where('name', $softwareHandover->implementer)->first();
+                    if ($implementer && $implementer->email && $implementer->email !== $emailData['sender_email']) {
+                        $ccRecipients[] = $implementer->email;
+                        Log::info("Added implementer to CC: {$implementer->name} <{$implementer->email}>");
+                    }
                 }
-            }
 
-            // Add salesperson to CC if available and different from sender and implementer
-            if ($softwareHandover->salesperson) {
-                $salesperson = User::where('name', $softwareHandover->salesperson)->first();
-                if ($salesperson && $salesperson->email &&
-                    $salesperson->email !== $emailData['sender_email'] &&
-                    !in_array($salesperson->email, $ccRecipients)) {
-                    $ccRecipients[] = $salesperson->email;
-                    Log::info("Added salesperson to CC: {$salesperson->name} <{$salesperson->email}>");
+                // Add salesperson to CC if available and different from sender and implementer
+                if ($softwareHandover->salesperson) {
+                    $salesperson = User::where('name', $softwareHandover->salesperson)->first();
+                    if ($salesperson && $salesperson->email &&
+                        $salesperson->email !== $emailData['sender_email'] &&
+                        !in_array($salesperson->email, $ccRecipients)) {
+                        $ccRecipients[] = $salesperson->email;
+                        Log::info("Added salesperson to CC: {$salesperson->name} <{$salesperson->email}>");
+                    }
                 }
             }
 
@@ -1428,8 +1469,9 @@ class ImplementerActions
                 'cc' => $ccRecipients,
                 'subject' => $emailData['subject'],
                 'implementer_log_id' => $emailData['implementer_log_id'] ?? null,
+                'lead_id' => $emailData['lead_id'] ?? null,
                 'template' => $emailData['template_name'] ?? 'Unknown',
-                'attachments_count' => count($emailData['project_plan_attachments'] ?? []), // ✅ Log attachment count
+                'attachments_count' => count($emailData['project_plan_attachments'] ?? []),
             ]);
         } catch (\Exception $e) {
             Log::error('Error in sendEmail method: ' . $e->getMessage(), [
