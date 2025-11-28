@@ -29,7 +29,8 @@ class LeadOwnerChangeRequestTable extends Component implements HasForms, HasTabl
     public function getTableQuery()
     {
         return Request::query()
-            ->where('status', '=', 'pending') // 👈 exclude pending status
+            ->where('status', '=', 'pending')
+            ->where('request_type', '!=', 'bypass_duplicate')
             ->with(['lead', 'requestedBy', 'currentOwner', 'requestedOwner']);
     }
 
