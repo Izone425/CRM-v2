@@ -189,6 +189,28 @@ class ImplementerFollowUpOverdue extends Component implements HasForms, HasTable
                     })
                     ->placeholder('All Implementers')
                     ->multiple(),
+
+                SelectFilter::make('manual_follow_up_count')
+                    ->label('Follow Up Count')
+                    ->options([
+                        '0' => '0',
+                        '1' => '1',
+                        '2' => '2',
+                        '3' => '3',
+                        '4' => '4',
+                    ])
+                    ->placeholder('All Counts')
+                    ->multiple(),
+
+                SelectFilter::make('project_priority')
+                    ->label('Project Priority')
+                    ->options([
+                        'High' => 'High',
+                        'Medium' => 'Medium',
+                        'Low' => 'Low',
+                    ])
+                    ->placeholder('All Priorities')
+                    ->multiple(),
             ])
             ->columns([
                 TextColumn::make('id')
@@ -256,15 +278,41 @@ class ImplementerFollowUpOverdue extends Component implements HasForms, HasTable
                     ->html(),
 
                 TextColumn::make('pending_days')
-                    ->label('Pending Days')
-                    ->formatStateUsing(fn ($record) => $this->getWeekdayCount($record->follow_up_date, now()) . ' days')
-                    ->color(fn ($record) => $this->getWeekdayCount($record->follow_up_date, now()) == 0 ? 'draft' : 'danger')
+                    ->label(new HtmlString('Pending<br>Days'))
+                    ->formatStateUsing(function ($record) {
+                        $weekdayCount = $this->getWeekdayCount($record->follow_up_date, now());
+
+                        // ✅ Calculate if overdue (negative days)
+                        if (Carbon::parse($record->follow_up_date)->lt(now()->startOfDay())) {
+                            $overdueDays = -1 * $this->getWeekdayCount(now()->startOfDay(), $record->follow_up_date);
+                            return $overdueDays . ' days';
+                        }
+
+                        return $weekdayCount . ' days';
+                    })
+                    ->color(function ($record) {
+                        $followUpDate = Carbon::parse($record->follow_up_date);
+
+                        if ($followUpDate->lt(now()->startOfDay())) {
+                            return 'danger'; // Overdue (past date)
+                        } elseif ($followUpDate->isToday()) {
+                            return 'warning'; // Due today
+                        } else {
+                            return 'success'; // Future date
+                        }
+                    })
                     ->sortable(query: function (Builder $query, string $direction): Builder {
                         return $query->orderBy('follow_up_date', $direction);
                     }),
 
+                TextColumn::make('manual_follow_up_count')
+                    ->label(new HtmlString('Follow Up<br>Count')),
+
+                TextColumn::make('project_priority')
+                    ->label(new HtmlString('Project<br>Priority')),
+
                 TextColumn::make('status_handover')
-                    ->label('Status'),
+                    ->label(new HtmlString('Project<br>Status')),
             ])
             // ->filters([
             //     // Filter for Creator
@@ -322,10 +370,16 @@ class ImplementerFollowUpOverdue extends Component implements HasForms, HasTable
     private function getWeekdayCount($startDate, $endDate)
     {
         $weekdayCount = 0;
-        $currentDate = Carbon::parse($startDate);
-        $endDate = Carbon::parse($endDate);
+        $currentDate = Carbon::parse($startDate)->startOfDay();
+        $endDate = Carbon::parse($endDate)->startOfDay();
 
-        while ($currentDate->lte($endDate)) {
+        // ✅ Handle both forward and backward counting
+        if ($currentDate->gt($endDate)) {
+            // Swap dates for backward counting
+            [$currentDate, $endDate] = [$endDate, $currentDate];
+        }
+
+        while ($currentDate->lt($endDate)) {
             if (!$currentDate->isWeekend()) {
                 $weekdayCount++;
             }

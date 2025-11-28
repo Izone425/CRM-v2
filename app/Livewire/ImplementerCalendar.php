@@ -568,21 +568,21 @@ class ImplementerCalendar extends Component
 
         // Define the custom order for implementers
         $customOrder = [
-            'Ahmad Syamim' => 1,
-            'Ahmad Syazwan' => 2,
-            'Siti Shahilah' => 3,
-            'Muhamad Izzul Aiman' => 4,
-            'Zulhilmie' => 5,
-            'Mohd Amirul Ashraf' => 6,
-            'John Low' => 7,
+            'Mohd Amirul Ashraf' => 2,
+            'John Low' => 3,
+            'Zulhilmie' => 4,
+            'Muhamad Izzul Aiman' => 5,
+            'Ahmad Syamim' => 6,
+            'Siti Shahilah' => 7,
             'Nur Alia' => 8,
-            'Nur Fazuliana' => 9,
-            'Ummu Najwa Fajrina' => 10,
-            'Noor Syazana' => 11
+            'Ameerul Asyraf' => 9,
+            'Nur Fazuliana' => 10,
+            'Ahmad Syazwan' => 11
         ];
 
         // Get implementers data
         $implementerUsers = User::whereIn('role_id', [4, 5])
+            ->where('name', '!=', 'Nurul Shaqinur Ain')
             ->select('id', 'name', 'avatar_path')
             ->get()
             ->keyBy('name')
@@ -635,9 +635,11 @@ class ImplementerCalendar extends Component
 
         $allImplementers = $this->selectedImplementers;
 
-        // If none selected (all by default), fallback to all implementer names
         if (empty($allImplementers)) {
-            $allImplementers = User::whereIn('role_id', [4, 5])->pluck('name')->toArray();
+            $allImplementers = User::whereIn('role_id', [4, 5])
+                ->where('name', '!=', 'Nurul Shaqinur Ain')
+                ->pluck('name')
+                ->toArray();
             $this->allImplementersSelected = true;
         } else {
             $this->allImplementersSelected = false;
@@ -848,21 +850,21 @@ class ImplementerCalendar extends Component
     {
         // Define the custom order for implementers
         $customOrder = [
-            'Ahmad Syamim' => 2,
-            'Ahmad Syazwan' => 3,
-            'Siti Shahilah' => 4,
+            'Mohd Amirul Ashraf' => 2,
+            'John Low' => 3,
+            'Zulhilmie' => 4,
             'Muhamad Izzul Aiman' => 5,
-            'Zulhilmie' => 6,
-            'Mohd Amirul Ashraf' => 7,
-            'John Low' => 8,
-            'Nur Alia' => 9,
+            'Ahmad Syamim' => 6,
+            'Siti Shahilah' => 7,
+            'Nur Alia' => 8,
+            'Ameerul Asyraf' => 9,
             'Nur Fazuliana' => 10,
-            'Ummu Najwa Fajrina' => 11,
-            'Noor Syazana' => 12
+            'Ahmad Syazwan' => 11
         ];
 
         // Get implementers (role_id 4 and 5)
         $implementers = User::whereIn('role_id', [4, 5])
+            ->where('name', '!=', 'Nurul Shaqinur Ain')
             ->select('id', 'name', 'avatar_path')
             ->get()
             ->map(function ($implementer) use ($customOrder) {

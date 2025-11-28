@@ -77,7 +77,8 @@ class SessionToday extends Component implements HasForms, HasTable
         $today = Carbon::today();
 
         $query = ImplementerAppointment::whereDate('date', $today)
-            ->where('status', 'New');
+            ->where('status', 'New')
+            ->whereNotIn('type', ['BACKUP SUPPORT', 'ONSITE TRAINING']);
 
         if ($this->selectedUser === 'all-implementer') {
 

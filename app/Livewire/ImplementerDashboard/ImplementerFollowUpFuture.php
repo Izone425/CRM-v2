@@ -189,6 +189,28 @@ class ImplementerFollowUpFuture extends Component implements HasForms, HasTable
                     })
                     ->placeholder('All Implementers')
                     ->multiple(),
+
+                SelectFilter::make('manual_follow_up_count')
+                    ->label('Follow Up Count')
+                    ->options([
+                        '0' => '0',
+                        '1' => '1',
+                        '2' => '2',
+                        '3' => '3',
+                        '4' => '4',
+                    ])
+                    ->placeholder('All Counts')
+                    ->multiple(),
+
+                SelectFilter::make('project_priority')
+                    ->label('Project Priority')
+                    ->options([
+                        'High' => 'High',
+                        'Medium' => 'Medium',
+                        'Low' => 'Low',
+                    ])
+                    ->placeholder('All Priorities')
+                    ->multiple(),
             ])
             ->columns([
                 TextColumn::make('id')
@@ -256,7 +278,7 @@ class ImplementerFollowUpFuture extends Component implements HasForms, HasTable
                     ->html(),
 
                 TextColumn::make('pending_days')
-                    ->label('Pending Days')
+                    ->label(new HtmlString('Pending<br>Days'))
                     ->formatStateUsing(function ($state, $record) {
                         // Calculate days left from now until follow_up_date
                         $daysLeft = $this->getWeekdayCount(now(), $record->follow_up_date);
@@ -285,8 +307,14 @@ class ImplementerFollowUpFuture extends Component implements HasForms, HasTable
                         }
                     }),
 
+                TextColumn::make('manual_follow_up_count')
+                    ->label(new HtmlString('Follow Up<br>Count')),
+
+                TextColumn::make('project_priority')
+                    ->label(new HtmlString('Project<br>Priority')),
+
                 TextColumn::make('status_handover')
-                    ->label('Status'),
+                    ->label(new HtmlString('Project<br>Status')),
             ])
             // ->filters([
             //     // Filter for Creator

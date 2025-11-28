@@ -520,6 +520,19 @@
 
     $implementerRequestTotal = $pendingRequestCount;
     $noRespondProjects = $followUpNone + $followUp1 + $followUp2 + $followUp3 + $followUp4;
+
+    $implementerRequestTotal = $pendingRequestCount;
+    $noRespondProjects = $followUpNone + $followUp1 + $followUp2 + $followUp3 + $followUp4;
+
+    $sessionReminderPending = app(\App\Livewire\ImplementerDashboard\ImplementerSessionPending::class)
+        ->getAppointments()
+        ->count();
+
+    $sessionReminderCompleted = app(\App\Livewire\ImplementerDashboard\ImplementerSessionCompleted::class)
+        ->getAppointments()
+        ->count();
+
+    $sessionReminderTotal = $sessionReminderPending + $sessionReminderCompleted;
 @endphp
 
 <div id="implementer-container" class="implementer-container"
@@ -575,6 +588,26 @@
                 <div class="group-count">{{ $sessionsTotal }}</div>
             </div>
 
+            <!-- NO3 - SESSION REMINDER -->
+            <div class="group-box group-migration"
+                :class="{'selected': selectedGroup === 'session-reminder'}"
+                @click="setSelectedGroup('session-reminder')">
+                <div class="group-info">
+                    <div class="group-title">Session Reminder</div>
+                </div>
+                <div class="group-count">{{ $sessionReminderTotal }}</div>
+            </div>
+
+            <!-- NO4 - PROJECT FOLLOW UP -->
+            <div class="group-box group-follow-up"
+                :class="{'selected': selectedGroup === 'follow-up'}"
+                @click="setSelectedGroup('follow-up')">
+                <div class="group-info">
+                    <div class="group-title">Follow Up Reminder</div>
+                </div>
+                <div class="group-count">{{ $followUpTotal }}</div>
+            </div>
+
             <!-- NO2 - LICENSE CERTIFICATION -->
             <div class="group-box group-license"
                 :class="{'selected': selectedGroup === 'license'}"
@@ -595,25 +628,15 @@
                 <div class="group-count">{{ $implementerRequestTotal }}</div>
             </div>
 
-            <!-- NO4 - PROJECT FOLLOW UP -->
-            <div class="group-box group-follow-up"
-                :class="{'selected': selectedGroup === 'follow-up'}"
-                @click="setSelectedGroup('follow-up')">
-                <div class="group-info">
-                    <div class="group-title">Follow Up Reminder</div>
-                </div>
-                <div class="group-count">{{ $followUpTotal }}</div>
-            </div>
-
             <!-- NO5 - PROJECT FOLLOW UP -->
-            <div class="group-box group-no-respond"
+            {{-- <div class="group-box group-no-respond"
                 :class="{'selected': selectedGroup === 'no-respond'}"
                 @click="setSelectedGroup('no-respond')">
                 <div class="group-info">
                     <div class="group-title">Follow Up Count</div>
                 </div>
                 <div class="group-count">{{ $noRespondProjects }}</div>
-            </div>
+            </div> --}}
 
             {{-- <!-- NO5 - TICKETING SYSTEM -->
             <div class="group-box group-ticketing"
@@ -704,6 +727,27 @@
                         <div class="stat-label">Sessions Tomorrow</div>
                     </div>
                     <div class="stat-count">{{ $sessionsTomorrow }}</div>
+                </div>
+            </div>
+
+            <!-- SESSION REMINDER Sub-tabs -->
+            <div class="category-container" x-show="selectedGroup === 'session-reminder'" x-transition>
+                <div class="stat-box migration-pending"
+                    :class="{'selected': selectedStat === 'session-reminder-pending'}"
+                    @click="setSelectedStat('session-reminder-pending')">
+                    <div class="stat-info">
+                        <div class="stat-label">Pending</div>
+                    </div>
+                    <div class="stat-count">{{ $sessionReminderPending }}</div>
+                </div>
+
+                <div class="stat-box migration-completed"
+                    :class="{'selected': selectedStat === 'session-reminder-completed'}"
+                    @click="setSelectedStat('session-reminder-completed')">
+                    <div class="stat-info">
+                        <div class="stat-label">Completed</div>
+                    </div>
+                    <div class="stat-count">{{ $sessionReminderCompleted }}</div>
                 </div>
             </div>
 
@@ -1137,6 +1181,18 @@
                 <div x-show="selectedStat === 'follow-up-4'" x-transition>
                     <div class="p-4">
                         <livewire:implementer-dashboard.project-follow-up-four />
+                    </div>
+                </div>
+
+                <div x-show="selectedStat === 'session-reminder-pending'" x-transition>
+                    <div class="p-4">
+                        <livewire:implementer-dashboard.implementer-session-pending />
+                    </div>
+                </div>
+
+                <div x-show="selectedStat === 'session-reminder-completed'" x-transition>
+                    <div class="p-4">
+                        <livewire:implementer-dashboard.implementer-session-completed />
                     </div>
                 </div>
             </div>

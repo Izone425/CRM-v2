@@ -1625,16 +1625,16 @@
                         </p>
                     </div>
 
-                    <div class="grid gap-4 mt-4 md:grid-cols-3" style="display:column">
+                    <div class="grid gap-4 mt-4 md:grid-cols-2" style="display:column">
                         <!-- Option 1: Implementer Request -->
                         <div class="p-4 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-100" wire:click="selectSessionType('implementer_request')">
-                            <h4 class="mb-2 text-lg font-semibold text-center">IMPLEMENTER REQUEST</h4>
+                            <h4 class="mb-2 text-lg font-semibold text-center">IMPLEMENTER<br> REQUEST</h4>
                         </div>
 
-                        <!-- Option 2: Implementation Session -->
+                        {{-- <!-- Option 2: Implementation Session -->
                         <div class="p-4 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-100" wire:click="selectSessionType('implementation_session')">
                             <h4 class="mb-2 text-lg font-semibold text-center">IMPLEMENTATION SESSION</h4>
-                        </div>
+                        </div> --}}
 
                         <!-- Option 3: Onsite Request -->
                         <div class="p-4 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-100" wire:click="selectSessionType('onsite_request')">

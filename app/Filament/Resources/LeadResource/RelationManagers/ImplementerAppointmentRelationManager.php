@@ -558,13 +558,27 @@ class ImplementerAppointmentRelationManager extends RelationManager
                     ->label('IMPLEMENTER')
                     ->sortable(),
                 TextColumn::make('type')
-                    ->label('IMPLEMENTATION TYPE')
-                    ->sortable(),
+                    ->label(new HtmlString('IMPLEMENTATION<br>TYPE'))
+                    ->sortable()
+                    ->formatStateUsing(function (string $state): string {
+                        // Count the number of words
+                        $words = str_word_count($state);
+
+                        // Only add <br> before SESSION if there are more than 3 words
+                        if ($words > 3) {
+                            return str_replace(' SESSION', '<br>SESSION', $state);
+                        }
+
+                        // Return as-is if 3 words or less
+                        return $state;
+                    })
+                    ->html()
+                    ->searchable(),
                 TextColumn::make('appointment_type')
-                    ->label('APPOINTMENT TYPE')
+                    ->label(new HtmlString('APPOINTMENT<br>TYPE'))
                     ->sortable(),
                 TextColumn::make('review_session_count')
-                    ->label('REVIEW SESSIONS')
+                    ->label(new HtmlString('REVIEW<br>SESSIONS'))
                     ->getStateUsing(function ($record) {
                         // Skip cancelled sessions
                         if ($record->status == 'Cancelled') {
@@ -635,11 +649,13 @@ class ImplementerAppointmentRelationManager extends RelationManager
                                 $endTime = \Carbon\Carbon::createFromFormat('H:i', $record->end_time)->format('h:i A');
                             }
 
-                            return "{$date} | {$startTime} - {$endTime}";
+                            // ✅ Return HTML with line break between date and time
+                            return new \Illuminate\Support\HtmlString("{$date}<br>{$startTime} - {$endTime}");
                         } catch (\Exception $e) {
                             return 'Invalid Date/Time Format';
                         }
-                    }),
+                    })
+                    ->html(),
                 TextColumn::make('session_recording_link')
                     ->label('RECORDING LINK')
                     ->sortable()
@@ -1919,391 +1935,391 @@ class ImplementerAppointmentRelationManager extends RelationManager
                             ->send();
                     }
                 }),
-            Tables\Actions\Action::make('Add Appointment')
-                ->label('Session')
-                ->icon('heroicon-o-plus')
-                ->modalHeading('Implementation Session')
-                ->hidden(function() {
-                    // Get the current user
-                    $user = auth()->user();
+            // Tables\Actions\Action::make('Add Appointment')
+            //     ->label('Session')
+            //     ->icon('heroicon-o-plus')
+            //     ->modalHeading('Implementation Session')
+            //     ->hidden(function() {
+            //         // Get the current user
+            //         $user = auth()->user();
 
-                    // Get the lead record
-                    $lead = $this->getOwnerRecord();
-                    if (!$lead) return true; // Hide if no lead record found
+            //         // Get the lead record
+            //         $lead = $this->getOwnerRecord();
+            //         if (!$lead) return true; // Hide if no lead record found
 
-                    // Admins (role_id = 3) can always add appointments
-                    if ($user->role_id == 3) {
-                        return false; // Don't hide for admins
-                    }
+            //         // Admins (role_id = 3) can always add appointments
+            //         if ($user->role_id == 3) {
+            //             return false; // Don't hide for admins
+            //         }
 
-                    // Find the latest software handover for this lead
-                    $softwareHandover = \App\Models\SoftwareHandover::where('lead_id', $lead->id)
-                        ->latest()
-                        ->first();
+            //         // Find the latest software handover for this lead
+            //         $softwareHandover = \App\Models\SoftwareHandover::where('lead_id', $lead->id)
+            //             ->latest()
+            //             ->first();
 
-                    // If there's a software handover and the current user is the assigned implementer, allow access
-                    if ($softwareHandover && $softwareHandover->implementer === $user->name) {
-                        return false; // Don't hide for the assigned implementer
-                    }
+            //         // If there's a software handover and the current user is the assigned implementer, allow access
+            //         if ($softwareHandover && $softwareHandover->implementer === $user->name) {
+            //             return false; // Don't hide for the assigned implementer
+            //         }
 
-                    // For all other cases, hide the button
-                    return true;
-                })
-                ->form($this->defaultForm())
-                ->action(function (array $data) {
-                    // Get the lead record
-                    $lead = $this->getOwnerRecord();
+            //         // For all other cases, hide the button
+            //         return true;
+            //     })
+            //     ->form($this->defaultForm())
+            //     ->action(function (array $data) {
+            //         // Get the lead record
+            //         $lead = $this->getOwnerRecord();
 
-                    $skipEmailAndTeams = $data['skip_email_teams'] ?? false;
+            //         $skipEmailAndTeams = $data['skip_email_teams'] ?? false;
 
-                    // Process required attendees from form data
-                    $requiredAttendeesInput = $data['required_attendees'] ?? '';
-                    $attendeeEmails = [];
-                    if (!empty($requiredAttendeesInput)) {
-                        $attendeeEmails = array_filter(array_map('trim', explode(';', $requiredAttendeesInput)));
-                    }
+            //         // Process required attendees from form data
+            //         $requiredAttendeesInput = $data['required_attendees'] ?? '';
+            //         $attendeeEmails = [];
+            //         if (!empty($requiredAttendeesInput)) {
+            //             $attendeeEmails = array_filter(array_map('trim', explode(';', $requiredAttendeesInput)));
+            //         }
 
-                    // Find the SoftwareHandover record for this lead
-                    $softwareHandover = \App\Models\SoftwareHandover::where('lead_id', $lead->id)
-                        ->orderBy('id', 'desc')
-                        ->first();
+            //         // Find the SoftwareHandover record for this lead
+            //         $softwareHandover = \App\Models\SoftwareHandover::where('lead_id', $lead->id)
+            //             ->orderBy('id', 'desc')
+            //             ->first();
 
-                    if (!$softwareHandover) {
-                        Notification::make()
-                            ->title('Error: Software Handover record not found')
-                            ->danger()
-                            ->send();
-                        return;
-                    }
+            //         if (!$softwareHandover) {
+            //             Notification::make()
+            //                 ->title('Error: Software Handover record not found')
+            //                 ->danger()
+            //                 ->send();
+            //             return;
+            //         }
 
-                    // Create a new Appointment
-                    $appointment = new \App\Models\ImplementerAppointment();
-                    $appointment->fill([
-                        'lead_id' => $lead->id,
-                        'type' => $data['type'],
-                        'appointment_type' => $data['appointment_type'],
-                        'date' => $data['date'],
-                        'start_time' => $data['start_time'],
-                        'end_time' => $data['end_time'],
-                        'implementer' => $data['implementer'],
-                        'causer_id' => auth()->user()->id,
-                        'implementer_assigned_date' => now(),
-                        'remarks' => $data['remarks'] ?? null,
-                        'title' => $data['type'] . ' | ' . $data['appointment_type'] . ' | TIMETEC IMPLEMENTER | ' . $lead->companyDetail->company_name ?? 'Client',
-                        'required_attendees' => !empty($attendeeEmails) ? json_encode($attendeeEmails) : null,
-                        'status' => 'New',
-                        'session' => $data['session'] ?? null,
-                        'software_handover_id' => $softwareHandover->id,
-                    ]);
+            //         // Create a new Appointment
+            //         $appointment = new \App\Models\ImplementerAppointment();
+            //         $appointment->fill([
+            //             'lead_id' => $lead->id,
+            //             'type' => $data['type'],
+            //             'appointment_type' => $data['appointment_type'],
+            //             'date' => $data['date'],
+            //             'start_time' => $data['start_time'],
+            //             'end_time' => $data['end_time'],
+            //             'implementer' => $data['implementer'],
+            //             'causer_id' => auth()->user()->id,
+            //             'implementer_assigned_date' => now(),
+            //             'remarks' => $data['remarks'] ?? null,
+            //             'title' => $data['type'] . ' | ' . $data['appointment_type'] . ' | TIMETEC IMPLEMENTER | ' . $lead->companyDetail->company_name ?? 'Client',
+            //             'required_attendees' => !empty($attendeeEmails) ? json_encode($attendeeEmails) : null,
+            //             'status' => 'New',
+            //             'session' => $data['session'] ?? null,
+            //             'software_handover_id' => $softwareHandover->id,
+            //         ]);
 
-                    // Save the appointment
-                    $appointment->save();
+            //         // Save the appointment
+            //         $appointment->save();
 
-                    // Update SoftwareHandover if this is a kick-off meeting
-                    if ($data['type'] === 'KICK OFF MEETING SESSION' && !$softwareHandover->kick_off_meeting) {
-                        $softwareHandover->update([
-                            'kick_off_meeting' => Carbon::parse($data['date'] . ' ' . $data['start_time'])->toDateTimeString(),
-                        ]);
-                    }
+            //         // Update SoftwareHandover if this is a kick-off meeting
+            //         if ($data['type'] === 'KICK OFF MEETING SESSION' && !$softwareHandover->kick_off_meeting) {
+            //             $softwareHandover->update([
+            //                 'kick_off_meeting' => Carbon::parse($data['date'] . ' ' . $data['start_time'])->toDateTimeString(),
+            //             ]);
+            //         }
 
-                    if (!$skipEmailAndTeams) {
-                        // Set up email recipients for notification
-                        $recipients = ['fazuliana.mohdarsad@timeteccloud.com']; // Default recipient
+            //         if (!$skipEmailAndTeams) {
+            //             // Set up email recipients for notification
+            //             $recipients = ['fazuliana.mohdarsad@timeteccloud.com']; // Default recipient
 
-                        // Add required attendees if they have valid emails
-                        foreach ($attendeeEmails as $email) {
-                            if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
-                                $recipients[] = $email;
-                            }
-                        }
+            //             // Add required attendees if they have valid emails
+            //             foreach ($attendeeEmails as $email) {
+            //                 if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            //                     $recipients[] = $email;
+            //                 }
+            //             }
 
-                        // Format start and end times for Teams meeting
-                        $startTime = Carbon::parse($data['date'] . ' ' . $data['start_time'])->timezone('UTC')->format('Y-m-d\TH:i:s\Z');
-                        $endTime = Carbon::parse($data['date'] . ' ' . $data['end_time'])->timezone('UTC')->format('Y-m-d\TH:i:s\Z');
+            //             // Format start and end times for Teams meeting
+            //             $startTime = Carbon::parse($data['date'] . ' ' . $data['start_time'])->timezone('UTC')->format('Y-m-d\TH:i:s\Z');
+            //             $endTime = Carbon::parse($data['date'] . ' ' . $data['end_time'])->timezone('UTC')->format('Y-m-d\TH:i:s\Z');
 
-                        // Get the implementer as the organizer
-                        $implementerName = $data['implementer'] ?? null;
-                        $implementerUser = User::where('name', $implementerName)->first();
-                        $meetingLink = null;
-                        $onlineMeetingId = null;
+            //             // Get the implementer as the organizer
+            //             $implementerName = $data['implementer'] ?? null;
+            //             $implementerUser = User::where('name', $implementerName)->first();
+            //             $meetingLink = null;
+            //             $onlineMeetingId = null;
 
-                        if ($implementerUser && ($implementerUser->azure_user_id || $implementerUser->email)) {
-                            // Initialize Microsoft Graph service
-                            $accessToken = \App\Services\MicrosoftGraphService::getAccessToken();
-                            $graph = new \Microsoft\Graph\Graph();
-                            $graph->setAccessToken($accessToken);
+            //             if ($implementerUser && ($implementerUser->azure_user_id || $implementerUser->email)) {
+            //                 // Initialize Microsoft Graph service
+            //                 $accessToken = \App\Services\MicrosoftGraphService::getAccessToken();
+            //                 $graph = new \Microsoft\Graph\Graph();
+            //                 $graph->setAccessToken($accessToken);
 
-                            $meetingPayload = [
-                                'start' => [
-                                    'dateTime' => $startTime,
-                                    'timeZone' => 'Asia/Kuala_Lumpur'
-                                ],
-                                'end' => [
-                                    'dateTime' => $endTime,
-                                    'timeZone' => 'Asia/Kuala_Lumpur'
-                                ],
-                                'subject' => 'TIMETEC HR | ' . $data['appointment_type'] . ' | ' . $data['type'] . ' | ' . ($lead->companyDetail->company_name ?? 'Client'),
-                                'isOnlineMeeting' => true,
-                                'onlineMeetingProvider' => 'teamsForBusiness',
-                                'allowNewTimeProposals' => false,
-                                'responseRequested' => true,
-                                'attendees' => []
-                            ];
+            //                 $meetingPayload = [
+            //                     'start' => [
+            //                         'dateTime' => $startTime,
+            //                         'timeZone' => 'Asia/Kuala_Lumpur'
+            //                     ],
+            //                     'end' => [
+            //                         'dateTime' => $endTime,
+            //                         'timeZone' => 'Asia/Kuala_Lumpur'
+            //                     ],
+            //                     'subject' => 'TIMETEC HR | ' . $data['appointment_type'] . ' | ' . $data['type'] . ' | ' . ($lead->companyDetail->company_name ?? 'Client'),
+            //                     'isOnlineMeeting' => true,
+            //                     'onlineMeetingProvider' => 'teamsForBusiness',
+            //                     'allowNewTimeProposals' => false,
+            //                     'responseRequested' => true,
+            //                     'attendees' => []
+            //                 ];
 
-                            // Add required attendees to the meeting payload
-                            if (!empty($attendeeEmails)) {
-                                foreach ($attendeeEmails as $email) {
-                                    if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
-                                        $meetingPayload['attendees'][] = [
-                                            'emailAddress' => [
-                                                'address' => $email,
-                                                'name' => $email
-                                            ],
-                                            'type' => 'required'
-                                        ];
-                                    }
-                                }
-                            }
+            //                 // Add required attendees to the meeting payload
+            //                 if (!empty($attendeeEmails)) {
+            //                     foreach ($attendeeEmails as $email) {
+            //                         if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            //                             $meetingPayload['attendees'][] = [
+            //                                 'emailAddress' => [
+            //                                     'address' => $email,
+            //                                     'name' => $email
+            //                                 ],
+            //                                 'type' => 'required'
+            //                             ];
+            //                         }
+            //                     }
+            //                 }
 
-                            try {
-                                // ✅ STEP 1: Create the event using EMAIL (not azure_user_id)
-                                $organizerEmail = $implementerUser->email;
+            //                 try {
+            //                     // ✅ STEP 1: Create the event using EMAIL (not azure_user_id)
+            //                     $organizerEmail = $implementerUser->email;
 
-                                $onlineMeeting = $graph->createRequest("POST", "/users/$organizerEmail/events")
-                                    ->attachBody($meetingPayload)
-                                    ->setReturnType(\Microsoft\Graph\Model\Event::class)
-                                    ->execute();
+            //                     $onlineMeeting = $graph->createRequest("POST", "/users/$organizerEmail/events")
+            //                         ->attachBody($meetingPayload)
+            //                         ->setReturnType(\Microsoft\Graph\Model\Event::class)
+            //                         ->execute();
 
-                                $meetingInfo = $onlineMeeting->getOnlineMeeting();
-                                $meetingLink = $meetingInfo->getJoinUrl() ?? 'N/A';
-                                $eventId = $onlineMeeting->getId();
+            //                     $meetingInfo = $onlineMeeting->getOnlineMeeting();
+            //                     $meetingLink = $meetingInfo->getJoinUrl() ?? 'N/A';
+            //                     $eventId = $onlineMeeting->getId();
 
-                                Log::info('✅ Step 1: Event created successfully', [
-                                    'event_id' => $eventId,
-                                    'join_url' => $meetingLink,
-                                    'organizer_email' => $organizerEmail,
-                                    'has_azure_id' => !empty($implementerUser->azure_user_id)
-                                ]);
+            //                     Log::info('✅ Step 1: Event created successfully', [
+            //                         'event_id' => $eventId,
+            //                         'join_url' => $meetingLink,
+            //                         'organizer_email' => $organizerEmail,
+            //                         'has_azure_id' => !empty($implementerUser->azure_user_id)
+            //                     ]);
 
-                                // ✅ STEP 2: Query onlineMeetings using AZURE_USER_ID (if available) or EMAIL
-                                if ($meetingLink && $meetingLink !== 'N/A') {
-                                    try {
-                                        // ✅ Use azure_user_id for querying online meetings, fallback to email
-                                        $queryIdentifier = $implementerUser->azure_user_id ?? $organizerEmail;
-                                        $filterQuery = "joinWebUrl eq '$meetingLink'";
+            //                     // ✅ STEP 2: Query onlineMeetings using AZURE_USER_ID (if available) or EMAIL
+            //                     if ($meetingLink && $meetingLink !== 'N/A') {
+            //                         try {
+            //                             // ✅ Use azure_user_id for querying online meetings, fallback to email
+            //                             $queryIdentifier = $implementerUser->azure_user_id ?? $organizerEmail;
+            //                             $filterQuery = "joinWebUrl eq '$meetingLink'";
 
-                                        // Query to get the online meeting ID
-                                        $onlineMeetingResponse = $graph->createRequest("GET", "/users/$queryIdentifier/onlineMeetings?\$filter=$filterQuery")
-                                            ->execute();
+            //                             // Query to get the online meeting ID
+            //                             $onlineMeetingResponse = $graph->createRequest("GET", "/users/$queryIdentifier/onlineMeetings?\$filter=$filterQuery")
+            //                                 ->execute();
 
-                                        $responseBody = $onlineMeetingResponse->getBody();
+            //                             $responseBody = $onlineMeetingResponse->getBody();
 
-                                        Log::info('✅ Step 2: Online meeting query response', [
-                                            'response' => $responseBody,
-                                            'join_url' => $meetingLink,
-                                            'query_identifier' => $queryIdentifier,
-                                            'used_azure_id' => !empty($implementerUser->azure_user_id),
-                                            'azure_user_id' => $implementerUser->azure_user_id ?? null,
-                                            'email' => $organizerEmail
-                                        ]);
+            //                             Log::info('✅ Step 2: Online meeting query response', [
+            //                                 'response' => $responseBody,
+            //                                 'join_url' => $meetingLink,
+            //                                 'query_identifier' => $queryIdentifier,
+            //                                 'used_azure_id' => !empty($implementerUser->azure_user_id),
+            //                                 'azure_user_id' => $implementerUser->azure_user_id ?? null,
+            //                                 'email' => $organizerEmail
+            //                             ]);
 
-                                        // Extract the online meeting ID from response
-                                        if (isset($responseBody['value']) && count($responseBody['value']) > 0) {
-                                            $onlineMeetingId = $responseBody['value'][0]['id'] ?? null;
+            //                             // Extract the online meeting ID from response
+            //                             if (isset($responseBody['value']) && count($responseBody['value']) > 0) {
+            //                                 $onlineMeetingId = $responseBody['value'][0]['id'] ?? null;
 
-                                            Log::info('✅ Step 2: Online meeting ID retrieved', [
-                                                'online_meeting_id' => $onlineMeetingId,
-                                                'event_id' => $eventId,
-                                                'join_url' => $meetingLink,
-                                                'query_identifier' => $queryIdentifier,
-                                                'query_method' => $implementerUser->azure_user_id ? 'azure_user_id' : 'email'
-                                            ]);
+            //                                 Log::info('✅ Step 2: Online meeting ID retrieved', [
+            //                                     'online_meeting_id' => $onlineMeetingId,
+            //                                     'event_id' => $eventId,
+            //                                     'join_url' => $meetingLink,
+            //                                     'query_identifier' => $queryIdentifier,
+            //                                     'query_method' => $implementerUser->azure_user_id ? 'azure_user_id' : 'email'
+            //                                 ]);
 
-                                            // ✅ STEP 3: Enable automatic recording using PATCH with online_meeting_id
-                                            if ($onlineMeetingId) {
-                                                try {
-                                                    $recordingPayload = [
-                                                        'recordAutomatically' => true
-                                                    ];
+            //                                 // ✅ STEP 3: Enable automatic recording using PATCH with online_meeting_id
+            //                                 if ($onlineMeetingId) {
+            //                                     try {
+            //                                         $recordingPayload = [
+            //                                             'recordAutomatically' => true
+            //                                         ];
 
-                                                    $recordingResponse = $graph->createRequest("PATCH", "/users/$queryIdentifier/onlineMeetings/$onlineMeetingId")
-                                                        ->attachBody($recordingPayload)
-                                                        ->execute();
+            //                                         $recordingResponse = $graph->createRequest("PATCH", "/users/$queryIdentifier/onlineMeetings/$onlineMeetingId")
+            //                                             ->attachBody($recordingPayload)
+            //                                             ->execute();
 
-                                                    Log::info('✅ Step 3: Automatic recording enabled', [
-                                                        'online_meeting_id' => $onlineMeetingId,
-                                                        'query_identifier' => $queryIdentifier,
-                                                        'response' => $recordingResponse->getBody()
-                                                    ]);
+            //                                         Log::info('✅ Step 3: Automatic recording enabled', [
+            //                                             'online_meeting_id' => $onlineMeetingId,
+            //                                             'query_identifier' => $queryIdentifier,
+            //                                             'response' => $recordingResponse->getBody()
+            //                                         ]);
 
-                                                    Notification::make()
-                                                        ->title('Automatic Recording Enabled')
-                                                        ->success()
-                                                        ->body('The meeting will automatically start recording when it begins.')
-                                                        ->send();
+            //                                         Notification::make()
+            //                                             ->title('Automatic Recording Enabled')
+            //                                             ->success()
+            //                                             ->body('The meeting will automatically start recording when it begins.')
+            //                                             ->send();
 
-                                                } catch (\Exception $e) {
-                                                    Log::error('❌ Step 3: Failed to enable automatic recording', [
-                                                        'error' => $e->getMessage(),
-                                                        'online_meeting_id' => $onlineMeetingId,
-                                                        'query_identifier' => $queryIdentifier,
-                                                        'trace' => $e->getTraceAsString()
-                                                    ]);
+            //                                     } catch (\Exception $e) {
+            //                                         Log::error('❌ Step 3: Failed to enable automatic recording', [
+            //                                             'error' => $e->getMessage(),
+            //                                             'online_meeting_id' => $onlineMeetingId,
+            //                                             'query_identifier' => $queryIdentifier,
+            //                                             'trace' => $e->getTraceAsString()
+            //                                         ]);
 
-                                                    Notification::make()
-                                                        ->title('Recording Setup Warning')
-                                                        ->warning()
-                                                        ->body('Meeting created but automatic recording could not be enabled: ' . $e->getMessage())
-                                                        ->send();
-                                                }
-                                            }
-                                        } else {
-                                            Log::warning('⚠️ Step 2: No online meeting found with joinWebUrl', [
-                                                'join_url' => $meetingLink,
-                                                'response' => $responseBody,
-                                                'query_identifier' => $queryIdentifier
-                                            ]);
-                                        }
-                                    } catch (\Exception $e) {
-                                        Log::error('❌ Step 2: Failed to retrieve online meeting ID', [
-                                            'error' => $e->getMessage(),
-                                            'join_url' => $meetingLink,
-                                            'query_identifier' => $queryIdentifier ?? null,
-                                            'trace' => $e->getTraceAsString()
-                                        ]);
-                                    }
-                                }
+            //                                         Notification::make()
+            //                                             ->title('Recording Setup Warning')
+            //                                             ->warning()
+            //                                             ->body('Meeting created but automatic recording could not be enabled: ' . $e->getMessage())
+            //                                             ->send();
+            //                                     }
+            //                                 }
+            //                             } else {
+            //                                 Log::warning('⚠️ Step 2: No online meeting found with joinWebUrl', [
+            //                                     'join_url' => $meetingLink,
+            //                                     'response' => $responseBody,
+            //                                     'query_identifier' => $queryIdentifier
+            //                                 ]);
+            //                             }
+            //                         } catch (\Exception $e) {
+            //                             Log::error('❌ Step 2: Failed to retrieve online meeting ID', [
+            //                                 'error' => $e->getMessage(),
+            //                                 'join_url' => $meetingLink,
+            //                                 'query_identifier' => $queryIdentifier ?? null,
+            //                                 'trace' => $e->getTraceAsString()
+            //                             ]);
+            //                         }
+            //                     }
 
-                                // ✅ STEP 4: Update appointment with both event_id and online_meeting_id
-                                $appointment->update([
-                                    'event_id' => $eventId,
-                                    'meeting_link' => $meetingLink,
-                                    'online_meeting_id' => $onlineMeetingId,
-                                ]);
+            //                     // ✅ STEP 4: Update appointment with both event_id and online_meeting_id
+            //                     $appointment->update([
+            //                         'event_id' => $eventId,
+            //                         'meeting_link' => $meetingLink,
+            //                         'online_meeting_id' => $onlineMeetingId,
+            //                     ]);
 
-                                Log::info('✅ Step 4: Appointment updated with meeting details', [
-                                    'appointment_id' => $appointment->id,
-                                    'event_id' => $eventId,
-                                    'online_meeting_id' => $onlineMeetingId,
-                                    'meeting_link' => $meetingLink,
-                                    'recording_enabled' => !empty($onlineMeetingId),
-                                    'created_with' => 'email',
-                                    'queried_with' => $implementerUser->azure_user_id ? 'azure_user_id' : 'email',
-                                    'organizer_email' => $organizerEmail,
-                                    'azure_user_id' => $implementerUser->azure_user_id ?? null
-                                ]);
+            //                     Log::info('✅ Step 4: Appointment updated with meeting details', [
+            //                         'appointment_id' => $appointment->id,
+            //                         'event_id' => $eventId,
+            //                         'online_meeting_id' => $onlineMeetingId,
+            //                         'meeting_link' => $meetingLink,
+            //                         'recording_enabled' => !empty($onlineMeetingId),
+            //                         'created_with' => 'email',
+            //                         'queried_with' => $implementerUser->azure_user_id ? 'azure_user_id' : 'email',
+            //                         'organizer_email' => $organizerEmail,
+            //                         'azure_user_id' => $implementerUser->azure_user_id ?? null
+            //                     ]);
 
-                                Notification::make()
-                                    ->title('Teams Meeting Created Successfully')
-                                    ->success()
-                                    ->body('The meeting has been scheduled with automatic recording enabled.')
-                                    ->send();
+            //                     Notification::make()
+            //                         ->title('Teams Meeting Created Successfully')
+            //                         ->success()
+            //                         ->body('The meeting has been scheduled with automatic recording enabled.')
+            //                         ->send();
 
-                            } catch (\Exception $e) {
-                                \Illuminate\Support\Facades\Log::error('Failed to create Teams meeting: ' . $e->getMessage(), [
-                                    'request' => $meetingPayload,
-                                    'organizer_email' => $organizerEmail ?? null,
-                                    'azure_user_id' => $implementerUser->azure_user_id ?? null,
-                                    'trace' => $e->getTraceAsString()
-                                ]);
+            //                 } catch (\Exception $e) {
+            //                     \Illuminate\Support\Facades\Log::error('Failed to create Teams meeting: ' . $e->getMessage(), [
+            //                         'request' => $meetingPayload,
+            //                         'organizer_email' => $organizerEmail ?? null,
+            //                         'azure_user_id' => $implementerUser->azure_user_id ?? null,
+            //                         'trace' => $e->getTraceAsString()
+            //                     ]);
 
-                                Notification::make()
-                                    ->title('Failed to Create Teams Meeting')
-                                    ->danger()
-                                    ->body('Error: ' . $e->getMessage())
-                                    ->send();
-                            }
-                        }
+            //                     Notification::make()
+            //                         ->title('Failed to Create Teams Meeting')
+            //                         ->danger()
+            //                         ->body('Error: ' . $e->getMessage())
+            //                         ->send();
+            //                 }
+            //             }
 
-                        // Prepare email content
-                        $viewName = 'emails.implementer_appointment_notification';
-                        $leadowner = User::where('name', $lead->lead_owner)->first();
+            //             // Prepare email content
+            //             $viewName = 'emails.implementer_appointment_notification';
+            //             $leadowner = User::where('name', $lead->lead_owner)->first();
 
-                        $emailContent = [
-                            'leadOwnerName' => $lead->lead_owner ?? 'Unknown Manager',
-                            'lead' => [
-                                'lastName' => $lead->companyDetail->name ?? $lead->name ?? 'Client',
-                                'company' => $lead->companyDetail->company_name ?? 'N/A',
-                                'implementerName' => $data['implementer'] ?? 'N/A',
-                                'implementerEmail' => $implementerUser->email ?? 'admin.timetec.hr@timeteccloud.com', // Add this line
-                                'phone' => optional($lead->companyDetail)->contact_no ?? $lead->phone ?? 'N/A',
-                                'pic' => optional($lead->companyDetail)->name ?? $lead->name ?? 'N/A',
-                                'email' => optional($lead->companyDetail)->email ?? $lead->email ?? 'N/A',
-                                'date' => Carbon::parse($data['date'])->format('Y-m-d'),
-                                'dateDisplay' => Carbon::parse($data['date'])->format('d/m/Y'),
-                                'startTime' => Carbon::parse($data['start_time'])->format('h:i A') ?? 'N/A',
-                                'endTime' => Carbon::parse($data['end_time'])->format('h:i A') ?? 'N/A',
-                                'leadOwnerMobileNumber' => $leadowner->mobile_number ?? 'N/A',
-                                'session' => $data['session'] ?? 'N/A',
-                                'demo_type' => $data['type'],
-                                'appointment_type' => $data['appointment_type'],
-                                'remarks' => $data['remarks'] ?? 'N/A',
-                                'meetingLink' => $meetingLink ?? 'Will be provided separately',
-                            ],
-                        ];
+            //             $emailContent = [
+            //                 'leadOwnerName' => $lead->lead_owner ?? 'Unknown Manager',
+            //                 'lead' => [
+            //                     'lastName' => $lead->companyDetail->name ?? $lead->name ?? 'Client',
+            //                     'company' => $lead->companyDetail->company_name ?? 'N/A',
+            //                     'implementerName' => $data['implementer'] ?? 'N/A',
+            //                     'implementerEmail' => $implementerUser->email ?? 'admin.timetec.hr@timeteccloud.com', // Add this line
+            //                     'phone' => optional($lead->companyDetail)->contact_no ?? $lead->phone ?? 'N/A',
+            //                     'pic' => optional($lead->companyDetail)->name ?? $lead->name ?? 'N/A',
+            //                     'email' => optional($lead->companyDetail)->email ?? $lead->email ?? 'N/A',
+            //                     'date' => Carbon::parse($data['date'])->format('Y-m-d'),
+            //                     'dateDisplay' => Carbon::parse($data['date'])->format('d/m/Y'),
+            //                     'startTime' => Carbon::parse($data['start_time'])->format('h:i A') ?? 'N/A',
+            //                     'endTime' => Carbon::parse($data['end_time'])->format('h:i A') ?? 'N/A',
+            //                     'leadOwnerMobileNumber' => $leadowner->mobile_number ?? 'N/A',
+            //                     'session' => $data['session'] ?? 'N/A',
+            //                     'demo_type' => $data['type'],
+            //                     'appointment_type' => $data['appointment_type'],
+            //                     'remarks' => $data['remarks'] ?? 'N/A',
+            //                     'meetingLink' => $meetingLink ?? 'Will be provided separately',
+            //                 ],
+            //             ];
 
-                        // Get authenticated user's email for sender
-                        $authUser = auth()->user();
-                        $senderEmail = $authUser->email;
-                        $senderName = $authUser->name;
+            //             // Get authenticated user's email for sender
+            //             $authUser = auth()->user();
+            //             $senderEmail = $authUser->email;
+            //             $senderName = $authUser->name;
 
-                        // Default to implementer email if available
-                        if ($implementerUser && $implementerUser->email) {
-                            $senderEmail = $implementerUser->email;
-                            $senderName = $implementerUser->name;
-                        }
+            //             // Default to implementer email if available
+            //             if ($implementerUser && $implementerUser->email) {
+            //                 $senderEmail = $implementerUser->email;
+            //                 $senderName = $implementerUser->name;
+            //             }
 
-                        try {
-                            // Send email with template and custom subject format
-                            if (count($recipients) > 0) {
-                                \Illuminate\Support\Facades\Mail::send($viewName, ['content' => $emailContent], function ($message) use ($recipients, $senderEmail, $senderName, $lead, $data) {
-                                    $message->from($senderEmail, $senderName)
-                                        ->to($recipients)
-                                        ->bcc('admin.timetec.hr@timeteccloud.com')
-                                        ->subject("TIMETEC HR | {$data['appointment_type']} | {$data['type']} | {$lead->companyDetail->company_name}");
-                                });
+            //             try {
+            //                 // Send email with template and custom subject format
+            //                 if (count($recipients) > 0) {
+            //                     \Illuminate\Support\Facades\Mail::send($viewName, ['content' => $emailContent], function ($message) use ($recipients, $senderEmail, $senderName, $lead, $data) {
+            //                         $message->from($senderEmail, $senderName)
+            //                             ->to($recipients)
+            //                             ->bcc('admin.timetec.hr@timeteccloud.com')
+            //                             ->subject("TIMETEC HR | {$data['appointment_type']} | {$data['type']} | {$lead->companyDetail->company_name}");
+            //                     });
 
-                                Notification::make()
-                                    ->title('Implementer appointment notification sent')
-                                    ->success()
-                                    ->body('Email notification sent to administrator and required attendees')
-                                    ->send();
-                            }
-                        } catch (\Exception $e) {
-                            // Handle email sending failure
-                            Log::error("Email sending failed for implementer appointment: Error: {$e->getMessage()}");
+            //                     Notification::make()
+            //                         ->title('Implementer appointment notification sent')
+            //                         ->success()
+            //                         ->body('Email notification sent to administrator and required attendees')
+            //                         ->send();
+            //                 }
+            //             } catch (\Exception $e) {
+            //                 // Handle email sending failure
+            //                 Log::error("Email sending failed for implementer appointment: Error: {$e->getMessage()}");
 
-                            Notification::make()
-                                ->title('Email Notification Failed')
-                                ->danger()
-                                ->body('Could not send email notification: ' . $e->getMessage())
-                                ->send();
-                        }
-                    } else {
-                        Notification::make()
-                            ->title('Email and Teams meeting skipped')
-                            ->info()
-                            ->body('The appointment was created without sending email or creating Teams meeting.')
-                            ->send();
-                    }
+            //                 Notification::make()
+            //                     ->title('Email Notification Failed')
+            //                     ->danger()
+            //                     ->body('Could not send email notification: ' . $e->getMessage())
+            //                     ->send();
+            //             }
+            //         } else {
+            //             Notification::make()
+            //                 ->title('Email and Teams meeting skipped')
+            //                 ->info()
+            //                 ->body('The appointment was created without sending email or creating Teams meeting.')
+            //                 ->send();
+            //         }
 
-                    // Create activity log entry
-                    \App\Models\ActivityLog::create([
-                        'user_id' => auth()->id(),
-                        'causer_id' => auth()->id(),
-                        'action' => 'Created Appointment',
-                        'description' => "Created {$data['type']} for {$lead->companyDetail->company_name} with {$data['implementer']}",
-                        'subject_type' => get_class($appointment),
-                        'subject_id' => $appointment->id,
-                    ]);
+            //         // Create activity log entry
+            //         \App\Models\ActivityLog::create([
+            //             'user_id' => auth()->id(),
+            //             'causer_id' => auth()->id(),
+            //             'action' => 'Created Appointment',
+            //             'description' => "Created {$data['type']} for {$lead->companyDetail->company_name} with {$data['implementer']}",
+            //             'subject_type' => get_class($appointment),
+            //             'subject_id' => $appointment->id,
+            //         ]);
 
-                    Notification::make()
-                        ->title('Implementer Appointment Added Successfully')
-                        ->success()
-                        ->send();
+            //         Notification::make()
+            //             ->title('Implementer Appointment Added Successfully')
+            //             ->success()
+            //             ->send();
 
-                    $this->dispatch('refresh');
-                }),
+            //         $this->dispatch('refresh');
+            //     }),
         ];
     }
 

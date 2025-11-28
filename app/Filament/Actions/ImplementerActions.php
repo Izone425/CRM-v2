@@ -920,7 +920,7 @@ class ImplementerActions
                 return "Add Follow-up for {$companyName}";
             })
             ->form([
-                Grid::make(4)
+                Grid::make(5)
                     ->schema([
                         DatePicker::make('follow_up_date')
                             ->label('Next Follow-up Date')
@@ -934,6 +934,19 @@ class ImplementerActions
                             })
                             ->minDate(now()->subDay())
                             ->required(),
+
+                        Select::make('project_priority')
+                            ->label('Project Priority')
+                            ->required()
+                            ->options([
+                                'High' => 'High',
+                                'Medium' => 'Medium',
+                                'Low' => 'Low',
+                            ])
+                            ->default(function (SoftwareHandover $record) {
+                                // ✅ Get the current value from database, fallback to MEDIUM if null
+                                return $record->project_priority ?? 'Medium';
+                            }),
 
                         Select::make('manual_follow_up_count')
                             ->label('Follow Up Count')
@@ -1173,6 +1186,7 @@ class ImplementerActions
                     'follow_up_date' => $data['follow_up_date'],
                     'follow_up_counter' => true,
                     'manual_follow_up_count' => $data['manual_follow_up_count'] ?? 0,
+                    'project_priority' => $data['project_priority'] ?? 'MEDIUM',
                 ]);
 
                 // Create description for the follow-up

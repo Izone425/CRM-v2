@@ -68,7 +68,8 @@ class SessionTomorrow extends Component implements HasForms, HasTable
         $tomorrow = Carbon::tomorrow(); // Change to tomorrow instead of today
 
         $query = ImplementerAppointment::whereDate('date', $tomorrow)
-            ->where('status', 'New');
+            ->where('status', 'New')
+            ->whereNotIn('type', ['BACKUP SUPPORT', 'ONSITE TRAINING']);
 
         if ($this->selectedUser === 'all-implementer') {
 
