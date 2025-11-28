@@ -235,6 +235,7 @@ class ProjectPlanTabs
                         ->icon('heroicon-o-calendar')
                         ->color('success')
                         ->size(ActionSize::Small)
+                        ->closeModalByClickingAway(false)
                         ->visible(function (Get $get, $livewire) {
                             $leadId = $livewire->record?->id ?? $get('id') ?? 0;
 
@@ -385,10 +386,19 @@ class ProjectPlanTabs
                                             ->label('')
                                             ->content(new \Illuminate\Support\HtmlString(
                                                 '<div>
-                                                    <strong style="font-size: 14px;">Actual Date</strong>
+                                                    <strong style="font-size: 14px;">Actual Start Date</strong>
                                                 </div>'
                                             ))
-                                            ->columnSpan(6),
+                                            ->columnSpan(3),
+
+                                        \Filament\Forms\Components\Placeholder::make("header_{$moduleName}_actual_date")
+                                            ->label('')
+                                            ->content(new \Illuminate\Support\HtmlString(
+                                                '<div>
+                                                    <strong style="font-size: 14px;">Actual End Date</strong>
+                                                </div>'
+                                            ))
+                                            ->columnSpan(3),
 
                                         \Filament\Forms\Components\Placeholder::make("header_{$moduleName}_actual_duration")
                                             ->label('')
@@ -420,6 +430,10 @@ class ProjectPlanTabs
                                                 ->hiddenLabel()
                                                 ->default($task->task_name)
                                                 ->disabled()
+                                                ->extraAttributes([
+                                                    'title' => 'Task Percentage: ' . ($task->task_percentage ?? 0) . '%',
+                                                    'style' => 'cursor: help;'
+                                                ])
                                                 ->columnSpan(4),
 
                                             TextInput::make("plan_{$plan->id}_plan_date_range")
@@ -496,12 +510,14 @@ class ProjectPlanTabs
                                                 ->hiddenLabel()
                                                 ->default($plan->actual_start_date ? \Carbon\Carbon::parse($plan->actual_start_date)->format('d/m/Y') : '')
                                                 ->live(onBlur: true)
+                                                ->disabled(fn (Get $get) => !$get("plan_{$plan->id}_plan_date_range"))
                                                 ->suffixAction(
                                                     \Filament\Forms\Components\Actions\Action::make('selectActualStartDate')
                                                         ->icon('heroicon-m-calendar')
                                                         ->tooltip('Select start date')
                                                         ->modalHeading('Select Actual Start Date')
                                                         ->modalWidth('md')
+                                                        ->visible(fn (Get $get) => (bool) $get("plan_{$plan->id}_plan_date_range"))
                                                         ->form([
                                                             DatePicker::make('start_date')
                                                                 ->label('Actual Start Date')
@@ -591,12 +607,14 @@ class ProjectPlanTabs
                                                 ->hiddenLabel()
                                                 ->default($plan->actual_end_date ? \Carbon\Carbon::parse($plan->actual_end_date)->format('d/m/Y') : '')
                                                 ->live(onBlur: true)
+                                                ->disabled(fn (Get $get) => !$get("plan_{$plan->id}_plan_date_range") || !$get("plan_{$plan->id}_actual_start_date"))
                                                 ->suffixAction(
                                                     \Filament\Forms\Components\Actions\Action::make('selectActualEndDate')
                                                         ->icon('heroicon-m-calendar')
                                                         ->tooltip('Select end date')
                                                         ->modalHeading('Select Actual End Date')
                                                         ->modalWidth('md')
+                                                        ->visible(fn (Get $get) => (bool) $get("plan_{$plan->id}_plan_date_range") && (bool) $get("plan_{$plan->id}_actual_start_date"))
                                                         ->form(function (Get $get) use ($plan) {
                                                             $startDateDisplay = $get("plan_{$plan->id}_actual_start_date");
                                                             $minDate = null;
@@ -616,7 +634,7 @@ class ProjectPlanTabs
                                                                     ->displayFormat('d/m/Y')
                                                                     ->native(false)
                                                                     ->required()
-                                                                    ->minDate($minDate?->subDay())
+                                                                    ->minDate($minDate) // ✅ Set minimum date to actual start date
                                                                     ->columnSpanFull(),
                                                             ];
                                                         })
@@ -636,9 +654,18 @@ class ProjectPlanTabs
                                                                 }
 
                                                                 try {
-                                                                    // ✅ FIX: Parse both dates consistently
                                                                     $start = \Carbon\Carbon::createFromFormat('d/m/Y', $startDateDisplay)->startOfDay();
-                                                                    $end = \Carbon\Carbon::parse($endDate)->startOfDay(); // From calendar comes in Y-m-d format
+                                                                    $end = \Carbon\Carbon::parse($endDate)->startOfDay();
+
+                                                                    // ✅ Additional validation: Ensure end is not before start
+                                                                    if ($end->lt($start)) {
+                                                                        Notification::make()
+                                                                            ->title('Invalid Date Range')
+                                                                            ->body('End date cannot be before start date')
+                                                                            ->danger()
+                                                                            ->send();
+                                                                        return;
+                                                                    }
 
                                                                     $set("plan_{$plan->id}_actual_end_date", $end->format('d/m/Y'));
 
@@ -670,10 +697,18 @@ class ProjectPlanTabs
                                                             $startDateDisplay = $get("plan_{$plan->id}_actual_start_date");
 
                                                             if (!$startDateDisplay) {
+                                                                // ✅ Clear end date if no start date
+                                                                $set("plan_{$plan->id}_actual_end_date", null);
+                                                                $set("plan_{$plan->id}_actual_duration", null);
+
+                                                                Notification::make()
+                                                                    ->title('Start Date Required')
+                                                                    ->body('Please set actual start date first')
+                                                                    ->warning()
+                                                                    ->send();
                                                                 return;
                                                             }
 
-                                                            // ✅ FIX: Parse consistently - state could be in Y-m-d or d/m/Y format
                                                             $start = \Carbon\Carbon::createFromFormat('d/m/Y', trim($startDateDisplay))->startOfDay();
 
                                                             // Try d/m/Y format first, then Y-m-d format
@@ -686,6 +721,12 @@ class ProjectPlanTabs
                                                             if ($end->lt($start)) {
                                                                 $set("plan_{$plan->id}_actual_end_date", null);
                                                                 $set("plan_{$plan->id}_actual_duration", null);
+
+                                                                Notification::make()
+                                                                    ->title('Invalid Date Range')
+                                                                    ->body('End date cannot be before start date')
+                                                                    ->warning()
+                                                                    ->send();
                                                                 return;
                                                             }
 
@@ -713,6 +754,16 @@ class ProjectPlanTabs
                                                 ->live(onBlur: true)
                                                 ->rows(2)
                                                 ->autosize()
+                                                ->extraAlpineAttributes([
+                                                    'x-on:input' => '
+                                                        const start = $el.selectionStart;
+                                                        const end = $el.selectionEnd;
+                                                        const value = $el.value;
+                                                        $el.value = value.toUpperCase();
+                                                        $el.setSelectionRange(start, end);
+                                                    '
+                                                ])
+                                                ->dehydrateStateUsing(fn ($state) => strtoupper($state))
                                                 ->columnSpan(16),
 
                                             Placeholder::make("plan_{$plan->id}_status")
@@ -750,7 +801,14 @@ class ProjectPlanTabs
 
                                     // Add module section
                                     $schema[] = Section::make($moduleName)
-                                        ->description("Module Weight: {$modulePercentage}% | Order: {$moduleOrder} | Progress: {$progressPercentage}% ({$completedModuleTasks}/{$totalModuleTasks}) | Pending: {$pendingTasks} | SW ID: {$softwareHandover->id}")
+                                        ->heading(new \Illuminate\Support\HtmlString('
+                                            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                                                <span>' . e($moduleName) . '</span>
+                                                <span style="color: #dc2626; font-weight: bold; font-size: 14px;">
+                                                    Progress: ' . $completedModuleTasks . '/' . $totalModuleTasks . '
+                                                </span>
+                                            </div>
+                                        '))
                                         ->collapsible()
                                         ->collapsed(!$isExpanded)
                                         ->schema($moduleSchema);
