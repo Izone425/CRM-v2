@@ -34,111 +34,133 @@ class ProjectPlanTabs
         return [
             Section::make('Project Plan')
                 ->headerActions([
-                    // \Filament\Forms\Components\Actions\Action::make('downloadExcel')
-                    //     ->label('Generate Project Plan Excel')
-                    //     ->icon('heroicon-o-document-arrow-down')
-                    //     ->color('success')
-                    //     ->size(ActionSize::Small)
-                    //     ->action(function (Get $get, $livewire) {
-                    //         $leadId = $livewire->record?->id ?? $get('id') ?? 0;
+                    \Filament\Forms\Components\Actions\Action::make('downloadExcel')
+                        ->label('Generate Project Plan Excel')
+                        ->icon('heroicon-o-document-arrow-down')
+                        ->color('success')
+                        ->size(ActionSize::Small)
+                        ->visible(function (Get $get, $livewire) {
+                            $leadId = $livewire->record?->id ?? $get('id') ?? 0;
 
-                    //         if ($leadId === 0) {
-                    //             Notification::make()
-                    //                 ->title('Error')
-                    //                 ->body('Please save the lead first')
-                    //                 ->danger()
-                    //                 ->send();
-                    //             return;
-                    //         }
+                            if ($leadId === 0) {
+                                return false;
+                            }
 
-                    //         $lead = Lead::find($leadId);
-                    //         $softwareHandover = SoftwareHandover::where('lead_id', $leadId)
-                    //             ->latest()
-                    //             ->first();
+                            $softwareHandover = SoftwareHandover::where('lead_id', $leadId)
+                                ->latest()
+                                ->first();
 
-                    //         if (!$softwareHandover) {
-                    //             Notification::make()
-                    //                 ->title('No Software Handover Found')
-                    //                 ->warning()
-                    //                 ->send();
-                    //             return;
-                    //         }
+                            if (!$softwareHandover) {
+                                return false;
+                            }
 
-                    //         $filePath = self::generateProjectPlanExcel($lead, $softwareHandover);
+                            // ✅ Check if there are any project plans for this lead and software handover
+                            $hasProjectPlans = ProjectPlan::where('lead_id', $leadId)
+                                ->where('sw_id', $softwareHandover->id)
+                                ->exists();
 
-                    //         if ($filePath) {
-                    //             $softwareHandover->update([
-                    //                 'project_plan_generated_at' => now(),
-                    //             ]);
+                            return $hasProjectPlans;
+                        })
+                        ->action(function (Get $get, $livewire) {
+                            $leadId = $livewire->record?->id ?? $get('id') ?? 0;
 
-                    //             // ✅ Get file details for the notification actions
-                    //             $companyName = $lead->companyDetail?->company_name ?? 'Unknown';
-                    //             $companySlug = \Illuminate\Support\Str::slug($companyName);
+                            if ($leadId === 0) {
+                                Notification::make()
+                                    ->title('Error')
+                                    ->body('Please save the lead first')
+                                    ->danger()
+                                    ->send();
+                                return;
+                            }
 
-                    //             // Find the latest file
-                    //             $files = \Illuminate\Support\Facades\Storage::disk('public')->files('project-plans');
-                    //             $matchingFiles = [];
+                            $lead = Lead::find($leadId);
+                            $softwareHandover = SoftwareHandover::where('lead_id', $leadId)
+                                ->latest()
+                                ->first();
 
-                    //             foreach ($files as $file) {
-                    //                 if (str_contains($file, $companySlug)) {
-                    //                     $fullPath = storage_path('app/public/' . $file);
-                    //                     $matchingFiles[] = [
-                    //                         'path' => $file,
-                    //                         'modified' => file_exists($fullPath) ? filemtime($fullPath) : 0
-                    //                     ];
-                    //                 }
-                    //             }
+                            if (!$softwareHandover) {
+                                Notification::make()
+                                    ->title('No Software Handover Found')
+                                    ->warning()
+                                    ->send();
+                                return;
+                            }
 
-                    //             if (!empty($matchingFiles)) {
-                    //                 usort($matchingFiles, function($a, $b) {
-                    //                     return $b['modified'] - $a['modified'];
-                    //                 });
+                            $filePath = self::generateProjectPlanExcel($lead, $softwareHandover);
 
-                    //                 $latestFile = $matchingFiles[0];
-                    //                 $fileName = basename($latestFile['path']);
-                    //                 $fileFullPath = storage_path('app/public/' . $latestFile['path']);
+                            if ($filePath) {
+                                $softwareHandover->update([
+                                    'project_plan_generated_at' => now(),
+                                ]);
 
-                    //                 // ✅ Notification with View and Download actions
-                    //                 Notification::make()
-                    //                     ->title('Excel File Generated Successfully')
-                    //                     ->body('Project plan Excel file has been generated. Click below to view or download.')
-                    //                     ->success()
-                    //                     ->duration(10000) // 10 seconds to give time to click
-                    //                     ->actions([
-                    //                         \Filament\Notifications\Actions\Action::make('view')
-                    //                             ->label('View in Office Online')
-                    //                             ->icon('heroicon-o-eye')
-                    //                             ->color('info')
-                    //                             ->url(function () use ($latestFile) {
-                    //                                 // ✅ Generate public URL for the file
-                    //                                 $publicUrl = url('storage/' . $latestFile['path']);
+                                // ✅ Get file details for the notification actions
+                                $companyName = $lead->companyDetail?->company_name ?? 'Unknown';
+                                $companySlug = \Illuminate\Support\Str::slug($companyName);
 
-                    //                                 // ✅ Use Office Web Viewer
-                    //                                 return 'https://view.officeapps.live.com/op/view.aspx?src=' . urlencode($publicUrl);
-                    //                             })
-                    //                             ->openUrlInNewTab(),
+                                // Find the latest file
+                                $files = \Illuminate\Support\Facades\Storage::disk('public')->files('project-plans');
+                                $matchingFiles = [];
 
-                    //                         \Filament\Notifications\Actions\Action::make('download')
-                    //                             ->label('Download')
-                    //                             ->icon('heroicon-o-arrow-down-tray')
-                    //                             ->color('success')
-                    //                             ->url(function () use ($latestFile) {
-                    //                                 return route('download.project-plan', [
-                    //                                     'file' => basename($latestFile['path'])
-                    //                                 ]);
-                    //                             })
-                    //                             ->openUrlInNewTab(),
-                    //                     ])
-                    //                     ->send();
-                    //             } else {
-                    //                 Notification::make()
-                    //                     ->title('Excel File Generated')
-                    //                     ->body('Project plan Excel file has been generated and saved.')
-                    //                     ->success()
-                    //                     ->send();
-                    //             }
-                    //         }
-                    //     }),
+                                foreach ($files as $file) {
+                                    if (str_contains($file, $companySlug)) {
+                                        $fullPath = storage_path('app/public/' . $file);
+                                        $matchingFiles[] = [
+                                            'path' => $file,
+                                            'modified' => file_exists($fullPath) ? filemtime($fullPath) : 0
+                                        ];
+                                    }
+                                }
+
+                                if (!empty($matchingFiles)) {
+                                    usort($matchingFiles, function($a, $b) {
+                                        return $b['modified'] - $a['modified'];
+                                    });
+
+                                    $latestFile = $matchingFiles[0];
+                                    $fileName = basename($latestFile['path']);
+                                    $fileFullPath = storage_path('app/public/' . $latestFile['path']);
+
+                                    // ✅ Notification with View and Download actions
+                                    Notification::make()
+                                        ->title('Excel File Generated Successfully')
+                                        ->body('Project plan Excel file has been generated. Click below to view or download.')
+                                        ->success()
+                                        ->duration(10000) // 10 seconds to give time to click
+                                        ->actions([
+                                            \Filament\Notifications\Actions\Action::make('view')
+                                                ->label('View in Office Online')
+                                                ->icon('heroicon-o-eye')
+                                                ->color('info')
+                                                ->url(function () use ($latestFile) {
+                                                    // ✅ Generate public URL for the file
+                                                    $publicUrl = url('storage/' . $latestFile['path']);
+
+                                                    // ✅ Use Office Web Viewer
+                                                    return 'https://view.officeapps.live.com/op/view.aspx?src=' . urlencode($publicUrl);
+                                                })
+                                                ->openUrlInNewTab(),
+
+                                            \Filament\Notifications\Actions\Action::make('download')
+                                                ->label('Download')
+                                                ->icon('heroicon-o-arrow-down-tray')
+                                                ->color('success')
+                                                ->url(function () use ($latestFile) {
+                                                    return route('download.project-plan', [
+                                                        'file' => basename($latestFile['path'])
+                                                    ]);
+                                                })
+                                                ->openUrlInNewTab(),
+                                        ])
+                                        ->send();
+                                } else {
+                                    Notification::make()
+                                        ->title('Excel File Generated')
+                                        ->body('Project plan Excel file has been generated and saved.')
+                                        ->success()
+                                        ->send();
+                                }
+                            }
+                        }),
 
                     \Filament\Forms\Components\Actions\Action::make('refreshModules')
                         ->label('Sync Tasks from Template')
