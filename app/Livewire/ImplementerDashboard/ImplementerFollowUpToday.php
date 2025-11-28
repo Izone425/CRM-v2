@@ -190,7 +190,27 @@ class ImplementerFollowUpToday extends Component implements HasForms, HasTable
                     ->placeholder('All Implementers')
                     ->multiple(),
 
-                SortFilter::make("sort_by"),
+                SelectFilter::make('manual_follow_up_count')
+                    ->label('Follow Up Count')
+                    ->options([
+                        '0' => '0',
+                        '1' => '1',
+                        '2' => '2',
+                        '3' => '3',
+                        '4' => '4',
+                    ])
+                    ->placeholder('All Counts')
+                    ->multiple(),
+
+                SelectFilter::make('project_priority')
+                    ->label('Project Priority')
+                    ->options([
+                        'High' => 'High',
+                        'Medium' => 'Medium',
+                        'Low' => 'Low',
+                    ])
+                    ->placeholder('All Priorities')
+                    ->multiple(),
             ])
             ->columns([
                 TextColumn::make('id')
@@ -258,12 +278,18 @@ class ImplementerFollowUpToday extends Component implements HasForms, HasTable
                     ->html(),
 
                 TextColumn::make('pending_days')
-                    ->label('Pending Days')
+                    ->label(new HtmlString('Pending<br>Days'))
                     ->default('0')
                     ->formatStateUsing(fn ($state) => $state . ' ' . ($state == 0 ? 'Day' : 'Days')),
 
+                TextColumn::make('manual_follow_up_count')
+                    ->label(new HtmlString('Follow Up<br>Count')),
+
+                TextColumn::make('project_priority')
+                    ->label(new HtmlString('Project<br>Priority')),
+
                 TextColumn::make('status_handover')
-                    ->label('Status'),
+                    ->label(new HtmlString('Project<br>Status')),
             ])
             ->actions([
                 ActionGroup::make([

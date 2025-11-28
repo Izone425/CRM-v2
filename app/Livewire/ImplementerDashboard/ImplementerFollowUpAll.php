@@ -188,6 +188,28 @@ class ImplementerFollowUpAll extends Component implements HasForms, HasTable
                     })
                     ->placeholder('All Implementers')
                     ->multiple(),
+
+                SelectFilter::make('manual_follow_up_count')
+                    ->label('Follow Up Count')
+                    ->options([
+                        '0' => '0',
+                        '1' => '1',
+                        '2' => '2',
+                        '3' => '3',
+                        '4' => '4',
+                    ])
+                    ->placeholder('All Counts')
+                    ->multiple(),
+
+                SelectFilter::make('project_priority')
+                    ->label('Project Priority')
+                    ->options([
+                        'High' => 'High',
+                        'Medium' => 'Medium',
+                        'Low' => 'Low',
+                    ])
+                    ->placeholder('All Priorities')
+                    ->multiple(),
             ])
             ->columns([
                 TextColumn::make('id')
@@ -255,14 +277,23 @@ class ImplementerFollowUpAll extends Component implements HasForms, HasTable
                     ->html(),
 
                 TextColumn::make('pending_days')
-                    ->label('Pending Days')
+                    ->label(new HtmlString('Pending<br>Days'))
                     ->formatStateUsing(function ($state, $record) {
+                        $followUpDate = Carbon::parse($record->follow_up_date)->startOfDay();
+                        $today = now()->startOfDay();
+
+                        // ✅ Calculate if overdue (negative days)
+                        if ($followUpDate->lt($today)) {
+                            $overdueDays = -1 * $this->getWeekdayCount($followUpDate, $today);
+                            return $overdueDays . ' days';
+                        }
+
                         // Calculate days left from now until follow_up_date
-                        $daysLeft = $this->getWeekdayCount(now(), $record->follow_up_date);
+                        $daysLeft = $this->getWeekdayCount($today, $followUpDate);
 
                         // Format the output
                         if ($daysLeft <= 0) {
-                            return 'Today';
+                            return '0 day';
                         } else {
                             return $daysLeft . ' days';
                         }
@@ -271,8 +302,16 @@ class ImplementerFollowUpAll extends Component implements HasForms, HasTable
                         return $query->orderBy('follow_up_date', $direction);
                     })
                     ->color(function ($record) {
+                        $followUpDate = Carbon::parse($record->follow_up_date)->startOfDay();
+                        $today = now()->startOfDay();
+
+                        // ✅ Check if overdue (past date)
+                        if ($followUpDate->lt($today)) {
+                            return 'danger'; // Red for overdue
+                        }
+
                         // Get days left
-                        $daysLeft = $this->getWeekdayCount(now(), $record->follow_up_date);
+                        $daysLeft = $this->getWeekdayCount($today, $followUpDate);
 
                         // Color logic: green for future dates
                         if ($daysLeft > 3) {
@@ -284,8 +323,14 @@ class ImplementerFollowUpAll extends Component implements HasForms, HasTable
                         }
                     }),
 
+                TextColumn::make('manual_follow_up_count')
+                    ->label(new HtmlString('Follow Up<br>Count')),
+
+                TextColumn::make('project_priority')
+                    ->label(new HtmlString('Project<br>Priority')),
+
                 TextColumn::make('status_handover')
-                    ->label('Status'),
+                    ->label(new HtmlString('Project<br>Status')),
             ])
             // ->filters([
             //     // Filter for Creator
@@ -352,10 +397,16 @@ class ImplementerFollowUpAll extends Component implements HasForms, HasTable
     private function getWeekdayCount($startDate, $endDate)
     {
         $weekdayCount = 0;
-        $currentDate = Carbon::parse($startDate);
-        $endDate = Carbon::parse($endDate);
+        $currentDate = Carbon::parse($startDate)->startOfDay();
+        $endDate = Carbon::parse($endDate)->startOfDay();
 
-        while ($currentDate->lte($endDate)) {
+        // ✅ Handle both forward and backward counting
+        if ($currentDate->gt($endDate)) {
+            // Swap dates for backward counting
+            [$currentDate, $endDate] = [$endDate, $currentDate];
+        }
+
+        while ($currentDate->lt($endDate)) {
             if (!$currentDate->isWeekend()) {
                 $weekdayCount++;
             }
@@ -364,4 +415,5 @@ class ImplementerFollowUpAll extends Component implements HasForms, HasTable
 
         return $weekdayCount;
     }
+
 }

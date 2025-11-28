@@ -163,13 +163,34 @@ class ProjectPlanTabs
                         }),
 
                     \Filament\Forms\Components\Actions\Action::make('refreshModules')
-                        ->label('Sync Tasks from Template')
+                        ->label('Sync Project Plan')
                         ->icon('heroicon-o-arrow-path')
                         ->color('info')
                         ->size(ActionSize::Small)
                         ->requiresConfirmation()
                         ->modalHeading('Sync Project Tasks')
                         ->modalDescription('This will create project tasks based on the latest software handover modules and admin-defined task templates. Phase 1 and Phase 2 will always be included.')
+                        ->visible(function (Get $get, $livewire) {
+                            $leadId = $livewire->record?->id ?? $get('id') ?? 0;
+
+                            if ($leadId === 0) {
+                                return false;
+                            }
+
+                            $softwareHandover = SoftwareHandover::where('lead_id', $leadId)
+                                ->latest()
+                                ->first();
+
+                            if (!$softwareHandover) {
+                                return false;
+                            }
+
+                            $hasProjectPlans = ProjectPlan::where('lead_id', $leadId)
+                                ->where('sw_id', $softwareHandover->id)
+                                ->exists();
+
+                            return !$hasProjectPlans;
+                        })
                         ->action(function (Set $set, Get $get, $livewire) {
                             $leadId = $livewire->record?->id ?? $get('id') ?? 0;
 
@@ -210,7 +231,7 @@ class ProjectPlanTabs
                         }),
 
                     \Filament\Forms\Components\Actions\Action::make('setTaskDates')
-                        ->label('Update Task Dates & Status')
+                        ->label('Update Project Plan')
                         ->icon('heroicon-o-calendar')
                         ->color('success')
                         ->size(ActionSize::Small)
