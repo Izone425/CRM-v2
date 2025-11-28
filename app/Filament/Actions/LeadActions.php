@@ -1185,55 +1185,55 @@ class LeadActions
                             ]);
                             $appointment->save();
 
-                            try {
-                                $metaService = new \App\Services\MetaConversionsApiService();
+                            // try {
+                            //     $metaService = new \App\Services\MetaConversionsApiService();
 
-                                // Get social_lead_id from utm_details
-                                $socialLeadId = $lead->utmDetail->social_lead_id ?? null;
+                            //     // Get social_lead_id from utm_details
+                            //     $socialLeadId = $lead->utmDetail->social_lead_id ?? null;
 
-                                if ($socialLeadId) {
-                                    $leadData = [
-                                        'id' => $lead->id,
-                                        'email' => $lead->companyDetail->email ?? $lead->email,
-                                        'phone_number' => $lead->companyDetail->contact_no ?? $lead->phone,
-                                        'first_name' => $lead->companyDetail->name ?? $lead->name ?? null,
-                                        'last_name' => null, // If you have last name field
-                                        'city' => $lead->city ?? null,
-                                        'state' => $lead->state ?? null,
-                                        'zip' => $lead->zip ?? null,
-                                        'country' => $lead->country ?? null,
-                                        'social_lead_id' => $socialLeadId, // ✅ Meta's lead_id from utm_details
-                                        'fbclid' => $lead->utmDetail->fbclid ?? null,
-                                    ];
+                            //     if ($socialLeadId) {
+                            //         $leadData = [
+                            //             'id' => $lead->id,
+                            //             'email' => $lead->companyDetail->email ?? $lead->email,
+                            //             'phone_number' => $lead->companyDetail->contact_no ?? $lead->phone,
+                            //             'first_name' => $lead->companyDetail->name ?? $lead->name ?? null,
+                            //             'last_name' => null, // If you have last name field
+                            //             'city' => $lead->city ?? null,
+                            //             'state' => $lead->state ?? null,
+                            //             'zip' => $lead->zip ?? null,
+                            //             'country' => $lead->country ?? null,
+                            //             'social_lead_id' => $socialLeadId, // ✅ Meta's lead_id from utm_details
+                            //             'fbclid' => $lead->utmDetail->fbclid ?? null,
+                            //         ];
 
-                                    $result = $metaService->sendLeadEvent($leadData);
+                            //         $result = $metaService->sendLeadEvent($leadData);
 
-                                    if ($result['success']) {
-                                        Log::info('Meta Conversions API: Demo-Assigned event sent successfully', [
-                                            'lead_id' => $lead->id,
-                                            'social_lead_id' => $socialLeadId,
-                                            'demo_type' => $data['type'],
-                                            'appointment_type' => $data['appointment_type'],
-                                        ]);
-                                    } else {
-                                        Log::warning('Meta Conversions API: Failed to send Demo-Assigned event', [
-                                            'lead_id' => $lead->id,
-                                            'social_lead_id' => $socialLeadId,
-                                            'error' => $result['error'] ?? 'Unknown error',
-                                        ]);
-                                    }
-                                } else {
-                                    Log::info('Meta Conversions API: No social_lead_id found, skipping event', [
-                                        'lead_id' => $lead->id,
-                                    ]);
-                                }
-                            } catch (\Exception $e) {
-                                Log::error('Meta Conversions API: Exception during Demo-Assigned event', [
-                                    'lead_id' => $lead->id,
-                                    'error' => $e->getMessage(),
-                                    'trace' => $e->getTraceAsString(),
-                                ]);
-                            }
+                            //         if ($result['success']) {
+                            //             Log::info('Meta Conversions API: Demo-Assigned event sent successfully', [
+                            //                 'lead_id' => $lead->id,
+                            //                 'social_lead_id' => $socialLeadId,
+                            //                 'demo_type' => $data['type'],
+                            //                 'appointment_type' => $data['appointment_type'],
+                            //             ]);
+                            //         } else {
+                            //             Log::warning('Meta Conversions API: Failed to send Demo-Assigned event', [
+                            //                 'lead_id' => $lead->id,
+                            //                 'social_lead_id' => $socialLeadId,
+                            //                 'error' => $result['error'] ?? 'Unknown error',
+                            //             ]);
+                            //         }
+                            //     } else {
+                            //         Log::info('Meta Conversions API: No social_lead_id found, skipping event', [
+                            //             'lead_id' => $lead->id,
+                            //         ]);
+                            //     }
+                            // } catch (\Exception $e) {
+                            //     Log::error('Meta Conversions API: Exception during Demo-Assigned event', [
+                            //         'lead_id' => $lead->id,
+                            //         'error' => $e->getMessage(),
+                            //         'trace' => $e->getTraceAsString(),
+                            //     ]);
+                            // }
 
                             if (!($data['skip_notifications'] ?? false)) {
                                 // Retrieve the related Lead model from ActivityLog

@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Services;
 
 use Illuminate\Support\Facades\Http;
@@ -36,15 +35,23 @@ class MetaConversionsApiService
                 'payload' => $payload,
             ]);
 
-            $url = "https://graph.facebook.com/{$this->apiVersion}/{$this->datasetId}/events";
+            // ✅ Correct URL format with access_token as query parameter
+            $url = "https://graph.facebook.com/{$this->apiVersion}/{$this->datasetId}/events?access_token={$this->accessToken}";
 
+            // ✅ Add test_event_code to URL if provided
+            if ($testEventCode) {
+                $url .= "&test_event_code={$testEventCode}";
+            }
+
+            Log::info('Meta API URL', [
+                'url' => str_replace($this->accessToken, '[HIDDEN]', $url), // Hide token in logs
+                'has_test_code' => !empty($testEventCode),
+            ]);
+
+            // ✅ Send only the data array in the body
             $response = Http::withHeaders([
                 'Content-Type' => 'application/json',
-            ])->post($url, [
-                'data' => $payload['data'],
-                'access_token' => $this->accessToken,
-                'test_event_code' => $testEventCode, // Only used for testing
-            ]);
+            ])->post($url, $payload);
 
             $responseData = $response->json();
 
@@ -90,91 +97,137 @@ class MetaConversionsApiService
     }
 
     /**
-     * Build the payload for Meta Conversions API
+     * Build payload for Meta Conversions API
+     *
+     * @param array $leadData
+     * @param string|null $testEventCode
+     * @return array
      */
     private function buildPayload(array $leadData, ?string $testEventCode = null): array
     {
-        $eventTime = now()->timestamp;
-
-        // Hash customer information using SHA256
-        $hashedEmail = !empty($leadData['email'])
-            ? hash('sha256', strtolower(trim($leadData['email'])))
-            : null;
-
-        $hashedPhone = !empty($leadData['phone_number'])
-            ? hash('sha256', preg_replace('/\D/', '', $leadData['phone_number']))
-            : null;
-
         $userData = [];
 
-        if ($hashedEmail) {
-            $userData['em'] = [$hashedEmail];
+        // ✅ Hash email with SHA256 if provided
+        if (!empty($leadData['email'])) {
+            $userData['em'] = [hash('sha256', strtolower(trim($leadData['email'])))];
         }
 
-        if ($hashedPhone) {
-            $userData['ph'] = [$hashedPhone];
+        // ✅ Hash phone with SHA256 if provided (remove spaces and special chars)
+        if (!empty($leadData['phone_number'])) {
+            $cleanPhone = preg_replace('/[^0-9+]/', '', $leadData['phone_number']);
+            $userData['ph'] = [hash('sha256', $cleanPhone)];
         }
 
-        // ✅ Use social_lead_id from utm_details (Meta's lead_id)
-        if (!empty($leadData['social_lead_id'])) {
-            $userData['lead_id'] = $leadData['social_lead_id'];
-
-            Log::info('Meta lead_id added to payload', [
-                'social_lead_id' => $leadData['social_lead_id'],
-            ]);
-        }
-
-        // Add click_id (fbclid) if available
-        if (!empty($leadData['fbclid'])) {
-            $userData['fbp'] = $leadData['fbclid'];
-        }
-
-        // Add additional hashed data for better matching
+        // ✅ Hash first name with SHA256 if provided
         if (!empty($leadData['first_name'])) {
             $userData['fn'] = [hash('sha256', strtolower(trim($leadData['first_name'])))];
         }
 
+        // ✅ Hash last name with SHA256 if provided
         if (!empty($leadData['last_name'])) {
             $userData['ln'] = [hash('sha256', strtolower(trim($leadData['last_name'])))];
         }
 
+        // ✅ Hash city with SHA256 if provided
         if (!empty($leadData['city'])) {
             $userData['ct'] = [hash('sha256', strtolower(trim($leadData['city'])))];
         }
 
+        // ✅ Hash state with SHA256 if provided
         if (!empty($leadData['state'])) {
             $userData['st'] = [hash('sha256', strtolower(trim($leadData['state'])))];
         }
 
+        // ✅ Hash zip code with SHA256 if provided
         if (!empty($leadData['zip'])) {
             $userData['zp'] = [hash('sha256', trim($leadData['zip']))];
         }
 
+        // ✅ Hash country with SHA256 if provided (use 2-letter country code)
         if (!empty($leadData['country'])) {
             $userData['country'] = [hash('sha256', strtolower(trim($leadData['country'])))];
         }
 
-        $payload = [
-            'data' => [
-                [
-                    'event_name' => 'Lead', // Event name for Demo-Assigned
-                    'event_time' => $eventTime,
-                    'action_source' => 'system_generated',
-                    'custom_data' => [
-                        'event_source' => 'crm',
-                        'lead_event_source' => 'TimeTec CRM', // Your CRM name
-                    ],
-                    'user_data' => $userData,
-                ]
-            ]
-        ];
-
-        // Add test event code if provided
-        if ($testEventCode) {
-            $payload['test_event_code'] = $testEventCode;
+        // ✅ Add lead_id (Meta's original lead ID) - NOT HASHED
+        if (!empty($leadData['social_lead_id'])) {
+            $userData['lead_id'] = $leadData['social_lead_id'];
+            Log::info('Meta lead_id added to payload', [
+                'social_lead_id' => $leadData['social_lead_id']
+            ]);
         }
 
-        return $payload;
+        // ✅ Build the event payload
+        $eventData = [
+            'event_name' => 'Lead',
+            'event_time' => time(),
+            'action_source' => 'system_generated',
+            'custom_data' => [
+                'event_source' => 'crm',
+                'lead_event_source' => 'TimeTec CRM',
+            ],
+            'user_data' => $userData,
+        ];
+
+        // ✅ Add fbclid if available
+        if (!empty($leadData['fbclid'])) {
+            $eventData['user_data']['fbc'] = $leadData['fbclid'];
+        }
+
+        return [
+            'data' => [$eventData]
+        ];
+    }
+
+    /**
+     * Test dataset access
+     */
+    public function testDatasetAccess(): array
+    {
+        try {
+            // ✅ Test endpoint to verify dataset access
+            $url = "https://graph.facebook.com/{$this->apiVersion}/{$this->datasetId}?access_token={$this->accessToken}";
+
+            Log::info('Testing dataset access', [
+                'dataset_id' => $this->datasetId,
+                'api_version' => $this->apiVersion,
+            ]);
+
+            $response = Http::get($url);
+            $responseData = $response->json();
+
+            if ($response->successful()) {
+                Log::info('Dataset access test successful', [
+                    'dataset_id' => $this->datasetId,
+                    'response' => $responseData,
+                ]);
+
+                return [
+                    'success' => true,
+                    'data' => $responseData,
+                ];
+            } else {
+                Log::error('Dataset access test failed', [
+                    'dataset_id' => $this->datasetId,
+                    'status' => $response->status(),
+                    'response' => $responseData,
+                ]);
+
+                return [
+                    'success' => false,
+                    'error' => $responseData,
+                ];
+            }
+        } catch (\Exception $e) {
+            Log::error('Dataset access test exception', [
+                'error' => $e->getMessage(),
+                'dataset_id' => $this->datasetId,
+            ]);
+
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+            ];
+        }
     }
 
     /**

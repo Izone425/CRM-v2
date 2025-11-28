@@ -8,6 +8,7 @@ use App\Mail\CancelDemoNotification;
 use App\Mail\DemoNotification;
 use App\Models\ActivityLog;
 use App\Models\Appointment;
+use App\Models\Lead;
 use App\Models\User;
 use App\Services\MicrosoftGraphService;
 use App\Services\TemplateSelector;
@@ -856,6 +857,62 @@ class DemoAppointmentRelationManager extends RelationManager
                     $contactNo = optional($lead->companyDetail)->contact_no ?? $lead->phone;
                     $picName = optional($lead->companyDetail)->name ?? $lead->name;
                     $email = optional($lead->companyDetail)->email ?? $lead->email;
+
+                    // try {
+                    //     $metaService = new \App\Services\MetaConversionsApiService();
+                    //     // ✅ Use $lead instead of $record->lead_id since $lead is already defined above
+
+                    //     if ($lead) {
+                    //         // Get social_lead_id from utm_details
+                    //         $socialLeadId = $lead->utmDetail->social_lead_id ?? null;
+
+                    //         if ($socialLeadId) {
+                    //             $leadData = [
+                    //                 'id' => $lead->id,
+                    //                 'email' => $lead->companyDetail->email ?? $lead->email,
+                    //                 'phone_number' => $lead->companyDetail->contact_no ?? $lead->phone,
+                    //                 'first_name' => $lead->companyDetail->name ?? $lead->name ?? null,
+                    //                 'last_name' => null,
+                    //                 'city' => $lead->city ?? null,
+                    //                 'state' => $lead->state ?? null,
+                    //                 'zip' => $lead->zip ?? null,
+                    //                 'country' => $lead->country ?? null,
+                    //                 'social_lead_id' => $socialLeadId,
+                    //                 'fbclid' => $lead->utmDetail->fbclid ?? null,
+                    //             ];
+
+                    //             $result = $metaService->sendLeadEvent($leadData);
+
+                    //             if ($result['success']) {
+                    //                 Log::info('Meta Conversions API: Demo-Assigned event sent successfully', [
+                    //                     'lead_id' => $lead->id,
+                    //                     'social_lead_id' => $socialLeadId,
+                    //                     'appointment_id' => $appointment->id, // ✅ Use appointment instead of software_handover_id
+                    //                     'demo_type' => $appointment->type,
+                    //                     'appointment_type' => $appointment->appointment_type,
+                    //                 ]);
+                    //             } else {
+                    //                 Log::warning('Meta Conversions API: Failed to send Demo-Assigned event', [
+                    //                     'lead_id' => $lead->id,
+                    //                     'social_lead_id' => $socialLeadId,
+                    //                     'error' => $result['error'] ?? 'Unknown error',
+                    //                 ]);
+                    //             }
+                    //         } else {
+                    //             Log::info('Meta Conversions API: No social_lead_id found, skipping event', [
+                    //                 'lead_id' => $lead->id,
+                    //                 'appointment_id' => $appointment->id, // ✅ Use appointment instead of software_handover_id
+                    //             ]);
+                    //         }
+                    //     }
+                    // } catch (\Exception $e) {
+                    //     Log::error('Meta Conversions API: Exception during Demo-Assigned event', [
+                    //         'appointment_id' => $appointment->id, // ✅ Use appointment instead of software_handover_id
+                    //         'lead_id' => $lead->id,
+                    //         'error' => $e->getMessage(),
+                    //         'trace' => $e->getTraceAsString(),
+                    //     ]);
+                    // }
 
                     if (!($data['skip_notifications'] ?? false)) {
                         // Retrieve the related Lead model from ActivityLog
