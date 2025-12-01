@@ -1612,4 +1612,336 @@ class ImplementerActions
             return 0;
         }
     }
+
+    public static function sendSessionSummaryAction(): Action
+    {
+        return Action::make('send_session_summary')
+            ->label('Send Session Summary')
+            ->color('success')
+            ->icon('heroicon-o-envelope')
+            ->modalWidth('6xl')
+            ->modalHeading(function (ImplementerAppointment $record) {
+                $companyName = 'Unknown Company';
+
+                if ($record->lead && $record->lead->companyDetail) {
+                    $companyName = $record->lead->companyDetail->company_name;
+                } elseif ($record->softwareHandover) {
+                    $companyName = $record->softwareHandover->company_name ?? 'N/A';
+                }
+
+                return "Send Session Summary for {$companyName}";
+            })
+            ->visible(function (ImplementerAppointment $record) {
+                return $record->sent_summary_email != 1 && $record->session_recording_link != null;
+            })
+            ->form([
+                Hidden::make('send_email')
+                    ->default(true),
+
+                Hidden::make('scheduler_type')
+                    ->default('instant'),
+
+                // ✅ Session Recording Link and Project Plan Files - EXACTLY same as RelationManager
+                Grid::make(2)
+                    ->schema([
+                        Select::make('project_plan_files')
+                            ->label('Project Plan Files')
+                            ->options(function (ImplementerAppointment $record) {
+                                // Get lead from the record
+                                $lead = $record->lead;
+                                if (!$lead) {
+                                    return [];
+                                }
+
+                                $companyName = $lead->companyDetail?->company_name ?? 'Unknown';
+                                $companySlug = \Illuminate\Support\Str::slug($companyName);
+
+                                $files = \Illuminate\Support\Facades\Storage::disk('public')
+                                    ->files('project-plans');
+
+                                $matchingFiles = [];
+                                foreach ($files as $file) {
+                                    if (str_contains($file, $companySlug)) {
+                                        $fullPath = storage_path('app/public/' . $file);
+                                        $matchingFiles[] = [
+                                            'path' => $file,
+                                            'name' => basename($file),
+                                            'modified' => file_exists($fullPath) ? filemtime($fullPath) : 0
+                                        ];
+                                    }
+                                }
+
+                                usort($matchingFiles, function($a, $b) {
+                                    return $b['modified'] - $a['modified'];
+                                });
+
+                                $options = [];
+                                foreach ($matchingFiles as $file) {
+                                    $label = $file['name'];
+                                    if (isset($matchingFiles[0]) && $file['path'] === $matchingFiles[0]['path']) {
+                                        $label .= ' (Latest)';
+                                    }
+                                    $options[$file['path']] = $label;
+                                }
+
+                                return $options;
+                            })
+                            ->default(function (ImplementerAppointment $record) {
+                                // Get lead from the record
+                                $lead = $record->lead;
+                                if (!$lead) {
+                                    return null;
+                                }
+
+                                $companyName = $lead->companyDetail?->company_name ?? 'Unknown';
+                                $companySlug = \Illuminate\Support\Str::slug($companyName);
+
+                                $files = \Illuminate\Support\Facades\Storage::disk('public')
+                                    ->files('project-plans');
+
+                                $matchingFiles = [];
+                                foreach ($files as $file) {
+                                    if (str_contains($file, $companySlug)) {
+                                        $fullPath = storage_path('app/public/' . $file);
+                                        $matchingFiles[] = [
+                                            'path' => $file,
+                                            'modified' => file_exists($fullPath) ? filemtime($fullPath) : 0
+                                        ];
+                                    }
+                                }
+
+                                usort($matchingFiles, function($a, $b) {
+                                    return $b['modified'] - $a['modified'];
+                                });
+
+                                return !empty($matchingFiles) ? [$matchingFiles[0]['path']] : null;
+                            })
+                            ->multiple()
+                            ->searchable()
+                            ->preload()
+                            ->columnSpan(1),
+
+                        TextInput::make('session_recording_link')
+                            ->label('Session Recording Link')
+                            ->placeholder('Recording Link Not Ready Yet')
+                            ->default(function (ImplementerAppointment $record) {
+                                return $record->session_recording_link ?: null;
+                            })
+                            ->disabled()
+                            ->dehydrated(true)
+                            ->helperText(fn (callable $get) =>
+                                empty($get('session_recording_link'))
+                                    ? '⏳ Recording will be available after the meeting ends and is processed by Microsoft Teams (usually within 1-4 hours).'
+                                    : '✅ Recording is ready'
+                            )
+                            ->suffixIcon(fn (callable $get) =>
+                                empty($get('session_recording_link'))
+                                    ? 'heroicon-o-clock'
+                                    : 'heroicon-o-check-circle'
+                            )
+                            ->suffixIconColor(fn (callable $get) =>
+                                empty($get('session_recording_link'))
+                                    ? 'warning'
+                                    : 'success'
+                            )
+                            ->columnSpan(1),
+                    ]),
+
+                Fieldset::make('Email Details')
+                    ->schema([
+                        TextInput::make('required_attendees')
+                            ->label('Required Attendees')
+                            ->default(function (ImplementerAppointment $record) {
+                                // Get lead from the record
+                                $lead = $record->lead;
+                                $emails = [];
+
+                                if ($lead) {
+                                    $softwareHandover = SoftwareHandover::where('lead_id', $lead->id)->latest()->first();
+
+                                    if ($softwareHandover && !empty($softwareHandover->implementation_pics) && is_string($softwareHandover->implementation_pics)) {
+                                        try {
+                                            $contacts = json_decode($softwareHandover->implementation_pics, true);
+
+                                            if (is_array($contacts)) {
+                                                foreach ($contacts as $contact) {
+                                                    if (!empty($contact['pic_email_impl'])) {
+                                                        $emails[] = $contact['pic_email_impl'];
+                                                    }
+                                                }
+                                            }
+                                        } catch (\Exception $e) {
+                                            Log::error('Error parsing implementation_pics JSON: ' . $e->getMessage());
+                                        }
+                                    }
+
+                                    if ($lead->companyDetail && !empty($lead->companyDetail->additional_pic)) {
+                                        try {
+                                            $additionalPics = json_decode($lead->companyDetail->additional_pic, true);
+
+                                            if (is_array($additionalPics)) {
+                                                foreach ($additionalPics as $pic) {
+                                                    if (
+                                                        !empty($pic['email']) &&
+                                                        isset($pic['status']) &&
+                                                        $pic['status'] === 'Available'
+                                                    ) {
+                                                        $emails[] = $pic['email'];
+                                                    }
+                                                }
+                                            }
+                                        } catch (\Exception $e) {
+                                            Log::error('Error parsing additional_pic JSON: ' . $e->getMessage());
+                                        }
+                                    }
+                                }
+
+                                $uniqueEmails = array_unique($emails);
+                                return !empty($uniqueEmails) ? implode(';', $uniqueEmails) : null;
+                            })
+                            ->required()
+                            ->helperText('Separate each email with a semicolon (e.g., email1;email2;email3).'),
+
+                        Select::make('email_template')
+                            ->label('Email Template')
+                            ->options(function () {
+                                return \App\Models\EmailTemplate::whereIn('type', ['implementer'])
+                                    ->pluck('name', 'id')
+                                    ->toArray();
+                            })
+                            ->searchable()
+                            ->preload()
+                            ->reactive()
+                            ->afterStateUpdated(function ($state, callable $set) {
+                                if ($state) {
+                                    $template = \App\Models\EmailTemplate::find($state);
+                                    if ($template) {
+                                        $set('email_subject', $template->subject);
+                                        $set('email_content', $template->content);
+                                    }
+                                }
+                            })
+                            ->required(),
+
+                        TextInput::make('email_subject')
+                            ->label('Email Subject')
+                            ->required(),
+
+                        RichEditor::make('email_content')
+                            ->label('Email Content')
+                            ->disableToolbarButtons([
+                                'attachFiles',
+                            ])
+                            ->required(),
+                    ]),
+
+                Hidden::make('implementer_name')
+                    ->default(auth()->user()->name ?? ''),
+
+                Hidden::make('implementer_designation')
+                    ->default('Implementer'),
+
+                Hidden::make('implementer_company')
+                    ->default('TimeTec Cloud Sdn Bhd'),
+
+                Hidden::make('implementer_phone')
+                    ->default('03-80709933'),
+
+                Hidden::make('implementer_email')
+                    ->default(auth()->user()->email ?? ''),
+
+                RichEditor::make('notes')
+                    ->label('Remarks')
+                    ->disableToolbarButtons([
+                        'attachFiles',
+                        'blockquote',
+                        'codeBlock',
+                        'h2',
+                        'h3',
+                        'link',
+                        'redo',
+                        'strike',
+                        'undo',
+                    ])
+                    ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                    ->placeholder('Add your session summary details here...')
+                    ->required()
+            ])
+            ->action(function (array $data, ImplementerAppointment $record) {
+                try {
+                    // Get the software handover
+                    $softwareHandover = SoftwareHandover::where('lead_id', $record->lead_id)->latest()->first();
+
+                    if (!$softwareHandover) {
+                        Notification::make()
+                            ->title('Error: Software Handover record not found')
+                            ->danger()
+                            ->send();
+                        return;
+                    }
+
+                    // ✅ Add project plan files as attachments - EXACTLY same as RelationManager
+                    if (!empty($data['project_plan_files'])) {
+                        $attachments = [];
+                        foreach ($data['project_plan_files'] as $filePath) {
+                            $fullPath = storage_path('app/public/' . $filePath);
+                            if (file_exists($fullPath)) {
+                                $attachments[] = $fullPath;
+                            }
+                        }
+
+                        $data['project_plan_attachments'] = $attachments;
+
+                        Log::info('Project plan files prepared for email', [
+                            'appointment_id' => $record->id,
+                            'files' => $data['project_plan_files'],
+                            'attachments' => $attachments,
+                            'count' => count($attachments)
+                        ]);
+                    }
+
+                    // Ensure email will be sent
+                    $data['send_email'] = true;
+
+                    // Process the email through the existing follow-up system (without creating a follow-up entry)
+                    self::processFollowUpWithEmail($softwareHandover, $data, false);
+
+                    // Update the appointment record
+                    $record->update([
+                        'sent_summary_email' => 1,
+                        'summary_email_sent_at' => now(),
+                        'summary_email_sent_by' => auth()->id(),
+                        'session_recording_link' => $data['session_recording_link'] ?? $record->session_recording_link,
+                    ]);
+
+                    Log::info('Session summary email sent and appointment updated', [
+                        'appointment_id' => $record->id,
+                        'lead_id' => $record->lead_id,
+                        'sent_by' => auth()->user()->name,
+                        'sent_at' => now(),
+                        'has_attachments' => !empty($data['project_plan_files']),
+                        'has_recording_link' => !empty($data['session_recording_link']),
+                        'recording_link' => $data['session_recording_link'] ?? null,
+                    ]);
+
+                    Notification::make()
+                        ->title('Session Summary Sent Successfully')
+                        ->success()
+                        ->body('The session summary email has been sent and the appointment has been marked.')
+                        ->send();
+
+                } catch (\Exception $e) {
+                    Log::error('Error sending session summary: ' . $e->getMessage(), [
+                        'appointment_id' => $record->id,
+                        'trace' => $e->getTraceAsString()
+                    ]);
+
+                    Notification::make()
+                        ->title('Error Sending Session Summary')
+                        ->danger()
+                        ->body('Failed to send session summary: ' . $e->getMessage())
+                        ->send();
+                }
+            });
+    }
 }
