@@ -1908,6 +1908,7 @@ class ImplementerActions
 
                     // Update the appointment record
                     $record->update([
+                        'status' => 'Done',
                         'sent_summary_email' => 1,
                         'summary_email_sent_at' => now(),
                         'summary_email_sent_by' => auth()->id(),
