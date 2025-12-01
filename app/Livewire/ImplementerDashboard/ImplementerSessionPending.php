@@ -146,6 +146,10 @@ class ImplementerSessionPending extends Component implements HasForms, HasTable
             ])
             ->actions([
                 ActionGroup::make([
+                    ImplementerActions::viewAppointmentAction(),
+
+                    ImplementerActions::cancelAppointmentAction(),
+
                     ImplementerActions::sendSessionSummaryAction(),
                 ])
                 ->icon('heroicon-m-list-bullet')

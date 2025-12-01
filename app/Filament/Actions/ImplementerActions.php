@@ -1944,4 +1944,102 @@ class ImplementerActions
                 }
             });
     }
+
+    public static function viewAppointmentAction(): Action
+    {
+        return Action::make('view_appointment')
+            ->label('View Appointment')
+            ->icon('heroicon-o-eye')
+            ->color('success')
+            ->modalHeading('Implementation Appointment Details')
+            ->modalSubmitAction(false)
+            ->modalCancelActionLabel('Close')
+            ->form(function ($record) {
+                if (!$record) {
+                    return [
+                        TextInput::make('error')
+                            ->label('Error')
+                            ->default('No appointment record found.')
+                            ->disabled(),
+                    ];
+                }
+
+                return [
+                    DatePicker::make('date')
+                        ->label('DATE')
+                        ->default($record->date)
+                        ->disabled(),
+
+                    Grid::make(3)
+                        ->schema([
+                            Select::make('type')
+                                ->label('SESSION TYPE')
+                                ->options([
+                                    'KICK OFF MEETING SESSION' => 'KICK OFF MEETING SESSION',
+                                    'REVIEW SESSION' => 'REVIEW SESSION',
+                                ])
+                                ->default($record->type)
+                                ->disabled(),
+
+                            Select::make('appointment_type')
+                                ->label('APPOINTMENT TYPE')
+                                ->options([
+                                    'ONLINE' => 'ONLINE',
+                                    'ONSITE' => 'ONSITE',
+                                    'INHOUSE' => 'INHOUSE',
+                                ])
+                                ->default($record->appointment_type)
+                                ->disabled(),
+
+                            Select::make('implementer')
+                                ->label('IMPLEMENTER')
+                                ->options([$record->implementer => $record->implementer])
+                                ->default($record->implementer)
+                                ->disabled(),
+                        ]),
+
+                    Grid::make(3)
+                        ->schema([
+                            TextInput::make('session')
+                                ->label('SESSION')
+                                ->default($record->session)
+                                ->disabled(),
+
+                            TextInput::make('start_time')
+                                ->label('START TIME')
+                                ->default(Carbon::parse($record->start_time)->format('H:i'))
+                                ->disabled(),
+
+                            TextInput::make('end_time')
+                                ->label('END TIME')
+                                ->default(Carbon::parse($record->end_time)->format('H:i'))
+                                ->disabled(),
+                        ]),
+
+                    TextInput::make('required_attendees')
+                        ->label('REQUIRED ATTENDEES')
+                        ->default(function () use ($record) {
+                            if (!empty($record->required_attendees)) {
+                                try {
+                                    $attendees = json_decode($record->required_attendees, true);
+                                    if (is_array($attendees)) {
+                                        return implode(';', $attendees);
+                                    }
+                                    return $record->required_attendees;
+                                } catch (\Exception $e) {
+                                    return $record->required_attendees;
+                                }
+                            }
+                            return '';
+                        })
+                        ->disabled(),
+
+                    Textarea::make('remarks')
+                        ->label('REMARKS')
+                        ->rows(3)
+                        ->default($record->remarks ?? '')
+                        ->disabled(),
+                ];
+            });
+    }
 }
