@@ -142,6 +142,8 @@ class ImplementerSessionCompleted extends Component implements HasForms, HasTabl
             ])
             ->actions([
                 ActionGroup::make([
+                    ImplementerActions::viewAppointmentAction(),
+
                     ImplementerActions::sendSessionSummaryAction(),
                 ])
                 ->icon('heroicon-m-list-bullet')
