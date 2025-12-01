@@ -21,4 +21,14 @@ class TicketProduct extends Model
     protected $casts = [
         'is_active' => 'boolean',
     ];
+
+    public function modules()
+    {
+        return $this->belongsToMany(TicketModule::class, 'product_has_modules', 'product_id', 'module_id');
+    }
+
+    public function hasModules()
+    {
+        return $this->hasMany(ProductHasModule::class);
+    }
 }

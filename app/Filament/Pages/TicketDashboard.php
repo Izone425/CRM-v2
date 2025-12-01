@@ -77,17 +77,32 @@ class TicketDashboard extends Page implements HasActions, HasForms
                                 ->options([
                                     1 => 'TimeTec HR - Version 1',
                                     2 => 'TimeTec HR - Version 2',
-                                ]),
+                                ])
+                                ->live()
+                                ->afterStateUpdated(fn (callable $set) => $set('module_id', null)),
 
                             Select::make('module_id')
                                 ->label('Module')
-                                ->options(
-                                    TicketModule::where('is_active', true)
-                                        ->orderBy('name')
-                                        ->pluck('name', 'id')
-                                        ->toArray()
-                                )
-                                ->required(),
+                                ->options(function (callable $get) {
+                                    $productId = $get('product_id');
+
+                                    if (!$productId) {
+                                        return [];
+                                    }
+
+                                    // ✅ Use the correct database connection
+                                    return \Illuminate\Support\Facades\DB::connection('ticketingsystem_live')
+                                        ->table('product_has_modules')
+                                        ->join('modules', 'product_has_modules.module_id', '=', 'modules.id')
+                                        ->where('product_has_modules.product_id', $productId)
+                                        ->where('modules.is_active', true)
+                                        ->orderBy('modules.name')
+                                        ->pluck('modules.name', 'modules.id')
+                                        ->toArray();
+                                })
+                                ->required()
+                                ->disabled(fn (callable $get): bool => !$get('product_id'))
+                                ->placeholder('Select a product first'),
                         ]),
 
                     Grid::make(2)

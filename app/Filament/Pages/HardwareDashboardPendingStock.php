@@ -205,6 +205,30 @@ class HardwareDashboardPendingStock extends Page implements HasTable
                     ->label('Status')
                     ->toggleable(),
 
+                TextColumn::make('sales_order_status')
+                    ->label('SO Status')
+                    ->formatStateUsing(function ($state, HardwareHandoverV2 $record) {
+                        if (!$record->sales_order_number) {
+                            return '-';
+                        }
+
+                        $status = $state ?? 'Unknown';
+                        $formattedStatus = ucfirst(strtolower($status)); // Uppercase first letter, lowercase the rest
+
+                        // Check if status is "packing" (case insensitive)
+                        $isPackingStatus = strtolower($status) === 'packing';
+                        $statusColor = $isPackingStatus ? 'color: red; font-weight: bold;' : 'color: black;';
+
+                        return new HtmlString("
+                            <div class='text-sm'>
+                                <div style='{$statusColor}'>{$formattedStatus}</div>
+                                <div class='text-xs text-gray-500'>SO: {$record->sales_order_number}</div>
+                            </div>
+                        ");
+                    })
+                    ->searchable(['sales_order_number', 'sales_order_status'])
+                    ->sortable(),
+
                 TextColumn::make('tc10_quantity')
                     ->label('TC10')
                     ->numeric(0)
