@@ -38,9 +38,23 @@ class FetchTeamsRecordings extends Command
             $appointments = ImplementerAppointment::whereNotNull('online_meeting_id')
                 ->where(function ($query) {
                     $query->whereNull('session_recording_link')
-                          ->orWhere('session_recording_link', '');
+                        ->orWhere('session_recording_link', '');
                 })
                 ->whereIn('status', ['New', 'Done'])
+                ->where(function ($query) {
+                    $now = now();
+                    $today = $now->toDateString();
+                    $currentTime = $now->format('H:i:s');
+
+                    $query->where(function ($subQuery) use ($today) {
+                        $subQuery->whereDate('date', '<', $today);
+                    })->orWhere(function ($subQuery) use ($today, $currentTime) {
+                        $subQuery->whereDate('date', $today)
+                                ->whereTime('end_time', '<=', $currentTime);
+                    });
+                })
+                ->orderBy('date', 'desc')
+                ->orderBy('end_time', 'desc')
                 ->get();
 
             $this->info("Found {$appointments->count()} appointments to check");

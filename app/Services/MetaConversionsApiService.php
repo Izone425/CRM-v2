@@ -158,7 +158,7 @@ class MetaConversionsApiService
 
         // ✅ Build the event payload
         $eventData = [
-            'event_name' => 'Lead',
+            'event_name' => 'Demo',
             'event_time' => time(),
             'action_source' => 'system_generated',
             'custom_data' => [

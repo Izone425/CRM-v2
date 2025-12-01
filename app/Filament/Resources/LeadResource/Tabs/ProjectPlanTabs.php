@@ -26,6 +26,8 @@ use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\View;
 
 class ProjectPlanTabs
 {
@@ -34,8 +36,136 @@ class ProjectPlanTabs
         return [
             Section::make('Project Plan')
                 ->headerActions([
-                    \Filament\Forms\Components\Actions\Action::make('downloadExcel')
-                        ->label('Generate Project Plan Excel')
+                    // \Filament\Forms\Components\Actions\Action::make('downloadExcel')
+                    //     ->label('Generate Project Plan Excel')
+                    //     ->icon('heroicon-o-document-arrow-down')
+                    //     ->color('success')
+                    //     ->size(ActionSize::Small)
+                    //     ->visible(function (Get $get, $livewire) {
+                    //         $leadId = $livewire->record?->id ?? $get('id') ?? 0;
+
+                    //         if ($leadId === 0) {
+                    //             return false;
+                    //         }
+
+                    //         $softwareHandover = SoftwareHandover::where('lead_id', $leadId)
+                    //             ->latest()
+                    //             ->first();
+
+                    //         if (!$softwareHandover) {
+                    //             return false;
+                    //         }
+
+                    //         // ✅ Check if there are any project plans for this lead and software handover
+                    //         $hasProjectPlans = ProjectPlan::where('lead_id', $leadId)
+                    //             ->where('sw_id', $softwareHandover->id)
+                    //             ->exists();
+
+                    //         return $hasProjectPlans;
+                    //     })
+                    //     ->action(function (Get $get, $livewire) {
+                    //         $leadId = $livewire->record?->id ?? $get('id') ?? 0;
+
+                    //         if ($leadId === 0) {
+                    //             Notification::make()
+                    //                 ->title('Error')
+                    //                 ->body('Please save the lead first')
+                    //                 ->danger()
+                    //                 ->send();
+                    //             return;
+                    //         }
+
+                    //         $lead = Lead::find($leadId);
+                    //         $softwareHandover = SoftwareHandover::where('lead_id', $leadId)
+                    //             ->latest()
+                    //             ->first();
+
+                    //         if (!$softwareHandover) {
+                    //             Notification::make()
+                    //                 ->title('No Software Handover Found')
+                    //                 ->warning()
+                    //                 ->send();
+                    //             return;
+                    //         }
+
+                    //         $filePath = self::generateProjectPlanExcel($lead, $softwareHandover);
+
+                    //         if ($filePath) {
+                    //             $softwareHandover->update([
+                    //                 'project_plan_generated_at' => now(),
+                    //             ]);
+
+                    //             // ✅ Get file details for the notification actions
+                    //             $companyName = $lead->companyDetail?->company_name ?? 'Unknown';
+                    //             $companySlug = \Illuminate\Support\Str::slug($companyName);
+
+                    //             // Find the latest file
+                    //             $files = \Illuminate\Support\Facades\Storage::disk('public')->files('project-plans');
+                    //             $matchingFiles = [];
+
+                    //             foreach ($files as $file) {
+                    //                 if (str_contains($file, $companySlug)) {
+                    //                     $fullPath = storage_path('app/public/' . $file);
+                    //                     $matchingFiles[] = [
+                    //                         'path' => $file,
+                    //                         'modified' => file_exists($fullPath) ? filemtime($fullPath) : 0
+                    //                     ];
+                    //                 }
+                    //             }
+
+                    //             if (!empty($matchingFiles)) {
+                    //                 usort($matchingFiles, function($a, $b) {
+                    //                     return $b['modified'] - $a['modified'];
+                    //                 });
+
+                    //                 $latestFile = $matchingFiles[0];
+                    //                 $fileName = basename($latestFile['path']);
+                    //                 $fileFullPath = storage_path('app/public/' . $latestFile['path']);
+
+                    //                 // ✅ Notification with View and Download actions
+                    //                 Notification::make()
+                    //                     ->title('Excel File Generated Successfully')
+                    //                     ->body('Project plan Excel file has been generated. Click below to view or download.')
+                    //                     ->success()
+                    //                     ->duration(10000) // 10 seconds to give time to click
+                    //                     ->actions([
+                    //                         \Filament\Notifications\Actions\Action::make('view')
+                    //                             ->label('View in Office Online')
+                    //                             ->icon('heroicon-o-eye')
+                    //                             ->color('info')
+                    //                             ->url(function () use ($latestFile) {
+                    //                                 // ✅ Generate public URL for the file
+                    //                                 $publicUrl = url('storage/' . $latestFile['path']);
+
+                    //                                 // ✅ Use Office Web Viewer
+                    //                                 return 'https://view.officeapps.live.com/op/view.aspx?src=' . urlencode($publicUrl);
+                    //                             })
+                    //                             ->openUrlInNewTab(),
+
+                    //                         \Filament\Notifications\Actions\Action::make('download')
+                    //                             ->label('Download')
+                    //                             ->icon('heroicon-o-arrow-down-tray')
+                    //                             ->color('success')
+                    //                             ->url(function () use ($latestFile) {
+                    //                                 return route('download.project-plan', [
+                    //                                     'file' => basename($latestFile['path'])
+                    //                                 ]);
+                    //                             })
+                    //                             ->openUrlInNewTab(),
+                    //                     ])
+                    //                     ->send();
+                    //             } else {
+                    //                 Notification::make()
+                    //                     ->title('Excel File Generated')
+                    //                     ->body('Project plan Excel file has been generated and saved.')
+                    //                     ->success()
+                    //                     ->send();
+                    //             }
+                    //         }
+                    //     }),
+
+                    \Filament\Forms\Components\Actions\Action::make('downloadPdf')
+                        ->label('Generate Project Plan PDF')
                         ->icon('heroicon-o-document-arrow-down')
                         ->color('success')
                         ->size(ActionSize::Small)
@@ -86,7 +216,7 @@ class ProjectPlanTabs
                                 return;
                             }
 
-                            $filePath = self::generateProjectPlanExcel($lead, $softwareHandover);
+                            $filePath = self::generateProjectPlanPdf($lead, $softwareHandover); // Changed method name
 
                             if ($filePath) {
                                 $softwareHandover->update([
@@ -122,21 +252,18 @@ class ProjectPlanTabs
 
                                     // ✅ Notification with View and Download actions
                                     Notification::make()
-                                        ->title('Excel File Generated Successfully')
-                                        ->body('Project plan Excel file has been generated. Click below to view or download.')
+                                        ->title('PDF File Generated Successfully') // Changed from Excel
+                                        ->body('Project plan PDF file has been generated. Click below to view or download.')
                                         ->success()
                                         ->duration(10000) // 10 seconds to give time to click
                                         ->actions([
                                             \Filament\Notifications\Actions\Action::make('view')
-                                                ->label('View in Office Online')
+                                                ->label('View PDF') // Updated label
                                                 ->icon('heroicon-o-eye')
                                                 ->color('info')
                                                 ->url(function () use ($latestFile) {
-                                                    // ✅ Generate public URL for the file
-                                                    $publicUrl = url('storage/' . $latestFile['path']);
-
-                                                    // ✅ Use Office Web Viewer
-                                                    return 'https://view.officeapps.live.com/op/view.aspx?src=' . urlencode($publicUrl);
+                                                    // ✅ Generate public URL for the PDF file
+                                                    return url('storage/' . $latestFile['path']);
                                                 })
                                                 ->openUrlInNewTab(),
 
@@ -154,8 +281,8 @@ class ProjectPlanTabs
                                         ->send();
                                 } else {
                                     Notification::make()
-                                        ->title('Excel File Generated')
-                                        ->body('Project plan Excel file has been generated and saved.')
+                                        ->title('PDF File Generated') // Changed from Excel
+                                        ->body('Project plan PDF file has been generated and saved.')
                                         ->success()
                                         ->send();
                                 }
@@ -943,66 +1070,265 @@ class ProjectPlanTabs
         ];
     }
 
-    protected static function generateProjectPlanExcel(Lead $lead, SoftwareHandover $softwareHandover): string
-    {
-        $spreadsheet = new Spreadsheet();
-        $sheet = $spreadsheet->getActiveSheet();
+    // protected static function generateProjectPlanExcel(Lead $lead, SoftwareHandover $softwareHandover): string
+    // {
+    //     $spreadsheet = new Spreadsheet();
+    //     $sheet = $spreadsheet->getActiveSheet();
 
+    //     // Set document properties
+    //     $companyName = $lead->companyDetail?->company_name ?? 'Unknown Company';
+    //     $implementerName = $softwareHandover->implementer ?? 'Not Assigned';
+
+    //     $spreadsheet->getProperties()
+    //         ->setCreator('TimeTec CRM')
+    //         ->setTitle("Project Plan - {$companyName}")
+    //         ->setSubject('Project Implementation Plan');
+
+    //     $currentRow = 1;
+
+    //     // Row 1: Company Name
+    //     $sheet->setCellValue("A{$currentRow}", 'Company Name');
+    //     $sheet->mergeCells("A{$currentRow}:B{$currentRow}");
+    //     $sheet->setCellValue("C{$currentRow}", $companyName);
+    //     $sheet->mergeCells("C{$currentRow}:K{$currentRow}");
+    //     $sheet->getStyle("A{$currentRow}:K{$currentRow}")->applyFromArray([
+    //         'font' => ['bold' => true, 'size' => 12],
+    //         'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'E8F5E9']],
+    //         'borders' => [
+    //             'allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => '000000']],
+    //         ],
+    //     ]);
+    //     $currentRow++;
+
+    //     // Row 2: Implementer Name
+    //     $sheet->setCellValue("A{$currentRow}", 'Implementer Name');
+    //     $sheet->mergeCells("A{$currentRow}:B{$currentRow}");
+    //     $sheet->setCellValue("C{$currentRow}", $implementerName);
+    //     $sheet->mergeCells("C{$currentRow}:K{$currentRow}");
+    //     $sheet->getStyle("A{$currentRow}:K{$currentRow}")->applyFromArray([
+    //         'font' => ['bold' => true, 'size' => 12],
+    //         'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'E3F2FD']],
+    //         'borders' => [
+    //             'allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => '000000']],
+    //         ],
+    //     ]);
+    //     $currentRow++;
+
+    //     // Row 3: Project Progress Overview
+    //     $sheet->setCellValue("A{$currentRow}", 'Project Progress Overview');
+    //     $sheet->mergeCells("A{$currentRow}:K{$currentRow}");
+    //     $sheet->getStyle("A{$currentRow}:K{$currentRow}")->applyFromArray([
+    //         'font' => ['bold' => true, 'size' => 14, 'color' => ['rgb' => 'FFFFFF']],
+    //         'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '1976D2']],
+    //         'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
+    //         'borders' => [
+    //             'allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => '000000']],
+    //         ],
+    //     ]);
+    //     $sheet->getRowDimension($currentRow)->setRowHeight(30);
+    //     $currentRow++;
+
+    //     // Add empty row for spacing
+    //     $currentRow++;
+
+    //     $selectedModules = $softwareHandover->getSelectedModules();
+    //     $allModules = array_unique(array_merge(['phase 1', 'phase 2'], $selectedModules));
+
+    //     $moduleNames = ProjectTask::whereIn('module', $allModules)
+    //         ->where('is_active', true)
+    //         ->select('module_name', 'module_order', 'module_percentage', 'module')
+    //         ->distinct()
+    //         ->orderBy('module_order')
+    //         ->orderBy('module_name')
+    //         ->get();
+
+    //     foreach ($moduleNames as $moduleData) {
+    //         $moduleName = $moduleData->module_name;
+    //         $modulePercentage = $moduleData->module_percentage;
+    //         $module = $moduleData->module;
+
+    //         $modulePlans = ProjectPlan::where('lead_id', $lead->id)
+    //             ->where('sw_id', $softwareHandover->id)
+    //             ->whereHas('projectTask', function ($query) use ($moduleName) {
+    //                 $query->where('module_name', $moduleName)
+    //                     ->where('is_active', true);
+    //             })
+    //             ->with('projectTask')
+    //             ->orderBy('id')
+    //             ->get();
+
+    //         if ($modulePlans->isEmpty()) {
+    //             continue;
+    //         }
+
+    //         // ✅ First row: Plan and Actual headers only (E-J), K is empty
+    //         $sheet->setCellValue("E{$currentRow}", 'Plan');
+    //         $sheet->mergeCells("E{$currentRow}:G{$currentRow}");
+
+    //         $sheet->setCellValue("H{$currentRow}", 'Actual');
+    //         $sheet->mergeCells("H{$currentRow}:J{$currentRow}");
+
+    //         $sheet->getStyle("E{$currentRow}:G{$currentRow}")->applyFromArray([
+    //             'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'FFFF00']],
+    //             'font' => ['bold' => true, 'color' => ['rgb' => '000000']],
+    //             'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
+    //             'borders' => [
+    //                 'allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => '000000']],
+    //             ],
+    //         ]);
+
+    //         $sheet->getStyle("H{$currentRow}:J{$currentRow}")->applyFromArray([
+    //             'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '00FF00']],
+    //             'font' => ['bold' => true, 'color' => ['rgb' => '000000']],
+    //             'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
+    //             'borders' => [
+    //                 'allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => '000000']],
+    //             ],
+    //         ]);
+
+    //         $currentRow++;
+
+    //         // ✅ Second row: Module code + Module name + Sub-headers + Remarks
+    //         $sheet->setCellValue("A{$currentRow}", ucfirst(strtolower($module)));
+    //         $sheet->setCellValue("B{$currentRow}", $moduleName);
+    //         $sheet->setCellValue("C{$currentRow}", 'Status');
+    //         $sheet->setCellValue("D{$currentRow}", $modulePercentage . '%');
+
+    //         $sheet->getStyle("A{$currentRow}:D{$currentRow}")->applyFromArray([
+    //             'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '00B0F0']],
+    //             'font' => ['bold' => true, 'color' => ['rgb' => '000000']],
+    //             'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
+    //             'borders' => [
+    //                 'allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => '000000']],
+    //             ],
+    //         ]);
+
+    //         // ✅ Sub-headers WITH REMARKS
+    //         $headers = ['Start Date', 'End Date', 'Duration', 'Start Date', 'End Date', 'Duration', 'Remarks'];
+    //         $col = 'E';
+    //         foreach ($headers as $header) {
+    //             $sheet->setCellValue("{$col}{$currentRow}", $header);
+
+    //             if (in_array($col, ['E', 'F', 'G'])) {
+    //                 $sheet->getStyle("{$col}{$currentRow}")->applyFromArray([
+    //                     'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'FFFF00']],
+    //                     'font' => ['bold' => true, 'color' => ['rgb' => '000000']],
+    //                     'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
+    //                     'borders' => [
+    //                         'allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => '000000']],
+    //                     ],
+    //                 ]);
+    //             } elseif (in_array($col, ['H', 'I', 'J'])) {
+    //                 $sheet->getStyle("{$col}{$currentRow}")->applyFromArray([
+    //                     'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '00FF00']],
+    //                     'font' => ['bold' => true, 'color' => ['rgb' => '000000']],
+    //                     'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
+    //                     'borders' => [
+    //                         'allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => '000000']],
+    //                     ],
+    //                 ]);
+    //             } elseif ($col === 'K') {
+    //                 // ✅ Remarks column styling
+    //                 $sheet->getStyle("{$col}{$currentRow}")->applyFromArray([
+    //                     'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'FFE699']],
+    //                     'font' => ['bold' => true, 'color' => ['rgb' => '000000']],
+    //                     'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
+    //                     'borders' => [
+    //                         'allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => '000000']],
+    //                     ],
+    //                 ]);
+    //             }
+
+    //             $col++;
+    //         }
+
+    //         $currentRow++;
+
+    //         // Task rows
+    //         $taskNumber = 1;
+    //         foreach ($modulePlans as $plan) {
+    //             $task = $plan->projectTask;
+
+    //             $sheet->setCellValue("A{$currentRow}", $taskNumber);
+    //             $sheet->setCellValue("B{$currentRow}", $task->task_name);
+    //             $sheet->setCellValue("C{$currentRow}", ucfirst($plan->status));
+    //             $sheet->setCellValue("D{$currentRow}", ($task->task_percentage ?? 0) . '%');
+
+    //             $sheet->getStyle("D{$currentRow}")->applyFromArray([
+    //                 'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
+    //             ]);
+
+    //             // Plan dates
+    //             $sheet->setCellValue("E{$currentRow}", $plan->plan_start_date ? \Carbon\Carbon::parse($plan->plan_start_date)->format('d/m/Y') : '');
+    //             $sheet->setCellValue("F{$currentRow}", $plan->plan_end_date ? \Carbon\Carbon::parse($plan->plan_end_date)->format('d/m/Y') : '');
+    //             $sheet->setCellValue("G{$currentRow}", $plan->plan_duration ?? '');
+
+    //             // Actual dates
+    //             $sheet->setCellValue("H{$currentRow}", $plan->actual_start_date ? \Carbon\Carbon::parse($plan->actual_start_date)->format('d/m/Y') : '');
+    //             $sheet->setCellValue("I{$currentRow}", $plan->actual_end_date ? \Carbon\Carbon::parse($plan->actual_end_date)->format('d/m/Y') : '');
+    //             $sheet->setCellValue("J{$currentRow}", $plan->actual_duration ?? '');
+
+    //             // ✅ Remarks column
+    //             $sheet->setCellValue("K{$currentRow}", $plan->remarks ?? '');
+    //             $sheet->getStyle("K{$currentRow}")->getAlignment()->setWrapText(true);
+
+    //             // ✅ Add borders to all columns including Remarks
+    //             $sheet->getStyle("A{$currentRow}:K{$currentRow}")->applyFromArray([
+    //                 'borders' => [
+    //                     'allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => '000000']],
+    //                 ],
+    //             ]);
+
+    //             $currentRow++;
+    //             $taskNumber++;
+    //         }
+
+    //         $currentRow++;
+    //     }
+
+    //     // Auto-size columns A-J
+    //     foreach (range('A', 'J') as $col) {
+    //         $sheet->getColumnDimension($col)->setAutoSize(true);
+    //     }
+
+    //     // ✅ Set fixed width for Remarks column
+    //     $sheet->getColumnDimension('K')->setWidth(40);
+
+    //     // Save to public storage
+    //     $companySlug = \Illuminate\Support\Str::slug($companyName);
+    //     $timestamp = now()->format('Y-m-d_His');
+    //     $filename = "Project_Plan_{$companySlug}_{$timestamp}.xlsx";
+    //     $directory = 'project-plans';
+    //     $filePath = "{$directory}/{$filename}";
+
+    //     \Illuminate\Support\Facades\Storage::disk('public')->makeDirectory($directory);
+
+    //     $writer = new Xlsx($spreadsheet);
+    //     $tempFile = tempnam(sys_get_temp_dir(), 'excel');
+    //     $writer->save($tempFile);
+
+    //     \Illuminate\Support\Facades\Storage::disk('public')->put(
+    //         $filePath,
+    //         file_get_contents($tempFile)
+    //     );
+
+    //     unlink($tempFile);
+
+    //     \Illuminate\Support\Facades\Log::info("Project plan Excel generated", [
+    //         'lead_id' => $lead->id,
+    //         'company_name' => $companyName,
+    //         'file_path' => $filePath,
+    //         'filename' => $filename,
+    //     ]);
+
+    //     return storage_path('app/public/' . $filePath);
+    // }
+
+    protected static function generateProjectPlanPdf(Lead $lead, SoftwareHandover $softwareHandover): string
+    {
         // Set document properties
         $companyName = $lead->companyDetail?->company_name ?? 'Unknown Company';
         $implementerName = $softwareHandover->implementer ?? 'Not Assigned';
-
-        $spreadsheet->getProperties()
-            ->setCreator('TimeTec CRM')
-            ->setTitle("Project Plan - {$companyName}")
-            ->setSubject('Project Implementation Plan');
-
-        $currentRow = 1;
-
-        // Row 1: Company Name
-        $sheet->setCellValue("A{$currentRow}", 'Company Name');
-        $sheet->mergeCells("A{$currentRow}:B{$currentRow}");
-        $sheet->setCellValue("C{$currentRow}", $companyName);
-        $sheet->mergeCells("C{$currentRow}:K{$currentRow}");
-        $sheet->getStyle("A{$currentRow}:K{$currentRow}")->applyFromArray([
-            'font' => ['bold' => true, 'size' => 12],
-            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'E8F5E9']],
-            'borders' => [
-                'allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => '000000']],
-            ],
-        ]);
-        $currentRow++;
-
-        // Row 2: Implementer Name
-        $sheet->setCellValue("A{$currentRow}", 'Implementer Name');
-        $sheet->mergeCells("A{$currentRow}:B{$currentRow}");
-        $sheet->setCellValue("C{$currentRow}", $implementerName);
-        $sheet->mergeCells("C{$currentRow}:K{$currentRow}");
-        $sheet->getStyle("A{$currentRow}:K{$currentRow}")->applyFromArray([
-            'font' => ['bold' => true, 'size' => 12],
-            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'E3F2FD']],
-            'borders' => [
-                'allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => '000000']],
-            ],
-        ]);
-        $currentRow++;
-
-        // Row 3: Project Progress Overview
-        $sheet->setCellValue("A{$currentRow}", 'Project Progress Overview');
-        $sheet->mergeCells("A{$currentRow}:K{$currentRow}");
-        $sheet->getStyle("A{$currentRow}:K{$currentRow}")->applyFromArray([
-            'font' => ['bold' => true, 'size' => 14, 'color' => ['rgb' => 'FFFFFF']],
-            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '1976D2']],
-            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
-            'borders' => [
-                'allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => '000000']],
-            ],
-        ]);
-        $sheet->getRowDimension($currentRow)->setRowHeight(30);
-        $currentRow++;
-
-        // Add empty row for spacing
-        $currentRow++;
 
         $selectedModules = $softwareHandover->getSelectedModules();
         $allModules = array_unique(array_merge(['phase 1', 'phase 2'], $selectedModules));
@@ -1015,6 +1341,7 @@ class ProjectPlanTabs
             ->orderBy('module_name')
             ->get();
 
+        $projectData = [];
         foreach ($moduleNames as $moduleData) {
             $moduleName = $moduleData->module_name;
             $modulePercentage = $moduleData->module_percentage;
@@ -1030,164 +1357,57 @@ class ProjectPlanTabs
                 ->orderBy('id')
                 ->get();
 
-            if ($modulePlans->isEmpty()) {
-                continue;
+            if ($modulePlans->isNotEmpty()) {
+                $projectData[] = [
+                    'module_name' => $moduleName,
+                    'module_code' => ucfirst(strtolower($module)),
+                    'module_percentage' => $modulePercentage,
+                    'plans' => $modulePlans->map(function ($plan) {
+                        return [
+                            'task_name' => $plan->projectTask->task_name,
+                            'status' => ucfirst($plan->status),
+                            'task_percentage' => ($plan->projectTask->task_percentage ?? 0) . '%',
+                            'plan_start_date' => $plan->plan_start_date ? \Carbon\Carbon::parse($plan->plan_start_date)->format('d/m/Y') : '',
+                            'plan_end_date' => $plan->plan_end_date ? \Carbon\Carbon::parse($plan->plan_end_date)->format('d/m/Y') : '',
+                            'plan_duration' => $plan->plan_duration ?? '',
+                            'actual_start_date' => $plan->actual_start_date ? \Carbon\Carbon::parse($plan->actual_start_date)->format('d/m/Y') : '',
+                            'actual_end_date' => $plan->actual_end_date ? \Carbon\Carbon::parse($plan->actual_end_date)->format('d/m/Y') : '',
+                            'actual_duration' => $plan->actual_duration ?? '',
+                            'remarks' => $plan->remarks ?? '',
+                        ];
+                    })->toArray()
+                ];
             }
-
-            // ✅ First row: Plan and Actual headers only (E-J), K is empty
-            $sheet->setCellValue("E{$currentRow}", 'Plan');
-            $sheet->mergeCells("E{$currentRow}:G{$currentRow}");
-
-            $sheet->setCellValue("H{$currentRow}", 'Actual');
-            $sheet->mergeCells("H{$currentRow}:J{$currentRow}");
-
-            $sheet->getStyle("E{$currentRow}:G{$currentRow}")->applyFromArray([
-                'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'FFFF00']],
-                'font' => ['bold' => true, 'color' => ['rgb' => '000000']],
-                'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
-                'borders' => [
-                    'allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => '000000']],
-                ],
-            ]);
-
-            $sheet->getStyle("H{$currentRow}:J{$currentRow}")->applyFromArray([
-                'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '00FF00']],
-                'font' => ['bold' => true, 'color' => ['rgb' => '000000']],
-                'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
-                'borders' => [
-                    'allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => '000000']],
-                ],
-            ]);
-
-            $currentRow++;
-
-            // ✅ Second row: Module code + Module name + Sub-headers + Remarks
-            $sheet->setCellValue("A{$currentRow}", ucfirst(strtolower($module)));
-            $sheet->setCellValue("B{$currentRow}", $moduleName);
-            $sheet->setCellValue("C{$currentRow}", 'Status');
-            $sheet->setCellValue("D{$currentRow}", $modulePercentage . '%');
-
-            $sheet->getStyle("A{$currentRow}:D{$currentRow}")->applyFromArray([
-                'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '00B0F0']],
-                'font' => ['bold' => true, 'color' => ['rgb' => '000000']],
-                'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
-                'borders' => [
-                    'allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => '000000']],
-                ],
-            ]);
-
-            // ✅ Sub-headers WITH REMARKS
-            $headers = ['Start Date', 'End Date', 'Duration', 'Start Date', 'End Date', 'Duration', 'Remarks'];
-            $col = 'E';
-            foreach ($headers as $header) {
-                $sheet->setCellValue("{$col}{$currentRow}", $header);
-
-                if (in_array($col, ['E', 'F', 'G'])) {
-                    $sheet->getStyle("{$col}{$currentRow}")->applyFromArray([
-                        'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'FFFF00']],
-                        'font' => ['bold' => true, 'color' => ['rgb' => '000000']],
-                        'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
-                        'borders' => [
-                            'allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => '000000']],
-                        ],
-                    ]);
-                } elseif (in_array($col, ['H', 'I', 'J'])) {
-                    $sheet->getStyle("{$col}{$currentRow}")->applyFromArray([
-                        'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '00FF00']],
-                        'font' => ['bold' => true, 'color' => ['rgb' => '000000']],
-                        'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
-                        'borders' => [
-                            'allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => '000000']],
-                        ],
-                    ]);
-                } elseif ($col === 'K') {
-                    // ✅ Remarks column styling
-                    $sheet->getStyle("{$col}{$currentRow}")->applyFromArray([
-                        'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'FFE699']],
-                        'font' => ['bold' => true, 'color' => ['rgb' => '000000']],
-                        'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
-                        'borders' => [
-                            'allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => '000000']],
-                        ],
-                    ]);
-                }
-
-                $col++;
-            }
-
-            $currentRow++;
-
-            // Task rows
-            $taskNumber = 1;
-            foreach ($modulePlans as $plan) {
-                $task = $plan->projectTask;
-
-                $sheet->setCellValue("A{$currentRow}", $taskNumber);
-                $sheet->setCellValue("B{$currentRow}", $task->task_name);
-                $sheet->setCellValue("C{$currentRow}", ucfirst($plan->status));
-                $sheet->setCellValue("D{$currentRow}", ($task->task_percentage ?? 0) . '%');
-
-                $sheet->getStyle("D{$currentRow}")->applyFromArray([
-                    'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
-                ]);
-
-                // Plan dates
-                $sheet->setCellValue("E{$currentRow}", $plan->plan_start_date ? \Carbon\Carbon::parse($plan->plan_start_date)->format('d/m/Y') : '');
-                $sheet->setCellValue("F{$currentRow}", $plan->plan_end_date ? \Carbon\Carbon::parse($plan->plan_end_date)->format('d/m/Y') : '');
-                $sheet->setCellValue("G{$currentRow}", $plan->plan_duration ?? '');
-
-                // Actual dates
-                $sheet->setCellValue("H{$currentRow}", $plan->actual_start_date ? \Carbon\Carbon::parse($plan->actual_start_date)->format('d/m/Y') : '');
-                $sheet->setCellValue("I{$currentRow}", $plan->actual_end_date ? \Carbon\Carbon::parse($plan->actual_end_date)->format('d/m/Y') : '');
-                $sheet->setCellValue("J{$currentRow}", $plan->actual_duration ?? '');
-
-                // ✅ Remarks column
-                $sheet->setCellValue("K{$currentRow}", $plan->remarks ?? '');
-                $sheet->getStyle("K{$currentRow}")->getAlignment()->setWrapText(true);
-
-                // ✅ Add borders to all columns including Remarks
-                $sheet->getStyle("A{$currentRow}:K{$currentRow}")->applyFromArray([
-                    'borders' => [
-                        'allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => '000000']],
-                    ],
-                ]);
-
-                $currentRow++;
-                $taskNumber++;
-            }
-
-            $currentRow++;
         }
 
-        // Auto-size columns A-J
-        foreach (range('A', 'J') as $col) {
-            $sheet->getColumnDimension($col)->setAutoSize(true);
-        }
+        // Prepare data for PDF view
+        $pdfData = [
+            'company_name' => $companyName,
+            'implementer_name' => $implementerName,
+            'project_data' => $projectData,
+            'generated_at' => now()->format('d/m/Y H:i:s')
+        ];
 
-        // ✅ Set fixed width for Remarks column
-        $sheet->getColumnDimension('K')->setWidth(40);
+        // Generate PDF
+        $pdf = PDF::loadView('pdf.project-plan', $pdfData);
+        $pdf->setPaper('A4', 'landscape'); // Set landscape orientation for better table display
 
         // Save to public storage
         $companySlug = \Illuminate\Support\Str::slug($companyName);
         $timestamp = now()->format('Y-m-d_His');
-        $filename = "Project_Plan_{$companySlug}_{$timestamp}.xlsx";
+        $filename = "Project_Plan_{$companySlug}_{$timestamp}.pdf";
         $directory = 'project-plans';
         $filePath = "{$directory}/{$filename}";
 
         \Illuminate\Support\Facades\Storage::disk('public')->makeDirectory($directory);
 
-        $writer = new Xlsx($spreadsheet);
-        $tempFile = tempnam(sys_get_temp_dir(), 'excel');
-        $writer->save($tempFile);
-
+        // Save PDF content
         \Illuminate\Support\Facades\Storage::disk('public')->put(
             $filePath,
-            file_get_contents($tempFile)
+            $pdf->output()
         );
 
-        unlink($tempFile);
-
-        \Illuminate\Support\Facades\Log::info("Project plan Excel generated", [
+        \Illuminate\Support\Facades\Log::info("Project plan PDF generated", [
             'lead_id' => $lead->id,
             'company_name' => $companyName,
             'file_path' => $filePath,

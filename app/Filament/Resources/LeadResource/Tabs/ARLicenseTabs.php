@@ -269,11 +269,6 @@ class ARLicenseTabs
             $encrypted = openssl_encrypt($companyId, "AES-128-ECB", $aesKey);
             $encryptedBase64 = base64_encode($encrypted);
 
-            Log::info('Encrypted Company ID', [
-                'original_company_id' => $companyId,
-                'encrypted' => $encryptedBase64
-            ]);
-
             return $encryptedBase64;
         } catch (\Exception $e) {
             Log::error('Company ID encryption failed: ' . $e->getMessage(), [

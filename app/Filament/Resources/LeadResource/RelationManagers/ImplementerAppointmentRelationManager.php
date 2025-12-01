@@ -1564,12 +1564,12 @@ class ImplementerAppointmentRelationManager extends RelationManager
                                                 ->label('Email Attachments')
                                                 ->multiple()
                                                 ->maxFiles(5)
-                                                ->acceptedFileTypes(['application/pdf', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'])
+                                                ->acceptedFileTypes(['application/pdf'])
                                                 ->maxSize(10240) // 10MB per file
                                                 ->directory('temp_email_attachments')
                                                 ->preserveFilenames()
-                                                ->storeFileNamesIn('attachment_names') // Store original names
-                                                ->helperText('Upload up to 5 files (PDF or Excel)')
+                                                ->storeFileNamesIn('attachment_names')
+                                                ->helperText('Upload up to 5 PDF files')
                                                 ->columnSpanFull()
                                                 ->reactive(),
                                         ])->columnSpan(1),
@@ -2995,11 +2995,9 @@ class ImplementerAppointmentRelationManager extends RelationManager
                     if ($filePath && file_exists($filePath)) {
                         $mimeType = mime_content_type($filePath);
 
+                        // ✅ Changed allowed types to PDF only
                         $allowedTypes = [
                             'application/pdf',
-                            'application/vnd.ms-excel',
-                            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                            'application/vnd.ms-excel.sheet.macroEnabled.12'
                         ];
 
                         if (in_array($mimeType, $allowedTypes)) {
