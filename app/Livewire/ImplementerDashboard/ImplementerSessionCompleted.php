@@ -2,12 +2,14 @@
 
 namespace App\Livewire\ImplementerDashboard;
 
+use App\Filament\Actions\ImplementerActions;
 use App\Models\ImplementerAppointment;
 use Carbon\Carbon;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Notifications\Notification;
 use Filament\Support\Colors\Color;
+use Filament\Tables\Actions\ActionGroup;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
@@ -138,9 +140,17 @@ class ImplementerSessionCompleted extends Component implements HasForms, HasTabl
                     ->label('Type')
                     ->sortable(),
             ])
+            ->actions([
+                ActionGroup::make([
+                    ImplementerActions::sendSessionSummaryAction(),
+                ])
+                ->icon('heroicon-m-list-bullet')
+                ->size(\Filament\Support\Enums\ActionSize::Small)
+                ->color('primary')
+                ->button(),
+            ])
             ->defaultSort('date', 'desc')
-            ->striped()
-            ->paginated([10, 25, 50, 100]);
+            ->paginated([10, 25]);
     }
 
     public function render()

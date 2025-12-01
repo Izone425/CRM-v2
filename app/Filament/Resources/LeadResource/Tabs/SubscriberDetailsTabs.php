@@ -67,6 +67,16 @@ class SubscriberDetailsTabs
                                                 TextInput::make('company_name')
                                                     ->label('Company Name')
                                                     ->required()
+                                                    ->extraAlpineAttributes([
+                                                        'x-on:input' => '
+                                                            const start = $el.selectionStart;
+                                                            const end = $el.selectionEnd;
+                                                            const value = $el.value;
+                                                            $el.value = value.toUpperCase();
+                                                            $el.setSelectionRange(start, end);
+                                                        '
+                                                    ])
+                                                    ->dehydrateStateUsing(fn ($state) => strtoupper($state))
                                                     ->disabled(function ($record) {
                                                         // Define variables here
                                                         $isOlderThan30Days = $record->created_at->diffInDays(now()) > 30;
