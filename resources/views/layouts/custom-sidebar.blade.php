@@ -827,6 +827,9 @@
                             <a href="{{ route('filament.admin.pages.sales-admin-analysis-v1') }}" class="submenu-item">
                                 <span class="module-font">Leads</span>
                             </a>
+                            <a href="{{ route('filament.admin.pages.apollo-lead-tracker') }}" class="submenu-item">
+                                <span class="module-font">Apollo Leads</span>
+                            </a>
                             <a href="{{ route('filament.admin.pages.sales-admin-analysis-v2') }}" class="submenu-item">
                                 <span class="module-font">Performance</span>
                             </a>
