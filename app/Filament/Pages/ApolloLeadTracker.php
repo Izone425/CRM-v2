@@ -75,6 +75,53 @@ class ApolloLeadTracker extends Page implements HasTable
                     ->color('success')
                     ->weight('bold'),
 
+                Tables\Columns\TextColumn::make('target')
+                    ->label('Target')
+                    ->alignCenter()
+                    ->getStateUsing(function ($record) {
+                        $jajaCount = Lead::where('lead_code', 'Apollo')
+                            ->whereDate('pickup_date', $record->pickup_date)
+                            ->where('lead_owner', 'Nurul Najaa Nadiah')
+                            ->count();
+
+                        $sheenaCount = Lead::where('lead_code', 'Apollo')
+                            ->whereDate('pickup_date', $record->pickup_date)
+                            ->where('lead_owner', 'Sheena Liew')
+                            ->count();
+
+                        return ($sheenaCount + $jajaCount) - 100;
+                    })
+                    ->color(function ($record) {
+                        $jajaCount = Lead::where('lead_code', 'Apollo')
+                            ->whereDate('pickup_date', $record->pickup_date)
+                            ->where('lead_owner', 'Nurul Najaa Nadiah')
+                            ->count();
+
+                        $sheenaCount = Lead::where('lead_code', 'Apollo')
+                            ->whereDate('pickup_date', $record->pickup_date)
+                            ->where('lead_owner', 'Sheena Liew')
+                            ->count();
+
+                        $target = ($sheenaCount + $jajaCount) - 100;
+
+                        return $target < 0 ? 'danger' : 'gray';
+                    })
+                    ->weight(function ($record) {
+                        $jajaCount = Lead::where('lead_code', 'Apollo')
+                            ->whereDate('pickup_date', $record->pickup_date)
+                            ->where('lead_owner', 'Nurul Najaa Nadiah')
+                            ->count();
+
+                        $sheenaCount = Lead::where('lead_code', 'Apollo')
+                            ->whereDate('pickup_date', $record->pickup_date)
+                            ->where('lead_owner', 'Sheena Liew')
+                            ->count();
+
+                        $target = ($sheenaCount + $jajaCount) - 100;
+
+                        return $target < 0 ? 'bold' : 'normal';
+                    }),
+
                 Tables\Columns\TextColumn::make('balance_leads')
                     ->label('Balance')
                     ->alignCenter()
@@ -133,7 +180,7 @@ class ApolloLeadTracker extends Page implements HasTable
                     }),
             ])
             ->striped()
-            ->paginated([10, 25, 50, 100]);
+            ->paginated([50]);
     }
 
     // ✅ Fix GROUP BY SQL mode compatibility

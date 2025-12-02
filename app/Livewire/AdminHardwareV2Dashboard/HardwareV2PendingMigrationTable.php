@@ -257,6 +257,10 @@ class HardwareV2PendingMigrationTable extends Component implements HasForms, Has
                         return User::find($salespersonId)?->name ?? $lead->lead_owner;
                     }),
 
+                TextColumn::make('implementer')
+                    ->label('Implementer')
+                    ->toggleable(isToggledHiddenByDefault: true),
+
                 TextColumn::make('lead.companyDetail.company_name')
                     ->label('Company Name')
                     ->searchable()
