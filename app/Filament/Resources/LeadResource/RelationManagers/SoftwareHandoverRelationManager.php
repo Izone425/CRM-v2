@@ -402,15 +402,23 @@ class SoftwareHandoverRelationManager extends RelationManager
                             Select::make('proforma_invoice_product')
                                 ->label('Software + Hardware')
                                 ->required(fn (callable $get) => $get('training_type') === 'online_webinar_training')
-                                ->options(function (RelationManager $livewire) {
-                                    $leadId = $livewire->getOwnerRecord()->id;
+                                ->options(function (?SoftwareHandover $record = null, RelationManager $livewire) {
+                                    // ✅ Get lead ID properly
+                                    $leadId = null;
                                     $currentRecordId = null;
-                                    if ($livewire->mountedTableActionRecord) {
-                                        if (is_object($livewire->mountedTableActionRecord)) {
-                                            $currentRecordId = $livewire->mountedTableActionRecord->id;
-                                        } else {
-                                            $currentRecordId = $livewire->mountedTableActionRecord;
-                                        }
+
+                                    if ($record) {
+                                        // Edit mode - we have a record
+                                        $leadId = $record->lead_id;
+                                        $currentRecordId = $record->id;
+                                    } else {
+                                        // ✅ Create mode - get lead ID from RelationManager
+                                        $leadId = $livewire->getOwnerRecord()->id;
+                                    }
+
+                                    // ✅ Handle case where we still can't get leadId
+                                    if (!$leadId) {
+                                        return [];
                                     }
 
                                     $usedPiIds = [];
@@ -434,30 +442,34 @@ class SoftwareHandoverRelationManager extends RelationManager
                                         }
                                     }
 
-                                    return \App\Models\Quotation::where('lead_id', $leadId)
+                                    // ✅ Apply the module checking filter
+                                    $availableQuotations = \App\Models\Quotation::where('lead_id', $leadId)
                                         ->where('quotation_type', 'product')
                                         ->where('status', \App\Enums\QuotationStatusEnum::accepted)
                                         ->whereNotIn('id', array_filter($usedPiIds))
-                                        ->where('quotation_date', '>=', now()->toDateString())
-                                        ->pluck('pi_reference_no', 'id')
-                                        ->toArray();
+                                        ->where('quotation_date', '>=', now()->toDateString());
+
+                                    // ✅ Filter quotations that contain the required module products
+                                    $moduleProductIds = [31, 118, 114, 108, 60, 38, 119, 115, 109, 60, 39, 120, 116, 110, 60, 40, 121, 117, 111, 60, 59, 41, 112, 93, 113, 42];
+
+                                    $availableQuotations = $availableQuotations->whereHas('items', function ($query) use ($moduleProductIds) {
+                                        $query->whereIn('product_id', $moduleProductIds);
+                                    });
+
+                                    return $availableQuotations->pluck('pi_reference_no', 'id')->toArray();
                                 })
                                 ->multiple()
                                 ->searchable()
                                 ->preload()
-                                ->live() // Add live to trigger updates
+                                ->live()
                                 ->afterStateUpdated(function (Forms\Set $set, ?array $state, CategoryService $category) {
                                     if (empty($state)) {
                                         return;
                                     }
-
-                                    // Get the highest quantity from selected quotations
                                     $highestQuantity = \App\Models\QuotationDetail::whereIn('quotation_id', $state)
                                         ->max('quantity');
-
                                     if ($highestQuantity) {
                                         $set('headcount', $highestQuantity);
-                                        // Also update the category based on the new headcount
                                         $set('category', $category->retrieve($highestQuantity));
                                     }
                                 })
