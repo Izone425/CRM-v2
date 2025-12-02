@@ -41,60 +41,52 @@ class ApolloLeadTracker extends Page implements HasTable
                         return Carbon::parse($record->pickup_date)->format('l');
                     }),
 
+                // ✅ Owner breakdown - using DATE() to match grouped dates
                 Tables\Columns\TextColumn::make('jaja_count')
                     ->label('Jaja')
                     ->alignCenter()
                     ->getStateUsing(function ($record) {
                         return Lead::where('lead_code', 'Apollo')
-                            ->where('pickup_date', $record->pickup_date)
-                            ->where('lead_owner', 'Jaja')
+                            ->whereDate('pickup_date', $record->pickup_date)
+                            ->where('lead_owner', 'Nurul Najaa Nadiah')
                             ->count();
-                    }),
+                    })
+                    ->color('secondary'),
 
                 Tables\Columns\TextColumn::make('sheena_count')
                     ->label('Sheena')
                     ->alignCenter()
                     ->getStateUsing(function ($record) {
                         return Lead::where('lead_code', 'Apollo')
-                            ->where('pickup_date', $record->pickup_date)
-                            ->where('lead_owner', 'Sheena')
+                            ->whereDate('pickup_date', $record->pickup_date)
+                            ->where('lead_owner', 'Sheena Liew')
                             ->count();
-                    }),
-
-                Tables\Columns\TextColumn::make('balance_leads')
-                    ->label('Balance Leads')
-                    ->alignCenter()
-                    ->getStateUsing(function ($record) {
-                        // Get total Apollo leads for this date
-                        $totalForDate = Lead::where('lead_code', 'Apollo')
-                            ->where('pickup_date', $record->pickup_date)
-                            ->count();
-
-                        // Get running total up to this date
-                        $runningTotal = Lead::where('lead_code', 'Apollo')
-                            ->where('pickup_date', '<=', $record->pickup_date)
-                            ->count();
-
-                        // Calculate balance (this is a simplified calculation)
-                        // You might want to adjust this logic based on your business needs
-                        $totalApollo = Lead::where('lead_code', 'Apollo')->count();
-                        $processedUpToDate = Lead::where('lead_code', 'Apollo')
-                            ->where('pickup_date', '<', $record->pickup_date)
-                            ->count();
-
-                        return $totalApollo - $processedUpToDate;
-                    }),
+                    })
+                    ->color('secondary'),
 
                 Tables\Columns\TextColumn::make('total_daily')
                     ->label('Daily Total')
                     ->alignCenter()
                     ->getStateUsing(function ($record) {
                         return Lead::where('lead_code', 'Apollo')
-                            ->where('pickup_date', $record->pickup_date)
+                            ->whereDate('pickup_date', $record->pickup_date)
                             ->count();
                     })
                     ->color('success')
                     ->weight('bold'),
+
+                Tables\Columns\TextColumn::make('balance_leads')
+                    ->label('Balance')
+                    ->alignCenter()
+                    ->getStateUsing(function ($record) {
+                        $totalApollo = Lead::where('lead_code', 'Apollo')->count();
+                        $processedUpToDate = Lead::where('lead_code', 'Apollo')
+                            ->whereDate('pickup_date', '<=', $record->pickup_date)
+                            ->count();
+
+                        return $totalApollo - $processedUpToDate;
+                    })
+                    ->color('danger'),
             ])
             ->defaultSort('pickup_date', 'desc')
             ->filters([
@@ -117,19 +109,57 @@ class ApolloLeadTracker extends Page implements HasTable
                                 $data['to_date'],
                                 fn (Builder $query, $date): Builder => $query->where('pickup_date', '<=', $date),
                             );
-                    })
+                    }),
+
+                Tables\Filters\SelectFilter::make('lead_owner')
+                    ->label('Filter by Owner')
+                    ->options([
+                        'Nurul Najaa Nadiah' => 'Jaja',
+                        'Sheena Liew' => 'Sheena',
+                    ])
+                    ->multiple()
+                    ->query(function (Builder $query, array $data): Builder {
+                        if (empty($data['values'])) {
+                            return $query;
+                        }
+
+                        return $query->whereExists(function ($subQuery) use ($data) {
+                            $subQuery->select(DB::raw(1))
+                                ->from('leads')
+                                ->whereColumn('pickup_date', 'pickup_date')
+                                ->where('leads.lead_code', 'Apollo')
+                                ->whereIn('leads.lead_owner', $data['values']);
+                        });
+                    }),
             ])
             ->striped()
             ->paginated([10, 25, 50, 100]);
     }
 
+    // ✅ Fix GROUP BY SQL mode compatibility
     protected function getTableQuery(): Builder
     {
-        // Get distinct pickup dates for Apollo leads
-        return Lead::select('pickup_date')
-            ->where('lead_code', 'Apollo')
-            ->whereNotNull('pickup_date')
-            ->distinct()
-            ->orderBy('pickup_date', 'desc');
+        return Lead::fromSub(function ($query) {
+            $query->selectRaw('
+                    DATE(pickup_date) as pickup_date,
+                    COUNT(*) as total_count
+                ')
+                ->from('leads')
+                ->where('lead_code', 'Apollo')
+                ->whereNotNull('pickup_date')
+                ->groupByRaw('DATE(pickup_date)');
+        }, 'grouped_leads')
+        ->selectRaw('
+            pickup_date,
+            MD5(pickup_date) as unique_id,
+            total_count,
+            ROW_NUMBER() OVER (ORDER BY pickup_date DESC) as id
+        ')
+        ->orderBy('pickup_date', 'desc');
+    }
+
+    public function getTableRecordKey($record): string
+    {
+        return $record->unique_id ?? md5($record->pickup_date ?? 'default');
     }
 }

@@ -1296,17 +1296,18 @@ class ImplementerAppointmentRelationManager extends RelationManager
                                                     ->required(),
 
                                                 Forms\Components\FileUpload::make('onboarding_attachments')
-                                                    ->label('Software Onboarding Files')
+                                                    ->label('Email Attachment')
                                                     ->multiple()
                                                     ->maxFiles(5)
                                                     ->acceptedFileTypes([
                                                         'application/pdf',
+                                                        'application/vnd.ms-excel',
+                                                        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
                                                     ])
                                                     ->directory('temp_onboarding_attachments')
                                                     ->preserveFilenames()
                                                     ->storeFileNamesIn('onboarding_attachment_names')
                                                     ->reactive()
-                                                    ->helperText('Upload PDF files for software onboarding')
                                                     ->afterStateUpdated(function (callable $get, callable $set, $state) {
                                                         // ✅ Log what's being uploaded
                                                         Log::info('Onboarding files uploaded', [
@@ -3107,6 +3108,8 @@ class ImplementerAppointmentRelationManager extends RelationManager
                         // ✅ Changed allowed types to PDF only
                         $allowedTypes = [
                             'application/pdf',
+                            'application/vnd.ms-excel',                                           // .xls
+                            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
                         ];
 
                         if (in_array($mimeType, $allowedTypes)) {

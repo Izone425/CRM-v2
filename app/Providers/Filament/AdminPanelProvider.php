@@ -10,6 +10,7 @@ use App\Filament\Pages\AdminRenewalProcessDataMyr;
 use App\Filament\Pages\AdminRenewalProcessDataUsd;
 use App\Filament\Pages\AdminRenewalRawData;
 use App\Filament\Pages\AdminRepairDashboard;
+use App\Filament\Pages\ApolloLeadTracker;
 use App\Filament\Pages\Auth\EditProfile;
 use App\Filament\Pages\Calendar;
 use App\Filament\Pages\CallLogAnalysis;
@@ -367,6 +368,7 @@ class AdminPanelProvider extends PanelProvider
                 TicketDashboard::class,
                 SubmitHrdfAttendanceLog::class,
                 ProjectPlanSummary::class,
+                ApolloLeadTracker::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([
