@@ -1076,7 +1076,7 @@ class ImplementerAppointmentRelationManager extends RelationManager
                                 }
                             }
 
-                            return "Add Session Summary for {$companyName}";
+                            return "Send Session Summary for {$companyName}";
                         })
                         ->visible(function (ImplementerAppointment $record) {
                             return $record->sent_summary_email != 1 && $record->session_recording_link != null;
@@ -1107,11 +1107,11 @@ class ImplementerAppointmentRelationManager extends RelationManager
                             Hidden::make('scheduler_type')
                                 ->default('instant'),
 
-                            // ✅ Add Session Recording Link field
+                            // ✅ Enhanced file attachment section
                             Grid::make(2)
                                 ->schema([
                                     Select::make('project_plan_files')
-                                        ->label('Project Plan Files')
+                                        ->label('Project Plan Files (from Storage)')
                                         ->options(function () {
                                             $lead = $this->getOwnerRecord();
                                             if (!$lead) {
@@ -1183,6 +1183,7 @@ class ImplementerAppointmentRelationManager extends RelationManager
                                         ->multiple()
                                         ->searchable()
                                         ->preload()
+                                        ->helperText('Select existing project plan files from storage')
                                         ->columnSpan(1),
 
                                     TextInput::make('session_recording_link')
@@ -1286,16 +1287,44 @@ class ImplementerAppointmentRelationManager extends RelationManager
                                         })
                                         ->required(),
 
-                                    TextInput::make('email_subject')
-                                        ->label('Email Subject')
-                                        ->required(),
+                                    Grid::make(2)
+                                        ->schema([
+                                        Grid::make(1)
+                                            ->schema([
+                                                TextInput::make('email_subject')
+                                                    ->label('Email Subject')
+                                                    ->required(),
 
-                                    RichEditor::make('email_content')
-                                        ->label('Email Content')
-                                        ->disableToolbarButtons([
-                                            'attachFiles',
-                                        ])
-                                        ->required(),
+                                                Forms\Components\FileUpload::make('onboarding_attachments')
+                                                    ->label('Software Onboarding Files')
+                                                    ->multiple()
+                                                    ->maxFiles(5)
+                                                    ->acceptedFileTypes([
+                                                        'application/pdf',
+                                                    ])
+                                                    ->directory('temp_onboarding_attachments')
+                                                    ->preserveFilenames()
+                                                    ->storeFileNamesIn('onboarding_attachment_names')
+                                                    ->reactive()
+                                                    ->helperText('Upload PDF files for software onboarding')
+                                                    ->afterStateUpdated(function (callable $get, callable $set, $state) {
+                                                        // ✅ Log what's being uploaded
+                                                        Log::info('Onboarding files uploaded', [
+                                                            'files' => $state,
+                                                            'type' => gettype($state),
+                                                            'count' => is_array($state) ? count($state) : 0
+                                                        ]);
+                                                    }),
+                                            ])->columnSpan(1),
+
+                                        RichEditor::make('email_content')
+                                            ->label('Email Content')
+                                            ->disableToolbarButtons([
+                                                'attachFiles',
+                                            ])
+                                            ->required()
+                                            ->columnSpan(1),
+                                    ]),
                                 ]),
 
                             Hidden::make('implementer_name')
@@ -1343,24 +1372,77 @@ class ImplementerAppointmentRelationManager extends RelationManager
                                 return;
                             }
 
-                            // ✅ Add project plan files as attachments
+                            // ✅ FIXED: Initialize array and process both types properly
+                            $allAttachments = [];
+
+                            // Process project plan files from storage
                             if (!empty($data['project_plan_files'])) {
-                                $attachments = [];
+                                Log::info('Processing project plan files', [
+                                    'files' => $data['project_plan_files'],
+                                    'count' => count($data['project_plan_files'])
+                                ]);
+
                                 foreach ($data['project_plan_files'] as $filePath) {
                                     $fullPath = storage_path('app/public/' . $filePath);
                                     if (file_exists($fullPath)) {
-                                        $attachments[] = $fullPath;
+                                        $allAttachments[] = $fullPath;
+                                        Log::info('Added project plan file to attachments', [
+                                            'file' => $filePath,
+                                            'full_path' => $fullPath,
+                                            'size' => filesize($fullPath)
+                                        ]);
+                                    } else {
+                                        Log::warning('Project plan file not found', ['path' => $fullPath]);
                                     }
                                 }
-
-                                $data['project_plan_attachments'] = $attachments;
-
-                                Log::info('Project plan files prepared for email', [
-                                    'files' => $data['project_plan_files'],
-                                    'attachments' => $attachments,
-                                    'count' => count($attachments)
-                                ]);
                             }
+
+                            // ✅ FIXED: Process software onboarding files properly
+                            if (!empty($data['onboarding_attachments'])) {
+                                Log::info('Processing onboarding attachments', [
+                                    'files' => $data['onboarding_attachments'],
+                                    'count' => count($data['onboarding_attachments'])
+                                ]);
+
+                                foreach ($data['onboarding_attachments'] as $fileName) {
+                                    // ✅ FIXED: Handle both full paths and filenames
+                                    if (str_contains($fileName, 'temp_onboarding_attachments/')) {
+                                        // Already has directory path
+                                        $filePath = storage_path('app/public/' . $fileName);
+                                    } else {
+                                        // Just filename, add directory
+                                        $filePath = storage_path('app/public/temp_onboarding_attachments/' . $fileName);
+                                    }
+
+                                    if (file_exists($filePath)) {
+                                        $allAttachments[] = $filePath;
+                                        Log::info('Added onboarding file to attachments', [
+                                            'original_name' => $fileName,
+                                            'full_path' => $filePath,
+                                            'size' => filesize($filePath)
+                                        ]);
+                                    } else {
+                                        Log::warning('Onboarding file not found', [
+                                            'original_name' => $fileName,
+                                            'attempted_path' => $filePath
+                                        ]);
+                                    }
+                                }
+                            }
+
+                            // ✅ Set the merged attachments with the correct key name
+                            if (!empty($allAttachments)) {
+                                $data['project_plan_attachments'] = $allAttachments;
+                            }
+
+                            // ✅ ENHANCED: Log the final attachment processing
+                            Log::info('Session summary attachments processed - FIXED', [
+                                'project_plan_files_input' => count($data['project_plan_files'] ?? []),
+                                'onboarding_attachments_input' => count($data['onboarding_attachments'] ?? []),
+                                'total_files_found' => count($allAttachments),
+                                'final_attachment_paths' => $allAttachments,
+                                'project_plan_attachments_key' => count($data['project_plan_attachments'] ?? [])
+                            ]);
 
                             $data['send_email'] = true;
 
@@ -1374,20 +1456,44 @@ class ImplementerAppointmentRelationManager extends RelationManager
                                 'session_recording_link' => $data['session_recording_link'] ?? null,
                             ]);
 
-                            Log::info('Session summary email sent and marked', [
+                            // ✅ Clean up temporary onboarding files
+                            if (!empty($data['onboarding_attachments'])) {
+                                foreach ($data['onboarding_attachments'] as $fileName) {
+                                    // ✅ FIXED: Handle cleanup for both path formats
+                                    if (str_contains($fileName, 'temp_onboarding_attachments/')) {
+                                        $filePath = storage_path('app/public/' . $fileName);
+                                    } else {
+                                        $filePath = storage_path('app/public/temp_onboarding_attachments/' . $fileName);
+                                    }
+
+                                    if (file_exists($filePath)) {
+                                        try {
+                                            unlink($filePath);
+                                            Log::info("Cleaned up temporary file: {$fileName}");
+                                        } catch (\Exception $e) {
+                                            Log::error('Failed to cleanup onboarding attachment: ' . $e->getMessage());
+                                        }
+                                    }
+                                }
+                            }
+
+                            Log::info('Session summary email sent with all attachments - FINAL', [
                                 'appointment_id' => $record->id,
                                 'lead_id' => $lead->id,
                                 'sent_by' => auth()->user()->name,
                                 'sent_at' => now(),
-                                'has_attachments' => !empty($data['project_plan_files']),
-                                'has_recording_link' => !empty($data['session_recording_link']),
-                                'recording_link' => $data['session_recording_link'] ?? null,
+                                'total_attachments_sent' => count($allAttachments),
+                                'attachment_breakdown' => [
+                                    'project_plans' => count($data['project_plan_files'] ?? []),
+                                    'onboarding_files' => count($data['onboarding_attachments'] ?? []),
+                                    'combined_total' => count($allAttachments)
+                                ]
                             ]);
 
                             Notification::make()
                                 ->title('Session Summary Sent Successfully')
                                 ->success()
-                                ->body('The session summary email has been sent and the appointment has been marked.')
+                                ->body('The session summary email has been sent with all attachments including software onboarding files.')
                                 ->send();
 
                             $this->dispatch('refresh');
@@ -1567,12 +1673,12 @@ class ImplementerAppointmentRelationManager extends RelationManager
                                                 ->label('Email Attachments')
                                                 ->multiple()
                                                 ->maxFiles(5)
-                                                ->acceptedFileTypes(['application/pdf'])
+                                                ->acceptedFileTypes(['application/pdf', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'])
                                                 ->maxSize(10240) // 10MB per file
                                                 ->directory('temp_email_attachments')
                                                 ->preserveFilenames()
-                                                ->storeFileNamesIn('attachment_names')
-                                                ->helperText('Upload up to 5 PDF files')
+                                                ->storeFileNamesIn('attachment_names') // Store original names
+                                                ->helperText('Upload up to 5 files (PDF or Excel)')
                                                 ->columnSpanFull()
                                                 ->reactive(),
                                         ])->columnSpan(1),

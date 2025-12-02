@@ -1179,6 +1179,16 @@ class ImplementerActions
         try {
             $implementerLog = null;
 
+            // ✅ DEBUG: Log incoming attachment data
+            Log::info('processFollowUpWithEmail - Input data analysis', [
+                'has_project_plan_attachments' => !empty($data['project_plan_attachments']),
+                'project_plan_attachments_count' => count($data['project_plan_attachments'] ?? []),
+                'project_plan_attachments' => $data['project_plan_attachments'] ?? null,
+                'data_keys' => array_keys($data),
+                'createFollowUp' => $createFollowUp,
+                'lead_id' => $record->lead_id
+            ]);
+
             // ✅ Only create follow-up entry if explicitly requested
             if ($createFollowUp) {
                 // Update the SoftwareHandover record with follow-up information
@@ -1286,6 +1296,19 @@ class ImplementerActions
                             $template = EmailTemplate::find($data['email_template']);
                             $templateName = $template ? $template->name : 'Custom Email';
 
+                            // ✅ ENHANCED: More detailed logging before preparing email data
+                            Log::info('Preparing email data with attachments', [
+                                'has_project_plan_attachments' => !empty($data['project_plan_attachments']),
+                                'attachment_count' => count($data['project_plan_attachments'] ?? []),
+                                'attachment_paths' => $data['project_plan_attachments'] ?? [],
+                                'attachment_files_exist' => !empty($data['project_plan_attachments']) ?
+                                    array_map(function($path) {
+                                        return ['path' => $path, 'exists' => file_exists($path), 'size' => file_exists($path) ? filesize($path) : 0];
+                                    }, $data['project_plan_attachments']) : [],
+                                'lead_id' => $record->lead_id,
+                                'scheduler_type' => $schedulerType
+                            ]);
+
                             // Store email data for scheduling
                             $emailData = [
                                 'content' => $content,
@@ -1294,15 +1317,30 @@ class ImplementerActions
                                 'sender_email' => $senderEmail,
                                 'sender_name' => $senderName,
                                 'lead_id' => $record->lead_id,
-                                'implementer_log_id' => $implementerLog ? $implementerLog->id : null, // ✅ Handle null case
+                                'implementer_log_id' => $implementerLog ? $implementerLog->id : null,
                                 'template_name' => $templateName,
                                 'scheduler_type' => $schedulerType,
-                                'project_plan_attachments' => $data['project_plan_attachments'] ?? [],
+                                'project_plan_attachments' => $data['project_plan_attachments'] ?? [], // ✅ Ensure this is passed
                                 'session_recording_link' => $data['session_recording_link'] ?? null,
                             ];
 
+                            // ✅ ENHANCED: Log the final email data before sending
+                            Log::info('Final email data prepared', [
+                                'email_data_keys' => array_keys($emailData),
+                                'has_attachments_in_email_data' => !empty($emailData['project_plan_attachments']),
+                                'email_data_attachments' => $emailData['project_plan_attachments'] ?? null,
+                                'about_to_send' => $schedulerType === 'instant' || $schedulerType === 'both'
+                            ]);
+
                             // Handle different scheduler types
                             if ($schedulerType === 'instant' || $schedulerType === 'both') {
+                                // ✅ Log just before calling sendEmail
+                                Log::info('About to call sendEmail with attachments', [
+                                    'attachments_in_data' => !empty($emailData['project_plan_attachments']),
+                                    'attachment_count' => count($emailData['project_plan_attachments'] ?? []),
+                                    'method' => 'instant_send'
+                                ]);
+
                                 // Send email immediately
                                 self::sendEmail($emailData);
 
@@ -1315,6 +1353,13 @@ class ImplementerActions
                             if ($schedulerType === 'scheduled' || $schedulerType === 'both') {
                                 // Schedule email for follow-up date at 8am
                                 $scheduledDate = date('Y-m-d 08:00:00', strtotime($data['follow_up_date']));
+
+                                // ✅ Log scheduled email data
+                                Log::info('Storing scheduled email with attachments', [
+                                    'attachments_in_scheduled_data' => !empty($emailData['project_plan_attachments']),
+                                    'attachment_count' => count($emailData['project_plan_attachments'] ?? []),
+                                    'scheduled_for' => $scheduledDate
+                                ]);
 
                                 // Store scheduled email in database
                                 DB::table('scheduled_emails')->insert([
@@ -1333,7 +1378,11 @@ class ImplementerActions
                         }
                     }
                 } catch (\Exception $e) {
-                    Log::error('Error sending follow-up email: ' . $e->getMessage());
+                    Log::error('Error sending follow-up email: ' . $e->getMessage(), [
+                        'trace' => $e->getTraceAsString(),
+                        'had_attachments' => !empty($data['project_plan_attachments']),
+                        'attachment_count' => count($data['project_plan_attachments'] ?? [])
+                    ]);
                     Notification::make()
                         ->title('Error sending email')
                         ->body($e->getMessage())
@@ -1352,7 +1401,11 @@ class ImplementerActions
 
             return $implementerLog;
         } catch (\Exception $e) {
-            Log::error('Error processing follow-up: ' . $e->getMessage());
+            Log::error('Error processing follow-up: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
+                'input_data_keys' => array_keys($data),
+                'had_attachments' => !empty($data['project_plan_attachments'])
+            ]);
             Notification::make()
                 ->title('Error adding follow-up')
                 ->body($e->getMessage())
@@ -1372,6 +1425,16 @@ class ImplementerActions
     public static function sendEmail(array $emailData): void
     {
         try {
+            // ✅ ENHANCED: Log the received email data at the start
+            Log::info('sendEmail method called', [
+                'email_data_keys' => array_keys($emailData),
+                'has_project_plan_attachments' => !empty($emailData['project_plan_attachments']),
+                'project_plan_attachments_count' => count($emailData['project_plan_attachments'] ?? []),
+                'project_plan_attachments_data' => $emailData['project_plan_attachments'] ?? null,
+                'recipients_count' => count($emailData['recipients'] ?? []),
+                'subject' => $emailData['subject'] ?? 'No subject'
+            ]);
+
             // ✅ Handle case where implementer_log_id might be null
             $implementerLog = null;
             if (!empty($emailData['implementer_log_id'])) {
@@ -1427,8 +1490,20 @@ class ImplementerActions
                 }
             }
 
+            // ✅ FIXED: Enhanced attachment processing with detailed logging
+            $attachmentCount = 0;
+            $attachmentSummary = [];
+
+            // ✅ DETAILED: Log attachment processing start
+            Log::info('Starting attachment processing', [
+                'has_project_plan_attachments' => !empty($emailData['project_plan_attachments']),
+                'attachment_data' => $emailData['project_plan_attachments'] ?? 'null',
+                'attachment_type' => gettype($emailData['project_plan_attachments'] ?? null),
+                'is_array' => is_array($emailData['project_plan_attachments'] ?? null)
+            ]);
+
             // Send the email with CC recipients and attachments
-            Mail::html($emailData['content'], function (Message $message) use ($emailData, $ccRecipients) {
+            Mail::html($emailData['content'], function (Message $message) use ($emailData, $ccRecipients, &$attachmentCount, &$attachmentSummary) {
                 $message->to($emailData['recipients'])
                     ->subject($emailData['subject'])
                     ->from($emailData['sender_email'], $emailData['sender_name']);
@@ -1441,29 +1516,82 @@ class ImplementerActions
                 // BCC the sender as well
                 $message->bcc($emailData['sender_email']);
 
-                // ✅ Attach project plan files if they exist
+                // ✅ Attach project plan files if they exist with enhanced logging
                 if (!empty($emailData['project_plan_attachments'])) {
-                    foreach ($emailData['project_plan_attachments'] as $filePath) {
+                    Log::info('Processing project plan attachments inside Mail closure', [
+                        'count' => count($emailData['project_plan_attachments']),
+                        'files' => $emailData['project_plan_attachments']
+                    ]);
+
+                    foreach ($emailData['project_plan_attachments'] as $index => $filePath) {
+                        Log::info("Processing attachment {$index}", [
+                            'filePath' => $filePath,
+                            'file_exists' => file_exists($filePath),
+                            'file_size' => file_exists($filePath) ? filesize($filePath) : 'N/A',
+                            'is_readable' => file_exists($filePath) ? is_readable($filePath) : 'N/A'
+                        ]);
+
                         if (file_exists($filePath)) {
-                            $message->attach($filePath, [
-                                'as' => basename($filePath),
-                                'mime' => mime_content_type($filePath)
+                            try {
+                                $mimeType = mime_content_type($filePath);
+                                $fileName = basename($filePath);
+                                $fileSize = filesize($filePath);
+
+                                $message->attach($filePath, [
+                                    'as' => $fileName,
+                                    'mime' => $mimeType
+                                ]);
+
+                                $attachmentCount++;
+                                $attachmentSummary[] = [
+                                    'name' => $fileName,
+                                    'size' => $fileSize,
+                                    'mime' => $mimeType,
+                                    'status' => 'attached'
+                                ];
+
+                                Log::info('Successfully attached file to email', [
+                                    'file' => $fileName,
+                                    'path' => $filePath,
+                                    'mime' => $mimeType,
+                                    'size' => $fileSize . ' bytes',
+                                    'attachment_number' => $attachmentCount
+                                ]);
+                            } catch (\Exception $e) {
+                                Log::error('Failed to attach file to email', [
+                                    'file' => basename($filePath),
+                                    'path' => $filePath,
+                                    'error' => $e->getMessage(),
+                                    'trace' => $e->getTraceAsString()
+                                ]);
+
+                                $attachmentSummary[] = [
+                                    'name' => basename($filePath),
+                                    'path' => $filePath,
+                                    'status' => 'failed',
+                                    'error' => $e->getMessage()
+                                ];
+                            }
+                        } else {
+                            Log::warning('Attachment file not found', [
+                                'path' => $filePath,
+                                'full_path' => $filePath,
+                                'directory_exists' => file_exists(dirname($filePath))
                             ]);
 
-                            Log::info('Attached project plan file to email', [
-                                'file' => basename($filePath),
-                                'path' => $filePath
-                            ]);
-                        } else {
-                            Log::warning('Project plan file not found for attachment', [
-                                'path' => $filePath
-                            ]);
+                            $attachmentSummary[] = [
+                                'name' => basename($filePath),
+                                'path' => $filePath,
+                                'status' => 'file_not_found'
+                            ];
                         }
                     }
+                } else {
+                    Log::info('No project_plan_attachments found in email data or array is empty');
                 }
             });
 
-            // Log email sent successfully with attachment count
+            // ✅ ENHANCED: Log email sent successfully with detailed attachment info
             Log::info('Follow-up email sent successfully', [
                 'to' => $emailData['recipients'],
                 'cc' => $ccRecipients,
@@ -1471,13 +1599,21 @@ class ImplementerActions
                 'implementer_log_id' => $emailData['implementer_log_id'] ?? null,
                 'lead_id' => $emailData['lead_id'] ?? null,
                 'template' => $emailData['template_name'] ?? 'Unknown',
-                'attachments_count' => count($emailData['project_plan_attachments'] ?? []),
+                'attachments_sent' => $attachmentCount,
+                'attachments_available' => count($emailData['project_plan_attachments'] ?? []),
+                'attachment_summary' => $attachmentSummary,
+                'successful_attachments' => array_filter($attachmentSummary, fn($att) => $att['status'] === 'attached'),
+                'failed_attachments' => array_filter($attachmentSummary, fn($att) => $att['status'] !== 'attached')
             ]);
+
         } catch (\Exception $e) {
             Log::error('Error in sendEmail method: ' . $e->getMessage(), [
                 'trace' => $e->getTraceAsString(),
-                'data' => $emailData
+                'data_keys' => array_keys($emailData),
+                'had_project_plan_attachments' => !empty($emailData['project_plan_attachments']),
+                'attachment_count' => count($emailData['project_plan_attachments'] ?? [])
             ]);
+            throw $e;
         }
     }
 
@@ -1641,11 +1777,11 @@ class ImplementerActions
                 Hidden::make('scheduler_type')
                     ->default('instant'),
 
-                // ✅ Session Recording Link and Project Plan Files - EXACTLY same as RelationManager
+                // ✅ Enhanced file attachment section - EXACTLY same as RelationManager
                 Grid::make(2)
                     ->schema([
                         Select::make('project_plan_files')
-                            ->label('Project Plan Files')
+                            ->label('Project Plan Files (from Storage)')
                             ->options(function (ImplementerAppointment $record) {
                                 // Get lead from the record
                                 $lead = $record->lead;
@@ -1719,6 +1855,7 @@ class ImplementerActions
                             ->multiple()
                             ->searchable()
                             ->preload()
+                            ->helperText('Select existing project plan files from storage')
                             ->columnSpan(1),
 
                         TextInput::make('session_recording_link')
@@ -1823,16 +1960,45 @@ class ImplementerActions
                             })
                             ->required(),
 
-                        TextInput::make('email_subject')
-                            ->label('Email Subject')
-                            ->required(),
+                        // ✅ ADDED: Same layout as RelationManager with onboarding file upload
+                        Grid::make(2)
+                            ->schema([
+                                Grid::make(1)
+                                    ->schema([
+                                        TextInput::make('email_subject')
+                                            ->label('Email Subject')
+                                            ->required(),
 
-                        RichEditor::make('email_content')
-                            ->label('Email Content')
-                            ->disableToolbarButtons([
-                                'attachFiles',
-                            ])
-                            ->required(),
+                                        FileUpload::make('onboarding_attachments')
+                                            ->label('Software Onboarding Files')
+                                            ->multiple()
+                                            ->maxFiles(5)
+                                            ->acceptedFileTypes([
+                                                'application/pdf',
+                                            ])
+                                            ->directory('temp_onboarding_attachments')
+                                            ->preserveFilenames()
+                                            ->storeFileNamesIn('onboarding_attachment_names')
+                                            ->reactive()
+                                            ->helperText('Upload PDF files for software onboarding')
+                                            ->afterStateUpdated(function (callable $get, callable $set, $state) {
+                                                // ✅ Log what's being uploaded
+                                                Log::info('Onboarding files uploaded in sendSessionSummaryAction', [
+                                                    'files' => $state,
+                                                    'type' => gettype($state),
+                                                    'count' => is_array($state) ? count($state) : 0
+                                                ]);
+                                            }),
+                                    ])->columnSpan(1),
+
+                                RichEditor::make('email_content')
+                                    ->label('Email Content')
+                                    ->disableToolbarButtons([
+                                        'attachFiles',
+                                    ])
+                                    ->required()
+                                    ->columnSpan(1),
+                            ]),
                     ]),
 
                 Hidden::make('implementer_name')
@@ -1880,25 +2046,77 @@ class ImplementerActions
                         return;
                     }
 
-                    // ✅ Add project plan files as attachments - EXACTLY same as RelationManager
+                    // ✅ FIXED: Initialize array and process both types properly - EXACTLY same as RelationManager
+                    $allAttachments = [];
+
+                    // Process project plan files from storage
                     if (!empty($data['project_plan_files'])) {
-                        $attachments = [];
+                        Log::info('Processing project plan files in sendSessionSummaryAction', [
+                            'files' => $data['project_plan_files'],
+                            'count' => count($data['project_plan_files'])
+                        ]);
+
                         foreach ($data['project_plan_files'] as $filePath) {
                             $fullPath = storage_path('app/public/' . $filePath);
                             if (file_exists($fullPath)) {
-                                $attachments[] = $fullPath;
+                                $allAttachments[] = $fullPath;
+                                Log::info('Added project plan file to attachments in sendSessionSummaryAction', [
+                                    'file' => $filePath,
+                                    'full_path' => $fullPath,
+                                    'size' => filesize($fullPath)
+                                ]);
+                            } else {
+                                Log::warning('Project plan file not found in sendSessionSummaryAction', ['path' => $fullPath]);
                             }
                         }
-
-                        $data['project_plan_attachments'] = $attachments;
-
-                        Log::info('Project plan files prepared for email', [
-                            'appointment_id' => $record->id,
-                            'files' => $data['project_plan_files'],
-                            'attachments' => $attachments,
-                            'count' => count($attachments)
-                        ]);
                     }
+
+                    // ✅ FIXED: Process software onboarding files properly
+                    if (!empty($data['onboarding_attachments'])) {
+                        Log::info('Processing onboarding attachments in sendSessionSummaryAction', [
+                            'files' => $data['onboarding_attachments'],
+                            'count' => count($data['onboarding_attachments'])
+                        ]);
+
+                        foreach ($data['onboarding_attachments'] as $fileName) {
+                            // ✅ FIXED: Handle both full paths and filenames
+                            if (str_contains($fileName, 'temp_onboarding_attachments/')) {
+                                // Already has directory path
+                                $filePath = storage_path('app/public/' . $fileName);
+                            } else {
+                                // Just filename, add directory
+                                $filePath = storage_path('app/public/temp_onboarding_attachments/' . $fileName);
+                            }
+
+                            if (file_exists($filePath)) {
+                                $allAttachments[] = $filePath;
+                                Log::info('Added onboarding file to attachments in sendSessionSummaryAction', [
+                                    'original_name' => $fileName,
+                                    'full_path' => $filePath,
+                                    'size' => filesize($filePath)
+                                ]);
+                            } else {
+                                Log::warning('Onboarding file not found in sendSessionSummaryAction', [
+                                    'original_name' => $fileName,
+                                    'attempted_path' => $filePath
+                                ]);
+                            }
+                        }
+                    }
+
+                    // ✅ Set the merged attachments with the correct key name
+                    if (!empty($allAttachments)) {
+                        $data['project_plan_attachments'] = $allAttachments;
+                    }
+
+                    // ✅ ENHANCED: Log the final attachment processing
+                    Log::info('Session summary attachments processed in sendSessionSummaryAction - FIXED', [
+                        'project_plan_files_input' => count($data['project_plan_files'] ?? []),
+                        'onboarding_attachments_input' => count($data['onboarding_attachments'] ?? []),
+                        'total_files_found' => count($allAttachments),
+                        'final_attachment_paths' => $allAttachments,
+                        'project_plan_attachments_key' => count($data['project_plan_attachments'] ?? [])
+                    ]);
 
                     // Ensure email will be sent
                     $data['send_email'] = true;
@@ -1915,12 +2133,39 @@ class ImplementerActions
                         'session_recording_link' => $data['session_recording_link'] ?? $record->session_recording_link,
                     ]);
 
-                    Log::info('Session summary email sent and appointment updated', [
+                    // ✅ Clean up temporary onboarding files - EXACTLY same as RelationManager
+                    if (!empty($data['onboarding_attachments'])) {
+                        foreach ($data['onboarding_attachments'] as $fileName) {
+                            // ✅ FIXED: Handle cleanup for both path formats
+                            if (str_contains($fileName, 'temp_onboarding_attachments/')) {
+                                $filePath = storage_path('app/public/' . $fileName);
+                            } else {
+                                $filePath = storage_path('app/public/temp_onboarding_attachments/' . $fileName);
+                            }
+
+                            if (file_exists($filePath)) {
+                                try {
+                                    unlink($filePath);
+                                    Log::info("Cleaned up temporary file in sendSessionSummaryAction: {$fileName}");
+                                } catch (\Exception $e) {
+                                    Log::error('Failed to cleanup onboarding attachment in sendSessionSummaryAction: ' . $e->getMessage());
+                                }
+                            }
+                        }
+                    }
+
+                    Log::info('Session summary email sent and appointment updated in sendSessionSummaryAction', [
                         'appointment_id' => $record->id,
                         'lead_id' => $record->lead_id,
                         'sent_by' => auth()->user()->name,
                         'sent_at' => now(),
-                        'has_attachments' => !empty($data['project_plan_files']),
+                        'total_attachments_sent' => count($allAttachments),
+                        'attachment_breakdown' => [
+                            'project_plans' => count($data['project_plan_files'] ?? []),
+                            'onboarding_files' => count($data['onboarding_attachments'] ?? []),
+                            'combined_total' => count($allAttachments)
+                        ],
+                        'has_attachments' => !empty($allAttachments),
                         'has_recording_link' => !empty($data['session_recording_link']),
                         'recording_link' => $data['session_recording_link'] ?? null,
                     ]);
@@ -1928,11 +2173,11 @@ class ImplementerActions
                     Notification::make()
                         ->title('Session Summary Sent Successfully')
                         ->success()
-                        ->body('The session summary email has been sent and the appointment has been marked.')
+                        ->body('The session summary email has been sent with all attachments including software onboarding files.')
                         ->send();
 
                 } catch (\Exception $e) {
-                    Log::error('Error sending session summary: ' . $e->getMessage(), [
+                    Log::error('Error sending session summary in sendSessionSummaryAction: ' . $e->getMessage(), [
                         'appointment_id' => $record->id,
                         'trace' => $e->getTraceAsString()
                     ]);
