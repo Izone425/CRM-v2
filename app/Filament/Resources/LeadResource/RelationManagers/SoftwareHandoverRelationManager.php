@@ -1338,7 +1338,8 @@ class SoftwareHandoverRelationManager extends RelationManager
         }
 
         // Convert to string and remove any non-digit characters
-        $regNoValue = preg_replace('/[^0-9]/', '', $companyDetail->reg_no_new);
+        // $regNoValue = preg_replace('/[^0-9]/', '', $companyDetail->reg_no_new);
+        $regNoValue = (string) $companyDetail->reg_no_new;
 
         // Check if the resulting string has exactly 12 digits
         if (strlen($regNoValue) !== 12) {
