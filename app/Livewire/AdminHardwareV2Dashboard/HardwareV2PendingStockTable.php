@@ -100,7 +100,7 @@ class HardwareV2PendingStockTable extends Component implements HasForms, HasTabl
         return HardwareHandoverV2::query()
             ->whereIn('status', ['Pending Stock'])
             // ->where('created_at', '<', Carbon::today()) // Only those created before today
-            ->orderBy('created_at', 'asc') // Oldest first since they're the most overdue
+            // ->orderBy('created_at', 'asc') // Oldest first since they're the most overdue
             ->with(['lead', 'lead.companyDetail', 'creator']);
     }
 
@@ -110,7 +110,7 @@ class HardwareV2PendingStockTable extends Component implements HasForms, HasTabl
             ->whereIn('status', ['Pending Stock'])
             ->where('sales_order_status', 'packing')
             // ->where('created_at', '<', Carbon::today()) // Only those created before today
-            ->orderBy('created_at', 'asc') // Oldest first since they're the most overdue
+            // ->orderBy('created_at', 'asc') // Oldest first since they're the most overdue
             ->with(['lead', 'lead.companyDetail', 'creator']);
 
         return $query->count();
@@ -201,7 +201,16 @@ class HardwareV2PendingStockTable extends Component implements HasForms, HasTabl
                     ->placeholder('All Implementers')
                     ->multiple(),
 
-                SortFilter::make("sort_by"),
+                SelectFilter::make('installation_type')
+                    ->label('Filter by Installation Type')
+                    ->options([
+                        'external_installation' => 'External Installation',
+                        'internal_installation' => 'Internal Installation',
+                        'self_pick_up' => 'Pick-Up',
+                        'courier' => 'Courier',
+                    ])
+                    ->placeholder('All Installation Types')
+                    ->multiple(),
             ])
             ->columns([
                 TextColumn::make('id')
@@ -306,7 +315,10 @@ class HardwareV2PendingStockTable extends Component implements HasForms, HasTabl
                 TextColumn::make('updated_at')
                     ->label('Last Modified')
                     ->dateTime('d M Y H:i')
-                    ->sortable(),
+                    ->sortable()
+                    ->getStateUsing(function (HardwareHandoverV2 $record) {
+                        return $record->updated_at;
+                    }),
             ])
             ->actions([
                 ActionGroup::make([

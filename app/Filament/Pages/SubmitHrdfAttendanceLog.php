@@ -39,7 +39,7 @@ class SubmitHrdfAttendanceLog extends Page implements HasTable
                 ->icon('heroicon-o-plus')
                 ->color('success')
                 ->size(ActionSize::Large)
-                ->visible(fn () => in_array(Auth::id(), [1, 34]))
+                ->visible(fn () => in_array(Auth::id(), [1, 14, 34]))
                 ->form([
                     TextInput::make('company_name')
                         ->label('Company Name')

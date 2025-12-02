@@ -764,7 +764,7 @@ class ProjectPlanTabs
                                                                     ->displayFormat('d/m/Y')
                                                                     ->native(false)
                                                                     ->required()
-                                                                    ->minDate($minDate) // ✅ Set minimum date to actual start date
+                                                                    ->minDate($minDate->subDay())
                                                                     ->columnSpanFull(),
                                                             ];
                                                         })
