@@ -74,7 +74,6 @@ class ImplementerSessionPending extends Component implements HasForms, HasTable
 
         $query = ImplementerAppointment::query()
             ->where('status', 'New') // Only pending/new appointments
-            ->where('date', '>=', $today) // Future or today's appointments
             ->whereNotNull('lead_id'); // Only appointments with lead_id
 
         // Filter by implementer if user is implementer role

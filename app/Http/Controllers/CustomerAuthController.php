@@ -17,21 +17,15 @@ class CustomerAuthController extends Controller
 
     public function login(Request $request)
     {
-        Log::info('Login attempt initiated', ['email' => $request->email]);
-
         $request->validate([
             'email' => 'required|email',
             'password' => 'required',
         ]);
 
-        Log::info('Login validation passed');
-
         if (Auth::guard('customer')->attempt([
             'email' => $request->email,
             'password' => $request->password
         ], $request->filled('remember'))) {
-
-            Log::info('Authentication successful');
 
             // Update last login timestamp
             $customer = Customer::where('email', $request->email)->first();
@@ -40,12 +34,8 @@ class CustomerAuthController extends Controller
                 $customer->save();
             }
 
-            Log::info('Last login timestamp updated');
-
             return redirect()->intended(route('customer.dashboard'));
         }
-
-        Log::info('Authentication failed');
 
         return back()
             ->withInput($request->only('email', 'remember'))
