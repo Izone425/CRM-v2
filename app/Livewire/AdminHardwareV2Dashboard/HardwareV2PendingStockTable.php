@@ -47,6 +47,7 @@ use Filament\Tables\Actions\Action;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Livewire\Attributes\On;
+use Illuminate\Database\Eloquent\Builder;
 
 class HardwareV2PendingStockTable extends Component implements HasForms, HasTable
 {
@@ -154,6 +155,30 @@ class HardwareV2PendingStockTable extends Component implements HasForms, HasTabl
                     ])
                     ->placeholder('All Statuses')
                     ->multiple(),
+
+                SelectFilter::make('sales_order_status')
+                    ->label('Filter by SO Status')
+                    ->options(function () {
+                        // Get unique SO statuses from the database
+                        return HardwareHandoverV2::whereNotNull('sales_order_status')
+                            ->where('sales_order_status', '!=', '')
+                            ->distinct()
+                            ->pluck('sales_order_status')
+                            ->mapWithKeys(function ($status) {
+                                $formattedStatus = ucfirst(strtolower($status));
+                                return [$status => $formattedStatus];
+                            })
+                            ->toArray();
+                    })
+                    ->placeholder('All SO Statuses')
+                    ->multiple()
+                    ->query(function (Builder $query, array $data): Builder {
+                        if (empty($data['values'])) {
+                            return $query;
+                        }
+
+                        return $query->whereIn('sales_order_status', $data['values']);
+                    }),
 
                 SelectFilter::make('salesperson')
                     ->label('Filter by Salesperson')

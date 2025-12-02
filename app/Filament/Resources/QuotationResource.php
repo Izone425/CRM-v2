@@ -12,6 +12,7 @@ use App\Models\Product;
 use App\Models\Quotation;
 use App\Models\User;
 use App\Models\Setting;
+use App\Services\AutoCountInvoiceService;
 use App\Services\QuotationService;
 use Carbon\Carbon;
 use Coolsam\FilamentFlatpickr\Forms\Components\Flatpickr;
@@ -1468,6 +1469,130 @@ class QuotationResource extends Resource
                         ->url(fn(Quotation $quotation) => route('pdf.print-proforma-invoice-v2', $quotation))
                         ->openUrlInNewTab()
                         ->hidden(fn(Quotation $quotation) => $quotation->status != QuotationStatusEnum::accepted),
+                    Tables\Actions\Action::make('create_invoice')
+                        ->label('Create Invoice')
+                        ->icon('heroicon-o-document-plus')
+                        ->color('primary')
+                        ->requiresConfirmation()
+                        ->modalHeading('Create AutoCount Invoice')
+                        ->modalDescription('This will create an invoice in AutoCount accounting system for this HRDF quotation.')
+                        ->form([
+                            \Filament\Forms\Components\Placeholder::make('info')
+                                ->content(new \Illuminate\Support\HtmlString(
+                                    '<div style="padding: 16px; background: #EFF6FF; border: 1px solid #BFDBFE; border-radius: 8px; color: #1E40AF;">
+                                        <div style="display: flex; align-items: start; gap: 12px;">
+                                            <svg style="width: 24px; height: 24px; flex-shrink: 0; margin-top: 2px;" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a.75.75 0 000 1.5h.253a.25.25 0 01.244.304l-.459 2.066A1.75 1.75 0 0010.747 15H11a.75.75 0 000-1.5h-.253a.25.25 0 01-.244-.304l.459-2.066A1.75 1.75 0 009.253 9H9z" clip-rule="evenodd"/>
+                                            </svg>
+                                            <div>
+                                                <h4 style="margin: 0 0 8px 0; font-weight: 600; font-size: 16px;">Create AutoCount Invoice</h4>
+                                                <p style="margin: 0; font-size: 14px;">
+                                                    This will create both a debtor and invoice record in AutoCount accounting system.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>'
+                                ))
+                                ->hiddenLabel(),
+
+                            \Filament\Forms\Components\Toggle::make('create_debtor')
+                                ->label('Create Debtor Record')
+                                ->helperText('Create customer/debtor record in AutoCount if it doesn\'t exist')
+                                ->default(true),
+                        ])
+                        ->action(function (Quotation $quotation, array $data) {
+                            try {
+                                $autoCountService = new AutoCountInvoiceService();
+
+                                if ($data['create_debtor'] ?? true) {
+                                    // Create both debtor and invoice
+                                    $debtorData = $autoCountService->convertQuotationToDebtorData($quotation);
+                                    $invoiceData = $autoCountService->convertQuotationToInvoiceData($quotation);
+
+                                    $result = $autoCountService->createDebtorAndInvoice($debtorData, $invoiceData);
+                                } else {
+                                    // Create invoice only (assumes debtor already exists)
+                                    $invoiceData = $autoCountService->convertQuotationToInvoiceData($quotation);
+                                    // You'll need to set customer_code manually if not creating debtor
+                                    $invoiceData['customer_code'] = $quotation->lead->companyDetail->autocount_debtor_code ?? 'ARM-UNKNOWN';
+
+                                    $result = $autoCountService->createInvoice($invoiceData);
+                                }
+
+                                if ($result['success']) {
+                                    // Update quotation with AutoCount details
+                                    $updateData = [
+                                        'synced_to_autocount' => true,
+                                        'synced_at' => now(),
+                                    ];
+
+                                    if (isset($result['debtor_code'])) {
+                                        $updateData['autocount_debtor_code'] = $result['debtor_code'];
+                                    }
+
+                                    if (isset($result['invoice_no'])) {
+                                        $updateData['autocount_invoice_no'] = $result['invoice_no'];
+                                    } elseif (isset($result['data']['dataResults']['newInvoiceNo'])) {
+                                        $updateData['autocount_invoice_no'] = $result['data']['dataResults']['newInvoiceNo'];
+                                    }
+
+                                    $quotation->update($updateData);
+
+                                    Notification::make()
+                                        ->success()
+                                        ->title('Invoice Created Successfully!')
+                                        ->body(
+                                            'AutoCount invoice created successfully. ' .
+                                            (isset($result['debtor_code']) ? 'Debtor: ' . $result['debtor_code'] . '. ' : '') .
+                                            'Invoice: ' . ($result['invoice_no'] ?? $result['data']['dataResults']['newInvoiceNo'] ?? 'Created')
+                                        )
+                                        ->send();
+
+                                    // Log activity
+                                    ActivityLog::create([
+                                        'subject_id' => $quotation->lead->id,
+                                        'description' => 'AutoCount invoice created for HRDF quotation.',
+                                        'causer_id' => auth()->id(),
+                                        'causer_type' => get_class(auth()->user()),
+                                        'properties' => json_encode([
+                                            'attributes' => [
+                                                'quotation_id' => $quotation->id,
+                                                'quotation_reference_no' => $quotation->quotation_reference_no,
+                                                'autocount_debtor_code' => $result['debtor_code'] ?? null,
+                                                'autocount_invoice_no' => $result['invoice_no'] ?? $result['data']['dataResults']['newInvoiceNo'] ?? null,
+                                            ],
+                                        ]),
+                                    ]);
+                                } else {
+                                    Notification::make()
+                                        ->danger()
+                                        ->title('Invoice Creation Failed')
+                                        ->body('Failed to create AutoCount invoice: ' . $result['error'])
+                                        ->send();
+                                }
+                            } catch (\Exception $e) {
+                                \Illuminate\Support\Facades\Log::error('AutoCount invoice creation failed', [
+                                    'quotation_id' => $quotation->id,
+                                    'error' => $e->getMessage(),
+                                    'trace' => $e->getTraceAsString(),
+                                ]);
+
+                                Notification::make()
+                                    ->danger()
+                                    ->title('Error')
+                                    ->body('An error occurred while creating the invoice: ' . $e->getMessage())
+                                    ->send();
+                            }
+                        })
+                        ->visible(function(Quotation $quotation) {
+                            // Only show for HRDF quotations that are already accepted
+                            return $quotation->quotation_type === 'hrdf' &&
+                                $quotation->status === QuotationStatusEnum::accepted;
+                        })
+                        ->hidden(function(Quotation $quotation) {
+                            // Hide if already synced to AutoCount
+                            return $quotation->synced_to_autocount === true;
+                        }),
                 ])
                 ->icon('heroicon-m-ellipsis-vertical')
                 ->size(ActionSize::ExtraSmall)

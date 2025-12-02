@@ -1409,29 +1409,31 @@ class ImplementerAppointmentRelationManager extends RelationManager
                 ->modalHeading(false)
                 ->modalWidth('6xl')
                 ->hidden(function() {
-                    // Get the current user
                     $user = auth()->user();
 
-                    // Get the lead record
                     $lead = $this->getOwnerRecord();
-                    if (!$lead) return true; // Hide if no lead record found
+                    if (!$lead) return true;
 
-                    // Admins (role_id = 3) can always send emails
-                    if ($user->role_id == 3) {
-                        return false; // Don't hide for admins
+                    $hasNewImplementerAppointments = \App\Models\ImplementerAppointment::where('lead_id', $lead->id)
+                        ->where('status', 'New')
+                        ->exists();
+
+                    if ($hasNewImplementerAppointments) {
+                        return true;
                     }
 
-                    // Find the latest software handover for this lead
+                    if ($user->role_id == 3) {
+                        return false;
+                    }
+
                     $softwareHandover = \App\Models\SoftwareHandover::where('lead_id', $lead->id)
                         ->latest()
                         ->first();
 
-                    // If there's a software handover and the current user is the assigned implementer, allow access
                     if ($softwareHandover && $softwareHandover->implementer === $user->name) {
-                        return false; // Don't hide for the assigned implementer
+                        return false;
                     }
 
-                    // For all other cases, hide the button
                     return true;
                 })
                 ->form([
