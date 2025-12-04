@@ -70,11 +70,7 @@ class UpdateSalesOrderStatus extends Command
         $this->info("- Checked: {$handovers->count()}");
         $this->info("- Updated: {$updated}");
         $this->info("- Errors: {$errors}");
-        info("\nSummary:");
-        info("- Checked: {$handovers->count()}");
-        info("- Updated: {$updated}");
-        info("- Errors: {$errors}");
-        
+
         return 0;
     }
 }

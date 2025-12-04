@@ -743,6 +743,8 @@
                                 <div style="display: flex; background: #f0f0f0; border-radius: 25px; padding: 3px;">
                                     <button
                                         wire:click="toggleDashboard('Manager')"
+                                        wire:loading.attr="disabled"
+                                        wire:loading.class="opacity-50 cursor-not-allowed"
                                         style="
                                             padding: 10px 15px;
                                             font-size: 14px;
@@ -754,12 +756,21 @@
                                             cursor: pointer;
                                         "
                                     >
-                                        Manager
+                                        <span wire:loading.remove wire:target="toggleDashboard('Manager')">Manager</span>
+                                        <span wire:loading wire:target="toggleDashboard('Manager')">
+                                            <svg class="inline w-4 h-4 mr-1 animate-spin" fill="none" viewBox="0 0 24 24">
+                                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                            </svg>
+                                            Loading...
+                                        </span>
                                     </button>
 
-                                        <!-- Lead Owner Button -->
+                                    <!-- Lead Owner Button -->
                                     <button
                                         wire:click="toggleDashboard('LeadOwner')"
+                                        wire:loading.attr="disabled"
+                                        wire:loading.class="opacity-50 cursor-not-allowed"
                                         style="
                                             padding: 10px 15px;
                                             font-size: 14px;
@@ -771,12 +782,21 @@
                                             cursor: pointer;
                                         "
                                     >
-                                        Lead Owner
+                                        <span wire:loading.remove wire:target="toggleDashboard('LeadOwner')">Lead Owner</span>
+                                        <span wire:loading wire:target="toggleDashboard('LeadOwner')">
+                                            <svg class="inline w-4 h-4 mr-1 animate-spin" fill="none" viewBox="0 0 24 24">
+                                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                            </svg>
+                                            Loading...
+                                        </span>
                                     </button>
 
                                     <!-- Salesperson Button -->
                                     <button
                                         wire:click="toggleDashboard('Salesperson')"
+                                        wire:loading.attr="disabled"
+                                        wire:loading.class="opacity-50 cursor-not-allowed"
                                         style="
                                             padding: 10px 15px;
                                             font-size: 14px;
@@ -788,7 +808,14 @@
                                             cursor: pointer;
                                         "
                                     >
-                                        Salesperson
+                                        <span wire:loading.remove wire:target="toggleDashboard('Salesperson')">Salesperson</span>
+                                        <span wire:loading wire:target="toggleDashboard('Salesperson')">
+                                            <svg class="inline w-4 h-4 mr-1 animate-spin" fill="none" viewBox="0 0 24 24">
+                                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                            </svg>
+                                            Loading...
+                                        </span>
                                     </button>
 
                                     <!-- Admin Dropdown -->
@@ -851,6 +878,8 @@
                                         ">
                                             <button
                                                 wire:click="toggleDashboard('SoftwareAdmin')"
+                                                wire:loading.attr="disabled"
+                                                wire:loading.class="opacity-50"
                                                 style="
                                                     display: flex;
                                                     justify-content: space-between;
@@ -864,7 +893,14 @@
                                                     font-size: 14px;
                                                 "
                                             >
-                                                <span>Admin - Software v1</span>
+                                                <span wire:loading.remove wire:target="toggleDashboard('SoftwareAdmin')">Admin - Software v1</span>
+                                                <span wire:loading wire:target="toggleDashboard('SoftwareAdmin')" class="flex items-center">
+                                                    <svg class="w-4 h-4 mr-1 animate-spin" fill="none" viewBox="0 0 24 24">
+                                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                    </svg>
+                                                    Loading...
+                                                </span>
                                                 @if($adminSoftwareTotal > 0)
                                                     <span style="
                                                         background: #ef4444;
@@ -881,6 +917,8 @@
 
                                             <button
                                                 wire:click="toggleDashboard('SoftwareAdminV2')"
+                                                wire:loading.attr="disabled"
+                                                wire:loading.class="opacity-50"
                                                 style="
                                                     display: flex;
                                                     justify-content: space-between;
@@ -894,7 +932,14 @@
                                                     font-size: 14px;
                                                 "
                                             >
-                                                <span>Admin - Software v2</span>
+                                                <span wire:loading.remove wire:target="toggleDashboard('SoftwareAdminV2')">Admin - Software v2</span>
+                                                <span wire:loading wire:target="toggleDashboard('SoftwareAdminV2')" class="flex items-center">
+                                                    <svg class="w-4 h-4 mr-1 animate-spin" fill="none" viewBox="0 0 24 24">
+                                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                    </svg>
+                                                    Loading...
+                                                </span>
                                                 @if($adminSoftwareV2Total > 0)
                                                     <span style="
                                                         background: #ef4444;
@@ -911,6 +956,8 @@
 
                                             <button
                                                 wire:click="toggleDashboard('HardwareAdminV2')"
+                                                wire:loading.attr="disabled"
+                                                wire:loading.class="opacity-50"
                                                 style="
                                                     display: flex;
                                                     justify-content: space-between;
@@ -924,7 +971,14 @@
                                                     font-size: 14px;
                                                 "
                                             >
-                                                <span>Admin - Hardware v2</span>
+                                                <span wire:loading.remove wire:target="toggleDashboard('HardwareAdminV2')">Admin - Hardware v2</span>
+                                                <span wire:loading wire:target="toggleDashboard('HardwareAdminV2')" class="flex items-center">
+                                                    <svg class="w-4 h-4 mr-1 animate-spin" fill="none" viewBox="0 0 24 24">
+                                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                    </svg>
+                                                    Loading...
+                                                </span>
                                                 @if($initialStageTotal > 0)
                                                     <span style="
                                                         background: #ef4444;
@@ -941,6 +995,8 @@
 
                                             <button
                                                 wire:click="toggleDashboard('AdminHeadcount')"
+                                                wire:loading.attr="disabled"
+                                                wire:loading.class="opacity-50"
                                                 style="
                                                     display: flex;
                                                     justify-content: space-between;
@@ -954,7 +1010,14 @@
                                                     font-size: 14px;
                                                 "
                                             >
-                                                <span>Admin - Headcount</span>
+                                                <span wire:loading.remove wire:target="toggleDashboard('AdminHeadcount')">Admin - Headcount</span>
+                                                <span wire:loading wire:target="toggleDashboard('AdminHeadcount')" class="flex items-center">
+                                                    <svg class="w-4 h-4 mr-1 animate-spin" fill="none" viewBox="0 0 24 24">
+                                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                    </svg>
+                                                    Loading...
+                                                </span>
                                                 @if($adminHeadcountTotal > 0)
                                                     <span style="
                                                         background: #ef4444;
@@ -971,6 +1034,8 @@
 
                                             <button
                                                 wire:click="toggleDashboard('AdminHRDFAttLog')"
+                                                wire:loading.attr="disabled"
+                                                wire:loading.class="opacity-50"
                                                 style="
                                                     display: flex;
                                                     justify-content: space-between;
@@ -984,7 +1049,14 @@
                                                     font-size: 14px;
                                                 "
                                             >
-                                                <span>Admin - HRDF Att Log</span>
+                                                <span wire:loading.remove wire:target="toggleDashboard('AdminHRDFAttLog')">Admin - HRDF Att Log</span>
+                                                <span wire:loading wire:target="toggleDashboard('AdminHRDFAttLog')" class="flex items-center">
+                                                    <svg class="w-4 h-4 mr-1 animate-spin" fill="none" viewBox="0 0 24 24">
+                                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                    </svg>
+                                                    Loading...
+                                                </span>
                                                 @if($adminHrdfAttLogTotal > 0)
                                                     <span style="
                                                         background: #ef4444;
@@ -1001,6 +1073,8 @@
 
                                             <button
                                                 wire:click="toggleDashboard('AdminHRDF')"
+                                                wire:loading.attr="disabled"
+                                                wire:loading.class="opacity-50"
                                                 style="
                                                     display: flex;
                                                     justify-content: space-between;
@@ -1014,7 +1088,14 @@
                                                     font-size: 14px;
                                                 "
                                             >
-                                                <span>Admin - HRDF Claim</span>
+                                                <span wire:loading.remove wire:target="toggleDashboard('AdminHRDF')">Admin - HRDF Claim</span>
+                                                <span wire:loading wire:target="toggleDashboard('AdminHRDF')" class="flex items-center">
+                                                    <svg class="w-4 h-4 mr-1 animate-spin" fill="none" viewBox="0 0 24 24">
+                                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                    </svg>
+                                                    Loading...
+                                                </span>
                                                 @if($adminHrdfTotal > 0)
                                                     <span style="
                                                         background: #ef4444;
@@ -1031,6 +1112,8 @@
 
                                             <button
                                                 wire:click="toggleDashboard('AdminUSDInvoice')"
+                                                wire:loading.attr="disabled"
+                                                wire:loading.class="opacity-50"
                                                 style="
                                                     display: flex;
                                                     justify-content: space-between;
@@ -1043,7 +1126,14 @@
                                                     font-size: 14px;
                                                 "
                                             >
-                                                <span>Admin - USD Invoice</span>
+                                                <span wire:loading.remove wire:target="toggleDashboard('AdminUSDInvoice')">Admin - USD Invoice</span>
+                                                <span wire:loading wire:target="toggleDashboard('AdminUSDInvoice')" class="flex items-center">
+                                                    <svg class="w-4 h-4 mr-1 animate-spin" fill="none" viewBox="0 0 24 24">
+                                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                    </svg>
+                                                    Loading...
+                                                </span>
                                                 @if($adminUSDInvoiceTotal > 0)
                                                     <span style="
                                                         background: #ef4444;
@@ -1060,6 +1150,8 @@
 
                                             <button
                                                 wire:click="toggleDashboard('AdminRepair')"
+                                                wire:loading.attr="disabled"
+                                                wire:loading.class="opacity-50"
                                                 style="
                                                     display: block;
                                                     width: 100%;
@@ -1071,11 +1163,20 @@
                                                     font-size: 14px;
                                                 "
                                             >
-                                                Admin - Onsite Repair
+                                                <span wire:loading.remove wire:target="toggleDashboard('AdminRepair')">Admin - Onsite Repair</span>
+                                                <span wire:loading wire:target="toggleDashboard('AdminRepair')" class="flex items-center">
+                                                    <svg class="w-4 h-4 mr-1 animate-spin" fill="none" viewBox="0 0 24 24">
+                                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 714 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                    </svg>
+                                                    Loading...
+                                                </span>
                                             </button>
 
                                             <button
                                                 wire:click="toggleDashboard('Debtor')"
+                                                wire:loading.attr="disabled"
+                                                wire:loading.class="opacity-50"
                                                 style="
                                                     display: block;
                                                     width: 100%;
@@ -1087,11 +1188,20 @@
                                                     font-size: 14px;
                                                 "
                                             >
-                                                Admin - InHouse Repair
+                                                <span wire:loading.remove wire:target="toggleDashboard('Debtor')">Admin - InHouse Repair</span>
+                                                <span wire:loading wire:target="toggleDashboard('Debtor')" class="flex items-center">
+                                                    <svg class="w-4 h-4 mr-1 animate-spin" fill="none" viewBox="0 0 24 24">
+                                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 818-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                    </svg>
+                                                    Loading...
+                                                </span>
                                             </button>
 
                                             <button
                                                 wire:click="toggleDashboard('AdminRenewalv1')"
+                                                wire:loading.attr="disabled"
+                                                wire:loading.class="opacity-50"
                                                 style="
                                                     display: flex;
                                                     justify-content: space-between;
@@ -1100,27 +1210,36 @@
                                                     padding: 10px 16px;
                                                     text-align: left;
                                                     border: none;
-                                                    background: {{ $currentDashboard === 'AdminUSDInvoice' ? '#f3f3f3' : 'white' }};
+                                                    background: {{ $currentDashboard === 'AdminRenewalv1' ? '#f3f3f3' : 'white' }};
                                                     font-size: 14px;
                                                 "
                                             >
-                                                Admin - Renewal v1
-                                            @if($adminRenewalFollowUp > 0)
-                                                <span style="
-                                                    background: #ef4444;
-                                                    color: white;
-                                                    border-radius: 12px;
-                                                    padding: 2px 8px;
-                                                    font-size: 12px;
-                                                    font-weight: bold;
-                                                    min-width: 20px;
-                                                    text-align: center;
-                                                ">{{ $adminRenewalFollowUp }}</span>
-                                            @endif
+                                                <span wire:loading.remove wire:target="toggleDashboard('AdminRenewalv1')">Admin - Renewal v1</span>
+                                                <span wire:loading wire:target="toggleDashboard('AdminRenewalv1')" class="flex items-center">
+                                                    <svg class="w-4 h-4 mr-1 animate-spin" fill="none" viewBox="0 0 24 24">
+                                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 818-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 714 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                    </svg>
+                                                    Loading...
+                                                </span>
+                                                @if($adminRenewalFollowUp > 0)
+                                                    <span style="
+                                                        background: #ef4444;
+                                                        color: white;
+                                                        border-radius: 12px;
+                                                        padding: 2px 8px;
+                                                        font-size: 12px;
+                                                        font-weight: bold;
+                                                        min-width: 20px;
+                                                        text-align: center;
+                                                    ">{{ $adminRenewalFollowUp }}</span>
+                                                @endif
                                             </button>
 
                                             <button
                                                 wire:click="toggleDashboard('AdminRenewalv2')"
+                                                wire:loading.attr="disabled"
+                                                wire:loading.class="opacity-50"
                                                 style="
                                                     display: block;
                                                     width: 100%;
@@ -1132,13 +1251,23 @@
                                                     font-size: 14px;
                                                 "
                                             >
-                                                Admin - Renewal v2
+                                                <span wire:loading.remove wire:target="toggleDashboard('AdminRenewalv2')">Admin - Renewal v2</span>
+                                                <span wire:loading wire:target="toggleDashboard('AdminRenewalv2')" class="flex items-center">
+                                                    <svg class="w-4 h-4 mr-1 animate-spin" fill="none" viewBox="0 0 24 24">
+                                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 818-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 714 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                    </svg>
+                                                    Loading...
+                                                </span>
                                             </button>
                                         </div>
                                     </div>
+
                                     <!-- Trainer Button -->
                                     <button
                                         wire:click="toggleDashboard('Trainer')"
+                                        wire:loading.attr="disabled"
+                                        wire:loading.class="opacity-50 cursor-not-allowed"
                                         style="
                                             padding: 10px 15px;
                                             font-size: 14px;
@@ -1150,12 +1279,21 @@
                                             cursor: pointer;
                                         "
                                     >
-                                        Trainer
+                                        <span wire:loading.remove wire:target="toggleDashboard('Trainer')">Trainer</span>
+                                        <span wire:loading wire:target="toggleDashboard('Trainer')">
+                                            <svg class="inline w-4 h-4 mr-1 animate-spin" fill="none" viewBox="0 0 24 24">
+                                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 818-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 714 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                            </svg>
+                                            Loading...
+                                        </span>
                                     </button>
 
                                     <!-- Implementer Button -->
                                     <button
                                         wire:click="toggleDashboard('Implementer')"
+                                        wire:loading.attr="disabled"
+                                        wire:loading.class="opacity-50 cursor-not-allowed"
                                         style="
                                             padding: 10px 15px;
                                             font-size: 14px;
@@ -1167,12 +1305,21 @@
                                             cursor: pointer;
                                         "
                                     >
-                                        Implementer
+                                        <span wire:loading.remove wire:target="toggleDashboard('Implementer')">Implementer</span>
+                                        <span wire:loading wire:target="toggleDashboard('Implementer')">
+                                            <svg class="inline w-4 h-4 mr-1 animate-spin" fill="none" viewBox="0 0 24 24">
+                                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 818-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 714 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                            </svg>
+                                            Loading...
+                                        </span>
                                     </button>
 
                                     <!-- Support Button -->
                                     <button
                                         wire:click="toggleDashboard('Support')"
+                                        wire:loading.attr="disabled"
+                                        wire:loading.class="opacity-50 cursor-not-allowed"
                                         style="
                                             padding: 10px 15px;
                                             font-size: 14px;
@@ -1184,11 +1331,21 @@
                                             cursor: pointer;
                                         "
                                     >
-                                        Support
+                                        <span wire:loading.remove wire:target="toggleDashboard('Support')">Support</span>
+                                        <span wire:loading wire:target="toggleDashboard('Support')">
+                                            <svg class="inline w-4 h-4 mr-1 animate-spin" fill="none" viewBox="0 0 24 24">
+                                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 818-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 714 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                            </svg>
+                                            Loading...
+                                        </span>
                                     </button>
-                                        <!-- Support Button -->
-                                        <button
+
+                                    <!-- Technician Button -->
+                                    <button
                                         wire:click="toggleDashboard('Technician')"
+                                        wire:loading.attr="disabled"
+                                        wire:loading.class="opacity-50 cursor-not-allowed"
                                         style="
                                             padding: 10px 15px;
                                             font-size: 14px;
@@ -1200,7 +1357,14 @@
                                             cursor: pointer;
                                         "
                                     >
-                                        Technician
+                                        <span wire:loading.remove wire:target="toggleDashboard('Technician')">Technician</span>
+                                        <span wire:loading wire:target="toggleDashboard('Technician')">
+                                            <svg class="inline w-4 h-4 mr-1 animate-spin" fill="none" viewBox="0 0 24 24">
+                                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 818-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 714 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                            </svg>
+                                            Loading...
+                                        </span>
                                     </button>
                                 </div>
                             </div>

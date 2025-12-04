@@ -1132,7 +1132,21 @@
                                             @if ($message->media_url)
                                                 @if (str_contains($message->media_type, 'image'))
                                                     <div class="message-media">
-                                                        <img src="{{ $message->media_url }}" alt="Image Message" class="message-image">
+                                                        <img
+                                                            src="{{ $message->media_url }}"
+                                                            alt="Image Message"
+                                                            class="message-image"
+                                                            onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"
+                                                            onload="this.style.display='block'; if(this.nextElementSibling) this.nextElementSibling.style.display='none';"
+                                                        >
+                                                        <!-- Fallback content if image fails to load -->
+                                                        <div style="display: none; padding: 12px; background: rgba(0,0,0,0.1); border-radius: 8px; text-align: center;">
+                                                            <i class="fas fa-image" style="margin-bottom: 8px; font-size: 24px; opacity: 0.5;"></i>
+                                                            <div style="font-size: 12px; opacity: 0.7;">Image not available</div>
+                                                            <a href="{{ $message->media_url }}" target="_blank" style="color: inherit; text-decoration: underline; font-size: 11px;">
+                                                                View Original
+                                                            </a>
+                                                        </div>
                                                     </div>
                                                 @elseif (str_contains($message->media_type, 'audio'))
                                                     <div class="audio-player">

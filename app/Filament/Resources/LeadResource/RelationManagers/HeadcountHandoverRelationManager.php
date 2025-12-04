@@ -328,7 +328,7 @@ class HeadcountHandoverRelationManager extends RelationManager
                     }
 
                     if (!$hasRequiredProducts) {
-                        $reasons[] = 'ensure you have at least one final quotation with required products (TCL_TA USER-ADDON(R), TCL_LEAVE USER-ADDON(R), TCL_CLAIM USER-ADDON(R), TCL_PAYROLL USER-ADDON(R), TCL_TA USER-ADDON, TCL_TA USER-RENEWAL, TCL_CLAIM USER-ADDON, TCL_PAYROLL USER-ADDON)';
+                        $reasons[] = 'ensure you have at least one quotation with required products (TCL_TA USER-ADDON(R), TCL_LEAVE USER-ADDON(R), TCL_CLAIM USER-ADDON(R), TCL_PAYROLL USER-ADDON(R), TCL_TA USER-ADDON, TCL_TA USER-RENEWAL, TCL_CLAIM USER-ADDON, TCL_PAYROLL USER-ADDON)';
                     }
 
                     if ($hasIncompleteHeadcountHandover) {
@@ -672,7 +672,6 @@ class HeadcountHandoverRelationManager extends RelationManager
 
         // Get all final quotations for this lead
         $finalQuotations = Quotation::where('lead_id', $lead->id)
-            ->where('mark_as_final', true)
             ->with('items')
             ->get();
 
