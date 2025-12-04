@@ -67,18 +67,32 @@ class ImplementerSessionCompleted extends Component implements HasForms, HasTabl
 
     public function getAppointments()
     {
-        $currentUser = auth()->user();
+        $this->selectedUser = $this->selectedUser ?? session('selectedUser') ?? auth()->id();
 
         $query = ImplementerAppointment::query()
             ->where('status', 'Done') // Only completed appointments
             ->whereNotNull('lead_id'); // Only appointments with lead_id
 
-        // Filter by implementer if user is implementer role
-        if (in_array($currentUser->role_id, [4, 5])) {
-            $query->where('implementer', $currentUser->name);
+        if ($this->selectedUser === 'all-implementer') {
+            // Show all implementer appointments - no additional filtering
+        }
+        elseif (is_numeric($this->selectedUser)) {
+            $user = \App\Models\User::find($this->selectedUser);
+
+            if ($user && ($user->role_id === 4 || $user->role_id === 5)) {
+                $query->where('implementer', $user->name);
+            }
+        }
+        else {
+            $currentUser = auth()->user();
+
+            if (in_array($currentUser->role_id, [4, 5])) {
+                $query->where('implementer', $currentUser->name);
+            }
         }
 
-        return $query;
+        return $query->orderBy('date', 'asc')
+                ->orderBy('start_time', 'asc');
     }
 
     public function table(Table $table): Table

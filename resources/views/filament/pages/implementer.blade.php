@@ -497,7 +497,7 @@
     $projectStatusTotal = $allProjects;
     $licenseTotal = $pendingLicenseCount + $pendingMigrationCount;
     $migrationTotal = $pendingMigrationCount + $completedMigrationCount;
-    $followUpTotal = $followUpToday + $followUpOverdue + $followUpFuture;
+    $followUpTotal = $followUpToday + $followUpOverdue;
     $ticketingTotal = $internalTicketsToday + $internalTicketsOverdue + $externalTicketsToday + $externalTicketsOverdue;
     $requestTotal = $customizationPending + $customizationCompleted + $enhancementPending + $enhancementCompleted;
     $sessionsTotal = $sessionsToday + $sessionsTomorrow;

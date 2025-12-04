@@ -261,13 +261,51 @@ class HardwareV2PendingStockTable extends Component implements HasForms, HasTabl
                         $shortened = strtoupper(Str::limit($fullName, 30, '...'));
                         $encryptedId = Encryptor::encrypt($record->lead->id);
 
-                        return '<a href="' . url('admin/leads/' . $encryptedId) . '"
+                        // ✅ Check for subsidiary company names from proforma invoices
+                        $subsidiaryNames = [];
+
+                        if (!empty($record->proforma_invoice_product)) {
+                            $piProducts = is_array($record->proforma_invoice_product)
+                                ? $record->proforma_invoice_product
+                                : json_decode($record->proforma_invoice_product, true);
+
+                            if (is_array($piProducts)) {
+                                foreach ($piProducts as $piId) {
+                                    $quotation = \App\Models\Quotation::find($piId);
+                                    if ($quotation && $quotation->subsidiary_id) {
+                                        $subsidiary = $quotation->subsidiary;
+                                        if ($subsidiary && $subsidiary->company_name) {
+                                            $subsidiaryNames[] = strtoupper(Str::limit($subsidiary->company_name, 25, '...'));
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // Build the main company link
+                        $html = '<div>';
+
+                        // ✅ Add subsidiary names at the top with different styling
+                        if (!empty($subsidiaryNames)) {
+                            $uniqueSubsidiaryNames = array_unique($subsidiaryNames);
+                            foreach ($uniqueSubsidiaryNames as $subsidiaryName) {
+                                $html .= '<div style="font-size: 10px; color: #e67e22; font-weight: bold; margin-bottom: 3px; background: #fef9e7; padding: 2px 6px; border-radius: 4px; display: inline-block; margin-right: 4px;">
+                                    ' . e($subsidiaryName) . '
+                                </div><br>';
+                            }
+                        }
+
+                        // Main company name
+                        $html .= '<a href="' . url('admin/leads/' . $encryptedId) . '"
                                     target="_blank"
                                     title="' . e($fullName) . '"
-                                    class="inline-block"
-                                    style="color:#338cf0;">
+                                    style="color:#338cf0; text-decoration: none;">
                                     ' . $shortened . '
                                 </a>';
+
+                        $html .= '</div>';
+
+                        return $html;
                     })
                     ->html(),
 
