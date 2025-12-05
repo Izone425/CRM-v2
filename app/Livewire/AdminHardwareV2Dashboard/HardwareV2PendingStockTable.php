@@ -334,18 +334,54 @@ class HardwareV2PendingStockTable extends Component implements HasForms, HasTabl
                         }
 
                         $status = $state ?? 'Unknown';
-                        $formattedStatus = ucfirst(strtolower($status)); // Uppercase first letter, lowercase the rest
 
-                        // Check if status is "packing" (case insensitive)
-                        $isPackingStatus = strtolower($status) === 'packing';
-                        $statusColor = $isPackingStatus ? 'color: red; font-weight: bold;' : 'color: black;';
+                        // Check if we have multiple statuses (comma-separated)
+                        if (strpos($status, ',') !== false) {
+                            // Handle multiple statuses
+                            $statuses = array_map('trim', explode(',', $status));
+                            $salesOrderNumbers = array_map('trim', explode(',', $record->sales_order_number));
 
-                        return new HtmlString("
-                            <div class='text-sm'>
-                                <div style='{$statusColor}'>{$formattedStatus}</div>
-                                <div class='text-xs text-gray-500'>SO: {$record->sales_order_number}</div>
-                            </div>
-                        ");
+                            $statusElements = [];
+
+                            foreach ($statuses as $index => $individualStatus) {
+                                $formattedStatus = ucfirst(strtolower($individualStatus));
+
+                                // Check if this individual status is "packing" (case insensitive)
+                                $isPackingStatus = strtolower(trim($individualStatus)) === 'packing';
+                                $statusColor = $isPackingStatus ? 'color: red; font-weight: bold;' : 'color: black;';
+
+                                // Get corresponding SO number if available
+                                $soNumber = isset($salesOrderNumbers[$index]) ? $salesOrderNumbers[$index] : '';
+
+                                $statusElements[] = "
+                                    <div style='margin-bottom: 4px;'>
+                                        <div style='{$statusColor}'>{$formattedStatus}</div>
+                                        " . ($soNumber ? "<div class='text-xs text-gray-500'>SO: {$soNumber}</div>" : "") . "
+                                    </div>
+                                ";
+                            }
+
+                            return new HtmlString("
+                                <div class='text-sm'>
+                                    " . implode('', $statusElements) . "
+                                </div>
+                            ");
+
+                        } else {
+                            // Handle single status (existing logic)
+                            $formattedStatus = ucfirst(strtolower($status));
+
+                            // Check if status is "packing" (case insensitive)
+                            $isPackingStatus = strtolower($status) === 'packing';
+                            $statusColor = $isPackingStatus ? 'color: red; font-weight: bold;' : 'color: black;';
+
+                            return new HtmlString("
+                                <div class='text-sm'>
+                                    <div style='{$statusColor}'>{$formattedStatus}</div>
+                                    <div class='text-xs text-gray-500'>SO: {$record->sales_order_number}</div>
+                                </div>
+                            ");
+                        }
                     })
                     ->searchable(['sales_order_number', 'sales_order_status'])
                     ->sortable(),

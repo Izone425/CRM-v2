@@ -29,6 +29,7 @@ use App\Filament\Resources\LeadResource\RelationManagers\SubsidiaryRelationManag
 use App\Filament\Resources\LeadResource\Tabs\AppointmentTabs;
 use App\Filament\Resources\LeadResource\Tabs\ARDetailsTabs;
 use App\Filament\Resources\LeadResource\Tabs\ARFollowUpTabs;
+use App\Filament\Resources\LeadResource\Tabs\ARHandoverTabs;
 use App\Filament\Resources\LeadResource\Tabs\ARLicenseTabs;
 use App\Filament\Resources\LeadResource\Tabs\ARNotesTabs;
 use App\Filament\Resources\LeadResource\Tabs\ARProformaInvoiceTabs;
@@ -276,6 +277,11 @@ class LeadResource extends Resource
         if (in_array('ar_notes', $activeTabs)) {
             $tabs[] = Tabs\Tab::make('Renewal Notes')
                 ->schema(ARNotesTabs::getSchema());
+        }
+
+        if (in_array('ar_handover', $activeTabs)) {
+            $tabs[] = Tabs\Tab::make('Renewal Handover')
+                ->schema(ARHandoverTabs::getSchema());
         }
 
         if (in_array('prospect_follow_up', $activeTabs)) {
