@@ -336,17 +336,17 @@ class QuotationResource extends Resource
                             ->visible(fn(Forms\Get $get) => $get('quotation_type') === 'product')
                             ->afterStateUpdated(function (?string $state, Forms\Get $get, Forms\Set $set) {
                                 if ($state) {
-                                    // ✅ Determine number of years based on package selection
+                                    // ✅ Get year count but always use 12 months as default
                                     $yearCount = match($state) {
                                         'Package 2' => 1,
                                         'Package 3' => 2,
                                         'Package 4' => 3,
                                         'Package 5' => 4,
                                         'Package 6' => 5,
-                                        default => 1, // Package 1 or Other
+                                        default => 1,
                                     };
 
-                                    // ✅ Get products for this package
+                                    // Get products for this package
                                     $products = \App\Models\Product::where(function ($query) use ($state) {
                                         $query->where(function ($q) use ($state) {
                                             $q->whereNotNull('package_group')
@@ -359,13 +359,11 @@ class QuotationResource extends Resource
 
                                     $mappedItems = collect();
 
-                                    // ✅ For each product, create entries based on year count
                                     foreach ($products as $product) {
-                                        // Determine if this is a software product (needs year duplication)
                                         $isSoftware = $product->solution === 'software';
 
                                         if ($isSoftware && $yearCount > 1) {
-                                            // ✅ Create multiple entries for software products based on subscription years
+                                            // ✅ Create multiple entries, all with 12 months by default
                                             for ($year = 1; $year <= $yearCount; $year++) {
                                                 $mappedItems->push([
                                                     'product_id' => $product->id,
@@ -373,23 +371,19 @@ class QuotationResource extends Resource
                                                         ? ($product->quantity ?? 1)
                                                         : ($get('num_of_participant') ?? 1),
                                                     'unit_price' => $product->unit_price,
-                                                    // ✅ Set subscription period based on year position
-                                                    'subscription_period' => ($year < $yearCount)
-                                                        ? 12  // All years except last get 12 months
-                                                        : ($product->subscription_period ?? 12), // Last year gets product's default
+                                                    'subscription_period' => 12, // ✅ Always default to 12 months
                                                     'description' => $product->description,
-                                                    'year' => "Year {$year}", // ✅ Set year label
+                                                    'year' => "Year {$year}",
                                                 ]);
                                             }
                                         } else {
-                                            // ✅ For non-software or single-year packages, add product once
                                             $mappedItems->push([
                                                 'product_id' => $product->id,
                                                 'quantity' => in_array($product->solution, ['software', 'hardware'])
                                                     ? ($product->quantity ?? 1)
                                                     : ($get('num_of_participant') ?? 1),
                                                 'unit_price' => $product->unit_price,
-                                                'subscription_period' => $product->subscription_period,
+                                                'subscription_period' => $isSoftware ? 12 : null, // ✅ 12 for software, null for others
                                                 'description' => $product->description,
                                             ]);
                                         }
@@ -400,7 +394,6 @@ class QuotationResource extends Resource
                                     ])->toArray();
 
                                     $set('items', $finalItems);
-
                                     QuotationResource::recalculateAllRowsFromParent($get, $set);
                                 }
                             }),
@@ -668,8 +661,9 @@ class QuotationResource extends Resource
                                                 $set('convert_pi', $product->convert_pi);
                                                 $set('tariff_code', $product->tariff_code);
 
+                                                // ✅ Always default to 12 months for software products
                                                 if ($product->solution === 'software') {
-                                                    $set('subscription_period', $product->subscription_period);
+                                                    $set('subscription_period', 12); // Default to 12 instead of product's default
                                                 } else {
                                                     $set('subscription_period', null);
                                                     $set('year', null);
@@ -700,31 +694,47 @@ class QuotationResource extends Resource
                                         'md' => 1,
                                     ])
                                     ->live(debounce:500)
-                                    ->afterStateUpdated(
-                                        function(?string $state, Forms\Get $get, Forms\Set $set) {
-                                            //self::updateFields('quantity', $get, $set, $state);
-                                            self::recalculateAllRows($get, $set);
+                                    ->afterStateUpdated(function(?string $state, Forms\Get $get, Forms\Set $set) {
+                                        self::recalculateAllRows($get, $set, 'quantity', $state); // ✅ Pass field name
                                     }),
                                 TextInput::make('subscription_period')
                                     ->label('Subscription Period')
                                     ->numeric()
+                                    ->default(12)
                                     ->maxValue(12)
-                                    ->live(debounce:500)
+                                    ->minValue(1)
+                                    ->suffix('months')
+                                    ->live(onBlur: true) // ✅ Change from live(debounce: 500) to live(onBlur: true)
                                     ->afterStateUpdated(function(?string $state, Forms\Get $get, Forms\Set $set) {
-                                        if ($state && (int)$state > 12) {
+                                        // Validate range
+                                        if ($state) {
+                                            $value = (int)$state;
+                                            if ($value > 12) {
+                                                $set('subscription_period', 12);
+                                                Notification::make()
+                                                    ->warning()
+                                                    ->title('Maximum subscription period is 12 months')
+                                                    ->send();
+                                            } elseif ($value < 1) {
+                                                $set('subscription_period', 1);
+                                                Notification::make()
+                                                    ->warning()
+                                                    ->title('Minimum subscription period is 1 month')
+                                                    ->send();
+                                            }
+                                        } else {
                                             $set('subscription_period', 12);
-                                            Notification::make()
-                                                ->warning()
-                                                ->title('Maximum subscription period is 12 months')
-                                                ->send();
                                         }
 
-                                        // ✅ Mark this subscription period as manually edited
+                                        // ✅ Mark as manually edited BEFORE recalculation
                                         $set('subscription_manually_edited', true);
 
-                                        self::recalculateAllRows($get, $set);
+                                        // ✅ Add a small delay to ensure the manually edited flag is set
+                                        usleep(100000); // 0.1 second
+
+                                        self::recalculateAllRows($get, $set, 'subscription_period', $state); // ✅ Pass field name
                                     })
-                                    ->visible(function(Forms\Get $get)  {
+                                    ->visible(function(Forms\Get $get) {
                                         $productId = $get('product_id');
                                         if ($productId != null) {
                                             $product = Product::find($productId);
@@ -796,11 +806,9 @@ class QuotationResource extends Resource
                                     ->readOnly(function (Forms\Get $get) {
                                         $productId = $get('product_id');
                                         if (!$productId) {
-                                            return false; // Allow editing if no product selected
+                                            return false;
                                         }
-
                                         $product = \App\Models\Product::find($productId);
-
                                         return $product && $product->amount_editable == false;
                                     })
                                     ->helperText(function (Forms\Get $get) {
@@ -808,25 +816,17 @@ class QuotationResource extends Resource
                                         if (!$productId) {
                                             return null;
                                         }
-
                                         $product = \App\Models\Product::find($productId);
-
                                         return $product && $product->amount_editable == false
                                             ? 'Unit price cannot be modified for this product'
                                             : null;
                                     })
                                     ->afterStateUpdated(function (?string $state, Forms\Get $get, Forms\Set $set) {
-                                        // Handle unit price validation directly in afterStateUpdated
                                         $productId = $get('product_id');
                                         if ($productId && $state) {
                                             $product = \App\Models\Product::find($productId);
-
-                                            // Only apply minimum price validation if product has minimum_price set to true
                                             if ($product && $product->minimum_price && (float)$state < (float)$product->unit_price) {
-                                                // Reset to the minimum price if entered value is too low
                                                 $set('unit_price', $product->unit_price);
-
-                                                // Show notification to user
                                                 Notification::make()
                                                     ->warning()
                                                     ->title('Price Adjusted')
@@ -834,8 +834,7 @@ class QuotationResource extends Resource
                                                     ->send();
                                             }
                                         }
-
-                                        self::recalculateAllRows($get, $set);
+                                        self::recalculateAllRows($get, $set, 'unit_price', $state); // ✅ Pass field name
                                     }),
                                 TextInput::make('total_before_tax')
                                     ->label('Total Before Tax')
@@ -907,6 +906,14 @@ class QuotationResource extends Resource
 
                                 Hidden::make('convert_pi')
                                     ->dehydrated(true),
+
+                                Hidden::make('subscription_manually_edited')
+                                    ->default(false)
+                                    ->dehydrated(true)
+                                    ->afterStateHydrated(function ($state, Forms\Set $set) {
+                                        // Ensure it has a proper boolean value
+                                        $set('subscription_manually_edited', (bool)$state);
+                                    }),
                             ])
                             ->deleteAction(fn(Actions\Action $action) => $action->requiresConfirmation())
                             ->afterStateUpdated(function(Forms\Get $get, Forms\Set $set) {
@@ -1747,7 +1754,6 @@ class QuotationResource extends Resource
         $grandTotal = 0;
         $totalTax = 0;
 
-        // ✅ Track product occurrences for subscription period logic
         $productOccurrences = [];
         $productCounters = [];
 
@@ -1768,7 +1774,6 @@ class QuotationResource extends Resource
             if (!empty($item['product_id'])) {
                 $product = Product::find($item['product_id']);
 
-                // ✅ Handle subscription period for software products
                 if ($product && $product->solution === 'software') {
                     $productId = $item['product_id'];
 
@@ -1778,48 +1783,24 @@ class QuotationResource extends Resource
                         $productCounters[$productId]++;
                     }
 
-                    // ✅ Check if subscription period was manually edited
                     $isManuallyEdited = $get("../../items.{$index}.subscription_manually_edited");
 
-                    // Only auto-set subscription period if:
-                    // 1. It's a product_id change (new product selection), OR
-                    // 2. It hasn't been manually edited
-                    if ($field === 'product_id' || !$isManuallyEdited) {
-                        // Set subscription period logic:
-                        // - If product appears MORE THAN ONCE and this is NOT the LAST occurrence: 12 months
-                        // - If this is the LAST occurrence: use product's default subscription period
-                        if ($productOccurrences[$productId] > 1) {
-                            if ($productCounters[$productId] < $productOccurrences[$productId]) {
-                                // This is NOT the last occurrence, set to 12 months
-                                if (!$isManuallyEdited || $field === 'product_id') {
-                                    $set("../../items.{$index}.subscription_period", 12);
-                                    // Reset manual edit flag when auto-setting
-                                    if ($field === 'product_id') {
-                                        $set("../../items.{$index}.subscription_manually_edited", false);
-                                    }
-                                }
-                            } else {
-                                // This IS the last occurrence, use product's default (only if not manually edited)
-                                if ($field === 'product_id') {
-                                    $set("../../items.{$index}.subscription_period", $product->subscription_period ?? 1);
-                                    // Reset manual edit flag when selecting new product
-                                    $set("../../items.{$index}.subscription_manually_edited", false);
-                                }
-                                // If manually edited, preserve the value - don't override
-                            }
-                        } elseif ($field === 'product_id') {
-                            // Single occurrence, use product default only on product change
-                            $set("../../items.{$index}.subscription_period", $product->subscription_period ?? 1);
-                            $set("../../items.{$index}.subscription_manually_edited", false);
-                        }
+                    // ✅ ONLY modify subscription period in very specific cases
+                    if ($field === 'product_id' && !$isManuallyEdited) {
+                        // Only when a new product is selected
+                        $set("../../items.{$index}.subscription_period", 12);
+                        $set("../../items.{$index}.subscription_manually_edited", false);
+                    } elseif ($field === 'subscription_period') {
+                        // ✅ If this is a subscription period change, DON'T override it
+                        // The user is manually editing, so preserve their input
                     }
+                    // ✅ For all other field changes, don't touch subscription period
                 }
             }
 
-            // ✅ Fix quantity handling - preserve existing quantity
+            // Rest of your calculation logic remains the same...
             $currentQuantity = $get("../../items.{$index}.quantity");
 
-            // Only auto-set quantity if it's empty/null/zero
             if (!$currentQuantity || $currentQuantity == 0) {
                 if ($product?->solution === 'hrdf') {
                     $numParticipants = $get("../../num_of_participant");
@@ -1834,17 +1815,16 @@ class QuotationResource extends Resource
                 }
             }
 
-            $quantity = (float) $currentQuantity ?: 1; // Use current quantity or fallback to 1
-            $subscriptionPeriod = $get("../../items.{$index}.subscription_period") ?: 1;
+            $quantity = (float) $currentQuantity ?: 1;
+            $subscriptionPeriod = $get("../../items.{$index}.subscription_period") ?: 12;
             $unitPrice = isset($item['unit_price']) ? (float) $item['unit_price'] : 0;
 
-            // Auto-fill unit price if zero
             if ($unitPrice === 0.00 && $product?->unit_price) {
                 $unitPrice = $product->unit_price;
             }
             $set("../../items.{$index}.unit_price", $unitPrice);
 
-            // Total before tax
+            // Calculate totals...
             $totalBeforeTax = $quantity * $unitPrice;
             if ($product?->solution === 'software') {
                 $totalBeforeTax = $quantity * $subscriptionPeriod * $unitPrice;
@@ -1852,11 +1832,10 @@ class QuotationResource extends Resource
 
             $subtotal += $totalBeforeTax;
 
-            // Tax and Tax Code logic
+            // Tax calculation...
             $taxAmount = 0;
             $taxCode = null;
 
-            // Determine if this item should be taxed
             $shouldTax = match ($taxationCategory) {
                 'default' => $product?->taxable,
                 'all_taxable' => true,
@@ -1882,7 +1861,6 @@ class QuotationResource extends Resource
 
             $set("../../items.{$index}.tax_code", $taxCode);
 
-            // Preserve manually edited descriptions
             $currentDescription = $get("../../items.{$index}.description") ?? '';
             if (blank($currentDescription) || ($field === 'product_id' && $state && $index === $get('../../_repeater_index'))) {
                 $set("../../items.{$index}.description", $product?->description);
@@ -1891,7 +1869,6 @@ class QuotationResource extends Resource
             $totalAfterTax = $totalBeforeTax + $taxAmount;
             $grandTotal += $totalAfterTax;
 
-            // Format and set totals
             $set("../../items.{$index}.total_before_tax", number_format($totalBeforeTax, 2, '.', ''));
             $set("../../items.{$index}.taxation", number_format($taxAmount, 2, '.', ''));
             $set("../../items.{$index}.total_after_tax", number_format($totalAfterTax, 2, '.', ''));
@@ -2044,25 +2021,10 @@ class QuotationResource extends Resource
         $grandTotal = 0;
         $totalTax = 0;
 
-        // ✅ Track product occurrences for subscription period logic
-        $productOccurrences = [];
-        $productCounters = [];
-
-        // First pass: count total occurrences of each software product
-        foreach ($items as $item) {
-            if (!empty($item['product_id'])) {
-                $product = Product::find($item['product_id']);
-                if ($product && $product->solution === 'software') {
-                    $productId = $item['product_id'];
-                    $productOccurrences[$productId] = ($productOccurrences[$productId] ?? 0) + 1;
-                }
-            }
-        }
-
         foreach ($items as $index => $item) {
             $product = null;
 
-            if (array_key_exists('product_id',$item)) {
+            if (array_key_exists('product_id', $item)) {
                 $product_id = $item['product_id'];
                 $product = Product::find($product_id);
 
@@ -2070,33 +2032,15 @@ class QuotationResource extends Resource
                     $set("items.{$index}.convert_pi", $product->convert_pi);
                     $set("items.{$index}.tariff_code", $product->tariff_code);
 
-                    // ✅ Handle subscription period for software products
+                    // ✅ ONLY set subscription period if it's empty AND not manually edited
                     if ($product->solution === 'software') {
-                        if (!isset($productCounters[$product_id])) {
-                            $productCounters[$product_id] = 1;
-                        } else {
-                            $productCounters[$product_id]++;
-                        }
-
-                        // ✅ Check if subscription period was manually edited
+                        $currentSubscriptionPeriod = $get("items.{$index}.subscription_period");
                         $isManuallyEdited = $get("items.{$index}.subscription_manually_edited");
 
-                        // Only auto-set subscription period if it hasn't been manually edited
-                        if (!$isManuallyEdited) {
-                            // Set subscription period logic:
-                            // - If product appears MORE THAN ONCE and this is NOT the LAST occurrence: 12 months
-                            // - If this is the LAST occurrence: use product's default subscription period
-                            if ($productOccurrences[$product_id] > 1) {
-                                if ($productCounters[$product_id] < $productOccurrences[$product_id]) {
-                                    // This is NOT the last occurrence, set to 12 months
-                                    $set("items.{$index}.subscription_period", 12);
-                                } else {
-                                    // This IS the last occurrence, use product's default
-                                    $set("items.{$index}.subscription_period", $product->subscription_period ?? 1);
-                                }
-                            }
+                        // Only set if empty and not manually edited
+                        if (!$currentSubscriptionPeriod && !$isManuallyEdited) {
+                            $set("items.{$index}.subscription_period", 12);
                         }
-                        // If manually edited, preserve the value - don't override
                     }
                 }
             }
@@ -2118,10 +2062,9 @@ class QuotationResource extends Resource
                     $set("items.{$index}.quantity", $defaultQuantity);
                 }
             }
-            // If quantity already has a value, preserve it
 
-            $quantity = $get("items.{$index}.quantity") ?: 1; // Fallback to 1 if still empty
-            $subscription_period = $get("items.{$index}.subscription_period") ?: 1;
+            $quantity = $get("items.{$index}.quantity") ?: 1;
+            $subscription_period = $get("items.{$index}.subscription_period") ?: 12; // ✅ Default to 12
             $unit_price = 0;
 
             if (array_key_exists('unit_price', $item)) {
@@ -2136,9 +2079,6 @@ class QuotationResource extends Resource
             // Calculate total before tax
             $total_before_tax = (int) $quantity * (float) $unit_price;
             if ($product && $product->solution == 'software') {
-                /**
-                 * include subscription period in calculation for software
-                 */
                 $total_before_tax = (int) $quantity * (int) $subscription_period * (float) $unit_price;
             }
 
@@ -2171,16 +2111,15 @@ class QuotationResource extends Resource
 
             $currentDescription = $get("items.{$index}.description") ?? '';
 
-            // Only set product description when:
-            // 1. Current description is empty/blank, OR
-            // 2. This is a newly selected product (check if this is the item being modified)
-            if (blank($currentDescription) || ($index === $get('_repeater_index') && $product)) {
+            // Only set product description when current description is empty/blank
+            if (blank($currentDescription) && $product) {
                 $set("items.{$index}.description", $product?->description);
             }
 
             // Calculate total after tax
             $total_after_tax = $total_before_tax + $taxation_amount;
             $grandTotal += $total_after_tax;
+
             // Update the form values
             $set("items.{$index}.unit_price", number_format((float)$unit_price, 2, '.', ''));
             $set("items.{$index}.total_before_tax", number_format($total_before_tax, 2, '.', ''));
@@ -2188,9 +2127,7 @@ class QuotationResource extends Resource
             $set("items.{$index}.total_after_tax", number_format($total_after_tax, 2, '.', ''));
         }
 
-        /**
-         * Update summary
-         */
+        // Update summary
         $set('sub_total', number_format($subtotal, 2, '.', ''));
         $set('tax_amount', number_format($totalTax, 2, '.', ''));
         $set('total', number_format($grandTotal, 2, '.', ''));

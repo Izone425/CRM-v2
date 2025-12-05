@@ -101,6 +101,7 @@
             ->where('f_status', 0)
             ->whereNull('f_auto_count_inv')
             ->where('f_id', '>', '0000040131')
+            ->where('f_id', '!=', '0000042558')
             ->distinct('f_invoice_no')
             ->count('f_invoice_no');
 

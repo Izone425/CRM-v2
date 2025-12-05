@@ -231,11 +231,11 @@ class ViewLeadRecord extends ViewRecord
                             break;
                         case 'admin_renewal_v1':
                             $tabs = ['company', 'ar_details','ar_license','ar_quotation','ar_proforma_invoice','ar_follow_up',
-                                'ar_notes'];
+                                'ar_notes', 'ar_handover'];
                             break;
                         case 'admin_renewal_v2':
                             $tabs = ['company', 'ar_details','ar_license','ar_quotation','ar_proforma_invoice','ar_follow_up',
-                                'ar_notes'];
+                                'ar_notes', 'ar_handover'];
                             break;
                         case 'technician':
                             $tabs = ['company', 'quotation', 'repair_appointment'];
@@ -250,6 +250,8 @@ class ViewLeadRecord extends ViewRecord
                     }
 
                     $this->updateVisibleTabs($tabs);
+
+                    $this->dispatch('$refresh');
 
                     Notification::make()
                         ->title('Tab visibility updated')
