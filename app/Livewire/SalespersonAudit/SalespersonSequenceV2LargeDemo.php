@@ -80,9 +80,9 @@ class SalespersonSequenceV2LargeDemo extends Component implements HasForms, HasT
         $query = Appointment::query()
             ->whereIn('status', ['New', 'Done'])
             ->whereHas('lead', function ($query) use ($startDate) {
-                $query->whereIn('company_size', $this->largeCompanySizes)
-                    ->where('created_at', '>=', $startDate);
+                $query->whereIn('company_size', $this->largeCompanySizes);
             })
+            ->where('created_at', '>=', $startDate)
             ->whereIn('causer_id', function($query) {
                 $query->select('id')
                     ->from('users')
@@ -154,6 +154,11 @@ class SalespersonSequenceV2LargeDemo extends Component implements HasForms, HasT
                 TextColumn::make('date')
                     ->label('Demo Date')
                     ->formatStateUsing(fn($state) => $state ? Carbon::parse($state)->format('d M Y') : '-')
+                    ->sortable(),
+
+                TextColumn::make('created_at')
+                    ->label('Created At')
+                    ->formatStateUsing(fn ($state) => Carbon::parse($state)->format('d M Y H:i:s'))
                     ->sortable(),
 
                 TextColumn::make('lead.companyDetail.company_name')

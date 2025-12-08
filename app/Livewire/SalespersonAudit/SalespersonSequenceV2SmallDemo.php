@@ -35,7 +35,7 @@ class SalespersonSequenceV2SmallDemo extends Component implements HasForms, HasT
     public $rfqCount = 0;
 
     // Company sizes considered "small"
-    protected $smallCompanySizes = ['1-24'];
+    protected $smallCompanySizes = ['1-24', '20-24'];
 
     public function mount()
     {
@@ -67,9 +67,9 @@ class SalespersonSequenceV2SmallDemo extends Component implements HasForms, HasT
         $query = Appointment::query()
                 ->whereIn('status', ['New', 'Done'])
                 ->whereHas('lead', function ($query) use ($startDate) {
-                    $query->whereIn('company_size', $this->smallCompanySizes)
-                        ->where('created_at', '>=', $startDate);
+                    $query->whereIn('company_size', $this->smallCompanySizes);
                 })
+                ->where('created_at', '>=', $startDate)
                 ->whereIn('causer_id', function($query) {
                     $query->select('id')
                         ->from('users')
@@ -170,6 +170,11 @@ class SalespersonSequenceV2SmallDemo extends Component implements HasForms, HasT
                 TextColumn::make('date')
                     ->label('Demo Date')
                     ->formatStateUsing(fn($state) => $state ? Carbon::parse($state)->format('d M Y') : '-')
+                    ->sortable(),
+
+                TextColumn::make('created_at')
+                    ->label('Created At')
+                    ->formatStateUsing(fn ($state) => Carbon::parse($state)->format('d M Y H:i:s'))
                     ->sortable(),
 
                 TextColumn::make('lead.companyDetail.company_name')
