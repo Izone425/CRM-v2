@@ -353,66 +353,42 @@
 
     @php
         // Calculate counts for all salespersons combined (from both rank1 and rank2)
-        $smallDemoCount = app(\App\Livewire\SalespersonAudit\SalespersonSequenceSmallDemo::class)
-            ->getTableQuery()
-            ->count() +
-            app(\App\Livewire\SalespersonAudit\SalespersonSequenceSmallDemoRank2::class)
+        $smallDemoCount = app(\App\Livewire\SalespersonAudit\SalespersonSequenceV2SmallDemo::class)
             ->getTableQuery()
             ->count();
 
-        $smallRfqCount = app(\App\Livewire\SalespersonAudit\SalespersonSequenceSmallRfq::class)
-            ->getTableQuery()
-            ->count() +
-            app(\App\Livewire\SalespersonAudit\SalespersonSequenceSmallRfqRank2::class)
+        $smallRfqCount = app(\App\Livewire\SalespersonAudit\SalespersonSequenceV2SmallRfq::class)
             ->getTableQuery()
             ->count();
 
-        $mediumDemoCount = app(\App\Livewire\SalespersonAudit\SalespersonSequenceMediumDemo::class)
-            ->getTableQuery()
-            ->count() +
-            app(\App\Livewire\SalespersonAudit\SalespersonSequenceMediumDemoRank2::class)
+        $mediumDemoCount = app(\App\Livewire\SalespersonAudit\SalespersonSequenceV2MediumDemo::class)
             ->getTableQuery()
             ->count();
 
-        $mediumRfqCount = app(\App\Livewire\SalespersonAudit\SalespersonSequenceMediumRfq::class)
-            ->getTableQuery()
-            ->count() +
-            app(\App\Livewire\SalespersonAudit\SalespersonSequenceMediumRfqRank2::class)
+        $mediumRfqCount = app(\App\Livewire\SalespersonAudit\SalespersonSequenceV2MediumRfq::class)
             ->getTableQuery()
             ->count();
 
-        $largeDemoCount = app(\App\Livewire\SalespersonAudit\SalespersonSequenceLargeDemo::class)
-            ->getTableQuery()
-            ->count() +
-            app(\App\Livewire\SalespersonAudit\SalespersonSequenceLargeDemoRank2::class)
+        $largeDemoCount = app(\App\Livewire\SalespersonAudit\SalespersonSequenceV2LargeDemo::class)
             ->getTableQuery()
             ->count();
 
-        $largeRfqCount = app(\App\Livewire\SalespersonAudit\SalespersonSequenceLargeRfq::class)
-            ->getTableQuery()
-            ->count() +
-            app(\App\Livewire\SalespersonAudit\SalespersonSequenceLargeRfqRank2::class)
+        $largeRfqCount = app(\App\Livewire\SalespersonAudit\SalespersonSequenceV2LargeRfq::class)
             ->getTableQuery()
             ->count();
 
-        $enterpriseDemoCount = app(\App\Livewire\SalespersonAudit\SalespersonSequenceEnterpriseDemo::class)
-            ->getTableQuery()
-            ->count() +
-            app(\App\Livewire\SalespersonAudit\SalespersonSequenceEnterpriseDemoRank2::class)
+        $enterpriseDemoCount = app(\App\Livewire\SalespersonAudit\SalespersonSequenceV2EnterpriseDemo::class)
             ->getTableQuery()
             ->count();
 
-        $enterpriseRfqCount = app(\App\Livewire\SalespersonAudit\SalespersonSequenceEnterpriseRfq::class)
-            ->getTableQuery()
-            ->count() +
-            app(\App\Livewire\SalespersonAudit\SalespersonSequenceEnterpriseRfqRank2::class)
+        $enterpriseRfqCount = app(\App\Livewire\SalespersonAudit\SalespersonSequenceV2EnterpriseRfq::class)
             ->getTableQuery()
             ->count();
     @endphp
 
     <div x-data="{ selectedMainTab: 'demo' }">
         <div class="flex items-center mb-6">
-            <h2 class="mr-4 text-xl font-bold">Salesperson Audit Dashboard</h2>
+            <h2 class="mr-4 text-xl font-bold">SalesPerson Lead Sequence</h2>
             <div class="main-tabs">
                 <button class="main-tab" :class="{ 'active': selectedMainTab === 'demo' }" @click="selectedMainTab = 'demo'">Demo</button>
                 <button class="main-tab" :class="{ 'active': selectedMainTab === 'rfq' }" @click="selectedMainTab = 'rfq'">RFQ</button>
@@ -434,7 +410,7 @@
                             <div class="stats-card__body">
                                 <div class="stats-subsection">
                                     <div class="mb-1 flex-between">
-                                        <span class="stats-label">Small Companies</span>
+                                        <span class="stats-label">Small </span>
                                         <span class="stats-label">{{ $demoStats[$spId]['1-24'] ?? 0 }}</span>
                                     </div>
                                     <div class="progress-container">
@@ -442,7 +418,7 @@
                                     </div>
 
                                     <div class="mt-3 mb-1 flex-between">
-                                        <span class="stats-label">Medium Companies</span>
+                                        <span class="stats-label">Medium </span>
                                         <span class="stats-label">{{ $demoStats[$spId]['25-99'] ?? 0 }}</span>
                                     </div>
                                     <div class="progress-container">
@@ -450,7 +426,7 @@
                                     </div>
 
                                     <div class="mt-3 mb-1 flex-between">
-                                        <span class="stats-label">Large Companies</span>
+                                        <span class="stats-label">Large </span>
                                         <span class="stats-label">{{ $demoStats[$spId]['100-500'] ?? 0 }}</span>
                                     </div>
                                     <div class="progress-container">
@@ -458,7 +434,7 @@
                                     </div>
 
                                     <div class="mt-3 mb-1 flex-between">
-                                        <span class="stats-label">Enterprise Companies</span>
+                                        <span class="stats-label">Enterprise </span>
                                         <span class="stats-label">{{ $demoStats[$spId]['501 and Above'] ?? 0 }}</span>
                                     </div>
                                     <div class="progress-container">
@@ -491,28 +467,28 @@
                                 <div class="group-box group-small"
                                     :class="{ 'selected': selectedType === 'small' }"
                                     @click="setSelectedType('small')">
-                                    <div class="group-title">Small Companies</div>
+                                    <div class="group-title">Small </div>
                                     <div class="group-count">{{ $smallDemoCount }}</div>
                                 </div>
 
                                 <div class="group-box group-medium"
                                     :class="{ 'selected': selectedType === 'medium' }"
                                     @click="setSelectedType('medium')">
-                                    <div class="group-title">Medium Companies</div>
+                                    <div class="group-title">Medium </div>
                                     <div class="group-count">{{ $mediumDemoCount }}</div>
                                 </div>
 
                                 <div class="group-box group-large"
                                     :class="{ 'selected': selectedType === 'large' }"
                                     @click="setSelectedType('large')">
-                                    <div class="group-title">Large Companies</div>
+                                    <div class="group-title">Large </div>
                                     <div class="group-count">{{ $largeDemoCount }}</div>
                                 </div>
 
                                 <div class="group-box group-enterprise"
                                     :class="{ 'selected': selectedType === 'enterprise' }"
                                     @click="setSelectedType('enterprise')">
-                                    <div class="group-title">Enterprise Companies</div>
+                                    <div class="group-title">Enterprise </div>
                                     <div class="group-count">{{ $enterpriseDemoCount }}</div>
                                 </div>
                             </div>
@@ -569,7 +545,7 @@
                             <div class="stats-card__body">
                                 <div class="stats-subsection">
                                     <div class="mb-1 flex-between">
-                                        <span class="stats-label">Small Companies</span>
+                                        <span class="stats-label">Small </span>
                                         <span class="stats-label">{{ $rfqStats[$spId]['1-24'] ?? 0 }}</span>
                                     </div>
                                     <div class="progress-container">
@@ -577,7 +553,7 @@
                                     </div>
 
                                     <div class="mt-3 mb-1 flex-between">
-                                        <span class="stats-label">Medium Companies</span>
+                                        <span class="stats-label">Medium </span>
                                         <span class="stats-label">{{ $rfqStats[$spId]['25-99'] ?? 0 }}</span>
                                     </div>
                                     <div class="progress-container">
@@ -585,7 +561,7 @@
                                     </div>
 
                                     <div class="mt-3 mb-1 flex-between">
-                                        <span class="stats-label">Large Companies</span>
+                                        <span class="stats-label">Large </span>
                                         <span class="stats-label">{{ $rfqStats[$spId]['100-500'] ?? 0 }}</span>
                                     </div>
                                     <div class="progress-container">
@@ -593,7 +569,7 @@
                                     </div>
 
                                     <div class="mt-3 mb-1 flex-between">
-                                        <span class="stats-label">Enterprise Companies</span>
+                                        <span class="stats-label">Enterprise </span>
                                         <span class="stats-label">{{ $rfqStats[$spId]['501 and Above'] ?? 0 }}</span>
                                     </div>
                                     <div class="progress-container">
@@ -626,28 +602,28 @@
                                 <div class="group-box group-small"
                                     :class="{ 'selected': selectedType === 'small' }"
                                     @click="setSelectedType('small')">
-                                    <div class="group-title">Small Companies</div>
+                                    <div class="group-title">Small </div>
                                     <div class="group-count">{{ $smallRfqCount }}</div>
                                 </div>
 
                                 <div class="group-box group-medium"
                                     :class="{ 'selected': selectedType === 'medium' }"
                                     @click="setSelectedType('medium')">
-                                    <div class="group-title">Medium Companies</div>
+                                    <div class="group-title">Medium </div>
                                     <div class="group-count">{{ $mediumRfqCount }}</div>
                                 </div>
 
                                 <div class="group-box group-large"
                                     :class="{ 'selected': selectedType === 'large' }"
                                     @click="setSelectedType('large')">
-                                    <div class="group-title">Large Companies</div>
+                                    <div class="group-title">Large </div>
                                     <div class="group-count">{{ $largeRfqCount }}</div>
                                 </div>
 
                                 <div class="group-box group-enterprise"
                                     :class="{ 'selected': selectedType === 'enterprise' }"
                                     @click="setSelectedType('enterprise')">
-                                    <div class="group-title">Enterprise Companies</div>
+                                    <div class="group-title">Enterprise </div>
                                     <div class="group-count">{{ $enterpriseRfqCount }}</div>
                                 </div>
                             </div>

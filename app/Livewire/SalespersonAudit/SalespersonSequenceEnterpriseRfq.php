@@ -23,7 +23,7 @@ use Illuminate\Support\HtmlString;
 use Illuminate\Support\Str;
 use Livewire\Attributes\On;
 
-class SalespersonSequenceEnterpriseRfq extends Component implements HasForms, HasTable
+class SalespersonSequenceEnterpriseRfqRank2 extends Component implements HasForms, HasTable
 {
     use InteractsWithTable;
     use InteractsWithForms;
@@ -39,9 +39,6 @@ class SalespersonSequenceEnterpriseRfq extends Component implements HasForms, Ha
     public function mount()
     {
         $this->lastRefreshTime = now()->format('Y-m-d H:i:s');
-
-        $rank1Names = ['Vince Leong', 'Wan Amirul Muim', 'Joshua Ho'];
-        $this->rank1 = User::whereIn('name', $rank1Names)->pluck('id')->toArray();
     }
 
     public function refreshTable()
@@ -58,8 +55,7 @@ class SalespersonSequenceEnterpriseRfq extends Component implements HasForms, Ha
     public function getTableQuery()
     {
         // Use rankUsers property which will contain either the passed rank or the default rank1
-        $userIds = !empty($this->rankUsers) ? $this->rankUsers : [12, 6, 9]; // Fallback IDs
-        $startDate = Carbon::parse('2025-06-30');
+        $startDate = Carbon::parse('2025-12-08');
 
         // First get all eligible lead IDs created on or after the start date
         $eligibleLeadIds = \App\Models\Lead::where('created_at', '>=', $startDate)
@@ -69,7 +65,6 @@ class SalespersonSequenceEnterpriseRfq extends Component implements HasForms, Ha
         // Make sure you're querying the Spatie Activity model
         return \Spatie\Activitylog\Models\Activity::query()
             ->whereRaw("LOWER(description) LIKE ?", ['%rfq only%'])
-            ->whereIn('properties->attributes->salesperson', $userIds)
             ->where(function($query) {
                 foreach ($this->enterpriseCompanySizes as $size) {
                     $query->orWhere('properties->attributes->company_size', $size);
@@ -229,6 +224,6 @@ class SalespersonSequenceEnterpriseRfq extends Component implements HasForms, Ha
 
     public function render()
     {
-        return view('livewire.salesperson_audit.salesperson-sequence-enterprise-rfq');
+        return view('livewire.salesperson_audit.salesperson-sequence-enterprise-rfq-rank2');
     }
 }

@@ -1060,6 +1060,142 @@ class SoftwareHandoverV2New extends Component implements HasForms, HasTable
                                             }),
                                     ]),
 
+                            \Filament\Forms\Components\Section::make('License Configuration Preview')
+                                ->schema([
+                                    Grid::make(2)
+                                        ->schema([
+                                            \Filament\Forms\Components\Placeholder::make('detected_modules')
+                                                ->label('Modules to be Activated')
+                                                ->content(function (SoftwareHandover $record) {
+                                                    // Get all PI IDs
+                                                    $allPiIds = [];
+                                                    if (!empty($record->proforma_invoice_product)) {
+                                                        $productPis = is_string($record->proforma_invoice_product)
+                                                            ? json_decode($record->proforma_invoice_product, true)
+                                                            : $record->proforma_invoice_product;
+                                                        if (is_array($productPis)) {
+                                                            $allPiIds = array_merge($allPiIds, $productPis);
+                                                        }
+                                                    }
+                                                    if (!empty($record->proforma_invoice_hrdf)) {
+                                                        $hrdfPis = is_string($record->proforma_invoice_hrdf)
+                                                            ? json_decode($record->proforma_invoice_hrdf, true)
+                                                            : $record->proforma_invoice_hrdf;
+                                                        if (is_array($hrdfPis)) {
+                                                            $allPiIds = array_merge($allPiIds, $hrdfPis);
+                                                        }
+                                                    }
+
+                                                    // Auto-detect which modules will be activated
+                                                    $selectedModules = [
+                                                        'ta' => $this->shouldModuleBeChecked($record, ['TCL_TA USER-NEW', 'TCL_TA USER-ADDON', 'TCL_TA USER-ADDON(R)', 'TCL_TA USER-RENEWAL', 'TCL_FULL USER-NEW']),
+                                                        'tl' => $this->shouldModuleBeChecked($record, ['TCL_LEAVE USER-NEW', 'TCL_LEAVE USER-ADDON', 'TCL_LEAVE USER-ADDON(R)', 'TCL_LEAVE USER-RENEWAL', 'TCL_FULL USER-NEW']),
+                                                        'tc' => $this->shouldModuleBeChecked($record, ['TCL_CLAIM USER-NEW', 'TCL_CLAIM USER-ADDON', 'TCL_CLAIM USER-ADDON(R)', 'TCL_CLAIM USER-RENEWAL', 'TCL_FULL USER-NEW']),
+                                                        'tp' => $this->shouldModuleBeChecked($record, ['TCL_PAYROLL USER-NEW', 'TCL_PAYROLL USER-ADDON', 'TCL_PAYROLL USER-ADDON(R)', 'TCL_PAYROLL USER-RENEWAL', 'TCL_FULL USER-NEW']),
+                                                        'tapp' => $this->shouldModuleBeChecked($record, ['TCL_APPRAISAL USER-NEW']),
+                                                        'thire' => $this->shouldModuleBeChecked($record, ['TCL_HIRE-NEW', 'TCL_HIRE-RENEWAL']),
+                                                        'tacc' => $this->shouldModuleBeChecked($record, ['TCL_ACCESS-NEW', 'TCL_ACCESS-RENEWAL']),
+                                                        'tpbi' => $this->shouldModuleBeChecked($record, ['TCL_POWER BI']),
+                                                    ];
+
+                                                    $moduleMapping = [
+                                                        'ta' => 'Attendance',
+                                                        'tl' => 'Leave',
+                                                        'tc' => 'Claim',
+                                                        'tp' => 'Payroll',
+                                                        'tapp' => 'Appraisal',
+                                                        'thire' => 'Hire',
+                                                        'tacc' => 'Access',
+                                                        'tpbi' => 'PowerBI',
+                                                    ];
+
+                                                    $activeModules = [];
+                                                    foreach ($selectedModules as $key => $isActive) {
+                                                        if ($isActive) {
+                                                            $activeModules[] = '<span style="color: #10b981; font-weight: 500;">✓ ' . $moduleMapping[$key] . '</span>';
+                                                        }
+                                                    }
+
+                                                    if (empty($activeModules)) {
+                                                        return new HtmlString('<span style="color: #f59e0b; font-weight: 500;">⚠️ No modules detected - Unlimited buffer license will be created</span>');
+                                                    }
+
+                                                    return new HtmlString('<div style="display: flex; flex-wrap: wrap; gap: 8px;">' . implode('</div><div>', $activeModules) . '</div>');
+                                                }),
+
+                                            \Filament\Forms\Components\Placeholder::make('seat_limits')
+                                                ->label('Seat Limits Configuration')
+                                                ->content(function (SoftwareHandover $record) {
+                                                    // Get seat limits from quotations
+                                                    $licenseService = app(\App\Services\LicenseSeatService::class);
+
+                                                    // Get all PI IDs
+                                                    $allPiIds = [];
+                                                    if (!empty($record->proforma_invoice_product)) {
+                                                        $productPis = is_string($record->proforma_invoice_product)
+                                                            ? json_decode($record->proforma_invoice_product, true)
+                                                            : $record->proforma_invoice_product;
+                                                        if (is_array($productPis)) {
+                                                            $allPiIds = array_merge($allPiIds, $productPis);
+                                                        }
+                                                    }
+                                                    if (!empty($record->proforma_invoice_hrdf)) {
+                                                        $hrdfPis = is_string($record->proforma_invoice_hrdf)
+                                                            ? json_decode($record->proforma_invoice_hrdf, true)
+                                                            : $record->proforma_invoice_hrdf;
+                                                        if (is_array($hrdfPis)) {
+                                                            $allPiIds = array_merge($allPiIds, $hrdfPis);
+                                                        }
+                                                    }
+
+                                                    $handoverId = $record->formatted_handover_id;
+
+                                                    // ✅ Get seat limits and sum them together for multiple PIs
+                                                    $seatLimitsRaw = $licenseService->getSeatLimitsFromQuotations($allPiIds, $handoverId);
+
+                                                    // ✅ Sum up seat limits from multiple PIs
+                                                    $seatLimits = [];
+                                                    if (!empty($seatLimitsRaw)) {
+                                                        foreach ($seatLimitsRaw as $app => $limits) {
+                                                            if (is_array($limits)) {
+                                                                // If multiple PIs have seat limits for same app, sum them
+                                                                $totalSeats = 0;
+                                                                $hasSeats = false;
+
+                                                                foreach ($limits as $limit) {
+                                                                    if ($limit !== null && is_numeric($limit)) {
+                                                                        $totalSeats += (int)$limit;
+                                                                        $hasSeats = true;
+                                                                    }
+                                                                }
+
+                                                                $seatLimits[$app] = $hasSeats ? $totalSeats : null;
+                                                            } else {
+                                                                // Single PI
+                                                                $seatLimits[$app] = $limits;
+                                                            }
+                                                        }
+                                                    }
+
+                                                    if (empty($seatLimits)) {
+                                                        return new HtmlString('<span style="color: #6b7280; font-style: italic;">No seat limits detected from quotations</span>');
+                                                    }
+
+                                                    $seatInfo = [];
+                                                    foreach ($seatLimits as $app => $limit) {
+                                                        // ✅ Show "No seats" instead of "Unlimited" when null
+                                                        $limitText = ($limit === null || $limit === 0) ? 'No seats' : $limit . ' seats';
+                                                        $color = ($limit === null || $limit === 0) ? '#dc2626' : '#059669'; // Red for no seats, green for seats
+                                                        $seatInfo[] = '<span style="color: #374151; font-weight: 500;">' . $app . ': <span style="color: ' . $color . ';">' . $limitText . '</span></span>';
+                                                    }
+
+                                                    return new HtmlString('<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px;">' . implode('</div><div>', $seatInfo) . '</div>');
+                                                }),
+                                            ]),
+                                ])
+                                ->collapsible()
+                                ->collapsed(false),
+
                             Select::make('buffer_license_months')
                                 ->label('Buffer License Duration')
                                 ->options([
@@ -2052,7 +2188,7 @@ class SoftwareHandoverV2New extends Component implements HasForms, HasTable
     /**
      * Send handover notification email to implementer and salesperson
      */
-    protected function sendHandoverNotificationEmail(SoftwareHandover $record, string $implementerName, string $implementerEmail, string $salespersonName, string $salespersonEmail): void
+    protected function sendHandoverNotificationEmail(SoftwareHandover $record, string $implementerName, ?string $implementerEmail, string $salespersonName, ?string $salespersonEmail): void
     {
         try {
             $companyName = $record->company_name ?? $record->lead->companyDetail->company_name ?? 'Unknown Company';
@@ -2084,13 +2220,18 @@ class SoftwareHandoverV2New extends Component implements HasForms, HasTable
             ];
 
             $recipients = [];
+
+            // Only add implementer email if it exists and is valid
             if ($implementerEmail && filter_var($implementerEmail, FILTER_VALIDATE_EMAIL)) {
                 $recipients[] = $implementerEmail;
             }
+
+            // Only add salesperson email if it exists and is valid
             if ($salespersonEmail && filter_var($salespersonEmail, FILTER_VALIDATE_EMAIL)) {
                 $recipients[] = $salespersonEmail;
             }
 
+            // Only send email if we have at least one valid recipient
             if (count($recipients) > 0) {
                 $authUser = auth()->user();
                 $senderEmail = $authUser->email;
@@ -2105,6 +2246,12 @@ class SoftwareHandoverV2New extends Component implements HasForms, HasTable
                 \Illuminate\Support\Facades\Log::info("Handover notification email sent successfully", [
                     'recipients' => $recipients,
                     'handover_id' => $handoverId
+                ]);
+            } else {
+                \Illuminate\Support\Facades\Log::info("No valid email recipients found - skipping email", [
+                    'handover_id' => $handoverId,
+                    'implementer_email' => $implementerEmail,
+                    'salesperson_email' => $salespersonEmail
                 ]);
             }
         } catch (\Exception $e) {

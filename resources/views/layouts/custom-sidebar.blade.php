@@ -785,9 +785,9 @@
                         </div>
 
                         <div class="submenu" id="salesadmin-audit-submenu">
-                            <a href="{{ route('filament.admin.pages.salesperson-lead-sequence') }}" class="submenu-item">
+                            <!-- <a href="{{ route('filament.admin.pages.salesperson-lead-sequence') }}" class="submenu-item">
                                 <span class="module-font">Lead Sequence</span>
-                            </a>
+                            </a> -->
                             <a href="{{ route('filament.admin.pages.salesperson-lead-sequence-v2') }}" class="submenu-item">
                                 <span class="module-font">Lead Sequence V2</span>
                             </a>

@@ -9,6 +9,8 @@ use Exception;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\On;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Exports\HandoversExport;
 
 class ProjectAnalysis extends Page
 {
@@ -32,6 +34,10 @@ class ProjectAnalysis extends Page
     public $slideOverTitleV2 = 'Software Handovers';
     public $handoversList = [];
     protected static ?string $slug = 'software/project-analysis';
+
+    public $currentDownloadType = 'all';
+    public $currentDownloadImplementer = null;
+    public $currentDownloadStatus = null;
 
     // public static function canAccess(): bool
     // {
@@ -355,6 +361,11 @@ class ProjectAnalysis extends Page
 
     public function openAllHandoversSlideOver()
     {
+        // Set download state
+        $this->currentDownloadType = 'all';
+        $this->currentDownloadImplementer = null;
+        $this->currentDownloadStatus = null;
+
         // Get handovers with company size
         $handovers = $this->getBaseQuery()
             ->select('id', 'lead_id', 'company_name', 'status_handover', 'headcount')
@@ -371,6 +382,11 @@ class ProjectAnalysis extends Page
     // For "CLOSED" status handovers
     public function openClosedHandoversSlideOver($implementer = null)
     {
+        // Set download state
+        $this->currentDownloadType = $implementer ? 'implementer' : 'closed';
+        $this->currentDownloadImplementer = $implementer;
+        $this->currentDownloadStatus = 'closed';
+
         $query = $this->getBaseQuery()->where('status_handover', 'CLOSED');
 
         if ($implementer) {
@@ -395,6 +411,11 @@ class ProjectAnalysis extends Page
     // For "OPEN" status handovers
     public function openOpenHandoversSlideOver($implementer = null)
     {
+        // Set download state
+        $this->currentDownloadType = $implementer ? 'implementer' : 'open';
+        $this->currentDownloadImplementer = $implementer;
+        $this->currentDownloadStatus = 'open';
+
         $query = SoftwareHandover::query()->where('status_handover', 'OPEN');
 
         if ($implementer) {
@@ -416,9 +437,13 @@ class ProjectAnalysis extends Page
         $this->showSlideOver = true;
     }
 
-    // For "DELAY" status handovers
     public function openDelayHandoversSlideOver($implementer = null)
     {
+        // Set download state
+        $this->currentDownloadType = $implementer ? 'implementer' : 'delay';
+        $this->currentDownloadImplementer = $implementer;
+        $this->currentDownloadStatus = 'delay';
+
         $query = SoftwareHandover::query()->where('status_handover', 'DELAY');
 
         if ($implementer) {
@@ -440,9 +465,13 @@ class ProjectAnalysis extends Page
         $this->showSlideOver = true;
     }
 
-    // For "INACTIVE" status handovers
     public function openInactiveHandoversSlideOver($implementer = null)
     {
+        // Set download state
+        $this->currentDownloadType = $implementer ? 'implementer' : 'inactive';
+        $this->currentDownloadImplementer = $implementer;
+        $this->currentDownloadStatus = 'inactive';
+
         $query = SoftwareHandover::query()->where('status_handover', 'INACTIVE');
 
         if ($implementer) {
@@ -464,9 +493,13 @@ class ProjectAnalysis extends Page
         $this->showSlideOver = true;
     }
 
-    // For "ONGOING" status handovers (combines OPEN, DELAY, INACTIVE)
     public function openOngoingHandoversSlideOver($implementer = null)
     {
+        // Set download state
+        $this->currentDownloadType = $implementer ? 'implementer' : 'ongoing';
+        $this->currentDownloadImplementer = $implementer;
+        $this->currentDownloadStatus = 'ongoing';
+
         // New Formula: OnGoing = Open + Delay (excluding INACTIVE)
         $query = SoftwareHandover::query()->whereIn('status_handover', ['OPEN', 'DELAY']);
 
@@ -531,6 +564,11 @@ class ProjectAnalysis extends Page
     // Modified implementer function to use the status-specific functions
     public function openImplementerHandoversSlideOver($implementer, $status = null)
     {
+        // Set download state
+        $this->currentDownloadType = 'implementer';
+        $this->currentDownloadImplementer = $implementer;
+        $this->currentDownloadStatus = $status;
+
         if ($status) {
             // Use the status-specific functions when available
             return $this->openStatusHandoversSlideOver($status, $implementer);
@@ -548,6 +586,101 @@ class ProjectAnalysis extends Page
         // Updated title format
         $this->slideOverTitle = "{$implementer} Projects - All Status";
         $this->showSlideOver = true;
+    }
+
+    public function downloadCurrentHandovers()
+    {
+        return $this->downloadHandoversExcel(
+            $this->currentDownloadType,
+            $this->currentDownloadImplementer,
+            $this->currentDownloadStatus
+        );
+    }
+
+    public function downloadHandoversExcel($type = 'all', $implementer = null, $status = null)
+    {
+        try {
+            // Get the same data used for the slide-over
+            $handovers = $this->getHandoversForDownload($type, $implementer, $status);
+
+            // Generate filename
+            $filename = $this->generateFilename($type, $implementer, $status);
+
+            // Generate title for the export
+            $title = $this->generateExportTitle($type, $implementer, $status);
+
+            return Excel::download(new HandoversExport($handovers, $title), $filename);
+
+        } catch (\Exception $e) {
+            // Handle error gracefully
+            session()->flash('error', 'Failed to generate Excel file: ' . $e->getMessage());
+            return redirect()->back();
+        }
+    }
+
+    private function getHandoversForDownload($type, $implementer = null, $status = null)
+    {
+        switch ($type) {
+            case 'all':
+                $query = $this->getBaseQuery();
+                break;
+            case 'closed':
+                $query = $this->getBaseQuery()->where('status_handover', 'CLOSED');
+                break;
+            case 'open':
+                $query = $this->getBaseQuery()->where('status_handover', 'OPEN');
+                break;
+            case 'delay':
+                $query = $this->getBaseQuery()->where('status_handover', 'DELAY');
+                break;
+            case 'inactive':
+                $query = $this->getBaseQuery()->where('status_handover', 'INACTIVE');
+                break;
+            case 'ongoing':
+                $query = $this->getBaseQuery()->whereIn('status_handover', ['OPEN', 'DELAY']);
+                break;
+            case 'implementer':
+                $query = $this->getBaseQuery()->where('implementer', $implementer);
+                if ($status) {
+                    if ($status === 'ongoing') {
+                        $query->whereIn('status_handover', ['OPEN', 'DELAY']);
+                    } else {
+                        $query->where('status_handover', strtoupper($status));
+                    }
+                }
+                break;
+            default:
+                $query = $this->getBaseQuery();
+        }
+
+        // Get handovers with required fields
+        $handovers = $query->select('id', 'lead_id', 'company_name', 'status_handover', 'headcount', 'implementer')->get();
+
+        // Group by company size for consistency with slide-over
+        return $this->groupHandoversByCompanySize($handovers);
+    }
+
+    private function generateFilename($type, $implementer = null, $status = null)
+    {
+        $timestamp = now()->format('Y-m-d_H-i-s');
+
+        if ($type === 'implementer' && $implementer) {
+            $safeName = preg_replace('/[^a-zA-Z0-9_-]/', '_', $implementer);
+            $statusPart = $status ? "_{$status}" : '';
+            return "handovers_{$safeName}{$statusPart}_{$timestamp}.xlsx";
+        }
+
+        return "handovers_{$type}_{$timestamp}.xlsx";
+    }
+
+    private function generateExportTitle($type, $implementer = null, $status = null)
+    {
+        if ($type === 'implementer' && $implementer) {
+            $statusPart = $status ? " - Status: " . ucfirst($status) : " - All Status";
+            return "{$implementer} Projects{$statusPart}";
+        }
+
+        return "Projects - " . ucfirst($type) . " Status";
     }
 
     // V2 Analysis: Analysis by Statistic
