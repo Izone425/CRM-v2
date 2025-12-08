@@ -60,7 +60,7 @@ class SalespersonSequenceMediumRfq extends Component implements HasForms, HasTab
     {
         // Use rankUsers property which will contain either the passed rank or the default rank1
         $userIds = !empty($this->rankUsers) ? $this->rankUsers : [12, 6, 9]; // Fallback IDs
-        $startDate = Carbon::parse('2025-06-30');
+        $startDate = Carbon::parse('2025-12-08');
 
         // First get all eligible lead IDs created on or after the start date
         $eligibleLeadIds = \App\Models\Lead::where('created_at', '>=', $startDate)

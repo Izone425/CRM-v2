@@ -54,7 +54,7 @@ class SalespersonSequenceV2EnterpriseRfq extends Component implements HasForms, 
 
     public function getTableQuery()
     {
-        $startDate = Carbon::parse('2025-012-08');
+        $startDate = Carbon::parse('2025-12-08');
 
         // First get all eligible lead IDs created on or after the start date
         $eligibleLeadIds = \App\Models\Lead::where('created_at', '>=', $startDate)

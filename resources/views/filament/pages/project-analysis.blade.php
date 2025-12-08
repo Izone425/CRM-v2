@@ -362,6 +362,117 @@
         .analysis-tab-content.active {
             display: block;
         }
+
+        .download-btn {
+            display: inline-flex;
+            align-items: center;
+            padding: 8px 16px;
+            font-size: 12px;
+            font-weight: 500;
+            color: white;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            border: none;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            gap: 6px;
+        }
+
+        .download-btn:hover {
+            background: linear-gradient(135deg, #059669 0%, #047857 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(16, 185, 129, 0.3);
+        }
+
+        .download-btn:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
+        }
+
+        .download-btn:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+        }
+
+        .download-btn svg {
+            width: 16px;
+            height: 16px;
+            transition: transform 0.2s ease;
+        }
+
+        .download-btn:hover svg {
+            transform: translateY(-1px);
+        }
+
+        /* Header button container */
+        .slide-over-header .flex.items-center.gap-3 {
+            align-items: center;
+        }
+
+        /* Close button styling to match */
+        .close-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            background-color: #f3f4f6;
+            border: none;
+            border-radius: 6px;
+            color: #6b7280;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 18px;
+            line-height: 1;
+        }
+
+        .close-btn:hover {
+            background-color: #e5e7eb;
+            color: #374151;
+            transform: rotate(90deg);
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 640px) {
+            .download-btn {
+                padding: 6px 12px;
+                font-size: 11px;
+            }
+
+            .download-btn svg {
+                width: 14px;
+                height: 14px;
+            }
+        }
+
+        /* Loading state for download button */
+        .download-btn.loading {
+            opacity: 0.7;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+        .download-btn.loading svg {
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* Success feedback animation */
+        .download-btn.success {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            animation: pulse 0.6s ease-in-out;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
     </style>
 
     <div x-data="{
@@ -591,7 +702,29 @@
                 <div class="slide-over-header">
                     <div class="flex items-center justify-between">
                         <h2 class="text-lg font-bold text-gray-800">{{ $slideOverTitle }}</h2>
-                        <button @click="open = false" class="p-1 text-2xl leading-none text-gray-500 hover:text-gray-700">&times;</button>
+                        <div class="flex items-center gap-3">
+                            <!-- Download Button -->
+                            <button
+                                wire:click="downloadCurrentHandovers()"
+                                class="download-btn"
+                                title="Download Excel"
+                                wire:loading.class="loading"
+                                wire:target="downloadCurrentHandovers"
+                            >
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" wire:loading.remove wire:target="downloadCurrentHandovers">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                </svg>
+                                <svg class="animate-spin" fill="none" viewBox="0 0 24 24" wire:loading wire:target="downloadCurrentHandovers">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                <span wire:loading.remove wire:target="downloadCurrentHandovers">Excel</span>
+                                <span wire:loading wire:target="downloadCurrentHandovers">Loading...</span>
+                            </button>
+
+                            <!-- Close Button -->
+                            <button @click="open = false" class="p-1 text-2xl leading-none text-gray-500 hover:text-gray-700">&times;</button>
+                        </div>
                     </div>
                 </div>
 
