@@ -72,8 +72,17 @@ class ProformaInvoices extends Component implements HasForms, HasTable
                     }),
                 TextColumn::make('lead.companyDetail.company_name')
                     ->label('Company')
-                    ->formatStateUsing(function ($state, $record) {
-                        $fullName = $state ?? 'N/A';
+                    ->formatStateUsing(function ($state, Quotation $record) {
+                        // Determine which company name to display
+                        $companyName = 'N/A';
+                        if ($record->subsidiary_id && $record->subsidiary) {
+                            $companyName = $record->subsidiary->company_name;
+                        } elseif ($record->lead && $record->lead->companyDetail) {
+                            $companyName = $record->lead->companyDetail->company_name;
+                        }
+
+                        // Format the display name
+                        $fullName = $companyName;
                         $shortened = strtoupper(Str::limit($fullName, 25, '...'));
                         $encryptedId = \App\Classes\Encryptor::encrypt($record->lead->id);
 

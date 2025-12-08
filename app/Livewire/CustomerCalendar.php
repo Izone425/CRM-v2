@@ -200,19 +200,34 @@ class CustomerCalendar extends Component
 
     private function determineSchedulingPermission($customer)
     {
-        // Check if there's any "New" status appointment (any type)
-        $hasNewAppointment = ImplementerAppointment::where('lead_id', $customer->lead_id)
-            ->where('status', 'New')
-            ->whereIn('type', ['KICK OFF MEETING SESSION', 'REVIEW SESSION'])
-            ->exists();
+        // ✅ NEW LOGIC: Check if customer has explicit permission first
+        if ((bool) $customer->able_set_meeting) {
+            return true;
+        }
 
-        // If there's a "New" appointment, cannot schedule more
-        if ($hasNewAppointment) {
+        // ✅ Check if the latest appointment is "Done" (allows next booking)
+        $latestAppointment = ImplementerAppointment::where('lead_id', $customer->lead_id)
+            ->whereIn('type', ['KICK OFF MEETING SESSION', 'REVIEW SESSION'])
+            ->orderBy('created_at', 'desc')
+            ->first();
+
+        // If no appointments exist, customer can book (first time booking)
+        if (!$latestAppointment) {
+            return true;
+        }
+
+        // If latest appointment is "Done", customer can book the next session
+        if ($latestAppointment->status === 'Done') {
+            return true;
+        }
+
+        // If latest appointment is "New" (pending), cannot book another
+        if ($latestAppointment->status === 'New') {
             return false;
         }
 
-        // If no "New" appointments, check able_set_meeting permission
-        return (bool) $customer->able_set_meeting;
+        // For any other status (Cancelled, etc.), allow booking
+        return true;
     }
 
     public function checkExistingBookings()
@@ -628,17 +643,28 @@ class CustomerCalendar extends Component
 
         // Check the updated permission logic
         if (!$this->canScheduleMeeting) {
-            // Check if it's because of "New" status meeting or permission
-            $hasNewKickOffMeeting = ImplementerAppointment::where('lead_id', $customer->lead_id)
-                ->where('status', 'New')
-                ->where('type', 'KICK OFF MEETING SESSION')
-                ->exists();
+            // ✅ More specific error messages based on the reason
+            $latestAppointment = ImplementerAppointment::where('lead_id', $customer->lead_id)
+                ->whereIn('type', ['KICK OFF MEETING SESSION', 'REVIEW SESSION'])
+                ->orderBy('created_at', 'desc')
+                ->first();
 
-            if ($hasNewKickOffMeeting) {
+            if ($latestAppointment && $latestAppointment->status === 'New') {
+                // Format the appointment type for display
+                $appointmentType = $latestAppointment->type;
+                if ($latestAppointment->type === 'REVIEW SESSION') {
+                    $previousReviewCount = ImplementerAppointment::where('lead_id', $customer->lead_id)
+                        ->where('type', 'REVIEW SESSION')
+                        ->where('status', 'Done')
+                        ->where('created_at', '<', $latestAppointment->created_at)
+                        ->count();
+                    $appointmentType = "REVIEW SESSION " . ($previousReviewCount + 1);
+                }
+
                 Notification::make()
                     ->title('Existing appointment pending')
                     ->warning()
-                    ->body('You have a pending kick-off meeting. Please wait for it to be completed before scheduling another one.')
+                    ->body("You have a pending {$appointmentType}. Please wait for it to be completed before scheduling another one.")
                     ->send();
             } else {
                 Notification::make()
@@ -917,7 +943,7 @@ class CustomerCalendar extends Component
     {
         $customer = auth()->guard('customer')->user();
 
-        if (!$customer->able_set_meeting) {
+        if (!$this->canScheduleMeeting) {
             Notification::make()
                 ->title('Meeting scheduling disabled')
                 ->danger()
