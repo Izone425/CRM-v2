@@ -788,6 +788,9 @@
                             <a href="{{ route('filament.admin.pages.salesperson-lead-sequence') }}" class="submenu-item">
                                 <span class="module-font">Lead Sequence</span>
                             </a>
+                            <a href="{{ route('filament.admin.pages.salesperson-lead-sequence-v2') }}" class="submenu-item">
+                                <span class="module-font">Lead Sequence V2</span>
+                            </a>
                         </div>
                     </div>
 

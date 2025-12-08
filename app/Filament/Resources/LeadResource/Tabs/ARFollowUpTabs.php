@@ -546,8 +546,14 @@ class ARFollowUpTabs
                                                         // Prepare attachments data for scheduled email
                                                         $attachmentsData = self::prepareAttachmentsData($emailData);
 
-                                                        // Add attachments data to email data for scheduled sending
+                                                        // ✅ ADD CC RECIPIENTS TO EMAIL DATA
+                                                        $ccRecipients = [];
+                                                        // Always add renewal.timetec.hr@timeteccloud.com to CC
+                                                        $ccRecipients[] = 'renewal.timetec.hr@timeteccloud.com';
+
+                                                        // Add attachments data and CC recipients to email data for scheduled sending
                                                         $emailData['attachments_data'] = $attachmentsData;
+                                                        $emailData['cc_recipients'] = $ccRecipients; // ✅ Add this line
 
                                                         // Store scheduled email in database
                                                         DB::table('scheduled_emails')->insert([
