@@ -1125,7 +1125,7 @@ class MarketingAnalysis extends Page
         $this->slideOverTitle = "Company Size: " . ucfirst($label);
 
         $sizeMap = [
-            'Small' => ['1-24'],
+            'Small' => ['1-24', '20-24'],
             'Medium' => ['25-99'],
             'Large' => ['100-500'],
             'Enterprise' => ['501 and Above'],
@@ -1154,7 +1154,7 @@ class MarketingAnalysis extends Page
         $this->slideOverTitle = "Demo Leads - " . ucfirst($label);
 
         $sizeMap = [
-            'Small' => ['1-24'],
+            'Small' => ['1-24', '20-24'],
             'Medium' => ['25-99'],
             'Large' => ['100-500'],
             'Enterprise' => ['501 and Above'],

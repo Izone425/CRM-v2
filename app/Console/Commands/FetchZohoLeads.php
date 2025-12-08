@@ -495,6 +495,12 @@ class FetchZohoLeads extends Command
             case '1 - 24':
                 return '1-24'; // ✅ Normalized as Small
 
+            case '20-24':
+            case '20- 24':
+            case '20 -24':
+            case '20 - 24':
+                return '20-24'; // ✅ Normalized as Small
+
             case '25-99':
             case '25- 99':
             case '25 -99':

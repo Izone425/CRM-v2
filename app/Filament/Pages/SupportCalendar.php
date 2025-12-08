@@ -30,6 +30,7 @@ class SupportCalendar extends Page
         $this->selectedYear = request()->query('year', Carbon::now()->year);
         $this->loadCalendarData();
         $this->users = User::whereIn('role_id', [4, 5, 6, 7, 8])
+            ->orWhere('id', 43)
             ->orderBy('name')
             ->get();
     }

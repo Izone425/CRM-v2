@@ -21,7 +21,9 @@ class ProjectPlanSummary extends Page
     protected static ?int $navigationSort = 50;
 
     public string $activeView = 'tier1';
+    public string $categoryMode = 'implementer'; // NEW: implementer | salesperson
     public ?string $selectedImplementer = null;
+    public ?string $selectedSalesperson = null; // NEW
     public ?int $selectedSwId = null;
     public array $filters = [
         'status' => 'all',
@@ -35,6 +37,114 @@ class ProjectPlanSummary extends Page
     public function updatedSelectedSwId()
     {
         $this->dispatch('init-tooltips');
+    }
+
+    public function switchCategoryMode(string $mode): void
+    {
+        $this->categoryMode = $mode;
+        $this->selectedImplementer = null;
+        $this->selectedSalesperson = null;
+        $this->selectedSwId = null;
+        $this->activeView = 'tier1';
+    }
+
+    #[Computed]
+    public function getSalespersonTier1Data(): array
+    {
+        // Get all salespersons from leads that have software handovers
+        $salespersonIds = SoftwareHandover::whereIn('status_handover', ['Open', 'Delay'])
+            ->whereHas('lead')
+            ->with('lead')
+            ->get()
+            ->pluck('lead.salesperson')
+            ->filter()
+            ->unique()
+            ->values();
+
+        $salespersons = User::whereIn('id', $salespersonIds)
+            ->orderBy('name')
+            ->get();
+
+        // ✅ Get all projects for all salespersons in one query
+        $allProjects = SoftwareHandover::whereIn('status_handover', ['Open', 'Delay'])
+            ->whereHas('lead', function($query) use ($salespersonIds) {
+                $query->whereIn('salesperson', $salespersonIds);
+            })
+            ->with(['lead.companyDetail'])
+            ->get()
+            ->groupBy(function($sw) {
+                return $sw->lead->salesperson ?? 'unknown';
+            });
+
+        // ✅ Get all SW IDs for progress calculation
+        $allSwIds = $allProjects->flatten()->pluck('id')->toArray();
+        $allLeadIds = $allProjects->flatten()->pluck('lead_id')->filter()->toArray();
+
+        // ✅ Get all progress data in ONE query
+        $progressBySwId = [];
+        if (!empty($allSwIds) && !empty($allLeadIds)) {
+            $progressData = DB::table('project_plans as pp')
+                ->join('project_tasks as pt', 'pp.project_task_id', '=', 'pt.id')
+                ->whereIn('pp.lead_id', $allLeadIds)
+                ->whereIn('pp.sw_id', $allSwIds)
+                ->where('pt.is_active', true)
+                ->select(
+                    'pp.sw_id',
+                    DB::raw('COUNT(*) as total_tasks'),
+                    DB::raw('SUM(CASE WHEN pp.status = "completed" THEN 1 ELSE 0 END) as completed_tasks')
+                )
+                ->groupBy('pp.sw_id')
+                ->get()
+                ->keyBy('sw_id');
+
+            $progressBySwId = $progressData;
+        }
+
+        $data = [];
+
+        foreach ($salespersons as $salesperson) {
+            $projects = $allProjects->get($salesperson->id) ?? collect();
+
+            if ($projects->isEmpty()) {
+                continue;
+            }
+
+            $openCount = $projects->where('status_handover', 'Open')->count();
+            $delayCount = $projects->where('status_handover', 'Delay')->count();
+            $totalProjects = $projects->count();
+
+            // ✅ Calculate totals from cached progress data
+            $totalTasksAll = 0;
+            $completedTasksAll = 0;
+
+            foreach ($projects as $project) {
+                $progress = $progressBySwId->get($project->id);
+                if ($progress) {
+                    $totalTasksAll += $progress->total_tasks;
+                    $completedTasksAll += $progress->completed_tasks;
+                }
+            }
+
+            $averagePercentage = $totalTasksAll > 0 ? round(($completedTasksAll / $totalTasksAll) * 100, 0) : 0;
+
+            $data[] = [
+                'salesperson_name' => $salesperson->name,
+                'salesperson_id' => $salesperson->id,
+                'open_count' => $openCount,
+                'delay_count' => $delayCount,
+                'total_projects' => $totalProjects,
+                'total_progress' => $completedTasksAll,
+                'total_tasks' => $totalTasksAll,
+                'average_percentage' => $averagePercentage,
+                'projects' => $projects,
+            ];
+        }
+
+        usort($data, function($a, $b) {
+            return $b['average_percentage'] <=> $a['average_percentage'];
+        });
+
+        return $data;
     }
 
     /**
@@ -120,6 +230,93 @@ class ProjectPlanSummary extends Page
 
         usort($data, function($a, $b) {
             return $b['average_percentage'] <=> $a['average_percentage'];
+        });
+
+        return $data;
+    }
+
+    #[Computed]
+    public function getSalespersonTier2Data(): array
+    {
+        if (!$this->selectedSalesperson) {
+            return [];
+        }
+
+        $salesperson = User::find($this->selectedSalesperson);
+        if (!$salesperson) {
+            return [];
+        }
+
+        // ✅ Get software handovers for this salesperson
+        $softwareHandovers = SoftwareHandover::whereHas('lead', function($query) {
+                $query->where('salesperson', $this->selectedSalesperson);
+            })
+            ->whereIn('status_handover', ['Open', 'Delay'])
+            ->with(['lead.companyDetail'])
+            ->get();
+
+        if ($softwareHandovers->isEmpty()) {
+            return [];
+        }
+
+        $swIds = $softwareHandovers->pluck('id')->toArray();
+        $leadIds = $softwareHandovers->pluck('lead_id')->filter()->toArray();
+
+        // ✅ Get all progress data in ONE query
+        $progressData = collect();
+        if (!empty($swIds) && !empty($leadIds)) {
+            $progressData = DB::table('project_plans as pp')
+                ->join('project_tasks as pt', 'pp.project_task_id', '=', 'pt.id')
+                ->whereIn('pp.lead_id', $leadIds)
+                ->whereIn('pp.sw_id', $swIds)
+                ->where('pt.is_active', true)
+                ->select(
+                    'pp.sw_id',
+                    DB::raw('COUNT(*) as total_tasks'),
+                    DB::raw('SUM(CASE WHEN pp.status = "completed" THEN 1 ELSE 0 END) as completed_tasks')
+                )
+                ->groupBy('pp.sw_id')
+                ->get()
+                ->keyBy('sw_id');
+        }
+
+        $data = [];
+
+        foreach ($softwareHandovers as $sw) {
+            $lead = $sw->lead;
+            if (!$lead) {
+                continue;
+            }
+
+            $companyName = $lead->companyDetail->company_name ?? 'Unknown Company';
+
+            // ✅ Get progress from cached query result
+            $progress = $progressData->get($sw->id);
+            $totalTasks = $progress->total_tasks ?? 0;
+            $completedTasks = $progress->completed_tasks ?? 0;
+            $projectProgress = $totalTasks > 0 ? round(($completedTasks / $totalTasks) * 100) : 0;
+
+            $data[] = [
+                'lead_id' => $lead->id,
+                'sw_id' => $sw->id,
+                'company_name' => $companyName,
+                'project_code' => $sw->project_code,
+                'implementer' => $sw->implementer, // Add implementer info for salesperson view
+                'status' => $sw->status_handover,
+                'project_progress' => $projectProgress,
+                'headcount' => $sw->headcount ?? 0,
+            ];
+        }
+
+        // ✅ Apply multi-level sorting
+        usort($data, function($a, $b) {
+            foreach ($this->sortRules as $rule) {
+                $result = $this->compareValues($a, $b, $rule['field'], $rule['direction']);
+                if ($result !== 0) {
+                    return $result;
+                }
+            }
+            return 0;
         });
 
         return $data;
@@ -474,6 +671,7 @@ class ProjectPlanSummary extends Page
 
         if ($view === 'tier1') {
             $this->selectedImplementer = null;
+            $this->selectedSalesperson = null;
             $this->selectedSwId = null;
         } elseif ($view === 'tier2') {
             $this->selectedSwId = null;
@@ -483,6 +681,7 @@ class ProjectPlanSummary extends Page
     public function selectImplementer(string $implementerName): void
     {
         $this->selectedImplementer = $implementerName;
+        $this->selectedSalesperson = null;
         $this->selectedSwId = null;
         $this->activeView = 'tier2';
     }
@@ -509,6 +708,32 @@ class ProjectPlanSummary extends Page
 
         return [
             'name' => $this->selectedImplementer,
+            'open_count' => $projects->where('status_handover', 'Open')->count(),
+            'delay_count' => $projects->where('status_handover', 'Delay')->count(),
+            'total_projects' => $projects->count(),
+        ];
+    }
+
+    #[Computed]
+    public function getSalespersonStats(): ?array
+    {
+        if (!$this->selectedSalesperson) {
+            return null;
+        }
+
+        $salesperson = User::find($this->selectedSalesperson);
+        if (!$salesperson) {
+            return null;
+        }
+
+        $projects = SoftwareHandover::whereHas('lead', function($query) {
+                $query->where('salesperson', $this->selectedSalesperson);
+            })
+            ->whereIn('status_handover', ['Open', 'Delay'])
+            ->get();
+
+        return [
+            'name' => $salesperson->name,
             'open_count' => $projects->where('status_handover', 'Open')->count(),
             'delay_count' => $projects->where('status_handover', 'Delay')->count(),
             'total_projects' => $projects->count(),
