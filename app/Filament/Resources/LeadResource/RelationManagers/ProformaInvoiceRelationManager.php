@@ -95,8 +95,17 @@ class ProformaInvoiceRelationManager extends RelationManager
                         'hrdf' => 'HRDF',
                     }),
                 TextColumn::make('lead.companyDetail.company_name')
-                    ->label('Company')
-                    ->formatStateUsing(fn($state): string => Str::upper($state)),
+                    ->label('Lead')
+                    ->formatStateUsing(function (Quotation $record): string {
+                        // Check if quotation has a subsidiary_id
+                        if ($record->subsidiary_id) {
+                            // Get company name from subsidiary
+                            $subsidiaryName = $record->subsidiary?->company_name ?? 'N/A';
+                            return Str::upper($subsidiaryName);
+                        }
+                        // Otherwise get company name from lead's companyDetail
+                        return Str::upper($record->lead?->companyDetail?->company_name ?? 'N/A');
+                    }),
                 TextColumn::make('currency')
                     ->alignCenter(),
                 TextColumn::make('items_sum_total_before_tax')

@@ -585,9 +585,19 @@ class ProjectPlanTabs
                                                                 ->columnSpanFull(),
                                                         ])
                                                         ->action(function (array $data, Set $set) use ($plan) {
+                                                            // ✅ Add null check
+                                                            if (!isset($data['date_range']) || !$data['date_range']) {
+                                                                Notification::make()
+                                                                    ->title('Invalid Date Range')
+                                                                    ->body('Please select a valid date range')
+                                                                    ->warning()
+                                                                    ->send();
+                                                                return;
+                                                            }
+
                                                             $dateRange = $data['date_range'];
 
-                                                            if ($dateRange) {
+                                                            try {
                                                                 $set("plan_{$plan->id}_plan_date_range", $dateRange);
 
                                                                 [$start, $end] = explode(' - ', $dateRange);
@@ -605,6 +615,12 @@ class ProjectPlanTabs
                                                                     ->title('Planned Dates Set')
                                                                     ->body("Duration: {$weekdays} days")
                                                                     ->success()
+                                                                    ->send();
+                                                            } catch (\Exception $e) {
+                                                                Notification::make()
+                                                                    ->title('Invalid Date Format')
+                                                                    ->body('Please select a valid date range in DD/MM/YYYY format')
+                                                                    ->danger()
                                                                     ->send();
                                                             }
                                                         })
@@ -658,9 +674,19 @@ class ProjectPlanTabs
                                                                 ->columnSpanFull(),
                                                         ])
                                                         ->action(function (array $data, Set $set, Get $get) use ($plan) {
+                                                            // ✅ Add null check and debugging
+                                                            if (!isset($data['start_date']) || !$data['start_date']) {
+                                                                Notification::make()
+                                                                    ->title('Invalid Date')
+                                                                    ->body('Please select a valid start date')
+                                                                    ->warning()
+                                                                    ->send();
+                                                                return;
+                                                            }
+
                                                             $startDate = $data['start_date'];
 
-                                                            if ($startDate) {
+                                                            try {
                                                                 $start = \Carbon\Carbon::parse($startDate);
                                                                 $set("plan_{$plan->id}_actual_start_date", $start->format('d/m/Y'));
 
@@ -699,6 +725,12 @@ class ProjectPlanTabs
                                                                     ->title('Start Date Set')
                                                                     ->body($start->format('d/m/Y'))
                                                                     ->success()
+                                                                    ->send();
+                                                            } catch (\Exception $e) {
+                                                                Notification::make()
+                                                                    ->title('Invalid Date Format')
+                                                                    ->body('Please select a valid date')
+                                                                    ->danger()
                                                                     ->send();
                                                             }
                                                         })
@@ -764,60 +796,67 @@ class ProjectPlanTabs
                                                                     ->displayFormat('d/m/Y')
                                                                     ->native(false)
                                                                     ->required()
-                                                                    ->minDate($minDate->subDay())
+                                                                    ->minDate($minDate ? $minDate->subDay() : null) // ✅ Add null check
                                                                     ->columnSpanFull(),
                                                             ];
                                                         })
                                                         ->action(function (array $data, Set $set, Get $get) use ($plan) {
+                                                            // ✅ Add null check and debugging
+                                                            if (!isset($data['end_date']) || !$data['end_date']) {
+                                                                Notification::make()
+                                                                    ->title('Invalid Date')
+                                                                    ->body('Please select a valid end date')
+                                                                    ->warning()
+                                                                    ->send();
+                                                                return;
+                                                            }
+
                                                             $endDate = $data['end_date'];
+                                                            $startDateDisplay = $get("plan_{$plan->id}_actual_start_date");
 
-                                                            if ($endDate) {
-                                                                $startDateDisplay = $get("plan_{$plan->id}_actual_start_date");
+                                                            if (!$startDateDisplay) {
+                                                                Notification::make()
+                                                                    ->title('Start Date Required')
+                                                                    ->body('Please select actual start date first')
+                                                                    ->warning()
+                                                                    ->send();
+                                                                return;
+                                                            }
 
-                                                                if (!$startDateDisplay) {
+                                                            try {
+                                                                $start = \Carbon\Carbon::createFromFormat('d/m/Y', $startDateDisplay)->startOfDay();
+                                                                $end = \Carbon\Carbon::parse($endDate)->startOfDay();
+
+                                                                // ✅ Additional validation: Ensure end is not before start
+                                                                if ($end->lt($start)) {
                                                                     Notification::make()
-                                                                        ->title('Start Date Required')
-                                                                        ->body('Please select actual start date first')
-                                                                        ->warning()
+                                                                        ->title('Invalid Date Range')
+                                                                        ->body('End date cannot be before start date')
+                                                                        ->danger()
                                                                         ->send();
                                                                     return;
                                                                 }
 
-                                                                try {
-                                                                    $start = \Carbon\Carbon::createFromFormat('d/m/Y', $startDateDisplay)->startOfDay();
-                                                                    $end = \Carbon\Carbon::parse($endDate)->startOfDay();
+                                                                $set("plan_{$plan->id}_actual_end_date", $end->format('d/m/Y'));
 
-                                                                    // ✅ Additional validation: Ensure end is not before start
-                                                                    if ($end->lt($start)) {
-                                                                        Notification::make()
-                                                                            ->title('Invalid Date Range')
-                                                                            ->body('End date cannot be before start date')
-                                                                            ->danger()
-                                                                            ->send();
-                                                                        return;
-                                                                    }
+                                                                // Calculate duration
+                                                                $weekdays = self::calculateWeekdays($start, $end);
+                                                                $set("plan_{$plan->id}_actual_duration", $weekdays);
 
-                                                                    $set("plan_{$plan->id}_actual_end_date", $end->format('d/m/Y'));
+                                                                // Set status to completed when end date is entered
+                                                                $set("plan_{$plan->id}_status", 'completed');
 
-                                                                    // Calculate duration
-                                                                    $weekdays = self::calculateWeekdays($start, $end);
-                                                                    $set("plan_{$plan->id}_actual_duration", $weekdays);
-
-                                                                    // Set status to completed when end date is entered
-                                                                    $set("plan_{$plan->id}_status", 'completed');
-
-                                                                    Notification::make()
-                                                                        ->title('Task Completed')
-                                                                        ->body("Start: {$start->format('d/m/Y')} | End: {$end->format('d/m/Y')} | Duration: {$weekdays} days")
-                                                                        ->success()
-                                                                        ->send();
-                                                                } catch (\Exception $e) {
-                                                                    Notification::make()
-                                                                        ->title('Invalid Date Format')
-                                                                        ->body('Error: ' . $e->getMessage())
-                                                                        ->danger()
-                                                                        ->send();
-                                                                }
+                                                                Notification::make()
+                                                                    ->title('Task Completed')
+                                                                    ->body("Start: {$start->format('d/m/Y')} | End: {$end->format('d/m/Y')} | Duration: {$weekdays} days")
+                                                                    ->success()
+                                                                    ->send();
+                                                            } catch (\Exception $e) {
+                                                                Notification::make()
+                                                                    ->title('Invalid Date Format')
+                                                                    ->body('Error: ' . $e->getMessage())
+                                                                    ->danger()
+                                                                    ->send();
                                                             }
                                                         })
                                                 )

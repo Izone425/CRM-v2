@@ -77,6 +77,7 @@ use App\Filament\Pages\SalespersonCalendarV1;
 use App\Filament\Pages\SalespersonCalendarV2;
 use App\Filament\Pages\SalespersonCalendarV3;
 use App\Filament\Pages\SalespersonLeadSequence;
+use App\Filament\Pages\SalespersonLeadSequenceV2;
 use App\Filament\Pages\SalesPersonSurveyRequest;
 use App\Filament\Pages\SalesPricingManagement;
 use App\Filament\Pages\SalesTargetAnalysis;
@@ -369,6 +370,7 @@ class AdminPanelProvider extends PanelProvider
                 SubmitHrdfAttendanceLog::class,
                 ProjectPlanSummary::class,
                 ApolloLeadTracker::class,
+                SalespersonLeadSequenceV2::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([

@@ -1002,10 +1002,19 @@ class QuotationResource extends Resource
                         'hrdf' => 'HRDF',
                     }),
                 TextColumn::make('lead.companyDetail.company_name')
-                    ->label('Lead')
-                    ->formatStateUsing(function ($state, $record) {
-                        $fullName = Str::upper($state ?? 'N/A'); // Convert to UPPERCASE
-                        $shortened = Str::limit($fullName, 30, '...'); // Limit for display
+                    ->label('Company')
+                    ->formatStateUsing(function ($state, Quotation $record) {
+                        // Determine which company name to display
+                        $companyName = 'N/A';
+                        if ($record->subsidiary_id && $record->subsidiary) {
+                            $companyName = $record->subsidiary->company_name;
+                        } elseif ($record->lead && $record->lead->companyDetail) {
+                            $companyName = $record->lead->companyDetail->company_name;
+                        }
+
+                        // Format the display name
+                        $fullName = $companyName;
+                        $shortened = strtoupper(Str::limit($fullName, 25, '...'));
                         $encryptedId = \App\Classes\Encryptor::encrypt($record->lead->id);
 
                         return '<a href="' . url('admin/leads/' . $encryptedId) . '"

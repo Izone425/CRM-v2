@@ -20,6 +20,18 @@
     </style>
 
     @php
+        $leadTransferCount = app(\App\Livewire\LeadOwnerChangeRequestTable::class)
+            ->getTableQuery()
+            ->count();
+
+        // Bypass Duplicate Request Count
+        $bypassDuplicateCount = app(\App\Livewire\ManagerDashboard\BypassDuplicatedLead::class)
+            ->getTableQuery()
+            ->count();
+
+        // Calculate total manager tasks
+        $managerTotal = $leadTransferCount + $bypassDuplicateCount;
+
         // Calculate counts for admin dropdown badges
         // use App\Models\SoftwareHandover;
         // use App\Models\HardwareHandover;
@@ -755,13 +767,31 @@
                                             background: {{ $currentDashboard === 'Manager' ? '#431fa1' : 'transparent' }};
                                             color: {{ $currentDashboard === 'Manager' ? '#ffffff' : '#555' }};
                                             cursor: pointer;
+                                            display: flex;
+                                            align-items: center;
+                                            gap: 4px;
                                         "
                                     >
-                                        <span wire:loading.remove wire:target="toggleDashboard('Manager')">Manager</span>
+                                        <span wire:loading.remove wire:target="toggleDashboard('Manager')">
+                                            Manager
+                                            @if($managerTotal > 0)
+                                                <span style="
+                                                    background: #ef4444;
+                                                    color: white;
+                                                    border-radius: 12px;
+                                                    padding: 2px 8px;
+                                                    font-size: 12px;
+                                                    font-weight: bold;
+                                                    min-width: 20px;
+                                                    text-align: center;
+                                                    margin-left: 4px;
+                                                ">{{ $managerTotal }}</span>
+                                            @endif
+                                        </span>
                                         <span wire:loading wire:target="toggleDashboard('Manager')">
                                             <svg class="inline w-4 h-4 mr-1 animate-spin" fill="none" viewBox="0 0 24 24">
                                                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 714 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                             </svg>
                                             Loading...
                                         </span>

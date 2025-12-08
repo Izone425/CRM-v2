@@ -613,7 +613,7 @@
                         <span class="sw-label">Type 3: HRDF Invoice: </span>
                         @if(count($hrdfPIs) > 0)
                             @foreach($hrdfPIs as $index => $pi)
-                                <a href="{{ url('proforma-invoice/' . $pi->id) }}" target="_blank" class="sw-view-link">File {{ $index + 1 }}</a>
+                                <a href="{{ url('proforma-invoice-v2/' . $pi->id) }}" target="_blank" class="sw-view-link">File {{ $index + 1 }}</a>
                                 @if(!$loop->last) / @endif
                             @endforeach
                         @else

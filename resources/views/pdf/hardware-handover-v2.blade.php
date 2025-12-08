@@ -564,7 +564,7 @@
                             @foreach($hrdfInvoiceFiles as $index => $file)
                                 @php
                                     $fileName = basename($file);
-                                    $publicUrl = url('proforma-invoice/' . $file);
+                                    $publicUrl = url('proforma-invoice-v2/' . $file);
                                 @endphp
                                 <div style="margin-bottom: 4px;">
                                     <a href="{{ $publicUrl }}" target="_blank" style="color: #0066cc; text-decoration: underline;">
