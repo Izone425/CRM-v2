@@ -1125,7 +1125,6 @@
             display: inline-flex;
             border-radius: 0.5rem;
             box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
-            margin-bottom: 1rem;
         }
 
         .category-mode-btn {
@@ -1378,7 +1377,8 @@
             <div class="summary-card">
                 <div class="table-header">
                     <div class="table-header-grid">
-                        <div>Implementer Name</div>
+                        {{-- ✅ Dynamic header based on category mode --}}
+                        <div>{{ $categoryMode === 'salesperson' ? 'Salesperson Name' : 'Implementer Name' }}</div>
                         <div>Open</div>
                         <div>Delay</div>
                         <div>Total</div>
@@ -1387,67 +1387,160 @@
                 </div>
 
                 <div>
-                    @forelse($this->getTier1Data() as $row)
-                        {{-- Implementer Row --}}
-                        <div
-                            wire:click="selectImplementer('{{ $row['implementer_name'] }}')"
-                            class="implementer-row"
-                        >
-                            <div class="implementer-info">
-                                <div class="implementer-avatar">
-                                    {{ substr($row['implementer_name'], 0, 2) }}
-                                </div>
-                                <div>
-                                    <div class="implementer-name">
-                                        {{ $row['implementer_name'] }}
+                    {{-- ✅ Show different data based on category mode --}}
+                    @if($categoryMode === 'salesperson')
+                        @forelse($this->getSalespersonTier1Data() as $row)
+                            {{-- Salesperson Row --}}
+                            <div
+                                wire:click="selectSalesperson({{ $row['salesperson_id'] }})"
+                                class="implementer-row"
+                            >
+                                <div class="implementer-info">
+                                    <div class="implementer-avatar">
+                                        {{ substr($row['salesperson_name'], 0, 2) }}
+                                    </div>
+                                    <div>
+                                        <div class="implementer-name">
+                                            {{ $row['salesperson_name'] }}
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
 
-                            <div class="count-badge-wrapper">
-                                <span class="count-badge blue">{{ $row['open_count'] }}</span>
-                            </div>
-
-                            <div class="count-badge-wrapper">
-                                <span class="count-badge orange">{{ $row['delay_count'] }}</span>
-                            </div>
-
-                            <div class="count-badge-wrapper">
-                                <span class="count-badge gray">{{ $row['total_projects'] }}</span>
-                            </div>
-
-                            <div class="progress-wrapper">
-                                <div class="progress-content">
-                                    <div class="progress-percentage {{ $row['average_percentage'] >= 60 ? 'green' : 'red' }}">
-                                        {{ $row['average_percentage'] }}%
-                                    </div>
-                                    <div class="progress-fraction">
-                                        {{ $row['total_progress'] }}/{{ $row['total_tasks'] }}
-                                    </div>
+                                <div class="count-badge-wrapper">
+                                    <span class="count-badge blue">{{ $row['open_count'] }}</span>
                                 </div>
-                                <svg class="arrow-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+
+                                <div class="count-badge-wrapper">
+                                    <span class="count-badge orange">{{ $row['delay_count'] }}</span>
+                                </div>
+
+                                <div class="count-badge-wrapper">
+                                    <span class="count-badge gray">{{ $row['total_projects'] }}</span>
+                                </div>
+
+                                <div class="progress-wrapper">
+                                    <div class="progress-content">
+                                        <div class="progress-percentage {{ $row['average_percentage'] >= 60 ? 'green' : 'red' }}">
+                                            {{ $row['average_percentage'] }}%
+                                        </div>
+                                        <div class="progress-fraction">
+                                            {{ $row['total_progress'] }}/{{ $row['total_tasks'] }}
+                                        </div>
+                                    </div>
+                                    <svg class="arrow-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                                    </svg>
+                                </div>
+                            </div>
+                        @empty
+                            <div class="empty-state">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
                                 </svg>
+                                <p class="empty-state-title">No salesperson data available</p>
+                                <p class="empty-state-description">There are no open or delayed projects assigned to salespersons.</p>
                             </div>
-                        </div>
-                    @empty
-                        <div class="empty-state">
-                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                            </svg>
-                            <p class="empty-state-title">No project data available</p>
-                            <p class="empty-state-description">There are no open or delayed projects at the moment.</p>
-                        </div>
-                    @endforelse
+                        @endforelse
+                    @else
+                        @forelse($this->getTier1Data() as $row)
+                            {{-- Implementer Row --}}
+                            <div
+                                wire:click="selectImplementer('{{ $row['implementer_name'] }}')"
+                                class="implementer-row"
+                            >
+                                <div class="implementer-info">
+                                    <div class="implementer-avatar">
+                                        {{ substr($row['implementer_name'], 0, 2) }}
+                                    </div>
+                                    <div>
+                                        <div class="implementer-name">
+                                            {{ $row['implementer_name'] }}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="count-badge-wrapper">
+                                    <span class="count-badge blue">{{ $row['open_count'] }}</span>
+                                </div>
+
+                                <div class="count-badge-wrapper">
+                                    <span class="count-badge orange">{{ $row['delay_count'] }}</span>
+                                </div>
+
+                                <div class="count-badge-wrapper">
+                                    <span class="count-badge gray">{{ $row['total_projects'] }}</span>
+                                </div>
+
+                                <div class="progress-wrapper">
+                                    <div class="progress-content">
+                                        <div class="progress-percentage {{ $row['average_percentage'] >= 60 ? 'green' : 'red' }}">
+                                            {{ $row['average_percentage'] }}%
+                                        </div>
+                                        <div class="progress-fraction">
+                                            {{ $row['total_progress'] }}/{{ $row['total_tasks'] }}
+                                        </div>
+                                    </div>
+                                    <svg class="arrow-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                                    </svg>
+                                </div>
+                            </div>
+                        @empty
+                            <div class="empty-state">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                </svg>
+                                <p class="empty-state-title">No project data available</p>
+                                <p class="empty-state-description">There are no open or delayed projects at the moment.</p>
+                            </div>
+                        @endforelse
+                    @endif
                 </div>
             </div>
         @endif
 
         {{-- Tier 2 View --}}
-        @if($activeView === 'tier2' && $selectedImplementer)
+        @if($activeView === 'tier2' && ($selectedImplementer || $selectedSalesperson))
             <div class="project-progress-container">
                 {{-- Header Stats Card --}}
-                @if($this->getImplementerStats())
+                @if($categoryMode === 'salesperson' && $this->getSalespersonStats())
+                    <div class="summary-card" style="margin-bottom: 1.5rem;">
+                        <div class="stats-header">
+                            <div class="stats-header-content">
+                                <div class="stats-implementer-info">
+                                    <div class="stats-avatar">
+                                        {{ substr($this->getSalespersonStats()['name'], 0, 2) }}
+                                    </div>
+                                    <div>
+                                        <h2 class="stats-name">{{ $this->getSalespersonStats()['name'] }}</h2>
+                                    </div>
+                                </div>
+                                <button wire:click="switchView('tier1')" class="back-btn">
+                                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                                    </svg>
+                                    Back to Overview
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="stats-grid">
+                            <div class="stat-item">
+                                <div class="stat-value blue">{{ $this->getSalespersonStats()['open_count'] }}</div>
+                                <div class="stat-label">Open Projects</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value orange">{{ $this->getSalespersonStats()['delay_count'] }}</div>
+                                <div class="stat-label">Delayed Projects</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value gray">{{ $this->getSalespersonStats()['total_projects'] }}</div>
+                                <div class="stat-label">Total Projects</div>
+                            </div>
+                        </div>
+                    </div>
+                @elseif($categoryMode === 'implementer' && $this->getImplementerStats())
                     <div class="summary-card" style="margin-bottom: 1.5rem;">
                         <div class="stats-header">
                             <div class="stats-header-content">
@@ -1608,7 +1701,8 @@
 
                 {{-- Company List --}}
                 <div class="summary-card">
-                    @forelse($this->getTier2Data() as $company)
+                    {{-- ✅ Use different data source based on category mode --}}
+                    @forelse($categoryMode === 'salesperson' ? $this->getSalespersonTier2Data() : $this->getTier2Data() as $company)
                         <div>
                             {{-- Company Row --}}
                             <div
@@ -1626,7 +1720,15 @@
                                         </div>
                                         <div class="company-row-details">
                                             <div class="company-row-name">{{ $company['company_name'] }}</div>
-                                            <div class="company-row-code">{{ $company['project_code'] }}</div>
+                                            <div class="company-row-code">
+                                                {{ $company['project_code'] }}
+                                                {{-- ✅ Show implementer info when viewing by salesperson --}}
+                                                @if($categoryMode === 'salesperson' && !empty($company['implementer']))
+                                                    <span style="color: #6b7280; font-size: 0.6875rem; margin-left: 0.5rem;">
+                                                        • Impl: {{ $company['implementer'] }}
+                                                    </span>
+                                                @endif
+                                            </div>
                                         </div>
                                     </div>
                                     <div class="company-row-progress">
@@ -1904,7 +2006,7 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/>
                             </svg>
                             <p class="empty-state-title">No projects found</p>
-                            <p class="empty-state-description">No projects available for this implementer.</p>
+                            <p class="empty-state-description">No projects available for this {{ $categoryMode === 'salesperson' ? 'salesperson' : 'implementer' }}.</p>
                         </div>
                     @endforelse
                 </div>

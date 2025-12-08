@@ -155,9 +155,9 @@ class SalespersonLeadSequenceV2 extends Page
                     ->whereIn('status', ['New', 'Done'])
                     ->where('salesperson', $spId)
                     ->whereHas('lead', function($q) use ($size, $startDate) {
-                        $q->where('company_size', $size)
-                        ->where('created_at', '>=', $startDate);
+                        $q->where('company_size', $size);
                     })
+                    ->where('created_at', '>=', $startDate)
                     ->whereIn('causer_id', $causerIds)
                     ->count();
                 $stats[$spId][$size] = $count;

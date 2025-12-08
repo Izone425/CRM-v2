@@ -39,6 +39,14 @@ class ProjectPlanSummary extends Page
         $this->dispatch('init-tooltips');
     }
 
+    public function selectSalesperson(int $salespersonId): void
+    {
+        $this->selectedSalesperson = $salespersonId;
+        $this->selectedImplementer = null; // Clear implementer selection
+        $this->selectedSwId = null;
+        $this->activeView = 'tier2';
+    }
+
     public function switchCategoryMode(string $mode): void
     {
         $this->categoryMode = $mode;
@@ -129,7 +137,7 @@ class ProjectPlanSummary extends Page
 
             $data[] = [
                 'salesperson_name' => $salesperson->name,
-                'salesperson_id' => $salesperson->id,
+                'salesperson_id' => $salesperson->id, // ✅ Make sure this is included
                 'open_count' => $openCount,
                 'delay_count' => $delayCount,
                 'total_projects' => $totalProjects,

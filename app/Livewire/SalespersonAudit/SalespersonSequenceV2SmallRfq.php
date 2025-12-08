@@ -57,11 +57,6 @@ class SalespersonSequenceV2SmallRfq extends Component implements HasForms, HasTa
         // Use rankUsers property which will contain either the passed rank or the default rank1
         $startDate = Carbon::parse('2025-12-08');
 
-        // First get all eligible lead IDs created on or after the start date
-        $eligibleLeadIds = \App\Models\Lead::where('created_at', '>=', $startDate)
-            ->pluck('id')
-            ->toArray();
-
         // Make sure you're querying the Spatie Activity model
         return \Spatie\Activitylog\Models\Activity::query()
             ->whereRaw("LOWER(description) LIKE ?", ['%rfq only%'])
@@ -70,11 +65,7 @@ class SalespersonSequenceV2SmallRfq extends Component implements HasForms, HasTa
                     $query->orWhere('properties->attributes->company_size', $size);
                 }
             })
-            // Add filter for leads created on or after July 28, 2025
-            ->where(function($query) use ($eligibleLeadIds) {
-                $query->whereIn('subject_id', $eligibleLeadIds)
-                    ->where('subject_type', 'App\\Models\\Lead');
-            })
+            ->where('created_at', '>=', $startDate)
             ->with(['subject', 'causer']);  // Load both relationships
     }
 
@@ -135,8 +126,8 @@ class SalespersonSequenceV2SmallRfq extends Component implements HasForms, HasTa
                     ->sortable(),
 
                 TextColumn::make('created_at')
-                    ->label('RFQ Date')
-                    ->formatStateUsing(fn ($state) => Carbon::parse($state)->format('d M Y'))
+                    ->label('RFQ Date & Time')
+                    ->formatStateUsing(fn ($state) => Carbon::parse($state)->format('d M Y H:i:s'))
                     ->sortable(),
 
                 TextColumn::make('subject_id')
