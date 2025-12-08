@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Filament\Pages;
 
 use App\Models\Appointment;
@@ -39,36 +38,55 @@ class SalespersonLeadSequenceV2 extends Page
 
     public function mount()
     {
-        // Combine all salespersons from both ranks
+        // Updated salesperson sequence to match your exact image
         $allSalespersonNames = [
-            'Vince Leong',
             'Wan Amirul Muim',
             'Joshua Ho',
-            'Muhammad Khoirul Bariah',
             'Abdul Aziz',
+            'Muhammad Khoirul Bariah',
+            'Vince Leong',
+            'SalesPerson 6', // This might need to be adjusted based on actual name in DB
             'Yasmin',
             'Farhanah Jamil'
         ];
 
-        $this->allSalespersons = User::whereIn('name', $allSalespersonNames)
+        // ✅ Get existing salespersons from database
+        $existingSalespersons = User::whereIn('name', $allSalespersonNames)
             ->orderByRaw("FIELD(name, '" . implode("','", $allSalespersonNames) . "')")
-            ->pluck('id')
-            ->toArray();
+            ->get();
 
-        // Map user IDs to names for display
-        $this->salespersonNames = User::whereIn('id', $this->allSalespersons)
-            ->pluck('name', 'id')
-            ->toArray();
+        // ✅ Create array with both existing and placeholder IDs
+        $this->allSalespersons = [];
+        $this->salespersonNames = [];
+
+        foreach ($allSalespersonNames as $name) {
+            $user = $existingSalespersons->firstWhere('name', $name);
+
+            if ($user) {
+                // Real user exists
+                $this->allSalespersons[] = $user->id;
+                $this->salespersonNames[$user->id] = $user->name;
+            } else {
+                // Create placeholder for missing salesperson
+                $placeholderId = 'placeholder_' . strtolower(str_replace(' ', '_', $name));
+                $this->allSalespersons[] = $placeholderId;
+                $this->salespersonNames[$placeholderId] = $name;
+            }
+        }
 
         // Define the start date
-        $startDate = Carbon::parse('2025-06-30');
+        $startDate = Carbon::parse('2025-12-08');
 
         $this->fetchDemoStats($startDate);
         $this->fetchRfqStats($startDate);
 
-        // Latest Demo (combined)
+        // ✅ Latest Demo (only for real users)
+        $realUserIds = array_filter($this->allSalespersons, function($id) {
+            return !is_string($id) || !str_starts_with($id, 'placeholder_');
+        });
+
         $latestDemo = Appointment::query()
-            ->whereIn('salesperson', $this->allSalespersons)
+            ->whereIn('salesperson', $realUserIds)
             ->whereIn('status', ['New', 'Done'])
             ->whereHas('lead', function($q) use ($startDate) {
                 $q->where('created_at', '>=', $startDate);
@@ -86,13 +104,16 @@ class SalespersonLeadSequenceV2 extends Page
             ];
         }
 
-        // Latest RFQ (combined)
+        // ✅ Latest RFQ (only for real users)
+        $eligibleLeadIds = \App\Models\Lead::where('created_at', '>=', $startDate)
+            ->pluck('id')
+            ->toArray();
+
         $latestRfqLog = ActivityLog::query()
             ->whereRaw("LOWER(description) LIKE ?", ['%rfq only%'])
-            ->whereIn('properties->attributes->salesperson', $this->allSalespersons)
-            // ->whereHas('subject', function($q) use ($startDate) {
-            //     $q->where('created_at', '>=', $startDate);
-            // })
+            ->whereIn('properties->attributes->salesperson', $realUserIds)
+            ->whereIn('subject_id', $eligibleLeadIds)
+            ->where('subject_type', 'App\\Models\\Lead')
             ->latest('created_at')
             ->first();
 
@@ -124,6 +145,12 @@ class SalespersonLeadSequenceV2 extends Page
         $stats = [];
         foreach ($this->allSalespersons as $spId) {
             foreach ($this->sizes as $size) {
+                // ✅ Skip queries for placeholder IDs
+                if (is_string($spId) && str_starts_with($spId, 'placeholder_')) {
+                    $stats[$spId][$size] = 0;
+                    continue;
+                }
+
                 $count = Appointment::query()
                     ->whereIn('status', ['New', 'Done'])
                     ->where('salesperson', $spId)
@@ -148,17 +175,21 @@ class SalespersonLeadSequenceV2 extends Page
             ->pluck('id')
             ->toArray();
 
-        // Then get RFQ logs for those leads only
+        // Then get RFQ logs for those leads only - Fixed query
         $logs = ActivityLog::query()
             ->whereRaw("LOWER(description) LIKE ?", ['%rfq only%'])
-            ->where(function($query) use ($eligibleLeadIds) {
-                $query->whereIn('subject_id', $eligibleLeadIds)
-                    ->where('subject_type', 'App\\Models\\Lead');
-            })
+            ->whereIn('subject_id', $eligibleLeadIds)
+            ->where('subject_type', 'App\\Models\\Lead')
             ->get();
 
         foreach ($this->allSalespersons as $spId) {
             foreach ($this->sizes as $size) {
+                // ✅ Skip queries for placeholder IDs
+                if (is_string($spId) && str_starts_with($spId, 'placeholder_')) {
+                    $stats[$spId][$size] = 0;
+                    continue;
+                }
+
                 $count = $logs->filter(function($log) use ($spId, $size) {
                     $properties = is_string($log->properties)
                         ? json_decode($log->properties, true)
@@ -176,11 +207,12 @@ class SalespersonLeadSequenceV2 extends Page
     private function getSalespersonColor($salesperson)
     {
         return match($salesperson) {
-            'Vince Leong' => [59, 130, 246],           // blue
             'Wan Amirul Muim' => [16, 185, 129],       // green
             'Joshua Ho' => [245, 158, 11],             // yellow
-            'Muhammad Khoirul Bariah' => [236, 72, 153], // pink
             'Abdul Aziz' => [139, 92, 246],            // purple
+            'Muhammad Khoirul Bariah' => [236, 72, 153], // pink
+            'Vince Leong' => [59, 130, 246],           // blue
+            'SalesPerson 6' => [168, 85, 247],         // violet
             'Yasmin' => [239, 68, 68],                 // red
             'Farhanah Jamil' => [34, 197, 94],         // light green
             default => [107, 114, 128],                // gray
