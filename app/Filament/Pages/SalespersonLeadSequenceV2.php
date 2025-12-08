@@ -170,16 +170,10 @@ class SalespersonLeadSequenceV2 extends Page
     {
         $stats = [];
 
-        // First, get all leads created on or after the start date
-        $eligibleLeadIds = \App\Models\Lead::where('created_at', '>=', $startDate)
-            ->pluck('id')
-            ->toArray();
-
-        // Then get RFQ logs for those leads only - Fixed query
         $logs = ActivityLog::query()
             ->whereRaw("LOWER(description) LIKE ?", ['%rfq only%'])
-            ->whereIn('subject_id', $eligibleLeadIds)
             ->where('subject_type', 'App\\Models\\Lead')
+            ->where('created_at', '>=', $startDate)
             ->get();
 
         foreach ($this->allSalespersons as $spId) {

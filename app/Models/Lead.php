@@ -142,6 +142,8 @@ class Lead extends Model
         switch ($this->company_size) {
             case '1-24':
                 return 'Small';
+            case '20-24':
+                return 'Small';
             case '25-99':
                 return 'Medium';
             case '100-500':

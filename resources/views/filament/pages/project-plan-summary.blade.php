@@ -1120,6 +1120,92 @@
                 justify-content: space-between;
             }
         }
+
+        .category-mode-toggle {
+            display: inline-flex;
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
+            margin-bottom: 1rem;
+        }
+
+        .category-mode-btn {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            padding: 0.75rem 1.5rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+            border: 1px solid #d1d5db;
+            background-color: white;
+            color: #374151;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .category-mode-btn:hover:not(.active) {
+            background-color: #f9fafb;
+            color: #111827;
+        }
+
+        .category-mode-btn.active {
+            background-color: #10b981;
+            color: white;
+            border-color: #10b981;
+            z-index: 10;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+        }
+
+        .category-mode-btn:first-child {
+            border-top-left-radius: 0.5rem;
+            border-bottom-left-radius: 0.5rem;
+        }
+
+        .category-mode-btn:last-child {
+            border-top-right-radius: 0.5rem;
+            border-bottom-right-radius: 0.5rem;
+            margin-left: -1px;
+        }
+
+        .category-mode-btn svg {
+            width: 1rem;
+            height: 1rem;
+            margin-right: 0.5rem;
+        }
+
+        /* Update header layout */
+        .header-section {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .header-top {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .header-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            align-items: flex-start;
+        }
+
+        @media (min-width: 640px) {
+            .header-top {
+                flex-direction: row;
+                align-items: center;
+                justify-content: space-between;
+            }
+
+            .header-controls {
+                flex-direction: row;
+                align-items: center;
+                gap: 1.5rem;
+            }
+        }
     </style>
 
     @script
@@ -1236,26 +1322,52 @@
                 <p class="page-subtitle">Open & Delay Projects Only</p>
             </div>
 
-            <div class="view-toggle-group" role="group">
-                <button
-                    wire:click="switchView('tier1')"
-                    class="view-toggle-btn {{ $activeView === 'tier1' ? 'active' : '' }}"
-                >
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-                    </svg>
-                    Overview
-                </button>
-                <button
-                    wire:click="switchView('tier2')"
-                    class="view-toggle-btn {{ $activeView === 'tier2' ? 'active' : '' }}"
-                    {{ !$selectedImplementer ? 'disabled' : '' }}
-                >
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                    </svg>
-                    Details
-                </button>
+            <div class="header-controls">
+                {{-- NEW: Category Mode Toggle --}}
+                <div class="category-mode-toggle" role="group">
+                    <button
+                        wire:click="switchCategoryMode('implementer')"
+                        class="category-mode-btn {{ $categoryMode === 'implementer' ? 'active' : '' }}"
+                    >
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        </svg>
+                        By Implementer
+                    </button>
+                    <button
+                        wire:click="switchCategoryMode('salesperson')"
+                        class="category-mode-btn {{ $categoryMode === 'salesperson' ? 'active' : '' }}"
+                    >
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                        </svg>
+                        By Salesperson
+                    </button>
+                </div>
+
+                {{-- View Toggle Buttons --}}
+                <div class="view-toggle-group" role="group">
+                    <button
+                        wire:click="switchView('tier1')"
+                        class="view-toggle-btn {{ $activeView === 'tier1' ? 'active' : '' }}"
+                    >
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                        </svg>
+                        Overview
+                    </button>
+                    <button
+                        wire:click="switchView('tier2')"
+                        class="view-toggle-btn {{ $activeView === 'tier2' ? 'active' : '' }}"
+                        {{ (!$selectedImplementer && !$selectedSalesperson) ? 'disabled' : '' }}
+                    >
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                        Details
+                    </button>
+                </div>
             </div>
         </div>
 
