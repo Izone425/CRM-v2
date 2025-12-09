@@ -140,6 +140,8 @@ class Lead extends Model
     public function getCompanySizeLabelAttribute()
     {
         switch ($this->company_size) {
+            case '1-19':
+                return 'Small';
             case '1-24':
                 return 'Small';
             case '20-24':

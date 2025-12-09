@@ -150,13 +150,17 @@
                             </div>
                         @endif
 
-                        <div class="device-item">
-                            <strong>TC20 = {{ $devices['tc20'] > 0 ? $devices['tc20'] . ' UNIT' . ($devices['tc20'] > 1 ? 'S' : '') : 'N/A' }}</strong>
-                        </div>
+                        @if($devices['tc20'] > 0)
+                            <div class="device-item">
+                                <strong>TC20 = {{ $devices['tc20'] }} UNIT{{ $devices['tc20'] > 1 ? 'S' : '' }}</strong>
+                            </div>
+                        @endif
 
-                        <div class="device-item">
-                            <strong>FACE ID 6 = {{ $devices['face_id6'] > 0 ? $devices['face_id6'] . ' UNIT' . ($devices['face_id6'] > 1 ? 'S' : '') : 'N/A' }}</strong>
-                        </div>
+                        @if($devices['face_id6'] > 0)
+                            <div class="device-item">
+                                <strong>FACE ID 6 = {{ $devices['face_id6'] }} UNIT{{ $devices['face_id6'] > 1 ? 'S' : '' }}</strong>
+                            </div>
+                        @endif
                     </div>
                 </div>
             </div>

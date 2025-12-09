@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Http;
 use Microsoft\Graph\Graph;
 use Aws\S3\S3Client;
 use Aws\Exception\AwsException;
+use Carbon\Carbon;
 
 class FetchTeamsRecordings extends Command
 {
@@ -198,141 +199,165 @@ class FetchTeamsRecordings extends Command
 
             Log::info('Teams recording API response', [
                 'appointment_id' => $appointment->id,
+                'total_recordings' => count($responseBody['value'] ?? []),
                 'response' => $responseBody,
             ]);
 
             if (isset($responseBody['value']) && count($responseBody['value']) > 0) {
-                $recording = $responseBody['value'][0];
-                $recordingId = $recording['id'];
+                $recordings = $responseBody['value'];
+                $uploadedRecordings = [];
+                $publicUrls = [];
 
-                $contentUrl = "https://graph.microsoft.com/v1.0/users/{$userIdentifier}/onlineMeetings/{$appointment->online_meeting_id}/recordings/{$recordingId}/content";
+                // ✅ Process ALL recordings (Part 1, Part 2, etc.)
+                foreach ($recordings as $index => $recording) {
+                    $recordingId = $recording['id'];
+                    $partNumber = $index + 1;
+                    $totalParts = count($recordings);
 
-                Log::info('Downloading recording content', [
-                    'appointment_id' => $appointment->id,
-                    'recording_id' => $recordingId,
-                    'content_url' => $contentUrl,
-                ]);
+                    // ✅ Use the recordingContentUrl directly from API response
+                    $contentUrl = $recording['recordingContentUrl'];
 
-                // Download the video file
-                $videoResponse = Http::timeout(600)->withHeaders([
-                    'Authorization' => 'Bearer ' . $accessToken,
-                    'Accept' => 'application/octet-stream',
-                ])->get($contentUrl);
-
-                if (!$videoResponse->successful()) {
-                    throw new \Exception("Failed to download recording: " . $videoResponse->body());
-                }
-
-                $recordingContent = $videoResponse->body();
-                $fileSize = strlen($recordingContent);
-                $fileSizeMB = round($fileSize / 1024 / 1024, 2);
-
-                Log::info('Recording content downloaded', [
-                    'appointment_id' => $appointment->id,
-                    'content_length' => $fileSize,
-                    'content_length_mb' => $fileSizeMB,
-                    'content_type' => $videoResponse->header('Content-Type'),
-                ]);
-
-                // Generate filename and path for S3
-                $timestamp = now()->format('Y-m-d_His');
-                $filename = "teams_recording_{$appointment->id}_{$timestamp}.mp4";
-                $directory = "teams-recordings/" . date('Y/m');
-                $filePath = "{$directory}/{$filename}";
-
-                Log::info('Uploading to S3', [
-                    'appointment_id' => $appointment->id,
-                    'file_path' => $filePath,
-                    'file_size' => $fileSize,
-                    'file_size_mb' => $fileSizeMB,
-                    's3_bucket' => env('AWS_BUCKET'),
-                    's3_region' => env('AWS_DEFAULT_REGION'),
-                ]);
-
-                // ✅ Use AWS SDK directly - WITHOUT ACL (bucket uses bucket policy for public access)
-                try {
-                    $s3Client = new S3Client([
-                        'version' => 'latest',
-                        'region' => env('AWS_DEFAULT_REGION'),
-                        'credentials' => [
-                            'key' => env('AWS_ACCESS_KEY_ID'),
-                            'secret' => env('AWS_SECRET_ACCESS_KEY'),
-                        ],
-                    ]);
-
-                    // ✅ Upload without ACL parameter
-                    $result = $s3Client->putObject([
-                        'Bucket' => env('AWS_BUCKET'),
-                        'Key' => $filePath,
-                        'Body' => $recordingContent,
-                        'ContentType' => 'video/mp4',
-                        'CacheControl' => 'max-age=31536000',
-                    ]);
-
-                    Log::info('S3 putObject result', [
+                    Log::info("Downloading recording Part {$partNumber}/{$totalParts}", [
                         'appointment_id' => $appointment->id,
-                        'etag' => $result->get('ETag'),
-                        'version_id' => $result->get('VersionId'),
+                        'recording_id' => $recordingId,
+                        'part_number' => $partNumber,
+                        'content_url' => $contentUrl,
+                        'created_at' => $recording['createdDateTime'] ?? 'N/A',
+                        'end_time' => $recording['endDateTime'] ?? 'N/A',
                     ]);
 
-                    // Verify file was uploaded
-                    $exists = $s3Client->doesObjectExist(env('AWS_BUCKET'), $filePath);
+                    try {
+                        // ✅ Download the video file using the direct URL
+                        $videoResponse = Http::timeout(600)->withHeaders([
+                            'Authorization' => 'Bearer ' . $accessToken,
+                            'Accept' => 'application/octet-stream',
+                        ])->get($contentUrl);
 
-                    if (!$exists) {
-                        throw new \Exception("File not found in S3 after upload");
+                        if (!$videoResponse->successful()) {
+                            $this->warn("⚠️ Failed to download Part {$partNumber} for appointment #{$appointment->id}: " . $videoResponse->body());
+                            continue; // Skip this part but continue with others
+                        }
+
+                        $recordingContent = $videoResponse->body();
+                        $fileSize = strlen($recordingContent);
+                        $fileSizeMB = round($fileSize / 1024 / 1024, 2);
+
+                        Log::info("Recording Part {$partNumber} content downloaded", [
+                            'appointment_id' => $appointment->id,
+                            'part_number' => $partNumber,
+                            'content_length' => $fileSize,
+                            'content_length_mb' => $fileSizeMB,
+                            'content_type' => $videoResponse->header('Content-Type'),
+                        ]);
+
+                        // ✅ Generate filename with part number and recording timestamps
+                        $createdAt = Carbon::parse($recording['createdDateTime'])->format('Y-m-d_His');
+
+                        if ($totalParts > 1) {
+                            $filename = "teams_recording_{$appointment->id}_{$createdAt}_part{$partNumber}.mp4";
+                        } else {
+                            $filename = "teams_recording_{$appointment->id}_{$createdAt}.mp4";
+                        }
+
+                        $directory = "teams-recordings/" . date('Y/m');
+                        $filePath = "{$directory}/{$filename}";
+
+                        Log::info("Uploading Part {$partNumber} to S3", [
+                            'appointment_id' => $appointment->id,
+                            'part_number' => $partNumber,
+                            'file_path' => $filePath,
+                            'file_size' => $fileSize,
+                            'file_size_mb' => $fileSizeMB,
+                        ]);
+
+                        // ✅ Upload to S3 with public access
+                        $s3Client = new S3Client([
+                            'version' => 'latest',
+                            'region' => env('AWS_DEFAULT_REGION'),
+                            'credentials' => [
+                                'key' => env('AWS_ACCESS_KEY_ID'),
+                                'secret' => env('AWS_SECRET_ACCESS_KEY'),
+                            ],
+                        ]);
+
+                        $result = $s3Client->putObject([
+                            'Bucket' => env('AWS_BUCKET'),
+                            'Key' => $filePath,
+                            'Body' => $recordingContent,
+                            'ContentType' => 'video/mp4',
+                            'CacheControl' => 'max-age=31536000',
+                            // ✅ Add metadata for better organization
+                            'Metadata' => [
+                                'appointment-id' => (string)$appointment->id,
+                                'part-number' => (string)$partNumber,
+                                'total-parts' => (string)$totalParts,
+                                'recording-date' => $createdAt,
+                                'implementer' => $implementer->name ?? 'Unknown',
+                            ]
+                        ]);
+
+                        // Verify file was uploaded
+                        $exists = $s3Client->doesObjectExist(env('AWS_BUCKET'), $filePath);
+
+                        if (!$exists) {
+                            throw new \Exception("Part {$partNumber} file not found in S3 after upload");
+                        }
+
+                        // ✅ Generate S3 public URL (accessible to anyone with the link)
+                        $bucket = env('AWS_BUCKET');
+                        $region = env('AWS_DEFAULT_REGION');
+                        $publicUrl = "https://{$bucket}.s3.{$region}.amazonaws.com/{$filePath}";
+
+                        $uploadedRecordings[] = [
+                            'part' => $partNumber,
+                            'file_path' => $filePath,
+                            'public_url' => $publicUrl,
+                            'recording_id' => $recordingId,
+                            'file_size_mb' => $fileSizeMB,
+                            'created_at' => $recording['createdDateTime'] ?? 'N/A',
+                            'end_at' => $recording['endDateTime'] ?? 'N/A',
+                            'original_url' => $contentUrl, // ✅ Keep reference to original URL
+                        ];
+
+                        $publicUrls[] = $publicUrl;
+
+                        $this->info("✅ Part {$partNumber}/{$totalParts} uploaded successfully ({$fileSizeMB}MB)");
+                        $this->info("📹 Public URL: {$publicUrl}");
+
+                        Log::info("Recording Part {$partNumber} uploaded to S3 successfully", [
+                            'appointment_id' => $appointment->id,
+                            'part_number' => $partNumber,
+                            'file_path' => $filePath,
+                            'public_url' => $publicUrl,
+                            'file_size_mb' => $fileSizeMB,
+                            'original_teams_url' => $contentUrl,
+                        ]);
+
+                    } catch (\Exception $e) {
+                        $this->error("❌ Failed to process Part {$partNumber} for appointment #{$appointment->id}: {$e->getMessage()}");
+                        Log::error("Failed to process recording part", [
+                            'appointment_id' => $appointment->id,
+                            'part_number' => $partNumber,
+                            'error' => $e->getMessage(),
+                            'content_url' => $contentUrl,
+                        ]);
+                        continue;
                     }
 
-                    Log::info('S3 upload verified', [
-                        'appointment_id' => $appointment->id,
-                        'file_path' => $filePath,
-                        'exists' => true,
-                    ]);
-
-                } catch (AwsException $e) {
-                    Log::error('AWS S3 upload failed', [
-                        'appointment_id' => $appointment->id,
-                        'error' => $e->getMessage(),
-                        'aws_error_code' => $e->getAwsErrorCode(),
-                        'aws_error_type' => $e->getAwsErrorType(),
-                        'file_path' => $filePath,
-                        's3_config' => [
-                            'bucket' => env('AWS_BUCKET'),
-                            'region' => env('AWS_DEFAULT_REGION'),
-                            'has_key' => !empty(env('AWS_ACCESS_KEY_ID')),
-                            'has_secret' => !empty(env('AWS_SECRET_ACCESS_KEY')),
-                        ],
-                    ]);
-                    throw new \Exception("Failed to upload recording to S3: " . $e->getAwsErrorMessage());
-                } catch (\Exception $e) {
-                    Log::error('S3 upload exception', [
-                        'appointment_id' => $appointment->id,
-                        'error' => $e->getMessage(),
-                        'file_path' => $filePath,
-                    ]);
-                    throw new \Exception("Failed to upload recording to S3: " . $e->getMessage());
+                    // Small delay between parts
+                    usleep(250000); // 0.25 second delay
                 }
 
-                // Generate S3 public URL manually
-                $bucket = env('AWS_BUCKET');
-                $region = env('AWS_DEFAULT_REGION');
-                $publicUrl = "https://{$bucket}.s3.{$region}.amazonaws.com/{$filePath}";
-
-                Log::info('Recording uploaded to S3 successfully', [
-                    'appointment_id' => $appointment->id,
-                    'file_path' => $filePath,
-                    'public_url' => $publicUrl,
-                    'file_size' => $fileSize,
-                    'file_size_mb' => $fileSizeMB,
-                    'created_at' => $recording['createdDateTime'] ?? 'N/A',
-                    's3_bucket' => $bucket,
-                    's3_region' => $region,
-                ]);
-
-                return [
-                    'file_path' => $filePath,
-                    'public_url' => $publicUrl,
-                    'recording_id' => $recordingId,
-                ];
+                // ✅ Return combined results if we have any successful uploads
+                if (!empty($uploadedRecordings)) {
+                    return [
+                        'file_path' => $uploadedRecordings[0]['file_path'], // Keep first part as main path for compatibility
+                        'public_url' => implode(';', $publicUrls), // ✅ Store all URLs separated by semicolon
+                        'recording_id' => $uploadedRecordings[0]['recording_id'],
+                        'all_parts' => $uploadedRecordings, // ✅ Store detailed info about all parts
+                        'total_parts' => count($uploadedRecordings),
+                    ];
+                }
             }
 
             return null;
