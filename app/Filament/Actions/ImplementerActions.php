@@ -1262,18 +1262,30 @@ class ImplementerActions
                             '{implementer_designation}' => $data['implementer_designation'] ?? 'Implementer',
                             '{lead_owner}' => $lead->lead_owner ?? '',
                             '{follow_up_date}' => $data['follow_up_date'] ?? date('d M Y'),
-                            '{session_recording_link}' => !empty($data['session_recording_link']) && $data['session_recording_link'] !== 'Not provided'
-                                ? '<a href="' . $data['session_recording_link'] . '" target="_blank" style="color: #3b82f6; text-decoration: underline;">' . $data['session_recording_link'] . '</a>'
-                                : 'Not provided',
+                            '{recording_links}' => self::formatRecordingLinksForEmail($data['session_recording_links'] ?? $data['session_recording_link'] ?? ''),
+                            '{session_recording_link}' => self::formatRecordingLinksForEmail($data['session_recording_link'] ?? ''),
+                            '{recording_link}' => self::formatRecordingLinksForEmail($data['session_recording_link'] ?? ''), // Additional placeholder
                             '{customer_email}' => $customerEmail,
                             '{customer_password}' => $customerPassword,
                             '{customer_portal_url}' => '<a href="' . str_replace('http://', 'https://', config('app.url')) . '/customer/login" target="_blank" style="color: #3b82f6; text-decoration: underline;">' . str_replace('http://', 'https://', config('app.url')) . '/customer/login</a>',
                             '{project_plan_link}' => !empty($softwareHandover->project_plan_link) && $softwareHandover->project_plan_link !== 'Not Generated Yet'
                                 ? '<a href="' . $softwareHandover->project_plan_link . '" target="_blank" style="color: #3b82f6; text-decoration: underline;">' . $softwareHandover->project_plan_link . '</a>'
                                 : 'Not Generated Yet',
+                            // Add these additional placeholders to catch any variations
+                            'Not available' => self::formatRecordingLinksForEmail($data['session_recording_link'] ?? ''),
+                            '{session_recordings}' => self::formatRecordingLinksForEmail($data['session_recording_link'] ?? ''),
                         ];
 
+                        // Apply placeholders with multiple passes to ensure all variations are caught
                         $content = str_replace(array_keys($placeholders), array_values($placeholders), $content);
+
+                        // Additional replacement for any remaining "Not available" text
+                        if (!empty($data['session_recording_link'])) {
+                            $formattedLinks = self::formatRecordingLinksForEmail($data['session_recording_link']);
+                            $content = str_replace('Not available', $formattedLinks, $content);
+                            $content = str_replace('Recording Link Not Ready Yet', $formattedLinks, $content);
+                            $content = str_replace('Recording will be available after', $formattedLinks, $content);
+                        }
                         $subject = str_replace(array_keys($placeholders), array_values($placeholders), $subject);
 
                         // Collect valid email addresses
@@ -1858,30 +1870,124 @@ class ImplementerActions
                             ->helperText('Select existing project plan files from storage')
                             ->columnSpan(1),
 
-                        TextInput::make('session_recording_link')
-                            ->label('Session Recording Link')
-                            ->placeholder('Recording Link Not Ready Yet')
+                        Placeholder::make('session_recordings')
+                            ->label('Session Recordings')
+                            ->content(function (ImplementerAppointment $record) {
+                                // ✅ FIXED: Better null and empty checking
+                                if (empty($record->session_recording_link) ||
+                                    $record->session_recording_link === null ||
+                                    trim($record->session_recording_link) === '') {
+                                    return new \Illuminate\Support\HtmlString(
+                                        '<div class="p-4 border border-yellow-200 rounded-lg bg-yellow-50">
+                                            <div class="flex items-center">
+                                                <svg class="w-5 h-5 mr-2 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"></path>
+                                                </svg>
+                                                <span class="font-medium text-yellow-800">Recording Not Available</span>
+                                            </div>
+                                            <p class="mt-2 text-sm text-yellow-700">
+                                                Recording will be available after the meeting ends and is processed by Microsoft Teams (usually within 1-4 hours).
+                                            </p>
+                                        </div>'
+                                    );
+                                }
+
+                                // ✅ Parse multiple recording links
+                                $recordingLinks = explode(';', $record->session_recording_link);
+                                $recordingLinks = array_filter(array_map('trim', $recordingLinks));
+
+                                if (empty($recordingLinks)) {
+                                    return new \Illuminate\Support\HtmlString('<p class="text-gray-500">No recordings available</p>');
+                                }
+
+                                $html = '<div class="space-y-3">';
+
+                                if (count($recordingLinks) === 1) {
+                                    // Single recording
+                                    $html .= '<div class="p-4 border border-green-200 rounded-lg bg-green-50">';
+                                    $html .= '<div class="flex items-center mb-2">';
+                                    $html .= '<svg class="w-5 h-5 mr-2 text-green-500" fill="currentColor" viewBox="0 0 20 20">';
+                                    $html .= '<path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z"></path>';
+                                    $html .= '</svg>';
+                                    $html .= '<span class="font-medium text-green-800">Recording Available</span>';
+                                    $html .= '</div>';
+
+                                    $html .= '<div class="space-y-2">';
+                                    $html .= '<a href="' . htmlspecialchars($recordingLinks[0]) . '" target="_blank" class="inline-flex items-center px-3 py-2 text-sm font-medium leading-4 text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">';
+                                    $html .= '<svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">';
+                                    $html .= '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h1m4 0h1m-6 4h8a2 2 0 002-2V8a2 2 0 00-2-2H8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>';
+                                    $html .= '</svg>';
+                                    $html .= 'View Recording';
+                                    $html .= '</a>';
+
+                                    // Show truncated URL for reference
+                                    $truncatedUrl = strlen($recordingLinks[0]) > 60 ? substr($recordingLinks[0], 0, 60) . '...' : $recordingLinks[0];
+                                    $html .= '<div class="text-xs text-gray-600 break-all">' . htmlspecialchars($truncatedUrl) . '</div>';
+                                    $html .= '</div>';
+                                    $html .= '</div>';
+                                } else {
+                                    // Multiple recordings
+                                    $html .= '<div class="p-4 border border-green-200 rounded-lg bg-green-50">';
+                                    $html .= '<div class="flex items-center mb-3">';
+                                    $html .= '<svg class="w-5 h-5 mr-2 text-green-500" fill="currentColor" viewBox="0 0 20 20">';
+                                    $html .= '<path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z"></path>';
+                                    $html .= '</svg>';
+                                    $html .= '<span class="font-medium text-green-800">' . count($recordingLinks) . ' Recordings Available</span>';
+                                    $html .= '</div>';
+
+                                    $html .= '<div class="space-y-2">';
+                                    foreach ($recordingLinks as $index => $link) {
+                                        $partNumber = $index + 1;
+                                        $html .= '<div class="flex items-center justify-between p-2 bg-white border border-green-200 rounded">';
+                                        $html .= '<span class="text-sm font-medium text-gray-700">Part ' . $partNumber . '</span>';
+                                        $html .= '<a href="' . htmlspecialchars($link) . '" target="_blank" class="inline-flex items-center px-2 py-1 text-xs font-medium leading-4 text-blue-600 bg-blue-100 border border-transparent rounded hover:bg-blue-200">';
+                                        $html .= '<svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">';
+                                        $html .= '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>';
+                                        $html .= '</svg>';
+                                        $html .= 'Open';
+                                        $html .= '</a>';
+                                        $html .= '</div>';
+                                    }
+                                    $html .= '</div>';
+                                    $html .= '</div>';
+                                }
+
+                                $html .= '</div>';
+
+                                return new \Illuminate\Support\HtmlString($html);
+                            })
+                            ->columnSpan(1),
+
+                        // ✅ Hidden field to store all recording links for email
+                        Hidden::make('session_recording_link')
                             ->default(function (ImplementerAppointment $record) {
                                 return $record->session_recording_link ?: null;
                             })
-                            ->disabled()
-                            ->dehydrated(true)
-                            ->helperText(fn (callable $get) =>
-                                empty($get('session_recording_link'))
-                                    ? '⏳ Recording will be available after the meeting ends and is processed by Microsoft Teams (usually within 1-4 hours).'
-                                    : '✅ Recording is ready'
-                            )
-                            ->suffixIcon(fn (callable $get) =>
-                                empty($get('session_recording_link'))
-                                    ? 'heroicon-o-clock'
-                                    : 'heroicon-o-check-circle'
-                            )
-                            ->suffixIconColor(fn (callable $get) =>
-                                empty($get('session_recording_link'))
-                                    ? 'warning'
-                                    : 'success'
-                            )
-                            ->columnSpan(1),
+                            ->dehydrated(true),
+                        // TextInput::make('session_recording_link')
+                        //     ->label('Session Recording Link')
+                        //     ->placeholder('Recording Link Not Ready Yet')
+                        //     ->default(function (ImplementerAppointment $record) {
+                        //         return $record->session_recording_link ?: null;
+                        //     })
+                        //     ->disabled()
+                        //     ->dehydrated(true)
+                        //     ->helperText(fn (callable $get) =>
+                        //         empty($get('session_recording_link'))
+                        //             ? '⏳ Recording will be available after the meeting ends and is processed by Microsoft Teams (usually within 1-4 hours).'
+                        //             : '✅ Recording is ready'
+                        //     )
+                        //     ->suffixIcon(fn (callable $get) =>
+                        //         empty($get('session_recording_link'))
+                        //             ? 'heroicon-o-clock'
+                        //             : 'heroicon-o-check-circle'
+                        //     )
+                        //     ->suffixIconColor(fn (callable $get) =>
+                        //         empty($get('session_recording_link'))
+                        //             ? 'warning'
+                        //             : 'success'
+                        //     )
+                        //     ->columnSpan(1),
                     ]),
 
                 Fieldset::make('Email Details')
@@ -2047,7 +2153,41 @@ class ImplementerActions
                         return;
                     }
 
-                    // ✅ FIXED: Initialize array and process both types properly - EXACTLY same as RelationManager
+                    $recordingLinksForEmail = '';
+                    if (!empty($data['session_recording_link'])) {
+                        $recordingLinks = explode(';', $data['session_recording_link']);
+                        $recordingLinks = array_filter(array_map('trim', $recordingLinks));
+
+                        if (count($recordingLinks) === 1) {
+                            $recordingLinksForEmail = "Session Recording: " . $recordingLinks[0];
+                        } else {
+                            $recordingLinksForEmail = "Session Recordings:\n";
+                            foreach ($recordingLinks as $index => $link) {
+                                $partNumber = $index + 1;
+                                $recordingLinksForEmail .= "Part {$partNumber}: {$link}\n";
+                            }
+                        }
+                    } else {
+                        $recordingLinksForEmail = "Session Recording: Not available";
+                    }
+
+                    // ✅ FIX: Replace {recording_links} placeholder in email content BEFORE calling processFollowUpWithEmail
+                    if (isset($data['email_content'])) {
+                        $data['email_content'] = str_replace('{recording_links}', $recordingLinksForEmail, $data['email_content']);
+                        $data['email_content'] = str_replace('{session_recording_link}', $recordingLinksForEmail, $data['email_content']);
+                    }
+
+                    // ✅ ADD: Pass the recording links as session_recording_links for the ImplementerActions method
+                    $data['session_recording_links'] = $data['session_recording_link'];
+
+                    // ✅ DEBUG: Log what we're about to send
+                    Log::info('ImplementerActions: About to send email with recording links processed', [
+                        'recording_links_in_email_content' => str_contains($data['email_content'] ?? '', 'Session Recording'),
+                        'email_content_sample' => substr($data['email_content'] ?? '', 0, 200) . '...',
+                        'has_session_recording_link' => !empty($data['session_recording_link']),
+                        'session_recording_link_value' => $data['session_recording_link'] ?? 'not_set'
+                    ]);
+
                     $allAttachments = [];
 
                     // Process project plan files from storage
@@ -2110,7 +2250,6 @@ class ImplementerActions
                         $data['project_plan_attachments'] = $allAttachments;
                     }
 
-                    // ✅ ENHANCED: Log the final attachment processing
                     Log::info('Session summary attachments processed in sendSessionSummaryAction - FIXED', [
                         'project_plan_files_input' => count($data['project_plan_files'] ?? []),
                         'onboarding_attachments_input' => count($data['onboarding_attachments'] ?? []),
@@ -2288,5 +2427,35 @@ class ImplementerActions
                         ->disabled(),
                 ];
             });
+    }
+
+    private static function formatRecordingLinksForEmail(string $recordingLinks): string
+    {
+        if (empty($recordingLinks)) {
+            return 'Recording will be available after the meeting ends and is processed by Microsoft Teams (usually within 1-4 hours).';
+        }
+
+        $links = explode(';', $recordingLinks);
+        $links = array_filter(array_map('trim', $links));
+
+        if (empty($links)) {
+            return 'Recording will be available after the meeting ends and is processed by Microsoft Teams (usually within 1-4 hours).';
+        }
+
+        if (count($links) === 1) {
+            // Single recording - clean format
+            return '<a href="' . htmlspecialchars($links[0]) . '" target="_blank" style="color: #3b82f6; text-decoration: underline; font-weight: bold;">Click here to view recording</a>';
+        } else {
+            // Multiple recordings - clean format
+            $html = '';
+            foreach ($links as $index => $link) {
+                $partNumber = $index + 1;
+                if ($index > 0) {
+                    $html .= '<br><br>'; // Add space between parts
+                }
+                $html .= '<strong>Recording Part ' . $partNumber . ':</strong><br><a href="' . htmlspecialchars($link) . '" target="_blank" style="color: #3b82f6; text-decoration: underline; font-weight: bold;">Click here to view Part ' . $partNumber . '</a>';
+            }
+            return $html;
+        }
     }
 }

@@ -659,8 +659,86 @@ class ImplementerAppointmentRelationManager extends RelationManager
                 TextColumn::make('session_recording_link')
                     ->label('RECORDING LINK')
                     ->sortable()
-                    ->limit(30)
-                    ->copyable(),
+                    ->formatStateUsing(function ($state) {
+                        if (empty($state)) {
+                            return new \Illuminate\Support\HtmlString('<span class="text-xs text-gray-500">No recording</span>');
+                        }
+
+                        // Split by semicolon and clean up
+                        $links = explode(';', $state);
+                        $links = array_filter(array_map('trim', $links));
+
+                        if (empty($links)) {
+                            return new \Illuminate\Support\HtmlString('<span class="text-xs text-gray-500">No recordings</span>');
+                        }
+
+                        if (count($links) === 1) {
+                            // Single recording - show as clickable link
+                            $truncatedUrl = strlen($links[0]) > 30 ? substr($links[0], 0, 30) . '...' : $links[0];
+                            return new \Illuminate\Support\HtmlString(
+                                '<a href="' . htmlspecialchars($links[0]) . '" target="_blank" class="text-xs text-blue-600 underline hover:text-blue-800" title="' . htmlspecialchars($links[0]) . '">' .
+                                htmlspecialchars($truncatedUrl) .
+                                '</a>'
+                            );
+                        } else {
+                            // Multiple recordings - show each one with part number and line breaks
+                            $html = '<div class="space-y-1 text-xs">';
+                            foreach ($links as $index => $link) {
+                                $partNumber = $index + 1;
+                                $truncatedUrl = strlen($link) > 25 ? substr($link, 0, 25) . '...' : $link;
+
+                                $html .= '<div class="flex items-center space-x-1">';
+                                $html .= '<span class="font-medium text-gray-600">P' . $partNumber . ':</span>';
+                                $html .= '<a href="' . htmlspecialchars($link) . '" target="_blank" class="text-blue-600 underline hover:text-blue-800" title="Part ' . $partNumber . ': ' . htmlspecialchars($link) . '">';
+                                $html .= htmlspecialchars($truncatedUrl);
+                                $html .= '</a>';
+                                $html .= '</div>';
+                            }
+                            $html .= '</div>';
+
+                            return new \Illuminate\Support\HtmlString($html);
+                        }
+                    })
+                    ->html()
+                    ->tooltip(function ($record) {
+                        if (empty($record->session_recording_link)) {
+                            return 'No recording available';
+                        }
+
+                        $links = explode(';', $record->session_recording_link);
+                        $links = array_filter(array_map('trim', $links));
+
+                        if (count($links) === 1) {
+                            return 'Click to open recording: ' . $links[0];
+                        } else {
+                            $tooltip = count($links) . " recordings available:\n\n";
+                            foreach ($links as $index => $link) {
+                                $partNumber = $index + 1;
+                                $tooltip .= "Part {$partNumber}:\n{$link}\n\n";
+                            }
+                            return trim($tooltip);
+                        }
+                    })
+                    ->copyable(function ($record) {
+                        // For copying, return all links with clear labels
+                        if (empty($record->session_recording_link)) {
+                            return null;
+                        }
+
+                        $links = explode(';', $record->session_recording_link);
+                        $links = array_filter(array_map('trim', $links));
+
+                        if (count($links) === 1) {
+                            return $links[0];
+                        } else {
+                            $copyText = "Recording Links:\n\n";
+                            foreach ($links as $index => $link) {
+                                $partNumber = $index + 1;
+                                $copyText .= "Part {$partNumber}:\n{$link}\n\n";
+                            }
+                            return trim($copyText);
+                        }
+                    }),
                 IconColumn::make('view_remark')
                     ->label('View Remark')
                     ->alignCenter()
@@ -1078,9 +1156,27 @@ class ImplementerAppointmentRelationManager extends RelationManager
 
                             return "Send Session Summary for {$companyName}";
                         })
-                        ->visible(function (ImplementerAppointment $record) {
-                            return $record->sent_summary_email != 1 && $record->session_recording_link != null;
-                        })
+                        // ->visible(function (ImplementerAppointment $record) {
+                        //     // Check if summary email has NOT been sent (is null, 0, or false)
+                        //     $emailNotSent = !$record->sent_summary_email || $record->sent_summary_email == 0;
+
+                        //     // Check if recording link exists and is not empty
+                        //     $hasRecording = !empty($record->session_recording_link) &&
+                        //                 $record->session_recording_link !== null &&
+                        //                 trim($record->session_recording_link) !== '';
+
+                        //     // Log for debugging
+                        //     \Illuminate\Support\Facades\Log::info('Send Session Summary visibility check', [
+                        //         'appointment_id' => $record->id,
+                        //         'sent_summary_email' => $record->sent_summary_email,
+                        //         'email_not_sent' => $emailNotSent,
+                        //         'session_recording_link' => $record->session_recording_link,
+                        //         'has_recording' => $hasRecording,
+                        //         'should_show' => $emailNotSent && $hasRecording
+                        //     ]);
+
+                        //     return $emailNotSent && $hasRecording;
+                        // })
                         ->hidden(function() {
                             $user = auth()->user();
                             $lead = $this->getOwnerRecord();
@@ -1186,30 +1282,122 @@ class ImplementerAppointmentRelationManager extends RelationManager
                                         ->helperText('Select existing project plan files from storage')
                                         ->columnSpan(1),
 
-                                    TextInput::make('session_recording_link')
-                                        ->label('Session Recording Link')
-                                        ->placeholder('Recording Link Not Ready Yet')
+                                    // TextInput::make('session_recording_link')
+                                    //     ->label('Session Recording Link')
+                                    //     ->placeholder('Recording Link Not Ready Yet')
+                                    //     ->default(function (ImplementerAppointment $record) {
+                                    //         return $record->session_recording_link ?: null;
+                                    //     })
+                                    //     ->disabled()
+                                    //     ->dehydrated(true)
+                                    //     ->helperText(fn (callable $get) =>
+                                    //         empty($get('session_recording_link'))
+                                    //             ? '⏳ Recording will be available after the meeting ends and is processed by Microsoft Teams (usually within 1-4 hours).'
+                                    //             : '✅ Recording is ready'
+                                    //     )
+                                    //     ->suffixIcon(fn (callable $get) =>
+                                    //         empty($get('session_recording_link'))
+                                    //             ? 'heroicon-o-clock'
+                                    //             : 'heroicon-o-check-circle'
+                                    //     )
+                                    //     ->suffixIconColor(fn (callable $get) =>
+                                    //         empty($get('session_recording_link'))
+                                    //             ? 'warning'
+                                    //             : 'success'
+                                    //     )
+                                    //     ->columnSpan(1),
+
+                                    Forms\Components\Placeholder::make('session_recordings')
+                                        ->label('Session Recordings')
+                                        ->content(function (ImplementerAppointment $record) {
+                                            if (empty($record->session_recording_link)) {
+                                                return new \Illuminate\Support\HtmlString(
+                                                    '<div class="p-4 border border-yellow-200 rounded-lg bg-yellow-50">
+                                                        <div class="flex items-center">
+                                                            <svg class="w-5 h-5 mr-2 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                                                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"></path>
+                                                            </svg>
+                                                            <span class="font-medium text-yellow-800">Recording Not Available</span>
+                                                        </div>
+                                                        <p class="mt-2 text-sm text-yellow-700">
+                                                            Recording will be available after the meeting ends and is processed by Microsoft Teams (usually within 1-4 hours).
+                                                        </p>
+                                                    </div>'
+                                                );
+                                            }
+
+                                            // ✅ Parse multiple recording links
+                                            $recordingLinks = explode(';', $record->session_recording_link);
+                                            $recordingLinks = array_filter(array_map('trim', $recordingLinks));
+
+                                            if (empty($recordingLinks)) {
+                                                return new \Illuminate\Support\HtmlString('<p class="text-gray-500">No recordings available</p>');
+                                            }
+
+                                            $html = '<div class="space-y-3">';
+
+                                            if (count($recordingLinks) === 1) {
+                                                // Single recording
+                                                $html .= '<div class="p-4 border border-green-200 rounded-lg bg-green-50">';
+                                                $html .= '<div class="flex items-center mb-2">';
+                                                $html .= '<svg class="w-5 h-5 mr-2 text-green-500" fill="currentColor" viewBox="0 0 20 20">';
+                                                $html .= '<path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z"></path>';
+                                                $html .= '</svg>';
+                                                $html .= '<span class="font-medium text-green-800">Recording Available</span>';
+                                                $html .= '</div>';
+
+                                                $html .= '<div class="space-y-2">';
+                                                $html .= '<a href="' . htmlspecialchars($recordingLinks[0]) . '" target="_blank" class="inline-flex items-center px-3 py-2 text-sm font-medium leading-4 text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">';
+                                                $html .= '<svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">';
+                                                $html .= '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h1m4 0h1m-6 4h8a2 2 0 002-2V8a2 2 0 00-2-2H8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>';
+                                                $html .= '</svg>';
+                                                $html .= 'View Recording';
+                                                $html .= '</a>';
+
+                                                // Show truncated URL for reference
+                                                $truncatedUrl = strlen($recordingLinks[0]) > 60 ? substr($recordingLinks[0], 0, 60) . '...' : $recordingLinks[0];
+                                                $html .= '<div class="text-xs text-gray-600 break-all">' . htmlspecialchars($truncatedUrl) . '</div>';
+                                                $html .= '</div>';
+                                                $html .= '</div>';
+                                            } else {
+                                                // Multiple recordings
+                                                $html .= '<div class="p-4 border border-green-200 rounded-lg bg-green-50">';
+                                                $html .= '<div class="flex items-center mb-3">';
+                                                $html .= '<svg class="w-5 h-5 mr-2 text-green-500" fill="currentColor" viewBox="0 0 20 20">';
+                                                $html .= '<path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z"></path>';
+                                                $html .= '</svg>';
+                                                $html .= '<span class="font-medium text-green-800">' . count($recordingLinks) . ' Recordings Available</span>';
+                                                $html .= '</div>';
+
+                                                $html .= '<div class="space-y-2">';
+                                                foreach ($recordingLinks as $index => $link) {
+                                                    $partNumber = $index + 1;
+                                                    $html .= '<div class="flex items-center justify-between p-2 bg-white border border-green-200 rounded">';
+                                                    $html .= '<span class="text-sm font-medium text-gray-700">Part ' . $partNumber . '</span>';
+                                                    $html .= '<a href="' . htmlspecialchars($link) . '" target="_blank" class="inline-flex items-center px-2 py-1 text-xs font-medium leading-4 text-blue-600 bg-blue-100 border border-transparent rounded hover:bg-blue-200">';
+                                                    $html .= '<svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">';
+                                                    $html .= '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>';
+                                                    $html .= '</svg>';
+                                                    $html .= 'Open';
+                                                    $html .= '</a>';
+                                                    $html .= '</div>';
+                                                }
+                                                $html .= '</div>';
+                                                $html .= '</div>';
+                                            }
+
+                                            $html .= '</div>';
+
+                                            return new \Illuminate\Support\HtmlString($html);
+                                        })
+                                        ->columnSpan(1),
+
+                                    // ✅ Hidden field to store all recording links for email
+                                    Hidden::make('session_recording_links')
                                         ->default(function (ImplementerAppointment $record) {
                                             return $record->session_recording_link ?: null;
                                         })
-                                        ->disabled()
-                                        ->dehydrated(true)
-                                        ->helperText(fn (callable $get) =>
-                                            empty($get('session_recording_link'))
-                                                ? '⏳ Recording will be available after the meeting ends and is processed by Microsoft Teams (usually within 1-4 hours).'
-                                                : '✅ Recording is ready'
-                                        )
-                                        ->suffixIcon(fn (callable $get) =>
-                                            empty($get('session_recording_link'))
-                                                ? 'heroicon-o-clock'
-                                                : 'heroicon-o-check-circle'
-                                        )
-                                        ->suffixIconColor(fn (callable $get) =>
-                                            empty($get('session_recording_link'))
-                                                ? 'warning'
-                                                : 'success'
-                                        )
-                                        ->columnSpan(1),
+                                        ->dehydrated(true),
                                 ]),
 
                             Fieldset::make('Email Details')
@@ -1373,10 +1561,46 @@ class ImplementerAppointmentRelationManager extends RelationManager
                                 return;
                             }
 
-                            // ✅ FIXED: Initialize array and process both types properly
+                            // ✅ FIX: Process recording links for email content
+                            $recordingLinksForEmail = '';
+                            if (!empty($data['session_recording_link'])) {
+                                $recordingLinks = explode(';', $data['session_recording_link']);
+                                $recordingLinks = array_filter(array_map('trim', $recordingLinks));
+
+                                if (count($recordingLinks) === 1) {
+                                    // Single recording - just the URL
+                                    $recordingLinksForEmail = $recordingLinks[0];
+                                } else {
+                                    // Multiple recordings - each on new line with part number
+                                    $recordingLinksForEmail = '';
+                                    foreach ($recordingLinks as $index => $link) {
+                                        $partNumber = $index + 1;
+                                        if ($index > 0) {
+                                            $recordingLinksForEmail .= "\n"; // Add new line between parts
+                                        }
+                                        $recordingLinksForEmail .= "Part {$partNumber}: {$link}";
+                                    }
+                                }
+                            } else {
+                                $recordingLinksForEmail = "Not available";
+                            }
+
+                            if (isset($data['email_content'])) {
+                                $data['email_content'] = str_replace('{recording_links}', $recordingLinksForEmail, $data['email_content']);
+                                $data['email_content'] = str_replace('{session_recording_link}', $recordingLinksForEmail, $data['email_content']);
+                            }
+
+                            $data['session_recording_link'] = $data['session_recording_links'];
+
+                            Log::info('About to send email with recording links processed', [
+                                'recording_links_in_email_content' => str_contains($data['email_content'] ?? '', 'Session Recording'),
+                                'email_content_sample' => substr($data['email_content'] ?? '', 0, 200) . '...',
+                                'has_session_recording_link' => !empty($data['session_recording_link']),
+                                'session_recording_link_value' => $data['session_recording_link'] ?? 'not_set'
+                            ]);
+
                             $allAttachments = [];
 
-                            // Process project plan files from storage
                             if (!empty($data['project_plan_files'])) {
                                 Log::info('Processing project plan files', [
                                     'files' => $data['project_plan_files'],
@@ -1454,7 +1678,7 @@ class ImplementerAppointmentRelationManager extends RelationManager
                                 'sent_summary_email' => 1,
                                 'summary_email_sent_at' => now(),
                                 'summary_email_sent_by' => auth()->id(),
-                                'session_recording_link' => $data['session_recording_link'] ?? null,
+                                'session_recording_link' => $data['session_recording_links'] ?? $record->session_recording_link,
                             ]);
 
                             // ✅ Clean up temporary onboarding files
