@@ -173,11 +173,8 @@ class FetchZohoLeads extends Command
                     $leadSource = 'Google AdWords';
                 }
 
-                if (empty($leadSource) && !empty($lead['referrername2']) && empty($lead['GCLID']) && empty($lead['leadchain0__Social_Lead_ID'])) {
-                    $referrerName = $lead['referrername2'];
-                    if (strpos($referrerName, 'https://www') !== false) {
-                        $leadSource = 'Website';
-                    }
+                if (empty($leadSource)){
+                    $leadSource = 'Website';
                 }
 
                 $existingLead = null;
@@ -394,17 +391,41 @@ class FetchZohoLeads extends Command
                         ]);
                     }
                 } else {
+                    // ✅ NEW: Check for LinkedIn Ads + small company size condition
+                    $normalizedCompanySize = $this->normalizeCompanySize($lead['Company_Size'] ?? '1-24');
+
+                    $categories = 'New'; // Default
+                    $stage = 'New';         // Default
+                    $leadStatus = 'None';    // Default
+
+                    // ✅ Apply LinkedIn Ads + small company logic
+                    if ($leadSource === 'LinkedIn Ads' && $normalizedCompanySize === '1-19') {
+                        $categories = 'Inactive';
+                        $leadStatus = 'On Hold';
+                        $stage = null;
+
+                        Log::info('LinkedIn Ads lead with small company size set to Inactive/On Hold', [
+                            'lead_source' => $leadSource,
+                            'company_size' => $normalizedCompanySize,
+                            'email' => $lead['Email'] ?? 'N/A',
+                            'company' => $lead['Company'] ?? 'N/A'
+                        ]);
+                    }
+
                     // ✅ Create a new lead (no updates for existing ones)
                     $newLead = Lead::create([
                         'zoho_id'      => $lead['id'] ?? null,
                         'name'         => $lead['Full_Name'] ?? null,
                         'email'        => $lead['Email'] ?? null,
                         'country'      => $lead['Country'] ?? null,
-                        'company_size' => $this->normalizeCompanySize($lead['Company_Size'] ?? '1-24'),
+                        'company_size' => $normalizedCompanySize,
                         'phone'        => $phoneNumber,
                         'lead_code'    => $leadSource,
                         'products'     => isset($lead['TimeTec_Products']) ? json_encode($lead['TimeTec_Products']) : null,
                         'created_at'   => $leadCreatedTime,
+                        'categories'   => $categories, // ✅ Dynamic based on conditions
+                        'stage'        => $stage,      // ✅ Dynamic based on conditions
+                        'lead_status'  => $leadStatus, // ✅ Dynamic based on conditions
                     ]);
 
                     if (!empty($lead['Which_Module_That_You_Are_Looking_For'])) {
@@ -422,8 +443,13 @@ class FetchZohoLeads extends Command
                         ->first();
 
                     if ($latestActivityLog) {
+                        // ✅ Update description based on status
+                        $description = $categories === 'Inactive'
+                            ? 'New lead created - Set to Inactive/On Hold (LinkedIn Ads + Small Company)'
+                            : 'New lead created';
+
                         $latestActivityLog->update([
-                            'description' => 'New lead created',
+                            'description' => $description,
                         ]);
                     }
 
@@ -489,6 +515,12 @@ class FetchZohoLeads extends Command
         $normalizedSize = str_replace(' ', '', $size);
 
         switch ($normalizedSize) {
+            case '1-19':
+            case '1- 19':
+            case '1 -19':
+            case '1 - 19':
+                return '1-19'; // ✅ Normalized as Small
+
             case '1-24':
             case '1- 24':
             case '1 -24':

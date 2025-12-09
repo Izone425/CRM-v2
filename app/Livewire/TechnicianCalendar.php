@@ -391,13 +391,6 @@ class TechnicianCalendar extends Component
             ->keyBy('id')
             ->toArray();
 
-        // Get reseller companies
-        $resellerCompanies = Reseller::select('company_name')
-            ->get()
-            ->pluck('company_name')
-            ->flip() // Make company_name the key for lookups
-            ->toArray();
-
         // Retrieve repair appointments for the selected week
         $appointments = DB::table('repair_appointments')
             ->leftJoin('leads', 'leads.id', '=', 'repair_appointments.lead_id')
@@ -416,28 +409,18 @@ class TechnicianCalendar extends Component
             })
             ->get();
 
-        // Initialize the 3 default rows
+        // Initialize result with only KI (Khairul Izzudin)
         $result = [];
 
-        // ROW 1 - KI (Khairul Izzudin)
+        // ROW 1 - KI (Khairul Izzudin) - Only internal technician row
         $kiUser = User::where('name', 'Khairul Izzuddin')->first();
         if ($kiUser) {
             $kiAppointments = $appointments->where('technician', 'Khairul Izzuddin');
-            $result[] = $this->buildTechnicianRow($kiUser, $kiAppointments, '');
+            $result[] = $this->buildTechnicianRow($kiUser, $kiAppointments, 'KI');
         } else {
             // Fallback if KI not found
-            $result[] = $this->buildDefaultRow('', 'Khairul Izzuddin', collect());
+            $result[] = $this->buildDefaultRow('KI', 'Khairul Izzuddin', collect());
         }
-
-        // ROW 2 - GX (GenX Technology)
-        $gxAppointments = $appointments->where('technician', 'GENX TECHNOLOGY (M) SDN BHD');
-        $result[] = $this->buildResellerRow('GENX', 'GENX TECHNOLOGY (M) SDN BHD', $gxAppointments);
-
-        // ROW 3 - RS (All other Resellers)
-        $otherResellerAppointments = $appointments->whereIn('technician',
-            Reseller::where('company_name', '!=', 'GENX TECHNOLOGY (M) SDN BHD')->pluck('company_name')
-        );
-        $result[] = $this->buildCombinedResellerRow('Reseller', 'Other Resellers', $otherResellerAppointments);
 
         return $result;
     }

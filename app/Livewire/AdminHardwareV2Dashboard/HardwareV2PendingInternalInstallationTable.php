@@ -912,7 +912,7 @@ class HardwareV2PendingInternalInstallationTable extends Component implements Ha
                                         'appointment_details' => [
                                             'demo_type' => 'NEW INSTALLATION',
                                             'appointment_type' => 'ONSITE',
-                                            'technician' => 'KHAIRUL IZZUDIN',
+                                            'technician' => 'Khairul Izzuddin',
                                             'date' => $installation['appointment_date'],
                                             'start_time' => $installation['start_time'],
                                             'end_time' => $installation['end_time'],

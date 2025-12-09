@@ -1121,7 +1121,7 @@
                                     <span class="module-font">Project Analysis</span>
                                 </a>
                                 <a href="{{ route('filament.admin.pages.project-plan-summary') }}" class="submenu-item">
-                                    <span class="module-font">Project Plan Summary</span>
+                                    <span class="module-font">Project Plan</span>
                                 </a>
                             </div>
                         </div>

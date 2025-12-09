@@ -1317,8 +1317,7 @@
         {{-- Header with View Toggle --}}
         <div class="header-section">
             <div>
-                <h1 class="page-title">PROJECT PLAN SUMMARY</h1>
-                <p class="page-subtitle">Open & Delay Projects Only</p>
+                <h1 class="page-title">Project Plan</h1>
             </div>
 
             <div class="header-controls">
@@ -1396,9 +1395,6 @@
                                 class="implementer-row"
                             >
                                 <div class="implementer-info">
-                                    <div class="implementer-avatar">
-                                        {{ substr($row['salesperson_name'], 0, 2) }}
-                                    </div>
                                     <div>
                                         <div class="implementer-name">
                                             {{ $row['salesperson_name'] }}
@@ -1449,9 +1445,6 @@
                                 class="implementer-row"
                             >
                                 <div class="implementer-info">
-                                    <div class="implementer-avatar">
-                                        {{ substr($row['implementer_name'], 0, 2) }}
-                                    </div>
                                     <div>
                                         <div class="implementer-name">
                                             {{ $row['implementer_name'] }}
@@ -1509,9 +1502,6 @@
                         <div class="stats-header">
                             <div class="stats-header-content">
                                 <div class="stats-implementer-info">
-                                    <div class="stats-avatar">
-                                        {{ substr($this->getSalespersonStats()['name'], 0, 2) }}
-                                    </div>
                                     <div>
                                         <h2 class="stats-name">{{ $this->getSalespersonStats()['name'] }}</h2>
                                     </div>
@@ -1545,9 +1535,6 @@
                         <div class="stats-header">
                             <div class="stats-header-content">
                                 <div class="stats-implementer-info">
-                                    <div class="stats-avatar">
-                                        {{ substr($this->getImplementerStats()['name'], 0, 2) }}
-                                    </div>
                                     <div>
                                         <h2 class="stats-name">{{ $this->getImplementerStats()['name'] }}</h2>
                                     </div>

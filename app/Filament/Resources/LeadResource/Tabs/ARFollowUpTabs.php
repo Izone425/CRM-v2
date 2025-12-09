@@ -485,7 +485,7 @@ class ARFollowUpTabs
                                                 // Replace placeholders with actual data
                                                 $placeholders = [
                                                     '{customer_name}' => $record->contact_name ?? '',
-                                                    '{company_name}' => strtoupper($renewal->company_name ?? $record->companyDetail->company_name),
+                                                    '{company_name}' => strtoupper($renewal->company_name ?? strtoupper($record->companyDetail->company_name)),
                                                     '{admin_name}' => $data['admin_name'] ?? auth()->user()->name ?? '',
                                                     '{follow_up_date}' => $data['follow_up_date'] ? date('d M Y', strtotime($data['follow_up_date'])) : '',
                                                 ];

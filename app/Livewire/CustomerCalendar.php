@@ -54,15 +54,14 @@ class CustomerCalendar extends Component
         $this->customerLeadId = $customer->lead_id;
         $this->swId = $customer->sw_id;
         $this->assignedImplementer = $this->getAssignedImplementer();
+
         $this->checkExistingBookings();
 
-        // NEW LOGIC: Check if customer can schedule meetings
+        // ✅ Check scheduling permission using refreshed customer data
         $this->canScheduleMeeting = $this->determineSchedulingPermission($customer);
 
-        // Initialize bookings visibility to true
         $this->showExistingBookings = true;
 
-        // Check if tutorial should be shown
         if (!$customer->tutorial_completed) {
             $this->showTutorial = true;
             $this->currentTutorialStep = $customer->tutorial_step ?? 1;
@@ -200,33 +199,22 @@ class CustomerCalendar extends Component
 
     private function determineSchedulingPermission($customer)
     {
-        // ✅ NEW LOGIC: Check if customer has explicit permission first
-        if ((bool) $customer->able_set_meeting) {
-            return true;
-        }
-
-        // ✅ Check if the latest appointment is "Done" (allows next booking)
-        $latestAppointment = ImplementerAppointment::where('lead_id', $customer->lead_id)
-            ->whereIn('type', ['KICK OFF MEETING SESSION', 'REVIEW SESSION'])
-            ->orderBy('created_at', 'desc')
-            ->first();
-
-        // If no appointments exist, customer can book (first time booking)
-        if (!$latestAppointment) {
-            return true;
-        }
-
-        // If latest appointment is "Done", customer can book the next session
-        if ($latestAppointment->status === 'Done') {
-            return true;
-        }
-
-        // If latest appointment is "New" (pending), cannot book another
-        if ($latestAppointment->status === 'New') {
+        // ✅ Simple logic: Only allow if able_set_meeting is true
+        // The able_set_meeting field should be the single source of truth
+        if (!(bool) $customer->able_set_meeting) {
             return false;
         }
 
-        // For any other status (Cancelled, etc.), allow booking
+        // ✅ Additional check: Don't allow if there's already a pending appointment
+        $hasPendingAppointment = ImplementerAppointment::where('lead_id', $customer->lead_id)
+            ->whereIn('type', ['KICK OFF MEETING SESSION', 'REVIEW SESSION'])
+            ->where('status', 'New')
+            ->exists();
+
+        if ($hasPendingAppointment) {
+            return false;
+        }
+
         return true;
     }
 
