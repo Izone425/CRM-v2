@@ -275,6 +275,35 @@ class WhatsAppController extends Controller
                 是否已注册HRDF：
                 员工人数：
                 感兴趣的产品：",
+
+            'HX86da2bc6ec83a34554dde2b5dd270e40' =>
+                "If you're interested, please provide your details below so we can check slot availability for you:
+                (Minimum headcount is 20 user/staff)
+
+                Department:
+                Company Name (As registered in SSM):
+                Address:
+                Pic Name:
+                Email:
+                Mobile number:
+                HRDF Register:
+                Headcount:
+                Module interested:",
+
+            'HXbbf140abfc0185fdc61696545027dea1' =>
+                "您好！如果您有兴趣参与演示，请提供以下信息，以便我们为您安排合适的时段：
+
+                （最低人数为20位用户/员工）
+
+                部门名称：
+                公司名称（需与SSM注册一致）：
+                公司地址：
+                公司负责人：
+                联系邮箱：
+                手机号码：
+                是否已注册HRDF：
+                员工人数：
+                感兴趣的产品：",
         ];
 
         if (!isset($templates[$contentTemplateSid])) {
