@@ -115,17 +115,23 @@
 
                                     <span>
                                         <span style="font-weight:bold;">Attention: </span>
-                                        {{ $companyDetails->name ?? $quotation->lead->name }}
+                                        {{ $quotation->subsidiary_id
+                                            ? ($quotation->subsidiary->name ?? $quotation->lead->name)
+                                            : ($companyDetails->name ?? $quotation->lead->name) }}
                                     </span><br />
 
                                     <span>
                                         <span style="font-weight:bold;">Tel: </span>
-                                        {{ $companyDetails->contact_no ?? $quotation->lead->phone }}
+                                        {{ $quotation->subsidiary_id
+                                            ? ($quotation->subsidiary->contact_number ?? $quotation->lead->phone)
+                                            : ($companyDetails->contact_no ?? $quotation->lead->phone) }}
                                     </span><br />
 
                                     <span>
                                         <span style="font-weight:bold;">Email: </span>
-                                        {{ $companyDetails->email ?? $quotation->lead->email }}
+                                        {{ $quotation->subsidiary_id
+                                            ? ($quotation->subsidiary->email ?? $quotation->lead->email)
+                                            : ($companyDetails->email ?? $quotation->lead->email) }}
                                     </span><br />
                                 @endif
                             </div>

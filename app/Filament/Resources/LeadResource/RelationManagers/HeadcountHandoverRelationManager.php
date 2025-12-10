@@ -304,7 +304,6 @@ class HeadcountHandoverRelationManager extends RelationManager
         $leadStatus = $this->getOwnerRecord()->lead_status ?? '';
         $isCompanyDetailsIncomplete = $this->isCompanyDetailsIncomplete();
         $hasRequiredProducts = $this->hasRequiredProductsInFinalQuotation();
-        $hasIncompleteHeadcountHandover = $this->hasIncompleteHeadcountHandover();
 
         return [
             // Action 1: Warning notification when requirements are not met
@@ -312,10 +311,10 @@ class HeadcountHandoverRelationManager extends RelationManager
                 ->label('Add Headcount Handover')
                 ->icon('heroicon-o-plus')
                 ->color('gray')
-                ->visible(function () use ($leadStatus, $isCompanyDetailsIncomplete, $hasRequiredProducts, $hasIncompleteHeadcountHandover) {
-                    return $leadStatus !== 'Closed' || $isCompanyDetailsIncomplete || !$hasRequiredProducts || $hasIncompleteHeadcountHandover;
+                ->visible(function () use ($leadStatus, $isCompanyDetailsIncomplete, $hasRequiredProducts) {
+                    return $leadStatus !== 'Closed' || $isCompanyDetailsIncomplete || !$hasRequiredProducts;
                 })
-                ->action(function () use ($hasRequiredProducts, $hasIncompleteHeadcountHandover) {
+                ->action(function () use ($hasRequiredProducts) {
                     $body = 'Please ';
                     $reasons = [];
 
@@ -329,10 +328,6 @@ class HeadcountHandoverRelationManager extends RelationManager
 
                     if (!$hasRequiredProducts) {
                         $reasons[] = 'ensure you have at least one quotation with required products (TCL_TA USER-ADDON(R), TCL_LEAVE USER-ADDON(R), TCL_CLAIM USER-ADDON(R), TCL_PAYROLL USER-ADDON(R), TCL_TA USER-ADDON, TCL_TA USER-RENEWAL, TCL_CLAIM USER-ADDON, TCL_PAYROLL USER-ADDON)';
-                    }
-
-                    if ($hasIncompleteHeadcountHandover) {
-                        $reasons[] = 'complete all existing headcount handovers (status must not be "Draft", "New", or "Rejected")';
                     }
 
                     $body .= implode(', ', $reasons) . ' before proceeding with the headcount handover.';
@@ -350,8 +345,8 @@ class HeadcountHandoverRelationManager extends RelationManager
                 ->label('Add Headcount Handover')
                 ->icon('heroicon-o-plus')
                 ->color('primary')
-                ->visible(function () use ($leadStatus, $isCompanyDetailsIncomplete, $hasRequiredProducts, $hasIncompleteHeadcountHandover) {
-                    return $leadStatus === 'Closed' && !$isCompanyDetailsIncomplete && $hasRequiredProducts && !$hasIncompleteHeadcountHandover;
+                ->visible(function () use ($leadStatus, $isCompanyDetailsIncomplete, $hasRequiredProducts) {
+                    return $leadStatus === 'Closed' && !$isCompanyDetailsIncomplete && $hasRequiredProducts;
                 })
                 ->slideOver()
                 ->modalHeading('Headcount Handover Submission')
@@ -584,17 +579,17 @@ class HeadcountHandoverRelationManager extends RelationManager
             ]);
     }
 
-    protected function hasIncompleteHeadcountHandover(): bool
-    {
-        $lead = $this->getOwnerRecord();
+    // protected function hasIncompleteHeadcountHandover(): bool
+    // {
+    //     $lead = $this->getOwnerRecord();
 
-        // Check if there are any existing headcount handovers that are in Draft, New, or Rejected status
-        $incompleteHandovers = $lead->headcountHandover()
-            ->whereIn('status', ['Draft', 'New', 'Rejected'])
-            ->exists();
+    //     // Check if there are any existing headcount handovers that are in Draft, New, or Rejected status
+    //     $incompleteHandovers = $lead->headcountHandover()
+    //         ->whereIn('status', ['Draft', 'New', 'Rejected'])
+    //         ->exists();
 
-        return $incompleteHandovers;
-    }
+    //     return $incompleteHandovers;
+    // }
 
     protected function isCompanyDetailsIncomplete(): bool
     {

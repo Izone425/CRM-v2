@@ -66,7 +66,7 @@ class HardwareHandoverV2RelationManager extends RelationManager
                         ])
                         ->default(function (?HardwareHandoverV2 $record) {
                             // Use the record's value if it exists, otherwise default to 'single'
-                            return $record?->invoice_type ?? 'single';
+                            return $record?->invoice_type ?? 'combined';
                         })
                         ->reactive()
                         ->inline()

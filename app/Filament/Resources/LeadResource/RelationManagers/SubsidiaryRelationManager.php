@@ -236,8 +236,145 @@ class SubsidiaryRelationManager extends RelationManager
                         ->modalHeading(fn($record) => 'Edit Subsidiary: ' . $record->company_name)
                         ->modalWidth('6xl')
                         ->form(function ($record) {
-                            // Return the same form schema as create but with filled values
-                            return $this->defaultForm();
+                            // ✅ Return form with pre-filled values from the record
+                            return [
+                                Grid::make(3)
+                                    ->schema([
+                                        Section::make('Company Details')
+                                            ->schema([
+                                                TextInput::make('company_name')
+                                                    ->label('COMPANY NAME')
+                                                    ->required()
+                                                    ->maxLength(255)
+                                                    ->default($record->company_name) // ✅ Pre-fill with existing value
+                                                    ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                                                    ->afterStateHydrated(fn($state) => $state ? Str::upper($state) : null)
+                                                    ->afterStateUpdated(fn($state) => $state ? Str::upper($state) : null),
+
+                                                TextInput::make('company_address1')
+                                                    ->label('COMPANY ADDRESS 1')
+                                                    ->default($record->company_address1) // ✅ Pre-fill with existing value
+                                                    ->maxLength(255)
+                                                    ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                                                    ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()'])
+                                                    ->afterStateHydrated(fn($state) => $state ? Str::upper($state) : null)
+                                                    ->afterStateUpdated(fn($state) => $state ? Str::upper($state) : null),
+
+                                                TextInput::make('company_address2')
+                                                    ->label('COMPANY ADDRESS 2')
+                                                    ->default($record->company_address2) // ✅ Pre-fill with existing value
+                                                    ->maxLength(255)
+                                                    ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                                                    ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()'])
+                                                    ->afterStateHydrated(fn($state) => $state ? Str::upper($state) : null)
+                                                    ->afterStateUpdated(fn($state) => $state ? Str::upper($state) : null),
+
+                                                Grid::make(3)
+                                                    ->schema([
+                                                        Select::make('industry')
+                                                            ->label('INDUSTRY')
+                                                            ->placeholder('Select an industry')
+                                                            ->default($record->industry) // ✅ Pre-fill with existing value
+                                                            ->options(fn () => collect(['None' => 'None'])->merge(Industry::pluck('name', 'name')))
+                                                            ->searchable()
+                                                            ->required(),
+
+                                                        TextInput::make('postcode')
+                                                            ->label('POSTCODE')
+                                                            ->default($record->postcode) // ✅ Pre-fill with existing value
+                                                            ->maxLength(20)
+                                                            ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                                                            ->afterStateHydrated(fn($state) => $state ? Str::upper($state) : null)
+                                                            ->afterStateUpdated(fn($state) => $state ? Str::upper($state) : null),
+
+                                                        Select::make('state')
+                                                            ->label('STATE')
+                                                            ->default($record->state) // ✅ Pre-fill with existing value
+                                                            ->options(function () {
+                                                                $filePath = storage_path('app/public/json/StateCodes.json');
+
+                                                                if (file_exists($filePath)) {
+                                                                    $countriesContent = file_get_contents($filePath);
+                                                                    $countries = json_decode($countriesContent, true);
+
+                                                                    return collect($countries)->mapWithKeys(function ($country) {
+                                                                        return [$country['Code'] => ucfirst(strtolower($country['State']))];
+                                                                    })->toArray();
+                                                                }
+
+                                                                return [];
+                                                            })
+                                                            ->dehydrateStateUsing(function ($state) {
+                                                                $filePath = storage_path('app/public/json/StateCodes.json');
+
+                                                                if (file_exists($filePath)) {
+                                                                    $countriesContent = file_get_contents($filePath);
+                                                                    $countries = json_decode($countriesContent, true);
+
+                                                                    foreach ($countries as $country) {
+                                                                        if ($country['Code'] === $state) {
+                                                                            return ucfirst(strtolower($country['State']));
+                                                                        }
+                                                                    }
+                                                                }
+
+                                                                return $state;
+                                                            })
+                                                            ->required()
+                                                            ->searchable()
+                                                            ->preload(),
+                                                    ]),
+
+                                                TextInput::make('register_number')
+                                                    ->label('NEW REGISTER NUMBER')
+                                                    ->default($record->register_number) // ✅ Pre-fill with existing value
+                                                    ->maxLength(50)
+                                                    ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                                                    ->afterStateHydrated(fn($state) => $state ? Str::upper($state) : null)
+                                                    ->afterStateUpdated(fn($state) => $state ? Str::upper($state) : null),
+                                            ])
+                                            ->columnSpan(2),
+
+                                        Section::make('Contact Person')
+                                            ->schema([
+                                                TextInput::make('name')
+                                                    ->label('NAME')
+                                                    ->default($record->name) // ✅ Pre-fill with existing value
+                                                    ->required()
+                                                    ->maxLength(255)
+                                                    ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                                                    ->afterStateHydrated(fn($state) => $state ? Str::upper($state) : null)
+                                                    ->afterStateUpdated(fn($state) => $state ? Str::upper($state) : null),
+
+                                                TextInput::make('contact_number')
+                                                    ->label('CONTACT NUMBER')
+                                                    ->default($record->contact_number) // ✅ Pre-fill with existing value
+                                                    ->required()
+                                                    ->tel()
+                                                    ->maxLength(20)
+                                                    ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                                                    ->afterStateHydrated(fn($state) => $state ? Str::upper($state) : null)
+                                                    ->afterStateUpdated(fn($state) => $state ? Str::upper($state) : null),
+
+                                                TextInput::make('email')
+                                                    ->label('EMAIL ADDRESS')
+                                                    ->default($record->email) // ✅ Pre-fill with existing value
+                                                    ->required()
+                                                    ->email()
+                                                    ->maxLength(255),
+
+                                                TextInput::make('position')
+                                                    ->label('POSITION')
+                                                    ->default($record->position) // ✅ Pre-fill with existing value
+                                                    ->required()
+                                                    ->maxLength(100)
+                                                    ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                                                    ->afterStateHydrated(fn($state) => $state ? Str::upper($state) : null)
+                                                    ->afterStateUpdated(fn($state) => $state ? Str::upper($state) : null),
+                                            ])
+                                            ->columnSpan(1),
+                                    ])
+                            ];
                         })
                         ->action(function ($record, array $data) {
                             // Convert all data to uppercase except email
