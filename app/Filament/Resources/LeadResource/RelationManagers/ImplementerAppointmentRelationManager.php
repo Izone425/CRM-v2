@@ -1156,27 +1156,27 @@ class ImplementerAppointmentRelationManager extends RelationManager
 
                             return "Send Session Summary for {$companyName}";
                         })
-                        // ->visible(function (ImplementerAppointment $record) {
-                        //     // Check if summary email has NOT been sent (is null, 0, or false)
-                        //     $emailNotSent = !$record->sent_summary_email || $record->sent_summary_email == 0;
+                        ->visible(function (ImplementerAppointment $record) {
+                            // Check if summary email has NOT been sent (is null, 0, or false)
+                            $emailNotSent = !$record->sent_summary_email || $record->sent_summary_email == 0;
 
-                        //     // Check if recording link exists and is not empty
-                        //     $hasRecording = !empty($record->session_recording_link) &&
-                        //                 $record->session_recording_link !== null &&
-                        //                 trim($record->session_recording_link) !== '';
+                            // Check if recording link exists and is not empty
+                            $hasRecording = !empty($record->session_recording_link) &&
+                                        $record->session_recording_link !== null &&
+                                        trim($record->session_recording_link) !== '';
 
-                        //     // Log for debugging
-                        //     \Illuminate\Support\Facades\Log::info('Send Session Summary visibility check', [
-                        //         'appointment_id' => $record->id,
-                        //         'sent_summary_email' => $record->sent_summary_email,
-                        //         'email_not_sent' => $emailNotSent,
-                        //         'session_recording_link' => $record->session_recording_link,
-                        //         'has_recording' => $hasRecording,
-                        //         'should_show' => $emailNotSent && $hasRecording
-                        //     ]);
+                            // Log for debugging
+                            \Illuminate\Support\Facades\Log::info('Send Session Summary visibility check', [
+                                'appointment_id' => $record->id,
+                                'sent_summary_email' => $record->sent_summary_email,
+                                'email_not_sent' => $emailNotSent,
+                                'session_recording_link' => $record->session_recording_link,
+                                'has_recording' => $hasRecording,
+                                'should_show' => $emailNotSent && $hasRecording
+                            ]);
 
-                        //     return $emailNotSent && $hasRecording;
-                        // })
+                            return $emailNotSent && $hasRecording;
+                        })
                         ->hidden(function() {
                             $user = auth()->user();
                             $lead = $this->getOwnerRecord();
