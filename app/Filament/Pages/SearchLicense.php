@@ -745,17 +745,18 @@ class SearchLicense extends Page implements HasForms
 
     private function getLicenseDataForCompany($companyId): array
     {
-        // Get all license details
+        // Get all license details with dates
         $licenses = DB::connection('frontenddb')->table('crm_expiring_license')
             ->where('f_company_id', (int) $companyId)
             ->whereDate('f_expiry_date', '>=', today())
             ->get(['f_name', 'f_invoice_no']);
 
-        $totals = [
-            'attendance' => 0,
-            'leave' => 0,
-            'claim' => 0,
-            'payroll' => 0
+        // ✅ Group licenses by type and collect unique quantities
+        $licenseQuantities = [
+            'attendance' => [],
+            'leave' => [],
+            'claim' => [],
+            'payroll' => []
         ];
 
         foreach ($licenses as $license) {
@@ -770,42 +771,64 @@ class SearchLicense extends Page implements HasForms
 
             $quantity = $invoiceDetail ? (int) $invoiceDetail->f_quantity : 1;
 
+            // Determine license type and base quantity per license
+            $licenseType = null;
+            $baseQuantity = 0;
+
             // Attendance licenses
             if (strpos($licenseName, 'TimeTec TA') !== false) {
+                $licenseType = 'attendance';
                 if (strpos($licenseName, '(10 User License)') !== false) {
-                    $totals['attendance'] += 10 * $quantity;
+                    $baseQuantity = 10;
                 } elseif (strpos($licenseName, '(1 User License)') !== false) {
-                    $totals['attendance'] += 1 * $quantity;
+                    $baseQuantity = 1;
                 }
             }
-
             // Leave licenses
-            if (strpos($licenseName, 'TimeTec Leave') !== false) {
+            elseif (strpos($licenseName, 'TimeTec Leave') !== false) {
+                $licenseType = 'leave';
                 if (strpos($licenseName, '(10 User License)') !== false || strpos($licenseName, '(10 Leave License)') !== false) {
-                    $totals['leave'] += 10 * $quantity;
+                    $baseQuantity = 10;
                 } elseif (strpos($licenseName, '(1 User License)') !== false || strpos($licenseName, '(1 Leave License)') !== false) {
-                    $totals['leave'] += 1 * $quantity;
+                    $baseQuantity = 1;
                 }
             }
-
             // Claim licenses
-            if (strpos($licenseName, 'TimeTec Claim') !== false) {
+            elseif (strpos($licenseName, 'TimeTec Claim') !== false) {
+                $licenseType = 'claim';
                 if (strpos($licenseName, '(10 User License)') !== false || strpos($licenseName, '(10 Claim License)') !== false) {
-                    $totals['claim'] += 10 * $quantity;
+                    $baseQuantity = 10;
                 } elseif (strpos($licenseName, '(1 User License)') !== false || strpos($licenseName, '(1 Claim License)') !== false) {
-                    $totals['claim'] += 1 * $quantity;
+                    $baseQuantity = 1;
+                }
+            }
+            // Payroll licenses
+            elseif (strpos($licenseName, 'TimeTec Payroll') !== false) {
+                $licenseType = 'payroll';
+                if (strpos($licenseName, '(10 Payroll License)') !== false) {
+                    $baseQuantity = 10;
+                } elseif (strpos($licenseName, '(1 Payroll License)') !== false) {
+                    $baseQuantity = 1;
                 }
             }
 
-            // Payroll licenses
-            if (strpos($licenseName, 'TimeTec Payroll') !== false) {
-                if (strpos($licenseName, '(10 Payroll License)') !== false) {
-                    $totals['payroll'] += 10 * $quantity;
-                } elseif (strpos($licenseName, '(1 Payroll License)') !== false) {
-                    $totals['payroll'] += 1 * $quantity;
+            if ($licenseType) {
+                $totalQuantity = $baseQuantity * $quantity;
+
+                // ✅ Only add if this exact quantity doesn't already exist
+                if (!in_array($totalQuantity, $licenseQuantities[$licenseType])) {
+                    $licenseQuantities[$licenseType][] = $totalQuantity;
                 }
             }
         }
+
+        // ✅ Calculate totals by summing unique quantities for each license type
+        $totals = [
+            'attendance' => array_sum($licenseQuantities['attendance']),
+            'leave' => array_sum($licenseQuantities['leave']),
+            'claim' => array_sum($licenseQuantities['claim']),
+            'payroll' => array_sum($licenseQuantities['payroll'])
+        ];
 
         return $totals;
     }
