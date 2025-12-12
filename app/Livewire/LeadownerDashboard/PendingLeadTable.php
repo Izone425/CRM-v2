@@ -121,6 +121,7 @@ class PendingLeadTable extends Component implements HasForms, HasTable
                         if (!empty($data['values'])) { // 'values' stores multiple selections
                             $sizeMap = [
                                 'Small' => '1-24',
+                                'Small' => '20-24',
                                 'Medium' => '25-99',
                                 'Large' => '100-500',
                                 'Enterprise' => '501 and Above',

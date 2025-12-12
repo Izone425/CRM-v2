@@ -438,14 +438,14 @@ class SalesAdminAnalysisV2 extends Page
         // Define active lead categories using queryBase cloning
         $this->activeLeadsDataJaja = [
             'Active 24 Below' => (clone $queryBase)
-                ->where('company_size', '=', '1-24')
+                ->whereIn('company_size', ['1-24', '20-24'])
                 ->where('done_call', '=', '0')
                 ->whereNull('salesperson')
                 ->where('categories', '=', 'Active')
                 ->count(),
 
             'Active 25 Above' => (clone $queryBase)
-                ->where('company_size', '!=', '1-24')
+                ->whereNotIn('company_size', ['1-24', '20-24'])
                 ->where('done_call', '=', '0')
                 ->whereNull('salesperson')
                 ->where('categories', '=', 'Active')
@@ -454,7 +454,7 @@ class SalesAdminAnalysisV2 extends Page
             'Call Attempt 24 Below' => (clone $queryBase)
                 ->where('done_call', '=', '1')
                 ->whereNull('salesperson')
-                ->where('company_size', '=', '1-24')
+                ->whereIn('company_size', ['1-24', '20-24'])
                 ->where('categories', '=', 'Active')
                 ->count(),
 
@@ -462,7 +462,7 @@ class SalesAdminAnalysisV2 extends Page
                 ->where('done_call', '=', '1')
                 ->whereNull('salesperson')
                 ->where('categories', '=', 'Active')
-                ->where('company_size', '!=', '1-24')
+                ->whereNotIn('company_size', ['1-24', '20-24'])
                 ->count(),
         ];
 
@@ -488,14 +488,14 @@ class SalesAdminAnalysisV2 extends Page
         // Define active lead categories using queryBase cloning
         $this->activeLeadsDataSheena = [
             'Active 24 Below' => (clone $queryBase)
-                ->where('company_size', '=', '1-24')
+                ->whereIn('company_size', ['1-24', '20-24'])
                 ->where('done_call', '=', '0')
                 ->whereNull('salesperson')
                 ->where('categories', '=', 'Active')
                 ->count(),
 
             'Active 25 Above' => (clone $queryBase)
-                ->where('company_size', '!=', '1-24')
+                ->whereNotIn('company_size', ['1-24', '20-24'])
                 ->where('done_call', '=', '0')
                 ->whereNull('salesperson')
                 ->where('categories', '=', 'Active')
@@ -504,7 +504,7 @@ class SalesAdminAnalysisV2 extends Page
             'Call Attempt 24 Below' => (clone $queryBase)
                 ->where('done_call', '=', '1')
                 ->whereNull('salesperson')
-                ->where('company_size', '=', '1-24')
+                ->whereIn('company_size', ['1-24', '20-24'])
                 ->where('categories', '=', 'Active')
                 ->count(),
 
@@ -512,7 +512,7 @@ class SalesAdminAnalysisV2 extends Page
                 ->where('done_call', '=', '1')
                 ->whereNull('salesperson')
                 ->where('categories', '=', 'Active')
-                ->where('company_size', '!=', '1-24')
+                ->whereNotIn('company_size', ['1-24', '20-24'])
                 ->count(),
         ];
 
@@ -538,14 +538,14 @@ class SalesAdminAnalysisV2 extends Page
         // Define active lead categories using queryBase cloning
         $this->activeLeadsDataShahilah = [
             'Active 24 Below' => (clone $queryBase)
-                ->where('company_size', '=', '1-24')
+                ->whereIn('company_size', ['1-24', '20-24'])
                 ->where('done_call', '=', '0')
                 ->whereNull('salesperson')
                 ->where('categories', '=', 'Active')
                 ->count(),
 
             'Active 25 Above' => (clone $queryBase)
-                ->where('company_size', '!=', '1-24')
+                ->whereNotIn('company_size', ['1-24', '20-24'])
                 ->where('done_call', '=', '0')
                 ->whereNull('salesperson')
                 ->where('categories', '=', 'Active')
@@ -554,7 +554,7 @@ class SalesAdminAnalysisV2 extends Page
             'Call Attempt 24 Below' => (clone $queryBase)
                 ->where('done_call', '=', '1')
                 ->whereNull('salesperson')
-                ->where('company_size', '=', '1-24')
+                ->whereIn('company_size', ['1-24', '20-24'])
                 ->where('categories', '=', 'Active')
                 ->count(),
 
@@ -562,7 +562,7 @@ class SalesAdminAnalysisV2 extends Page
                 ->where('done_call', '=', '1')
                 ->whereNull('salesperson')
                 ->where('categories', '=', 'Active')
-                ->where('company_size', '!=', '1-24')
+                ->whereNotIn('company_size', ['1-24', '20-24'])
                 ->count(),
         ];
 
@@ -588,14 +588,14 @@ class SalesAdminAnalysisV2 extends Page
         // Define active lead categories using queryBase cloning
         $this->activeLeadsDataAfifah = [
             'Active 24 Below' => (clone $queryBase)
-                ->where('company_size', '=', '1-24')
+                ->whereIn('company_size', ['1-24', '20-24'])
                 ->where('done_call', '=', '0')
                 ->whereNull('salesperson')
                 ->where('categories', '=', 'Active')
                 ->count(),
 
             'Active 25 Above' => (clone $queryBase)
-                ->where('company_size', '!=', '1-24')
+                ->whereNotIn('company_size', ['1-24', '20-24'])
                 ->where('done_call', '=', '0')
                 ->whereNull('salesperson')
                 ->where('categories', '=', 'Active')
@@ -604,7 +604,7 @@ class SalesAdminAnalysisV2 extends Page
             'Call Attempt 24 Below' => (clone $queryBase)
                 ->where('done_call', '=', '1')
                 ->whereNull('salesperson')
-                ->where('company_size', '=', '1-24')
+                ->whereIn('company_size', ['1-24', '20-24'])
                 ->where('categories', '=', 'Active')
                 ->count(),
 
@@ -612,7 +612,7 @@ class SalesAdminAnalysisV2 extends Page
                 ->where('done_call', '=', '1')
                 ->whereNull('salesperson')
                 ->where('categories', '=', 'Active')
-                ->where('company_size', '!=', '1-24')
+                ->whereNotIn('company_size', ['1-24', '20-24'])
                 ->count(),
         ];
 
@@ -939,6 +939,8 @@ class SalesAdminAnalysisV2 extends Page
             // Standardize company size grouping
             if ($size == '1-24') {
                 return '1-24';
+            }elseif ($size == '20-24') {
+                return '20-24';
             } elseif ($size == '25-99') {
                 return '25-99';
             } elseif ($size == '100-500') {
@@ -951,7 +953,7 @@ class SalesAdminAnalysisV2 extends Page
         });
 
         // Sort groups in a logical order
-        $sortOrder = ['1-24', '25-99', '100-500', '501 and Above', 'Unknown'];
+        $sortOrder = ['1-24','20-24', '25-99', '100-500', '501 and Above', 'Unknown'];
         $sortedGroups = collect();
 
         foreach ($sortOrder as $size) {
@@ -1071,6 +1073,8 @@ class SalesAdminAnalysisV2 extends Page
             // Standardize company size grouping
             if ($size == '1-24') {
                 return '1-24';
+            }elseif ($size == '20-24') {
+                return '20-24';
             } elseif ($size == '25-99') {
                 return '25-99';
             } elseif ($size == '100-500') {
@@ -1083,7 +1087,7 @@ class SalesAdminAnalysisV2 extends Page
         });
 
         // Sort groups in a logical order
-        $sortOrder = ['1-24', '25-99', '100-500', '501 and Above', 'Unknown'];
+        $sortOrder = ['1-24','20-24', '25-99', '100-500', '501 and Above', 'Unknown'];
         $sortedGroups = collect();
 
         foreach ($sortOrder as $size) {
@@ -1146,19 +1150,19 @@ class SalesAdminAnalysisV2 extends Page
             ->whereNull('salesperson');
 
         if ($label === 'Active 24 Below') {
-            $query->where('company_size', '1-24')
+            $query->whereIn('company_size', ['1-24', '20-24'])
                 ->where(function ($q) {
                     $q->whereNull('done_call')->orWhere('done_call', 0);
                 });
         } elseif ($label === 'Active 25 Above') {
-            $query->where('company_size', '!=', '1-24')
+            $query->whereNotIn('company_size', ['1-24', '20-24'])
                 ->where(function ($q) {
                     $q->whereNull('done_call')->orWhere('done_call', 0);
                 });
         } elseif ($label === 'Call Attempt 24 Below') {
-            $query->where('company_size', '1-24')->where('done_call', 1);
+            $query->whereIn('company_size', ['1-24', '20-24'])->where('done_call', 1);
         } elseif ($label === 'Call Attempt 25 Above') {
-            $query->where('company_size', '!=', '1-24')
+            $query->whereNotIn('company_size', ['1-24', '20-24'])
                 ->where('done_call', 1);
         } else {
             $this->leadList = collect();
@@ -1189,16 +1193,16 @@ class SalesAdminAnalysisV2 extends Page
               ->where('categories', '=', 'Active');
 
         if ($label === 'Active 24 Below') {
-            $query->where('company_size', '1-24')
+            $query->whereIn('company_size', ['1-24', '20-24'])
                   ->where('done_call', '=', '0');
         } elseif ($label === 'Active 25 Above') {
-            $query->where('company_size', '!=', '1-24')
+            $query->whereNotIn('company_size', ['1-24', '20-24'])
                   ->where('done_call', '=', '0');
         } elseif ($label === 'Call Attempt 24 Below') {
-            $query->where('company_size', '1-24')
+            $query->whereIn('company_size', ['1-24', '20-24'])
                   ->where('done_call', '=', '1');
         } elseif ($label === 'Call Attempt 25 Above') {
-            $query->where('company_size', '!=', '1-24')
+            $query->whereNotIn('company_size', ['1-24', '20-24'])
                   ->where('done_call', '=', '1');
         } else {
             $this->leadList = collect();
@@ -1343,16 +1347,16 @@ class SalesAdminAnalysisV2 extends Page
             ->where('categories', '=', 'Active');
 
         if ($label === 'Active 24 Below') {
-            $query->where('company_size', '1-24')
+            $query->whereIn('company_size', ['1-24', '20-24'])
                 ->where('done_call', '=', '0');
         } elseif ($label === 'Active 25 Above') {
-            $query->where('company_size', '!=', '1-24')
+            $query->whereNotIn('company_size', ['1-24', '20-24'])
                 ->where('done_call', '=', '0');
         } elseif ($label === 'Call Attempt 24 Below') {
-            $query->where('company_size', '1-24')
+            $query->whereIn('company_size', ['1-24', '20-24'])
                 ->where('done_call', '=', '1');
         } elseif ($label === 'Call Attempt 25 Above') {
-            $query->where('company_size', '!=', '1-24')
+            $query->whereNotIn('company_size', ['1-24', '20-24'])
                 ->where('done_call', '=', '1');
         } else {
             $this->leadList = collect();
@@ -1456,16 +1460,16 @@ class SalesAdminAnalysisV2 extends Page
             ->where('categories', '=', 'Active');
 
         if ($label === 'Active 24 Below') {
-            $query->where('company_size', '1-24')
+            $query->whereIn('company_size', ['1-24', '20-24'])
                 ->where('done_call', '=', '0');
         } elseif ($label === 'Active 25 Above') {
-            $query->where('company_size', '!=', '1-24')
+            $query->whereNotIn('company_size', ['1-24', '20-24'])
                 ->where('done_call', '=', '0');
         } elseif ($label === 'Call Attempt 24 Below') {
-            $query->where('company_size', '1-24')
+            $query->whereIn('company_size', ['1-24', '20-24'])
                 ->where('done_call', '=', '1');
         } elseif ($label === 'Call Attempt 25 Above') {
-            $query->where('company_size', '!=', '1-24')
+            $query->whereNotIn('company_size', ['1-24', '20-24'])
                 ->where('done_call', '=', '1');
         } else {
             $this->leadList = collect();

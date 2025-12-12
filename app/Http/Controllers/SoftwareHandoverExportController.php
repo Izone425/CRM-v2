@@ -111,14 +111,14 @@ class SoftwareHandoverExportController extends Controller
             $tempPhone = $lead->companyDetail->contact_no ?? $lead->phone ?? '';
             $phone = $this->cleanPhoneNumber($tempPhone);
             $email = $lead->companyDetail->email ?? $lead->email ?? '';
-            $registrationNo = $lead->companyDetail->reg_no_new ?? '';
+            $registrationNo = $lead->companyDetail->reg_no_new ?? $lead->eInvoiceDetail->business_register_number;
 
             // Address fields
-            $address1 = $lead->companyDetail->company_address1 ?? '';
-            $address2 = $lead->companyDetail->company_address2 ?? '';
-            $city = $lead->companyDetail->city ?? '';
-            $state = $lead->companyDetail->state ?? '';
-            $postcode = $lead->companyDetail->postcode ?? '';
+            $address1 = $lead->companyDetail->company_address1 ?? $lead->eInvoiceDetail->address_1;
+            $address2 = $lead->companyDetail->company_address2 ?? $lead->eInvoiceDetail->address_2;
+            $city = $lead->companyDetail->city ?? $lead->eInvoiceDetail->city;
+            $state = $lead->companyDetail->state ?? $lead->eInvoiceDetail->state;
+            $postcode = $lead->companyDetail->postcode ?? $lead->eInvoiceDetail->postcode;
 
             // Format address lines
             $formattedAddress1 = $address1;

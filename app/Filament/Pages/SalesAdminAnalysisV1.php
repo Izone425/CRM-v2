@@ -209,7 +209,7 @@ class SalesAdminAnalysisV1 extends Page
         // Define active lead categories with safe date filtering
         $this->activeLeadsData = [
             'Active 24 Below' => Lead::query()
-                ->where('company_size', '=', '1-24')
+                ->whereIn('company_size', ['1-24', '20-24']) // ✅ Add '20-24' here
                 ->whereNull('salesperson')
                 ->whereNotNull('lead_owner')
                 ->where('categories', '!=', 'Inactive')
@@ -225,7 +225,7 @@ class SalesAdminAnalysisV1 extends Page
                 ->count(),
 
             'Active 25 Above' => Lead::query()
-                ->where('company_size', '!=', '1-24')
+                ->whereNotIn('company_size', ['1-24', '20-24']) // ✅ Exclude both '1-24' and '20-24'
                 ->whereNull('salesperson')
                 ->whereNotNull('lead_owner')
                 ->where('categories', '!=', 'Inactive')
@@ -244,7 +244,7 @@ class SalesAdminAnalysisV1 extends Page
                 ->where('done_call', '=', '1')
                 ->whereNull('salesperson')
                 ->whereNotNull('lead_owner')
-                ->where('company_size', '=', '1-24')
+                ->whereIn('company_size', ['1-24', '20-24']) // ✅ Add '20-24' here
                 ->where('categories', '!=', 'Inactive')
                 ->whereNotIn('lead_code', ['Apollo', 'Existing Customer (Migration)'])
                 ->when($start && $end, fn ($query) =>
@@ -258,7 +258,7 @@ class SalesAdminAnalysisV1 extends Page
                 ->whereNull('salesperson')
                 ->whereNotNull('lead_owner')
                 ->whereBetween('call_attempt', [1, 10])
-                ->where('company_size', '!=', '1-24')
+                ->whereNotIn('company_size', ['1-24', '20-24']) // ✅ Exclude both '1-24' and '20-24'
                 ->where('categories', '!=', 'Inactive')
                 ->whereNotIn('lead_code', ['Apollo', 'Existing Customer (Migration)'])
                 ->when($start && $end, fn ($query) =>
@@ -497,7 +497,7 @@ class SalesAdminAnalysisV1 extends Page
         // Apply label-specific filters
         switch ($label) {
             case 'Active 24 Below':
-                $query->where('company_size', '1-24')
+                $query->whereIn('company_size', ['1-24', '20-24']) // ✅ Add '20-24' here
                     ->where(function ($query) {
                         $query->whereNull('done_call')
                                 ->orWhere('done_call', 0);
@@ -505,7 +505,7 @@ class SalesAdminAnalysisV1 extends Page
                 break;
 
             case 'Active 25 Above':
-                $query->where('company_size', '!=', '1-24')
+                $query->whereNotIn('company_size', ['1-24', '20-24']) // ✅ Exclude both '1-24' and '20-24'
                     ->where(function ($query) {
                         $query->whereNull('done_call')
                                 ->orWhere('done_call', 0);
@@ -513,12 +513,12 @@ class SalesAdminAnalysisV1 extends Page
                 break;
 
             case 'Call Attempt 24 Below':
-                $query->where('company_size', '1-24')
+                $query->whereIn('company_size', ['1-24', '20-24']) // ✅ Add '20-24' here
                     ->where('done_call', 1);
                 break;
 
             case 'Call Attempt 25 Above':
-                $query->where('company_size', '!=', '1-24')
+                $query->whereNotIn('company_size', ['1-24', '20-24']) // ✅ Exclude both '1-24' and '20-24'
                     ->where('done_call', 1)
                     ->whereBetween('call_attempt', [1, 10]);
                 break;

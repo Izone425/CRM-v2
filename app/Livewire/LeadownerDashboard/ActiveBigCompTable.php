@@ -55,7 +55,7 @@ class ActiveBigCompTable extends Component implements HasForms, HasTable
     public function getActiveBigCompanyLeads()
     {
         return Lead::query()
-            ->where('company_size', '!=', '1-24') // Exclude small companies
+            ->whereNotIn('company_size', ['1-24', '20-24']) // Exclude small companies
             ->whereNull('salesperson') // Salesperson must be NULL
             ->whereNotNull('lead_owner')
             ->where('lead_code', 'NOT LIKE', 'Apollo%')

@@ -2,6 +2,7 @@
 
 namespace App\Livewire;
 
+use App\Models\CompanyDetail;
 use App\Models\SoftwareHandover;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
@@ -13,6 +14,9 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Livewire\Component;
 use Filament\Notifications\Notification;
+use Filament\Tables\Actions\Action;
+use Illuminate\Support\HtmlString;
+use Illuminate\Support\Str;
 use Livewire\Attributes\On;
 
 class SoftwareHandoverDraft extends Component implements HasForms, HasTable
@@ -52,17 +56,63 @@ class SoftwareHandoverDraft extends Component implements HasForms, HasTable
             ->emptyState(fn() => view('components.empty-state-question'))
             ->columns([
                 TextColumn::make('id')
-                    ->label('SW ID')
-                    ->formatStateUsing(function ($state) {
-                        return 'SW_250' . str_pad($state, 3, '0', STR_PAD_LEFT);
+                    ->label('ID')
+                    ->formatStateUsing(function ($state, SoftwareHandover $record) {
+                        // If no state (ID) is provided, return a fallback
+                        if (!$state) {
+                            return 'Unknown';
+                        }
+
+                        // For handover_pdf, extract filename
+                        if ($record->handover_pdf) {
+                            // Extract just the filename without extension
+                            $filename = basename($record->handover_pdf, '.pdf');
+                            return $filename;
+                        }
+
+                        // Format ID with 250 prefix and pad with zeros to ensure at least 3 digits
+                        return $record->formatted_handover_id;
                     })
-                    ->searchable()
-                    ->sortable(),
+                    ->color('primary') // Makes it visually appear as a link
+                    ->weight('bold')
+                    ->action(
+                        Action::make('viewHandoverDetails')
+                            ->modalHeading(false)
+                            ->modalWidth('4xl')
+                            ->modalSubmitAction(false)
+                            ->modalCancelAction(false)
+                            ->modalContent(function (SoftwareHandover $record): View {
+                                return view('components.software-handover')
+                                    ->with('extraAttributes', ['record' => $record]);
+                            })
+                    ),
                 TextColumn::make('company_name')
                     ->label('Company Name')
                     ->searchable()
-                    ->sortable()
-                    ->wrap(),
+                    ->formatStateUsing(function ($state, $record) {
+                        $company = CompanyDetail::where('company_name', $state)->first();
+
+                        if (!empty($record->lead_id)) {
+                            $company = CompanyDetail::where('lead_id', $record->lead_id)->first();
+                        }
+
+                        if ($company) {
+                            $shortened = strtoupper(Str::limit($company->company_name, 20, '...'));
+                            $encryptedId = \App\Classes\Encryptor::encrypt($company->lead_id);
+
+                            return new HtmlString('<a href="' . url('admin/leads/' . $encryptedId) . '"
+                                    target="_blank"
+                                    title="' . e($state) . '"
+                                    class="inline-block"
+                                    style="color:#338cf0;">
+                                    ' . $company->company_name . '
+                                </a>');
+                        }
+
+                        $shortened = strtoupper(Str::limit($state, 20, '...'));
+                        return "<span title='{$state}'>{$state}</span>";
+                    })
+                    ->html(),
                 TextColumn::make('lead.name')
                     ->label('Lead Name')
                     ->searchable()
@@ -86,8 +136,7 @@ class SoftwareHandoverDraft extends Component implements HasForms, HasTable
                     ->sortable(),
             ])
             ->defaultSort('created_at', 'desc')
-            ->poll('60s')
-            ->striped();
+            ->poll('60s');
     }
 
     public function getNewSoftwareHandovers(): Builder

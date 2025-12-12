@@ -28,6 +28,7 @@ class Product extends Model
         'convert_pi',
         'push_so',
         'push_sw',
+        'gl_posting',
         'tariff_code',
         'amount_editable',
     ];

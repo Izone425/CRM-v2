@@ -46,6 +46,7 @@ use Illuminate\View\View;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Filament\Tables\Actions\Action;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\On;
 
 class HardwareV2PendingMigrationTable extends Component implements HasForms, HasTable
@@ -323,6 +324,33 @@ class HardwareV2PendingMigrationTable extends Component implements HasForms, Has
                         'self_pick_up' => 'Pick-Up',
                         'courier' => 'Courier',
                         default => ucfirst($state ?? 'Unknown')
+                    }),
+
+                TextColumn::make('sw_status')
+                    ->label('SW Status')
+                    ->getStateUsing(function (HardwareHandoverV2 $record): string {
+                        $softwareStatus = 'No Software';
+
+                        try {
+                            // ✅ Get software handover status through lead relationship
+                            if ($record->lead && $record->lead->softwareHandover && $record->lead->softwareHandover->isNotEmpty()) {
+                                // Get the latest software handover for this lead
+                                $softwareHandover = $record->lead->softwareHandover()->latest()->first();
+                                if ($softwareHandover && $softwareHandover->status_handover) {
+                                    $softwareStatus = $softwareHandover->status_handover;
+                                }
+                            }
+                        } catch (\Exception $e) {
+                            // ✅ Log the error and return default value
+                            Log::warning('Error getting software status for hardware handover', [
+                                'hardware_handover_id' => $record->id,
+                                'error' => $e->getMessage()
+                            ]);
+                            $softwareStatus = 'Error';
+                        }
+
+                        // ✅ Ensure we always return a string
+                        return $softwareStatus ?? 'No Software';
                     }),
 
                 TextColumn::make('status')

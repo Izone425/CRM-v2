@@ -59,7 +59,7 @@ class InactiveBigCompTable extends Component implements HasForms, HasTable
             ->where('categories', 'Inactive') // Only Inactive leads
             ->whereNotNull('salesperson')
             ->where('lead_status', '!=', 'Closed')
-            ->where('company_size', '!=', '1-24') // Exclude small companies (1-24)
+            ->whereNotIn('company_size', ['1-24', '20-24']) // Exclude small companies (1-24 and 20-24)
             ->selectRaw('*, DATEDIFF(updated_at, created_at) as pending_days');
     }
 
@@ -88,6 +88,7 @@ class InactiveBigCompTable extends Component implements HasForms, HasTable
                         if (!empty($data['values'])) { // 'values' stores multiple selections
                             $sizeMap = [
                                 'Small' => '1-24',
+                                'Small' => '20-24',
                                 'Medium' => '25-99',
                                 'Large' => '100-500',
                                 'Enterprise' => '501 and Above',

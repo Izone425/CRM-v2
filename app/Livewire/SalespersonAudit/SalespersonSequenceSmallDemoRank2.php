@@ -35,7 +35,7 @@ class SalespersonSequenceSmallDemoRank2 extends Component implements HasForms, H
     public $rfqCount = 0;
 
     // Company sizes considered "small"
-    protected $smallCompanySizes = ['1-24'];
+    protected $smallCompanySizes = ['1-24', '20-24'];
 
     public function mount()
     {

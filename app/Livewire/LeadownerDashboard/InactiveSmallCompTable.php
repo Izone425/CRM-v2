@@ -57,7 +57,7 @@ class InactiveSmallCompTable extends Component implements HasForms, HasTable
     {
         return Lead::query()
             ->where('categories', 'Inactive') // Only Inactive leads
-            ->where('company_size', '=', '1-24') // Only small companies (1-24)
+            ->whereIn('company_size', ['1-24', '20-24']) // Only small companies (1-24)
             ->whereNotNull('salesperson')
             ->where('lead_status', '!=', 'Closed')
             ->selectRaw('*, DATEDIFF(updated_at, created_at) as pending_days');

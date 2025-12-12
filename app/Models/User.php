@@ -35,6 +35,7 @@ class User extends Authenticatable implements FilamentUser, HasAvatar
      */
     protected $fillable = [
         'name',
+        'autocount_name',
         'code',
         'mobile_number',
         'department',

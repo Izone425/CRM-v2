@@ -424,268 +424,407 @@ class HardwareV2PendingStockTable extends Component implements HasForms, HasTabl
                         })
                         ->modalWidth('3xl')
                         ->form([
-                            Repeater::make('invoices')
-                                ->label('Invoice Details')
+                            // ✅ Add AutoCount invoice checkbox at the top
+                            Section::make('Invoice Creation Options')
                                 ->schema([
-                                    Grid::make(2)
-                                        ->schema([
-                                            TextInput::make('invoice_no')
-                                                ->label('Invoice Number')
-                                                ->required()
-                                                ->placeholder('Enter invoice number (e.g., EPIN2509-0286)')
-                                                ->maxLength(255)
-                                                ->live(onBlur: true)
-                                                ->extraAlpineAttributes([
-                                                    'x-on:input' => '
-                                                        const start = $el.selectionStart;
-                                                        const end = $el.selectionEnd;
-                                                        const value = $el.value;
-                                                        $el.value = value.toUpperCase();
-                                                        $el.setSelectionRange(start, end);
-                                                    '
-                                                ])
-                                                ->dehydrateStateUsing(fn ($state) => strtoupper($state))
-                                                ->rules([
-                                                    'required',
-                                                    function () {
-                                                        return [
-                                                            'invoice_exists' => function (string $attribute, $value, \Closure $fail) {
-                                                                if (!$value) return;
+                                    Checkbox::make('create_autocount_invoice')
+                                        ->label('Create AutoCount HRDF Invoice')
+                                        ->helperText('Generate AutoCount invoice from associated quotations')
+                                        ->default(false)
+                                        ->live()
+                                        ->columnSpanFull(),
+                                ]),
 
-                                                                $upperValue = strtoupper($value);
-                                                                $invoiceRecord = \App\Models\Invoice::where('invoice_no', $upperValue)->first();
-                                                                if (!$invoiceRecord) {
-                                                                    $fail('Invoice number not found in system.');
-                                                                }
-                                                            },
-                                                            'no_duplicates_in_form' => function (string $attribute, $value, \Closure $fail) {
-                                                                if (!$value) return;
+                            // ✅ Show preview when AutoCount is selected
+                            Section::make('AutoCount Invoice Preview')
+                                ->schema([
+                                    \Filament\Forms\Components\Placeholder::make('autocount_preview')
+                                        ->label('')
+                                        ->content(function (callable $get, HardwareHandoverV2 $record) {
+                                            if (!$get('create_autocount_invoice')) {
+                                                return '';
+                                            }
 
-                                                                $upperValue = strtoupper($value);
-                                                                $allInvoices = request()->input('invoices', []);
-                                                                $duplicateCount = 0;
+                                            try {
+                                                // ✅ Get quotation IDs from proforma_invoice_hrdf (not proforma_invoice_product)
+                                                $quotationIds = [];
+                                                if ($record->proforma_invoice_hrdf) {
+                                                    $quotationIds = is_string($record->proforma_invoice_hrdf)
+                                                        ? json_decode($record->proforma_invoice_hrdf, true)
+                                                        : $record->proforma_invoice_hrdf;
+                                                }
 
-                                                                foreach ($allInvoices as $invoice) {
-                                                                    if (isset($invoice['invoice_no']) &&
-                                                                        strtoupper($invoice['invoice_no']) === $upperValue) {
-                                                                        $duplicateCount++;
-                                                                    }
-                                                                }
+                                                if (empty($quotationIds)) {
+                                                    return 'No HRDF quotations found for AutoCount invoice generation.';
+                                                }
 
-                                                                if ($duplicateCount > 1) {
-                                                                    $fail('This invoice number is already used in another entry above.');
-                                                                }
-                                                            },
-                                                            'no_duplicates_in_system' => function (string $attribute, $value, \Closure $fail) {
-                                                                if (!$value) return;
+                                                // Check if any quotations already have AutoCount invoices
+                                                $alreadyProcessed = \App\Models\Quotation::whereIn('id', $quotationIds)
+                                                    ->where('autocount_generated_pi', true)
+                                                    ->pluck('pi_reference_no')
+                                                    ->toArray();
 
-                                                                $upperValue = strtoupper($value);
+                                                if (!empty($alreadyProcessed)) {
+                                                    // ✅ Return as HtmlString for proper rendering
+                                                    return new \Illuminate\Support\HtmlString(
+                                                        '<div class="text-red-600">Warning: The following quotations already have AutoCount invoices: ' .
+                                                        implode(', ', $alreadyProcessed) . '</div>'
+                                                    );
+                                                }
 
-                                                                // Get current record ID
-                                                                $component = app('livewire')->current();
-                                                                $currentRecord = null;
+                                                // Generate preview
+                                                $preview = $this->generateHardwareInvoicePreview($record, $quotationIds);
 
-                                                                if (method_exists($component, 'getMountedTableActionRecord')) {
-                                                                    $currentRecord = $component->getMountedTableActionRecord();
-                                                                }
+                                                if (empty($preview['invoices'])) {
+                                                    return $preview['message'] ?? 'No items to display';
+                                                }
 
-                                                                if (!$currentRecord) return;
+                                                $html = '<div class="space-y-4">';
+                                                $html .= '<div><strong>Debtor:</strong> ARM-P0062 - PEMBANGUNAN SUMBER MANUSIA BERHAD</div>';
+                                                $html .= '<div><strong>Company:</strong> ' . ($record->lead->companyDetail->company_name ?? 'N/A') . '</div>';
+                                                $html .= '<div><strong>Total Invoices:</strong> ' . $preview['total_invoices'] . '</div>';
 
-                                                                // Check if invoice exists in other hardware handovers
-                                                                $existingHandover = \App\Models\HardwareHandoverV2::where('id', '!=', $currentRecord->id)
-                                                                    ->whereNotNull('invoice_data')
-                                                                    ->get()
-                                                                    ->filter(function ($handover) use ($upperValue) {
-                                                                        $invoiceData = is_string($handover->invoice_data)
-                                                                            ? json_decode($handover->invoice_data, true)
-                                                                            : $handover->invoice_data;
+                                                // Show each invoice separately
+                                                foreach ($preview['invoices'] as $index => $invoice) {
+                                                    $html .= '<div class="p-3 mt-4 border rounded bg-gray-50">';
+                                                    $html .= '<div class="font-semibold text-blue-600">Invoice ' . ($index + 1) . '</div>';
+                                                    $html .= '<div><strong>Document No:</strong> ' . $invoice['invoice_no'] . '</div>';
+                                                    $html .= '<div class="mt-2">';
+                                                    $html .= '<div class="mb-2 text-sm font-semibold">Items:</div>';
 
-                                                                        if (!is_array($invoiceData)) return false;
-
-                                                                        foreach ($invoiceData as $existingInvoice) {
-                                                                            if (isset($existingInvoice['invoice_no']) &&
-                                                                                strtoupper($existingInvoice['invoice_no']) === $upperValue) {
-                                                                                return true;
-                                                                            }
-                                                                        }
-                                                                        return false;
-                                                                    })
-                                                                    ->first();
-
-                                                                if ($existingHandover) {
-                                                                    $existingHandoverId = 'HW_250' . str_pad($existingHandover->id, 3, '0', STR_PAD_LEFT);
-                                                                    $fail("Invoice number already used in Hardware Handover {$existingHandoverId}.");
-                                                                }
-                                                            },
-                                                            'salesperson_match' => function (string $attribute, $value, \Closure $fail) {
-                                                                if (!$value) return;
-
-                                                                $upperValue = strtoupper($value);
-                                                                $invoiceRecord = \App\Models\Invoice::where('invoice_no', $upperValue)->first();
-
-                                                                if (!$invoiceRecord) return; // This will be caught by invoice_exists rule
-
-                                                                $component = app('livewire')->current();
-                                                                $currentRecord = null;
-
-                                                                if (method_exists($component, 'getMountedTableActionRecord')) {
-                                                                    $currentRecord = $component->getMountedTableActionRecord();
-                                                                }
-
-                                                                if (!$currentRecord) return;
-
-                                                                $invoiceSalesperson = $invoiceRecord->salesperson ?? null;
-
-                                                                if ($invoiceSalesperson !== null) {
-                                                                    $handoverSalespersonId = $currentRecord->lead->salesperson ?? null;
-                                                                    $handoverSalesperson = \App\Models\User::find($handoverSalespersonId)?->name ?? null;
-
-                                                                    if ($handoverSalesperson &&
-                                                                        stripos($handoverSalesperson, $invoiceSalesperson) === false &&
-                                                                        stripos($invoiceSalesperson, $handoverSalesperson) === false) {
-                                                                        $fail("Salesperson mismatch: Handover belongs to {$handoverSalesperson}, but invoice belongs to {$invoiceSalesperson}.");
-                                                                    }
-                                                                }
-                                                            }
-                                                        ];
+                                                    foreach ($invoice['items'] as $item) {
+                                                        $html .= '<div class="flex justify-between py-1 text-sm">';
+                                                        $html .= '<div class="flex items-center gap-2">';
+                                                        $html .= '<span class="px-2 py-1 font-mono text-xs bg-gray-100 rounded">' . $item['code'] . '</span>';
+                                                        $html .= '<span class="text-gray-600">× ' . number_format($item['quantity']) . '</span>';
+                                                        $html .= '</div>';
+                                                        $html .= '<span class="font-semibold">RM ' . number_format($item['amount'], 2) . '</span>';
+                                                        $html .= '</div>';
                                                     }
-                                                ])
-                                                ->afterStateUpdated(function (Get $get, Set $set, $state) {
-                                                    if ($state) {
-                                                        $paymentStatus = $this->getPaymentStatusForInvoice($state);
-                                                        $set('payment_status_display', $paymentStatus);
-                                                    } else {
-                                                        $set('payment_status_display', null);
-                                                    }
-                                                })
-                                                ->helperText(function (Get $get) {
-                                                    $status = $get('payment_status_display');
-                                                    if ($status) {
-                                                        return "Payment Status: {$status}";
-                                                    }
-                                                    return 'Invoice will be validated against system records';
-                                                }),
 
-                                            // Keep only the payment status display hidden field
-                                            TextInput::make('payment_status_display')
-                                                ->hidden()
-                                                ->dehydrated(false),
+                                                    $html .= '</div>';
+                                                    $html .= '<div class="flex justify-between pt-2 mt-2 font-semibold border-t">';
+                                                    $html .= '<span>Invoice Total:</span><span>RM ' . number_format($invoice['total'], 2) . '</span>';
+                                                    $html .= '</div></div>';
+                                                }
 
-                                            FileUpload::make('invoice_file')
-                                                ->label('Invoice PDF')
-                                                ->directory('hardware-handover-invoices')
-                                                ->acceptedFileTypes(['application/pdf'])
-                                                ->maxSize(10240)
-                                                ->required()
-                                        ]),
+                                                // Show grand total if multiple invoices
+                                                if ($preview['total_invoices'] > 1) {
+                                                    $html .= '<div class="flex justify-between pt-2 mt-4 text-lg font-bold border-t-2 border-blue-500">';
+                                                    $html .= '<span>Grand Total:</span><span>RM ' . number_format($preview['grand_total'], 2) . '</span>';
+                                                    $html .= '</div>';
+                                                }
 
-                                    // Hidden fields to store validation data
-                                    TextInput::make('invoice_validation_error')
-                                        ->hidden()
-                                        ->dehydrated(false),
+                                                $html .= '</div>';
 
-                                    TextInput::make('payment_status_display')
-                                        ->hidden()
-                                        ->dehydrated(false),
+                                                return new \Illuminate\Support\HtmlString($html);
+                                            } catch (\Exception $e) {
+                                                Log::error('Error generating Hardware AutoCount preview: ' . $e->getMessage());
+                                                return 'Error generating preview: ' . $e->getMessage();
+                                            }
+                                        })
                                 ])
-                                ->addActionLabel('Add Another Invoice')
-                                ->reorderable(false)
-                                ->defaultItems(1)
-                                ->minItems(1)
-                                ->maxItems(5),
+                                ->visible(fn (callable $get) => $get('create_autocount_invoice')),
+
+                            // Repeater::make('invoices')
+                            //     ->label('Invoice Details')
+                            //     ->schema([
+                            //         Grid::make(2)
+                            //             ->schema([
+                            //                 TextInput::make('invoice_no')
+                            //                     ->label('Invoice Number')
+                            //                     ->required()
+                            //                     ->placeholder('Enter invoice number (e.g., EPIN2509-0286)')
+                            //                     ->maxLength(255)
+                            //                     ->live(onBlur: true)
+                            //                     ->extraAlpineAttributes([
+                            //                         'x-on:input' => '
+                            //                             const start = $el.selectionStart;
+                            //                             const end = $el.selectionEnd;
+                            //                             const value = $el.value;
+                            //                             $el.value = value.toUpperCase();
+                            //                             $el.setSelectionRange(start, end);
+                            //                         '
+                            //                     ])
+                            //                     ->dehydrateStateUsing(fn ($state) => strtoupper($state))
+                            //                     ->rules([
+                            //                         'required',
+                            //                         function () {
+                            //                             return [
+                            //                                 'invoice_exists' => function (string $attribute, $value, \Closure $fail) {
+                            //                                     if (!$value) return;
+
+                            //                                     $upperValue = strtoupper($value);
+                            //                                     $invoiceRecord = \App\Models\Invoice::where('invoice_no', $upperValue)->first();
+                            //                                     if (!$invoiceRecord) {
+                            //                                         $fail('Invoice number not found in system.');
+                            //                                     }
+                            //                                 },
+                            //                                 'no_duplicates_in_form' => function (string $attribute, $value, \Closure $fail) {
+                            //                                     if (!$value) return;
+
+                            //                                     $upperValue = strtoupper($value);
+                            //                                     $allInvoices = request()->input('invoices', []);
+                            //                                     $duplicateCount = 0;
+
+                            //                                     foreach ($allInvoices as $invoice) {
+                            //                                         if (isset($invoice['invoice_no']) &&
+                            //                                             strtoupper($invoice['invoice_no']) === $upperValue) {
+                            //                                             $duplicateCount++;
+                            //                                         }
+                            //                                     }
+
+                            //                                     if ($duplicateCount > 1) {
+                            //                                         $fail('This invoice number is already used in another entry above.');
+                            //                                     }
+                            //                                 },
+                            //                                 'no_duplicates_in_system' => function (string $attribute, $value, \Closure $fail) {
+                            //                                     if (!$value) return;
+
+                            //                                     $upperValue = strtoupper($value);
+
+                            //                                     // Get current record ID
+                            //                                     $component = app('livewire')->current();
+                            //                                     $currentRecord = null;
+
+                            //                                     if (method_exists($component, 'getMountedTableActionRecord')) {
+                            //                                         $currentRecord = $component->getMountedTableActionRecord();
+                            //                                     }
+
+                            //                                     if (!$currentRecord) return;
+
+                            //                                     // Check if invoice exists in other hardware handovers
+                            //                                     $existingHandover = \App\Models\HardwareHandoverV2::where('id', '!=', $currentRecord->id)
+                            //                                         ->whereNotNull('invoice_data')
+                            //                                         ->get()
+                            //                                         ->filter(function ($handover) use ($upperValue) {
+                            //                                             $invoiceData = is_string($handover->invoice_data)
+                            //                                                 ? json_decode($handover->invoice_data, true)
+                            //                                                 : $handover->invoice_data;
+
+                            //                                             if (!is_array($invoiceData)) return false;
+
+                            //                                             foreach ($invoiceData as $existingInvoice) {
+                            //                                                 if (isset($existingInvoice['invoice_no']) &&
+                            //                                                     strtoupper($existingInvoice['invoice_no']) === $upperValue) {
+                            //                                                     return true;
+                            //                                                 }
+                            //                                             }
+                            //                                             return false;
+                            //                                         })
+                            //                                         ->first();
+
+                            //                                     if ($existingHandover) {
+                            //                                         $existingHandoverId = 'HW_250' . str_pad($existingHandover->id, 3, '0', STR_PAD_LEFT);
+                            //                                         $fail("Invoice number already used in Hardware Handover {$existingHandoverId}.");
+                            //                                     }
+                            //                                 },
+                            //                                 'salesperson_match' => function (string $attribute, $value, \Closure $fail) {
+                            //                                     if (!$value) return;
+
+                            //                                     $upperValue = strtoupper($value);
+                            //                                     $invoiceRecord = \App\Models\Invoice::where('invoice_no', $upperValue)->first();
+
+                            //                                     if (!$invoiceRecord) return; // This will be caught by invoice_exists rule
+
+                            //                                     $component = app('livewire')->current();
+                            //                                     $currentRecord = null;
+
+                            //                                     if (method_exists($component, 'getMountedTableActionRecord')) {
+                            //                                         $currentRecord = $component->getMountedTableActionRecord();
+                            //                                     }
+
+                            //                                     if (!$currentRecord) return;
+
+                            //                                     $invoiceSalesperson = $invoiceRecord->salesperson ?? null;
+
+                            //                                     if ($invoiceSalesperson !== null) {
+                            //                                         $handoverSalespersonId = $currentRecord->lead->salesperson ?? null;
+                            //                                         $handoverSalesperson = \App\Models\User::find($handoverSalespersonId)?->name ?? null;
+
+                            //                                         if ($handoverSalesperson &&
+                            //                                             stripos($handoverSalesperson, $invoiceSalesperson) === false &&
+                            //                                             stripos($invoiceSalesperson, $handoverSalesperson) === false) {
+                            //                                             $fail("Salesperson mismatch: Handover belongs to {$handoverSalesperson}, but invoice belongs to {$invoiceSalesperson}.");
+                            //                                         }
+                            //                                     }
+                            //                                 }
+                            //                             ];
+                            //                         }
+                            //                     ])
+                            //                     ->afterStateUpdated(function (Get $get, Set $set, $state) {
+                            //                         if ($state) {
+                            //                             $paymentStatus = $this->getPaymentStatusForInvoice($state);
+                            //                             $set('payment_status_display', $paymentStatus);
+                            //                         } else {
+                            //                             $set('payment_status_display', null);
+                            //                         }
+                            //                     })
+                            //                     ->helperText(function (Get $get) {
+                            //                         $status = $get('payment_status_display');
+                            //                         if ($status) {
+                            //                             return "Payment Status: {$status}";
+                            //                         }
+                            //                         return 'Invoice will be validated against system records';
+                            //                     }),
+
+                            //                 // Keep only the payment status display hidden field
+                            //                 TextInput::make('payment_status_display')
+                            //                     ->hidden()
+                            //                     ->dehydrated(false),
+
+                            //                 FileUpload::make('invoice_file')
+                            //                     ->label('Invoice PDF')
+                            //                     ->directory('hardware-handover-invoices')
+                            //                     ->acceptedFileTypes(['application/pdf'])
+                            //                     ->maxSize(10240)
+                            //                     ->required()
+                            //             ]),
+
+                            //         // Hidden fields to store validation data
+                            //         TextInput::make('invoice_validation_error')
+                            //             ->hidden()
+                            //             ->dehydrated(false),
+
+                            //         TextInput::make('payment_status_display')
+                            //             ->hidden()
+                            //             ->dehydrated(false),
+                            //     ])
+                            //     ->addActionLabel('Add Another Invoice')
+                            //     ->reorderable(false)
+                            //     ->defaultItems(1)
+                            //     ->minItems(1)
+                            //     ->maxItems(5),
                         ])
                         ->action(function (HardwareHandoverV2 $record, array $data): void {
-                            // First check for duplicates within the form data
-                            $invoiceNumbers = array_map(fn($invoice) => strtoupper($invoice['invoice_no']), $data['invoices']);
-                            if (count($invoiceNumbers) !== count(array_unique($invoiceNumbers))) {
-                                Notification::make()
-                                    ->title('Duplicate Invoice Numbers')
-                                    ->body('You cannot enter the same invoice number multiple times.')
-                                    ->danger()
-                                    ->send();
-                                return;
-                            }
+                            // ✅ Handle AutoCount invoice creation first
+                            if ($data['create_autocount_invoice'] ?? false) {
+                                try {
+                                    $result = $this->createHardwareAutoCountInvoices($record);
 
-                            // Check for duplicates in existing hardware handovers
-                            foreach ($data['invoices'] as $invoice) {
-                                $invoiceNo = strtoupper($invoice['invoice_no']);
-
-                                // Check if this invoice number exists in other hardware handovers
-                                $existingHandover = HardwareHandoverV2::where('id', '!=', $record->id)
-                                    ->whereNotNull('invoice_data')
-                                    ->get()
-                                    ->filter(function ($handover) use ($invoiceNo) {
-                                        $invoiceData = is_string($handover->invoice_data)
-                                            ? json_decode($handover->invoice_data, true)
-                                            : $handover->invoice_data;
-
-                                        if (!is_array($invoiceData)) return false;
-
-                                        foreach ($invoiceData as $existingInvoice) {
-                                            if (isset($existingInvoice['invoice_no']) &&
-                                                strtoupper($existingInvoice['invoice_no']) === $invoiceNo) {
-                                                return true;
-                                            }
-                                        }
-                                        return false;
-                                    })
-                                    ->first();
-
-                                if ($existingHandover) {
-                                    $existingHandoverId = 'HW_250' . str_pad($existingHandover->id, 3, '0', STR_PAD_LEFT);
-                                    Notification::make()
-                                        ->title('Duplicate Invoice Number')
-                                        ->body("Invoice {$invoiceNo} is already used in Hardware Handover {$existingHandoverId}")
-                                        ->danger()
-                                        ->send();
-                                    return;
-                                }
-
-                                // Check if invoice exists in system
-                                $invoiceRecord = \App\Models\Invoice::where('invoice_no', $invoiceNo)->first();
-
-                                if (!$invoiceRecord) {
-                                    Notification::make()
-                                        ->title('Validation Error')
-                                        ->body("Invoice {$invoiceNo} not found in system")
-                                        ->danger()
-                                        ->send();
-                                    return;
-                                }
-
-                                // Check salesperson match - compare names (skip if invoice salesperson is null)
-                                $invoiceSalesperson = $invoiceRecord->salesperson ?? null;
-
-                                if ($invoiceSalesperson !== null) {
-                                    $handoverSalespersonId = $record->lead->salesperson ?? null;
-                                    $handoverSalesperson = User::find($handoverSalespersonId)?->name ?? null;
-
-                                    if (stripos($handoverSalesperson, $invoiceSalesperson) === false &&
-                                        stripos($invoiceSalesperson, $handoverSalesperson) === false) {
+                                    if ($result['success']) {
                                         Notification::make()
-                                            ->title('Salesperson Mismatch')
-                                            ->body("Invoice {$invoiceNo} belongs to {$invoiceSalesperson}, but this handover belongs to {$handoverSalesperson}")
+                                            ->title('AutoCount Invoices Created Successfully')
+                                            ->body("Created {$result['total_invoices']} AutoCount invoice(s). Invoice Numbers: " .
+                                                implode(', ', $result['invoice_numbers']))
+                                            ->success()
+                                            ->send();
+
+                                        Log::info('Hardware AutoCount invoices created', [
+                                            'handover_id' => $record->id,
+                                            'invoice_numbers' => $result['invoice_numbers'],
+                                            'total_invoices' => $result['total_invoices']
+                                        ]);
+                                    } else {
+                                        Notification::make()
+                                            ->title('Failed to Create AutoCount Invoices')
+                                            ->body($result['error'] ?? 'Unknown error occurred')
                                             ->danger()
                                             ->send();
                                         return;
                                     }
+                                } catch (\Exception $e) {
+                                    Log::error('Hardware AutoCount invoice creation failed: ' . $e->getMessage());
+                                    Notification::make()
+                                        ->title('AutoCount Invoice Error')
+                                        ->body('An error occurred while creating AutoCount invoices: ' . $e->getMessage())
+                                        ->danger()
+                                        ->send();
+                                    return;
                                 }
                             }
 
-                            // Rest of your existing code...
-                            $invoiceData = [];
-                            foreach ($data['invoices'] as $invoice) {
-                                $invoiceData[] = [
-                                    'invoice_no' => strtoupper($invoice['invoice_no']),
-                                    'invoice_file' => $invoice['invoice_file'],
-                                    'payment_status' => $this->getPaymentStatusForInvoice($invoice['invoice_no'])
-                                ];
-                            }
+                            // // First check for duplicates within the form data
+                            // $invoiceNumbers = array_map(fn($invoice) => strtoupper($invoice['invoice_no']), $data['invoices']);
+                            // if (count($invoiceNumbers) !== count(array_unique($invoiceNumbers))) {
+                            //     Notification::make()
+                            //         ->title('Duplicate Invoice Numbers')
+                            //         ->body('You cannot enter the same invoice number multiple times.')
+                            //         ->danger()
+                            //         ->send();
+                            //     return;
+                            // }
 
-                            // Update hardware handover with invoice data
-                            $record->update([
-                                'invoice_data' => json_encode($invoiceData),
-                            ]);
+                            // // Check for duplicates in existing hardware handovers
+                            // foreach ($data['invoices'] as $invoice) {
+                            //     $invoiceNo = strtoupper($invoice['invoice_no']);
+
+                            //     // Check if this invoice number exists in other hardware handovers
+                            //     $existingHandover = HardwareHandoverV2::where('id', '!=', $record->id)
+                            //         ->whereNotNull('invoice_data')
+                            //         ->get()
+                            //         ->filter(function ($handover) use ($invoiceNo) {
+                            //             $invoiceData = is_string($handover->invoice_data)
+                            //                 ? json_decode($handover->invoice_data, true)
+                            //                 : $handover->invoice_data;
+
+                            //             if (!is_array($invoiceData)) return false;
+
+                            //             foreach ($invoiceData as $existingInvoice) {
+                            //                 if (isset($existingInvoice['invoice_no']) &&
+                            //                     strtoupper($existingInvoice['invoice_no']) === $invoiceNo) {
+                            //                     return true;
+                            //                 }
+                            //             }
+                            //             return false;
+                            //         })
+                            //         ->first();
+
+                            //     if ($existingHandover) {
+                            //         $existingHandoverId = 'HW_250' . str_pad($existingHandover->id, 3, '0', STR_PAD_LEFT);
+                            //         Notification::make()
+                            //             ->title('Duplicate Invoice Number')
+                            //             ->body("Invoice {$invoiceNo} is already used in Hardware Handover {$existingHandoverId}")
+                            //             ->danger()
+                            //             ->send();
+                            //         return;
+                            //     }
+
+                            //     // Check if invoice exists in system
+                            //     $invoiceRecord = \App\Models\Invoice::where('invoice_no', $invoiceNo)->first();
+
+                            //     if (!$invoiceRecord) {
+                            //         Notification::make()
+                            //             ->title('Validation Error')
+                            //             ->body("Invoice {$invoiceNo} not found in system")
+                            //             ->danger()
+                            //             ->send();
+                            //         return;
+                            //     }
+
+                            //     // Check salesperson match - compare names (skip if invoice salesperson is null)
+                            //     $invoiceSalesperson = $invoiceRecord->salesperson ?? null;
+
+                            //     if ($invoiceSalesperson !== null) {
+                            //         $handoverSalespersonId = $record->lead->salesperson ?? null;
+                            //         $handoverSalesperson = User::find($handoverSalespersonId)?->name ?? null;
+
+                            //         if (stripos($handoverSalesperson, $invoiceSalesperson) === false &&
+                            //             stripos($invoiceSalesperson, $handoverSalesperson) === false) {
+                            //             Notification::make()
+                            //                 ->title('Salesperson Mismatch')
+                            //                 ->body("Invoice {$invoiceNo} belongs to {$invoiceSalesperson}, but this handover belongs to {$handoverSalesperson}")
+                            //                 ->danger()
+                            //                 ->send();
+                            //             return;
+                            //         }
+                            //     }
+                            // }
+
+                            // // Rest of your existing code...
+                            // $invoiceData = [];
+                            // foreach ($data['invoices'] as $invoice) {
+                            //     $invoiceData[] = [
+                            //         'invoice_no' => strtoupper($invoice['invoice_no']),
+                            //         'invoice_file' => $invoice['invoice_file'],
+                            //         'payment_status' => $this->getPaymentStatusForInvoice($invoice['invoice_no'])
+                            //     ];
+                            // }
+
+                            // // Update hardware handover with invoice data
+                            // $record->update([
+                            //     'invoice_data' => json_encode($invoiceData),
+                            // ]);
 
                             // Route based on invoice type
                             if ($record->invoice_type === 'single') {
@@ -710,7 +849,7 @@ class HardwareV2PendingStockTable extends Component implements HasForms, HasTabl
                             }
 
                             // Send email to salesperson
-                            $this->sendHardwareHandoverEmail($record, $invoiceData);
+                            // $this->sendHardwareHandoverEmail($record, $invoiceData);
 
                             Notification::make()
                                 ->title($statusMessage)
@@ -874,6 +1013,339 @@ class HardwareV2PendingStockTable extends Component implements HasForms, HasTabl
                 ->warning()
                 ->send();
         }
+    }
+
+    /**
+     * Generate AutoCount invoice preview for hardware handover
+     */
+    protected function generateHardwareInvoicePreview(HardwareHandoverV2 $record, array $quotationIds): array
+    {
+        if (empty($quotationIds)) {
+            return [
+                'invoices' => [],
+                'total_invoices' => 0,
+                'grand_total' => 0,
+                'message' => 'No quotation IDs provided'
+            ];
+        }
+
+        try {
+            // Generate invoice numbers for preview
+            $invoiceNumbers = $this->generateMultipleHardwareInvoiceNumbers(count($quotationIds));
+            $invoices = [];
+            $grandTotal = 0;
+
+            foreach ($quotationIds as $index => $quotationId) {
+                $details = \App\Models\QuotationDetail::where('quotation_id', $quotationId)
+                    ->with('product')
+                    ->get();
+
+                if ($details->isEmpty()) {
+                    Log::warning("No quotation details found for quotation ID: {$quotationId}");
+                    continue;
+                }
+
+                // Group items by product code and unit price
+                $groupedItems = [];
+                $invoiceTotal = 0;
+
+                foreach ($details as $detail) {
+                    $productCode = $detail->product->code ?? 'ITEM-' . $detail->product_id;
+                    $unitPrice = (float) $detail->unit_price;
+                    $amount = (float) $detail->total_before_tax;
+                    $quantity = (float) $detail->quantity;
+
+                    $key = $productCode . '|' . $unitPrice;
+
+                    if (isset($groupedItems[$key])) {
+                        $groupedItems[$key]['quantity'] += $quantity;
+                        $groupedItems[$key]['amount'] += $amount;
+                    } else {
+                        $groupedItems[$key] = [
+                            'code' => $productCode,
+                            'quantity' => $quantity,
+                            'unit_price' => $unitPrice,
+                            'amount' => $amount
+                        ];
+                    }
+
+                    $invoiceTotal += $amount;
+                }
+
+                $items = array_values($groupedItems);
+
+                if (!empty($items)) {
+                    $invoices[] = [
+                        'invoice_no' => $invoiceNumbers[$index],
+                        'items' => $items,
+                        'total' => $invoiceTotal,
+                        'quotation_ids' => [$quotationId]
+                    ];
+
+                    $grandTotal += $invoiceTotal;
+                }
+            }
+
+            return [
+                'invoices' => $invoices,
+                'total_invoices' => count($invoices),
+                'grand_total' => $grandTotal
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('Error in generateHardwareInvoicePreview', [
+                'handover_id' => $record->id,
+                'quotation_ids' => $quotationIds,
+                'error' => $e->getMessage()
+            ]);
+
+            return [
+                'invoices' => [],
+                'total_invoices' => 0,
+                'grand_total' => 0,
+                'message' => 'Error generating preview: ' . $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Generate multiple invoice numbers for hardware handover
+     */
+    protected function generateMultipleHardwareInvoiceNumbers(int $count): array
+    {
+        $year = date('y');
+        $month = date('m');
+        $yearMonth = $year . $month;
+
+        // Get latest sequence from CRM HRDF invoices table
+        $latestInvoice = \App\Models\CrmHrdfInvoice::where('invoice_no', 'LIKE', "EHIN{$yearMonth}-%")
+            ->orderByRaw('CAST(SUBSTRING(invoice_no, -4) AS UNSIGNED) DESC')
+            ->first();
+
+        $startSequence = 1;
+        if ($latestInvoice) {
+            preg_match("/EHIN{$yearMonth}-(\d+)/", $latestInvoice->invoice_no, $matches);
+            $startSequence = (isset($matches[1]) ? intval($matches[1]) : 0) + 1;
+        }
+
+        // Generate all invoice numbers sequentially
+        $invoiceNumbers = [];
+        for ($i = 0; $i < $count; $i++) {
+            $sequence = str_pad($startSequence + $i, 4, '0', STR_PAD_LEFT);
+            $invoiceNumbers[] = "EHIN{$yearMonth}-{$sequence}";
+        }
+
+        return $invoiceNumbers;
+    }
+
+    /**
+     * Create AutoCount invoices for hardware handover
+     */
+    protected function createHardwareAutoCountInvoices(HardwareHandoverV2 $record): array
+    {
+        try {
+            $result = [
+                'success' => false,
+                'invoice_numbers' => [],
+                'total_invoices' => 0,
+                'error' => null,
+            ];
+
+            // ✅ Get quotation IDs from proforma_invoice_hrdf (not proforma_invoice_product)
+            $quotationIds = [];
+            if ($record->proforma_invoice_hrdf) {
+                $quotationIds = is_string($record->proforma_invoice_hrdf)
+                    ? json_decode($record->proforma_invoice_hrdf, true)
+                    : $record->proforma_invoice_hrdf;
+            }
+
+            if (empty($quotationIds)) {
+                $result['error'] = 'No HRDF quotations found for invoice creation';
+                return $result;
+            }
+
+            // ✅ Check if any quotations already have AutoCount invoices
+            $alreadyProcessed = \App\Models\Quotation::whereIn('id', $quotationIds)
+                ->where('autocount_generated_pi', true)
+                ->pluck('pi_reference_no')
+                ->toArray();
+
+            if (!empty($alreadyProcessed)) {
+                $result['error'] = 'The following quotations already have AutoCount invoices: ' . implode(', ', $alreadyProcessed);
+                return $result;
+            }
+
+            // ✅ Pre-generate all invoice numbers
+            $invoiceNumbers = $this->generateMultipleHardwareInvoiceNumbers(count($quotationIds));
+            $createdInvoices = [];
+
+            foreach ($quotationIds as $index => $quotationId) {
+                $invoiceNo = $invoiceNumbers[$index];
+
+                // Get quotation details
+                $details = \App\Models\QuotationDetail::where('quotation_id', $quotationId)
+                    ->with('product')
+                    ->get();
+
+                if ($details->isEmpty()) {
+                    Log::warning("No quotation details found for quotation ID: {$quotationId}");
+                    continue;
+                }
+
+                // Prepare invoice data for AutoCount API
+                $invoiceData = [
+                    'company' => 'TIMETEC Sandbox',
+                    'customer_code' => 'ARM-P0062',
+                    'document_no' => $invoiceNo,
+                    'document_date' => now()->format('Y-m-d'),
+                    'description' => 'Hardware HRDF Invoice - ' . ($record->lead->companyDetail->company_name ?? 'N/A'),
+                    'salesperson' => $this->getHardwareAutoCountSalesperson($record),
+                    'round_method' => 0,
+                    'inclusive' => true,
+                    'details' => $this->getHardwareInvoiceDetailsFromQuotation($quotationId),
+                ];
+
+                // Create invoice via AutoCount API
+                $autoCountService = app(\App\Services\AutoCountInvoiceService::class);
+                $invoiceResult = $autoCountService->createInvoice($invoiceData);
+
+                if (!$invoiceResult['success']) {
+                    $result['error'] = "Failed to create invoice {$invoiceNo}: " . $invoiceResult['error'];
+                    return $result;
+                }
+
+                $createdInvoices[] = $invoiceNo;
+
+                // ✅ Create CrmHrdfInvoice record
+                $total = $details->sum('total_before_tax');
+                $salesperson = $this->getHardwareSalespersonName($record);
+
+                \App\Models\CrmHrdfInvoice::create([
+                    'invoice_no' => $invoiceNo,
+                    'invoice_date' => now()->toDateString(),
+                    'company_name' => $record->lead->companyDetail->company_name ?? 'N/A',
+                    'handover_type' => 'HW', // Hardware Handover
+                    'salesperson' => $salesperson,
+                    'handover_id' => $record->id,
+                    'debtor_code' => 'ARM-P0062',
+                    'total_amount' => $total,
+                ]);
+
+                // ✅ Mark quotation as processed
+                \App\Models\Quotation::where('id', $quotationId)->update([
+                    'autocount_generated_pi' => true
+                ]);
+
+                Log::info('Hardware HRDF Invoice record created', [
+                    'invoice_no' => $invoiceNo,
+                    'hardware_handover_id' => $record->id,
+                    'quotation_id' => $quotationId,
+                    'company_name' => $record->lead->companyDetail->company_name ?? 'N/A',
+                    'total_amount' => $total,
+                    'handover_type' => 'HW',
+                    'quotation_pi_reference' => \App\Models\Quotation::find($quotationId)?->pi_reference_no ?? 'N/A'
+                ]);
+            }
+
+            $result['success'] = true;
+            $result['invoice_numbers'] = $createdInvoices;
+            $result['total_invoices'] = count($createdInvoices);
+
+            Log::info('Hardware AutoCount invoices creation completed', [
+                'handover_id' => $record->id,
+                'total_invoices_created' => count($createdInvoices),
+                'invoice_numbers' => $createdInvoices,
+                'processed_quotation_ids' => $quotationIds
+            ]);
+
+            return $result;
+
+        } catch (\Exception $e) {
+            Log::error('Hardware AutoCount invoice creation failed', [
+                'handover_id' => $record->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Get AutoCount salesperson for hardware handover
+     */
+    protected function getHardwareAutoCountSalesperson(HardwareHandoverV2 $record): string
+    {
+        $salespersonId = $record->lead->salesperson ?? null;
+        $salesperson = \App\Models\User::find($salespersonId);
+
+        if (!$salesperson) {
+            Log::warning('No salesperson found for hardware handover', [
+                'handover_id' => $record->id,
+                'fallback_used' => 'ADMIN'
+            ]);
+            return 'ADMIN';
+        }
+
+        // ✅ Check for autocount_name field first
+        if (!empty($salesperson->autocount_name)) {
+            Log::info('Hardware AutoCount salesperson using autocount_name', [
+                'salesperson_name' => $salesperson->name,
+                'salesperson_id' => $salespersonId,
+                'handover_id' => $record->id,
+                'autocount_code' => $salesperson->autocount_name
+            ]);
+            return $salesperson->autocount_name;
+        }
+
+        // ✅ Fallback to ADMIN if no autocount_name
+        Log::warning('No autocount_name found for salesperson, using ADMIN fallback', [
+            'salesperson_name' => $salesperson->name,
+            'salesperson_id' => $salespersonId,
+            'handover_id' => $record->id,
+            'fallback_used' => 'ADMIN'
+        ]);
+
+        return 'ADMIN';
+    }
+
+    /**
+     * Get salesperson name for hardware handover
+     */
+    protected function getHardwareSalespersonName(HardwareHandoverV2 $record): string
+    {
+        $salespersonId = $record->lead->salesperson ?? null;
+        $salesperson = \App\Models\User::find($salespersonId);
+        return $salesperson?->name ?? 'Unknown Salesperson';
+    }
+
+    /**
+     * Get invoice details from quotation for hardware handover
+     */
+    protected function getHardwareInvoiceDetailsFromQuotation(int $quotationId): array
+    {
+        $details = \App\Models\QuotationDetail::where('quotation_id', $quotationId)
+            ->with('product')
+            ->get();
+
+        $invoiceDetails = [];
+
+        foreach ($details as $detail) {
+            $productCode = $detail->product->code ?? 'ITEM-' . $detail->product_id;
+
+            $invoiceDetails[] = [
+                'item_code' => $productCode,
+                'description' => $detail->product->product_name ?? 'Product',
+                'quantity' => (float) $detail->quantity,
+                'unit_price' => (float) $detail->unit_price,
+                'discount_percent' => 0,
+                'tax_code' => 'TX-01',
+            ];
+        }
+
+        return $invoiceDetails;
     }
 
     public function render()
