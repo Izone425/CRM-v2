@@ -33,6 +33,7 @@ use App\Filament\Pages\HardwareDashboardPendingStock;
 use App\Filament\Pages\HeadcountHandoverList;
 use App\Filament\Pages\HrdfClaimTracker;
 use App\Filament\Pages\HrdfHandoverList;
+use App\Filament\Pages\HrdfInvoiceList;
 use App\Filament\Pages\ImplementationSession;
 use App\Filament\Pages\ImplementerAuditList;
 use App\Filament\Pages\ImplementerCalendar;
@@ -370,6 +371,7 @@ class AdminPanelProvider extends PanelProvider
                 ApolloLeadTracker::class,
                 SalespersonLeadSequenceV2::class,
                 TrainingSetting::class,
+                HrdfInvoiceList::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([

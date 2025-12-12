@@ -200,6 +200,11 @@ class Lead extends Model
         return $this->hasMany(AdminRenewalLogs::class, 'lead_id', 'id');
     }
 
+    public function renewalHandover(): HasMany
+    {
+        return $this->hasMany(RenewalHandover::class, 'lead_id', 'id');
+    }
+
     public function demoAppointment(): HasMany
     {
         return $this->hasMany(Appointment::class, 'lead_id', 'id');

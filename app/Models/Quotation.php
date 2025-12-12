@@ -36,6 +36,7 @@ class Quotation extends Model
         'email_sent_at',
         'confirmation_order_document',
         'subsidiary_id',
+        'autocount_generated_pi',
     ];
 
     protected $casts = [

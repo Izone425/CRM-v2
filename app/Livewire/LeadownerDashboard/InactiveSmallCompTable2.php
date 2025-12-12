@@ -59,7 +59,7 @@ class InactiveSmallCompTable2 extends Component implements HasForms, HasTable
             ->where('categories', 'Inactive') // Only Inactive leads
             ->where('done_call', '1')
             ->whereNull('salesperson')
-            ->where('company_size', '=', '1-24') // Only small companies (1-24)
+            ->whereIn('company_size', ['1-24', '20-24']) // Only small companies (1-24)
             ->selectRaw('*, DATEDIFF(updated_at, created_at) as pending_days');
     }
 
@@ -227,7 +227,7 @@ class InactiveSmallCompTable2 extends Component implements HasForms, HasTable
                         $affectedRows = Lead::where('done_call', '=', '1')
                             ->whereNull('salesperson')
                             ->where('done_call', '=', '1')
-                            ->where('company_size', '=', '1-24')
+                            ->whereIn('company_size', ['1-24', '20-24'])
                             ->update(['done_call' => 0]);
 
                         // If no leads were updated, show a warning

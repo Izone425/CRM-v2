@@ -57,7 +57,7 @@ class SalespersonSmallCompTable extends Component implements HasForms, HasTable
     {
         return Lead::query()
             ->whereNotNull('salesperson') // Ensure salesperson is NOT NULL
-            ->where('company_size', '=', '1-24') // Only small companies (1-24)
+            ->whereIn('company_size', ['1-24', '20-24']) // Only small companies (1-24)
             ->where('categories', '!=', 'Inactive') // Exclude Inactive leads
             ->selectRaw('*, DATEDIFF(NOW(), created_at) as pending_time'); // Default sorting by latest created leads
     }

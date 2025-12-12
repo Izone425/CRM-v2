@@ -94,6 +94,8 @@ class SoftwareHandover extends Model
         'hr_version',
         'license_type',
         'invoice_number',
+        'autocount_debtor_code',
+        'autocount_invoice_no',
 
         'crm_buffer_license_id',
         'crm_paid_license_ids',
@@ -398,5 +400,20 @@ class SoftwareHandover extends Model
         return $this->hasOne(HardwareHandoverV2::class, 'id', 'id')
             ->whereRaw('JSON_CONTAINS(related_software_handovers, CAST(? AS JSON))', [$this->id])
             ->latest();
+    }
+
+    public function licenseCertificate()
+    {
+        return $this->hasOne(LicenseCertificate::class, 'software_handover_id', 'id');
+    }
+
+    public function licenseCertificateById()
+    {
+        return $this->belongsTo(LicenseCertificate::class, 'license_certification_id', 'id');
+    }
+
+    public function hrdfInvoices()
+    {
+        return $this->hasMany(\App\Models\CrmHrdfInvoice::class, 'handover_id');
     }
 }

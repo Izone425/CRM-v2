@@ -18,7 +18,7 @@ class SalespersonLeadSequence extends Page
     // Store user IDs for rank1 and rank2
     public $rank1 = [12, 6, 9];
     public $rank2 = [11, 10, 7, 8];
-    public $sizes = ['1-24', '25-99', '100-500', '501 and Above'];
+    public $sizes = ['1-24', '20-24', '25-99', '100-500', '501 and Above'];
 
     public $rank1DemoStats = [];
     public $rank2DemoStats = [];

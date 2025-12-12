@@ -56,7 +56,7 @@ class ActiveSmallCompTable extends Component implements HasForms, HasTable
     public function getActiveSmallCompanyLeads()
     {
         return Lead::query()
-            ->where('company_size', '=', '1-24') // Match exact '1-24'
+            ->whereIn('company_size', ['1-24', '20-24'])
             ->whereNull('salesperson') // Salesperson must be NULL
             ->whereNotNull('lead_owner')
             ->where('lead_code', 'NOT LIKE', 'Apollo%')
@@ -93,6 +93,7 @@ class ActiveSmallCompTable extends Component implements HasForms, HasTable
                         if (!empty($data['values'])) { // 'values' stores multiple selections
                             $sizeMap = [
                                 'Small' => '1-24',
+                                'Small' => '20-24',
                                 'Medium' => '25-99',
                                 'Large' => '100-500',
                                 'Enterprise' => '501 and Above',
@@ -190,7 +191,7 @@ class ActiveSmallCompTable extends Component implements HasForms, HasTable
                     ->sortable(query: function ($query, $direction) {
                         return $query->orderByRaw("
                             CASE
-                                WHEN company_size = '1-24' THEN 1
+                                WHEN company_size IN ('1-24', '20-24') THEN 1
                                 WHEN company_size = '25-99' THEN 2
                                 WHEN company_size = '100-500' THEN 3
                                 WHEN company_size = '501 and Above' THEN 4

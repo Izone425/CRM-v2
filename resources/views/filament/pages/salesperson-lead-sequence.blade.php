@@ -486,10 +486,10 @@
                                     </div>
                                     <div class="mb-1 flex-between">
                                         <span class="stats-label">Small Companies</span>
-                                        <span class="stats-label">{{ $rank1DemoStats[$spId]['1-24'] ?? 0 }}</span>
+                                        <span class="stats-label">{{ ($rank1DemoStats[$spId]['1-24'] ?? 0) + ($rank1DemoStats[$spId]['20-24'] ?? 0) }}</span>
                                     </div>
                                     <div class="progress-container">
-                                        <div class="progress-bar progress-bar--small" style="width: {{ array_sum($rank1DemoStats[$spId] ?? []) > 0 ? round(($rank1DemoStats[$spId]['1-24'] ?? 0) / array_sum($rank1DemoStats[$spId] ?? []) * 100) : 0 }}%"></div>
+                                        <div class="progress-bar progress-bar--small" style="width: {{ array_sum($rank1DemoStats[$spId] ?? []) > 0 ? round((($rank1DemoStats[$spId]['1-24'] ?? 0) + ($rank1DemoStats[$spId]['20-24'] ?? 0)) / array_sum($rank1DemoStats[$spId] ?? []) * 100) : 0 }}%"></div>
                                     </div>
                                     <div class="mt-3 mb-1 flex-between">
                                         <span class="stats-label">Medium Companies</span>
@@ -525,10 +525,10 @@
                                     </div>
                                     <div class="mb-1 flex-between">
                                         <span class="stats-label">Small Companies</span>
-                                        <span class="stats-label">{{ $rank1RfqStats[$spId]['1-24'] ?? 0 }}</span>
+                                        <span class="stats-label">{{ ($rank1RfqStats[$spId]['1-24'] ?? 0) + ($rank1RfqStats[$spId]['20-24'] ?? 0) }}</span>
                                     </div>
                                     <div class="progress-container">
-                                        <div class="progress-bar progress-bar--small" style="width: {{ array_sum($rank1RfqStats[$spId] ?? []) > 0 ? round(($rank1RfqStats[$spId]['1-24'] ?? 0) / array_sum($rank1RfqStats[$spId] ?? []) * 100) : 0 }}%"></div>
+                                        <div class="progress-bar progress-bar--small" style="width: {{ array_sum($rank1RfqStats[$spId] ?? []) > 0 ? round((($rank1RfqStats[$spId]['1-24'] ?? 0) + ($rank1RfqStats[$spId]['20-24'] ?? 0)) / array_sum($rank1RfqStats[$spId] ?? []) * 100) : 0 }}%"></div>
                                     </div>
                                     <div class="mt-3 mb-1 flex-between">
                                         <span class="stats-label">Medium Companies</span>
@@ -833,10 +833,10 @@
                                     </div>
                                     <div class="mb-1 flex-between">
                                         <span class="stats-label">Small Companies</span>
-                                        <span class="stats-label">{{ $rank2DemoStats[$spId]['1-24'] ?? 0 }}</span>
+                                        <span class="stats-label">{{ ($rank2DemoStats[$spId]['1-24'] ?? 0) + ($rank2DemoStats[$spId]['20-24'] ?? 0) }}</span>
                                     </div>
                                     <div class="progress-container">
-                                        <div class="progress-bar progress-bar--small" style="width: {{ array_sum($rank2DemoStats[$spId] ?? []) > 0 ? round(($rank2DemoStats[$spId]['1-24'] ?? 0) / array_sum($rank2DemoStats[$spId] ?? []) * 100) : 0 }}%"></div>
+                                        <div class="progress-bar progress-bar--small" style="width: {{ array_sum($rank2DemoStats[$spId] ?? []) > 0 ? round((($rank2DemoStats[$spId]['1-24'] ?? 0) + ($rank2DemoStats[$spId]['20-24'] ?? 0)) / array_sum($rank2DemoStats[$spId] ?? []) * 100) : 0 }}%"></div>
                                     </div>
                                     <div class="mt-3 mb-1 flex-between">
                                         <span class="stats-label">Medium Companies</span>
@@ -872,10 +872,10 @@
                                     </div>
                                     <div class="mb-1 flex-between">
                                         <span class="stats-label">Small Companies</span>
-                                        <span class="stats-label">{{ $rank2RfqStats[$spId]['1-24'] ?? 0 }}</span>
+                                        <span class="stats-label">{{ ($rank2RfqStats[$spId]['1-24'] ?? 0) + ($rank2RfqStats[$spId]['20-24'] ?? 0) }}</span>
                                     </div>
                                     <div class="progress-container">
-                                        <div class="progress-bar progress-bar--small" style="width: {{ array_sum($rank2RfqStats[$spId] ?? []) > 0 ? round(($rank2RfqStats[$spId]['1-24'] ?? 0) / array_sum($rank2RfqStats[$spId] ?? []) * 100) : 0 }}%"></div>
+                                        <div class="progress-bar progress-bar--small" style="width: {{ array_sum($rank2RfqStats[$spId] ?? []) > 0 ? round((($rank2RfqStats[$spId]['1-24'] ?? 0) + ($rank2RfqStats[$spId]['20-24'] ?? 0)) / array_sum($rank2RfqStats[$spId] ?? []) * 100) : 0 }}%"></div>
                                     </div>
                                     <div class="mt-3 mb-1 flex-between">
                                         <span class="stats-label">Medium Companies</span>

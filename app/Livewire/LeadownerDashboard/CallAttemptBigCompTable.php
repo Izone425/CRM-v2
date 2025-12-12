@@ -60,7 +60,7 @@ class CallAttemptBigCompTable extends Component implements HasForms, HasTable
             ->where('lead_code', 'NOT LIKE', 'Apollo%')
             ->whereBetween('call_attempt', [1, 10])
             ->where('categories', '!=', 'Inactive') // Exclude Inactive leads
-            ->where('company_size', '!=', '1-24') // Exclude small companies (1-24)
+            ->whereNotIn('company_size', ['1-24', '20-24']) // Exclude small companies (1-24 and 20-24)
             ->selectRaw('*, DATEDIFF(NOW(), created_at) as pending_time');
     }
 
@@ -89,6 +89,7 @@ class CallAttemptBigCompTable extends Component implements HasForms, HasTable
                         if (!empty($data['values'])) { // 'values' stores multiple selections
                             $sizeMap = [
                                 'Small' => '1-24',
+                                'Small' => '20-24',
                                 'Medium' => '25-99',
                                 'Large' => '100-500',
                                 'Enterprise' => '501 and Above',
@@ -241,7 +242,7 @@ class CallAttemptBigCompTable extends Component implements HasForms, HasTable
                         $affectedRows = Lead::where('done_call', '=', '1')
                             ->whereNull('salesperson')
                             ->where('done_call', '=', '1')
-                            ->where('company_size', '!=', '1-24')
+                            ->whereNotIn('company_size', ['1-24', '20-24'])
                             ->update(['done_call' => 0]);
 
                         // If no leads were updated, show a warning

@@ -163,6 +163,7 @@ class SalesAdminClosedDeal extends Page implements HasTable
                     ->label('Company Size')
                     ->options([
                         '1-24' => 'Small',
+                        '20-24' => 'Small',
                         '25-99' => 'Medium',
                         '100-500' => 'Large',
                         '501 and Above' => 'Enterprise',

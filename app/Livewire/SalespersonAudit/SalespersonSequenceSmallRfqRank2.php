@@ -34,7 +34,7 @@ class SalespersonSequenceSmallRfqRank2 extends Component implements HasForms, Ha
     public $rankUsers = [];
 
     // Company sizes considered "small"
-    protected $smallCompanySizes = ['1-24'];
+    protected $smallCompanySizes = ['1-24', '20-24'];
 
     public function mount()
     {

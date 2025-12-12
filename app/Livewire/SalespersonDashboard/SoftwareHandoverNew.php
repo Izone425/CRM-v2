@@ -6,10 +6,12 @@ use App\Classes\Encryptor;
 use App\Filament\Filters\SortFilter;
 use App\Http\Controllers\GenerateSoftwareHandoverPdfController;
 use App\Models\CompanyDetail;
+use App\Models\CrmHrdfInvoice;
 use App\Models\ImplementerLogs;
 use App\Models\Lead;
 use App\Models\SoftwareHandover;
 use App\Models\User;
+use App\Services\AutoCountIntegrationService;
 use App\Services\CategoryService;
 use Filament\Forms\Components\Actions;
 use Filament\Forms\Components\FileUpload;
@@ -308,719 +310,6 @@ class SoftwareHandoverNew extends Component implements HasForms, HasTable
                             return view('components.software-handover')
                                 ->with('extraAttributes', ['record' => $record]);
                         }),
-                    // Action::make('edit_software_handover')
-                    //     ->label(function (SoftwareHandover $record): string {
-                    //         return "Edit Software Handover {$record->formatted_handover_id}";
-                    //     })
-                    //     ->icon('heroicon-o-pencil')
-                    //     ->color('warning')
-                    //     ->modalSubmitActionLabel('Save')
-                    //     ->visible(fn(SoftwareHandover $record): bool => in_array($record->status, ['Draft']))
-                    //     ->modalWidth(MaxWidth::FourExtraLarge)
-                    //     ->slideOver()
-                    //     ->form([
-                    //         ToggleButtons::make('hr_version')
-                    //             ->label('Select HR Version')
-                    //             ->options([
-                    //                 '1' => 'HR Version 1',
-                    //                 '2' => 'HR Version 2',
-                    //             ])
-                    //             ->default('1')
-                    //             ->inline()
-                    //             ->required()
-                    //             ->live()
-                    //             ->visible(fn () => auth()->user()->role_id === 3),
-
-                    //         Section::make('Step 1: Database Details')
-                    //             ->schema([
-                    //                 Grid::make(3)
-                    //                     ->schema([
-                    //                         TextInput::make('company_name')
-                    //                             ->label('Company Name')
-                    //                             ->hidden()
-                    //                             ->dehydrated(true)
-                    //                             ->default(fn (SoftwareHandover $record) =>
-                    //                                 $record->company_name ?? $this->getOwnerRecord()->companyDetail->company_name ?? null),
-                    //                         TextInput::make('pic_name')
-                    //                             ->label('Name')
-                    //                             ->extraInputAttributes(['style' => 'text-transform: uppercase'])
-                    //                             ->afterStateHydrated(fn($state) => Str::upper($state))
-                    //                             ->afterStateUpdated(fn($state) => Str::upper($state))
-                    //                             ->default(fn (SoftwareHandover $record) =>
-                    //                                 $record->pic_name ?? $this->getOwnerRecord()->companyDetail->name ?? $this->getOwnerRecord()->name),
-                    //                         TextInput::make('pic_phone')
-                    //                             ->label('HP Number')
-                    //                             ->tel()
-                    //                             ->default(fn (SoftwareHandover $record) =>
-                    //                                 $record->pic_phone ?? $this->getOwnerRecord()->companyDetail->contact_no ?? $this->getOwnerRecord()->phone),
-                    //                     ]),
-                    //                 Grid::make(3)
-                    //                     ->schema([
-                    //                         TextInput::make('salesperson')
-                    //                             ->readOnly()
-                    //                             ->dehydrated(true)
-                    //                             ->label('Salesperson')
-                    //                             ->default(fn (SoftwareHandover $record) =>
-                    //                                 $record->salesperson ?? ($this->getOwnerRecord()->salesperson ? User::find($this->getOwnerRecord()->salesperson)->name : null))
-                    //                             ->hidden(),
-
-                    //                         TextInput::make('headcount')
-                    //                             ->numeric()
-                    //                             ->live(debounce: 550)
-                    //                             ->afterStateUpdated(function (Set $set, ?string $state, CategoryService $category) {
-                    //                                 $set('category', $category->retrieve($state));
-                    //                             })
-                    //                             ->required()
-                    //                             ->disabled()
-                    //                             ->dehydrated(true)
-                    //                             ->default(fn (SoftwareHandover $record) => $record->headcount ?? null)
-                    //                             ->hidden(),
-
-                    //                         TextInput::make('category')
-                    //                             ->label('Company Size')
-                    //                             ->dehydrated(false)
-                    //                             ->autocapitalize()
-                    //                             ->placeholder('Select a category')
-                    //                             ->default(function (SoftwareHandover $record, CategoryService $category = null) {
-                    //                                 if ($record && $record->headcount && $category) {
-                    //                                     return $category->retrieve($record->headcount);
-                    //                                 }
-                    //                                 if ($record && $record->category) {
-                    //                                     return $record->category;
-                    //                                 }
-                    //                                 return null;
-                    //                             })
-                    //                             ->readOnly()
-                    //                             ->hidden(),
-                    //                     ]),
-                    //             ]),
-
-                    //         Section::make('Step 2: Invoice Details')
-                    //             ->schema([
-                    //                 Grid::make(1)
-                    //                     ->schema([
-                    //                         Actions::make([
-                    //                             FormAction::make('export_invoice_info')
-                    //                                 ->label('Export AutoCount Debtor')
-                    //                                 ->color('success')
-                    //                                 ->icon('heroicon-o-document-arrow-down')
-                    //                                 ->url(function (SoftwareHandover $record) {
-                    //                                     return route('software-handover.export-customer', ['lead' => Encryptor::encrypt($record->lead_id)]);
-                    //                                 })
-                    //                                 ->openUrlInNewTab(),
-                    //                         ])
-                    //                         ->extraAttributes(['class' => 'space-y-2']),
-                    //                     ]),
-                    //             ]),
-
-                    //         Section::make('Step 3: Implementation Details')
-                    //             ->schema([
-                    //                 Repeater::make('implementation_pics')
-                    //                     ->hiddenLabel(true)
-                    //                     ->schema([
-                    //                         Grid::make(4)
-                    //                         ->schema([
-                    //                             TextInput::make('pic_name_impl')
-                    //                                 ->required()
-                    //                                 ->extraInputAttributes(['style' => 'text-transform: uppercase'])
-                    //                                 ->afterStateHydrated(fn($state) => Str::upper($state))
-                    //                                 ->afterStateUpdated(fn($state) => Str::upper($state))
-                    //                                 ->label('Name'),
-                    //                             TextInput::make('position')
-                    //                                 ->extraInputAttributes(['style' => 'text-transform: uppercase'])
-                    //                                 ->afterStateHydrated(fn($state) => Str::upper($state))
-                    //                                 ->afterStateUpdated(fn($state) => Str::upper($state))
-                    //                                 ->label('Position'),
-                    //                             TextInput::make('pic_phone_impl')
-                    //                                 ->required()
-                    //                                 ->tel()
-                    //                                 ->label('HP Number'),
-                    //                             TextInput::make('pic_email_impl')
-                    //                                 ->label('Email Address')
-                    //                                 ->required()
-                    //                                 ->email()
-                    //                                 ->extraAlpineAttributes([
-                    //                                     'x-on:input' => '
-                    //                                         const start = $el.selectionStart;
-                    //                                         const end = $el.selectionEnd;
-                    //                                         const value = $el.value;
-                    //                                         $el.value = value.toLowerCase();
-                    //                                         $el.setSelectionRange(start, end);
-                    //                                     '
-                    //                                 ])
-                    //                                 ->dehydrateStateUsing(fn ($state) => strtolower($state)),
-                    //                         ]),
-                    //                     ])
-                    //                     ->addActionLabel('Add PIC')
-                    //                     ->minItems(1)
-                    //                     ->itemLabel('Person In Charge')
-                    //                     ->columns(2)
-                    //                     ->default(function (SoftwareHandover $record) {
-                    //                         if ($record && $record->implementation_pics) {
-                    //                             if (is_string($record->implementation_pics)) {
-                    //                                 return json_decode($record->implementation_pics, true);
-                    //                             }
-                    //                             if (is_array($record->implementation_pics)) {
-                    //                                 return $record->implementation_pics;
-                    //                             }
-                    //                         }
-                    //                         return [];
-                    //                     }),
-                    //             ]),
-
-                    //         Section::make('Step 4: Remark Details')
-                    //             ->schema([
-                    //                 Repeater::make('remarks')
-                    //                     ->label('Remarks')
-                    //                     ->hiddenLabel(true)
-                    //                     ->schema([
-                    //                         Grid::make(1)
-                    //                         ->schema([
-                    //                             Textarea::make('remark')
-                    //                                 ->extraAlpineAttributes([
-                    //                                     'x-on:input' => '
-                    //                                         const start = $el.selectionStart;
-                    //                                         const end = $el.selectionEnd;
-                    //                                         const value = $el.value;
-                    //                                         $el.value = value.toUpperCase();
-                    //                                         $el.setSelectionRange(start, end);
-                    //                                     '
-                    //                                 ])
-                    //                                 ->dehydrateStateUsing(fn ($state) => strtoupper($state))
-                    //                                 ->hiddenLabel(true)
-                    //                                 ->label(function (Get $get, ?string $state, $livewire) {
-                    //                                     $statePath = $livewire->getFormStatePath();
-                    //                                     $matches = [];
-                    //                                     if (preg_match('/remarks\.(\d+)\./', $statePath, $matches)) {
-                    //                                         $index = (int) $matches[1];
-                    //                                         return 'Remark ' . ($index + 1);
-                    //                                     }
-                    //                                     return 'Remark';
-                    //                                 })
-                    //                                 ->placeholder('Write Remark')
-                    //                                 ->autosize()
-                    //                                 ->rows(2),
-                    //                         ])
-                    //                     ])
-                    //                     ->itemLabel('Remark')
-                    //                     ->addActionLabel('Add Remark')
-                    //                     ->maxItems(5)
-                    //                     ->defaultItems(1)
-                    //                     ->default(function (SoftwareHandover $record) {
-                    //                         if ($record && $record->remarks) {
-                    //                             if (is_string($record->remarks)) {
-                    //                                 $decoded = json_decode($record->remarks, true);
-                    //                                 if (is_array($decoded)) {
-                    //                                     foreach ($decoded as $key => $remark) {
-                    //                                         if (isset($remark['attachments']) && is_string($remark['attachments'])) {
-                    //                                             $decoded[$key]['attachments'] = json_decode($remark['attachments'], true);
-                    //                                         }
-                    //                                     }
-                    //                                     return $decoded;
-                    //                                 }
-                    //                             }
-                    //                             if (is_array($record->remarks)) {
-                    //                                 $remarks = $record->remarks;
-                    //                                 foreach ($remarks as $key => $remark) {
-                    //                                     if (isset($remark['attachments']) && is_string($remark['attachments'])) {
-                    //                                         $remarks[$key]['attachments'] = json_decode($remark['attachments'], true);
-                    //                                     }
-                    //                                 }
-                    //                                 return $remarks;
-                    //                             }
-                    //                         }
-                    //                         return [];
-                    //                     }),
-                    //             ]),
-
-                    //         Grid::make(2)
-                    //         ->schema([
-                    //             Section::make('Step 5: Training Category')
-                    //             ->schema([
-                    //                 Radio::make('training_type')
-                    //                     ->label('')
-                    //                     ->options([
-                    //                         'online_webinar_training' => 'Online Webinar Training',
-                    //                         'online_hrdf_training' => 'Online HRDF Training',
-                    //                     ])
-                    //                     ->required()
-                    //                     ->reactive()
-                    //                     ->afterStateUpdated(function ($state, callable $set) {
-                    //                         $set('product_pi', null);
-                    //                         $set('non_hrdf_inv', null);
-                    //                         $set('hrdf_inv', null);
-                    //                         $set('sw_pi', null);
-                    //                     })
-                    //                     ->default(fn (SoftwareHandover $record) => $record->training_type ?? null),
-                    //             ])->columnSpan(1),
-
-                    //             Section::make('Step 6: Speaker Category')
-                    //                 ->schema([
-                    //                     Radio::make('speaker_category')
-                    //                         ->label('')
-                    //                         ->options([
-                    //                             'english / malay' => 'English / Malay',
-                    //                             'mandarin' => 'Mandarin',
-                    //                         ])
-                    //                         ->live()
-                    //                         ->afterStateHydrated(function (Set $set, Get $get, $state) {
-                    //                             $headcount = (int)$get('headcount');
-                    //                             if ($headcount <= 25 && $state === 'mandarin') {
-                    //                                 $set('speaker_category', 'english / malay');
-                    //                             }
-                    //                         })
-                    //                         ->required()
-                    //                         ->default(fn (SoftwareHandover $record) => $record->speaker_category ?? null),
-                    //                 ])->columnSpan(1),
-                    //         ]),
-
-                    //         Section::make('Step 7: Proforma Invoice')
-                    //             ->columnSpan(1)
-                    //             ->schema([
-                    //                 Grid::make(4)
-                    //                     ->schema([
-                    //                         Select::make('proforma_invoice_product')
-                    //                             ->label('Software + Hardware')
-                    //                             ->required(fn (callable $get) => $get('training_type') === 'online_webinar_training')
-                    //                             ->options(function (SoftwareHandover $record) {
-                    //                                 $leadId = $record->lead_id;
-                    //                                 $currentRecordId = $record->id;
-
-                    //                                 $usedPiIds = [];
-                    //                                 $softwareHandovers = SoftwareHandover::where('lead_id', $leadId)
-                    //                                     ->where('id', '!=', $currentRecordId)
-                    //                                     ->get();
-
-                    //                                 foreach ($softwareHandovers as $handover) {
-                    //                                     $piProduct = $handover->proforma_invoice_product;
-                    //                                     if (!empty($piProduct)) {
-                    //                                         if (is_string($piProduct)) {
-                    //                                             $piIds = json_decode($piProduct, true);
-                    //                                             if (is_array($piIds)) {
-                    //                                                 $usedPiIds = array_merge($usedPiIds, $piIds);
-                    //                                             }
-                    //                                         } elseif (is_array($piProduct)) {
-                    //                                             $usedPiIds = array_merge($usedPiIds, $piProduct);
-                    //                                         }
-                    //                                     }
-                    //                                 }
-
-                    //                                 return \App\Models\Quotation::where('lead_id', $leadId)
-                    //                                     ->where('quotation_type', 'product')
-                    //                                     ->where('status', \App\Enums\QuotationStatusEnum::accepted)
-                    //                                     ->whereNotIn('id', array_filter($usedPiIds))
-                    //                                     ->where('quotation_date', '>=', now()->toDateString())
-                    //                                     ->pluck('pi_reference_no', 'id')
-                    //                                     ->toArray();
-                    //                             })
-                    //                             ->multiple()
-                    //                             ->searchable()
-                    //                             ->preload()
-                    //                             ->live()
-                    //                             ->afterStateUpdated(function (Set $set, ?array $state, CategoryService $category) {
-                    //                                 if (empty($state)) {
-                    //                                     return;
-                    //                                 }
-                    //                                 $highestQuantity = \App\Models\QuotationDetail::whereIn('quotation_id', $state)
-                    //                                     ->max('quantity');
-                    //                                 if ($highestQuantity) {
-                    //                                     $set('headcount', $highestQuantity);
-                    //                                     $set('category', $category->retrieve($highestQuantity));
-                    //                                 }
-                    //                             })
-                    //                             ->visible(fn (callable $get) => $get('training_type') === 'online_webinar_training')
-                    //                             ->default(function (SoftwareHandover $record) {
-                    //                                 if (!$record || !$record->proforma_invoice_product) {
-                    //                                     return [];
-                    //                                 }
-                    //                                 if (is_string($record->proforma_invoice_product)) {
-                    //                                     return json_decode($record->proforma_invoice_product, true) ?? [];
-                    //                                 }
-                    //                                 return is_array($record->proforma_invoice_product) ? $record->proforma_invoice_product : [];
-                    //                             }),
-
-                    //                         Select::make('software_hardware_pi')
-                    //                             ->required(fn (callable $get) => $get('training_type') === 'online_hrdf_training')
-                    //                             ->label('Software + Hardware')
-                    //                             ->options(function (SoftwareHandover $record) {
-                    //                                 $leadId = $record->lead_id;
-                    //                                 $currentRecordId = $record->id;
-
-                    //                                 $usedPiIds = [];
-                    //                                 $softwareHandovers = SoftwareHandover::where('lead_id', $leadId)
-                    //                                     ->where('id', '!=', $currentRecordId)
-                    //                                     ->get();
-
-                    //                                 foreach ($softwareHandovers as $handover) {
-                    //                                     $fields = ['proforma_invoice_product', 'software_hardware_pi', 'non_hrdf_pi'];
-                    //                                     foreach ($fields as $field) {
-                    //                                         $piData = $handover->$field;
-                    //                                         if (!empty($piData)) {
-                    //                                             if (is_string($piData)) {
-                    //                                                 $piIds = json_decode($piData, true);
-                    //                                                 if (is_array($piIds)) {
-                    //                                                     $usedPiIds = array_merge($usedPiIds, $piIds);
-                    //                                                 }
-                    //                                             } elseif (is_array($piData)) {
-                    //                                                 $usedPiIds = array_merge($usedPiIds, $piData);
-                    //                                             }
-                    //                                         }
-                    //                                     }
-                    //                                 }
-
-                    //                                 return \App\Models\Quotation::where('lead_id', $leadId)
-                    //                                     ->where('quotation_type', 'product')
-                    //                                     ->where('status', \App\Enums\QuotationStatusEnum::accepted)
-                    //                                     ->whereNotIn('id', array_filter($usedPiIds))
-                    //                                     ->where('quotation_date', '>=', now()->toDateString())
-                    //                                     ->pluck('pi_reference_no', 'id')
-                    //                                     ->toArray();
-                    //                             })
-                    //                             ->multiple()
-                    //                             ->searchable()
-                    //                             ->preload()
-                    //                             ->live()
-                    //                             ->afterStateUpdated(function (Set $set, ?array $state, CategoryService $category) {
-                    //                                 if (empty($state)) {
-                    //                                     return;
-                    //                                 }
-                    //                                 $highestQuantity = \App\Models\QuotationDetail::whereIn('quotation_id', $state)
-                    //                                     ->max('quantity');
-                    //                                 if ($highestQuantity) {
-                    //                                     $set('headcount', $highestQuantity);
-                    //                                     $set('category', $category->retrieve($highestQuantity));
-                    //                                 }
-                    //                             })
-                    //                             ->visible(fn (callable $get) => $get('training_type') === 'online_hrdf_training')
-                    //                             ->default(function (SoftwareHandover $record) {
-                    //                                 if (!$record || !$record->software_hardware_pi) {
-                    //                                     return [];
-                    //                                 }
-                    //                                 if (is_string($record->software_hardware_pi)) {
-                    //                                     return json_decode($record->software_hardware_pi, true) ?? [];
-                    //                                 }
-                    //                                 return is_array($record->software_hardware_pi) ? $record->software_hardware_pi : [];
-                    //                             }),
-
-                    //                         Select::make('non_hrdf_pi')
-                    //                             ->label('Non-HRDF Invoice')
-                    //                             ->options(function (SoftwareHandover $record) {
-                    //                                 $leadId = $record->lead_id;
-                    //                                 $currentRecordId = $record->id;
-
-                    //                                 $usedPiIds = [];
-                    //                                 $softwareHandovers = SoftwareHandover::where('lead_id', $leadId)
-                    //                                     ->where('id', '!=', $currentRecordId)
-                    //                                     ->get();
-
-                    //                                 foreach ($softwareHandovers as $handover) {
-                    //                                     $fields = ['proforma_invoice_product', 'software_hardware_pi', 'non_hrdf_pi'];
-                    //                                     foreach ($fields as $field) {
-                    //                                         $piData = $handover->$field;
-                    //                                         if (!empty($piData)) {
-                    //                                             if (is_string($piData)) {
-                    //                                                 $piIds = json_decode($piData, true);
-                    //                                                 if (is_array($piIds)) {
-                    //                                                     $usedPiIds = array_merge($usedPiIds, $piIds);
-                    //                                                 }
-                    //                                             } elseif (is_array($piData)) {
-                    //                                                 $usedPiIds = array_merge($usedPiIds, $piData);
-                    //                                             }
-                    //                                         }
-                    //                                     }
-                    //                                 }
-
-                    //                                 return \App\Models\Quotation::where('lead_id', $leadId)
-                    //                                     ->where('quotation_type', 'product')
-                    //                                     ->where('status', \App\Enums\QuotationStatusEnum::accepted)
-                    //                                     ->whereNotIn('id', array_filter($usedPiIds))
-                    //                                     ->where('quotation_date', '>=', now()->toDateString())
-                    //                                     ->pluck('pi_reference_no', 'id')
-                    //                                     ->toArray();
-                    //                             })
-                    //                             ->multiple()
-                    //                             ->searchable()
-                    //                             ->preload()
-                    //                             ->visible(fn (callable $get) => $get('training_type') === 'online_hrdf_training')
-                    //                             ->default(function (SoftwareHandover $record) {
-                    //                                 if (!$record || !$record->non_hrdf_pi) {
-                    //                                     return [];
-                    //                                 }
-                    //                                 if (is_string($record->non_hrdf_pi)) {
-                    //                                     return json_decode($record->non_hrdf_pi, true) ?? [];
-                    //                                 }
-                    //                                 return is_array($record->non_hrdf_pi) ? $record->non_hrdf_pi : [];
-                    //                             }),
-
-                    //                         Select::make('proforma_invoice_hrdf')
-                    //                             ->label('HRDF Invoice')
-                    //                             ->required(fn (callable $get) => $get('training_type') === 'online_hrdf_training')
-                    //                             ->visible(fn (callable $get) => $get('training_type') === 'online_hrdf_training')
-                    //                             ->options(function (SoftwareHandover $record) {
-                    //                                 $leadId = $record->lead_id;
-                    //                                 $currentRecordId = $record->id;
-
-                    //                                 $usedPiIds = [];
-                    //                                 $softwareHandovers = SoftwareHandover::where('lead_id', $leadId)
-                    //                                     ->where('id', '!=', $currentRecordId)
-                    //                                     ->get();
-
-                    //                                 foreach ($softwareHandovers as $handover) {
-                    //                                     $piHrdf = $handover->proforma_invoice_hrdf;
-                    //                                     if (!empty($piHrdf)) {
-                    //                                         if (is_string($piHrdf)) {
-                    //                                             $piIds = json_decode($piHrdf, true);
-                    //                                             if (is_array($piIds)) {
-                    //                                                 $usedPiIds = array_merge($usedPiIds, $piIds);
-                    //                                             }
-                    //                                         } elseif (is_array($piHrdf)) {
-                    //                                             $usedPiIds = array_merge($usedPiIds, $piHrdf);
-                    //                                         }
-                    //                                     }
-                    //                                 }
-
-                    //                                 return \App\Models\Quotation::where('lead_id', $leadId)
-                    //                                     ->where('quotation_type', 'hrdf')
-                    //                                     ->where('status', \App\Enums\QuotationStatusEnum::accepted)
-                    //                                     ->whereNotIn('id', array_filter($usedPiIds))
-                    //                                     ->where('quotation_date', '>=', now()->toDateString())
-                    //                                     ->pluck('pi_reference_no', 'id')
-                    //                                     ->toArray();
-                    //                             })
-                    //                             ->multiple()
-                    //                             ->searchable()
-                    //                             ->preload()
-                    //                             ->default(function (SoftwareHandover $record) {
-                    //                                 if (!$record || !$record->proforma_invoice_hrdf) {
-                    //                                     return [];
-                    //                                 }
-                    //                                 if (is_string($record->proforma_invoice_hrdf)) {
-                    //                                     return json_decode($record->proforma_invoice_hrdf, true) ?? [];
-                    //                                 }
-                    //                                 return is_array($record->proforma_invoice_hrdf) ? $record->proforma_invoice_hrdf : [];
-                    //                             }),
-                    //                     ])
-                    //             ]),
-
-                    //         Section::make('Step 8: Attachment')
-                    //             ->columnSpan(1)
-                    //             ->schema([
-                    //                 Grid::make(3)
-                    //                     ->schema([
-                    //                     FileUpload::make('confirmation_order_file')
-                    //                         ->label('Upload Confirmation Order')
-                    //                         ->disk('public')
-                    //                         ->directory('handovers/confirmation_orders')
-                    //                         ->visibility('public')
-                    //                         ->multiple()
-                    //                         ->maxFiles(1)
-                    //                         ->openable()
-                    //                         ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
-                    //                         ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get, SoftwareHandover $record): string {
-                    //                             $leadId = $record->lead_id;
-                    //                             $formattedId = '250' . str_pad($leadId, 3, '0', STR_PAD_LEFT);
-                    //                             $extension = $file->getClientOriginalExtension();
-                    //                             $timestamp = now()->format('YmdHis');
-                    //                             $random = rand(1000, 9999);
-                    //                             return "{$formattedId}-SW-CONFIRM-{$timestamp}-{$random}.{$extension}";
-                    //                         })
-                    //                         ->default(function (SoftwareHandover $record) {
-                    //                             if (!$record || !$record->confirmation_order_file) {
-                    //                                 return [];
-                    //                             }
-                    //                             if (is_string($record->confirmation_order_file)) {
-                    //                                 return json_decode($record->confirmation_order_file, true) ?? [];
-                    //                             }
-                    //                             return is_array($record->confirmation_order_file) ? $record->confirmation_order_file : [];
-                    //                         }),
-
-                    //                     FileUpload::make('payment_slip_file')
-                    //                         ->label('Upload Payment Slip')
-                    //                         ->disk('public')
-                    //                         ->live(debounce:500)
-                    //                         ->directory('handovers/payment_slips')
-                    //                         ->visibility('public')
-                    //                         ->multiple()
-                    //                         ->maxFiles(1)
-                    //                         ->openable()
-                    //                         ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
-                    //                         ->required(function (Get $get) {
-                    //                             $hrdfGrantFiles = $get('hrdf_grant_file');
-                    //                             $hasHrdfGrant = is_array($hrdfGrantFiles) && count($hrdfGrantFiles) > 0 && !empty(array_filter($hrdfGrantFiles));
-                    //                             return !$hasHrdfGrant;
-                    //                         })
-                    //                         ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get, SoftwareHandover $record): string {
-                    //                             $leadId = $record->lead_id;
-                    //                             $formattedId = '250' . str_pad($leadId, 3, '0', STR_PAD_LEFT);
-                    //                             $extension = $file->getClientOriginalExtension();
-                    //                             $timestamp = now()->format('YmdHis');
-                    //                             $random = rand(1000, 9999);
-                    //                             return "{$formattedId}-SW-PAYMENT-{$timestamp}-{$random}.{$extension}";
-                    //                         })
-                    //                         ->default(function (SoftwareHandover $record) {
-                    //                             if (!$record || !$record->payment_slip_file) {
-                    //                                 return [];
-                    //                             }
-                    //                             if (is_string($record->payment_slip_file)) {
-                    //                                 return json_decode($record->payment_slip_file, true) ?? [];
-                    //                             }
-                    //                             return is_array($record->payment_slip_file) ? $record->payment_slip_file : [];
-                    //                         }),
-
-                    //                     FileUpload::make('hrdf_grant_file')
-                    //                         ->label('Upload HRDF Grant Approval Letter')
-                    //                         ->disk('public')
-                    //                         ->directory('handovers/hrdf_grant')
-                    //                         ->visibility('public')
-                    //                         ->multiple()
-                    //                         ->maxFiles(10)
-                    //                         ->openable()
-                    //                         ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
-                    //                         ->visible(fn (callable $get) => $get('training_type') === 'online_hrdf_training')
-                    //                         ->required(function (Get $get) {
-                    //                             $paymentSlipFiles = $get('payment_slip_file');
-                    //                             $hasPaymentSlip = is_array($paymentSlipFiles) && count($paymentSlipFiles) > 0 && !empty(array_filter($paymentSlipFiles));
-                    //                             return !$hasPaymentSlip;
-                    //                         })
-                    //                         ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get, SoftwareHandover $record): string {
-                    //                             $leadId = $record->lead_id;
-                    //                             $formattedId = '250' . str_pad($leadId, 3, '0', STR_PAD_LEFT);
-                    //                             $extension = $file->getClientOriginalExtension();
-                    //                             $timestamp = now()->format('YmdHis');
-                    //                             $random = rand(1000, 9999);
-                    //                             return "{$formattedId}-SW-HRDF-{$timestamp}-{$random}.{$extension}";
-                    //                         })
-                    //                         ->afterStateUpdated(function () {
-                    //                             session()->forget('hrdf_upload_count');
-                    //                         })
-                    //                         ->default(function (SoftwareHandover $record) {
-                    //                             if (!$record || !$record->hrdf_grant_file) {
-                    //                                 return [];
-                    //                             }
-                    //                             if (is_string($record->hrdf_grant_file)) {
-                    //                                 return json_decode($record->hrdf_grant_file, true) ?? [];
-                    //                             }
-                    //                             return is_array($record->hrdf_grant_file) ? $record->hrdf_grant_file : [];
-                    //                         }),
-
-                    //                     FileUpload::make('invoice_file')
-                    //                         ->label('Upload Invoice TimeTec Penang')
-                    //                         ->disk('public')
-                    //                         ->directory('handovers/invoices')
-                    //                         ->visibility('public')
-                    //                         ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
-                    //                         ->multiple()
-                    //                         ->maxFiles(10)
-                    //                         ->visible(fn () => in_array(auth()->id(), [1, 25]))
-                    //                         ->openable()
-                    //                         ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
-                    //                             $companyName = Str::slug($get('company_name') ?? 'invoice');
-                    //                             $date = now()->format('Y-m-d');
-                    //                             $random = Str::random(5);
-                    //                             $extension = $file->getClientOriginalExtension();
-                    //                             return "{$companyName}-invoice-{$date}-{$random}.{$extension}";
-                    //                         })
-                    //                         ->default(function (SoftwareHandover $record) {
-                    //                             if (!$record || !$record->invoice_file) {
-                    //                                 return [];
-                    //                             }
-                    //                             if (is_string($record->invoice_file)) {
-                    //                                 return json_decode($record->invoice_file, true) ?? [];
-                    //                             }
-                    //                             return is_array($record->invoice_file) ? $record->invoice_file : [];
-                    //                         }),
-                    //                     ])
-                    //             ]),
-
-                    //         Section::make('Step 9: Renewal Note')
-                    //             ->columnSpan(1)
-                    //             ->schema([
-                    //                 Grid::make(1)
-                    //                     ->schema([
-                    //                         Textarea::make('renewal_note')
-                    //                             ->label('Renewal Note')
-                    //                             ->placeholder('Write Renewal Notes')
-                    //                             ->rows(2)
-                    //                             ->maxLength(1000)
-                    //                             ->extraAlpineAttributes([
-                    //                                 'x-on:input' => '
-                    //                                     const start = $el.selectionStart;
-                    //                                     const end = $el.selectionEnd;
-                    //                                     const value = $el.value;
-                    //                                     $el.value = value.toUpperCase();
-                    //                                     $el.setSelectionRange(start, end);
-                    //                                 '
-                    //                             ])
-                    //                             ->dehydrateStateUsing(fn ($state) => strtoupper($state))
-                    //                             ->default(function (SoftwareHandover $record) {
-                    //                                 if (!$record) {
-                    //                                     return null;
-                    //                                 }
-                    //                                 $latestNote = \App\Models\RenewalNote::where('lead_id', $record->lead_id)
-                    //                                     ->latest()
-                    //                                     ->first();
-                    //                                 return $latestNote?->content ?? null;
-                    //                             }),
-                    //                     ])
-                    //             ]),
-                    //     ])
-                    //     ->action(function (SoftwareHandover $record, array $data): void {
-                    //         $renewalNote = $data['renewal_note'] ?? null;
-                    //         unset($data['renewal_note']);
-
-                    //         // Process JSON encoding for array fields - EXACTLY same as RelationManager
-                    //         foreach (['remarks', 'confirmation_order_file', 'payment_slip_file', 'implementation_pics',
-                    //                 'proforma_invoice_product', 'proforma_invoice_hrdf', 'invoice_file', 'hrdf_grant_file',
-                    //                 'software_hardware_pi', 'non_hrdf_pi'] as $field) {
-                    //             if (isset($data[$field]) && is_array($data[$field])) {
-                    //                 // Special handling for remarks to process attachments
-                    //                 if ($field === 'remarks') {
-                    //                     foreach ($data[$field] as $key => $remark) {
-                    //                         // Encode attachments only if they exist and are array
-                    //                         if (!empty($remark['attachments']) && !is_string($remark['attachments'])) {
-                    //                             $data[$field][$key]['attachments'] = json_encode($remark['attachments']);
-                    //                         }
-                    //                     }
-                    //                 }
-                    //                 $data[$field] = json_encode($data[$field]);
-                    //             }
-                    //         }
-
-                    //         // Update the record
-                    //         $record->update($data);
-
-                    //         // Handle renewal note - EXACTLY same as RelationManager
-                    //         if (!empty($renewalNote)) {
-                    //             try {
-                    //                 $savedNote = \App\Models\RenewalNote::create([
-                    //                     'lead_id' => $record->lead_id,
-                    //                     'user_id' => auth()->id(),
-                    //                     'content' => strtoupper($renewalNote),
-                    //                 ]);
-
-                    //                 Log::info('Renewal note updated', [
-                    //                     'note_id' => $savedNote->id,
-                    //                     'lead_id' => $savedNote->lead_id,
-                    //                     'content' => $savedNote->content,
-                    //                 ]);
-                    //             } catch (\Exception $e) {
-                    //                 Log::error('Failed to update renewal note', [
-                    //                     'error' => $e->getMessage(),
-                    //                     'lead_id' => $record->lead_id,
-                    //                 ]);
-                    //             }
-                    //         }
-
-                    //         // Generate PDF for non-draft handovers
-                    //         if ($record->status !== 'Draft') {
-                    //             app(GenerateSoftwareHandoverPdfController::class)->generateInBackground($record);
-                    //         }
-
-                    //         Notification::make()
-                    //             ->title('Software handover updated successfully')
-                    //             ->success()
-                    //             ->send();
-                    //     }),
 
                     // Also add the view reason and convert to draft actions for completeness
                     Action::make('view_reason')
@@ -1123,7 +412,7 @@ class SoftwareHandoverNew extends Component implements HasForms, HasTable
                         ->label('Mark as Completed')
                         ->icon('heroicon-o-check-badge')
                         ->color('success')
-                        ->modalWidth('xl')
+                        ->modalWidth('3xl')
                         ->form([
                             Grid::make(2)
                                 ->schema([
@@ -1204,6 +493,103 @@ class SoftwareHandoverNew extends Component implements HasForms, HasTable
                                         }),
                                 ]),
 
+                            Section::make('AutoCount Invoice Creation')
+                                ->schema([
+                                    Grid::make(2)->schema([
+                                        // ✅ Fixed debtor display (no selection needed)
+                                        Placeholder::make('debtor_info')
+                                            ->label('Debtor Code')
+                                            ->content('ARM-P0062 - PEMBANGUNAN SUMBER MANUSIA BERHAD')
+                                            ->columnSpan(1),
+
+                                        Checkbox::make('create_autocount_invoice')
+                                            ->label('Create AutoCount Invoice')
+                                            ->default(true)
+                                            ->live()
+                                            ->columnSpan(1),
+                                    ]),
+
+                                    // ✅ Hidden field to store the fixed debtor selection
+                                    \Filament\Forms\Components\Hidden::make('debtor_selection')
+                                        ->default('ARM-P0062'),
+
+                                    // Invoice preview
+                                    Section::make('Invoice Preview')
+                                        ->schema([
+                                            Placeholder::make('invoice_preview')
+                                                ->label('')
+                                                ->content(function (SoftwareHandover $record, callable $get) {
+                                                    if (!$get('create_autocount_invoice')) {
+                                                        return 'AutoCount invoice creation is disabled.';
+                                                    }
+
+                                                    $service = app(AutoCountIntegrationService::class);
+                                                    $preview = $service->generateInvoicePreview($record);
+
+                                                    if (empty($preview['invoices'])) {
+                                                        return $preview['message'] ?? 'No items to display';
+                                                    }
+
+                                                    $html = '<div class="space-y-4">';
+                                                    $html .= '<div><strong>Salesperson:</strong> ' . $preview['salesperson'] . '</div>';
+                                                    $html .= '<div><strong>Company:</strong> ' . $preview['company'] . '</div>';
+                                                    $html .= '<div><strong>Total Invoices:</strong> ' . $preview['total_invoices'] . '</div>';
+
+                                                    // ✅ Show each invoice separately
+                                                    foreach ($preview['invoices'] as $index => $invoice) {
+                                                        $html .= '<div class="p-3 mt-4 border rounded bg-gray-50">';
+                                                        $html .= '<div class="font-semibold text-blue-600">Invoice ' . ($index + 1) . '</div>';
+                                                        $html .= '<div><strong>Document No:</strong> ' . $invoice['invoice_no'] . '</div>';
+                                                        $html .= '<div class="mt-2">';
+                                                        $html .= '<div class="mb-2 text-sm font-semibold">Items:</div>';
+
+                                                        foreach ($invoice['items'] as $item) {
+                                                            $html .= '<div class="flex justify-between py-1 text-sm">';
+                                                            $html .= '<div class="flex items-center gap-2">';
+                                                            $html .= '<span class="px-2 py-1 font-mono text-xs bg-gray-100 rounded">' . $item['code'] . '</span>';
+                                                            $html .= '<span class="text-gray-600">× ' . number_format($item['quantity']) . '</span>';
+                                                            $html .= '</div>';
+                                                            $html .= '<span class="font-semibold">RM ' . number_format($item['amount'], 2) . '</span>';
+                                                            $html .= '</div>';
+                                                        }
+
+                                                        $html .= '</div>';
+                                                        $html .= '<div class="flex justify-between pt-2 mt-2 font-semibold border-t">';
+                                                        $html .= '<span>Invoice Total:</span><span>RM ' . number_format($invoice['total'], 2) . '</span>';
+                                                        $html .= '</div></div>';
+                                                    }
+
+                                                    // ✅ Show grand total if multiple invoices
+                                                    if ($preview['total_invoices'] > 1) {
+                                                        $html .= '<div class="flex justify-between pt-2 mt-4 text-lg font-bold border-t-2 border-blue-500">';
+                                                        $html .= '<span>Grand Total:</span><span>RM ' . number_format($preview['grand_total'], 2) . '</span>';
+                                                        $html .= '</div>';
+                                                    }
+
+                                                    $html .= '</div>';
+
+                                                    return new \Illuminate\Support\HtmlString($html);
+                                                })
+                                        ])
+                                        ->visible(fn (callable $get) => $get('create_autocount_invoice')),
+                                ])
+                                // ✅ Hide the entire AutoCount section if no proforma_invoice_hrdf
+                                ->visible(function (SoftwareHandover $record) {
+                                    // Check if proforma_invoice_hrdf exists and is not empty
+                                    if (empty($record->proforma_invoice_hrdf)) {
+                                        return false;
+                                    }
+
+                                    // Parse the JSON and check if it contains any valid quotation IDs
+                                    $hrdfPis = is_string($record->proforma_invoice_hrdf)
+                                        ? json_decode($record->proforma_invoice_hrdf, true)
+                                        : $record->proforma_invoice_hrdf;
+
+                                    // Return true only if we have a valid array with content
+                                    return is_array($hrdfPis) && !empty($hrdfPis);
+                                })
+                                ->collapsible()
+                                ->collapsed(false),
                             FileUpload::make('invoice_file')
                                 ->label('Upload Invoice')
                                 ->disk('public')
@@ -1254,6 +640,83 @@ class SoftwareHandoverNew extends Component implements HasForms, HasTable
                                 }),
                         ])
                         ->action(function (SoftwareHandover $record, array $data): void {
+                            $autoCountResult = null;
+                            if ($data['create_autocount_invoice'] ?? false) {
+                                // ✅ Check if quotations already have AutoCount invoices
+                                $quotationIds = [];
+                                if ($record->proforma_invoice_hrdf) {
+                                    $hrdfPis = is_string($record->proforma_invoice_hrdf)
+                                        ? json_decode($record->proforma_invoice_hrdf, true)
+                                        : $record->proforma_invoice_hrdf;
+                                    if (is_array($hrdfPis)) {
+                                        $quotationIds = $hrdfPis;
+                                    }
+                                }
+
+                                if (!empty($quotationIds)) {
+                                    $alreadyProcessed = \App\Models\Quotation::whereIn('id', $quotationIds)
+                                        ->where('autocount_generated_pi', true)
+                                        ->pluck('pi_reference_no')
+                                        ->toArray();
+
+                                    if (!empty($alreadyProcessed)) {
+                                        Notification::make()
+                                            ->title('AutoCount Invoice Already Generated')
+                                            ->body('The following quotations already have AutoCount invoices: ' . implode(', ', $alreadyProcessed))
+                                            ->warning()
+                                            ->send();
+                                        return;
+                                    }
+                                }
+
+                                $autoCountService = app(AutoCountIntegrationService::class);
+                                $autoCountResult = $autoCountService->processHandoverInvoiceCreation($record, $data);
+
+                                if ($autoCountResult && $autoCountResult['success']) {
+                                    try {
+                                        // Calculate total amount from invoice details
+                                        $service = app(AutoCountIntegrationService::class);
+                                        $preview = $service->generateInvoicePreview($record);
+
+                                        // Get salesperson name
+                                        $salespersonId = $record->lead->salesperson ?? null;
+                                        $salesperson = \App\Models\User::find($salespersonId);
+                                        $salespersonName = $salesperson?->name ?? 'Unknown Salesperson';
+
+                                        // ✅ Create separate CrmHrdfInvoice record for each invoice
+                                        if (isset($autoCountResult['invoice_numbers']) && is_array($autoCountResult['invoice_numbers'])) {
+                                            foreach ($preview['invoices'] as $index => $invoiceData) {
+                                                CrmHrdfInvoice::create([
+                                                    'invoice_no' => $invoiceData['invoice_no'],
+                                                    'invoice_date' => now()->toDateString(),
+                                                    'company_name' => $record->company_name,
+                                                    'handover_type' => 'SW', // ✅ SW for Software Handover
+                                                    'salesperson' => $salespersonName,
+                                                    'handover_id' => $record->id,
+                                                    'debtor_code' => $autoCountResult['debtor_code'],
+                                                    'total_amount' => $invoiceData['total'],
+                                                ]);
+                                            }
+
+                                            Log::info('Software Handover HRDF Invoice records created', [
+                                                'invoice_numbers' => $autoCountResult['invoice_numbers'],
+                                                'handover_id' => $record->id,
+                                                'company_name' => $record->company_name,
+                                                'total_invoices' => count($autoCountResult['invoice_numbers']),
+                                                'handover_type' => 'SW'
+                                            ]);
+                                        }
+
+                                    } catch (\Exception $e) {
+                                        Log::error('Failed to create Software Handover HRDF invoice records', [
+                                            'handover_id' => $record->id,
+                                            'invoice_numbers' => $autoCountResult['invoice_numbers'] ?? 'unknown',
+                                            'error' => $e->getMessage()
+                                        ]);
+                                    }
+                                }
+                            }
+
                             // Handle file array encoding for invoice_file
                             if (isset($data['invoice_file']) && is_array($data['invoice_file'])) {
                                 // Get existing invoice files
@@ -1317,6 +780,25 @@ class SoftwareHandoverNew extends Component implements HasForms, HasTable
 
                             // Update the record
                             $record->update($updateData);
+
+                            $notificationTitle = 'Software Handover Completed Successfully';
+                            $notificationBody = "Assigned to: {$implementerName}";
+
+                            if ($autoCountResult && $autoCountResult['success']) {
+                                if (isset($autoCountResult['invoice_numbers']) && count($autoCountResult['invoice_numbers']) > 1) {
+                                    $notificationBody .= "\n✅ AutoCount Invoices: " . implode(', ', $autoCountResult['invoice_numbers']);
+                                } else {
+                                    $invoiceNo = $autoCountResult['invoice_numbers'][0] ?? $autoCountResult['invoice_no'] ?? 'Unknown';
+                                    $notificationBody .= "\n✅ AutoCount Invoice: {$invoiceNo}";
+                                }
+                                $notificationBody .= "\n📋 Debtor Code: {$autoCountResult['debtor_code']}";
+                            }
+
+                            Notification::make()
+                                ->title($notificationTitle)
+                                ->body($notificationBody)
+                                ->success()
+                                ->send();
 
                             try {
                                 $selectedModules = $record->getSelectedModules();

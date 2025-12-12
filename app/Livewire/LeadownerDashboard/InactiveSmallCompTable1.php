@@ -61,7 +61,7 @@ class InactiveSmallCompTable1 extends Component implements HasForms, HasTable
             ->where('lead_status', '!=', 'Closed')
             ->where('done_call', '0')
             ->whereNull('salesperson')
-            ->where('company_size', '=', '1-24') // Only small companies (1-24)
+            ->whereIn('company_size', ['1-24', '20-24']) // Only small companies (1-24)
             ->selectRaw('*, DATEDIFF(updated_at, created_at) as pending_days');
     }
 

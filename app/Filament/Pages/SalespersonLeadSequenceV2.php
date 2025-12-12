@@ -16,7 +16,7 @@ class SalespersonLeadSequenceV2 extends Page
 
     // All salespersons combined (previously rank1 and rank2)
     public $allSalespersons = [];
-    public $sizes = ['1-24', '25-99', '100-500', '501 and Above'];
+    public $sizes = ['1-24', '20-24', '25-99', '100-500', '501 and Above'];
 
     public $demoStats = [];
     public $rfqStats = [];

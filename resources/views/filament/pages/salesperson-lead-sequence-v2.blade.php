@@ -411,10 +411,10 @@
                                 <div class="stats-subsection">
                                     <div class="mb-1 flex-between">
                                         <span class="stats-label">Small </span>
-                                        <span class="stats-label">{{ $demoStats[$spId]['1-24'] ?? 0 }}</span>
+                                        <span class="stats-label">{{ ($demoStats[$spId]['1-24'] ?? 0) + ($demoStats[$spId]['20-24'] ?? 0) }}</span>
                                     </div>
                                     <div class="progress-container">
-                                        <div class="progress-bar progress-bar--small" style="width: {{ array_sum($demoStats[$spId] ?? []) > 0 ? round(($demoStats[$spId]['1-24'] ?? 0) / array_sum($demoStats[$spId] ?? []) * 100) : 0 }}%"></div>
+                                        <div class="progress-bar progress-bar--small" style="width: {{ array_sum($demoStats[$spId] ?? []) > 0 ? round((($demoStats[$spId]['1-24'] ?? 0) + ($demoStats[$spId]['20-24'] ?? 0)) / array_sum($demoStats[$spId] ?? []) * 100) : 0 }}%"></div>
                                     </div>
 
                                     <div class="mt-3 mb-1 flex-between">
@@ -546,10 +546,10 @@
                                 <div class="stats-subsection">
                                     <div class="mb-1 flex-between">
                                         <span class="stats-label">Small </span>
-                                        <span class="stats-label">{{ $rfqStats[$spId]['1-24'] ?? 0 }}</span>
+                                        <span class="stats-label">{{ ($rfqStats[$spId]['1-24'] ?? 0) + ($rfqStats[$spId]['20-24'] ?? 0) }}</span>
                                     </div>
                                     <div class="progress-container">
-                                        <div class="progress-bar progress-bar--small" style="width: {{ array_sum($rfqStats[$spId] ?? []) > 0 ? round(($rfqStats[$spId]['1-24'] ?? 0) / array_sum($rfqStats[$spId] ?? []) * 100) : 0 }}%"></div>
+                                        <div class="progress-bar progress-bar--small" style="width: {{ array_sum($rfqStats[$spId] ?? []) > 0 ? round((($rfqStats[$spId]['1-24'] ?? 0) + ($rfqStats[$spId]['20-24'] ?? 0)) / array_sum($rfqStats[$spId] ?? []) * 100) : 0 }}%"></div>
                                     </div>
 
                                     <div class="mt-3 mb-1 flex-between">

@@ -13,14 +13,10 @@ class ARHandoverTabs
         return [
             Grid::make(1)
                 ->schema([
-                    Section::make('Renewal Handover')
-                        ->schema([
-                            Placeholder::make('renewal_info')
-                                ->content('This section will lets user to choose PI and then generate Autocount HRDF Invoice.')
-                                ->hiddenLabel(),
-                        ])
-                        ->collapsible(),
-                ])
+                    \Njxqlus\Filament\Components\Forms\RelationManager::make()
+                        ->manager(\App\Filament\Resources\LeadResource\RelationManagers\RenewalHandoverRelationManager::class
+                    ),
+                ]),
         ];
     }
 }

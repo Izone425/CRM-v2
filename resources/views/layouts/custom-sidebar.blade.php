@@ -1172,6 +1172,9 @@
                                 <a href="{{ route('filament.admin.pages.hrdf-attendance-log') }}" class="submenu-item">
                                     <span class="module-font">HRDF Attendance Log</span>
                                 </a>
+                                <a href="{{ route('filament.admin.pages.hrdf-invoice-list') }}" class="submenu-item">
+                                    <span class="module-font">HRDF Invoice List</span>
+                                </a>
                             </div>
                         </div>
 
