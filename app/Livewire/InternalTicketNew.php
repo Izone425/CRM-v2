@@ -2,6 +2,7 @@
 namespace App\Livewire;
 
 use App\Models\InternalTicket;
+use App\Models\User;
 use Filament\Tables\Table;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
@@ -17,13 +18,40 @@ use Filament\Support\Enums\MaxWidth;
 use Filament\Notifications\Notification;
 use Filament\Tables\Actions\ActionGroup;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Mail; // ✅ Add this import
 use Illuminate\View\View;
 use Livewire\Component;
+use Livewire\Attributes\On;
 
 class InternalTicketNew extends Component implements HasTable, HasForms
 {
     use InteractsWithTable;
     use InteractsWithForms;
+
+    public $lastRefreshTime;
+
+    public function mount()
+    {
+        $this->lastRefreshTime = now()->format('Y-m-d H:i:s');
+    }
+
+    public function refreshTable()
+    {
+        $this->resetTable();
+        $this->lastRefreshTime = now()->format('Y-m-d H:i:s');
+
+        Notification::make()
+            ->title('Table refreshed')
+            ->success()
+            ->send();
+    }
+
+    #[On('refresh-hardwarehandover-tables')]
+    public function refreshData()
+    {
+        $this->resetTable();
+        $this->lastRefreshTime = now()->format('Y-m-d H:i:s');
+    }
 
     public function render()
     {
@@ -96,12 +124,19 @@ class InternalTicketNew extends Component implements HasTable, HasForms
                     ->form([
                         Select::make('attention_to')
                             ->label('Attention To')
-                            ->options([
-                                'nur_irdina' => 'Nur Irdina',
-                                'fatimah_nurnabilah' => 'Fatimah Nurnabilah',
-                                'norhaiyati' => 'Norhaiyati',
-                            ])
-                            ->default('nur_irdina')
+                            ->options(function () {
+                                // ✅ Get users dynamically and return their IDs as values
+                                return User::whereIn('name', [
+                                    'Nur Irdina',
+                                    'Fatimah Nurnabilah',
+                                    'Norhaiyati'
+                                ])->pluck('name', 'id')->toArray();
+                            })
+                            ->default(function () {
+                                // ✅ Set default to Nur Irdina's user ID
+                                $nurIrdina = User::where('name', 'Nur Irdina')->first();
+                                return $nurIrdina ? $nurIrdina->id : null;
+                            })
                             ->required()
                             ->searchable(),
                         Textarea::make('remark')
@@ -128,7 +163,7 @@ class InternalTicketNew extends Component implements HasTable, HasForms
                     ->action(function (array $data): void {
                         InternalTicket::create([
                             'created_by' => Auth::id(),
-                            'attention_to' => $data['attention_to'],
+                            'attention_to' => $data['attention_to'], // ✅ Now saves as user ID
                             'remark' => $data['remark'],
                             'attachments' => $data['attachments'] ?? [],
                         ]);
@@ -156,7 +191,7 @@ class InternalTicketNew extends Component implements HasTable, HasForms
                                 ->with('ticket', $record);
                         }),
                     Action::make('complete_ticket')
-                        ->label('Complete')
+                        ->label('Mark as Completed')
                         ->icon('heroicon-o-check-circle')
                         ->color('success')
                         ->visible(fn ($record) => $record->status === 'new')
@@ -164,6 +199,7 @@ class InternalTicketNew extends Component implements HasTable, HasForms
                             Textarea::make('admin_remark')
                                 ->label('Admin Remark')
                                 ->rows(3)
+                                ->required()
                                 ->extraAlpineAttributes([
                                     'x-on:input' => '
                                         const start = $el.selectionStart;
@@ -182,6 +218,7 @@ class InternalTicketNew extends Component implements HasTable, HasForms
                                 ->helperText('You can upload multiple files. No limit on file types.'),
                         ])
                         ->action(function ($record, array $data): void {
+                            // Update the ticket
                             $record->update([
                                 'status' => 'completed',
                                 'completed_by' => Auth::id(),
@@ -191,14 +228,53 @@ class InternalTicketNew extends Component implements HasTable, HasForms
                                 'admin_attachments' => $data['admin_attachments'] ?? [],
                             ]);
 
-                            Notification::make()
-                                ->title('Ticket completed successfully')
-                                ->success()
-                                ->send();
+                            // ✅ Send email directly using Mail::send like your example
+                            try {
+                                // Refresh the model to get updated relationships
+                                $record->refresh();
+
+                                // Calculate duration for email
+                                $hours = intval($record->duration_minutes / 60);
+                                $minutes = $record->duration_minutes % 60;
+                                $durationFormatted = $hours > 0 ? "{$hours}h {$minutes}m" : "{$minutes}m";
+
+                                // Send email using Mail::send
+                                Mail::send('emails.ticket-completed', [
+                                    'ticket' => $record,
+                                    'ticketId' => $record->formatted_ticket_id,
+                                    'createdByName' => $record->createdBy->name,
+                                    'createdDate' => $record->created_at->format('d/m/Y H:i'),
+                                    'attentionToName' => $record->attentionTo->name,
+                                    'completedByName' => $record->completedBy->name,
+                                    'completedDate' => $record->completed_at->format('d/m/Y H:i'),
+                                    'duration' => $durationFormatted,
+                                    'remark' => $record->remark,
+                                    'adminRemark' => $record->admin_remark,
+                                    'attachments' => $record->attachments ?? [],
+                                    'adminAttachments' => $record->admin_attachments ?? [],
+                                ], function ($message) use ($record) {
+                                    $message->from(config('mail.from.address'), config('mail.from.name'))
+                                            ->to($record->createdBy->email) // Send to ticket creator
+                                            ->cc($record->attentionTo->email) // CC the attention_to person
+                                            ->subject("INTERNAL TICKET | {$record->formatted_ticket_id} | COMPLETED");
+                                });
+
+                                Notification::make()
+                                    ->title('Ticket completed successfully and email sent')
+                                    ->success()
+                                    ->send();
+
+                            } catch (\Exception $e) {
+                                Notification::make()
+                                    ->title('Ticket completed successfully')
+                                    ->body('However, there was an issue sending the email notification: ' . $e->getMessage())
+                                    ->warning()
+                                    ->send();
+                            }
                         })
                         ->modalHeading('Complete Ticket')
                         ->modalWidth(MaxWidth::Large),
-                    ]),
+                ])
             ])
             ->defaultSort('created_at', 'desc')
             ->paginated([10, 25, 50, 100])

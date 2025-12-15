@@ -1749,6 +1749,9 @@
                             <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
                                 <span class="module-font">Analysis</span>
                             </a>
+                            <a href="{{ route('filament.admin.pages.internal-tickets-page') }}" class="submenu-item">
+                                <span class="module-font">Internal Ticketing</span>
+                            </a>
                         </div>
                     </div>
                 </div>
