@@ -11,13 +11,40 @@ use Filament\Tables\Columns\BadgeColumn;
 use Filament\Tables\Actions\Action;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
+use Filament\Notifications\Notification;
 use Illuminate\View\View;
 use Livewire\Component;
+use Livewire\Attributes\On;
 
 class InternalTicketCompleted extends Component implements HasTable, HasForms
 {
     use InteractsWithTable;
     use InteractsWithForms;
+
+    public $lastRefreshTime;
+
+    public function mount()
+    {
+        $this->lastRefreshTime = now()->format('Y-m-d H:i:s');
+    }
+
+    public function refreshTable()
+    {
+        $this->resetTable();
+        $this->lastRefreshTime = now()->format('Y-m-d H:i:s');
+
+        Notification::make()
+            ->title('Table refreshed')
+            ->success()
+            ->send();
+    }
+
+    #[On('refresh-hardwarehandover-tables')]
+    public function refreshData()
+    {
+        $this->resetTable();
+        $this->lastRefreshTime = now()->format('Y-m-d H:i:s');
+    }
 
     public function render()
     {
