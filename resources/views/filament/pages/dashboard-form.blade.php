@@ -184,13 +184,15 @@
             ->getOverdueRenewals()
             ->count();
 
+        $adminGeneralTotal = \App\Models\InternalTicket::where('status', 'new')->count();
+
         // Calculate totals for both currencies
         $adminRenewalFollowUp = $followUpTodayMYR + $followUpOverdueMYR + $followUpTodayUSD + $followUpOverdueUSD + $followUpTodayMYRv2 + $followUpOverdueMYRv2 + $followUpTodayUSDv2 + $followUpOverdueUSDv2;
 
         $initialStageTotal = $newTaskCount + $pendingStockCount + $pendingCourierCount + $pendingAdminPickUpCount + $pendingExternalInstallationCount + $pendingInternalInstallationCount;
 
         // Calculate total admin count including Software V2
-        $adminTotal = $adminSoftwareTotal + $adminSoftwareV2Total + $adminHeadcountTotal + $adminHrdfTotal + $initialStageTotal + $adminUSDInvoiceTotal + $adminHrdfAttLogTotal;
+        $adminTotal = $adminSoftwareTotal + $adminSoftwareV2Total + $adminHeadcountTotal + $adminHrdfTotal + $initialStageTotal + $adminUSDInvoiceTotal + $adminHrdfAttLogTotal + $adminGeneralTotal;
     @endphp
 
     <div
@@ -859,8 +861,8 @@
                                                 font-weight: bold;
                                                 border: none;
                                                 border-radius: 20px;
-                                                background: {{ in_array($currentDashboard, ['MainAdminDashboard','SoftwareAdmin', 'SoftwareAdminV2', 'HardwareAdmin', 'HardwareAdminV2', 'AdminRepair', 'AdminRenewalv1', 'AdminRenewalv2', 'AdminHRDF', 'AdminHRDFAttLog', 'AdminHeadcount']) ? '#431fa1' : 'transparent' }};
-                                                color: {{ in_array($currentDashboard, ['MainAdminDashboard','SoftwareAdmin','SoftwareAdminV2', 'HardwareAdmin', 'HardwareAdminV2', 'AdminRepair', 'AdminRenewalv1', 'AdminRenewalv2', 'AdminHRDF', 'AdminHRDFAttLog', 'AdminHeadcount']) ? '#ffffff' : '#555' }};
+                                                background: {{ in_array($currentDashboard, ['MainAdminDashboard','SoftwareAdmin', 'SoftwareAdminV2', 'HardwareAdmin', 'HardwareAdminV2', 'AdminRepair', 'AdminRenewalv1', 'AdminRenewalv2', 'AdminHRDF', 'AdminHRDFAttLog', 'AdminHeadcount', 'AdminGeneral']) ? '#431fa1' : 'transparent' }};
+                                                color: {{ in_array($currentDashboard, ['MainAdminDashboard','SoftwareAdmin','SoftwareAdminV2', 'HardwareAdmin', 'HardwareAdminV2', 'AdminRepair', 'AdminRenewalv1', 'AdminRenewalv2', 'AdminHRDF', 'AdminHRDFAttLog', 'AdminHeadcount', 'AdminGeneral']) ? '#ffffff' : '#555' }};
                                                 cursor: pointer;
                                                 display: flex;
                                                 align-items: center;
@@ -907,6 +909,45 @@
                                             left: 0;
                                             margin-top: 5px;
                                         ">
+                                            <button
+                                                wire:click="toggleDashboard('AdminGeneral')"
+                                                wire:loading.attr="disabled"
+                                                wire:loading.class="opacity-50"
+                                                style="
+                                                    display: flex;
+                                                    justify-content: space-between;
+                                                    align-items: center;
+                                                    width: 100%;
+                                                    padding: 10px 16px;
+                                                    text-align: left;
+                                                    border: none;
+                                                    background: {{ $currentDashboard === 'AdminGeneral' ? '#f3f3f3' : 'white' }};
+                                                    cursor: pointer;
+                                                    font-size: 14px;
+                                                "
+                                            >
+                                                <span wire:loading.remove wire:target="toggleDashboard('AdminGeneral')">Admin - General</span>
+                                                <span wire:loading wire:target="toggleDashboard('AdminGeneral')" class="flex items-center">
+                                                    <svg class="w-4 h-4 mr-1 animate-spin" fill="none" viewBox="0 0 24 24">
+                                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 818-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 714 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                    </svg>
+                                                    Loading...
+                                                </span>
+                                                @if($adminGeneralTotal > 0)
+                                                    <span style="
+                                                        background: #ef4444;
+                                                        color: white;
+                                                        border-radius: 12px;
+                                                        padding: 2px 8px;
+                                                        font-size: 12px;
+                                                        font-weight: bold;
+                                                        min-width: 20px;
+                                                        text-align: center;
+                                                    ">{{ $adminGeneralTotal }}</span>
+                                                @endif
+                                            </button>
+
                                             <button
                                                 wire:click="toggleDashboard('SoftwareAdmin')"
                                                 wire:loading.attr="disabled"
@@ -1653,6 +1694,8 @@
                             @include('filament.pages.softwarehandover')
                         @elseif ($currentDashboard === 'HardwareHandover')
                             @include('filament.pages.hardwarehandover')
+                        @elseif ($currentDashboard === 'AdminGeneral')
+                            @include('filament.pages.admingeneral')
                         @elseif ($currentDashboard === 'AdminRepair')
                             @include('filament.pages.adminrepair')
                         @elseif ($currentDashboard === 'AdminRenewalv1')

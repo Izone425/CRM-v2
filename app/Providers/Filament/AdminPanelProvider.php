@@ -40,6 +40,7 @@ use App\Filament\Pages\ImplementerCalendar;
 use App\Filament\Pages\ImplementerDataFile;
 use App\Filament\Pages\ImplementerRequestCount;
 use App\Filament\Pages\ImplementerRequestList;
+use App\Filament\Pages\InternalTicketsPage;
 use App\Filament\Pages\InvoicesTable;
 use App\Filament\Pages\InvoiceSummary;
 use App\Filament\Pages\KickOffMeetingSession;
@@ -372,6 +373,7 @@ class AdminPanelProvider extends PanelProvider
                 SalespersonLeadSequenceV2::class,
                 TrainingSetting::class,
                 HrdfInvoiceList::class,
+                InternalTicketsPage::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([
