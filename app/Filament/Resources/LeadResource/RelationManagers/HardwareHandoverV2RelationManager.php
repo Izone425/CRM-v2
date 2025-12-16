@@ -62,11 +62,11 @@ class HardwareHandoverV2RelationManager extends RelationManager
                         ->hiddenLabel()
                         ->options([
                             'single' => 'Single Invoice (Hardware Only)',
-                            'combined' => 'Combined Invoice (Hardware + Software)',
+                            // 'combined' => 'Combined Invoice (Hardware + Software)',
                         ])
                         ->default(function (?HardwareHandoverV2 $record) {
                             // Use the record's value if it exists, otherwise default to 'single'
-                            return $record?->invoice_type ?? 'combined';
+                            return $record?->invoice_type ?? 'single';
                         })
                         ->reactive()
                         ->inline()
@@ -779,6 +779,7 @@ class HardwareHandoverV2RelationManager extends RelationManager
                 ->label('Add Hardware Handover')
                 ->icon('heroicon-o-plus')
                 ->color('gray')
+                // ->visible(false)
                 ->visible(function () use ($leadStatus, $isCompanyDetailsIncomplete, $hasIncompleteHardwareHandover) {
                     return $leadStatus !== 'Closed' || $isCompanyDetailsIncomplete || $hasIncompleteHardwareHandover;
                 })
@@ -810,6 +811,7 @@ class HardwareHandoverV2RelationManager extends RelationManager
                 ->label('Add Hardware Handover')
                 ->icon('heroicon-o-plus')
                 ->color('primary')
+                // ->visible(false)
                 ->visible(function () use ($leadStatus, $isCompanyDetailsIncomplete, $hasIncompleteHardwareHandover) {
                     return $leadStatus === 'Closed' && !$isCompanyDetailsIncomplete && !$hasIncompleteHardwareHandover;
                 })

@@ -79,7 +79,7 @@ class TestAutoCountApi extends Command
         $this->newLine();
 
         // ✅ Test 3: Create Invoice
-        $this->testCreateInvoice($service);
+        // $this->testCreateInvoice($service);
 
         // // ✅ Test 4: Create Debtor
         // $this->testCreateDebtor($service);

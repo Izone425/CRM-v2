@@ -48,7 +48,7 @@ class InternalTicketsPage extends Page implements HasTable, HasForms
                     ->action(
                         Action::make('viewTicketDetails')
                             ->modalHeading(false)
-                            ->modalWidth('4xl')
+                            ->modalWidth('3xl')
                             ->modalSubmitAction(false)
                             ->modalCancelActionLabel('Close')
                             ->modalContent(function (InternalTicket $record): View {
@@ -62,7 +62,7 @@ class InternalTicketsPage extends Page implements HasTable, HasForms
                     ->sortable(),
                 TextColumn::make('created_at')
                     ->label('Created Date/Time')
-                    ->dateTime('d/m/Y H:i')
+                    ->dateTime('d M Y H:i')
                     ->sortable(),
                 TextColumn::make('attentionTo.name')
                     ->label('Attention To')
@@ -134,8 +134,7 @@ class InternalTicketsPage extends Page implements HasTable, HasForms
                             ->label('Attachments')
                             ->multiple()
                             ->directory('internal-tickets')
-                            ->maxFiles(10)
-                            ->helperText('You can upload multiple files. No limit on file types.'),
+                            ->maxFiles(10),
                     ])
                     ->action(function (array $data): void {
                         InternalTicket::create([
@@ -154,18 +153,18 @@ class InternalTicketsPage extends Page implements HasTable, HasForms
                     ->modalWidth(MaxWidth::Large),
             ])
             ->actions([
-                Action::make('view_details')
-                    ->label('View Details')
-                    ->icon('heroicon-o-eye')
-                    ->color('info')
-                    ->modalHeading(false)
-                    ->modalWidth('4xl')
-                    ->modalSubmitAction(false)
-                    ->modalCancelActionLabel('Close')
-                    ->modalContent(function (InternalTicket $record): View {
-                        return view('filament.pages.ticket-details-modal')
-                            ->with('ticket', $record);
-                    }),
+                // Action::make('view_details')
+                //     ->label('View Details')
+                //     ->icon('heroicon-o-eye')
+                //     ->color('info')
+                //     ->modalHeading(false)
+                //     ->modalWidth('4xl')
+                //     ->modalSubmitAction(false)
+                //     ->modalCancelActionLabel('Close')
+                //     ->modalContent(function (InternalTicket $record): View {
+                //         return view('filament.pages.ticket-details-modal')
+                //             ->with('ticket', $record);
+                //     }),
 
                 Action::make('complete_ticket')
                     ->label('Complete')
@@ -189,8 +188,7 @@ class InternalTicketsPage extends Page implements HasTable, HasForms
                             ->label('Admin Attachments')
                             ->multiple()
                             ->directory('internal-tickets/admin')
-                            ->maxFiles(10)
-                            ->helperText('You can upload multiple files. No limit on file types.'),
+                            ->maxFiles(10),
                     ])
                     ->action(function ($record, array $data): void {
                         $record->update([

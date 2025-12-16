@@ -718,7 +718,7 @@ class HardwareV2PendingMigrationTable extends Component implements HasForms, Has
             ->first();
 
         // If no matching record in debtor_agings or outstanding is 0
-        if (!$debtorAging || (float)$debtorAging->outstanding === 0.0) {
+        if ((float)$debtorAging->outstanding === 0.0) {
             return 'Full Payment';
         }
 

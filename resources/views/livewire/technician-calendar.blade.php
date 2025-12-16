@@ -1,3 +1,5 @@
+{{-- filepath: /var/www/html/timeteccrm/resources/views/livewire/technician-calendar.blade.php --}}
+
 <div x-data="tooltipHandler()">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
@@ -18,214 +20,384 @@
             --sidebar-color: black;
         }
 
-        .calendar-header {
-            display: grid;
-            grid-template-columns: 0.5fr repeat(5, 1fr);
-            gap: 1px;
-            background: var(--bg-color-border);
+        /* Calendar Styles for Weekdays Only */
+        .monthly-calendar-container {
+            background: white;
             border-radius: 17px;
             box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.08);
-            position: relative;
+            overflow: hidden;
+            margin-top: 20px;
         }
 
-        /* Salespersonrow */
-        .calendar-body {
-            display: grid;
-            grid-template-columns: 0.5fr repeat(5, 1fr);
-            gap: 1px;
-            background: var(--bg-color-border);
-            border-radius: 17px;
-            box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.08);
-            position: relative;
-        }
-
-        /* END */
-
-        .header-row {
-            display: grid;
-            grid-template-columns: 0.5fr repeat(5, 1fr);
-            grid-column: 1 / -1;
-        }
-
-        .header,
-        .time,
-        .day,
-        .summary-cell {
-            background: var(--bg-color-white);
-            padding: 10px;
-            min-height: 50px;
+        .month-header {
+            background: var(--bar-color-blue);
+            padding: 20px;
             text-align: center;
         }
 
-        .header-date {
-            font-size: 24px;
-        }
-
-        .time {
-            font-weight: bold;
-        }
-
-        .dropdown-summary {
-            grid-column: 1 / -1;
-            background-color: var(--bar-color-blue);
-            min-height: 0px;
-        }
-
-        .summary-cell {
-            background-color: var(--bar-color-blue);
-            min-height: 30px;
-        }
-
-        /* Leave Logo */
-        .summary-cell>img {
-            height: 40px;
-            margin: 0 auto;
-        }
-
-        .circle-bg {
-            display: inline-flex;
-            justify-content: center;
+        .month-nav {
+            display: flex;
             align-items: center;
-            width: 40px;
-            height: 40px;
-            background-color: var(--bg-color-white);
-            border-radius: 50%;
-            color: var(--icon-color);
+            justify-content: center;
+            gap: 20px;
         }
 
-
-        /* APPOINTMENT-CARD */
-        .appointment-card {
-            margin-block: 0.5rem;
-            width: 100%;
-            display: flex;
-            flex-direction: row;
-            text-align: left;
-        }
-
-        .appointment-card-bar {
-            background-color: var(--sidebar-color);
-            width: 12px;
-        }
-
-        .appointment-card-info {
-            display: flex;
-            flex: 1;
-            flex-direction: column;
-            padding-block: 0.25rem;
-            padding-inline: 0.5rem;
-        }
-
-        .appointment-company-name {
-            max-width: 200px;
+        .month-title {
+            font-size: 1.5rem;
             font-weight: bold;
-            color: var(--text-hyperlink-blue);
+            margin: 0;
+            color: #1f2937;
+        }
+
+        .nav-btn {
+            padding: 10px;
+            border: none;
+            background: white;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            color: #374151;
+        }
+
+        .nav-btn:hover {
+            background: #f3f4f6;
+        }
+
+        /* Days Header for Weekdays Only */
+        .days-header {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr); /* Only 5 columns for Mon-Fri */
+            background: var(--bg-color-border);
+        }
+
+        .day-header {
+            background: var(--bg-color-white);
+            padding: 15px;
+            text-align: center;
+            font-weight: bold;
+            border: 1px solid var(--bg-color-border);
+            color: #374151;
+        }
+
+        /* Monthly Calendar Grid for Weekdays Only */
+        .monthly-calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr); /* Only 5 columns for Mon-Fri */
+            gap: 1px;
+            background: var(--bg-color-border);
+        }
+
+        .calendar-day {
+            background: var(--bg-color-white);
+            padding: 12px;
+            min-height: 140px;
+            border: 1px solid #e5e7eb;
+            position: relative;
+        }
+
+        .calendar-day.other-month {
+            background: #f3f4f6;
+            opacity: 0.7;
+        }
+
+        .calendar-day.today {
+            background: #dbeafe;
+            border: 2px solid #3b82f6;
+        }
+
+        .day-header-with-appointments {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        .day-number {
+            font-weight: bold;
+            font-size: 16px;
+            color: #1f2937;
+        }
+
+        .appointment-count {
+            font-size: 10px;
+            color: #6b7280;
+            font-style: italic;
+            background: #f3f4f6;
+            padding: 2px 6px;
+            border-radius: 10px;
+            white-space: nowrap;
+        }
+
+        .day-appointments {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+
+        /* Individual appointment items - clickable */
+        .mini-appointment {
+            padding: 6px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            margin-bottom: 2px;
+            border-left: 3px solid rgba(0,0,0,0.2);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .mini-appointment:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            opacity: 0.9;
+        }
+
+        .appointment-mini-info {
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            text-transform: uppercase;
+            font-weight: 600;
+            margin-bottom: 2px;
         }
 
-        /* || END || */
+        .appointment-mini-details {
+            font-size: 9px;
+            color: rgba(0, 0, 0, 0.7);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
 
+        .more-appointments {
+            font-size: 9px;
+            color: #6b7280;
+            font-style: italic;
+            text-align: center;
+            padding: 4px;
+            background: #f3f4f6;
+            border-radius: 3px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
 
-        /* For Salesperson Image */
-        .flex-container {
+        .more-appointments:hover {
+            background: #e5e7eb;
+        }
+
+        /* Enhanced Modal Styles */
+        .appointment-modal {
+            position: fixed;
+            inset: 0;
+            z-index: 50;
             display: flex;
-            width: 100%;
-            height: 100%;
             align-items: center;
             justify-content: center;
-            gap: 0.1rem;
-            text-align: center;
+            background-color: rgba(0, 0, 0, 0.1);
+            padding: 1rem;
         }
 
-        .image-container {
-            width: 45px;
-            /* Set the container width */
-            height: 45px;
-            /* Set the container height */
-            background-color: grey;
-            /* Grey background for placeholder */
-            border-radius: 50px;
-            /* Rounded corners */
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            width: 95%;
+            max-width: 800px;
+            max-height: 85vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1.5rem;
+            border-bottom: 1px solid #e5e7eb;
+            position: sticky;
+            top: 0;
+            background: white;
+            z-index: 1;
+        }
+
+        .modal-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #111827;
+        }
+
+        .modal-close {
+            padding: 0.5rem;
+            color: #6b7280;
+            border: none;
+            background: none;
+            border-radius: 0.375rem;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .modal-close:hover {
+            background: #f3f4f6;
+            color: #374151;
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+        }
+
+        .appointment-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 1.5rem;
+            padding: 1rem;
+            border-radius: 8px;
+            background-color: var(--bg-demo-yellow);
+        }
+
+        .appointment-technician {
+            font-weight: 600;
+            color: #1f2937;
+            font-size: 1.25rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .appointment-status {
+            padding: 0.5rem 1rem;
+            border-radius: 9999px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+
+        .appointment-basic-details {
+            color: #6b7280;
+            font-size: 0.875rem;
+            line-height: 1.5;
+        }
+
+        .appointment-basic-details div {
+            margin-bottom: 0.25rem;
+        }
+
+        /* Enhanced Detail Sections */
+        .appointment-detail-section {
+            margin-bottom: 1.5rem;
+            padding: 1rem;
+            background-color: #f8f9fa;
+            border-left: 4px solid #e74c3c;
+            border-radius: 6px;
+        }
+
+        .section-title {
+            font-weight: bold;
+            font-size: 1rem;
+            margin-bottom: 0.75rem;
+            color: #e74c3c;
+            text-transform: uppercase;
+            border-bottom: 1px solid #dee2e6;
+            padding-bottom: 0.5rem;
+        }
+
+        .detail-row {
+            display: flex;
+            margin-bottom: 0.5rem;
+            align-items: flex-start;
+        }
+
+        .detail-label {
+            font-weight: bold;
+            min-width: 160px;
+            color: #495057;
             flex-shrink: 0;
         }
 
-        /* END */
+        .detail-value {
+            color: #212529;
+            flex: 1;
+        }
 
-        /* Summary Avatarr */
-
-        .demo-avatar {
+        .device-grid {
             display: grid;
-            place-items: center;
-            grid-template-columns: repeat(6, 1fr);
-            grid-auto-rows: 1fr;
-            column-gap: 3px;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 0.75rem;
+            margin-top: 0.5rem;
         }
 
-        .demo-avatar img {
-            /* max-width: 40px; */
-            border-radius: 50%;
-            object-fit: cover;
-            display: block;
+        .device-item {
+            background: white;
+            padding: 0.75rem;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            text-align: center;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
         }
 
-        /* || END || Summary Avatar */
-
-        /* public holiday overlay */
-        .holiday-overlay {
-            position: absolute;
-            top: 0;
-            /* Adjust dynamically with JS */
-            left: calc(1 * (100% / 6));
-            /* Start at column 1 */
-            width: calc(5 * (100% / 6));
-            /* Cover columns 1-5 */
-            height: 100%;
-            /* Adjust dynamically with JS */
-            background: rgba(0, 0, 0, 0.5);
-            pointer-events: none;
+        .device-name {
+            font-weight: bold;
+            color: #e74c3c;
+            margin-bottom: 0.25rem;
+            font-size: 0.9rem;
         }
 
-        /* Initially hide the inner div */
-        .hover-content {
-            display: none;
-            position: absolute;
+        .device-quantity {
+            color: #495057;
+            font-size: 0.8rem;
+        }
+
+        .remark-content {
+            background: white;
             padding: 1rem;
-            background-color: white;
-            flex-direction: column;
-            row-gap: 10px;
-            right: -5px;
-            top: 40px;
-            z-index: 10000;
-            width: 300px;
-            justify-content: space-between;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            white-space: pre-wrap;
+            max-height: 200px;
             overflow-y: auto;
-            max-height: 400px;
+            font-family: inherit;
+            line-height: 1.6;
+            color: #212529;
         }
 
-        .hover-content-flexcontainer {
+        /* Day Modal for showing all appointments */
+        .day-modal {
+            position: fixed;
+            inset: 0;
+            z-index: 40;
             display: flex;
-            flex-direction: row;
-            row-gap: 10px;
-            column-gap: 10px;
-            justify-content: flex-start;
-            align-items: center
+            align-items: center;
+            justify-content: center;
+            background-color: rgba(0, 0, 0, 0.08);
+            padding: 1rem;
         }
 
-        /* When hovering over the container, display the inner div */
-        .hover-container:hover .hover-content {
-            display: flex;
+        .day-modal-content {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            width: 95%;
+            max-width: 600px;
+            max-height: 70vh;
+            overflow-y: auto;
         }
 
-        .tooltip {
-            /* These styles are provided inline by Alpine via :style,
-       but you can add additional styling if needed */
-            z-index: 100;
+        .day-appointment-list {
+            padding: 1rem;
         }
 
+        .day-appointment-item {
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: 2px solid transparent;
+        }
 
+        .day-appointment-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            border-color: rgba(0, 0, 0, 0.1);
+        }
+
+        /* Filter Styles - keeping existing filter styles */
         .filter-badges-container {
             display: flex;
             flex-direction: column;
@@ -246,7 +418,6 @@
             justify-content: space-between;
             gap: 0.25rem;
             width: 60%;
-
         }
 
         .badges {
@@ -257,16 +428,6 @@
             border-radius: 9999px;
             font-size: 1rem;
             font-weight: 600;
-        }
-
-        @media (max-width:1400px) {
-            .filter-row {
-                width: 75%;
-            }
-
-            .badges-row {
-                width: 75%;
-            }
         }
 
         /* Container */
@@ -282,7 +443,6 @@
             display: flex;
             gap: 15px;
             justify-content: flex-end;
-            /* Align filters to the right */
             flex-wrap: wrap;
         }
 
@@ -394,1260 +554,845 @@
             border-radius: 4px;
         }
 
-        .session-divider {
-            flex: 0.005;
-            height: 150px;
-            background: #ccc;
-            width: 0.5px;
+        /* Mobile Responsive Styles */
+        @media (max-width: 768px) {
+            .filter-row {
+                width: 100%;
+            }
+
+            .badges-row {
+                width: 100%;
+            }
+
+            .filter-row div {
+                width: 100%;
+                margin-bottom: 10px;
+            }
+
+            .grid.grid-cols-2 {
+                grid-template-columns: 1fr !important;
+            }
+
+            .flex.gap-6 {
+                flex-direction: column;
+            }
+
+            .calendar-day {
+                min-height: 80px;
+                padding: 6px;
+            }
+
+            .day-number {
+                font-size: 14px;
+            }
+
+            .appointment-count {
+                font-size: 8px;
+                padding: 1px 4px;
+            }
+
+            .mini-appointment {
+                font-size: 8px;
+                padding: 4px 6px;
+            }
+
+            .appointment-mini-info {
+                font-size: 8px;
+            }
+
+            .appointment-mini-details {
+                font-size: 7px;
+            }
+
+            .month-title {
+                font-size: 1.1rem;
+            }
+
+            .nav-btn {
+                padding: 8px;
+            }
+
+            .monthly-calendar-grid {
+                grid-template-columns: repeat(5, 1fr);
+            }
+
+            .days-header {
+                grid-template-columns: repeat(5, 1fr);
+            }
+
+            .day-header {
+                padding: 8px;
+                font-size: 12px;
+            }
+
+            .modal-content {
+                width: 98%;
+                max-width: none;
+                margin: 5px;
+                max-height: 90vh;
+            }
+
+            .modal-title {
+                font-size: 1.1rem;
+            }
+
+            .appointment-technician {
+                font-size: 1.1rem;
+            }
+
+            .appointment-basic-details {
+                font-size: 0.8rem;
+            }
+
+            .detail-row {
+                flex-direction: column;
+                gap: 0.25rem;
+            }
+
+            .detail-label {
+                min-width: auto;
+            }
+
+            .device-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .section-title {
+                font-size: 0.9rem;
+            }
+
+            .appointment-detail-section {
+                padding: 0.75rem;
+                margin-bottom: 1rem;
+            }
+
+            /* Hide ribbons section on mobile by default */
+            .flex.items-center.gap-2.p-6 {
+                flex-direction: column;
+                gap: 10px;
+                padding: 15px;
+            }
+
+            .w-full.max-w-6xl {
+                padding: 15px;
+            }
+
+            .flex-1.p-4 {
+                padding: 15px;
+            }
+
+            /* Adjust filter grid on mobile */
+            .grid.w-full.grid-cols-2 {
+                padding: 15px;
+            }
+
+            /* Make buttons more touch-friendly */
+            button {
+                min-height: 44px;
+            }
         }
 
-        .reseller-name {
-            font-weight: bold;
-            font-size: 0.8rem;
-            text-transform: uppercase;
-            color: #555;
-            margin-bottom: 2px;
-            border-bottom: 1px dashed #ccc;
-            padding-bottom: 2px;
-        }
-        .view-remarks-link {
-            cursor: pointer;
-            color: #3b82f6;
-            text-decoration: underline;
-            font-weight: bold;
-            transition: color 0.2s ease;
-        }
+        @media (max-width: 480px) {
+            .calendar-day {
+                min-height: 60px;
+                padding: 4px;
+            }
 
-        .view-remarks-link:hover {
-            color: #1d4ed8;
+            .day-number {
+                font-size: 12px;
+            }
+
+            .appointment-count {
+                font-size: 7px;
+            }
+
+            .mini-appointment {
+                font-size: 7px;
+                padding: 2px 4px;
+            }
+
+            .month-title {
+                font-size: 1rem;
+            }
+
+            .day-header {
+                padding: 6px;
+                font-size: 10px;
+            }
         }
     </style>
 
-<div x-data="{ filterExpanded: true }">
-    <!-- Title and Toggle Button -->
-    <div class="flex items-center justify-between mb-4">
-        <h2 class="text-lg font-semibold">Technician Calendar</h2>
-        <button @click="filterExpanded = !filterExpanded"
-                class="flex items-center px-3 py-1 text-sm bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50">
-                <span x-text="filterExpanded ? 'Hide Ribbons' : 'Show Ribbons'"></span>&nbsp;
-            <i class="ml-1 fa-solid" :class="filterExpanded ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
-        </button>
-    </div>
+    <!-- Ribbon Toggle Section -->
+    <div x-data="{ filterExpanded: false }">
+        <!-- Title and Toggle Button -->
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-semibold">Technician Calendar</h2>
+            <button @click="filterExpanded = !filterExpanded"
+                    class="flex items-center px-3 py-1 text-sm bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50">
+                    <span x-text="filterExpanded ? 'Hide Ribbons' : 'Show Ribbons'"></span>&nbsp;
+                <i class="ml-1 fa-solid" :class="filterExpanded ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+            </button>
+        </div>
 
-    <!-- Filter and Badges Section - Collapsible -->
-    <div x-show="filterExpanded" x-transition.duration.300ms>
-        <div class="flex items-center gap-2 p-6 mb-6 bg-white shadow-xl rounded-2xl">
-            <div class="grid w-full grid-cols-2 gap-8 p-6 mx-auto bg-white shadow-md md:grid-cols-2 max-w-7xl rounded-xl"
-                style="width:70%;">
-                <h3> Filter </h3><br>
+        <!-- Filter and Badges Section - Collapsible -->
+        <div x-show="filterExpanded" x-transition.duration.300ms>
+            <div class="flex items-center gap-2 p-6 mb-6 bg-white shadow-xl rounded-2xl">
+                <div class="grid w-full grid-cols-2 gap-8 p-6 mx-auto bg-white shadow-md md:grid-cols-2 max-w-7xl rounded-xl"
+                    style="width:70%;">
+                    <h3> Filter </h3><br>
 
-                {{-- Status Filter --}}
-                <div class="relative w-full">
-                    <form>
-                        <div class="block bg-white border border-gray-300 rounded-md shadow-sm cursor-pointer focus-within:ring-indigo-500 focus-within:border-indigo-500 sm:text-sm"
-                            @click.away="open = false" x-data="{
-                                open: false,
-                                selected: @entangle('selectedStatus'),
-                                allSelected: @entangle('allStatusSelected'),
-                                get label() {
-                                    if (this.allSelected) return 'All Status'
-                                    else if (this.selected.length <= 0) return 'All Status'
-                                    else return this.selected.join(',');
-                                }
-                            }">
-                            <!-- Trigger Button -->
-                            <div @click="open = !open" class="flex items-center justify-between px-3 py-2">
-                                <span x-text="label" class="truncate"></span>
-                                <svg class="w-5 h-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none"
-                                    viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M19 9l-7 7-7-7" />
-                                </svg>
-                            </div>
+                    {{-- Status Filter --}}
+                    <div class="relative w-full">
+                        <form>
+                            <div class="block bg-white border border-gray-300 rounded-md shadow-sm cursor-pointer focus-within:ring-indigo-500 focus-within:border-indigo-500 sm:text-sm"
+                                @click.away="open = false" x-data="{
+                                    open: false,
+                                    selected: @entangle('selectedStatus'),
+                                    allSelected: @entangle('allStatusSelected'),
+                                    get label() {
+                                        if (this.allSelected) return 'All Status'
+                                        else if (this.selected.length <= 0) return 'All Status'
+                                        else return this.selected.join(',');
+                                    }
+                                }">
+                                <!-- Trigger Button -->
+                                <div @click="open = !open" class="flex items-center justify-between px-3 py-2">
+                                    <span x-text="label" class="truncate"></span>
+                                    <svg class="w-5 h-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none"
+                                        viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M19 9l-7 7-7-7" />
+                                    </svg>
+                                </div>
 
-                            <!-- Dropdown List -->
-                            <div x-show="open"
-                                class="absolute z-10 w-full mt-1 overflow-auto bg-white border border-gray-300 rounded-md shadow-lg "
-                                style="display: none;">
-                                <ul class="py-1">
-                                    <!-- Select All Checkbox -->
-                                    <li class="flex items-center px-3 py-2 hover:bg-gray-100">
-                                        <input type="checkbox" wire:model.live="allStatusSelected"
-                                            class="w-4 h-4 text-indigo-600 border-gray-300 rounded form-checkbox focus:ring-indigo-500" />
-                                        <label class="block ml-3 text-sm font-medium text-gray-700"
-                                            style="padding-left: 10px;">
-                                            All Status
-                                        </label>
-                                    </li>
-
-                                    <!-- Individual Status Options -->
-                                    @foreach ($status as $row)
+                                <!-- Dropdown List -->
+                                <div x-show="open"
+                                    class="absolute z-10 w-full mt-1 overflow-auto bg-white border border-gray-300 rounded-md shadow-lg "
+                                    style="display: none;">
+                                    <ul class="py-1">
+                                        <!-- Select All Checkbox -->
                                         <li class="flex items-center px-3 py-2 hover:bg-gray-100">
-                                            <input type="checkbox" wire:model.live="selectedStatus"
-                                                value="{{ $row }}"
+                                            <input type="checkbox" wire:model.live="allStatusSelected"
                                                 class="w-4 h-4 text-indigo-600 border-gray-300 rounded form-checkbox focus:ring-indigo-500" />
-                                            <label for="checkbox-{{ $row }}"
-                                                class="block ml-3 text-sm font-medium text-gray-700"
+                                            <label class="block ml-3 text-sm font-medium text-gray-700"
                                                 style="padding-left: 10px;">
-                                                {{ $row }}
+                                                All Status
                                             </label>
                                         </li>
-                                    @endforeach
-                                </ul>
+
+                                        <!-- Individual Status Options -->
+                                        @foreach ($status as $row)
+                                            <li class="flex items-center px-3 py-2 hover:bg-gray-100">
+                                                <input type="checkbox" wire:model.live="selectedStatus"
+                                                    value="{{ $row }}"
+                                                    class="w-4 h-4 text-indigo-600 border-gray-300 rounded form-checkbox focus:ring-indigo-500" />
+                                                <label for="checkbox-{{ $row }}"
+                                                    class="block ml-3 text-sm font-medium text-gray-700"
+                                                    style="padding-left: 10px;">
+                                                    {{ $row }}
+                                                </label>
+                                            </li>
+                                        @endforeach
+                                    </ul>
+                                </div>
                             </div>
-                        </div>
-                    </form>
-                </div>
+                        </form>
+                    </div>
 
-                {{-- Date Picker --}}
-                <div x-data="weeklyPicker()" class="w-36">
-                    <input type="text" x-ref="datepicker" wire:model.change='weekDate' placeholder="Date"
-                        class="block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm cursor-pointer focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
-                </div>
+                    {{-- Date Picker --}}
+                    <div x-data="monthlyPicker()" class="w-36">
+                        <input type="text" x-ref="datepicker" wire:model.change='monthDate' placeholder="Select Month"
+                            class="block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm cursor-pointer focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                    </div>
 
-                {{-- Repair Type Filter --}}
-                <div class="relative w-full">
-                    <form>
-                        <div class="block bg-white border border-gray-300 rounded-md shadow-sm cursor-pointer focus-within:ring-indigo-500 focus-within:border-indigo-500 sm:text-sm"
-                            @click.away="open = false" x-data="{
-                                open: false,
-                                selected: @entangle('selectedRepairType'),
-                                allSelected: @entangle('allRepairTypeSelected'),
-                                get label() {
-                                    if (this.allSelected) return 'All Repair Types'
-                                    else if (this.selected.length <= 0) return 'All Repair Types'
-                                    else return this.selected.join(',');
-                                }
-                            }">
-                            <!-- Trigger Button -->
-                            <div @click="open = !open" class="flex items-center justify-between px-3 py-2">
-                                <span x-text="label" class="truncate"></span>
-                                <svg class="w-5 h-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none"
-                                    viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M19 9l-7 7-7-7" />
-                                </svg>
-                            </div>
+                    {{-- Repair Type Filter --}}
+                    <div class="relative w-full">
+                        <form>
+                            <div class="block bg-white border border-gray-300 rounded-md shadow-sm cursor-pointer focus-within:ring-indigo-500 focus-within:border-indigo-500 sm:text-sm"
+                                @click.away="open = false" x-data="{
+                                    open: false,
+                                    selected: @entangle('selectedRepairType'),
+                                    allSelected: @entangle('allRepairTypeSelected'),
+                                    get label() {
+                                        if (this.allSelected) return 'All Repair Types'
+                                        else if (this.selected.length <= 0) return 'All Repair Types'
+                                        else return this.selected.join(',');
+                                    }
+                                }">
+                                <!-- Trigger Button -->
+                                <div @click="open = !open" class="flex items-center justify-between px-3 py-2">
+                                    <span x-text="label" class="truncate"></span>
+                                    <svg class="w-5 h-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none"
+                                        viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M19 9l-7 7-7-7" />
+                                    </svg>
+                                </div>
 
-                            <!-- Dropdown List -->
-                            <div x-show="open"
-                                class="absolute z-10 w-full mt-1 overflow-auto bg-white border border-gray-300 rounded-md shadow-lg "
-                                style="display: none;">
-                                <ul class="py-1">
-                                    <!-- Select All Checkbox -->
-                                    <li class="flex items-center px-3 py-2 hover:bg-gray-100">
-                                        <input type="checkbox" wire:model.live="allRepairTypeSelected"
-                                            class="w-4 h-4 text-indigo-600 border-gray-300 rounded form-checkbox focus:ring-indigo-500" />
-                                        <label class="block ml-3 text-sm font-medium text-gray-700"
-                                            style="padding-left: 10px;">
-                                            All Repair Types
-                                        </label>
-                                    </li>
-
-                                    <!-- Individual Repair Types -->
-                                    @foreach ($repairTypes as $row)
+                                <!-- Dropdown List -->
+                                <div x-show="open"
+                                    class="absolute z-10 w-full mt-1 overflow-auto bg-white border border-gray-300 rounded-md shadow-lg "
+                                    style="display: none;">
+                                    <ul class="py-1">
+                                        <!-- Select All Checkbox -->
                                         <li class="flex items-center px-3 py-2 hover:bg-gray-100">
-                                            <input type="checkbox" wire:model.live="selectedRepairType"
-                                                value="{{ $row }}"
+                                            <input type="checkbox" wire:model.live="allRepairTypeSelected"
                                                 class="w-4 h-4 text-indigo-600 border-gray-300 rounded form-checkbox focus:ring-indigo-500" />
-                                            <label for="checkbox-{{ $row }}"
-                                                class="block ml-3 text-sm font-medium text-gray-700"
+                                            <label class="block ml-3 text-sm font-medium text-gray-700"
                                                 style="padding-left: 10px;">
-                                                {{ $row }}
+                                                All Repair Types
                                             </label>
                                         </li>
-                                    @endforeach
-                                </ul>
+
+                                        <!-- Individual Repair Types -->
+                                        @foreach ($repairTypes as $row)
+                                            <li class="flex items-center px-3 py-2 hover:bg-gray-100">
+                                                <input type="checkbox" wire:model.live="selectedRepairType"
+                                                    value="{{ $row }}"
+                                                    class="w-4 h-4 text-indigo-600 border-gray-300 rounded form-checkbox focus:ring-indigo-500" />
+                                                <label for="checkbox-{{ $row }}"
+                                                    class="block ml-3 text-sm font-medium text-gray-700"
+                                                    style="padding-left: 10px;">
+                                                    {{ $row }}
+                                                </label>
+                                            </li>
+                                        @endforeach
+                                    </ul>
+                                </div>
                             </div>
-                        </div>
-                    </form>
-                </div>
+                        </form>
+                    </div>
 
-                {{-- Technicians Filter --}}
-                <div class="relative w-full">
-                    <form>
-                        <div class="block bg-white border border-gray-300 rounded-md shadow-sm cursor-pointer focus-within:ring-indigo-500 focus-within:border-indigo-500 sm:text-sm"
-                            @click.away="open = false" x-data="{
-                                open: false,
-                                selected: @entangle('selectedTechnicians'),
-                                allSelected: @entangle('allTechniciansSelected'),
-                                get label() {
-                                    if (this.allSelected)
-                                        return 'All Technicians';
-                                    else if (this.selected.length <= 0)
-                                        return 'All Technicians';
-                                    else
-                                        return this.selected.length + ' Technicians';
-                                }
-                            }">
+                    {{-- Technicians Filter --}}
+                    <div class="relative w-full">
+                        <form>
+                            <div class="block bg-white border border-gray-300 rounded-md shadow-sm cursor-pointer focus-within:ring-indigo-500 focus-within:border-indigo-500 sm:text-sm"
+                                @click.away="open = false" x-data="{
+                                    open: false,
+                                    selected: @entangle('selectedTechnicians'),
+                                    allSelected: @entangle('allTechniciansSelected'),
+                                    get label() {
+                                        if (this.allSelected)
+                                            return 'All Technicians';
+                                        else if (this.selected.length <= 0)
+                                            return 'All Technicians';
+                                        else
+                                            return this.selected.length + ' Technicians';
+                                    }
+                                }">
 
-                            <!-- Trigger Button -->
-                            <div @click="open = !open" class="flex items-center justify-between px-3 py-2">
-                                <span x-text="label" class="truncate"></span>
-                                <svg class="w-5 h-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none"
-                                    viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M19 9l-7 7-7-7" />
-                                </svg>
-                            </div>
+                                <!-- Trigger Button -->
+                                <div @click="open = !open" class="flex items-center justify-between px-3 py-2">
+                                    <span x-text="label" class="truncate"></span>
+                                    <svg class="w-5 h-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none"
+                                        viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M19 9l-7 7-7-7" />
+                                    </svg>
+                                </div>
 
-                            <!-- Dropdown List -->
-                            <div x-show="open"
-                                class="absolute z-10 w-full mt-1 overflow-auto bg-white border border-gray-300 rounded-md shadow-lg"
-                                style="display: none; height: 30vh">
-                                <ul class="py-1">
-                                    <!-- Select All Checkbox -->
-                                    <li class="flex items-center px-3 py-2 hover:bg-gray-100">
-                                        <input type="checkbox" wire:model.live="allTechniciansSelected"
-                                            class="w-4 h-4 text-indigo-600 border-gray-300 rounded form-checkbox focus:ring-indigo-500"
-                                            @if (auth()->user()->role_id == 9) disabled @endif />
-                                        <label class="block ml-3 text-sm font-medium text-gray-700"
-                                            style="padding-left: 10px;">
-                                            All Technicians
-                                        </label>
-                                    </li>
-
-                                    <!-- Individual Technicians -->
-                                    @foreach ($technicians as $row)
+                                <!-- Dropdown List -->
+                                <div x-show="open"
+                                    class="absolute z-10 w-full mt-1 overflow-auto bg-white border border-gray-300 rounded-md shadow-lg"
+                                    style="display: none; height: 30vh">
+                                    <ul class="py-1">
+                                        <!-- Select All Checkbox -->
                                         <li class="flex items-center px-3 py-2 hover:bg-gray-100">
-                                            <input type="checkbox" wire:model.live="selectedTechnicians"
-                                                value="{{ $row['name'] }}"
+                                            <input type="checkbox" wire:model.live="allTechniciansSelected"
                                                 class="w-4 h-4 text-indigo-600 border-gray-300 rounded form-checkbox focus:ring-indigo-500"
                                                 @if (auth()->user()->role_id == 9) disabled @endif />
-                                            <label for="checkbox-{{ $row['id'] }}"
-                                                class="block ml-3 text-sm font-medium text-gray-700"
+                                            <label class="block ml-3 text-sm font-medium text-gray-700"
                                                 style="padding-left: 10px;">
-                                                {{ $row['name'] }}
+                                                All Technicians
                                             </label>
                                         </li>
-                                    @endforeach
-                                </ul>
+
+                                        <!-- Individual Technicians -->
+                                        @foreach ($technicians as $row)
+                                            <li class="flex items-center px-3 py-2 hover:bg-gray-100">
+                                                <input type="checkbox" wire:model.live="selectedTechnicians"
+                                                    value="{{ $row['name'] }}"
+                                                    class="w-4 h-4 text-indigo-600 border-gray-300 rounded form-checkbox focus:ring-indigo-500"
+                                                    @if (auth()->user()->role_id == 9) disabled @endif />
+                                                <label for="checkbox-{{ $row['id'] }}"
+                                                    class="block ml-3 text-sm font-medium text-gray-700"
+                                                    style="padding-left: 10px;">
+                                                    {{ $row['name'] }}
+                                                </label>
+                                            </li>
+                                        @endforeach
+                                    </ul>
+                                </div>
                             </div>
-                        </div>
-                    </form>
-                </div>
+                        </form>
+                    </div>
 
-                {{-- Appointment Type Filter --}}
-                <div class="relative w-full">
-                    <form>
-                        <div class="block bg-white border border-gray-300 rounded-md shadow-sm cursor-pointer focus-within:ring-indigo-500 focus-within:border-indigo-500 sm:text-sm"
-                            @click.away="open = false" x-data="{
-                                open: false,
-                                selected: @entangle('selectedAppointmentType'),
-                                allSelected: @entangle('allAppointmentTypeSelected'),
-                                get label() {
-                                    if (this.allSelected)
-                                        return 'All Appointment Types'
-                                    else if (this.selected.length <= 0)
-                                        return 'All Appointment Types'
-                                    else
-                                        return this.selected.join(',');
-                                }
-                            }">
-                            <!-- Trigger Button -->
-                            <div @click="open = !open" class="flex items-center justify-between px-3 py-2">
-                                <span x-text="label" class="truncate"></span>
-                                <svg class="w-5 h-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none"
-                                    viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M19 9l-7 7-7-7" />
-                                </svg>
-                            </div>
+                    {{-- Appointment Type Filter --}}
+                    <div class="relative w-full">
+                        <form>
+                            <div class="block bg-white border border-gray-300 rounded-md shadow-sm cursor-pointer focus-within:ring-indigo-500 focus-within:border-indigo-500 sm:text-sm"
+                                @click.away="open = false" x-data="{
+                                    open: false,
+                                    selected: @entangle('selectedAppointmentType'),
+                                    allSelected: @entangle('allAppointmentTypeSelected'),
+                                    get label() {
+                                        if (this.allSelected)
+                                            return 'All Appointment Types'
+                                        else if (this.selected.length <= 0)
+                                            return 'All Appointment Types'
+                                        else
+                                            return this.selected.join(',');
+                                    }
+                                }">
+                                <!-- Trigger Button -->
+                                <div @click="open = !open" class="flex items-center justify-between px-3 py-2">
+                                    <span x-text="label" class="truncate"></span>
+                                    <svg class="w-5 h-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none"
+                                        viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M19 9l-7 7-7-7" />
+                                    </svg>
+                                </div>
 
-                            <!-- Dropdown List -->
-                            <div x-show="open"
-                                class="absolute z-10 w-full mt-1 overflow-auto bg-white border border-gray-300 rounded-md shadow-lg "
-                                style="display: none;">
-                                <ul class="py-1">
-                                    <!-- Select All Checkbox -->
-                                    <li class="flex items-center px-3 py-2 hover:bg-gray-100">
-                                        <input type="checkbox" wire:model.live="allAppointmentTypeSelected"
-                                            class="w-4 h-4 text-indigo-600 border-gray-300 rounded form-checkbox focus:ring-indigo-500" />
-                                        <label class="block ml-3 text-sm font-medium text-gray-700"
-                                            style="padding-left: 10px;">
-                                            All Appointment Types
-                                        </label>
-                                    </li>
-
-                                    <!-- Individual Appointment Types -->
-                                    @foreach ($appointmentTypes as $row)
+                                <!-- Dropdown List -->
+                                <div x-show="open"
+                                    class="absolute z-10 w-full mt-1 overflow-auto bg-white border border-gray-300 rounded-md shadow-lg "
+                                    style="display: none;">
+                                    <ul class="py-1">
+                                        <!-- Select All Checkbox -->
                                         <li class="flex items-center px-3 py-2 hover:bg-gray-100">
-                                            <input type="checkbox" wire:model.live="selectedAppointmentType"
-                                                value="{{ $row }}"
+                                            <input type="checkbox" wire:model.live="allAppointmentTypeSelected"
                                                 class="w-4 h-4 text-indigo-600 border-gray-300 rounded form-checkbox focus:ring-indigo-500" />
-                                            <label for="checkbox-{{ $row }}"
-                                                class="block ml-3 text-sm font-medium text-gray-700"
+                                            <label class="block ml-3 text-sm font-medium text-gray-700"
                                                 style="padding-left: 10px;">
-                                                {{ $row }}
+                                                All Appointment Types
                                             </label>
                                         </li>
-                                    @endforeach
-                                </ul>
+
+                                        <!-- Individual Appointment Types -->
+                                        @foreach ($appointmentTypes as $row)
+                                            <li class="flex items-center px-3 py-2 hover:bg-gray-100">
+                                                <input type="checkbox" wire:model.live="selectedAppointmentType"
+                                                    value="{{ $row }}"
+                                                    class="w-4 h-4 text-indigo-600 border-gray-300 rounded form-checkbox focus:ring-indigo-500" />
+                                                <label for="checkbox-{{ $row }}"
+                                                    class="block ml-3 text-sm font-medium text-gray-700"
+                                                    style="padding-left: 10px;">
+                                                    {{ $row }}
+                                                </label>
+                                            </li>
+                                        @endforeach
+                                    </ul>
+                                </div>
                             </div>
-                        </div>
-                    </form>
+                        </form>
+                    </div>
                 </div>
 
-                {{-- @if(auth()->user()->role_id !== 9)
-                    <div style="display:flex;align-items:center; font-size: 0.9rem; gap: 0.3rem;" class="px-2 py-2">
-                        <input type="checkbox" wire:model.change="showDropdown">
-                        <span>{{ $showDropdown ? 'Hide Summary' : 'Show Summary' }}</span>
-                    </div>
-                @endif --}}
-            </div>
+                <!-- Repair Breakdown -->
+                <div class="w-full max-w-6xl p-6 mx-auto bg-white shadow-md rounded-xl">
+                    <div class="flex gap-6">
 
-            <!-- Repair Breakdown -->
-            <div class="w-full max-w-6xl p-6 mx-auto bg-white shadow-md rounded-xl">
-                <div class="flex gap-6">
+                        <!-- Repair Type -->
+                        <div class="flex-1 p-4 bg-white rounded-lg shadow">
+                            <h3 class="text-lg font-semibold">Technician & Reseller (Category)</h3>
+                            <p class="text-gray-600">Total Technician & Reseller Session: {{ $totalRepairs['ALL'] }}</p>
 
-                    <!-- Repair Type -->
-                    <div class="flex-1 p-4 bg-white rounded-lg shadow">
-                        <h3 class="text-lg font-semibold">Technician & Reseller (Category)</h3>
-                        <p class="text-gray-600">Total Technician & Reseller Session: {{ $totalRepairs['ALL'] }}</p>
+                            @foreach ([
+                                'NEW INSTALLATION' => '#71eb71',
+                                'REPAIR' => '#ffff5cbf',
+                                'SITE SURVEY' => '#ffa83c',
+                                'INTERNAL TECHNICIAN TASK' => '#60a5fa'
+                            ] as $type => $color)
+                                @php
+                                    $count = $repairBreakdown[$type] ?? 0;
+                                    $percentage = $totalRepairs['ALL'] > 0 ? round(($count / $totalRepairs['ALL']) * 100, 2) : 0;
+                                @endphp
 
-                        @foreach ([
-                            'NEW INSTALLATION' => '#71eb71',
-                            'REPAIR' => '#ffff5cbf',
-                            'SITE SURVEY' => '#ffa83c',
-                            'INTERNAL TECHNICIAN TASK' => '#60a5fa'
-                        ] as $type => $color)
-                            @php
-                                $count = $repairBreakdown[$type] ?? 0;
-                                $percentage = $totalRepairs['ALL'] > 0 ? round(($count / $totalRepairs['ALL']) * 100, 2) : 0;
-                            @endphp
+                                <div class="flex justify-between mt-2 text-sm">
+                                    <span>{{ ucfirst(strtolower(str_replace('_', ' ', $type))) }}</span>
+                                    <span>{{ $count }} ({{ $percentage }}%)</span>
+                                </div>
 
-                            <div class="flex justify-between mt-2 text-sm">
-                                <span>{{ ucfirst(strtolower(str_replace('_', ' ', $type))) }}</span>
-                                <span>{{ $count }} ({{ $percentage }}%)</span>
-                            </div>
+                                <div class="w-full h-3 mt-1 mb-3 bg-gray-200 rounded-md">
+                                    <div class="h-full rounded-md" style="width: {{ $percentage }}%; background-color: {{ $color }};"></div>
+                                </div>
+                            @endforeach
+                        </div>
 
-                            <div class="w-full h-3 mt-1 mb-3 bg-gray-200 rounded-md">
-                                <div class="h-full rounded-md" style="width: {{ $percentage }}%; background-color: {{ $color }};"></div>
-                            </div>
-                        @endforeach
-                    </div>
+                        <!-- Repair Status -->
+                        <div class="flex-1 p-4 bg-white rounded-lg shadow">
+                            <h3 class="text-lg font-semibold">Technician & Reseller (Status)</h3>
+                            <p class="text-gray-600">Total Technician & Reseller Session: {{ $totalRepairs['ALL'] }}</p>
 
-                    <!-- Repair Status -->
-                    <div class="flex-1 p-4 bg-white rounded-lg shadow">
-                        <h3 class="text-lg font-semibold">Technician & Reseller (Status)</h3>
-                        <p class="text-gray-600">Total Technician & Reseller Session: {{ $totalRepairs['ALL'] }}</p>
+                            @foreach (['NEW' => '#ffff5cbf', 'DONE' => '#71eb71', 'CANCELLED' => '#f86f6f'] as $status => $color)
+                                @php
+                                    $count = $totalRepairs[$status] ?? 0;
+                                    $percentage = $totalRepairs['ALL'] > 0 ? round(($count / $totalRepairs['ALL']) * 100, 2) : 0;
+                                @endphp
 
-                        @foreach (['NEW' => '#ffff5cbf', 'DONE' => '#71eb71', 'CANCELLED' => '#f86f6f'] as $status => $color)
-                            @php
-                                $count = $totalRepairs[$status] ?? 0;
-                                $percentage = $totalRepairs['ALL'] > 0 ? round(($count / $totalRepairs['ALL']) * 100, 2) : 0;
-                            @endphp
-
-                            <div class="flex justify-between mt-2 text-sm">
-                                <span>{{ ucfirst(strtolower($status)) }}</span>
-                                <span>{{ $count }} ({{ $percentage }}%)</span>
-                            </div>
-                            <div class="w-full h-3 mt-1 mb-3 bg-gray-200 rounded-md">
-                                <div class="h-full rounded-md" style="width: {{ $percentage }}%; background-color: {{ $color }};"></div>
-                            </div>
-                        @endforeach
+                                <div class="flex justify-between mt-2 text-sm">
+                                    <span>{{ ucfirst(strtolower($status)) }}</span>
+                                    <span>{{ $count }} ({{ $percentage }}%)</span>
+                                </div>
+                                <div class="w-full h-3 mt-1 mb-3 bg-gray-200 rounded-md">
+                                    <div class="h-full rounded-md" style="width: {{ $percentage }}%; background-color: {{ $color }};"></div>
+                                </div>
+                            @endforeach
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-</div>
-<br>
 
-<!-- Calendar Section -->
-<div class="calendar-header">
-    <div class="header-row">
-        <div class="header"
-            style="display:flex; align-items:center; justify-content:center; font-weight:bold; font-size: 1.2rem">
-            <div>{{ $currentMonth }}</div>
-        </div>
-        <div class="header">
-            <div class="flex">
-                <button wire:click="prevWeek" style="width: 10%;"><i class="fa-solid fa-chevron-left"></i></button>
-                <span class="flex-1" @if ($weekDays[0]['today']) style="background-color: lightblue;" @endif>
-                    <div class="text-center header-date">{{ $weekDays[0]['date'] }}</div>
-                    <div>{{ $weekDays[0]['day'] }}</div>
-                </span>
+    <!-- Monthly Calendar (WEEKDAYS ONLY) -->
+    <div class="monthly-calendar-container" x-data="{
+        selectedAppointment: null,
+        showAppointmentModal: false,
+        dayModalOpen: false,
+        selectedDayAppointments: [],
+        selectedDate: ''
+    }">
+        <!-- Month Navigation Header -->
+        <div class="month-header">
+            <div class="month-nav">
+                <button wire:click="prevMonth" class="nav-btn">
+                    <i class="fa-solid fa-chevron-left"></i>
+                </button>
+                <h2 class="month-title">{{ $currentMonth }}</h2>
+                <button wire:click="nextMonth" class="nav-btn">
+                    <i class="fa-solid fa-chevron-right"></i>
+                </button>
             </div>
         </div>
-        <div class="header">
-            <div class="header-date">{{ $weekDays[1]['date'] }}</div>
-            <div>{{ $weekDays[1]['day'] }}</div>
+
+        <!-- Days of Week Header (WEEKDAYS ONLY) -->
+        <div class="days-header">
+            <div class="day-header">Mon</div>
+            <div class="day-header">Tue</div>
+            <div class="day-header">Wed</div>
+            <div class="day-header">Thu</div>
+            <div class="day-header">Fri</div>
         </div>
-        <div class="header">
-            <div class="header-date">{{ $weekDays[2]['date'] }}</div>
-            <div>{{ $weekDays[2]['day'] }}</div>
-        </div>
-        <div class="header">
-            <div class="header-date">{{ $weekDays[3]['date'] }}</div>
-            <div>{{ $weekDays[3]['day'] }}</div>
-        </div>
-        <div class="header">
-            <div class="flex">
-                <div class="flex-1" @if ($weekDays[4]['today']) style="background-color: lightblue;" @endif>
-                    <div class="header-date">{{ $weekDays[4]['date'] }}</div>
-                    <div>{{ $weekDays[4]['day'] }}</div>
-                </div>
-                <button wire:click="nextWeek" style="width: 10%;"><i class="fa-solid fa-chevron-right"></i></button>
-            </div>
+
+        <!-- Monthly Calendar Grid (WEEKDAYS ONLY) -->
+        <div class="monthly-calendar-grid">
+            @foreach ($monthlyCalendar as $week)
+                @foreach ($week as $dayData)
+                    <div class="calendar-day @if($dayData['isCurrentMonth']) current-month @else other-month @endif @if($dayData['isToday']) today @endif">
+
+                        <!-- Day number with appointment count -->
+                        @if(isset($dayData['appointments']) && count($dayData['appointments']) > 0)
+                            <div class="day-header-with-appointments">
+                                <div class="day-number">{{ $dayData['day'] }}</div>
+                                <div class="appointment-count">
+                                    {{ count($dayData['appointments']) }}
+                                </div>
+                            </div>
+                        @else
+                            <div class="day-number">{{ $dayData['day'] }}</div>
+                        @endif
+
+                        <!-- Individual clickable appointments -->
+                        @if(isset($dayData['appointments']) && count($dayData['appointments']) > 0)
+                            <div class="day-appointments">
+                                @foreach($dayData['appointments'] as $index => $appointment)
+                                    @if($index < 3)
+                                        <div class="mini-appointment"
+                                            style="background-color:
+                                                @if($appointment->status === 'Done') var(--bg-demo-green)
+                                                @elseif($appointment->status === 'New') var(--bg-demo-yellow)
+                                                @else var(--bg-demo-red)
+                                                @endif"
+                                            @click.stop="$wire.showAppointment({{ $appointment->id }}, '{{ $dayData['date'] }}')"
+                                            wire:loading.attr="disabled">
+                                            <div class="appointment-mini-info">
+                                                {{ Str::limit($appointment->company_name, 30) }}
+                                            </div>
+                                            <div class="appointment-mini-details">
+                                                {{ $appointment->type }} • {{ $appointment->start_time }}
+                                            </div>
+                                        </div>
+                                    @endif
+                                @endforeach
+
+                                @if(count($dayData['appointments']) > 3)
+                                    <div class="more-appointments"
+                                        @click.stop="
+                                            selectedDayAppointments = {{ collect($dayData['appointments'])->map(function($apt) {
+                                                return [
+                                                    'id' => $apt->id,
+                                                    'date' => $apt->date,
+                                                    'company_name' => $apt->company_name,
+                                                    'technician' => $apt->technician,
+                                                    'type' => $apt->type,
+                                                    'start_time' => $apt->start_time,
+                                                    'end_time' => $apt->end_time,
+                                                    'status' => $apt->status,
+                                                    'display_type' => $apt->display_type ?? $apt->type
+                                                ];
+                                            })->toJson() }};
+                                            selectedDate = '{{ $dayData['carbonDate']->format('l, F j, Y') }}';
+                                            dayModalOpen = true;
+                                        ">
+                                        +{{ count($dayData['appointments']) - 3 }} more
+                                    </div>
+                                @endif
+                            </div>
+                        @endif
+
+                        <!-- Individual Appointment Detail Modal -->
+                        <div x-show="@this.showAppointmentModal"
+                            x-transition
+                            @click.outside="$wire.closeAppointmentModal()"
+                            @keydown.escape.window="$wire.closeAppointmentModal()"
+                            class="appointment-modal">
+                            <div class="modal-content" @click.stop>
+                                <div class="modal-header">
+                                    <h3 class="modal-title">Appointment Details</h3>
+                                    <button type="button"
+                                            @click="$wire.closeAppointmentModal()"
+                                            class="modal-close">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                        </svg>
+                                    </button>
+                                </div>
+
+                                @if($modalAppointment)
+                                <div class="modal-body">
+                                    <!-- Basic Appointment Header -->
+                                    <div class="appointment-header"
+                                        style="background-color:
+                                            @if($modalAppointment->status === 'Done') var(--bg-demo-green)
+                                            @elseif($modalAppointment->status === 'New') var(--bg-demo-yellow)
+                                            @else var(--bg-demo-red)
+                                            @endif">
+                                        <div>
+                                            <div class="appointment-technician">{{ $modalAppointment->company_name }}</div>
+                                            <div class="appointment-basic-details">
+                                                <div><strong>Technician:</strong> {{ $modalAppointment->technician }}</div>
+                                                <div><strong>Type:</strong> {{ $modalAppointment->display_type ?? $modalAppointment->type }}</div>
+                                                <div><strong>Time:</strong> {{ $modalAppointment->start_time }} - {{ $modalAppointment->end_time }}</div>
+                                                @if($modalAppointment->url && $modalAppointment->url !== '#')
+                                                    <div><a href="{{ $modalAppointment->url }}" target="_blank" class="text-blue-600 hover:underline">View Lead Details</a></div>
+                                                @endif
+                                            </div>
+                                        </div>
+                                        <span class="appointment-status"
+                                            style="background-color:
+                                                @if($modalAppointment->status === 'Done') var(--text-demo-green)
+                                                @elseif($modalAppointment->status === 'New') var(--text-demo-yellow)
+                                                @else var(--text-demo-red)
+                                                @endif; color: white;">
+                                            {{ $modalAppointment->status }}
+                                        </span>
+                                    </div>
+
+                                    <!-- Customer Details Section -->
+                                    <div class="appointment-detail-section">
+                                        <div class="section-title">Customer Details</div>
+                                        <div class="detail-row">
+                                            <span class="detail-label">Company Name:</span>
+                                            <span class="detail-value">{{ $modalAppointment->company_name ?? 'N/A' }}</span>
+                                        </div>
+                                        <div class="detail-row">
+                                            <span class="detail-label">PIC Name:</span>
+                                            <span class="detail-value">{{ $modalAppointment->pic_name ?? 'N/A' }}</span>
+                                        </div>
+                                        <div class="detail-row">
+                                            <span class="detail-label">PIC Phone:</span>
+                                            <span class="detail-value">{{ $modalAppointment->pic_phone ?? 'N/A' }}</span>
+                                        </div>
+                                        <div class="detail-row">
+                                            <span class="detail-label">PIC Email:</span>
+                                            <span class="detail-value">{{ $modalAppointment->pic_email ?? 'N/A' }}</span>
+                                        </div>
+                                    </div>
+
+                                    <!-- Installation Details Section -->
+                                    <div class="appointment-detail-section">
+                                        <div class="section-title">Installation Details</div>
+                                        @if($modalAppointment->hardware_id ?? false)
+                                            <div class="detail-row">
+                                                <span class="detail-label">Hardware ID:</span>
+                                                <span class="detail-value">{{ $modalAppointment->hardware_id }}</span>
+                                            </div>
+                                        @endif
+                                        <div class="detail-row">
+                                            <span class="detail-label">Appointment Date:</span>
+                                            <span class="detail-value">{{ $modalAppointment->appointment_date ?? 'N/A' }}</span>
+                                        </div>
+                                        <div class="detail-row">
+                                            <span class="detail-label">Installation Time:</span>
+                                            <span class="detail-value">{{ $modalAppointment->start_time }} - {{ $modalAppointment->end_time }}</span>
+                                        </div>
+                                        <div class="detail-row">
+                                            <span class="detail-label">Installation Address:</span>
+                                            <span class="detail-value">{{ $modalAppointment->installation_address ?? $modalAppointment->address ?? 'N/A' }}</span>
+                                        </div>
+                                        <div class="detail-row">
+                                            <span class="detail-label">Technician Phone:</span>
+                                            <span class="detail-value">{{ $modalAppointment->technician_phone ?? '017-380 4549' }}</span>
+                                        </div>
+                                        @if($modalAppointment->installation_remark ?? false)
+                                            <div class="detail-row">
+                                                <span class="detail-label">Installation Remark:</span>
+                                                <span class="detail-value">{{ $modalAppointment->installation_remark }}</span>
+                                            </div>
+                                        @endif
+                                    </div>
+
+                                    <!-- Installation Devices Section -->
+                                    @if(isset($modalAppointment->devices) && collect($modalAppointment->devices)->sum() > 0)
+                                        <div class="appointment-detail-section">
+                                            <div class="section-title">Installation Device</div>
+                                            <div class="device-grid">
+                                                @if(($modalAppointment->devices['tc10'] ?? 0) > 0)
+                                                    <div class="device-item">
+                                                        <div class="device-name">TC10</div>
+                                                        <div class="device-quantity">{{ $modalAppointment->devices['tc10'] }} {{ $modalAppointment->devices['tc10'] > 1 ? 'UNITS' : 'UNIT' }}</div>
+                                                    </div>
+                                                @endif
+                                                @if(($modalAppointment->devices['face_id5'] ?? 0) > 0)
+                                                    <div class="device-item">
+                                                        <div class="device-name">FACE ID 5</div>
+                                                        <div class="device-quantity">{{ $modalAppointment->devices['face_id5'] }} {{ $modalAppointment->devices['face_id5'] > 1 ? 'UNITS' : 'UNIT' }}</div>
+                                                    </div>
+                                                @endif
+                                                @if(($modalAppointment->devices['tc20'] ?? 0) > 0)
+                                                    <div class="device-item">
+                                                        <div class="device-name">TC20</div>
+                                                        <div class="device-quantity">{{ $modalAppointment->devices['tc20'] }} {{ $modalAppointment->devices['tc20'] > 1 ? 'UNITS' : 'UNIT' }}</div>
+                                                    </div>
+                                                @endif
+                                                @if(($modalAppointment->devices['face_id6'] ?? 0) > 0)
+                                                    <div class="device-item">
+                                                        <div class="device-name">FACE ID 6</div>
+                                                        <div class="device-quantity">{{ $modalAppointment->devices['face_id6'] }} {{ $modalAppointment->devices['face_id6'] > 1 ? 'UNITS' : 'UNIT' }}</div>
+                                                    </div>
+                                                @endif
+                                            </div>
+                                        </div>
+                                    @endif
+
+                                    <!-- Technician Remarks Section -->
+                                    @if($modalAppointment->remarks ?? false)
+                                        <div class="appointment-detail-section">
+                                            <div class="section-title">Technician Remarks</div>
+                                            <div class="remark-content">{{ $modalAppointment->remarks }}</div>
+                                        </div>
+                                    @endif
+                                </div>
+                                @endif
+                            </div>
+                        </div>
+
+                        <!-- Day Modal for "More Appointments" -->
+                        <div x-show="dayModalOpen"
+                             x-transition
+                             @click.outside="dayModalOpen = false"
+                             @keydown.escape.window="dayModalOpen = false"
+                             class="day-modal">
+                            <div class="day-modal-content" @click.stop>
+                                <div class="modal-header">
+                                    <h3 class="modal-title" x-text="selectedDate + ' - All Appointments'"></h3>
+                                    <button type="button"
+                                            @click="dayModalOpen = false"
+                                            class="modal-close">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                        </svg>
+                                    </button>
+                                </div>
+
+                                <div class="day-appointment-list">
+                                    <template x-for="appointment in selectedDayAppointments" :key="appointment.id">
+                                        <div class="day-appointment-item"
+                                            :style="'background-color: ' + (
+                                                appointment.status === 'Done' ? 'var(--bg-demo-green)' :
+                                                appointment.status === 'New' ? 'var(--bg-demo-yellow)' :
+                                                'var(--bg-demo-red)'
+                                            )"
+                                            @click="$wire.showAppointment(appointment.id, appointment.date); dayModalOpen = false;">
+                                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                                <div>
+                                                    <div style="font-weight: 600; font-size: 1.1rem; margin-bottom: 0.5rem;" x-text="appointment.company_name"></div>
+                                                    <div style="font-size: 0.875rem; color: #6b7280;">
+                                                        <div><strong>Technician:</strong> <span x-text="appointment.technician"></span></div>
+                                                        <div><strong>Time:</strong> <span x-text="appointment.start_time + ' - ' + appointment.end_time"></span></div>
+                                                        <div><strong>Type:</strong> <span x-text="appointment.display_type || appointment.type"></span></div>
+                                                    </div>
+                                                </div>
+                                                <span class="appointment-status"
+                                                      :style="'background-color: ' + (
+                                                        appointment.status === 'Done' ? 'var(--text-demo-green)' :
+                                                        appointment.status === 'New' ? 'var(--text-demo-yellow)' :
+                                                        'var(--text-demo-red)'
+                                                      ) + '; color: white;'"
+                                                      x-text="appointment.status">
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                @endforeach
+            @endforeach
         </div>
     </div>
 
-    <!-- Dropdown -->
-    <div class="dropdown-summary"></div>
+    <!-- Global tooltip container -->
+    <div x-show="showTooltip" :style="tooltipStyle"
+        class="fixed px-2 py-1 text-sm text-white rounded pointer-events-none tooltip">
+        <span x-text="tooltip"></span>
+    </div>
 
-    @if (auth()->user()->role_id !== 9 && $showDropdown == true)
-        <!-- No Repair -->
-        <div class="summary-cell">
-            <div class="circle-bg" style="background-color:var(--text-demo-red)">
-                <i class="fa-solid fa-x" style="font-size: 1.4rem;color:white"></i>
-            </div>
-        </div>
-        @foreach (['monday', 'tuesday', 'wednesday', 'thursday', 'friday'] as $day)
-            <div class="summary-cell">
-                <div class="demo-avatar">
-                    @if ($newRepairCount[$day]['noRepair'] < 6)
-                        @foreach ($rows as $technician)
-                            @if ($technician['newRepair'][$day] == 0)
-                                <img data-tooltip="{{ $technician['technicianName'] }}"
-                                    src="{{ $technician['technicianAvatar'] }}" alt="Technician Avatar"
-                                    @mouseover="show($event)" @mousemove="updatePosition($event)"
-                                    @mouseout="hide()" />
-                            @endif
-                        @endforeach
-                    @else
-                        @php
-                            $count = 0;
-                            $i = 0;
-                        @endphp
-                        @while ($count < 5 && $i < count($rows))
-                            @if ($rows[$i]['newRepair'][$day] == 0)
-                                <img data-tooltip="{{ $rows[$i]['technicianName'] }}"
-                                    src="{{ $rows[$i]['technicianAvatar'] }}" alt="Technician Avatar"
-                                    @mouseover="show($event)" @mousemove="updatePosition($event)"
-                                    @mouseout="hide()" />
-                                @php $count++; @endphp
-                            @endif
-                            @php $i++; @endphp
-                        @endwhile
-                        <div class="hover-container" style="position: relative">
-                            <div class="circle-bg">
-                                <i class="fa-solid fa-plus"></i>
-                            </div>
-                            <div class="hover-content">
-                                @foreach ($rows as $technician)
-                                    @if ($technician['newRepair'][$day] == 0)
-                                        <div class="hover-content-flexcontainer">
-                                            <img src="{{ $technician['technicianAvatar'] }}"
-                                                alt="Technician Avatar"
-                                                style="height: 100%; width: auto; flex: 0 0 40px; max-width: 40px;"
-                                                data-tooltip="{{ $technician['technicianName'] }}"
-                                                @mouseover="show($event)" @mousemove="updatePosition($event)"
-                                                @mouseout="hide()" />
-                                            <span style="width: 70%;flex: 1;text-align: left">{{ $technician['technicianName'] }}</span>
-                                        </div>
-                                    @endif
-                                @endforeach
-                            </div>
-                        </div>
-                    @endif
-                </div>
-            </div>
-        @endforeach
+    <script>
+        function tooltipHandler() {
+            return {
+                tooltip: '',
+                showTooltip: false,
+                tooltipX: 0,
+                tooltipY: 0,
 
-        <!-- 1 Repair -->
-        <div class="summary-cell">
-            <div class="circle-bg" style="background-color:#e6e632">
-                <i class="fa-solid fa-1" style="font-size: 1.4rem; color: white"></i>
-            </div>
-        </div>
-        @foreach (['monday', 'tuesday', 'wednesday', 'thursday', 'friday'] as $day)
-            <div class="summary-cell">
-                <div class="demo-avatar">
-                    @if ($newRepairCount[$day]['oneRepair'] < 6)
-                        @foreach ($rows as $technician)
-                            @if ($technician['newRepair'][$day] == 1)
-                                <img data-tooltip="{{ $technician['technicianName'] }}"
-                                    src="{{ $technician['technicianAvatar'] }}" alt="Technician Avatar"
-                                    @mouseover="show($event)" @mousemove="updatePosition($event)"
-                                    @mouseout="hide()" />
-                            @endif
-                        @endforeach
-                    @else
-                        @php
-                            $count = 0;
-                            $i = 0;
-                        @endphp
-                        @while ($count < 5 && $i < count($rows))
-                            @if ($rows[$i]['newRepair'][$day] == 1)
-                                <img data-tooltip="{{ $rows[$i]['technicianName'] }}"
-                                    src="{{ $rows[$i]['technicianAvatar'] }}" alt="Technician Avatar"
-                                    @mouseover="show($event)" @mousemove="updatePosition($event)"
-                                    @mouseout="hide()" />
-                                @php $count++; @endphp
-                            @endif
-                            @php $i++; @endphp
-                        @endwhile
-                        <div class="hover-container" style="position: relative">
-                            <div class="circle-bg">
-                                <i class="fa-solid fa-plus"></i>
-                            </div>
-                            <div class="hover-content">
-                                @foreach ($rows as $technician)
-                                    @if ($technician['newRepair'][$day] == 1)
-                                        <div class="hover-content-flexcontainer">
-                                            <img src="{{ $technician['technicianAvatar'] }}"
-                                                alt="Technician Avatar"
-                                                style="height: 100%; width: auto; flex: 0 0 40px; max-width: 40px;"
-                                                data-tooltip="{{ $technician['technicianName'] }}"
-                                                @mouseover="show($event)" @mousemove="updatePosition($event)"
-                                                @mouseout="hide()" />
-                                            <span style="width: 70%;flex: 1;text-align: left">{{ $technician['technicianName'] }}</span>
-                                        </div>
-                                    @endif
-                                @endforeach
-                            </div>
-                        </div>
-                    @endif
-                </div>
-            </div>
-        @endforeach
+                show(event) {
+                    this.tooltip = event.target.dataset.tooltip;
+                    this.showTooltip = true;
+                    this.updatePosition(event);
+                },
 
-        <!-- 2+ Repairs -->
-        <div class="summary-cell">
-            <div class="circle-bg" style="background-color: #30ad2a">
-                <i class="fa-solid fa-2" style="font-size: 1.4rem; color: white"></i>
-            </div>
-        </div>
-        @foreach (['monday', 'tuesday', 'wednesday', 'thursday', 'friday'] as $day)
-            <div class="summary-cell">
-                <div class="demo-avatar">
-                    @if ($newRepairCount[$day]['multipleRepair'] < 6)
-                        @foreach ($rows as $technician)
-                            @if ($technician['newRepair'][$day] >= 2)
-                                <img data-tooltip="{{ $technician['technicianName'] }}"
-                                    src="{{ $technician['technicianAvatar'] }}" alt="Technician Avatar"
-                                    @mouseover="show($event)" @mousemove="updatePosition($event)"
-                                    @mouseout="hide()" />
-                            @endif
-                        @endforeach
-                    @else
-                        @php
-                            $count = 0;
-                            $i = 0;
-                        @endphp
-                        @while ($count < 5 && $i < count($rows))
-                            @if ($rows[$i]['newRepair'][$day] >= 2)
-                                <img data-tooltip="{{ $rows[$i]['technicianName'] }}"
-                                    src="{{ $rows[$i]['technicianAvatar'] }}" alt="Technician Avatar"
-                                    @mouseover="show($event)" @mousemove="updatePosition($event)"
-                                    @mouseout="hide()" />
-                                @php $count++; @endphp
-                            @endif
-                            @php $i++; @endphp
-                        @endwhile
-                        <div class="hover-container" style="position: relative">
-                            <div class="circle-bg">
-                                <i class="fa-solid fa-plus"></i>
-                            </div>
-                            <div class="hover-content">
-                                @foreach ($rows as $technician)
-                                    @if ($technician['newRepair'][$day] >= 2)
-                                        <div class="hover-content-flexcontainer">
-                                            <img src="{{ $technician['technicianAvatar'] }}"
-                                                alt="Technician Avatar"
-                                                style="height: 100%; width: auto; flex: 0 0 40px; max-width: 40px;"
-                                                data-tooltip="{{ $technician['technicianName'] }}"
-                                                @mouseover="show($event)" @mousemove="updatePosition($event)"
-                                                @mouseout="hide()" />
-                                            <span style="width: 70%;flex: 1;text-align: left">{{ $technician['technicianName'] }}</span>
-                                        </div>
-                                    @endif
-                                @endforeach
-                            </div>
-                        </div>
-                    @endif
-                </div>
-            </div>
-        @endforeach
+                updatePosition(event) {
+                    this.tooltipX = event.clientX;
+                    this.tooltipY = event.clientY - 10;
+                },
 
-        <!-- On Leave -->
-        <div class="summary-cell">
-            <img src={{ asset('img/leave-icon-white.svg') }} alt="TT Leave Icon">
-        </div>
-        @for ($day = 1; $day < 6; $day++)
-            <div class="summary-cell">
-                <div class="demo-avatar">
-                    @foreach ($leaves as $leave)
-                        @if ($leave['day_of_week'] == $day)
-                            <img src="{{ $leave['technicianAvatar'] }}" alt="Salesperson Avatar"
-                                data-tooltip="{{ $leave['technicianName'] }}" @mouseover="show($event)"
-                                @mousemove="updatePosition($event)" @mouseout="hide()" />
-                        @endif
-                    @endforeach
-                </div>
-            </div>
-        @endfor
-        {{-- @for ($day = 1; $day < 6; $day++)
-            <div class="summary-cell">
-                <div class="demo-avatar">
-                    @foreach ($leaves as $leave)
-                        @if ($leave['day_of_week'] == $day)
-                            <img src="{{ $leave['salespersonAvatar'] }}" alt="Salesperson Avatar"
-                                data-tooltip="{{ $leave['salespersonName'] }}" @mouseover="show($event)"
-                                @mousemove="updatePosition($event)" @mouseout="hide()" />
-                        @endif
-                    @endforeach
-                </div>
-            </div>
-        @endfor --}}
-    @endif
-</div>
+                hide() {
+                    this.showTooltip = false;
+                },
 
-<div class="calendar-body">
-    <div style="position: absolute; background-color: transparent; left: 0; width: calc(0.5/5.5*100%); height: 0%;"></div>
+                get tooltipStyle() {
+                    return `left: ${this.tooltipX}px; top: ${this.tooltipY}px; transform: translate(-50%, -100%); background-color:black; z-index: 10000`;
+                }
+            };
+        }
 
-    <!-- Public Holidays -->
-    @if (isset($holidays['1']))
-        <div style="position: absolute; background-color: #C2C2C2; left: calc((0.5/5.5)* 100%); width: calc((1/5.5)*100%); height: 100%; border: 1px solid #E5E7EB; padding-inline: 0.5rem; display: flex; align-items: center; justify-content: center; text-align: center; flex-direction: column;">
-            <div style="font-weight: bold;font-size: 1.2rem; ">Public Holiday</div>
-            <div style="font-size: 0.8rem;font-style: italic;">{{ $holidays['1']['name'] }}</div>
-        </div>
-    @endif
-    @if (isset($holidays['2']))
-        <div style="position: absolute; background-color: #C2C2C2; left: calc((1.5/5.5)*100%); width: calc((1/5.5)*100%); height: 100%;border: 1px solid #E5E7EB; padding-inline: 0.5rem; display: flex; align-items: center; justify-content: center; text-align: center; flex-direction: column;">
-            <div style="font-weight: bold;font-size: 1.2rem; ">Public Holiday</div>
-            <div style="font-size: 0.8rem;font-style: italic;">{{ $holidays['2']['name'] }}</div>
-        </div>
-    @endif
-    @if (isset($holidays['3']))
-        <div style="position: absolute; background-color: #C2C2C2; left: calc((2.5/5.5)*100%); width: calc((1/5.5)*100%); height: 100%;border: 1px solid #E5E7EB; padding-inline: 0.5rem; display: flex; align-items: center; justify-content: center; text-align: center; flex-direction: column;">
-            <div style="font-weight: bold;font-size: 1.2rem; ">Public Holiday</div>
-            <div style="font-size: 0.8rem;font-style: italic;">{{ $holidays['3']['name'] }}</div>
-        </div>
-    @endif
-    @if (isset($holidays['4']))
-        <div style="position: absolute; background-color: #C2C2C2; left: calc((3.5/5.5)*100%); width: calc((1/5.5)*100%); height: 100%;border: 1px solid #E5E7EB; padding-inline: 0.5rem; display: flex; align-items: center; justify-content: center; text-align: center; flex-direction: column;">
-            <div style="font-weight: bold;font-size: 1.2rem; ">Public Holiday</div>
-            <div style="font-size: 0.8rem;font-style: italic;">{{ $holidays['4']['name'] }}</div>
-        </div>
-    @endif
-    @if (isset($holidays['5']))
-        <div style="position: absolute; background-color: #C2C2C2; left: calc((4.5/5.5)*100%); width: calc((1/5.5)*100%); height: 100%;border: 1px solid #E5E7EB; padding-inline: 0.5rem; display: flex; align-items: center; justify-content: center; text-align: center; flex-direction: column;">
-            <div style="font-weight: bold;font-size: 1.2rem; ">Public Holiday</div>
-            <div style="font-size: 0.8rem;font-style: italic;">{{ $holidays['5']['name'] }}</div>
-        </div>
-    @endif
-
-    <!-- Technician Rows -->
-    @foreach ($rows as $row)
-        <div class="time">
-            <div class="flex-container">
-                @if($row['type'] === 'technician')
-                    <div class="image-container">
-                        <img style="border-radius: 50%;" src="{{ $row['technicianAvatar'] }}"
-                            data-tooltip="{{ $row['technicianName'] }}" @mouseover="show($event)"
-                            @mousemove="updatePosition($event)" @mouseout="hide()">
-                    </div>
-                    <div style="margin-left: 8px; font-weight: bold; font-size: 0.9rem;">
-                        {{ $row['technicianShortName'] }}
-                    </div>
-                @elseif($row['type'] === 'reseller')
-                    <div style="font-weight: bold; display: flex; align-items: center; justify-content: center;">
-                        <div style="font-size: 0.9rem;">{{ $row['technicianShortName'] }}</div>
-                    </div>
-                @else
-                    <div style="font-weight: bold; display: flex; align-items: center; justify-content: center;">
-                        <div style="font-size: 0.9rem;">{{ $row['technicianShortName'] }}</div>
-                    </div>
-                @endif
-            </div>
-        </div>
-
-        @foreach (['monday', 'tuesday', 'wednesday', 'thursday', 'friday'] as $day)
-            <div class="day">
-                @if (isset($row['leave'][$loop->iteration]) && $row['leave'][$loop->iteration]['session'] !== 'pm')
-                    <div style="padding-block: 1rem; width: 100%; background-color: #E9EBF0; display: flex; justify-content: center; align-items: center; margin-block:0.5rem;">
-                        <div style="flex:1; text-align: center;">
-                            <div style="font-size: 1.2rem; font-weight: bold;">On Leave</div>
-                            <div style="font-size: 0.8rem;font-style: italic;">
-                                {{ $row['leave'][$loop->iteration]['leave_type'] }}
-                            </div>
-                            <div style="font-size: 0.8rem;">
-                                {{ $row['leave'][$loop->iteration]['status'] }} |
-                                @if ($row['leave'][$loop->iteration]['session'] === 'full')
-                                    Full Day
-                                @elseif($row['leave'][$loop->iteration]['session'] === 'am')
-                                    Half AM
-                                @endif
-                            </div>
-                        </div>
-                    </div>
-                @endif
-
-                <div x-data="{ expanded: false }">
-                    @if (count($row[$day . 'Appointments']) <= 4)
-                        @foreach ($row[$day . 'Appointments'] as $appointment)
-                            <div class="appointment-card"
-                                @if ($appointment->status === 'Done') style="background-color: var(--bg-demo-green)"
-                                @elseif ($appointment->status == 'New') style="background-color: var(--bg-demo-yellow)"
-                                @else style="background-color: var(--bg-demo-red)" @endif
-                                x-data="{ remarksModalOpen: false }"
-                                @keydown.escape.window="remarksModalOpen = false">
-
-                                <div class="appointment-card-bar"
-                                    @if (isset($appointment->is_internal_task) && $appointment->is_internal_task)
-                                        style="background-color: #3b82f6"
-                                    @endif></div>
-
-                                <div class="appointment-card-info"
-                                    @click="remarksModalOpen = true"
-                                    style="cursor: pointer">
-
-                                    <!-- 5-line format for resellers -->
-                                    @if($row['type'] === 'combined_resellers' || $row['type'] === 'reseller')
-                                        <div class="appointment-demo-type">{{ $appointment->type }}</div>
-                                        <div class="appointment-appointment-type">
-                                            {{ $appointment->appointment_type }} |
-                                            <span style="text-transform:uppercase">{{ $appointment->status }}</span>
-                                        </div>
-                                        <div class="appointment-company-name" title="{{ $appointment->company_name }}">
-                                            @if($appointment->company_name && $appointment->company_name != "No Company")
-                                                <a target="_blank" rel="noopener noreferrer" href="{{ $appointment->url }}">
-                                                    {{ strtoupper($appointment->company_name) }}
-                                                </a>
-                                            @else
-                                                NO COMPANY
-                                            @endif
-                                        </div>
-                                        <div class="appointment-time">{{ $appointment->start_time }} - {{ $appointment->end_time }}</div>
-                                    @else
-                                        <!-- Regular format for technicians -->
-                                        <div class="appointment-demo-type">
-                                            @if (in_array($appointment->type, ['FINGERTEC TASK', 'TIMETEC HR TASK', 'TIMETEC PARKING TASK', 'TIMETEC PROPERTY TASK']))
-                                                {{ $appointment->type }}
-                                            @else
-                                                {{ $appointment->type }}
-                                            @endif
-                                        </div>
-                                        <div class="appointment-appointment-type">
-                                            {{ $appointment->appointment_type }} |
-                                            <span style="text-transform:uppercase">{{ $appointment->status }}</span>
-                                        </div>
-
-                                        @if (isset($appointment->is_internal_task) && $appointment->is_internal_task)
-                                            <div class="appointment-company-name">
-                                                INTERNAL TASK
-                                            </div>
-                                        @else
-                                            <div class="appointment-company-name" title="{{ $appointment->company_name }}">
-                                                <a target="_blank" rel="noopener noreferrer" href="{{ $appointment->url }}">
-                                                    {{ strtoupper($appointment->company_name) }}
-                                                </a>
-                                            </div>
-                                        @endif
-                                        <div class="appointment-time">{{ $appointment->start_time }} - {{ $appointment->end_time }}</div>
-                                    @endif
-                                </div>
-
-                                <!-- Remarks Modal (same as before) -->
-                                <div x-show="remarksModalOpen"
-                                    x-transition
-                                    @click.outside="remarksModalOpen = false"
-                                    class="fixed inset-0 z-50 flex items-center justify-center overflow-auto bg-black bg-opacity-50">
-                                    <div class="relative w-full max-w-2xl p-6 mx-auto mt-20 bg-white rounded-lg shadow-xl" @click.away="remarksModalOpen = false">
-                                        <div class="flex items-start justify-between pb-3 mb-4 border-b">
-                                            <h3 class="text-lg font-medium text-gray-900">
-                                                @if(isset($appointment->is_internal_task) && $appointment->is_internal_task)
-                                                    INTERNAL TASK - {{ $appointment->type }}
-                                                @else
-                                                    {{ $appointment->company_name }} - {{ $appointment->type }}
-                                                @endif
-                                                @if($row['type'] === 'combined_resellers' || $row['type'] === 'reseller')
-                                                    <span class="ml-2 text-sm text-gray-500">({{ $appointment->technician ?? 'Reseller' }})</span>
-                                                @endif
-                                            </h3>
-                                            <button type="button" @click="remarksModalOpen = false" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg p-1.5 ml-auto inline-flex items-center">
-                                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                                                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
-                                                </svg>
-                                            </button>
-                                        </div>
-
-                                        <div class="mb-4">
-                                            <div class="flex gap-2 mb-2">
-                                                <span class="px-2 py-1 text-xs font-semibold text-white rounded-full"
-                                                    style="background-color: {{ $appointment->status === 'Done' ? 'var(--text-demo-green)' : ($appointment->status === 'New' ? 'var(--text-demo-yellow)' : 'var(--text-demo-red)') }}">
-                                                    {{ $appointment->status }}
-                                                </span>
-                                                <span class="px-2 py-1 text-xs font-semibold text-white bg-gray-500 rounded-full">
-                                                    {{ $appointment->appointment_type }}
-                                                </span>
-                                            </div>
-                                            <p class="text-sm text-gray-500">{{ $appointment->date ?? $weekDays[$loop->parent->index]['date'] }} | {{ $appointment->start_time }} - {{ $appointment->end_time }}</p>
-                                            <p class="text-sm text-gray-500">
-                                                @if($row['type'] === 'technician')
-                                                    Technician: {{ $row['technicianName'] }}
-                                                @else
-                                                    Reseller: {{ $appointment->technician ?? 'Unknown' }}
-                                                @endif
-                                            </p>
-                                        </div>
-
-                                        <!-- Regular Remarks Section -->
-                                        <div class="mb-4">
-                                            <h4 class="mb-2 font-semibold text-gray-700 text-md">Appointment Remarks</h4>
-                                            <div class="p-4 overflow-y-auto border border-gray-200 rounded-lg bg-gray-50 max-h-40">
-                                                <div class="text-gray-700 whitespace-pre-line">
-                                                    {!! nl2br(e($appointment->remarks ?? 'No remarks available')) !!}
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <!-- Cancellation Remarks Section (only shown if status is Cancelled) -->
-                                        @if ($appointment->status === 'Cancelled')
-                                            <div class="mb-4">
-                                                <h4 class="mb-2 font-semibold text-red-600 text-md">Cancellation Remarks</h4>
-                                                <div class="p-4 overflow-y-auto border border-red-200 rounded-lg bg-red-50 max-h-40">
-                                                    <div class="text-red-700 whitespace-pre-line">
-                                                        {!! nl2br(e($appointment->cancellation_remarks ?? 'No cancellation remarks available')) !!}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        @endif
-
-                                        <div class="mt-5 text-center">
-                                            <button @click="remarksModalOpen = false" class="px-4 py-2 text-white bg-gray-500 rounded hover:bg-gray-600">
-                                                Close
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Survey Detail Modal -->
-                                <div x-show="remarksModalOpen && surveyDetailModalOpen"
-                                    x-transition
-                                    @click.outside="remarksModalOpen = false"
-                                    class="fixed inset-0 z-50 flex items-center justify-center overflow-auto bg-black bg-opacity-50">
-                                    <div class="relative w-full max-w-2xl p-6 mx-auto mt-20 bg-white rounded-lg shadow-xl" @click.away="remarksModalOpen = false">
-                                        <!-- Survey detail content -->
-                                        @if($appointment->type === 'SITE SURVEY HANDOVER')
-                                            @include('components.survey-request-detail', ['record' => $appointment])
-                                        @endif
-                                        <div class="mt-5 text-center">
-                                            <button @click="remarksModalOpen = false" class="px-4 py-2 text-white bg-gray-500 rounded hover:bg-gray-600">
-                                                Close
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        @endforeach
-                    @else
-                        <template x-if="!expanded">
-                            <div>
-                                @foreach ($row[$day . 'Appointments'] as $appointment)
-                                    @if ($loop->index < 3)
-                                        <div class="appointment-card"
-                                            @if ($appointment->status === 'Done') style="background-color: var(--bg-demo-green)"
-                                            @elseif ($appointment->status == 'New')
-                                                style="background-color: var(--bg-demo-yellow)"
-                                            @else
-                                                style="background-color: var(--bg-demo-red)" @endif>
-                                            <div class="appointment-card-bar"></div>
-                                            <div class="appointment-card-info">
-                                                <div class="appointment-demo-type">{{ $appointment->type }}</div>
-                                                <div class="appointment-appointment-type">
-                                                    {{ $appointment->appointment_type }} |
-                                                    <span style="text-transform:uppercase">{{ $appointment->status }}</span>
-                                                </div>
-                                                <div class="appointment-company-name">
-                                                    <a target="_blank" rel="noopener noreferrer" href={{ $appointment->url }}>
-                                                        {{ $appointment->company_name }}
-                                                    </a>
-                                                </div>
-                                                <div class="appointment-time">{{ $appointment->start_time }} -
-                                                    {{ $appointment->end_time }}</div>
-                                            </div>
-                                        </div>
-                                    @elseif($loop->index === 3)
-                                        <div class="p-2 mb-2 text-center bg-gray-200 border rounded cursor-pointer card"
-                                            @click="expanded = true">
-                                            +{{ count($row[$day . 'Appointments']) - 3 }} more
-                                        </div>
-                                    @endif
-                                @endforeach
-                            </div>
-                        </template>
-
-                        <template x-if="expanded">
-                            <div>
-                                @foreach ($row[$day . 'Appointments'] as $appointment)
-                                    <div class="appointment-card"
-                                        @if ($appointment->status === 'Done') style="background-color: var(--bg-demo-green)"
-                                        @elseif ($appointment->status == 'New')
-                                            style="background-color: var(--bg-demo-yellow)"
-                                        @else
-                                            style="background-color: var(--bg-demo-red)" @endif
-                                        x-data="{ remarksModalOpen: false }"
-                                        @keydown.escape.window="remarksModalOpen = false">
-                                        <div class="appointment-card-bar"
-                                            @if (isset($appointment->is_internal_task) && $appointment->is_internal_task)
-                                                style="background-color: #3b82f6"
-                                            @endif></div>
-                                        <div class="appointment-card-info" @click="remarksModalOpen = true" style="cursor: pointer">
-                                            <div class="appointment-demo-type">{{ $appointment->type }}</div>
-                                            <div class="appointment-appointment-type">
-                                                {{ $appointment->appointment_type }} |
-                                                <span style="text-transform:uppercase">{{ $appointment->status }}</span>
-                                            </div>
-                                            @if (isset($appointment->is_internal_task) && $appointment->is_internal_task)
-                                                <div class="appointment-company-name">
-                                                    INTERNAL TASK
-                                                </div>
-                                            @else
-                                                <div class="appointment-company-name">
-                                                    <a target="_blank" rel="noopener noreferrer" href={{ $appointment->url }}>
-                                                        {{ $appointment->company_name }}
-                                                    </a>
-                                                </div>
-                                            @endif
-                                            <div class="appointment-time">{{ $appointment->start_time }} - {{ $appointment->end_time }}</div>
-                                        </div>
-
-                                        <!-- Remarks Modal -->
-                                        <div x-show="remarksModalOpen"
-                                            x-transition
-                                            @click.outside="remarksModalOpen = false"
-                                            class="fixed inset-0 z-50 flex items-center justify-center overflow-auto bg-black bg-opacity-50">
-                                            <div class="relative w-full max-w-2xl p-6 mx-auto mt-20 bg-white rounded-lg shadow-xl" @click.away="remarksModalOpen = false">
-                                                <div class="flex items-start justify-between pb-3 mb-4 border-b">
-                                                    <h3 class="text-lg font-medium text-gray-900">
-                                                        @if(isset($appointment->is_internal_task) && $appointment->is_internal_task)
-                                                            INTERNAL TASK - {{ $appointment->type }}
-                                                        @else
-                                                            {{ $appointment->company_name }} - {{ $appointment->type }}
-                                                        @endif
-                                                    </h3>
-                                                    <button type="button" @click="remarksModalOpen = false" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg p-1.5 ml-auto inline-flex items-center">
-                                                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                                                            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
-                                                        </svg>
-                                                    </button>
-                                                </div>
-
-                                                <div class="mb-4">
-                                                    <div class="flex gap-2 mb-2">
-                                                        <span class="px-2 py-1 text-xs font-semibold text-white rounded-full"
-                                                            style="background-color: {{ $appointment->status === 'Done' ? 'var(--text-demo-green)' : ($appointment->status === 'New' ? 'var(--text-demo-yellow)' : 'var(--text-demo-red)') }}">
-                                                            {{ $appointment->status }}
-                                                        </span>
-                                                        <span class="px-2 py-1 text-xs font-semibold text-white bg-gray-500 rounded-full">
-                                                            {{ $appointment->appointment_type }}
-                                                        </span>
-                                                    </div>
-                                                    <p class="text-sm text-gray-500">{{ $appointment->date ?? $weekDays[$loop->parent->index]['date'] }} | {{ $appointment->start_time }} - {{ $appointment->end_time }}</p>
-                                                    <p class="text-sm text-gray-500">Technician: {{ $row['technicianName'] }}</p>
-                                                </div>
-
-                                                <!-- Regular Remarks Section -->
-                                                <div class="mb-4">
-                                                    <h4 class="mb-2 font-semibold text-gray-700 text-md">Appointment Remarks</h4>
-                                                    <div class="p-4 overflow-y-auto border border-gray-200 rounded-lg bg-gray-50 max-h-40">
-                                                        <div class="text-gray-700 whitespace-pre-line">
-                                                            {!! nl2br(e($appointment->remarks ?? 'No remarks available')) !!}
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                                <!-- Cancellation Remarks Section (only shown if status is Cancelled) -->
-                                                @if ($appointment->status === 'Cancelled')
-                                                    <div class="mb-4">
-                                                        <h4 class="mb-2 font-semibold text-red-600 text-md">Cancellation Remarks</h4>
-                                                        <div class="p-4 overflow-y-auto border border-red-200 rounded-lg bg-red-50 max-h-40">
-                                                            <div class="text-red-700 whitespace-pre-line">
-                                                                {!! nl2br(e($appointment->cancellation_remarks ?? 'No cancellation remarks available')) !!}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                @endif
-
-                                                <div class="mt-5 text-center">
-                                                    <button @click="remarksModalOpen = false" class="px-4 py-2 text-white bg-gray-500 rounded hover:bg-gray-600">
-                                                        Close
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                @endforeach
-                                <div class="p-2 mb-2 text-center bg-gray-200 border rounded cursor-pointer card"
-                                    @click="expanded = false">
-                                    Hide
-                                </div>
-                            </div>
-                        </template>
-                    @endif
-
-                    @if (isset($row['leave'][$loop->iteration]) && $row['leave'][$loop->iteration]['session'] === 'pm')
-                        <div style="padding-block: 1rem; width: 100%; background-color: #E9EBF0; display: flex; justify-content: center; align-items: center; margin-block:0.5rem;">
-                            <div style="flex:1; text-align: center;">
-                                <div style="font-size: 1.2rem; font-weight: bold;">On Leave</div>
-                                <div style="font-size: 0.8rem;font-style: italic;">
-                                    {{ $row['leave'][$loop->iteration]['leave_type'] }}
-                                </div>
-                                <div style="font-size: 0.8rem;">
-                                    {{ $row['leave'][$loop->iteration]['status'] }} |
-                                    @if ($row['leave'][$loop->iteration]['session'] === 'pm')
-                                        Half PM
-                                    @endif
-                                </div>
-                            </div>
-                        </div>
-                    @endif
-                </div>
-            </div>
-        @endforeach
-    @endforeach
-
-    {{-- <!-- Reseller Row (Combined) -->
-    <div class="time">
-        <div class="flex-container">
-            <div style="font-weight: bold; display: flex; align-items: center; justify-content: center;">
-                <img style="width: 24px; height: 24px; margin-right: 5px;" src="{{ asset('storage/uploads/photos/reseller-avatar.png') }}" alt="Resellers">
-                Resellers
-            </div>
-        </div>
-    </div> --}}
-
-    {{-- @foreach (['monday', 'tuesday', 'wednesday', 'thursday', 'friday'] as $day)
-        <div class="day">
-            <div x-data="{ expanded: false }">
-                @if (count($resellerAppointments[$day] ?? []) <= 4)
-                    @foreach ($resellerAppointments[$day] ?? [] as $appointment)
-                        <div class="appointment-card"
-                            @if ($appointment->status === 'Done') style="background-color: var(--bg-demo-green)"
-                            @elseif ($appointment->status == 'New')
-                                style="background-color: var(--bg-demo-yellow)"
-                            @else
-                                style="background-color: var(--bg-demo-red)" @endif
-                            x-data="{ remarksModalOpen: false }"
-                            @keydown.escape.window="remarksModalOpen = false">
-                            <div class="appointment-card-bar"></div>
-                            <div class="appointment-card-info" @click="remarksModalOpen = true" style="cursor: pointer">
-                                <!-- Display reseller company name above repair type -->
-                                <div class="reseller-name">{{ $appointment->technician }}</div>
-                                <div class="appointment-demo-type">{{ $appointment->type }}</div>
-                                <div class="appointment-appointment-type">
-                                    {{ $appointment->appointment_type }} |
-                                    <span style="text-transform:uppercase">{{ $appointment->status }}</span>
-                                </div>
-                                @if($appointment->company_name && $appointment->company_name != "No Company")
-                                    <div class="appointment-company-name" title="{{ $appointment->company_name }}">
-                                        <a target="_blank" rel="noopener noreferrer" href={{ $appointment->url }}>
-                                            {{ $appointment->company_name }}
-                                        </a>
-                                    </div>
-                                @endif
-                                <div class="appointment-time">{{ $appointment->start_time }} -
-                                    {{ $appointment->end_time }}</div>
-                            </div>
-
-                            <!-- Remarks Modal -->
-                            <div x-show="remarksModalOpen"
-                                x-transition
-                                @click.outside="remarksModalOpen = false"
-                                class="fixed inset-0 z-50 flex items-center justify-center overflow-auto bg-black bg-opacity-50">
-                                <div class="relative w-full max-w-2xl p-6 mx-auto mt-20 bg-white rounded-lg shadow-xl" @click.away="remarksModalOpen = false">
-                                    <div class="flex items-start justify-between pb-3 mb-4 border-b">
-                                        <h3 class="text-lg font-medium text-gray-900">
-                                            {{ $appointment->company_name ?? 'Appointment' }} - {{ $appointment->type }}
-                                            <span class="ml-2 text-sm text-gray-500">(Reseller: {{ $appointment->technician }})</span>
-                                        </h3>
-                                        <button type="button" @click="remarksModalOpen = false" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg p-1.5 ml-auto inline-flex items-center">
-                                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                                                <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
-                                            </svg>
-                                        </button>
-                                    </div>
-
-                                    <div class="mb-4">
-                                        <div class="flex gap-2 mb-2">
-                                            <span class="px-2 py-1 text-xs font-semibold text-white rounded-full"
-                                                style="background-color: {{ $appointment->status === 'Done' ? 'var(--text-demo-green)' : ($appointment->status === 'New' ? 'var(--text-demo-yellow)' : 'var(--text-demo-red)') }}">
-                                                {{ $appointment->status }}
-                                            </span>
-                                            <span class="px-2 py-1 text-xs font-semibold text-white bg-gray-500 rounded-full">
-                                                {{ $appointment->appointment_type }}
-                                            </span>
-                                        </div>
-                                        <p class="text-sm text-gray-500">{{ $appointment->date ?? $weekDays[$loop->index]['date'] }} | {{ $appointment->start_time }} - {{ $appointment->end_time }}</p>
-                                        <p class="text-sm text-gray-500">Reseller: {{ $appointment->technician }}</p>
-                                    </div>
-
-                                    <!-- Regular Remarks Section -->
-                                    <div class="mb-4">
-                                        <h4 class="mb-2 font-semibold text-gray-700 text-md">Appointment Remarks</h4>
-                                        <div class="p-4 overflow-y-auto border border-gray-200 rounded-lg bg-gray-50 max-h-40">
-                                            <div class="text-gray-700 whitespace-pre-line">
-                                                {!! nl2br(e($appointment->remarks ?? 'No remarks available')) !!}
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <!-- Cancellation Remarks Section (only shown if status is Cancelled) -->
-                                    @if ($appointment->status === 'Cancelled')
-                                        <div class="mb-4">
-                                            <h4 class="mb-2 font-semibold text-red-600 text-md">Cancellation Remarks</h4>
-                                            <div class="p-4 overflow-y-auto border border-red-200 rounded-lg bg-red-50 max-h-40">
-                                                <div class="text-red-700 whitespace-pre-line">
-                                                    {!! nl2br(e($appointment->cancellation_remarks ?? 'No cancellation remarks available')) !!}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    @endif
-
-                                    <div class="mt-5 text-center">
-                                        <button @click="remarksModalOpen = false" class="px-4 py-2 text-white bg-gray-500 rounded hover:bg-gray-600">
-                                            Close
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    @endforeach
-                @else
-                    <template x-if="!expanded">
-                        <div>
-                            @foreach ($resellerAppointments[$day] ?? [] as $appointment)
-                                @if ($loop->index < 3)
-                                    <div class="appointment-card"
-                                        @if ($appointment->status === 'Done') style="background-color: var(--bg-demo-green)"
-                                        @elseif ($appointment->status == 'New')
-                                            style="background-color: var(--bg-demo-yellow)"
-                                        @else
-                                            style="background-color: var(--bg-demo-red)" @endif>
-                                        <div class="appointment-card-bar"></div>
-                                        <div class="appointment-card-info">
-                                            <!-- Display reseller company name above repair type -->
-                                            <div style="font-weight: bold; font-size: 0.8rem; text-transform: uppercase; color: #555; margin-bottom: 2px; border-bottom: 1px dashed #ccc; padding-bottom: 2px;">
-                                                {{ $appointment->technician }}
-                                            </div>
-                                            <div class="appointment-demo-type">{{ $appointment->type }}</div>
-                                            <div class="appointment-appointment-type">
-                                                {{ $appointment->appointment_type }} |
-                                                <span style="text-transform:uppercase">{{ $appointment->status }}</span>
-                                            </div>
-                                            <div class="appointment-company-name">
-                                                <a target="_blank" rel="noopener noreferrer" href={{ $appointment->url }}>
-                                                    {{ $appointment->company_name }}
-                                                </a>
-                                            </div>
-                                            <div class="appointment-time">{{ $appointment->start_time }} -
-                                                {{ $appointment->end_time }}</div>
-                                        </div>
-                                    </div>
-                                @elseif($loop->index === 3)
-                                    <div class="p-2 mb-2 text-center bg-gray-200 border rounded cursor-pointer card"
-                                        @click="expanded = true">
-                                        +{{ count($resellerAppointments[$day]) - 3 }} more
-                                    </div>
-                                @endif
-                            @endforeach
-                        </div>
-                    </template>
-
-                    <template x-if="expanded">
-                        <div>
-                            @foreach ($resellerAppointments[$day] ?? [] as $appointment)
-                                <div class="appointment-card"
-                                    @if ($appointment->status === 'Done') style="background-color: var(--bg-demo-green)"
-                                    @elseif ($appointment->status == 'New')
-                                        style="background-color: var(--bg-demo-yellow)"
-                                    @else
-                                        style="background-color: var(--bg-demo-red)" @endif>
-                                    <div class="appointment-card-bar"></div>
-                                    <div class="appointment-card-info">
-                                        <!-- Display reseller company name above repair type -->
-                                        <div style="font-weight: bold; font-size: 0.8rem; text-transform: uppercase; color: #555; margin-bottom: 2px; border-bottom: 1px dashed #ccc; padding-bottom: 2px;">
-                                            {{ $appointment->technician }}
-                                        </div>
-                                        <div class="appointment-demo-type">{{ $appointment->type }}</div>
-                                        <div class="appointment-appointment-type">
-                                            {{ $appointment->appointment_type }} |
-                                            <span style="text-transform:uppercase">{{ $appointment->status }}</span>
-                                        </div>
-                                        <div class="appointment-company-name">
-                                            <a target="_blank" rel="noopener noreferrer" href={{ $appointment->url }}>
-                                                {{ $appointment->company_name }}
-                                            </a>
-                                        </div>
-                                        <div class="appointment-time">{{ $appointment->start_time }} -
-                                            {{ $appointment->end_time }}</div>
-                                    </div>
-                                </div>
-                            @endforeach
-                            <div class="p-2 mb-2 text-center bg-gray-200 border rounded cursor-pointer card"
-                                @click="expanded = false">
-                                Hide
-                            </div>
-                        </div>
-                    </template>
-                @endif
-            </div>
-        </div>
-    @endforeach --}}
-</div>
-
-<!-- Global tooltip container -->
-<div x-show="showTooltip" :style="tooltipStyle"
-    class="fixed px-2 py-1 text-sm text-white rounded pointer-events-none tooltip">
-    <span x-text="tooltip"></span>
-</div>
-
-<script>
-    function tooltipHandler() {
-        return {
-            tooltip: '', // Holds the text to show
-            showTooltip: false, // Controls tooltip visibility
-            tooltipX: 0, // X position for the tooltip
-            tooltipY: 0, // Y position for the tooltip
-
-            // Called when the mouse enters an image
-            show(event) {
-                this.tooltip = event.target.dataset.tooltip;
-                this.showTooltip = true;
-                this.updatePosition(event);
-            },
-
-            // Update tooltip position on mouse move
-            updatePosition(event) {
-                // Position the tooltip near the cursor. Adjust offsets as needed.
-                this.tooltipX = event.clientX;
-                this.tooltipY = event.clientY - 10; // Slightly above the cursor
-            },
-
-            // Hide the tooltip when mouse leaves
-            hide() {
-                this.showTooltip = false;
-            },
-
-            // Compute the inline style for the tooltip (positioned relative to the viewport)
-            get tooltipStyle() {
-                return `left: ${this.tooltipX}px; top: ${this.tooltipY}px; transform: translate(-50%, -100%); background-color:black; z-index: 10000`;
-            }
-        };
-    }
-
-    function weeklyPicker() {
-        return {
-            init() {
-                flatpickr(this.$refs.datepicker, {
-                    enable: [date => date.getDay() === 1], // Only allow Mondays
-                    dateFormat: 'd-m-Y'
-                })
+        function monthlyPicker() {
+            return {
+                init() {
+                    flatpickr(this.$refs.datepicker, {
+                        plugins: [new monthSelectPlugin({
+                            shorthand: true,
+                            dateFormat: "m/Y",
+                            altFormat: "F Y",
+                        })],
+                        defaultDate: new Date()
+                    })
+                }
             }
         }
-    }
-</script>
+    </script>
 </div>
