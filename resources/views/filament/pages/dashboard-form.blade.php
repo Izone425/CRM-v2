@@ -654,16 +654,71 @@
                                 <span wire:loading wire:target="refreshTable">
                                     <svg class="w-4 h-4 mr-1 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 714 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                     </svg>
                                 </span>
                             </button>
                         </div>
                     </div>
+
+                    <!-- Add toggle buttons for Technician with Hardware Badge -->
+                    <div style="display: flex; background: #f0f0f0; border-radius: 25px; padding: 3px;">
+                        <button
+                            wire:click="toggleDashboard('Technician')"
+                            style="
+                                padding: 10px 15px;
+                                font-size: 14px;
+                                font-weight: bold;
+                                border: none;
+                                border-radius: 20px;
+                                background: {{ $currentDashboard === 'Technician' ? '#431fa1' : 'transparent' }};
+                                color: {{ $currentDashboard === 'Technician' ? '#ffffff' : '#555' }};
+                                cursor: pointer;
+                            "
+                        >
+                            Technician Dashboard
+                        </button>
+
+                        <button
+                            wire:click="toggleDashboard('HardwareAdminV2')"
+                            style="
+                                padding: 10px 15px;
+                                font-size: 14px;
+                                font-weight: bold;
+                                border: none;
+                                border-radius: 20px;
+                                background: {{ $currentDashboard === 'HardwareAdminV2' ? '#431fa1' : 'transparent' }};
+                                color: {{ $currentDashboard === 'HardwareAdminV2' ? '#ffffff' : '#555' }};
+                                cursor: pointer;
+                                display: flex;
+                                align-items: center;
+                                gap: 4px;
+                            "
+                        >
+                            Admin Hardware
+                            @if($pendingInternalInstallationCount > 0)
+                                <span style="
+                                    background: #ef4444;
+                                    color: white;
+                                    border-radius: 12px;
+                                    padding: 2px 8px;
+                                    font-size: 12px;
+                                    font-weight: bold;
+                                    min-width: 20px;
+                                    text-align: center;
+                                    margin-left: 4px;
+                                ">{{ $pendingInternalInstallationCount }}</span>
+                            @endif
+                        </button>
+                    </div>
                 </div>
                 <br>
                 <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
-                    @include('filament.pages.technician')
+                    @if ($currentDashboard === 'HardwareAdminV2')
+                        @include('filament.pages.hardwarehandoverv2')
+                    @else
+                        @include('filament.pages.technician')
+                    @endif
                 </div>
             @elseif (auth()->user()->role_id == 3)
             <div class="space-y-4">
