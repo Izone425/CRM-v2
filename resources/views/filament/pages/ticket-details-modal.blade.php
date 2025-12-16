@@ -66,7 +66,6 @@
         font-size: 1rem;
         font-weight: 600;
         color: #1f2937;
-        border-bottom: 2px solid #e5e7eb;
         padding-bottom: 0.5rem;
     }
 
@@ -185,6 +184,7 @@
                 <div class="ticket-info-item">
                     <span class="ticket-section-title">Details by Owner Ticket</span>
                 </div>
+                <hr class="my-6 border-t border-gray-300">
 
                 <!-- Remark for User -->
                 @if($record->remark)
@@ -220,7 +220,7 @@
                     @foreach($attachmentFiles as $index => $attachment)
                     <div class="ticket-info-item">
                         <span class="ticket-label">Attachment {{ $index + 1 }}:</span>
-                        <a href="{{ \Illuminate\Support\Facades\Storage::url($attachment) }}" target="_blank" class="ticket-view-link">View / Download</a>
+                        <a href="{{ \Illuminate\Support\Facades\Storage::url($attachment) }}" target="_blank" class="ticket-view-link">View</a>
                     </div>
                     @endforeach
                 @endif
@@ -275,6 +275,7 @@
                 <div class="ticket-info-item">
                     <span class="ticket-section-title">Details by Admin</span>
                 </div>
+                <hr class="my-6 border-t border-gray-300">
 
                 <!-- Admin Remark -->
                 @if($record->admin_remark)
@@ -310,7 +311,7 @@
                     @foreach($adminAttachmentFiles as $index => $attachment)
                     <div class="ticket-info-item">
                         <span class="ticket-label">Attachment {{ $index + 1 }}:</span>
-                        <a href="{{ \Illuminate\Support\Facades\Storage::url($attachment) }}" target="_blank" class="ticket-view-link">View / Download</a>
+                        <a href="{{ \Illuminate\Support\Facades\Storage::url($attachment) }}" target="_blank" class="ticket-view-link">View</a>
                     </div>
                     @endforeach
                 @endif

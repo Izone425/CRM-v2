@@ -65,7 +65,7 @@ class InternalTicketCompleted extends Component implements HasTable, HasForms
                     ->action(
                         Action::make('viewTicketDetails')
                             ->modalHeading(false)
-                            ->modalWidth('4xl')
+                            ->modalWidth('3xl')
                             ->modalSubmitAction(false)
                             ->modalCancelActionLabel('Close')
                             ->modalContent(function (InternalTicket $record): View {
@@ -79,7 +79,7 @@ class InternalTicketCompleted extends Component implements HasTable, HasForms
                     ->sortable(),
                 TextColumn::make('created_at')
                     ->label('Created Date/Time')
-                    ->dateTime('d/m/Y H:i')
+                    ->dateTime('d M Y H:i')
                     ->sortable(),
                 TextColumn::make('attentionTo.name')
                     ->label('Attention To')

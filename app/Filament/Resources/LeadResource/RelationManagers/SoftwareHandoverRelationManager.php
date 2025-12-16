@@ -898,6 +898,7 @@ class SoftwareHandoverRelationManager extends RelationManager
                 ->label('Add Software Handover')
                 ->icon('heroicon-o-plus')
                 ->color('gray')
+                // ->visible(false)
                 ->visible(function () use ($leadStatus, $isCompanyDetailsIncomplete, $hasIncompleteSoftwareHandover) {
                     return $leadStatus !== 'Closed' || $isCompanyDetailsIncomplete || $hasIncompleteSoftwareHandover;
                 })
@@ -929,6 +930,7 @@ class SoftwareHandoverRelationManager extends RelationManager
                 ->label('Add Software Handover')
                 ->icon('heroicon-o-plus')
                 ->color('primary')
+                // ->visible(fn () => auth()->id() === 1)
                 ->visible(function () use ($leadStatus, $isCompanyDetailsIncomplete, $hasIncompleteSoftwareHandover) {
                     return $leadStatus === 'Closed' && !$isCompanyDetailsIncomplete && !$hasIncompleteSoftwareHandover;
                 })

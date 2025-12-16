@@ -18,19 +18,22 @@ use Illuminate\Support\Str;
 
 class TechnicianCalendar extends Component
 {
-
     public $rows;
     public Carbon $date;
     public $startDate;
     public $endDate;
-    public $weekDays;
+    public $monthlyCalendar;
     public $selectedMonth;
     public $holidays;
     public $leaves;
     public $monthList;
     public $currentMonth;
-    public $weekDate;
+    public $monthDate;
     public $newRepairCount;
+
+    // Modal state
+    public $selectedAppointment = null;
+    public $showAppointmentModal = false;
 
     //Dropdown
     public $showDropdown = false;
@@ -38,7 +41,7 @@ class TechnicianCalendar extends Component
     // Badge
     public $totalRepairs;
 
-    // Dropdown
+    // Dropdown filters
     public array $status = ["DONE", "NEW", "CANCELLED"];
     public array $selectedStatus = [];
     public bool $allStatusSelected = true;
@@ -47,7 +50,7 @@ class TechnicianCalendar extends Component
     public array $selectedTechnicians = [];
     public bool $allTechniciansSelected = true;
 
-    public array $repairTypes = ["NEW INSTALLATION", "REPAIR", "SITE SURVEY", "FINGERTEC TASK", "TIMETEC HR TASK", "TIMETEC PARKING TASK", "TIMETEC PROPERTY TASK"];
+    public array $repairTypes = ["NEW INSTALLATION", "REPAIR", "SITE SURVEY", "INTERNAL TECHNICIAN TASK"];
     public array $selectedRepairType = [];
     public bool $allRepairTypeSelected = true;
 
@@ -62,321 +65,140 @@ class TechnicianCalendar extends Component
         // Load all technicians
         $this->technicians = $this->getAllTechnicians();
 
-        // Set Date to today
-        $this->date = Carbon::now();
+        // Set Date to current month
+        $this->date = Carbon::now()->startOfMonth();
 
-        // If current user is a technician then only can access their own calendar
-        // if (auth()->user()->role_id == 9) {
-        //     $this->selectedTechnicians[] = auth()->user()->id;
-        // }
-    }
-
-    // Update date variable when user choose another date
-    public function updatedWeekDate()
-    {
-        $this->date = Carbon::parse($this->weekDate);
-    }
-
-    // For Filtering
-    public function updatedSelectedTechnicians()
-    {
-        if (!empty($this->selectedTechnicians)) {
+        // If current user is technician (role_id 9), filter to show only their appointments
+        if (auth()->user()->role_id == 9) {
+            $this->selectedTechnicians = [auth()->user()->name];
             $this->allTechniciansSelected = false;
-        } else {
-            $this->allTechniciansSelected = true;
         }
     }
 
-    public function updatedAllTechniciansSelected()
-    {
-        if ($this->allTechniciansSelected == true)
-            $this->selectedTechnicians = [];
-    }
-
-    public function updatedSelectedStatus()
-    {
-        if (!empty($this->selectedStatus)) {
-            $this->allStatusSelected = false;
-        } else {
-            $this->allStatusSelected = true;
-        }
-    }
-
-    public function updatedAllStatusSelected()
-    {
-        if ($this->allStatusSelected == true)
-            $this->selectedStatus = [];
-    }
-
-    public function updatedSelectedRepairType()
-    {
-        if (!empty($this->selectedRepairType)) {
-            $this->allRepairTypeSelected = false;
-        } else {
-            $this->allRepairTypeSelected = true;
-        }
-    }
-
-    public function updatedAllRepairTypeSelected()
-    {
-        if ($this->allRepairTypeSelected == true)
-            $this->selectedRepairType = [];
-    }
-
-    public function updatedSelectedAppointmentType()
-    {
-        if (!empty($this->selectedAppointmentType)) {
-            $this->allAppointmentTypeSelected = false;
-        } else {
-            $this->allAppointmentTypeSelected = true;
-        }
-    }
-
-    public function updatedAllAppointmentTypeSelected()
-    {
-        if ($this->allAppointmentTypeSelected == true)
-            $this->selectedAppointmentType = [];
-    }
-
-    // Get Total Number of Repairs for different types and statuses
-    private function getNumberOfRepairs($selectedTechnicians = null)
-    {
-        // Base query
-        $query = DB::table('repair_appointments')
-            ->whereBetween('date', [$this->startDate, $this->endDate]);
-
-        // Apply technician filter if provided
-        if (!empty($selectedTechnicians)) {
-            $query->whereIn("technician", $selectedTechnicians);
-        }
-
-        // Initialize counters
-        $this->totalRepairs = [
-            "ALL" => 0,
-            "NEW INSTALLATION" => 0,
-            "REPAIR" => 0,
-            "SITE SURVEY" => 0,
-            "INTERNAL TECHNICIAN TASK" => 0,
-        ];
-
-        // Count active appointments (not cancelled)
-        $this->totalRepairs["ALL"] = $query->clone()->where('status', '!=', 'Cancelled')->count();
-
-        // Count by repair type
-        $this->totalRepairs["NEW INSTALLATION"] = $query->clone()->where('type', 'NEW INSTALLATION')
-            ->where('status', '!=', 'Cancelled')->count();
-        $this->totalRepairs["REPAIR"] = $query->clone()->where('type', 'REPAIR')
-            ->where('status', '!=', 'Cancelled')->count();
-        $this->totalRepairs["SITE SURVEY"] = $query->clone()->where('type', 'SITE SURVEY')
-            ->where('status', '!=', 'Cancelled')->count();
-
-        // Count combined "INTERNAL TECHNICIAN TASK" category
-        $this->totalRepairs["INTERNAL TECHNICIAN TASK"] = $query->clone()
-            ->whereIn('type', ['FINGERTEC TASK', 'TIMETEC HR TASK', 'TIMETEC PARKING TASK', 'TIMETEC PROPERTY TASK'])
-            ->where('status', '!=', 'Cancelled')->count();
-    }
-
-    private function getWeekDateDays($date = null)
-    {
-        $date = $date ? Carbon::parse($date) : Carbon::now();
-
-        // Get the start of the week (Monday by default)
-        $startOfWeek = $date->startOfWeek();
-
-        // Iterate through the week (7 days) and get each day's date
-        $weekDays = [];
-        for ($i = 0; $i < 7; $i++) {
-            $day = $startOfWeek->copy()->addDays($i);
-            $weekDays[$i]["day"] = $day->format('D');  // Format as Fri,Sat,Mon
-            $weekDays[$i]["date"] = $day->format('j');  // Format as Date
-            $weekDays[$i]['carbonDate'] = $day->format('Y-m-d');  // Store as string instead of Carbon object
-            $weekDays[$i]["today"] = $day->isToday();
-        }
-        return $weekDays;
-    }
-
-    // private function getWeeklyAppointments($date = null)
+    // Show individual appointment modal
+    // public function showAppointment($appointmentId, $date)
     // {
-    //     // Set weekly date range (Monday to Friday)
-    //     $date = $date ? Carbon::parse($date) : Carbon::now();
-    //     $this->startDate = $date->copy()->startOfWeek()->toDateString(); // Monday
-    //     $this->endDate = $date->copy()->startOfWeek()->addDays(4)->toDateString(); // Friday
-
-    //     // Get internal technicians data
-    //     $internalTechnicians = User::where('role_id', 9)
-    //         ->select('id', 'name', 'avatar_path')
-    //         ->get()
-    //         ->keyBy('id')
-    //         ->toArray();
-
-    //     // Get reseller companies
-    //     $resellerCompanies = Reseller::select('company_name')
-    //         ->get()
-    //         ->pluck('company_name')
-    //         ->flip() // Make company_name the key for lookups
-    //         ->toArray();
-
-    //     // Retrieve repair appointments for the selected week
-    //     $appointments = DB::table('repair_appointments')
-    //         ->leftJoin('leads', 'leads.id', '=', 'repair_appointments.lead_id')
-    //         ->leftJoin('company_details', 'company_details.lead_id', '=', 'repair_appointments.lead_id')
-    //         ->select(
-    //             DB::raw('CASE
-    //                 WHEN repair_appointments.lead_id IS NULL THEN "No Company"
-    //                 ELSE COALESCE(company_details.company_name, "No Company")
-    //             END as company_name'),
-    //             'repair_appointments.*'
-    //         )
-    //         ->whereBetween("date", [$this->startDate, $this->endDate])
-    //         ->orderBy('start_time', 'asc')
-    //         ->when($this->selectedTechnicians, function ($query) {
-    //             return $query->whereIn('technician', $this->selectedTechnicians);
-    //         })
-    //         ->get();
-
-    //     // Group appointments by technician
-    //     $technicianAppointments = [];
-    //     foreach ($appointments as $appointment) {
-    //         $technicianAppointments[$appointment->technician][] = $appointment;
+    //     $appointment = $this->getAppointmentById($appointmentId, $date);
+    //     if ($appointment) {
+    //         $this->selectedAppointment = $appointment;
+    //         $this->showAppointmentModal = true;
     //     }
-
-    //     $allTechnicians = $this->selectedTechnicians;
-
-    //     // If none selected (all by default), fallback to internal + reseller names
-    //     if (empty($allTechnicians)) {
-    //         $allTechnicians = array_merge(
-    //             User::where('role_id', 9)->pluck('name')->toArray(),
-    //             Reseller::pluck('company_name')->toArray()
-    //         );
-    //         $this->allTechniciansSelected = true;
-    //     } else {
-    //         $this->allTechniciansSelected = false;
-    //     }
-    //     // Apply technician filter
-    //     if (!empty($this->selectedTechnicians)) {
-    //         $allTechnicians = array_intersect($allTechnicians, $this->selectedTechnicians);
-    //         $this->allTechniciansSelected = false;
-    //     } else {
-    //         $this->allTechniciansSelected = true;
-    //     }
-
-    //     $result = [];
-
-    //     // Process each technician
-    //     foreach ($allTechnicians as $technicianId) {
-    //         if (isset($resellerCompanies[$technicianId])) {
-    //             continue;
-    //         }
-    //         $name = trim($technicianId);
-
-    //         $user = \App\Models\User::where('name', $name)->first();
-
-    //         $reseller = \App\Models\Reseller::where('company_name', $name)->first();
-
-    //         if ($user) {
-    //             $technicianName = $user->name;
-    //             $avatarPath = $user->avatar_path ?? null;
-
-    //             if ($avatarPath) {
-    //                 if (str_starts_with($avatarPath, 'storage/')) {
-    //                     $technicianAvatar = asset($avatarPath);
-    //                 } elseif (str_starts_with($avatarPath, 'uploads/')) {
-    //                     $technicianAvatar = asset('storage/' . $avatarPath);
-    //                 } else {
-    //                     $technicianAvatar = Storage::url($avatarPath);
-    //                 }
-    //             } else {
-    //                 $technicianAvatar = $user->getFilamentAvatarUrl() ?? asset('storage/uploads/photos/default-avatar.png');
-    //             }
-    //         } elseif ($reseller) {
-    //             $technicianName = $reseller->company_name;
-    //             $technicianAvatar = asset('storage/uploads/photos/reseller-avatar.png');
-    //         } else {
-    //             $technicianName = $technicianId;
-    //             $technicianAvatar = asset('storage/uploads/photos/reseller-avatar.png');
-
-    //             Log::warning("Unknown technician name", ['technicianName' => $technicianId]);
-    //         }
-
-    //         // Initialize data structure for this technician
-    //         $data = [
-    //             'technicianID' => $user->id ?? $reseller->id ?? null,
-    //             'technicianName' => $technicianName,
-    //             'technicianAvatar' => $technicianAvatar,
-    //             'mondayAppointments' => [],
-    //             'tuesdayAppointments' => [],
-    //             'wednesdayAppointments' => [],
-    //             'thursdayAppointments' => [],
-    //             'fridayAppointments' => [],
-    //             'newRepair' => [
-    //                 'monday' => 0,
-    //                 'tuesday' => 0,
-    //                 'wednesday' => 0,
-    //                 'thursday' => 0,
-    //                 'friday' => 0,
-    //             ],
-    //             'leave' => !$reseller && $user ? UserLeave::getUserLeavesByDateRange($user->id, $this->startDate, $this->endDate) : [],
-    //         ];
-    //         // Process appointments for this technician
-    //         $technicianAppts = $appointments->where('technician', $technicianId);
-
-    //         foreach ($technicianAppts as $appointment) {
-    //             $dayOfWeek = strtolower(Carbon::parse($appointment->date)->format('l')); // e.g., 'monday'
-    //             $dayField = "{$dayOfWeek}Appointments";
-
-    //             // Count active repairs for summary
-    //             if ($appointment->status !== "Cancelled") {
-    //                 $data['newRepair'][$dayOfWeek]++;
-    //             }
-
-    //             // Format appointment times
-    //             $appointment->start_time = Carbon::parse($appointment->start_time)->format('g:i A');
-    //             $appointment->end_time = Carbon::parse($appointment->end_time)->format('g:i A');
-    //             $appointment->url = $appointment->lead_id
-    //                 ? route('filament.admin.resources.leads.view', ['record' => Encryptor::encrypt($appointment->lead_id)])
-    //                 : '#';
-
-    //             // Map internal task types to the combined category for filtering purposes
-    //             $displayType = $appointment->type;
-    //             if (in_array($appointment->type, ['FINGERTEC TASK', 'TIMETEC HR TASK', 'TIMETEC PARKING TASK', 'TIMETEC PROPERTY TASK'])) {
-    //                 $displayType = 'INTERNAL TECHNICIAN TASK';
-    //                 $appointment->is_internal_task = true;
-
-    //                 // Truncate remarks for display if they're too long
-    //                 $appointment->display_remarks = !empty($appointment->remarks)
-    //                     ? (strlen($appointment->remarks) > 30
-    //                         ? substr($appointment->remarks, 0, 30) . '...'
-    //                         : $appointment->remarks)
-    //                     : 'No remarks';
-    //             } else {
-    //                 $appointment->is_internal_task = false;
-    //             }
-
-    //             // Apply filters
-    //             $includeRepairType = $this->allRepairTypeSelected ||
-    //                                 in_array($displayType, $this->selectedRepairType);
-
-    //             $includeAppointmentType = $this->allAppointmentTypeSelected ||
-    //                                     in_array($appointment->appointment_type, $this->selectedAppointmentType);
-
-    //             $includeStatus = $this->allStatusSelected ||
-    //                             in_array(strtoupper($appointment->status), $this->selectedStatus);
-
-    //             if ($includeRepairType && $includeAppointmentType && $includeStatus) {
-    //                 // Store original type but add display type property for filtering
-    //                 $appointment->display_type = $displayType;
-    //                 $data[$dayField][] = $appointment;
-    //             }
-    //         }
-
-    //         // Count repairs for statistics
-    //         $this->countRepairs($data['newRepair']);
-    //         $result[] = $data;
-    //     }
-
-    //     return $result;
     // }
 
+    // Close appointment modal
+    public function closeAppointmentModal()
+    {
+        $this->showAppointmentModal = false;
+        $this->selectedAppointment = null;
+    }
+
+    // Get specific appointment by ID
+    public function getAppointmentById($appointmentId, $date)
+    {
+        $appointment = DB::table('repair_appointments')
+            ->leftJoin('leads', 'leads.id', '=', 'repair_appointments.lead_id')
+            ->leftJoin('company_details', 'company_details.lead_id', '=', 'repair_appointments.lead_id')
+            ->leftJoin('hardware_handovers_v2', 'hardware_handovers_v2.lead_id', '=', 'repair_appointments.lead_id')
+            ->select(
+                DB::raw('CASE
+                    WHEN repair_appointments.lead_id IS NULL THEN "No Company"
+                    ELSE COALESCE(company_details.company_name, "No Company")
+                END as company_name'),
+                'repair_appointments.*',
+                // ✅ Fix the field mappings from company_details
+                'company_details.name as pic_name',
+                'company_details.contact_no as pic_phone',
+                'company_details.email as pic_email',
+                // ✅ Add hardware details from hardware_handovers_v2
+                'hardware_handovers_v2.tc10_quantity',
+                'hardware_handovers_v2.face_id5_quantity',
+                'hardware_handovers_v2.tc20_quantity',
+                'hardware_handovers_v2.face_id6_quantity',
+                'hardware_handovers_v2.category2',
+                'hardware_handovers_v2.handover_pdf'
+            )
+            ->where('repair_appointments.id', $appointmentId)
+            ->where('repair_appointments.date', $date)
+            ->first();
+
+        if (!$appointment) {
+            return null;
+        }
+
+        // Format appointment times
+        $appointment->start_time = Carbon::parse($appointment->start_time)->format('g:i A');
+        $appointment->end_time = Carbon::parse($appointment->end_time)->format('g:i A');
+        $appointment->url = $appointment->lead_id
+            ? route('filament.admin.resources.leads.view', ['record' => Encryptor::encrypt($appointment->lead_id)])
+            : '#';
+
+        // ✅ Add device data like the email template
+        $appointment->devices = [
+            'tc10' => $appointment->tc10_quantity ?? 0,
+            'face_id5' => $appointment->face_id5_quantity ?? 0,
+            'tc20' => $appointment->tc20_quantity ?? 0,
+            'face_id6' => $appointment->face_id6_quantity ?? 0,
+        ];
+
+        // ✅ Check for appointment-specific data in category2
+        if ($appointment->type === 'NEW INSTALLATION' && $appointment->category2) {
+            $category2Data = json_decode($appointment->category2, true);
+            if (isset($category2Data['installation_appointments'])) {
+                foreach ($category2Data['installation_appointments'] as $instApp) {
+                    if ($instApp['appointment_id'] == $appointmentId) {
+                        // ✅ Override with appointment-specific details
+                        if (isset($instApp['appointment_details'])) {
+                            $details = $instApp['appointment_details'];
+                            $appointment->pic_name = $details['pic_name'] ?? $appointment->pic_name;
+                            $appointment->pic_phone = $details['pic_phone'] ?? $appointment->pic_phone;
+                            $appointment->pic_email = $details['pic_email'] ?? $appointment->pic_email;
+                            $appointment->installation_address = $details['installation_address'] ?? $appointment->installation_address;
+                            $appointment->installation_remark = $details['installation_remark'] ?? '';
+                        }
+
+                        // ✅ Override with appointment-specific device allocation
+                        if (isset($instApp['device_allocation'])) {
+                            $allocation = $instApp['device_allocation'];
+                            $appointment->devices = [
+                                'tc10' => $allocation['tc10_units'] ?? 0,
+                                'face_id5' => $allocation['face_id5_units'] ?? 0,
+                                'tc20' => $allocation['tc20_units'] ?? 0,
+                                'face_id6' => $allocation['face_id6_units'] ?? 0,
+                            ];
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+
+        // ✅ Generate hardware ID like the email
+        if ($appointment->handover_pdf) {
+            $appointment->hardware_id = basename($appointment->handover_pdf, '.pdf');
+        } else {
+            $hardwareHandover = \App\Models\HardwareHandoverV2::where('lead_id', $appointment->lead_id)->first();
+            if ($hardwareHandover) {
+                $appointment->hardware_id = 'HW_250' . str_pad($hardwareHandover->id, 3, '0', STR_PAD_LEFT);
+            }
+        }
+
+        // Set display type for internal tasks
+        $displayType = $appointment->type;
+        if (in_array($appointment->type, ['FINGERTEC TASK', 'TIMETEC HR TASK', 'TIMETEC PARKING TASK', 'TIMETEC PROPERTY TASK'])) {
+            $displayType = 'INTERNAL TECHNICIAN TASK';
+        }
+        $appointment->display_type = $displayType;
+
+        // Set technician phone with default fallback
+        $appointment->technician_phone = $appointment->technician_phone ?? '017-380 4549';
+
+        // Format appointment date
+        $appointment->appointment_date = Carbon::parse($appointment->date)->format('d/m/Y');
+
+        return $appointment;
+    }
+
+    // ✅ Update the getWeeklyAppointments method to include hardware data
     private function getWeeklyAppointments($date = null)
     {
         // Set weekly date range (Monday to Friday)
@@ -384,28 +206,33 @@ class TechnicianCalendar extends Component
         $this->startDate = $date->copy()->startOfWeek()->toDateString(); // Monday
         $this->endDate = $date->copy()->startOfWeek()->addDays(4)->toDateString(); // Friday
 
-        // Get internal technicians data
-        $internalTechnicians = User::where('role_id', 9)
-            ->select('id', 'name', 'avatar_path')
-            ->get()
-            ->keyBy('id')
-            ->toArray();
-
-        // Retrieve repair appointments for the selected week
+        // Retrieve repair appointments for the selected week with enhanced data
         $appointments = DB::table('repair_appointments')
             ->leftJoin('leads', 'leads.id', '=', 'repair_appointments.lead_id')
             ->leftJoin('company_details', 'company_details.lead_id', '=', 'repair_appointments.lead_id')
+            ->leftJoin('hardware_handovers_v2', 'hardware_handovers_v2.lead_id', '=', 'repair_appointments.lead_id')
             ->select(
                 DB::raw('CASE
                     WHEN repair_appointments.lead_id IS NULL THEN "No Company"
                     ELSE COALESCE(company_details.company_name, "No Company")
                 END as company_name'),
-                'repair_appointments.*'
+                'repair_appointments.*',
+                // ✅ Add customer details
+                'company_details.name',
+                'company_details.contact_no',
+                'company_details.email',
+                // ✅ Add hardware details
+                'hardware_handovers_v2.tc10_quantity',
+                'hardware_handovers_v2.face_id5_quantity',
+                'hardware_handovers_v2.tc20_quantity',
+                'hardware_handovers_v2.face_id6_quantity',
+                'hardware_handovers_v2.category2',
+                'hardware_handovers_v2.handover_pdf'
             )
-            ->whereBetween("date", [$this->startDate, $this->endDate])
-            ->orderBy('start_time', 'asc')
+            ->whereBetween("repair_appointments.date", [$this->startDate, $this->endDate])
+            ->orderBy('repair_appointments.start_time', 'asc')
             ->when($this->selectedTechnicians, function ($query) {
-                return $query->whereIn('technician', $this->selectedTechnicians);
+                return $query->whereIn('repair_appointments.technician', $this->selectedTechnicians);
             })
             ->get();
 
@@ -425,6 +252,7 @@ class TechnicianCalendar extends Component
         return $result;
     }
 
+    // ✅ Update buildTechnicianRow to handle enhanced appointment data
     private function buildTechnicianRow($user, $appointments, $shortName)
     {
         $avatarUrl = null;
@@ -478,6 +306,60 @@ class TechnicianCalendar extends Component
                 ? route('filament.admin.resources.leads.view', ['record' => Encryptor::encrypt($appointment->lead_id)])
                 : '#';
 
+            // ✅ Add device data and other details
+            $appointment->devices = [
+                'tc10' => $appointment->tc10_quantity ?? 0,
+                'face_id5' => $appointment->face_id5_quantity ?? 0,
+                'tc20' => $appointment->tc20_quantity ?? 0,
+                'face_id6' => $appointment->face_id6_quantity ?? 0,
+            ];
+
+            // ✅ Process category2 data for installation appointments
+            if ($appointment->type === 'NEW INSTALLATION' && $appointment->category2) {
+                $category2Data = json_decode($appointment->category2, true);
+                if (isset($category2Data['installation_appointments'])) {
+                    foreach ($category2Data['installation_appointments'] as $instApp) {
+                        if ($instApp['appointment_id'] == $appointment->id) {
+                            if (isset($instApp['appointment_details'])) {
+                                $details = $instApp['appointment_details'];
+                                $appointment->pic_name = $details['pic_name'] ?? $appointment->pic_name;
+                                $appointment->pic_phone = $details['pic_phone'] ?? $appointment->pic_phone;
+                                $appointment->pic_email = $details['pic_email'] ?? $appointment->pic_email;
+                                $appointment->installation_address = $details['installation_address'] ?? $appointment->installation_address;
+                                $appointment->installation_remark = $details['installation_remark'] ?? '';
+                            }
+
+                            if (isset($instApp['device_allocation'])) {
+                                $allocation = $instApp['device_allocation'];
+                                $appointment->devices = [
+                                    'tc10' => $allocation['tc10_units'] ?? 0,
+                                    'face_id5' => $allocation['face_id5_units'] ?? 0,
+                                    'tc20' => $allocation['tc20_units'] ?? 0,
+                                    'face_id6' => $allocation['face_id6_units'] ?? 0,
+                                ];
+                            }
+                            break;
+                        }
+                    }
+                }
+            }
+
+            // ✅ Generate hardware ID if available
+            if ($appointment->handover_pdf) {
+                $appointment->hardware_id = basename($appointment->handover_pdf, '.pdf');
+            } else if ($appointment->lead_id) {
+                $hardwareHandover = \App\Models\HardwareHandoverV2::where('lead_id', $appointment->lead_id)->first();
+                if ($hardwareHandover) {
+                    $appointment->hardware_id = 'HW_250' . str_pad($hardwareHandover->id, 3, '0', STR_PAD_LEFT);
+                }
+            }
+
+            // Set technician phone with default fallback
+            $appointment->technician_phone = $appointment->technician_phone ?? '017-380 4549';
+
+            // Format appointment date
+            $appointment->appointment_date = Carbon::parse($appointment->date)->format('d/m/Y');
+
             // Apply filters and add to appropriate day
             if ($this->passesFilters($appointment)) {
                 $data[$dayField][] = $appointment;
@@ -487,123 +369,283 @@ class TechnicianCalendar extends Component
         return $data;
     }
 
-    private function buildResellerRow($shortName, $resellerName, $appointments)
+    // Monthly navigation methods
+    public function prevMonth()
     {
-        $data = [
-            'technicianID' => $resellerName,
-            'technicianName' => $resellerName,
-            'technicianShortName' => $shortName,
-            'mondayAppointments' => [],
-            'tuesdayAppointments' => [],
-            'wednesdayAppointments' => [],
-            'thursdayAppointments' => [],
-            'fridayAppointments' => [],
-            'newRepair' => [
-                'monday' => 0,
-                'tuesday' => 0,
-                'wednesday' => 0,
-                'thursday' => 0,
-                'friday' => 0,
-            ],
-            'leave' => [],
-            'type' => 'reseller',
-            'reseller_name' => $resellerName
-        ];
+        $this->date->subMonth();
+    }
 
-        // Process appointments for this reseller
-        foreach ($appointments as $appointment) {
-            $dayOfWeek = strtolower(Carbon::parse($appointment->date)->format('l'));
-            $dayField = "{$dayOfWeek}Appointments";
+    public function nextMonth()
+    {
+        $this->date->addMonth();
+    }
 
-            if ($appointment->status !== "Cancelled") {
-                $data['newRepair'][$dayOfWeek]++;
+    // Generate monthly calendar grid (WEEKDAYS ONLY)
+    private function generateMonthlyCalendar($date = null)
+    {
+        $date = $date ? Carbon::parse($date) : $this->date;
+        $startOfMonth = $date->copy()->startOfMonth();
+        $endOfMonth = $date->copy()->endOfMonth();
+
+        // Find first Monday of the month or the Monday before if month doesn't start on Monday
+        $calendarStart = $startOfMonth->copy();
+        while ($calendarStart->dayOfWeek !== Carbon::MONDAY) {
+            $calendarStart->subDay();
+        }
+
+        // Find last Friday of the month or the Friday after if month doesn't end on Friday
+        $calendarEnd = $endOfMonth->copy();
+        while ($calendarEnd->dayOfWeek !== Carbon::FRIDAY) {
+            $calendarEnd->addDay();
+        }
+
+        // Set date range for appointments
+        $this->startDate = $calendarStart->toDateString();
+        $this->endDate = $calendarEnd->toDateString();
+
+        // Get appointments for the entire calendar range
+        $appointments = $this->getMonthlyAppointments();
+
+        $calendar = [];
+        $currentDay = $calendarStart->copy();
+
+        // Generate weeks with only weekdays (Monday to Friday)
+        while ($currentDay <= $calendarEnd) {
+            $weekData = [];
+
+            // Only include Monday to Friday (1-5)
+            for ($dayOfWeek = Carbon::MONDAY; $dayOfWeek <= Carbon::FRIDAY; $dayOfWeek++) {
+                if ($currentDay->dayOfWeek === $dayOfWeek) {
+                    $dayKey = $currentDay->toDateString();
+
+                    $dayData = [
+                        'date' => $dayKey,
+                        'day' => $currentDay->day,
+                        'dayName' => $currentDay->format('D'), // Mon, Tue, etc.
+                        'isCurrentMonth' => $currentDay->month === $date->month,
+                        'isToday' => $currentDay->isToday(),
+                        'appointments' => $appointments[$dayKey] ?? [],
+                        'carbonDate' => $currentDay->copy(),
+                    ];
+
+                    $weekData[] = $dayData;
+                }
+
+                if ($currentDay->dayOfWeek === $dayOfWeek) {
+                    $currentDay->addDay();
+                }
             }
 
+            if (!empty($weekData)) {
+                $calendar[] = $weekData;
+            }
+
+            // Skip to next Monday if we're at Friday
+            if ($currentDay->dayOfWeek === Carbon::SATURDAY) {
+                $currentDay->addDays(2); // Skip Saturday and Sunday
+            }
+        }
+
+        return $calendar;
+    }
+
+    // Get appointments grouped by date
+    private function getMonthlyAppointments()
+    {
+        $query = DB::table('repair_appointments')
+            ->leftJoin('leads', 'leads.id', '=', 'repair_appointments.lead_id')
+            ->leftJoin('company_details', 'company_details.lead_id', '=', 'repair_appointments.lead_id')
+            ->leftJoin('hardware_handovers_v2', 'hardware_handovers_v2.lead_id', '=', 'repair_appointments.lead_id')
+            ->select(
+                DB::raw('CASE
+                    WHEN repair_appointments.lead_id IS NULL THEN "No Company"
+                    ELSE COALESCE(company_details.company_name, "No Company")
+                END as company_name'),
+                'repair_appointments.*',
+                // ✅ Add the missing PIC fields
+                'company_details.name',
+                'company_details.contact_no',
+                'company_details.email',
+                // ✅ Add hardware details
+                'hardware_handovers_v2.tc10_quantity',
+                'hardware_handovers_v2.face_id5_quantity',
+                'hardware_handovers_v2.tc20_quantity',
+                'hardware_handovers_v2.face_id6_quantity',
+                'hardware_handovers_v2.category2',
+                'hardware_handovers_v2.handover_pdf'
+            )
+            ->whereBetween("repair_appointments.date", [$this->startDate, $this->endDate])
+            ->orderBy('repair_appointments.start_time', 'asc');
+
+        // Apply technician filter
+        if (!$this->allTechniciansSelected && !empty($this->selectedTechnicians)) {
+            $query->whereIn('repair_appointments.technician', $this->selectedTechnicians);
+        }
+
+        $appointments = $query->get();
+
+        // Apply filters and enrich appointment data
+        $filteredAppointments = $appointments->filter(function($appointment) {
+            return $this->passesFilters($appointment);
+        });
+
+        // Group by date and enrich with enhanced data
+        $groupedAppointments = [];
+        foreach ($filteredAppointments as $appointment) {
+            $dateKey = Carbon::parse($appointment->date)->toDateString();
+
+            // Format appointment times
             $appointment->start_time = Carbon::parse($appointment->start_time)->format('g:i A');
             $appointment->end_time = Carbon::parse($appointment->end_time)->format('g:i A');
             $appointment->url = $appointment->lead_id
                 ? route('filament.admin.resources.leads.view', ['record' => Encryptor::encrypt($appointment->lead_id)])
                 : '#';
 
-            if ($this->passesFilters($appointment)) {
-                $data[$dayField][] = $appointment;
+            // ✅ Add device data like the email template
+            $appointment->devices = [
+                'tc10' => $appointment->tc10_quantity ?? 0,
+                'face_id5' => $appointment->face_id5_quantity ?? 0,
+                'tc20' => $appointment->tc20_quantity ?? 0,
+                'face_id6' => $appointment->face_id6_quantity ?? 0,
+            ];
+
+            // ✅ Process category2 data for installation appointments
+            if ($appointment->type === 'NEW INSTALLATION' && $appointment->category2) {
+                $category2Data = json_decode($appointment->category2, true);
+                if (isset($category2Data['installation_appointments'])) {
+                    foreach ($category2Data['installation_appointments'] as $instApp) {
+                        if ($instApp['appointment_id'] == $appointment->id) {
+                            if (isset($instApp['appointment_details'])) {
+                                $details = $instApp['appointment_details'];
+                                $appointment->pic_name = $details['pic_name'] ?? $appointment->pic_name;
+                                $appointment->pic_phone = $details['pic_phone'] ?? $appointment->pic_phone;
+                                $appointment->pic_email = $details['pic_email'] ?? $appointment->pic_email;
+                                $appointment->installation_address = $details['installation_address'] ?? $appointment->installation_address;
+                                $appointment->installation_remark = $details['installation_remark'] ?? '';
+                            }
+
+                            if (isset($instApp['device_allocation'])) {
+                                $allocation = $instApp['device_allocation'];
+                                $appointment->devices = [
+                                    'tc10' => $allocation['tc10_units'] ?? 0,
+                                    'face_id5' => $allocation['face_id5_units'] ?? 0,
+                                    'tc20' => $allocation['tc20_units'] ?? 0,
+                                    'face_id6' => $allocation['face_id6_units'] ?? 0,
+                                ];
+                            }
+                            break;
+                        }
+                    }
+                }
             }
+
+            // ✅ Generate hardware ID if available
+            if ($appointment->handover_pdf) {
+                $appointment->hardware_id = basename($appointment->handover_pdf, '.pdf');
+            } else if ($appointment->lead_id) {
+                $hardwareHandover = \App\Models\HardwareHandoverV2::where('lead_id', $appointment->lead_id)->first();
+                if ($hardwareHandover) {
+                    $appointment->hardware_id = 'HW_250' . str_pad($hardwareHandover->id, 3, '0', STR_PAD_LEFT);
+                }
+            }
+
+            // Set display type for internal tasks
+            $displayType = $appointment->type;
+            if (in_array($appointment->type, ['FINGERTEC TASK', 'TIMETEC HR TASK', 'TIMETEC PARKING TASK', 'TIMETEC PROPERTY TASK'])) {
+                $displayType = 'INTERNAL TECHNICIAN TASK';
+            }
+            $appointment->display_type = $displayType;
+
+            // Set technician phone with default fallback
+            $appointment->technician_phone = $appointment->technician_phone ?? '017-380 4549';
+
+            // Format appointment date
+            $appointment->appointment_date = Carbon::parse($appointment->date)->format('d/m/Y');
+
+            if (!isset($groupedAppointments[$dateKey])) {
+                $groupedAppointments[$dateKey] = [];
+            }
+
+            $groupedAppointments[$dateKey][] = $appointment;
         }
 
-        return $data;
+        return $groupedAppointments;
     }
 
-    private function buildCombinedResellerRow($shortName, $displayName, $appointments)
+    // ✅ Add a property to store selected appointment for modal
+    public $modalAppointment = null;
+
+    // ✅ Update the showAppointment method to use Livewire properties
+    public function showAppointment($appointmentId, $date)
     {
-        $data = [
-            'technicianID' => 'combined_resellers',
-            'technicianName' => $displayName,
-            'technicianShortName' => $shortName,
-            'technicianAvatar' => asset('storage/uploads/photos/reseller-avatar.png'),
-            'mondayAppointments' => [],
-            'tuesdayAppointments' => [],
-            'wednesdayAppointments' => [],
-            'thursdayAppointments' => [],
-            'fridayAppointments' => [],
-            'newRepair' => [
-                'monday' => 0,
-                'tuesday' => 0,
-                'wednesday' => 0,
-                'thursday' => 0,
-                'friday' => 0,
-            ],
-            'leave' => [],
-            'type' => 'combined_resellers'
-        ];
+        $this->modalAppointment = $this->getAppointmentById($appointmentId, $date);
+        $this->showAppointmentModal = true;
+        $this->dispatch('appointment-loaded');
+    }
 
-        // Process appointments for all other resellers
-        foreach ($appointments as $appointment) {
-            $dayOfWeek = strtolower(Carbon::parse($appointment->date)->format('l'));
-            $dayField = "{$dayOfWeek}Appointments";
-
-            if ($appointment->status !== "Cancelled") {
-                $data['newRepair'][$dayOfWeek]++;
-            }
-
-            $appointment->start_time = Carbon::parse($appointment->start_time)->format('g:i A');
-            $appointment->end_time = Carbon::parse($appointment->end_time)->format('g:i A');
-            $appointment->url = $appointment->lead_id
-                ? route('filament.admin.resources.leads.view', ['record' => Encryptor::encrypt($appointment->lead_id)])
-                : '#';
-
-            // Add reseller name to appointment for display
-            $appointment->reseller_company = $appointment->technician;
-
-            if ($this->passesFilters($appointment)) {
-                $data[$dayField][] = $appointment;
-            }
+    // Filter methods
+    public function updatedSelectedTechnicians()
+    {
+        if (!empty($this->selectedTechnicians)) {
+            $this->allTechniciansSelected = false;
+        } else {
+            $this->allTechniciansSelected = true;
         }
-
-        return $data;
     }
 
-    private function buildDefaultRow($shortName, $name, $appointments)
+    public function updatedAllTechniciansSelected()
     {
-        return [
-            'technicianID' => strtolower($shortName),
-            'technicianName' => $name,
-            'technicianShortName' => $shortName,
-            'technicianAvatar' => asset('storage/uploads/photos/default-avatar.png'),
-            'mondayAppointments' => [],
-            'tuesdayAppointments' => [],
-            'wednesdayAppointments' => [],
-            'thursdayAppointments' => [],
-            'fridayAppointments' => [],
-            'newRepair' => [
-                'monday' => 0,
-                'tuesday' => 0,
-                'wednesday' => 0,
-                'thursday' => 0,
-                'friday' => 0,
-            ],
-            'leave' => [],
-            'type' => 'default'
-        ];
+        if ($this->allTechniciansSelected == true) {
+            $this->selectedTechnicians = [];
+        }
+    }
+
+    public function updatedSelectedStatus()
+    {
+        if (!empty($this->selectedStatus)) {
+            $this->allStatusSelected = false;
+        } else {
+            $this->allStatusSelected = true;
+        }
+    }
+
+    public function updatedAllStatusSelected()
+    {
+        if ($this->allStatusSelected == true) {
+            $this->selectedStatus = [];
+        }
+    }
+
+    public function updatedSelectedRepairType()
+    {
+        if (!empty($this->selectedRepairType)) {
+            $this->allRepairTypeSelected = false;
+        } else {
+            $this->allRepairTypeSelected = true;
+        }
+    }
+
+    public function updatedAllRepairTypeSelected()
+    {
+        if ($this->allRepairTypeSelected == true) {
+            $this->selectedRepairType = [];
+        }
+    }
+
+    public function updatedSelectedAppointmentType()
+    {
+        if (!empty($this->selectedAppointmentType)) {
+            $this->allAppointmentTypeSelected = false;
+        } else {
+            $this->allAppointmentTypeSelected = true;
+        }
+    }
+
+    public function updatedAllAppointmentTypeSelected()
+    {
+        if ($this->allAppointmentTypeSelected == true) {
+            $this->selectedAppointmentType = [];
+        }
     }
 
     private function passesFilters($appointment)
@@ -613,9 +655,6 @@ class TechnicianCalendar extends Component
         if (in_array($appointment->type, ['FINGERTEC TASK', 'TIMETEC HR TASK', 'TIMETEC PARKING TASK', 'TIMETEC PROPERTY TASK'])) {
             $displayType = 'INTERNAL TECHNICIAN TASK';
             $appointment->is_internal_task = true;
-            $appointment->display_remarks = !empty($appointment->remarks)
-                ? (strlen($appointment->remarks) > 30 ? substr($appointment->remarks, 0, 30) . '...' : $appointment->remarks)
-                : 'No remarks';
         } else {
             $appointment->is_internal_task = false;
         }
@@ -629,14 +668,50 @@ class TechnicianCalendar extends Component
         return $includeRepairType && $includeAppointmentType && $includeStatus;
     }
 
-    public function prevWeek()
+    // Get Total Number of Repairs for different types and statuses
+    private function getNumberOfRepairs($selectedTechnicians = null)
     {
-        $this->date->subDays(7);
-    }
+        // Base query
+        $query = DB::table('repair_appointments')
+            ->whereBetween('date', [$this->startDate, $this->endDate]);
 
-    public function nextWeek()
-    {
-        $this->date->addDays(7);
+        // Apply technician filter if provided
+        if (!empty($selectedTechnicians)) {
+            $query->whereIn("technician", $selectedTechnicians);
+        }
+
+        // Initialize counters
+        $this->totalRepairs = [
+            "ALL" => 0,
+            "NEW" => 0,
+            "DONE" => 0,
+            "CANCELLED" => 0,
+            "NEW INSTALLATION" => 0,
+            "REPAIR" => 0,
+            "SITE SURVEY" => 0,
+            "INTERNAL TECHNICIAN TASK" => 0,
+        ];
+
+        // Count all appointments
+        $this->totalRepairs["ALL"] = $query->clone()->where('status', '!=', 'Cancelled')->count();
+
+        // Count by status
+        $this->totalRepairs["NEW"] = $query->clone()->where('status', 'New')->count();
+        $this->totalRepairs["DONE"] = $query->clone()->where('status', 'Done')->count();
+        $this->totalRepairs["CANCELLED"] = $query->clone()->where('status', 'Cancelled')->count();
+
+        // Count by repair type
+        $this->totalRepairs["NEW INSTALLATION"] = $query->clone()->where('type', 'NEW INSTALLATION')
+            ->where('status', '!=', 'Cancelled')->count();
+        $this->totalRepairs["REPAIR"] = $query->clone()->where('type', 'REPAIR')
+            ->where('status', '!=', 'Cancelled')->count();
+        $this->totalRepairs["SITE SURVEY"] = $query->clone()->where('type', 'SITE SURVEY')
+            ->where('status', '!=', 'Cancelled')->count();
+
+        // Count combined "INTERNAL TECHNICIAN TASK" category
+        $this->totalRepairs["INTERNAL TECHNICIAN TASK"] = $query->clone()
+            ->whereIn('type', ['FINGERTEC TASK', 'TIMETEC HR TASK', 'TIMETEC PARKING TASK', 'TIMETEC PROPERTY TASK'])
+            ->where('status', '!=', 'Cancelled')->count();
     }
 
     public function getAllTechnicians()
@@ -701,146 +776,6 @@ class TechnicianCalendar extends Component
         return $allTechnicians;
     }
 
-    private function countRepairs($data)
-    {
-        foreach ($data as $day => $value) {
-            if ($value == 0) {
-                $this->newRepairCount[$day]["noRepair"] = ($this->newRepairCount[$day]["noRepair"] ?? 0) + 1;
-            } else if ($value == 1) {
-                $this->newRepairCount[$day]["oneRepair"] = ($this->newRepairCount[$day]["oneRepair"] ?? 0) + 1;
-            } else if ($value >= 2) {
-                $this->newRepairCount[$day]["multipleRepair"] = ($this->newRepairCount[$day]["multipleRepair"] ?? 0) + 1;
-            }
-        }
-    }
-
-    public $resellerAppointments = [
-        'monday' => [],
-        'tuesday' => [],
-        'wednesday' => [],
-        'thursday' => [],
-        'friday' => [],
-    ];
-
-    private function getResellerAppointments()
-    {
-        // Get all resellers from your system
-        $resellerCompanyNames = \App\Models\Reseller::pluck('company_name')->toArray();
-
-        // Initialize arrays for each day
-        $appointments = [
-            'monday' => [],
-            'tuesday' => [],
-            'wednesday' => [],
-            'thursday' => [],
-            'friday' => [],
-        ];
-
-        // Query appointments for these resellers
-        $resellerAppointments = DB::table('repair_appointments')
-            ->leftJoin('leads', 'leads.id', '=', 'repair_appointments.lead_id')
-            ->leftJoin('company_details', 'company_details.lead_id', '=', 'repair_appointments.lead_id')
-            ->select(
-                DB::raw('CASE
-                    WHEN repair_appointments.lead_id IS NULL THEN "No Company"
-                    ELSE COALESCE(company_details.company_name, "No Company")
-                END as company_name'),
-                'repair_appointments.*'
-            )
-            ->whereIn('technician', $resellerCompanyNames)
-            ->whereBetween('date', [$this->startDate, $this->endDate])
-            ->orderBy('start_time', 'asc')
-            ->get();
-
-        // Apply filters if selected
-        if (!$this->allRepairTypeSelected && !empty($this->selectedRepairType)) {
-            $resellerAppointments = $resellerAppointments->filter(function($appointment) {
-                return in_array($appointment->type, $this->selectedRepairType);
-            });
-        }
-
-        if (!$this->allAppointmentTypeSelected && !empty($this->selectedAppointmentType)) {
-            $resellerAppointments = $resellerAppointments->filter(function($appointment) {
-                return in_array($appointment->appointment_type, $this->selectedAppointmentType);
-            });
-        }
-
-        if (!$this->allStatusSelected && !empty($this->selectedStatus)) {
-            $resellerAppointments = $resellerAppointments->filter(function($appointment) {
-                return in_array(strtoupper($appointment->status), $this->selectedStatus);
-            });
-        }
-
-        // Process and group by day
-        foreach ($resellerAppointments as $appointment) {
-            // Format appointment times
-            $appointment->start_time = Carbon::parse($appointment->start_time)->format('g:i A');
-            $appointment->end_time = Carbon::parse($appointment->end_time)->format('g:i A');
-            $appointment->url = $appointment->lead_id
-                ? route('filament.admin.resources.leads.view', ['record' => Encryptor::encrypt($appointment->lead_id)])
-                : '#';
-
-            // Get the day of the week for this appointment
-            $dayOfWeek = strtolower(Carbon::parse($appointment->date)->format('l')); // e.g., 'monday'
-
-            // Add to appropriate day array
-            $appointments[$dayOfWeek][] = $appointment;
-        }
-
-        $this->resellerAppointments = $appointments;
-    }
-
-    public function render()
-    {
-        // Initialize repair counts
-        foreach (['monday', 'tuesday', 'wednesday', 'thursday', 'friday'] as $day) {
-            $this->newRepairCount[$day]["noRepair"] = 0;
-            $this->newRepairCount[$day]["oneRepair"] = 0;
-            $this->newRepairCount[$day]["multipleRepair"] = 0;
-        }
-
-        // Load weekly appointments
-        $this->rows = $this->getWeeklyAppointments($this->date);
-
-        $this->getResellerAppointments();
-
-        // Load date display
-        $this->weekDays = $this->getWeekDateDays($this->date);
-
-        // Get statistics
-        $this->getNumberOfRepairs($this->selectedTechnicians);
-        $this->calculateRepairBreakdown();
-
-        // Get holidays and leaves
-        $this->holidays = PublicHoliday::getPublicHoliday($this->startDate, $this->endDate);
-        $selectedNames = $this->selectedTechnicians;
-
-        // Get users matching selected names
-        $matchedUsers = \App\Models\User::whereIn('name', $selectedNames)->get();
-
-        $selectedNames = $this->selectedTechnicians;
-
-        // Get internal users (only those that exist in the users table)
-        $internalUsers = \App\Models\User::whereIn('name', $selectedNames)->get();
-
-        $technicianIds = $internalUsers->pluck('id')->toArray();
-
-        // Now fetch leaves only if any internal users were selected
-        $this->leaves = [];
-
-        if ($this->allTechniciansSelected || count($technicianIds) > 0) {
-            $this->leaves = UserLeave::getTechnicianWeeklyLeavesByDateRange(
-                $this->startDate,
-                $this->endDate,
-                $this->allTechniciansSelected ? null : $technicianIds
-            );
-        }
-
-        $this->currentMonth = $this->date->startOfWeek()->format('F Y');
-
-        return view('livewire.technician-calendar');
-    }
-
     public function calculateRepairBreakdown()
     {
         $query = DB::table('repair_appointments')
@@ -872,5 +807,23 @@ class TechnicianCalendar extends Component
         }
 
         $this->repairBreakdown = $result;
+    }
+
+    public function render()
+    {
+        // Generate monthly calendar
+        $this->monthlyCalendar = $this->generateMonthlyCalendar($this->date);
+
+        // Get statistics
+        $this->getNumberOfRepairs($this->selectedTechnicians);
+        $this->calculateRepairBreakdown();
+
+        // Get holidays for the month
+        $this->holidays = PublicHoliday::getPublicHoliday($this->startDate, $this->endDate);
+
+        // Set current month display
+        $this->currentMonth = $this->date->format('F Y');
+
+        return view('livewire.technician-calendar');
     }
 }

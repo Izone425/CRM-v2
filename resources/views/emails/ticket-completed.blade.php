@@ -47,6 +47,8 @@
         }
         .field-value {
             margin-bottom: 15px;
+            white-space: pre-wrap; /* ✅ Added to preserve line breaks */
+            word-wrap: break-word; /* ✅ Added to handle long words */
         }
         .attachment-link {
             color: #0066cc;
@@ -61,11 +63,6 @@
 </head>
 <body>
     <div class="container">
-        <div class="header">
-            SUBJECT: INTERNAL TICKET | {{ $ticketId }} | COMPLETED<br>
-            DETAILS:
-        </div>
-
         <p>Hi {{ $createdByName }}</p>
 
         <p>Your ticket ID {{ $ticketId }} has been completed.</p>
@@ -85,7 +82,7 @@
                     <div class="field-value">{{ $attentionToName }}</div>
 
                     <div class="field-label">Status:</div>
-                    <div class="field-value">Pending</div>
+                    <div class="field-value">Completed</div>
 
                     <div class="section-divider">
                         ------------------------------------<br>
@@ -93,13 +90,13 @@
                     </div>
 
                     <div class="field-label">Remark:</div>
-                    <div class="field-value">{{ $remark ?: 'No remark provided' }}</div>
+                    <div class="field-value">{!! nl2br(e($remark ?: 'No remark provided')) !!}</div>
 
                     @if($attachments && count($attachments) > 0)
                         @foreach($attachments as $index => $attachment)
                             <div class="field-label">Attachment {{ $index + 1 }}:</div>
                             <div class="field-value">
-                                <a href="{{ asset('storage/' . $attachment) }}" class="attachment-link">View / Download</a>
+                                <a href="{{ asset('storage/' . $attachment) }}" class="attachment-link">View</a>
                             </div>
                         @endforeach
                     @else
@@ -127,13 +124,13 @@
                     </div>
 
                     <div class="field-label">Remark:</div>
-                    <div class="field-value">{{ $adminRemark ?: 'No admin remark provided' }}</div>
+                    <div class="field-value">{!! nl2br(e($adminRemark ?: 'No admin remark provided')) !!}</div>
 
                     @if($adminAttachments && count($adminAttachments) > 0)
                         @foreach($adminAttachments as $index => $attachment)
                             <div class="field-label">Attachment {{ $index + 1 }}:</div>
                             <div class="field-value">
-                                <a href="{{ asset('storage/' . $attachment) }}" class="attachment-link">View / Download</a>
+                                <a href="{{ asset('storage/' . $attachment) }}" class="attachment-link">View</a>
                             </div>
                         @endforeach
                     @else

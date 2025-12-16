@@ -72,7 +72,7 @@ class InternalTicketNew extends Component implements HasTable, HasForms
                     ->action(
                         Action::make('viewTicketDetails')
                             ->modalHeading(false)
-                            ->modalWidth('4xl')
+                            ->modalWidth('3xl')
                             ->modalSubmitAction(false)
                             ->modalCancelActionLabel('Close')
                             ->modalContent(function (InternalTicket $record): View {
@@ -86,7 +86,7 @@ class InternalTicketNew extends Component implements HasTable, HasForms
                     ->sortable(),
                 TextColumn::make('created_at')
                     ->label('Created Date/Time')
-                    ->dateTime('d/m/Y H:i')
+                    ->dateTime('d M Y H:i')
                     ->sortable(),
                 TextColumn::make('attentionTo.name')
                     ->label('Attention To')
@@ -99,82 +99,6 @@ class InternalTicketNew extends Component implements HasTable, HasForms
                         'success' => 'completed',
                     ])
                     ->formatStateUsing(fn ($state) => ucfirst(str_replace('_', ' ', $state))),
-                TextColumn::make('completedBy.name')
-                    ->label('Completed By')
-                    ->searchable()
-                    ->placeholder('—'),
-                TextColumn::make('completed_at')
-                    ->label('Completed Date/Time')
-                    ->dateTime('d/m/Y H:i')
-                    ->placeholder('—'),
-                TextColumn::make('duration_minutes')
-                    ->label('Duration')
-                    ->formatStateUsing(function ($state) {
-                        if (!$state) return '—';
-                        $hours = intval($state / 60);
-                        $minutes = $state % 60;
-                        return $hours > 0 ? "{$hours}h {$minutes}m" : "{$minutes}m";
-                    })
-                    ->placeholder('—'),
-            ])
-            ->headerActions([
-                Action::make('create_ticket')
-                    ->label('Create New Ticket')
-                    ->icon('heroicon-o-plus')
-                    ->form([
-                        Select::make('attention_to')
-                            ->label('Attention To')
-                            ->options(function () {
-                                // ✅ Get users dynamically and return their IDs as values
-                                return User::whereIn('name', [
-                                    'Nur Irdina',
-                                    'Fatimah Nurnabilah',
-                                    'Norhaiyati'
-                                ])->pluck('name', 'id')->toArray();
-                            })
-                            ->default(function () {
-                                // ✅ Set default to Nur Irdina's user ID
-                                $nurIrdina = User::where('name', 'Nur Irdina')->first();
-                                return $nurIrdina ? $nurIrdina->id : null;
-                            })
-                            ->required()
-                            ->searchable(),
-                        Textarea::make('remark')
-                            ->label('Remark')
-                            ->required()
-                            ->rows(4)
-                            ->extraAlpineAttributes([
-                                'x-on:input' => '
-                                    const start = $el.selectionStart;
-                                    const end = $el.selectionEnd;
-                                    const value = $el.value;
-                                    $el.value = value.toUpperCase();
-                                    $el.setSelectionRange(start, end);
-                                '
-                            ])
-                            ->dehydrateStateUsing(fn ($state) => strtoupper($state)),
-                        FileUpload::make('attachments')
-                            ->label('Attachments')
-                            ->multiple()
-                            ->directory('internal-tickets')
-                            ->maxFiles(10)
-                            ->helperText('You can upload multiple files. No limit on file types.'),
-                    ])
-                    ->action(function (array $data): void {
-                        InternalTicket::create([
-                            'created_by' => Auth::id(),
-                            'attention_to' => $data['attention_to'], // ✅ Now saves as user ID
-                            'remark' => $data['remark'],
-                            'attachments' => $data['attachments'] ?? [],
-                        ]);
-
-                        Notification::make()
-                            ->title('Ticket created successfully')
-                            ->success()
-                            ->send();
-                    })
-                    ->modalHeading('Attention to Admin')
-                    ->modalWidth(MaxWidth::Large),
             ])
             ->actions([
                 ActionGroup::make([
@@ -214,8 +138,7 @@ class InternalTicketNew extends Component implements HasTable, HasForms
                                 ->label('Admin Attachments')
                                 ->multiple()
                                 ->directory('internal-tickets/admin')
-                                ->maxFiles(10)
-                                ->helperText('You can upload multiple files. No limit on file types.'),
+                                ->maxFiles(10),
                         ])
                         ->action(function ($record, array $data): void {
                             // Update the ticket

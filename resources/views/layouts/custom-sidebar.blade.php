@@ -1749,8 +1749,36 @@
                             <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
                                 <span class="module-font">Analysis</span>
                             </a>
+                        </div>
+                    </div>
+
+                    <div class="menu-block">
+                        <div class="menu-item nested-dropdown-trigger" data-submenu="internal-ticketing-submenu">
+                            <div class="menu-icon-wrapper">
+                                <i class="bi bi-tags"></i>
+                            </div>
+                            <span class="menu-text">Internal Ticketing</span>
+                            <i class="bi bi-chevron-down menu-arrow"></i>
+                        </div>
+
+                        <div class="submenu" id="internal-ticketing-submenu">
                             <a href="{{ route('filament.admin.pages.internal-tickets-page') }}" class="submenu-item">
-                                <span class="module-font">Internal Ticketing</span>
+                                <span class="module-font">Admin</span>
+                            </a>
+                            <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
+                                <span class="module-font">SalesAdmin </span>
+                            </a>
+                            <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
+                                <span class="module-font">SalesPerson</span>
+                            </a>
+                            <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
+                                <span class="module-font">Implementer</span>
+                            </a>
+                            <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
+                                <span class="module-font">Support</span>
+                            </a>
+                            <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
+                                <span class="module-font">Trainer</span>
                             </a>
                         </div>
                     </div>
