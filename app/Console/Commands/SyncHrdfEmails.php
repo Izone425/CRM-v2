@@ -71,11 +71,23 @@ class SyncHrdfEmails extends Command
                 $messageId = $email['id'];
 
                 try {
-                    // Check if email already exists
-                    if (HrdfMail::where('message_id', $messageId)->exists()) {
-                        $skippedEmails++;
-                        $bar->advance();
-                        continue;
+                    // ✅ Check if email already exists based on received_date instead of message_id
+                    $receivedDateTime = $email['receivedDateTime'] ?? null;
+
+                    if ($receivedDateTime) {
+                        $receivedDate = Carbon::parse($receivedDateTime);
+
+                        // Check if email with same received_date, subject, and from_email already exists
+                        $existingEmail = HrdfMail::where('received_date', $receivedDate)
+                            ->where('subject', $email['subject'] ?? '')
+                            ->where('from_email', $email['from']['emailAddress']['address'] ?? '')
+                            ->first();
+
+                        if ($existingEmail) {
+                            $skippedEmails++;
+                            $bar->advance();
+                            continue;
+                        }
                     }
 
                     // Get full email content
