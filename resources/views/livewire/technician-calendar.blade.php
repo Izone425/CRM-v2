@@ -20,13 +20,14 @@
             --sidebar-color: black;
         }
 
-        /* Calendar Styles for Weekdays Only */
+        /* Calendar Styles with Horizontal Scroll - SMALLER BOXES */
         .monthly-calendar-container {
             background: white;
             border-radius: 17px;
             box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.08);
             overflow: hidden;
             margin-top: 20px;
+            margin-left: 40px;
         }
 
         .month-header {
@@ -63,41 +64,83 @@
             background: #f3f4f6;
         }
 
-        /* Days Header for Weekdays Only */
+        /* Calendar Scroll Container */
+        .calendar-scroll-container {
+            overflow-x: auto;
+            overflow-y: hidden;
+            position: relative;
+        }
+
+        /* Custom Scrollbar Styling */
+        .calendar-scroll-container::-webkit-scrollbar {
+            height: 8px;
+        }
+
+        .calendar-scroll-container::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+
+        .calendar-scroll-container::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 10px;
+        }
+
+        .calendar-scroll-container::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+
+        /* Firefox Scrollbar */
+        .calendar-scroll-container {
+            scrollbar-width: thin;
+            scrollbar-color: #c1c1c1 #f1f1f1;
+        }
+
+        /* Calendar Content Wrapper */
+        .calendar-content-wrapper {
+            min-width: 100%;
+            width: max-content;
+        }
+
+        /* Days Header - SMALLER */
         .days-header {
             display: grid;
-            grid-template-columns: repeat(5, 1fr); /* Only 5 columns for Mon-Fri */
+            grid-template-columns: repeat(5, minmax(180px, 1fr)); /* Reduced from 250px to 180px */
             background: var(--bg-color-border);
+            gap: 1px;
         }
 
         .day-header {
             background: var(--bg-color-white);
-            padding: 15px;
+            padding: 10px 8px; /* Reduced padding */
             text-align: center;
             font-weight: bold;
-            border: 1px solid var(--bg-color-border);
             color: #374151;
+            min-width: 180px; /* Reduced from 250px to 180px */
+            font-size: 14px; /* Smaller font */
         }
 
-        /* Monthly Calendar Grid for Weekdays Only */
+        /* Monthly Calendar Grid - SMALLER */
         .monthly-calendar-grid {
             display: grid;
-            grid-template-columns: repeat(5, 1fr); /* Only 5 columns for Mon-Fri */
+            grid-template-columns: repeat(5, minmax(180px, 1fr)); /* Reduced from 250px to 180px */
             gap: 1px;
             background: var(--bg-color-border);
         }
 
         .calendar-day {
             background: var(--bg-color-white);
-            padding: 12px;
-            min-height: 140px;
-            border: 1px solid #e5e7eb;
+            padding: 8px; /* Reduced from 12px to 8px */
+            min-height: 140px; /* Reduced from 200px to 140px */
+            min-width: 180px; /* Reduced from 250px to 180px */
             position: relative;
+            display: flex;
+            flex-direction: column;
         }
 
         .calendar-day.other-month {
-            background: #f3f4f6;
-            opacity: 0.7;
+            background: #f9f9f9;
+            opacity: 0.6;
         }
 
         .calendar-day.today {
@@ -105,83 +148,115 @@
             border: 2px solid #3b82f6;
         }
 
+        /* Day number positioning - SMALLER */
         .day-header-with-appointments {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            margin-bottom: 8px;
+            margin-bottom: 6px; /* Reduced from 8px */
+            flex-shrink: 0;
         }
 
         .day-number {
             font-weight: bold;
-            font-size: 16px;
+            font-size: 14px; /* Reduced from 16px */
             color: #1f2937;
+            flex-shrink: 0;
         }
 
         .appointment-count {
-            font-size: 10px;
+            font-size: 9px; /* Reduced from 10px */
             color: #6b7280;
             font-style: italic;
             background: #f3f4f6;
-            padding: 2px 6px;
-            border-radius: 10px;
+            padding: 1px 4px; /* Reduced padding */
+            border-radius: 8px;
             white-space: nowrap;
+            flex-shrink: 0;
         }
 
+        /* Appointments container - SMALLER */
         .day-appointments {
             display: flex;
             flex-direction: column;
-            gap: 3px;
+            gap: 2px; /* Reduced from 4px */
+            flex: 1;
+            overflow-y: auto;
+            max-height: 100px; /* Reduced from 160px */
         }
 
-        /* Individual appointment items - clickable */
+        /* Individual appointment items - SMALLER */
         .mini-appointment {
-            padding: 6px 8px;
-            border-radius: 4px;
-            font-size: 11px;
-            margin-bottom: 2px;
-            border-left: 3px solid rgba(0,0,0,0.2);
+            padding: 4px 6px; /* Reduced from 8px 10px */
+            border-radius: 4px; /* Reduced from 6px */
+            font-size: 10px; /* Reduced from 12px */
+            margin-bottom: 2px; /* Reduced from 3px */
+            border-left: 3px solid rgba(0,0,0,0.2); /* Reduced from 4px */
             cursor: pointer;
             transition: all 0.2s ease;
             position: relative;
+            min-height: 32px; /* Reduced from 45px */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
         }
 
         .mini-appointment:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            transform: translateY(-1px); /* Reduced from -2px */
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12); /* Reduced shadow */
             opacity: 0.9;
         }
 
         .appointment-mini-info {
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
             font-weight: 600;
-            margin-bottom: 2px;
+            margin-bottom: 1px; /* Reduced from 2px */
+            line-height: 1.1; /* Tighter line height */
+            word-wrap: break-word;
+            font-size: 9px; /* Smaller font */
         }
 
         .appointment-mini-details {
-            font-size: 9px;
+            font-size: 8px; /* Reduced from 10px */
             color: rgba(0, 0, 0, 0.7);
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            line-height: 1.1; /* Tighter line height */
         }
 
         .more-appointments {
-            font-size: 9px;
+            font-size: 9px; /* Reduced from 11px */
             color: #6b7280;
             font-style: italic;
             text-align: center;
-            padding: 4px;
+            padding: 3px; /* Reduced from 6px */
             background: #f3f4f6;
-            border-radius: 3px;
+            border-radius: 3px; /* Reduced from 4px */
             cursor: pointer;
             transition: background-color 0.2s;
+            margin-top: 2px; /* Reduced from 4px */
         }
 
         .more-appointments:hover {
             background: #e5e7eb;
+        }
+
+        /* Scroll Hint Overlay */
+        .scroll-hint {
+            position: absolute;
+            top: 50%;
+            right: 20px;
+            transform: translateY(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 6px 10px; /* Smaller padding */
+            border-radius: 16px; /* Smaller border radius */
+            font-size: 11px; /* Smaller font */
+            z-index: 10;
+            animation: fadeInOut 3s ease-in-out;
+            pointer-events: none;
+        }
+
+        @keyframes fadeInOut {
+            0%, 100% { opacity: 0; }
+            50% { opacity: 1; }
         }
 
         /* Enhanced Modal Styles */
@@ -192,7 +267,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            background-color: rgba(0, 0, 0, 0.1);
+            background-color: rgba(0, 0, 0, 0.5);
             padding: 1rem;
         }
 
@@ -201,7 +276,7 @@
             border-radius: 12px;
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
             width: 95%;
-            max-width: 800px;
+            max-width: 900px;
             max-height: 85vh;
             overflow-y: auto;
         }
@@ -250,7 +325,6 @@
             margin-bottom: 1.5rem;
             padding: 1rem;
             border-radius: 8px;
-            background-color: var(--bg-demo-yellow);
         }
 
         .appointment-technician {
@@ -364,7 +438,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            background-color: rgba(0, 0, 0, 0.08);
+            background-color: rgba(0, 0, 0, 0.5);
             padding: 1rem;
         }
 
@@ -397,7 +471,7 @@
             border-color: rgba(0, 0, 0, 0.1);
         }
 
-        /* Filter Styles - keeping existing filter styles */
+        /* Filter Styles */
         .filter-badges-container {
             display: flex;
             flex-direction: column;
@@ -554,54 +628,44 @@
             border-radius: 4px;
         }
 
-        /* Mobile Responsive Styles */
+        /* Mobile Responsive Styles - SMALLER BOXES */
         @media (max-width: 768px) {
-            .filter-row {
-                width: 100%;
+            .days-header {
+                grid-template-columns: repeat(5, minmax(140px, 1fr)); /* Reduced from 180px */
             }
 
-            .badges-row {
-                width: 100%;
+            .monthly-calendar-grid {
+                grid-template-columns: repeat(5, minmax(140px, 1fr)); /* Reduced from 180px */
             }
 
-            .filter-row div {
-                width: 100%;
-                margin-bottom: 10px;
-            }
-
-            .grid.grid-cols-2 {
-                grid-template-columns: 1fr !important;
-            }
-
-            .flex.gap-6 {
-                flex-direction: column;
+            .day-header {
+                padding: 6px 4px; /* Further reduced */
+                font-size: 11px; /* Smaller font */
+                min-width: 140px; /* Reduced from 180px */
             }
 
             .calendar-day {
-                min-height: 80px;
-                padding: 6px;
+                min-height: 110px; /* Reduced from 140px */
+                padding: 6px; /* Further reduced */
+                min-width: 140px; /* Reduced from 180px */
             }
 
             .day-number {
-                font-size: 14px;
-            }
-
-            .appointment-count {
-                font-size: 8px;
-                padding: 1px 4px;
+                font-size: 12px; /* Reduced from 14px */
             }
 
             .mini-appointment {
-                font-size: 8px;
-                padding: 4px 6px;
+                font-size: 8px; /* Reduced from 10px */
+                padding: 3px 5px; /* Further reduced */
+                min-height: 26px; /* Reduced from 32px */
             }
 
             .appointment-mini-info {
-                font-size: 8px;
+                font-size: 8px; /* Smaller font */
             }
 
             .appointment-mini-details {
-                font-size: 7px;
+                font-size: 7px; /* Smaller font */
             }
 
             .month-title {
@@ -610,19 +674,6 @@
 
             .nav-btn {
                 padding: 8px;
-            }
-
-            .monthly-calendar-grid {
-                grid-template-columns: repeat(5, 1fr);
-            }
-
-            .days-header {
-                grid-template-columns: repeat(5, 1fr);
-            }
-
-            .day-header {
-                padding: 8px;
-                font-size: 12px;
             }
 
             .modal-content {
@@ -666,7 +717,27 @@
                 margin-bottom: 1rem;
             }
 
-            /* Hide ribbons section on mobile by default */
+            .filter-row {
+                width: 100%;
+            }
+
+            .badges-row {
+                width: 100%;
+            }
+
+            .filter-row div {
+                width: 100%;
+                margin-bottom: 10px;
+            }
+
+            .grid.grid-cols-2 {
+                grid-template-columns: 1fr !important;
+            }
+
+            .flex.gap-6 {
+                flex-direction: column;
+            }
+
             .flex.items-center.gap-2.p-6 {
                 flex-direction: column;
                 gap: 10px;
@@ -681,49 +752,54 @@
                 padding: 15px;
             }
 
-            /* Adjust filter grid on mobile */
             .grid.w-full.grid-cols-2 {
                 padding: 15px;
             }
 
-            /* Make buttons more touch-friendly */
             button {
                 min-height: 44px;
             }
         }
 
         @media (max-width: 480px) {
+            .days-header {
+                grid-template-columns: repeat(5, minmax(110px, 1fr)); /* Further reduced */
+            }
+
+            .monthly-calendar-grid {
+                grid-template-columns: repeat(5, minmax(110px, 1fr)); /* Further reduced */
+            }
+
             .calendar-day {
-                min-height: 60px;
-                padding: 4px;
+                min-height: 90px; /* Further reduced */
+                padding: 4px; /* Further reduced */
+                min-width: 110px; /* Further reduced */
+            }
+
+            .day-header {
+                padding: 4px 2px; /* Further reduced */
+                font-size: 10px; /* Smaller font */
+                min-width: 110px; /* Further reduced */
             }
 
             .day-number {
-                font-size: 12px;
-            }
-
-            .appointment-count {
-                font-size: 7px;
+                font-size: 11px; /* Smaller font */
             }
 
             .mini-appointment {
-                font-size: 7px;
-                padding: 2px 4px;
+                font-size: 7px; /* Smaller font */
+                padding: 2px 4px; /* Further reduced */
+                min-height: 22px; /* Further reduced */
             }
 
             .month-title {
                 font-size: 1rem;
             }
-
-            .day-header {
-                padding: 6px;
-                font-size: 10px;
-            }
         }
     </style>
 
     <!-- Ribbon Toggle Section -->
-    <div x-data="{ filterExpanded: false }">
+    <div x-data="{ filterExpanded: false }" style="margin-left: 50px;">
         <!-- Title and Toggle Button -->
         <div class="flex items-center justify-between mb-4">
             <h2 class="text-lg font-semibold">Technician Calendar</h2>
@@ -1046,14 +1122,18 @@
         </div>
     </div>
 
-    <!-- Monthly Calendar (WEEKDAYS ONLY) -->
-    <div class="monthly-calendar-container" x-data="{
-        selectedAppointment: null,
-        showAppointmentModal: false,
-        dayModalOpen: false,
-        selectedDayAppointments: [],
-        selectedDate: ''
-    }">
+    <!-- Monthly Calendar with Horizontal Scroll -->
+    <div class="monthly-calendar-container"
+         x-data="{
+            selectedAppointment: null,
+            showAppointmentModal: false,
+            dayModalOpen: false,
+            selectedDayAppointments: [],
+            selectedDate: '',
+            showScrollHint: true
+         }"
+         x-init="setTimeout(() => showScrollHint = false, 5000)" >
+
         <!-- Month Navigation Header -->
         <div class="month-header">
             <div class="month-nav">
@@ -1067,281 +1147,294 @@
             </div>
         </div>
 
-        <!-- Days of Week Header (WEEKDAYS ONLY) -->
-        <div class="days-header">
-            <div class="day-header">Mon</div>
-            <div class="day-header">Tue</div>
-            <div class="day-header">Wed</div>
-            <div class="day-header">Thu</div>
-            <div class="day-header">Fri</div>
-        </div>
+        <!-- Horizontal Scroll Container -->
+        <div class="calendar-scroll-container" style="position: relative;">
 
-        <!-- Monthly Calendar Grid (WEEKDAYS ONLY) -->
-        <div class="monthly-calendar-grid">
-            @foreach ($monthlyCalendar as $week)
-                @foreach ($week as $dayData)
-                    <div class="calendar-day @if($dayData['isCurrentMonth']) current-month @else other-month @endif @if($dayData['isToday']) today @endif">
+            <!-- Scroll Hint -->
+            <div x-show="showScrollHint" x-transition class="scroll-hint">
+                ← Scroll to see more →
+            </div>
 
-                        <!-- Day number with appointment count -->
-                        @if(isset($dayData['appointments']) && count($dayData['appointments']) > 0)
-                            <div class="day-header-with-appointments">
-                                <div class="day-number">{{ $dayData['day'] }}</div>
-                                <div class="appointment-count">
-                                    {{ count($dayData['appointments']) }}
-                                </div>
-                            </div>
-                        @else
-                            <div class="day-number">{{ $dayData['day'] }}</div>
-                        @endif
+            <!-- Calendar Content Wrapper -->
+            <div class="calendar-content-wrapper">
 
-                        <!-- Individual clickable appointments -->
-                        @if(isset($dayData['appointments']) && count($dayData['appointments']) > 0)
-                            <div class="day-appointments">
-                                @foreach($dayData['appointments'] as $index => $appointment)
-                                    @if($index < 3)
-                                        <div class="mini-appointment"
-                                            style="background-color:
-                                                @if($appointment->status === 'Done') var(--bg-demo-green)
-                                                @elseif($appointment->status === 'New') var(--bg-demo-yellow)
-                                                @else var(--bg-demo-red)
-                                                @endif"
-                                            @click.stop="$wire.showAppointment({{ $appointment->id }}, '{{ $dayData['date'] }}')"
-                                            wire:loading.attr="disabled">
-                                            <div class="appointment-mini-info">
-                                                {{ Str::limit($appointment->company_name, 30) }}
-                                            </div>
-                                            <div class="appointment-mini-details">
-                                                {{ $appointment->type }} • {{ $appointment->start_time }}
-                                            </div>
+                <!-- Days Header (WEEKDAYS ONLY) -->
+                <div class="days-header">
+                    <div class="day-header">Mon</div>
+                    <div class="day-header">Tue</div>
+                    <div class="day-header">Wed</div>
+                    <div class="day-header">Thu</div>
+                    <div class="day-header">Fri</div>
+                </div>
+
+                <!-- Monthly Calendar Grid (WEEKDAYS ONLY) -->
+                <div class="monthly-calendar-grid">
+                    @foreach ($monthlyCalendar as $week)
+                        @foreach ($week as $dayData)
+                            <div class="calendar-day @if($dayData['isCurrentMonth']) current-month @else other-month @endif @if($dayData['isToday']) today @endif">
+
+                                <!-- Day number with appointment count -->
+                                @if(isset($dayData['appointments']) && count($dayData['appointments']) > 0)
+                                    <div class="day-header-with-appointments">
+                                        <div class="day-number">{{ $dayData['day'] }}</div>
+                                        <div class="appointment-count">
+                                            {{ count($dayData['appointments']) }}
                                         </div>
-                                    @endif
-                                @endforeach
-
-                                @if(count($dayData['appointments']) > 3)
-                                    <div class="more-appointments"
-                                        @click.stop="
-                                            selectedDayAppointments = {{ collect($dayData['appointments'])->map(function($apt) {
-                                                return [
-                                                    'id' => $apt->id,
-                                                    'date' => $apt->date,
-                                                    'company_name' => $apt->company_name,
-                                                    'technician' => $apt->technician,
-                                                    'type' => $apt->type,
-                                                    'start_time' => $apt->start_time,
-                                                    'end_time' => $apt->end_time,
-                                                    'status' => $apt->status,
-                                                    'display_type' => $apt->display_type ?? $apt->type
-                                                ];
-                                            })->toJson() }};
-                                            selectedDate = '{{ $dayData['carbonDate']->format('l, F j, Y') }}';
-                                            dayModalOpen = true;
-                                        ">
-                                        +{{ count($dayData['appointments']) - 3 }} more
                                     </div>
+                                @else
+                                    <div class="day-number">{{ $dayData['day'] }}</div>
                                 @endif
-                            </div>
-                        @endif
 
-                        <!-- Individual Appointment Detail Modal -->
-                        <div x-show="@this.showAppointmentModal"
-                            x-transition
-                            @click.outside="$wire.closeAppointmentModal()"
-                            @keydown.escape.window="$wire.closeAppointmentModal()"
-                            class="appointment-modal">
-                            <div class="modal-content" @click.stop>
-                                <div class="modal-header">
-                                    <h3 class="modal-title">Appointment Details</h3>
-                                    <button type="button"
-                                            @click="$wire.closeAppointmentModal()"
-                                            class="modal-close">
-                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                                        </svg>
-                                    </button>
-                                </div>
-
-                                @if($modalAppointment)
-                                <div class="modal-body">
-                                    <!-- Basic Appointment Header -->
-                                    <div class="appointment-header"
-                                        style="background-color:
-                                            @if($modalAppointment->status === 'Done') var(--bg-demo-green)
-                                            @elseif($modalAppointment->status === 'New') var(--bg-demo-yellow)
-                                            @else var(--bg-demo-red)
-                                            @endif">
-                                        <div>
-                                            <div class="appointment-technician">{{ $modalAppointment->company_name }}</div>
-                                            <div class="appointment-basic-details">
-                                                <div><strong>Technician:</strong> {{ $modalAppointment->technician }}</div>
-                                                <div><strong>Type:</strong> {{ $modalAppointment->display_type ?? $modalAppointment->type }}</div>
-                                                <div><strong>Time:</strong> {{ $modalAppointment->start_time }} - {{ $modalAppointment->end_time }}</div>
-                                                @if($modalAppointment->url && $modalAppointment->url !== '#')
-                                                    <div><a href="{{ $modalAppointment->url }}" target="_blank" class="text-blue-600 hover:underline">View Lead Details</a></div>
-                                                @endif
-                                            </div>
-                                        </div>
-                                        <span class="appointment-status"
-                                            style="background-color:
-                                                @if($modalAppointment->status === 'Done') var(--text-demo-green)
-                                                @elseif($modalAppointment->status === 'New') var(--text-demo-yellow)
-                                                @else var(--text-demo-red)
-                                                @endif; color: white;">
-                                            {{ $modalAppointment->status }}
-                                        </span>
-                                    </div>
-
-                                    <!-- Customer Details Section -->
-                                    <div class="appointment-detail-section">
-                                        <div class="section-title">Customer Details</div>
-                                        <div class="detail-row">
-                                            <span class="detail-label">Company Name:</span>
-                                            <span class="detail-value">{{ $modalAppointment->company_name ?? 'N/A' }}</span>
-                                        </div>
-                                        <div class="detail-row">
-                                            <span class="detail-label">PIC Name:</span>
-                                            <span class="detail-value">{{ $modalAppointment->pic_name ?? 'N/A' }}</span>
-                                        </div>
-                                        <div class="detail-row">
-                                            <span class="detail-label">PIC Phone:</span>
-                                            <span class="detail-value">{{ $modalAppointment->pic_phone ?? 'N/A' }}</span>
-                                        </div>
-                                        <div class="detail-row">
-                                            <span class="detail-label">PIC Email:</span>
-                                            <span class="detail-value">{{ $modalAppointment->pic_email ?? 'N/A' }}</span>
-                                        </div>
-                                    </div>
-
-                                    <!-- Installation Details Section -->
-                                    <div class="appointment-detail-section">
-                                        <div class="section-title">Installation Details</div>
-                                        @if($modalAppointment->hardware_id ?? false)
-                                            <div class="detail-row">
-                                                <span class="detail-label">Hardware ID:</span>
-                                                <span class="detail-value">{{ $modalAppointment->hardware_id }}</span>
-                                            </div>
-                                        @endif
-                                        <div class="detail-row">
-                                            <span class="detail-label">Appointment Date:</span>
-                                            <span class="detail-value">{{ $modalAppointment->appointment_date ?? 'N/A' }}</span>
-                                        </div>
-                                        <div class="detail-row">
-                                            <span class="detail-label">Installation Time:</span>
-                                            <span class="detail-value">{{ $modalAppointment->start_time }} - {{ $modalAppointment->end_time }}</span>
-                                        </div>
-                                        <div class="detail-row">
-                                            <span class="detail-label">Installation Address:</span>
-                                            <span class="detail-value">{{ $modalAppointment->installation_address ?? $modalAppointment->address ?? 'N/A' }}</span>
-                                        </div>
-                                        <div class="detail-row">
-                                            <span class="detail-label">Technician Phone:</span>
-                                            <span class="detail-value">{{ $modalAppointment->technician_phone ?? '017-380 4549' }}</span>
-                                        </div>
-                                        @if($modalAppointment->installation_remark ?? false)
-                                            <div class="detail-row">
-                                                <span class="detail-label">Installation Remark:</span>
-                                                <span class="detail-value">{{ $modalAppointment->installation_remark }}</span>
-                                            </div>
-                                        @endif
-                                    </div>
-
-                                    <!-- Installation Devices Section -->
-                                    @if(isset($modalAppointment->devices) && collect($modalAppointment->devices)->sum() > 0)
-                                        <div class="appointment-detail-section">
-                                            <div class="section-title">Installation Device</div>
-                                            <div class="device-grid">
-                                                @if(($modalAppointment->devices['tc10'] ?? 0) > 0)
-                                                    <div class="device-item">
-                                                        <div class="device-name">TC10</div>
-                                                        <div class="device-quantity">{{ $modalAppointment->devices['tc10'] }} {{ $modalAppointment->devices['tc10'] > 1 ? 'UNITS' : 'UNIT' }}</div>
+                                <!-- Individual clickable appointments -->
+                                @if(isset($dayData['appointments']) && count($dayData['appointments']) > 0)
+                                    <div class="day-appointments">
+                                        @foreach($dayData['appointments'] as $index => $appointment)
+                                            @if($index < 4)
+                                                <div class="mini-appointment"
+                                                    style="background-color:
+                                                        @if($appointment->status === 'Done') var(--bg-demo-green)
+                                                        @elseif($appointment->status === 'New') var(--bg-demo-yellow)
+                                                        @else var(--bg-demo-red)
+                                                        @endif"
+                                                    @click.stop="$wire.showAppointment({{ $appointment->id }}, '{{ $dayData['date'] }}')"
+                                                    wire:loading.attr="disabled">
+                                                    <div class="appointment-mini-info">
+                                                        {{ Str::limit($appointment->company_name, 35) }}
                                                     </div>
-                                                @endif
-                                                @if(($modalAppointment->devices['face_id5'] ?? 0) > 0)
-                                                    <div class="device-item">
-                                                        <div class="device-name">FACE ID 5</div>
-                                                        <div class="device-quantity">{{ $modalAppointment->devices['face_id5'] }} {{ $modalAppointment->devices['face_id5'] > 1 ? 'UNITS' : 'UNIT' }}</div>
-                                                    </div>
-                                                @endif
-                                                @if(($modalAppointment->devices['tc20'] ?? 0) > 0)
-                                                    <div class="device-item">
-                                                        <div class="device-name">TC20</div>
-                                                        <div class="device-quantity">{{ $modalAppointment->devices['tc20'] }} {{ $modalAppointment->devices['tc20'] > 1 ? 'UNITS' : 'UNIT' }}</div>
-                                                    </div>
-                                                @endif
-                                                @if(($modalAppointment->devices['face_id6'] ?? 0) > 0)
-                                                    <div class="device-item">
-                                                        <div class="device-name">FACE ID 6</div>
-                                                        <div class="device-quantity">{{ $modalAppointment->devices['face_id6'] }} {{ $modalAppointment->devices['face_id6'] > 1 ? 'UNITS' : 'UNIT' }}</div>
-                                                    </div>
-                                                @endif
-                                            </div>
-                                        </div>
-                                    @endif
-
-                                    <!-- Technician Remarks Section -->
-                                    @if($modalAppointment->remarks ?? false)
-                                        <div class="appointment-detail-section">
-                                            <div class="section-title">Technician Remarks</div>
-                                            <div class="remark-content">{{ $modalAppointment->remarks }}</div>
-                                        </div>
-                                    @endif
-                                </div>
-                                @endif
-                            </div>
-                        </div>
-
-                        <!-- Day Modal for "More Appointments" -->
-                        <div x-show="dayModalOpen"
-                             x-transition
-                             @click.outside="dayModalOpen = false"
-                             @keydown.escape.window="dayModalOpen = false"
-                             class="day-modal">
-                            <div class="day-modal-content" @click.stop>
-                                <div class="modal-header">
-                                    <h3 class="modal-title" x-text="selectedDate + ' - All Appointments'"></h3>
-                                    <button type="button"
-                                            @click="dayModalOpen = false"
-                                            class="modal-close">
-                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                                        </svg>
-                                    </button>
-                                </div>
-
-                                <div class="day-appointment-list">
-                                    <template x-for="appointment in selectedDayAppointments" :key="appointment.id">
-                                        <div class="day-appointment-item"
-                                            :style="'background-color: ' + (
-                                                appointment.status === 'Done' ? 'var(--bg-demo-green)' :
-                                                appointment.status === 'New' ? 'var(--bg-demo-yellow)' :
-                                                'var(--bg-demo-red)'
-                                            )"
-                                            @click="$wire.showAppointment(appointment.id, appointment.date); dayModalOpen = false;">
-                                            <div style="display: flex; justify-content: space-between; align-items: center;">
-                                                <div>
-                                                    <div style="font-weight: 600; font-size: 1.1rem; margin-bottom: 0.5rem;" x-text="appointment.company_name"></div>
-                                                    <div style="font-size: 0.875rem; color: #6b7280;">
-                                                        <div><strong>Technician:</strong> <span x-text="appointment.technician"></span></div>
-                                                        <div><strong>Time:</strong> <span x-text="appointment.start_time + ' - ' + appointment.end_time"></span></div>
-                                                        <div><strong>Type:</strong> <span x-text="appointment.display_type || appointment.type"></span></div>
+                                                    <div class="appointment-mini-details">
+                                                        {{ Str::limit($appointment->display_type ?? $appointment->type, 15) }} • {{ $appointment->start_time }}
                                                     </div>
                                                 </div>
-                                                <span class="appointment-status"
-                                                      :style="'background-color: ' + (
-                                                        appointment.status === 'Done' ? 'var(--text-demo-green)' :
-                                                        appointment.status === 'New' ? 'var(--text-demo-yellow)' :
-                                                        'var(--text-demo-red)'
-                                                      ) + '; color: white;'"
-                                                      x-text="appointment.status">
-                                                </span>
+                                            @endif
+                                        @endforeach
+
+                                        @if(count($dayData['appointments']) > 4)
+                                            <div class="more-appointments"
+                                                @click.stop="
+                                                    selectedDayAppointments = {{ collect($dayData['appointments'])->map(function($apt) {
+                                                        return [
+                                                            'id' => $apt->id,
+                                                            'date' => $apt->date,
+                                                            'company_name' => $apt->company_name,
+                                                            'technician' => $apt->technician,
+                                                            'type' => $apt->type,
+                                                            'start_time' => $apt->start_time,
+                                                            'end_time' => $apt->end_time,
+                                                            'status' => $apt->status,
+                                                            'display_type' => $apt->display_type ?? $apt->type
+                                                        ];
+                                                    })->toJson() }};
+                                                    selectedDate = '{{ $dayData['carbonDate']->format('l, F j, Y') }}';
+                                                    dayModalOpen = true;
+                                                ">
+                                                +{{ count($dayData['appointments']) - 4 }} more
                                             </div>
-                                        </div>
-                                    </template>
-                                </div>
+                                        @endif
+                                    </div>
+                                @endif
+                            </div>
+                        @endforeach
+                    @endforeach
+                </div>
+            </div>
+        </div>
+
+        <!-- Individual Appointment Detail Modal -->
+        <div x-show="@this.showAppointmentModal"
+            x-transition
+            @click.outside="$wire.closeAppointmentModal()"
+            @keydown.escape.window="$wire.closeAppointmentModal()"
+            class="appointment-modal">
+            <div class="modal-content" @click.stop>
+                <div class="modal-header">
+                    <h3 class="modal-title">Appointment Details</h3>
+                    <button type="button"
+                            @click="$wire.closeAppointmentModal()"
+                            class="modal-close">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+
+                @if($modalAppointment)
+                <div class="modal-body">
+                    <!-- Basic Appointment Header -->
+                    <div class="appointment-header"
+                        style="background-color:
+                            @if($modalAppointment->status === 'Done') var(--bg-demo-green)
+                            @elseif($modalAppointment->status === 'New') var(--bg-demo-yellow)
+                            @else var(--bg-demo-red)
+                            @endif">
+                        <div>
+                            <div class="appointment-technician">{{ $modalAppointment->company_name }}</div>
+                            <div class="appointment-basic-details">
+                                <div><strong>Technician:</strong> {{ $modalAppointment->technician }}</div>
+                                <div><strong>Type:</strong> {{ $modalAppointment->display_type ?? $modalAppointment->type }}</div>
+                                <div><strong>Time:</strong> {{ $modalAppointment->start_time }} - {{ $modalAppointment->end_time }}</div>
+                                @if($modalAppointment->url && $modalAppointment->url !== '#')
+                                    <div><a href="{{ $modalAppointment->url }}" target="_blank" class="text-blue-600 hover:underline">View Lead Details</a></div>
+                                @endif
                             </div>
                         </div>
+                        <span class="appointment-status"
+                            style="background-color:
+                                @if($modalAppointment->status === 'Done') var(--text-demo-green)
+                                @elseif($modalAppointment->status === 'New') var(--text-demo-yellow)
+                                @else var(--text-demo-red)
+                                @endif; color: white;">
+                            {{ $modalAppointment->status }}
+                        </span>
                     </div>
-                @endforeach
-            @endforeach
+
+                    <!-- Customer Details Section -->
+                    <div class="appointment-detail-section">
+                        <div class="section-title">Customer Details</div>
+                        <div class="detail-row">
+                            <span class="detail-label">Company Name:</span>
+                            <span class="detail-value">{{ $modalAppointment->company_name ?? 'N/A' }}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">PIC Name:</span>
+                            <span class="detail-value">{{ $modalAppointment->pic_name ?? 'N/A' }}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">PIC Phone:</span>
+                            <span class="detail-value">{{ $modalAppointment->pic_phone ?? 'N/A' }}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">PIC Email:</span>
+                            <span class="detail-value">{{ $modalAppointment->pic_email ?? 'N/A' }}</span>
+                        </div>
+                    </div>
+
+                    <!-- Installation Details Section -->
+                    <div class="appointment-detail-section">
+                        <div class="section-title">Installation Details</div>
+                        @if($modalAppointment->hardware_id ?? false)
+                            <div class="detail-row">
+                                <span class="detail-label">Hardware ID:</span>
+                                <span class="detail-value">{{ $modalAppointment->hardware_id }}</span>
+                            </div>
+                        @endif
+                        <div class="detail-row">
+                            <span class="detail-label">Appointment Date:</span>
+                            <span class="detail-value">{{ $modalAppointment->appointment_date ?? 'N/A' }}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Installation Time:</span>
+                            <span class="detail-value">{{ $modalAppointment->start_time }} - {{ $modalAppointment->end_time }}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Installation Address:</span>
+                            <span class="detail-value">{{ $modalAppointment->installation_address ?? $modalAppointment->address ?? 'N/A' }}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Technician Phone:</span>
+                            <span class="detail-value">{{ $modalAppointment->technician_phone ?? '017-380 4549' }}</span>
+                        </div>
+                        @if($modalAppointment->installation_remark ?? false)
+                            <div class="detail-row">
+                                <span class="detail-label">Installation Remark:</span>
+                                <span class="detail-value">{{ $modalAppointment->installation_remark }}</span>
+                            </div>
+                        @endif
+                    </div>
+
+                    <!-- Installation Devices Section -->
+                    @if(isset($modalAppointment->devices) && collect($modalAppointment->devices)->sum() > 0)
+                        <div class="appointment-detail-section">
+                            <div class="section-title">Installation Device</div>
+                            <div class="device-grid">
+                                @if(($modalAppointment->devices['tc10'] ?? 0) > 0)
+                                    <div class="device-item">
+                                        <div class="device-name">TC10</div>
+                                        <div class="device-quantity">{{ $modalAppointment->devices['tc10'] }} {{ $modalAppointment->devices['tc10'] > 1 ? 'UNITS' : 'UNIT' }}</div>
+                                    </div>
+                                @endif
+                                @if(($modalAppointment->devices['face_id5'] ?? 0) > 0)
+                                    <div class="device-item">
+                                        <div class="device-name">FACE ID 5</div>
+                                        <div class="device-quantity">{{ $modalAppointment->devices['face_id5'] }} {{ $modalAppointment->devices['face_id5'] > 1 ? 'UNITS' : 'UNIT' }}</div>
+                                    </div>
+                                @endif
+                                @if(($modalAppointment->devices['tc20'] ?? 0) > 0)
+                                    <div class="device-item">
+                                        <div class="device-name">TC20</div>
+                                        <div class="device-quantity">{{ $modalAppointment->devices['tc20'] }} {{ $modalAppointment->devices['tc20'] > 1 ? 'UNITS' : 'UNIT' }}</div>
+                                    </div>
+                                @endif
+                                @if(($modalAppointment->devices['face_id6'] ?? 0) > 0)
+                                    <div class="device-item">
+                                        <div class="device-name">FACE ID 6</div>
+                                        <div class="device-quantity">{{ $modalAppointment->devices['face_id6'] }} {{ $modalAppointment->devices['face_id6'] > 1 ? 'UNITS' : 'UNIT' }}</div>
+                                    </div>
+                                @endif
+                            </div>
+                        </div>
+                    @endif
+
+                    <!-- Technician Remarks Section -->
+                    @if($modalAppointment->remarks ?? false)
+                        <div class="appointment-detail-section">
+                            <div class="section-title">Technician Remarks</div>
+                            <div class="remark-content">{{ $modalAppointment->remarks }}</div>
+                        </div>
+                    @endif
+                </div>
+                @endif
+            </div>
+        </div>
+
+        <!-- Day Modal for "More Appointments" -->
+        <div x-show="dayModalOpen"
+             x-transition
+             @click.outside="dayModalOpen = false"
+             @keydown.escape.window="dayModalOpen = false"
+             class="day-modal">
+            <div class="day-modal-content" @click.stop>
+                <div class="modal-header">
+                    <h3 class="modal-title" x-text="selectedDate + ' - All Appointments'"></h3>
+                    <button type="button"
+                            @click="dayModalOpen = false"
+                            class="modal-close">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="day-appointment-list">
+                    <template x-for="appointment in selectedDayAppointments" :key="appointment.id">
+                        <div class="day-appointment-item"
+                            :style="'background-color: ' + (
+                                appointment.status === 'Done' ? 'var(--bg-demo-green)' :
+                                appointment.status === 'New' ? 'var(--bg-demo-yellow)' :
+                                'var(--bg-demo-red)'
+                            )"
+                            @click="$wire.showAppointment(appointment.id, appointment.date); dayModalOpen = false;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <div style="font-weight: 600; font-size: 1.1rem; margin-bottom: 0.5rem;" x-text="appointment.company_name"></div>
+                                    <div style="font-size: 0.875rem; color: #6b7280;">
+                                        <div><strong>Technician:</strong> <span x-text="appointment.technician"></span></div>
+                                        <div><strong>Time:</strong> <span x-text="appointment.start_time + ' - ' + appointment.end_time"></span></div>
+                                        <div><strong>Type:</strong> <span x-text="appointment.display_type || appointment.type"></span></div>
+                                    </div>
+                                </div>
+                                <span class="appointment-status"
+                                      :style="'background-color: ' + (
+                                        appointment.status === 'Done' ? 'var(--text-demo-green)' :
+                                        appointment.status === 'New' ? 'var(--text-demo-yellow)' :
+                                        'var(--text-demo-red)'
+                                      ) + '; color: white;'"
+                                      x-text="appointment.status">
+                                </span>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
         </div>
     </div>
 
