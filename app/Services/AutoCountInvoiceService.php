@@ -99,7 +99,7 @@ class AutoCountInvoiceService
             $payload = [
                 'apiUsername' => $this->username,
                 'apiPassword' => $this->generateApiPassword(),
-                'company' => $company ?? 'TIMETEC Sandbox', // Updated default
+                'company' => $company ?? 'TIMETEC CLOUD Sandbox', // Updated default
             ];
 
             $response = Http::timeout(30)
@@ -114,7 +114,7 @@ class AutoCountInvoiceService
 
                     Log::info('AutoCount State List Retrieved Successfully', [
                         'states_count' => count($data['dataResults']['stateList']),
-                        'company' => $company ?? 'TIMETEC Sandbox',
+                        'company' => $company ?? 'TIMETEC CLOUD Sandbox',
                     ]);
 
                     return [
@@ -180,7 +180,7 @@ class AutoCountInvoiceService
             $payload = [
                 'apiUsername' => $this->username,
                 'apiPassword' => $this->generateApiPassword(),
-                'company' => $company ?? 'TIMETEC Sandbox', // Updated default
+                'company' => $company ?? 'TIMETEC CLOUD Sandbox', // Updated default
             ];
 
             $response = Http::timeout(30)
@@ -195,7 +195,7 @@ class AutoCountInvoiceService
 
                     Log::info('AutoCount Country List Retrieved Successfully', [
                         'countries_count' => count($data['dataResults']['countryList']),
-                        'company' => $company ?? 'TIMETEC Sandbox',
+                        'company' => $company ?? 'TIMETEC CLOUD Sandbox',
                     ]);
 
                     return [
@@ -261,7 +261,7 @@ class AutoCountInvoiceService
             $payload = [
                 'apiUsername' => $this->username,
                 'apiPassword' => $this->generateApiPassword(),
-                'company' => $company ?? 'TIMETEC Sandbox',
+                'company' => $company ?? 'TIMETEC CLOUD Sandbox',
                 'udfListName' => $udfListName,
             ];
 
@@ -280,7 +280,7 @@ class AutoCountInvoiceService
                     Log::info('AutoCount UDF Item List Retrieved Successfully', [
                         'udf_list_name' => $udfListName,
                         'items_count' => count($udfItems),
-                        'company' => $company ?? 'TIMETEC Sandbox',
+                        'company' => $company ?? 'TIMETEC CLOUD Sandbox',
                     ]);
 
                     return [
@@ -485,7 +485,7 @@ class AutoCountInvoiceService
             $payload = [
                 'apiUsername' => $this->username,
                 'apiPassword' => $this->generateApiPassword(),
-                'company' => $debtorData['company'] ?? 'TIMETEC Sandbox',
+                'company' => $debtorData['company'] ?? 'TIMETEC CLOUD Sandbox',
                 'debtor' => [
                     'controlAccount' => $debtorData['control_account'] ?? 'ARM-0112-01',
                     'companyName' => $debtorData['company_name'],
@@ -900,9 +900,9 @@ class AutoCountInvoiceService
      */
     private function determineCompanyBySubsidiary(\App\Models\Quotation $quotation): string
     {
-        // For testing purposes, always use TIMETEC Sandbox
+        // For testing purposes, always use TIMETEC CLOUD Sandbox
         // TODO: Update this logic once testing is complete
-        return 'TIMETEC Sandbox';
+        return 'TIMETEC CLOUD Sandbox';
 
         // Original logic (commented out for testing):
         /*

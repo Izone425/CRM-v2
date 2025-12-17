@@ -197,6 +197,9 @@ class AutoCountIntegrationService
                 'uom' => 'UNIT',
                 'unitPrice' => 1275,
                 'amount' => 1275,
+                // ✅ Add tax fields for fallback item
+                'taxCode' => 'SV-8',
+                'taxRate' => 8,
             ]];
         }
 
@@ -204,7 +207,7 @@ class AutoCountIntegrationService
             ->with('product')
             ->get();
 
-        // ✅ Group items by product code, unit price, and account to combine duplicates WITHIN this quotation
+        // ✅ Group items by product code, unit price, account, and tax info to combine duplicates WITHIN this quotation
         $groupedDetails = [];
 
         foreach ($quotationDetails as $detail) {
@@ -213,15 +216,24 @@ class AutoCountIntegrationService
             $unitPrice = (float) $detail->unit_price;
             $account = $this->getAccountFromProduct($product);
 
-            // Create a unique key based on product code, unit price, and account
-            $key = $productCode . '|' . $unitPrice . '|' . $account;
+            // ✅ Determine tax information based on product->taxable
+            $taxCode = '';
+            $taxRate = 0;
+
+            if ($product && $product->taxable) {
+                $taxCode = 'SV-8';
+                $taxRate = 8;
+            }
+
+            // Create a unique key based on product code, unit price, account, and tax info
+            $key = $productCode . '|' . $unitPrice . '|' . $account . '|' . $taxCode . '|' . $taxRate;
 
             if (isset($groupedDetails[$key])) {
                 // ✅ Combine with existing item (within the same quotation)
                 $groupedDetails[$key]['quantity'] += (float) $detail->quantity;
-                $groupedDetails[$key]['amount'] += (float) $detail->total_before_tax;
+                $groupedDetails[$key]['amount'] += (float) $detail->total_after_tax; // ✅ CHANGED from total_before_tax
             } else {
-                // ✅ Add new item
+                // ✅ Add new item with tax information
                 $groupedDetails[$key] = [
                     'account' => $account,
                     'itemCode' => $productCode,
@@ -229,7 +241,9 @@ class AutoCountIntegrationService
                     'quantity' => (float) $detail->quantity,
                     'uom' => 'UNIT',
                     'unitPrice' => $unitPrice,
-                    'amount' => (float) $detail->total_before_tax,
+                    'amount' => (float) $detail->total_after_tax, // ✅ CHANGED from total_before_tax
+                    'taxCode' => $taxCode,
+                    'taxRate' => $taxRate,
                 ];
             }
 
@@ -242,7 +256,10 @@ class AutoCountIntegrationService
                 'assigned_account' => $account,
                 'quantity' => $detail->quantity,
                 'unit_price' => $detail->unit_price,
-                'amount' => $detail->total_before_tax,
+                'amount' => $detail->total_after_tax, // ✅ CHANGED from total_before_tax
+                'taxable' => $product->taxable ?? false,
+                'tax_code' => $taxCode,
+                'tax_rate' => $taxRate,
                 'combined_key' => $key
             ]);
         }
@@ -355,7 +372,7 @@ class AutoCountIntegrationService
         $quotationIds = $this->getQuotationIds($handover);
 
         if (empty($quotationIds)) {
-            // Fallback details with default account
+            // Fallback details with default account and tax
             return [[
                 'account' => $this->getDefaultAccountCode(),
                 'itemCode' => 'TCL_ACCESS-NEW',
@@ -364,6 +381,8 @@ class AutoCountIntegrationService
                 'uom' => 'UNIT',
                 'unitPrice' => 1275,
                 'amount' => 1275,
+                'taxCode' => 'SV-8',
+                'taxRate' => 8,
             ]];
         }
 
@@ -371,7 +390,7 @@ class AutoCountIntegrationService
             ->with('product')
             ->get();
 
-        // ✅ Group items by product code, unit price, and account to combine duplicates
+        // ✅ Group items by product code, unit price, account, and tax info to combine duplicates
         $groupedDetails = [];
 
         foreach ($quotationDetails as $detail) {
@@ -380,15 +399,24 @@ class AutoCountIntegrationService
             $unitPrice = (float) $detail->unit_price;
             $account = $this->getAccountFromProduct($product);
 
-            // Create a unique key based on product code, unit price, and account
-            $key = $productCode . '|' . $unitPrice . '|' . $account;
+            // ✅ Determine tax information based on product->taxable
+            $taxCode = '';
+            $taxRate = 0;
+
+            if ($product && $product->taxable) {
+                $taxCode = 'SV-8';
+                $taxRate = 8;
+            }
+
+            // Create a unique key based on product code, unit price, account, and tax info
+            $key = $productCode . '|' . $unitPrice . '|' . $account . '|' . $taxCode . '|' . $taxRate;
 
             if (isset($groupedDetails[$key])) {
                 // ✅ Combine with existing item
                 $groupedDetails[$key]['quantity'] += (float) $detail->quantity;
-                $groupedDetails[$key]['amount'] += (float) $detail->total_before_tax;
+                $groupedDetails[$key]['amount'] += (float) $detail->total_after_tax; // ✅ CHANGED to total_after_tax
             } else {
-                // ✅ Add new item
+                // ✅ Add new item with tax information
                 $groupedDetails[$key] = [
                     'account' => $account,
                     'itemCode' => $productCode,
@@ -396,7 +424,9 @@ class AutoCountIntegrationService
                     'quantity' => (float) $detail->quantity,
                     'uom' => 'UNIT',
                     'unitPrice' => $unitPrice,
-                    'amount' => (float) $detail->total_before_tax,
+                    'amount' => (float) $detail->total_after_tax, // ✅ CHANGED to total_after_tax
+                    'taxCode' => $taxCode,
+                    'taxRate' => $taxRate,
                 ];
             }
 
@@ -409,7 +439,10 @@ class AutoCountIntegrationService
                 'assigned_account' => $account,
                 'quantity' => $detail->quantity,
                 'unit_price' => $detail->unit_price,
-                'amount' => $detail->total_before_tax,
+                'amount' => $detail->total_after_tax, // ✅ CHANGED to total_after_tax
+                'taxable' => $product->taxable ?? false,
+                'tax_code' => $taxCode,
+                'tax_rate' => $taxRate,
                 'combined_key' => $key
             ]);
         }
@@ -595,7 +628,7 @@ class AutoCountIntegrationService
     protected function determineCompanyByHandover(SoftwareHandover $handover): string
     {
         // For now, always use sandbox for testing
-        return 'TIMETEC Sandbox';
+        return 'TIMETEC CLOUD Sandbox';
 
         // TODO: Add logic based on subsidiary when ready for production
     }
@@ -661,7 +694,7 @@ class AutoCountIntegrationService
             foreach ($details as $detail) {
                 $productCode = $detail->product->code ?? 'Item-' . $detail->product_id;
                 $unitPrice = (float) $detail->unit_price;
-                $amount = (float) $detail->total_before_tax;
+                $amount = (float) $detail->total_after_tax; // ✅ CHANGED to total_after_tax
                 $quantity = (float) $detail->quantity;
 
                 // Create a unique key based on product code and unit price
