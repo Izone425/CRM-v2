@@ -21,17 +21,16 @@ $apiKey = '2wQ6E0cDU+AjoWIbWkZ1apOkfDrPkMdH3WlX0SNnaQU='; // LIVE
 // $apiKey = '37eGuMF8cMEXEK/MWavSV8u0rYyKUhnV5p8Uyxb68Vg='; // SIT
 
 // Path to your RSA private key (relative to this file)
-$privateKeyPath = __DIR__ . '/../../../../keys/crm/crm_auth_private_key.pem';
+$privateKeyPath = __DIR__ . '/keys/crm/crm_auth_private_key.pem';
 
 // Default redirect URL after successful login
 $defaultRedirectUrl = 'https://hr.timeteccloud.com/auth/crm-login';
 // $defaultRedirectUrl = 'https://hr-test.timeteccloud.com/auth/crm-login'; // SIT
 
 // Cookie domain for cross-subdomain sharing
-// For local testing, set to '' (empty) or 'localhost'
-// For production, set to '.timeteccloud.com'
-$cookieDomain = ''; // Empty for localhost testing
-// $cookieDomain = '.timeteccloud.com'; // For production
+// IMPORTANT: Use '.timeteccloud.com' (with leading dot) to share cookies across all subdomains
+// This allows cookies set by crm.timeteccloud.com to be read by hr.timeteccloud.com
+$cookieDomain = '.timeteccloud.com';
 
 // ============================================================
 // PROCESSING - Handle POST request
@@ -133,37 +132,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($httpCode >= 200 && $httpCode < 300) {
             $responseData = json_decode($body, true);
 
-            // Process and forward cookies
-            $debugInfo['modifiedCookies'] = [];
+            // Forward cookies as-is (API already sets domain=.timeteccloud.com)
             foreach ($cookies as $cookie) {
-                $cookieModified = $cookie;
-
-                // Remove existing domain
-                $cookieModified = preg_replace('/;\s*domain=[^;]+/i', '', $cookieModified);
-
-                // Add our domain if specified
-                if (!empty($cookieDomain)) {
-                    $cookieModified = rtrim($cookieModified, ';') . '; Domain=' . $cookieDomain;
-                }
-
-                $debugInfo['modifiedCookies'][] = $cookieModified;
-
-                // Set the cookie header
-                header('Set-Cookie: ' . $cookieModified, false);
+                // Trim any whitespace/newlines from the cookie
+                $cookie = trim($cookie);
+                header('Set-Cookie: ' . $cookie, false);
             }
 
             // Get redirect URL
             $redirectUrl = $responseData['redirectUrl'] ?? $defaultRedirectUrl;
-            $debugInfo['redirectUrl'] = $redirectUrl;
 
-            // For local testing, show success instead of redirecting
-            // Comment out the next 2 lines and uncomment the redirect for production
-            $success = "Authentication successful! Cookies set. Would redirect to: " . $redirectUrl;
-            $debugInfo['note'] = 'Redirect disabled for local testing. Enable in production.';
-
-            // Uncomment for production:
-            // header('Location: ' . $redirectUrl, true, 302);
-            // exit;
+            // Redirect to HR app
+            header('Location: ' . $redirectUrl, true, 302);
+            exit;
 
         } else {
             $errorBody = json_decode($body, true);

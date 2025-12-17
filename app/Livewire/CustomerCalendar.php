@@ -709,75 +709,99 @@ class CustomerCalendar extends Component
                 ->orderBy('created_at', 'desc')
                 ->first();
 
-            if (!$handover || !$handover->implementation_pics) {
-                return '';
-            }
-
-            // Decode the implementation_pics JSON
-            $implementationPics = [];
-            if (is_string($handover->implementation_pics)) {
-                $implementationPics = json_decode($handover->implementation_pics, true) ?? [];
-            } elseif (is_array($handover->implementation_pics)) {
-                $implementationPics = $handover->implementation_pics;
-            }
-
-            // Get lead with company details for checking additional PICs
+            // Get lead with company details for additional PICs
             $lead = \App\Models\Lead::with('companyDetail')->find($this->customerLeadId);
 
-            // Decode additional_pic from company details
-            $additionalPics = [];
+            $emails = [];
+
+            // ✅ STEP 1: Process implementation_pics from handover
+            if ($handover && $handover->implementation_pics) {
+                $implementationPics = [];
+                if (is_string($handover->implementation_pics)) {
+                    $implementationPics = json_decode($handover->implementation_pics, true) ?? [];
+                } elseif (is_array($handover->implementation_pics)) {
+                    $implementationPics = $handover->implementation_pics;
+                }
+
+                foreach ($implementationPics as $pic) {
+                    // Check if PIC has resigned
+                    if (isset($pic['status']) && strtolower($pic['status']) === 'resign') {
+                        // Skip resigned PICs - they will be replaced by additional_pic if available
+                        Log::info('Skipping resigned PIC from implementation_pics', [
+                            'pic_name' => $pic['pic_name_impl'] ?? 'Unknown',
+                            'lead_id' => $this->customerLeadId
+                        ]);
+                        continue;
+                    } else {
+                        // PIC is active, use their email from implementation_pics
+                        if (isset($pic['pic_email_impl']) && !empty($pic['pic_email_impl'])) {
+                            $email = trim($pic['pic_email_impl']);
+                            if (filter_var($email, FILTER_VALIDATE_EMAIL) && !in_array($email, $emails)) {
+                                $emails[] = $email;
+                                Log::info('Added active PIC from implementation_pics', [
+                                    'pic_name' => $pic['pic_name_impl'] ?? 'Unknown',
+                                    'email' => $email,
+                                    'lead_id' => $this->customerLeadId
+                                ]);
+                            }
+                        }
+                    }
+                }
+            }
+
+            // ✅ STEP 2: Add all available PICs from additional_pic (ADDON)
             if ($lead && $lead->companyDetail && $lead->companyDetail->additional_pic) {
+                $additionalPics = [];
                 if (is_string($lead->companyDetail->additional_pic)) {
                     $additionalPics = json_decode($lead->companyDetail->additional_pic, true) ?? [];
                 } elseif (is_array($lead->companyDetail->additional_pic)) {
                     $additionalPics = $lead->companyDetail->additional_pic;
                 }
-            }
 
-            // Extract valid email addresses
-            $emails = [];
-            foreach ($implementationPics as $pic) {
-                // Check if PIC has resigned
-                if (isset($pic['status']) && strtolower($pic['status']) === 'resign') {
-                    // Try to find replacement in additional_pic
-                    $picName = $pic['pic_name_impl'] ?? '';
+                Log::info('Processing additional_pic data', [
+                    'additional_pics_count' => count($additionalPics),
+                    'additional_pics_data' => $additionalPics,
+                    'lead_id' => $this->customerLeadId
+                ]);
 
-                    if ($picName && !empty($additionalPics)) {
-                        foreach ($additionalPics as $additionalPic) {
-                            // Match by name and check if status is Available
-                            if (isset($additionalPic['name']) &&
-                                strtolower(trim($additionalPic['name'])) === strtolower(trim($picName)) &&
-                                isset($additionalPic['status']) &&
-                                strtolower($additionalPic['status']) === 'available' &&
-                                isset($additionalPic['email']) &&
-                                !empty($additionalPic['email'])) {
+                foreach ($additionalPics as $additionalPic) {
+                    // Only include PICs with "Available" status
+                    if (isset($additionalPic['status']) &&
+                        strtolower($additionalPic['status']) === 'available' &&
+                        isset($additionalPic['email']) &&
+                        !empty($additionalPic['email'])) {
 
-                                $email = trim($additionalPic['email']);
-                                if (filter_var($email, FILTER_VALIDATE_EMAIL) && !in_array($email, $emails)) {
-                                    $emails[] = $email;
-
-                                    Log::info('Replaced resigned PIC with updated email from additional_pic', [
-                                        'pic_name' => $picName,
-                                        'old_status' => 'Resign',
-                                        'new_status' => 'Available',
-                                        'new_email' => $email,
-                                        'lead_id' => $this->customerLeadId
-                                    ]);
-                                }
-                                break; // Found replacement, stop searching
-                            }
-                        }
-                    }
-                } else {
-                    // PIC is active, use their email from implementation_pics
-                    if (isset($pic['pic_email_impl']) && !empty($pic['pic_email_impl'])) {
-                        $email = trim($pic['pic_email_impl']);
+                        $email = trim($additionalPic['email']);
                         if (filter_var($email, FILTER_VALIDATE_EMAIL) && !in_array($email, $emails)) {
                             $emails[] = $email;
+
+                            Log::info('Added available PIC from additional_pic (ADDON)', [
+                                'pic_name' => $additionalPic['name'] ?? 'Unknown',
+                                'email' => $email,
+                                'position' => $additionalPic['position'] ?? '',
+                                'hp_number' => $additionalPic['hp_number'] ?? '',
+                                'status' => $additionalPic['status'],
+                                'lead_id' => $this->customerLeadId
+                            ]);
                         }
+                    } else {
+                        Log::info('Skipping additional_pic due to status or missing email', [
+                            'pic_name' => $additionalPic['name'] ?? 'Unknown',
+                            'status' => $additionalPic['status'] ?? 'Unknown',
+                            'email' => $additionalPic['email'] ?? 'Missing',
+                            'lead_id' => $this->customerLeadId
+                        ]);
                     }
                 }
             }
+
+            // ✅ STEP 3: Log final result
+            Log::info('Final required attendees list compiled', [
+                'total_emails' => count($emails),
+                'emails' => $emails,
+                'lead_id' => $this->customerLeadId,
+                'company_name' => $lead->company_name ?? 'Unknown'
+            ]);
 
             // Return emails separated by semicolons
             return implode(';', $emails);
