@@ -15,7 +15,7 @@ class TestAutoCountApi extends Command
 
     public function handle()
     {
-        $company = $this->option('company') ?: 'TIMETEC Sandbox';
+        $company = $this->option('company') ?: 'TIMETEC CLOUD Sandbox';
         $discover = $this->option('discover');
         $service = new AutoCountInvoiceService();
 
@@ -98,14 +98,14 @@ class TestAutoCountApi extends Command
                 $payload = [
                     'apiUsername' => 'admin',
                     'apiPassword' => $service->generateApiPassword(),
-                    'company' => 'TIMETEC Sandbox',
+                    'company' => 'TIMETEC CLOUD Sandbox',
                 ];
                 $response = Http::timeout(5)->post($url, $payload);
             } elseif (str_contains($url, 'GetUDFItemList')) {
                 $payload = [
                     'apiUsername' => 'admin',
                     'apiPassword' => $service->generateApiPassword(),
-                    'company' => 'TIMETEC Sandbox',
+                    'company' => 'TIMETEC CLOUD Sandbox',
                     'udfListName' => 'SalesAdmin',
                 ];
                 $response = Http::timeout(5)->post($url, $payload);
@@ -241,7 +241,7 @@ class TestAutoCountApi extends Command
             $payload = [
                 "apiUsername" => "admin",
                 "apiPassword" => $service->generateApiPassword(),
-                "company" => "TIMETEC Sandbox",
+                "company" => "TIMETEC CLOUD Sandbox",
                 "invoice" => [
                     "customerCode" => "ARM-A0003",
                     "documentNo" => $documentNo,
@@ -322,7 +322,7 @@ class TestAutoCountApi extends Command
         try {
             // Sample debtor data for testing
             $debtorData = [
-                'company' => 'TIMETEC Sandbox',
+                'company' => 'TIMETEC CLOUD Sandbox',
                 'control_account' => 'ARM-0112-01',
                 'company_name' => 'Test Company API ' . now()->format('His'),
                 'addr1' => 'Test Address Line 1',
@@ -470,7 +470,7 @@ class TestAutoCountApi extends Command
         try {
             // Sample debtor data
             $debtorData = [
-                'company' => 'TIMETEC Sandbox',
+                'company' => 'TIMETEC CLOUD Sandbox',
                 'control_account' => 'ARM-0112-01',
                 'company_name' => 'Combined Test Company ' . now()->format('His'),
                 'addr1' => 'Combined Test Address',
@@ -489,7 +489,7 @@ class TestAutoCountApi extends Command
 
             // Sample invoice data
             $invoiceData = [
-                'company' => 'TIMETEC Sandbox',
+                'company' => 'TIMETEC CLOUD Sandbox',
                 'document_date' => now()->format('Y-m-d'),
                 'description' => 'COMBINED TEST INVOICE',
                 'currency_rate' => 1,

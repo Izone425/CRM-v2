@@ -1194,7 +1194,7 @@ class HardwareV2PendingStockTable extends Component implements HasForms, HasTabl
 
                 // Prepare invoice data for AutoCount API
                 $invoiceData = [
-                    'company' => 'TIMETEC Sandbox',
+                    'company' => 'TIMETEC CLOUD Sandbox',
                     'customer_code' => 'ARM-P0062',
                     'document_no' => $invoiceNo,
                     'document_date' => now()->format('Y-m-d'),

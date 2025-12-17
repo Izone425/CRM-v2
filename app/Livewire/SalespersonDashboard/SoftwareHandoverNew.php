@@ -672,48 +672,86 @@ class SoftwareHandoverNew extends Component implements HasForms, HasTable
                                 $autoCountService = app(AutoCountIntegrationService::class);
                                 $autoCountResult = $autoCountService->processHandoverInvoiceCreation($record, $data);
 
-                                if ($autoCountResult && $autoCountResult['success']) {
-                                    try {
-                                        // Calculate total amount from invoice details
-                                        $service = app(AutoCountIntegrationService::class);
-                                        $preview = $service->generateInvoicePreview($record);
+                                if (isset($autoCountResult['invoice_numbers']) && is_array($autoCountResult['invoice_numbers'])) {
+                                    // Get the preview data to extract invoice details
+                                    $service = app(AutoCountIntegrationService::class);
+                                    $preview = $service->generateInvoicePreview($record);
 
-                                        // Get salesperson name
-                                        $salespersonId = $record->lead->salesperson ?? null;
-                                        $salesperson = \App\Models\User::find($salespersonId);
-                                        $salespersonName = $salesperson?->name ?? 'Unknown Salesperson';
+                                    // Get salesperson name
+                                    $salespersonId = $record->lead->salesperson ?? null;
+                                    $salesperson = \App\Models\User::find($salespersonId);
+                                    $salespersonName = $salesperson?->name ?? 'Unknown Salesperson';
 
-                                        // ✅ Create separate CrmHrdfInvoice record for each invoice
-                                        if (isset($autoCountResult['invoice_numbers']) && is_array($autoCountResult['invoice_numbers'])) {
-                                            foreach ($preview['invoices'] as $index => $invoiceData) {
-                                                CrmHrdfInvoice::create([
-                                                    'invoice_no' => $invoiceData['invoice_no'],
+                                    // ✅ Debug log to check data structure
+                                    Log::info('Creating CrmHrdfInvoice records - Data check', [
+                                        'invoice_numbers' => $autoCountResult['invoice_numbers'],
+                                        'preview_invoices' => isset($preview['invoices']) ? count($preview['invoices']) : 'No preview invoices',
+                                        'preview_structure' => $preview,
+                                        'handover_id' => $record->id,
+                                    ]);
+
+                                    // ✅ Use invoice_numbers array directly if preview doesn't match
+                                    foreach ($autoCountResult['invoice_numbers'] as $index => $invoiceNumber) {
+                                        // Try to get amount from preview, fallback to 0 if not available
+                                        $amount = 0;
+                                        if (isset($preview['invoices'][$index]['total'])) {
+                                            $amount = $preview['invoices'][$index]['total'];
+                                        } elseif (isset($preview['grand_total'])) {
+                                            // If only one total available, use it
+                                            $amount = $preview['grand_total'];
+                                        }
+
+                                        try {
+                                            $crmInvoice = CrmHrdfInvoice::create([
+                                                'invoice_no' => $invoiceNumber,
+                                                'invoice_date' => now()->toDateString(),
+                                                'company_name' => $record->company_name,
+                                                'handover_type' => 'SW', // SW for Software Handover
+                                                'salesperson' => $salespersonName,
+                                                'handover_id' => $record->id,
+                                                'debtor_code' => $autoCountResult['debtor_code'],
+                                                'total_amount' => $amount,
+                                            ]);
+
+                                            Log::info('CrmHrdfInvoice record created successfully', [
+                                                'crm_invoice_id' => $crmInvoice->id,
+                                                'invoice_no' => $invoiceNumber,
+                                                'amount' => $amount,
+                                                'handover_id' => $record->id,
+                                            ]);
+
+                                        } catch (\Exception $e) {
+                                            Log::error('Failed to create individual CrmHrdfInvoice record', [
+                                                'invoice_no' => $invoiceNumber,
+                                                'handover_id' => $record->id,
+                                                'error' => $e->getMessage(),
+                                                'data' => [
+                                                    'invoice_no' => $invoiceNumber,
                                                     'invoice_date' => now()->toDateString(),
                                                     'company_name' => $record->company_name,
-                                                    'handover_type' => 'SW', // ✅ SW for Software Handover
+                                                    'handover_type' => 'SW',
                                                     'salesperson' => $salespersonName,
                                                     'handover_id' => $record->id,
                                                     'debtor_code' => $autoCountResult['debtor_code'],
-                                                    'total_amount' => $invoiceData['total'],
-                                                ]);
-                                            }
-
-                                            Log::info('Software Handover HRDF Invoice records created', [
-                                                'invoice_numbers' => $autoCountResult['invoice_numbers'],
-                                                'handover_id' => $record->id,
-                                                'company_name' => $record->company_name,
-                                                'total_invoices' => count($autoCountResult['invoice_numbers']),
-                                                'handover_type' => 'SW'
+                                                    'total_amount' => $amount,
+                                                ]
                                             ]);
                                         }
-
-                                    } catch (\Exception $e) {
-                                        Log::error('Failed to create Software Handover HRDF invoice records', [
-                                            'handover_id' => $record->id,
-                                            'invoice_numbers' => $autoCountResult['invoice_numbers'] ?? 'unknown',
-                                            'error' => $e->getMessage()
-                                        ]);
                                     }
+
+                                    Log::info('Software Handover HRDF Invoice records creation completed', [
+                                        'invoice_numbers' => $autoCountResult['invoice_numbers'],
+                                        'handover_id' => $record->id,
+                                        'company_name' => $record->company_name,
+                                        'total_invoices' => count($autoCountResult['invoice_numbers']),
+                                        'handover_type' => 'SW'
+                                    ]);
+
+                                } else {
+                                    Log::warning('No invoice numbers found in autoCountResult', [
+                                        'autoCountResult' => $autoCountResult,
+                                        'handover_id' => $record->id,
+                                    ]);
                                 }
                             }
 
