@@ -18,6 +18,7 @@ class UpdateImplementerAppointmentStatus extends Command
 
         $appointments = ImplementerAppointment::whereDate('date', '<=', Carbon::yesterday())
             ->where('status', 'New')
+            ->whereNotIn('type', ['KICK OFF MEETING SESSION', 'REVIEW SESSION'])
             ->get();
 
         $updatedCount = 0;

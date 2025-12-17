@@ -76,73 +76,120 @@ class HRDFHandoverRelationManager extends RelationManager
     public function defaultForm()
     {
         return [
-            Select::make('hrdf_grant_id')
-                ->label('Select HRDF Grant')
-                ->searchable()
-                ->preload(false)
-                ->live()
-                ->placeholder('Type to search HRDF Grant ID or Company Name...')
-                ->options(function (?HRDFHandover $record = null) {
-                    // When editing, preload the current HRDF grant
-                    if ($record && $record->hrdf_grant_id) {
-                        $claim = \App\Models\HrdfClaim::where('hrdf_grant_id', $record->hrdf_grant_id)->first();
-                        if ($claim) {
-                            return [
-                                $claim->hrdf_grant_id => "{$claim->hrdf_grant_id} - {$claim->company_name}"
-                            ];
-                        }
-                    }
-                    return [];
-                })
-                ->getSearchResultsUsing(function (string $search, ?HRDFHandover $record = null) {
-                    // Only show results when user types something
-                    if (empty(trim($search))) {
-                        return [];
-                    }
-
-                    // Search by HRDF Grant ID or Company Name
-                    $results = \App\Models\HrdfClaim::where(function ($query) use ($search) {
-                        $query->where('hrdf_grant_id', 'like', "%{$search}%")
-                            ->orWhere('company_name', 'like', "%{$search}%");
-                    })
-                    ->whereIn('claim_status', ['PENDING']);
-
-                    // When editing, allow the current grant to be selected even if it has a handover
-                    if ($record && $record->hrdf_grant_id) {
-                        $results->where(function ($query) use ($record) {
-                            $query->whereDoesntHave('hrdfHandover')
-                                ->orWhere('hrdf_grant_id', $record->hrdf_grant_id);
-                        });
-                    } else {
-                        $results->whereDoesntHave('hrdfHandover');
-                    }
-
-                    return $results->limit(20)
-                        ->get()
-                        ->mapWithKeys(function ($claim) {
-                            return [
-                                $claim->hrdf_grant_id => "{$claim->hrdf_grant_id} - {$claim->company_name}"
-                            ];
+            Grid::make(3)
+                ->schema([
+                    Select::make('hrdf_grant_id')
+                        ->label('Select HRDF Grant')
+                        ->searchable()
+                        ->preload(false)
+                        ->live()
+                        ->placeholder('Search HRDF Grant ID')
+                        ->options(function (?HRDFHandover $record = null) {
+                            // When editing, preload the current HRDF grant
+                            if ($record && $record->hrdf_grant_id) {
+                                $claim = \App\Models\HrdfClaim::where('hrdf_grant_id', $record->hrdf_grant_id)->first();
+                                if ($claim) {
+                                    return [
+                                        $claim->hrdf_grant_id => "{$claim->hrdf_grant_id} - {$claim->company_name}"
+                                    ];
+                                }
+                            }
+                            return [];
                         })
-                        ->toArray();
-                })
-                ->afterStateUpdated(function ($state, Forms\Set $set) {
-                    if ($state) {
-                        // Get the selected HRDF claim details
-                        $claim = \App\Models\HrdfClaim::where('hrdf_grant_id', $state)->first();
-                        if ($claim) {
-                            // Auto-populate fields from the claim
-                            $set('autocount_invoice_number', $claim->invoice_number);
-                        }
-                    }
-                })
-                ->default(function (?HRDFHandover $record = null) {
-                    // Set default value when editing
-                    return $record?->hrdf_grant_id ?? null;
-                })
-                ->required()
-                ->helperText('Start typing to search for HRDF Grants (Grant ID or Company Name)'),
+                        ->getSearchResultsUsing(function (string $search, ?HRDFHandover $record = null) {
+                            // Only show results when user types something
+                            if (empty(trim($search))) {
+                                return [];
+                            }
 
+                            // Search by HRDF Grant ID or Company Name
+                            $results = \App\Models\HrdfClaim::where(function ($query) use ($search) {
+                                $query->where('hrdf_grant_id', 'like', "%{$search}%")
+                                    ->orWhere('company_name', 'like', "%{$search}%");
+                            })
+                            ->whereIn('claim_status', ['PENDING']);
+
+                            // When editing, allow the current grant to be selected even if it has a handover
+                            if ($record && $record->hrdf_grant_id) {
+                                $results->where(function ($query) use ($record) {
+                                    $query->whereDoesntHave('hrdfHandover')
+                                        ->orWhere('hrdf_grant_id', $record->hrdf_grant_id);
+                                });
+                            } else {
+                                $results->whereDoesntHave('hrdfHandover');
+                            }
+
+                            return $results->limit(20)
+                                ->get()
+                                ->mapWithKeys(function ($claim) {
+                                    return [
+                                        $claim->hrdf_grant_id => "{$claim->hrdf_grant_id} - {$claim->company_name}"
+                                    ];
+                                })
+                                ->toArray();
+                        })
+                        ->afterStateUpdated(function ($state, Forms\Set $set) {
+                            if ($state) {
+                                // Get the selected HRDF claim details
+                                $claim = \App\Models\HrdfClaim::where('hrdf_grant_id', $state)->first();
+                                if ($claim) {
+                                    // Auto-populate fields from the claim
+                                    $set('autocount_invoice_number', $claim->invoice_number);
+                                }
+                            }
+                        })
+                        ->default(function (?HRDFHandover $record = null) {
+                            // Set default value when editing
+                            return $record?->hrdf_grant_id ?? null;
+                        })
+                        ->required(),
+
+                    TextInput::make('autocount_invoice_number')
+                        ->label('AutoCount Invoice Number')
+                        ->required()
+                        ->maxLength(50)
+                        ->extraAlpineAttributes([
+                            'x-on:input' => '
+                                const start = $el.selectionStart;
+                                const end = $el.selectionEnd;
+                                const value = $el.value;
+                                $el.value = value.toUpperCase();
+                                $el.setSelectionRange(start, end);
+                            '
+                        ])
+                        ->default(function (?HRDFHandover $record = null) {
+                            // If editing existing record, return the saved value
+                            if ($record && $record->autocount_invoice_number) {
+                                return $record->autocount_invoice_number;
+                            }
+                            return null;
+                        })
+                        ->dehydrateStateUsing(fn ($state) => strtoupper($state))
+                        ->validationMessages([
+                            'required' => 'AutoCount Invoice Number is required.',
+                            'max' => 'AutoCount Invoice Number cannot exceed 50 characters.',
+                        ]),
+
+                    Select::make('subsidiary_id')
+                        ->label('Subsidiary Company')
+                        ->placeholder('Select subsidiary company')
+                        ->options(function () {
+                            $lead = $this->getOwnerRecord();
+                            if (!$lead) {
+                                return [];
+                            }
+
+                            // ✅ Use lead_id instead of main_company_id or company_id
+                            return \App\Models\Subsidiary::where('lead_id', $lead->id)
+                                ->pluck('company_name', 'id')
+                                ->toArray();
+                        })
+                        ->searchable()
+                        ->preload()
+                        ->default(function (?HRDFHandover $record = null) {
+                            return $record?->subsidiary_id ?? null;
+                        }),
+                ]),
             Grid::make(3)
                 ->schema([
                     // Box 1 - JD14 Form (Compulsory)
@@ -253,59 +300,25 @@ class HRDFHandoverRelationManager extends RelationManager
                             return is_array($record->hrdf_grant_approval_file) ? $record->hrdf_grant_approval_file : [];
                         }),
                 ]),
-            Grid::make(2)
-                ->schema([
-                    Grid::make(1)
-                        ->schema([
-                            // AutoCount Invoice Number - Auto-populated from selected HRDF claim
-                            TextInput::make('autocount_invoice_number')
-                                ->label('AutoCount Invoice Number')
-                                ->required()
-                                // ->placeholder('Will be auto-populated when HRDF Grant is selected')
-                                ->maxLength(50)
-                                ->extraAlpineAttributes([
-                                    'x-on:input' => '
-                                        const start = $el.selectionStart;
-                                        const end = $el.selectionEnd;
-                                        const value = $el.value;
-                                        $el.value = value.toUpperCase();
-                                        $el.setSelectionRange(start, end);
-                                    '
-                                ])
-                                ->default(function (?HRDFHandover $record = null) {
-                                    // If editing existing record, return the saved value
-                                    if ($record && $record->autocount_invoice_number) {
-                                        return $record->autocount_invoice_number;
-                                    }
-                                    return null;
-                                })
-                                ->dehydrateStateUsing(fn ($state) => strtoupper($state))
-                                ->validationMessages([
-                                    'required' => 'AutoCount Invoice Number is required.',
-                                    'max' => 'AutoCount Invoice Number cannot exceed 50 characters.',
-                                ]),
-                        ])->columnSpan(1),
-
-                    Grid::make(1)
-                        ->schema([
-                            // Salesperson Remark - Optional
-                            Textarea::make('salesperson_remark')
-                                ->label('SalesPerson Remark')
-                                ->rows(4)
-                                ->maxLength(1000)
-                                ->default(fn (?HRDFHandover $record = null) => $record?->salesperson_remark ?? null)
-                                ->extraAlpineAttributes([
-                                    'x-on:input' => '
-                                        const start = $el.selectionStart;
-                                        const end = $el.selectionEnd;
-                                        const value = $el.value;
-                                        $el.value = value.toUpperCase();
-                                        $el.setSelectionRange(start, end);
-                                    '
-                                ])
-                                ->dehydrateStateUsing(fn ($state) => strtoupper($state)),
-                        ])->columnSpan(1),
-                ])
+                Grid::make(1)
+                    ->schema([
+                        // Salesperson Remark - Optional
+                        Textarea::make('salesperson_remark')
+                            ->label('SalesPerson Remark')
+                            ->rows(2)
+                            ->maxLength(1000)
+                            ->default(fn (?HRDFHandover $record = null) => $record?->salesperson_remark ?? null)
+                            ->extraAlpineAttributes([
+                                'x-on:input' => '
+                                    const start = $el.selectionStart;
+                                    const end = $el.selectionEnd;
+                                    const value = $el.value;
+                                    $el.value = value.toUpperCase();
+                                    $el.setSelectionRange(start, end);
+                                '
+                            ])
+                            ->dehydrateStateUsing(fn ($state) => strtoupper($state)),
+                    ])->columnSpan(1),
         ];
     }
 
