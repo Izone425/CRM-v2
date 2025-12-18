@@ -833,8 +833,8 @@
 
             /* Holiday + Leave combination styling */
             .calendar-day.holiday.has-leaves {
-                background: linear-gradient(45deg, 
-                    #fbbf24 0%, #fbbf24 50%, 
+                background: linear-gradient(45deg,
+                    #fbbf24 0%, #fbbf24 50%,
                     #3b82f6 50%, #3b82f6 100%) !important;
                 border: 2px solid #6366f1 !important;
             }

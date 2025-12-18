@@ -975,7 +975,7 @@ class HardwareV2PendingStockTable extends Component implements HasForms, HasTabl
                 'invoice_no' => $invoiceNo,
                 'error' => $e->getMessage()
             ]);
-            
+
             return 'UnPaid';
         }
     }

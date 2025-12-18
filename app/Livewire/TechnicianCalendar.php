@@ -452,7 +452,7 @@ class TechnicianCalendar extends Component
                     $holidayName = null;
                     if ($isHoliday) {
                         $holiday = $this->holidays->where('date', $dayKey)->first();
-                        
+
                         // ✅ Safe access to holiday name (handle both array and object)
                         if ($holiday) {
                             if (is_object($holiday)) {

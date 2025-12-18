@@ -646,7 +646,7 @@ class TicketList extends Page implements HasTable, HasActions, HasForms
     {
         try {
             $authUser = auth()->user();
-            
+
             $ticketSystemUser = null;
             if ($authUser) {
                 $ticketSystemUser = \Illuminate\Support\Facades\DB::connection('ticketingsystem_live')
