@@ -929,31 +929,55 @@ class HardwareV2PendingStockTable extends Component implements HasForms, HasTabl
 
     protected function getPaymentStatusForInvoice(string $invoiceNo): string
     {
-        // Get the total invoice amount for this invoice number
-        $totalInvoiceAmount = \App\Models\Invoice::where('invoice_no', $invoiceNo)->sum('invoice_amount');
+        try {
+            if (empty($invoiceNo)) {
+                return 'UnPaid';
+            }
 
-        // Look for this invoice in debtor_agings table
-        $debtorAging = DB::table('debtor_agings')
-            ->where('invoice_number', $invoiceNo)
-            ->first();
+            // Get the total invoice amount for this invoice number
+            $totalInvoiceAmount = \App\Models\Invoice::where('invoice_no', $invoiceNo)->sum('invoice_amount');
 
-        // If no matching record in debtor_agings or outstanding is 0
-        if ((float)$debtorAging->outstanding === 0.0) {
-            return 'Full Payment';
-        }
+            if ($totalInvoiceAmount == 0) {
+                return 'UnPaid';
+            }
 
-        // If outstanding equals total invoice amount
-        if ((float)$debtorAging->outstanding === (float)$totalInvoiceAmount) {
+            // Look for this invoice in debtor_agings table
+            $debtorAging = DB::table('debtor_agings')
+                ->where('invoice_number', $invoiceNo)
+                ->first();
+
+            // ✅ If no record found in debtor_agings - treat as UnPaid
+            if (!$debtorAging) {
+                return 'UnPaid';
+            }
+
+            // ✅ Safely get outstanding amount
+            $outstanding = isset($debtorAging->outstanding) ? (float) $debtorAging->outstanding : 0.0;
+            $invoiceAmount = (float) $totalInvoiceAmount;
+
+            // ✅ Simple logic without tolerance
+            if ($outstanding == 0) {
+                return 'Full Payment';
+            }
+
+            if ($outstanding == $invoiceAmount) {
+                return 'UnPaid';
+            }
+
+            if ($outstanding > 0 && $outstanding < $invoiceAmount) {
+                return 'Partial Payment';
+            }
+
+            return 'UnPaid';
+
+        } catch (\Exception $e) {
+            Log::error('Exception in getPaymentStatusForInvoice', [
+                'invoice_no' => $invoiceNo,
+                'error' => $e->getMessage()
+            ]);
+
             return 'UnPaid';
         }
-
-        // If outstanding is less than invoice amount but greater than 0
-        if ((float)$debtorAging->outstanding < (float)$totalInvoiceAmount && (float)$debtorAging->outstanding > 0) {
-            return 'Partial Payment';
-        }
-
-        // Fallback (shouldn't normally reach here)
-        return 'UnPaid';
     }
 
     protected function sendHardwareHandoverEmail(HardwareHandoverV2 $record, array $invoiceData): void

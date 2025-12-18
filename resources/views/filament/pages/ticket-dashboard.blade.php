@@ -1044,19 +1044,19 @@
                                                 <div style="display: flex; flex-direction: column; align-items: center; position: relative;">
                                                     {{-- Timeline Dot --}}
                                                     <div style="width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; background:
-                                                        @if($log->new_status === 'Completed') #F97316
-                                                        @elseif($log->new_status === 'Reopen') white
-                                                        @elseif($log->new_status === 'Closed' || $log->new_status === 'Closed System Configuration') #F97316
-                                                        @elseif($log->new_status === 'In Progress') white
-                                                        @elseif($log->new_status === 'New') white
+                                                        @if($log->new_value === 'Completed') #F97316
+                                                        @elseif($log->new_value === 'Reopen') white
+                                                        @elseif($log->new_value === 'Closed' || $log->new_value === 'Closed System Configuration') #F97316
+                                                        @elseif($log->new_value === 'In Progress') white
+                                                        @elseif($log->new_value === 'New') white
                                                         @else white
                                                         @endif;
                                                         border: 2px solid
-                                                        @if($log->new_status === 'Completed') #F97316
-                                                        @elseif($log->new_status === 'Reopen') #9CA3AF
-                                                        @elseif($log->new_status === 'Closed' || $log->new_status === 'Closed System Configuration') #F97316
-                                                        @elseif($log->new_status === 'In Progress') #9CA3AF
-                                                        @elseif($log->new_status === 'New') #9CA3AF
+                                                        @if($log->new_value === 'Completed') #F97316
+                                                        @elseif($log->new_value === 'Reopen') #9CA3AF
+                                                        @elseif($log->new_value === 'Closed' || $log->new_value === 'Closed System Configuration') #F97316
+                                                        @elseif($log->new_value === 'In Progress') #9CA3AF
+                                                        @elseif($log->new_value === 'New') #9CA3AF
                                                         @else #9CA3AF
                                                         @endif;"></div>
 
@@ -1073,30 +1073,30 @@
                                                         {{-- Status Badge with Tooltip --}}
                                                         <div class="status-badge-wrapper" style="position: relative; display: inline-block;">
                                                             <span style="padding: 4px 12px; background:
-                                                                @if($log->new_status === 'Completed') #FEF3C7
-                                                                @elseif($log->new_status === 'Reopen') #F3F4F6
-                                                                @elseif($log->new_status === 'Closed System Configuration') #FEF3C7
-                                                                @elseif($log->new_status === 'In Progress') #FEF3C7
-                                                                @elseif($log->new_status === 'New') #F3F4F6
+                                                                @if($log->new_value === 'Completed') #FEF3C7
+                                                                @elseif($log->new_value === 'Reopen') #F3F4F6
+                                                                @elseif($log->new_value === 'Closed System Configuration') #FEF3C7
+                                                                @elseif($log->new_value === 'In Progress') #FEF3C7
+                                                                @elseif($log->new_value === 'New') #F3F4F6
                                                                 @else #F3F4F6
                                                                 @endif;
                                                                 color:
-                                                                @if($log->new_status === 'Completed') #D97706
-                                                                @elseif($log->new_status === 'Reopen') #6B7280
-                                                                @elseif($log->new_status === 'Closed System Configuration') #D97706
-                                                                @elseif($log->new_status === 'In Progress') #D97706
-                                                                @elseif($log->new_status === 'New') #6B7280
+                                                                @if($log->new_value === 'Completed') #D97706
+                                                                @elseif($log->new_value === 'Reopen') #6B7280
+                                                                @elseif($log->new_value === 'Closed System Configuration') #D97706
+                                                                @elseif($log->new_value === 'In Progress') #D97706
+                                                                @elseif($log->new_value === 'New') #6B7280
                                                                 @else #6B7280
                                                                 @endif;
                                                                 border-radius: 6px; font-size: 13px; font-weight: 500; border: 1px solid
-                                                                @if($log->new_status === 'Completed') #FDE047
-                                                                @elseif($log->new_status === 'Reopen') #E5E7EB
-                                                                @elseif($log->new_status === 'Closed System Configuration') #FDE047
-                                                                @elseif($log->new_status === 'In Progress') #FDE047
-                                                                @elseif($log->new_status === 'New') #E5E7EB
+                                                                @if($log->new_value === 'Completed') #FDE047
+                                                                @elseif($log->new_value === 'Reopen') #E5E7EB
+                                                                @elseif($log->new_value === 'Closed System Configuration') #FDE047
+                                                                @elseif($log->new_value === 'In Progress') #FDE047
+                                                                @elseif($log->new_value === 'New') #E5E7EB
                                                                 @else #E5E7EB
                                                                 @endif;">
-                                                                {{ $log->new_status }}
+                                                                {{ $log->new_value }}
                                                             </span>
                                                             {{-- Tooltip --}}
                                                             <div class="status-tooltip" style="position: absolute; bottom: 100%; left: 0; margin-bottom: 8px; padding: 6px 10px; background: #1F2937; color: white; font-size: 11px; border-radius: 6px; white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity 0.2s; z-index: 10;">
