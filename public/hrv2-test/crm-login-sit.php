@@ -1,33 +1,33 @@
 <?php
 /**
- * CRM Login as Owner - LIVE Environment
+ * CRM Login as Owner - SIT Environment
  *
- * Run with: php -S localhost:3000 crm-login.php
+ * Run with: php -S localhost:3000 crm-login-sit.php
  * Then visit: http://localhost:3000
  *
- * Required: Place your private key at ./keys/crm/crm_auth_private_key.pem
+ * Required: Place your private key at ./keys-sit/crm/crm_auth_private_key.pem
  */
 
 // ============================================================
-// CONFIGURATION - LIVE ENVIRONMENT
+// CONFIGURATION - SIT ENVIRONMENT
 // ============================================================
 
-// API Configuration - LIVE
-$apiUrl = 'https://int-crmauth-hr.timeteccloud.com';
+// API Configuration - SIT
+$apiUrl = 'https://int-crmauth-hr-test.timeteccloud.com';
 $apiKey = '2wQ6E0cDU+AjoWIbWkZ1apOkfDrPkMdH3WlX0SNnaQU=';
 
 // Path to your RSA private key (relative to this file)
-$privateKeyPath = __DIR__ . '/keys/crm_auth_private_key.pem';
+$privateKeyPath = __DIR__ . '/keys-sit/crm_auth_private_key.pem';
 
-// Default redirect URL after successful login - LIVE
-$defaultRedirectUrl = 'https://hr.timeteccloud.com/auth/crm-login';
+// Default redirect URL after successful login - SIT
+$defaultRedirectUrl = 'https://hr-test.timeteccloud.com/auth/crm-login';
 
 // Cookie domain for cross-subdomain sharing
 $cookieDomain = '.timeteccloud.com';
 
 // Environment label
-$environment = 'LIVE';
-$envColor = '#f44336';
+$environment = 'SIT';
+$envColor = '#2196f3';
 
 // ============================================================
 // PROCESSING - Handle POST request
@@ -153,12 +153,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// Get old values for form - LIVE test user
-$oldEmail = $_POST['email'] ?? 'hr@timeteccloud.com';
-$oldUserId = $_POST['userId'] ?? '17';
-$oldCompanyId = $_POST['companyId'] ?? '13';
+// Get old values for form - SIT test user
+$oldEmail = $_POST['email'] ?? 'ft.karentan6@yopmail.com';
+$oldUserId = $_POST['userId'] ?? '263';
+$oldCompanyId = $_POST['companyId'] ?? '89';
 $oldCrmUserId = $_POST['crmUserId'] ?? '999';
-$oldCrmUserName = $_POST['crmUserName'] ?? 'CRM Admin';
+$oldCrmUserName = $_POST['crmUserName'] ?? 'Demo CRM Admin';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -172,7 +172,7 @@ $oldCrmUserName = $_POST['crmUserName'] ?? 'CRM Admin';
         }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-            background: linear-gradient(135deg, <?= $envColor ?> 0%, #c62828 100%);
+            background: linear-gradient(135deg, <?= $envColor ?> 0%, #1976d2 100%);
             min-height: 100vh;
             margin: 0;
             padding: 20px;
@@ -209,15 +209,6 @@ $oldCrmUserName = $_POST['crmUserName'] ?? 'CRM Admin';
             margin-bottom: 30px;
             font-size: 14px;
         }
-        .warning-box {
-            background: #ffebee;
-            border: 1px solid #f44336;
-            color: #c62828;
-            padding: 12px 16px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            font-size: 14px;
-        }
         .form-group {
             margin-bottom: 20px;
         }
@@ -239,7 +230,7 @@ $oldCrmUserName = $_POST['crmUserName'] ?? 'CRM Admin';
         input:focus {
             outline: none;
             border-color: <?= $envColor ?>;
-            box-shadow: 0 0 0 3px rgba(244, 67, 54, 0.1);
+            box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
         }
         button {
             width: 100%;
@@ -255,7 +246,7 @@ $oldCrmUserName = $_POST['crmUserName'] ?? 'CRM Admin';
         }
         button:hover {
             transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(244, 67, 54, 0.4);
+            box-shadow: 0 6px 20px rgba(33, 150, 243, 0.4);
         }
         button:active {
             transform: translateY(0);
@@ -279,9 +270,9 @@ $oldCrmUserName = $_POST['crmUserName'] ?? 'CRM Admin';
             font-size: 14px;
         }
         .info {
-            background: #ffebee;
-            border: 1px solid #ffcdd2;
-            color: #c62828;
+            background: #e3f2fd;
+            border: 1px solid #bbdefb;
+            color: #1565c0;
             padding: 12px 16px;
             border-radius: 8px;
             margin-bottom: 20px;
@@ -322,11 +313,6 @@ $oldCrmUserName = $_POST['crmUserName'] ?? 'CRM Admin';
     <div class="container">
         <h1>CRM Login as Owner <span class="env-badge"><?= $environment ?></span></h1>
         <p class="subtitle">Authenticate HR user and redirect to HR System</p>
-
-        <div class="warning-box">
-            <strong>⚠️ PRODUCTION ENVIRONMENT</strong><br>
-            This connects to the live production server. Use with caution.
-        </div>
 
         <?php if ($error): ?>
             <div class="error"><?= htmlspecialchars($error) ?></div>
