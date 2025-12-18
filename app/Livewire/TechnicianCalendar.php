@@ -403,6 +403,35 @@ class TechnicianCalendar extends Component
         $this->startDate = $calendarStart->toDateString();
         $this->endDate = $calendarEnd->toDateString();
 
+        // ✅ Get holidays as collection and leaves for the calendar period
+        $this->holidays = PublicHoliday::getPublicHoliday($this->startDate, $this->endDate);
+
+        // ✅ Ensure holidays is a collection
+        if (is_array($this->holidays)) {
+            $this->holidays = collect($this->holidays);
+        }
+
+        // ✅ Get leaves for selected technicians (if any selected)
+        $technicianIds = [];
+        if (!$this->allTechniciansSelected && !empty($this->selectedTechnicians)) {
+            // Convert technician names to IDs
+            $technicianUsers = \App\Models\User::whereIn('name', $this->selectedTechnicians)
+                ->where('role_id', 9)
+                ->pluck('id')
+                ->toArray();
+            $technicianIds = $technicianUsers;
+        } else {
+            // Get all technician IDs if no specific selection
+            $technicianIds = \App\Models\User::where('role_id', 9)->pluck('id')->toArray();
+        }
+
+        $this->leaves = UserLeave::getWeeklyLeavesByDateRange($this->startDate, $this->endDate, $technicianIds);
+
+        // ✅ Ensure leaves is a collection
+        if (is_array($this->leaves)) {
+            $this->leaves = collect($this->leaves);
+        }
+
         // Get appointments for the entire calendar range
         $appointments = $this->getMonthlyAppointments();
 
@@ -418,6 +447,27 @@ class TechnicianCalendar extends Component
                 if ($currentDay->dayOfWeek === $dayOfWeek) {
                     $dayKey = $currentDay->toDateString();
 
+                    // ✅ Check for holidays using collection methods
+                    $isHoliday = $this->holidays->contains('date', $dayKey);
+                    $holidayName = null;
+                    if ($isHoliday) {
+                        $holiday = $this->holidays->where('date', $dayKey)->first();
+                        
+                        // ✅ Safe access to holiday name (handle both array and object)
+                        if ($holiday) {
+                            if (is_object($holiday)) {
+                                $holidayName = $holiday->name ?? null;
+                            } elseif (is_array($holiday)) {
+                                $holidayName = $holiday['name'] ?? null;
+                            } else {
+                                $holidayName = null;
+                            }
+                        }
+                    }
+
+                    // ✅ Check for leaves on this day using collection methods
+                    $dayLeaves = $this->leaves->where('date', $dayKey);
+
                     $dayData = [
                         'date' => $dayKey,
                         'day' => $currentDay->day,
@@ -426,6 +476,11 @@ class TechnicianCalendar extends Component
                         'isToday' => $currentDay->isToday(),
                         'appointments' => $appointments[$dayKey] ?? [],
                         'carbonDate' => $currentDay->copy(),
+                        // ✅ Add holiday and leave data
+                        'isHoliday' => $isHoliday,
+                        'holidayName' => $holidayName,
+                        'leaves' => $dayLeaves,
+                        'hasLeaves' => $dayLeaves->isNotEmpty(),
                     ];
 
                     $weekData[] = $dayData;
@@ -811,15 +866,12 @@ class TechnicianCalendar extends Component
 
     public function render()
     {
-        // Generate monthly calendar
+        // Generate monthly calendar (this will also load holidays and leaves)
         $this->monthlyCalendar = $this->generateMonthlyCalendar($this->date);
 
         // Get statistics
         $this->getNumberOfRepairs($this->selectedTechnicians);
         $this->calculateRepairBreakdown();
-
-        // Get holidays for the month
-        $this->holidays = PublicHoliday::getPublicHoliday($this->startDate, $this->endDate);
 
         // Set current month display
         $this->currentMonth = $this->date->format('F Y');

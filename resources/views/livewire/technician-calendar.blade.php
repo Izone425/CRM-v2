@@ -795,6 +795,140 @@
             .month-title {
                 font-size: 1rem;
             }
+
+            .calendar-day.holiday {
+                background: linear-gradient(135deg, #fef3c7 0%, #fbbf24 100%) !important;
+                border: 2px solid #f59e0b !important;
+                position: relative;
+            }
+
+            .calendar-day.holiday.other-month {
+                background: linear-gradient(135deg, #fef3c7 0%, #fbbf24 100%) !important;
+                opacity: 0.6 !important;
+            }
+
+            .calendar-day.holiday.today {
+                background: linear-gradient(135deg, #fef3c7 0%, #fbbf24 100%) !important;
+                border: 3px solid #d97706 !important;
+                box-shadow: 0 0 10px rgba(217, 119, 6, 0.3) !important;
+            }
+
+            .holiday-info {
+                margin-bottom: 6px;
+                padding: 4px 6px;
+                background: rgba(245, 158, 11, 0.9);
+                border-radius: 4px;
+                font-size: 9px;
+                color: white;
+                text-align: center;
+                font-weight: bold;
+                text-shadow: 1px 1px 1px rgba(0,0,0,0.3);
+            }
+
+            .holiday-name {
+                font-weight: bold;
+                line-height: 1.2;
+                word-wrap: break-word;
+            }
+
+            /* Holiday + Leave combination styling */
+            .calendar-day.holiday.has-leaves {
+                background: linear-gradient(45deg, 
+                    #fbbf24 0%, #fbbf24 50%, 
+                    #3b82f6 50%, #3b82f6 100%) !important;
+                border: 2px solid #6366f1 !important;
+            }
+
+            /* Holiday + Today styling */
+            .calendar-day.holiday.today {
+                background: linear-gradient(135deg, #fef3c7 0%, #d97706 100%) !important;
+                border: 3px solid #92400e !important;
+                box-shadow: 0 0 15px rgba(146, 64, 14, 0.5) !important;
+            }
+
+            /* Holiday indicator in day header */
+            .holiday-indicator {
+                font-size: 10px;
+                margin-left: 3px;
+                filter: drop-shadow(1px 1px 1px rgba(0,0,0,0.3));
+            }
+
+            /* Adjust appointment container when holiday is present */
+            .calendar-day.holiday .day-appointments {
+                max-height: 80px; /* Reduced to make room for holiday info */
+            }
+
+            .calendar-day.holiday.has-leaves .day-appointments {
+                max-height: 60px; /* Further reduced when both holiday and leaves are present */
+            }
+
+            /* Mobile responsive holiday styling */
+            @media (max-width: 768px) {
+                .calendar-day.holiday {
+                    background: linear-gradient(135deg, #fef3c7 0%, #fbbf24 100%) !important;
+                    border: 2px solid #f59e0b !important;
+                }
+
+                .calendar-day.holiday.other-month {
+                    background: linear-gradient(135deg, #fef3c7 0%, #fbbf24 100%) !important;
+                    opacity: 0.5 !important;
+                }
+
+                .holiday-info {
+                    margin-bottom: 4px;
+                    padding: 2px 4px;
+                    background: rgba(245, 158, 11, 0.9);
+                    border-radius: 3px;
+                    font-size: 8px;
+                    color: white;
+                    text-align: center;
+                }
+
+                .holiday-name {
+                    font-weight: bold;
+                    line-height: 1.1;
+                }
+
+                .holiday-indicator {
+                    font-size: 8px;
+                    margin-left: 2px;
+                }
+
+                .calendar-day.holiday .day-appointments {
+                    max-height: 60px;
+                }
+
+                .calendar-day.holiday.has-leaves .day-appointments {
+                    max-height: 40px;
+                }
+            }
+
+            @media (max-width: 480px) {
+                .calendar-day.holiday {
+                    background: linear-gradient(135deg, #fef3c7 0%, #fbbf24 100%) !important;
+                    border: 2px solid #f59e0b !important;
+                }
+
+                .calendar-day.holiday.other-month {
+                    background: linear-gradient(135deg, #fef3c7 0%, #fbbf24 100%) !important;
+                    opacity: 0.4 !important;
+                }
+
+                .holiday-info {
+                    margin-bottom: 4px;
+                    padding: 2px 4px;
+                    background: rgba(245, 158, 11, 0.8);
+                    border-radius: 3px;
+                    font-size: 8px;
+                    color: white;
+                    text-align: center;
+                }
+
+                .holiday-name {
+                    font-weight: bold;
+                    line-height: 1.1;
+                }
+            }
         }
     </style>
 
@@ -1171,7 +1305,11 @@
                 <div class="monthly-calendar-grid">
                     @foreach ($monthlyCalendar as $week)
                         @foreach ($week as $dayData)
-                            <div class="calendar-day @if($dayData['isCurrentMonth']) current-month @else other-month @endif @if($dayData['isToday']) today @endif">
+                            <div class="calendar-day
+                                @if($dayData['isCurrentMonth']) current-month @else other-month @endif
+                                @if($dayData['isToday']) today @endif
+                                @if($dayData['isHoliday']) holiday @endif
+                                @if($dayData['hasLeaves']) has-leaves @endif">
 
                                 <!-- Day number with appointment count -->
                                 @if(isset($dayData['appointments']) && count($dayData['appointments']) > 0)
@@ -1179,17 +1317,50 @@
                                         <div class="day-number">{{ $dayData['day'] }}</div>
                                         <div class="appointment-count">
                                             {{ count($dayData['appointments']) }}
+                                            @if($dayData['hasLeaves'])
+                                                <span class="leave-indicator">🏖️</span>
+                                            @endif
+                                            @if($dayData['isHoliday'])
+                                                <span class="holiday-indicator">🏛️</span>
+                                            @endif
                                         </div>
                                     </div>
                                 @else
-                                    <div class="day-number">{{ $dayData['day'] }}</div>
+                                    <div class="day-number">
+                                        {{ $dayData['day'] }}
+                                        @if($dayData['hasLeaves'])
+                                            <span class="leave-indicator">🏖️</span>
+                                        @endif
+                                        @if($dayData['isHoliday'])
+                                            <span class="holiday-indicator">🏛️</span>
+                                        @endif
+                                    </div>
+                                @endif
+
+                                <!-- ✅ Show holiday information -->
+                                @if($dayData['isHoliday'])
+                                    <div class="holiday-info">
+                                        <div class="holiday-name">{{ $dayData['holidayName'] }}</div>
+                                    </div>
+                                @endif
+
+                                <!-- ✅ Show leave information -->
+                                @if($dayData['hasLeaves'])
+                                    <div class="leaves-info">
+                                        @foreach($dayData['leaves'] as $leave)
+                                            <div class="leave-item">
+                                                <div class="leave-name">{{ $leave->user->name ?? 'Unknown' }}</div>
+                                                <div class="leave-type">{{ $leave->type ?? 'Leave' }}</div>
+                                            </div>
+                                        @endforeach
+                                    </div>
                                 @endif
 
                                 <!-- Individual clickable appointments -->
                                 @if(isset($dayData['appointments']) && count($dayData['appointments']) > 0)
                                     <div class="day-appointments">
                                         @foreach($dayData['appointments'] as $index => $appointment)
-                                            @if($index < 4)
+                                            @if($index < 3) {{-- Reduced from 4 to 3 to make room for holidays/leaves --}}
                                                 <div class="mini-appointment"
                                                     style="background-color:
                                                         @if($appointment->status === 'Done') var(--bg-demo-green)
@@ -1208,7 +1379,7 @@
                                             @endif
                                         @endforeach
 
-                                        @if(count($dayData['appointments']) > 4)
+                                        @if(count($dayData['appointments']) > 3) {{-- Updated count --}}
                                             <div class="more-appointments"
                                                 @click.stop="
                                                     selectedDayAppointments = {{ collect($dayData['appointments'])->map(function($apt) {
@@ -1227,7 +1398,7 @@
                                                     selectedDate = '{{ $dayData['carbonDate']->format('l, F j, Y') }}';
                                                     dayModalOpen = true;
                                                 ">
-                                                +{{ count($dayData['appointments']) - 4 }} more
+                                                +{{ count($dayData['appointments']) - 3 }} more
                                             </div>
                                         @endif
                                     </div>

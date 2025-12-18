@@ -14,8 +14,8 @@ class TicketLog extends Model
 
     protected $fillable = [
         'ticket_id',
-        'old_status',
-        'new_status',
+        'old_value',
+        'new_value',
         'updated_by',
         'user_name',
         'user_role',

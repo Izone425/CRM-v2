@@ -289,8 +289,8 @@ class TicketDashboard extends Page implements HasActions, HasForms
 
                         TicketLog::create([
                             'ticket_id' => $ticket->id,
-                            'old_status' => null,
-                            'new_status' => 'New',
+                            'old_value' => null,
+                            'new_value' => 'New',
                             'updated_by' => $requestorId,
                             'user_name' => $ticketSystemUser?->name ?? 'HRcrm User',
                             'user_role' => $ticketSystemUser?->role ?? 'Internal Staff',
@@ -810,8 +810,8 @@ class TicketDashboard extends Page implements HasActions, HasForms
                 // ✅ Create a log entry for status change
                 TicketLog::create([
                     'ticket_id' => $ticket->id,
-                    'old_status' => $oldStatus,
-                    'new_status' => 'Reopen',
+                    'old_value' => $oldStatus,
+                    'new_value' => 'Reopen',
                     'updated_by' => $userId,
                     'user_name' => $userName,
                     'user_role' => $userRole,

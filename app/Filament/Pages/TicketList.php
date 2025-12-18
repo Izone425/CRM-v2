@@ -60,29 +60,28 @@ class TicketList extends Page implements HasTable, HasActions, HasForms
             ->query(
                 Ticket::whereIn('product_id', [1, 2]) // ✅ Removed ->on() since model has connection
             )
+            ->paginated([50])
+            ->paginationPageOptions([50, 100])
             ->columns([
                 Tables\Columns\TextColumn::make('ticket_id')
                     ->label('ID')
                     ->sortable()
-                    ->searchable(),
+                    ->searchable()
+                    ->weight('bold')
+                    ->color('primary'),
+
+                Tables\Columns\TextColumn::make('requestor.name')
+                    ->label('Requestor')
+                    ->searchable()
+                    ->sortable()
+                    ->default('Unknown User')
+                    ->formatStateUsing(fn ($state) => $state ?? 'Unknown User'),
 
                 Tables\Columns\TextColumn::make('company_name')
                     ->label('Company')
                     ->searchable()
                     ->sortable()
                     ->formatStateUsing(fn ($state) => strtoupper($state)),
-
-                Tables\Columns\TextColumn::make('title')
-                    ->label('Title')
-                    ->searchable()
-                    ->limit(50)
-                    ->tooltip(function (Tables\Columns\TextColumn $column): ?string {
-                        $state = $column->getState();
-                        if (strlen($state) <= 50) {
-                            return null;
-                        }
-                        return $state;
-                    }),
 
                 Tables\Columns\TextColumn::make('product.name')
                     ->label('Product')
@@ -159,10 +158,36 @@ class TicketList extends Page implements HasTable, HasActions, HasForms
                     ),
             ])
             ->actions([
-                Tables\Actions\Action::make('view')
-                    ->label('View')
-                    ->icon('heroicon-o-eye')
-                    ->action(fn (Ticket $record) => $this->viewTicket($record->id))
+                Tables\Actions\ActionGroup::make([
+                    Tables\Actions\Action::make('view')
+                        ->label('View')
+                        ->icon('heroicon-o-eye')
+                        ->action(fn (Ticket $record) => $this->viewTicket($record->id)),
+
+                    Tables\Actions\Action::make('reopen')
+                        ->label('Reopen')
+                        ->icon('heroicon-o-arrow-path')
+                        ->color('warning')
+                        ->requiresConfirmation()
+                        ->modalHeading('Reopen Ticket')
+                        ->modalDescription('Are you sure you want to reopen this ticket?')
+                        ->action(function (Ticket $record) {
+                            $this->updateTicketStatus($record, 'Reopen');
+                        })
+                        ->visible(fn (Ticket $record): bool => $record->status === 'Completed'),
+
+                    Tables\Actions\Action::make('close')
+                        ->label('Close')
+                        ->icon('heroicon-o-x-circle')
+                        ->color('danger')
+                        ->requiresConfirmation()
+                        ->modalHeading('Close Ticket')
+                        ->modalDescription('Are you sure you want to close this ticket?')
+                        ->action(function (Ticket $record) {
+                            $this->updateTicketStatus($record, 'Closed');
+                        })
+                        ->visible(fn (Ticket $record): bool => $record->status === 'Completed'),
+                ])
             ])
             ->recordAction('view') // ✅ Make rows clickable
             ->recordUrl(null)
@@ -400,8 +425,8 @@ class TicketList extends Page implements HasTable, HasActions, HasForms
 
                         TicketLog::create([
                             'ticket_id' => $ticket->id,
-                            'old_status' => null,
-                            'new_status' => 'New',
+                            'old_value' => null,
+                            'new_value' => 'New',
                             'updated_by' => $requestorId,
                             'user_name' => $ticketSystemUser?->name ?? 'HRcrm User',
                             'user_role' => $ticketSystemUser?->role ?? 'test role',
@@ -615,5 +640,56 @@ class TicketList extends Page implements HasTable, HasActions, HasForms
         }
         $extension = strtolower(pathinfo($attachment->original_filename, PATHINFO_EXTENSION));
         return in_array($extension, ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg', 'webp']);
+    }
+
+    public function updateTicketStatus(Ticket $ticket, string $newStatus): void
+    {
+        try {
+            $authUser = auth()->user();
+            
+            $ticketSystemUser = null;
+            if ($authUser) {
+                $ticketSystemUser = \Illuminate\Support\Facades\DB::connection('ticketingsystem_live')
+                    ->table('users')
+                    ->where('name', $authUser->name)
+                    ->first();
+            }
+
+            $userId = $ticketSystemUser?->id ?? 22;
+            $oldStatus = $ticket->status;
+
+            // Update ticket status
+            $ticket->update(['status' => $newStatus]);
+
+            // Create log entry
+            TicketLog::create([
+                'ticket_id' => $ticket->id,
+                'old_value' => $oldStatus,
+                'new_value' => $newStatus,
+                'updated_by' => $userId,
+                'user_name' => $ticketSystemUser?->name ?? 'HRcrm User',
+                'user_role' => $ticketSystemUser?->role ?? 'test role',
+                'change_type' => 'status_change',
+                'source' => 'manual',
+            ]);
+
+            Notification::make()
+                ->title('Status Updated')
+                ->success()
+                ->body("Ticket {$ticket->ticket_id} status changed from {$oldStatus} to {$newStatus}")
+                ->send();
+
+            // Refresh table
+            $this->dispatch('$refresh');
+
+        } catch (\Exception $e) {
+            Log::error('Error updating ticket status: ' . $e->getMessage());
+
+            Notification::make()
+                ->title('Error')
+                ->danger()
+                ->body('Failed to update ticket status')
+                ->send();
+        }
     }
 }

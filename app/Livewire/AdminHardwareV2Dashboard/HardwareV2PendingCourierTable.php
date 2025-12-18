@@ -550,10 +550,6 @@ class HardwareV2PendingCourierTable extends Component implements HasForms, HasTa
             try {
                 $category2Data = json_decode($record->category2, true);
 
-                Log::info("=== Courier Handover {$record->id} Debug ===");
-                Log::info("Raw category2 data: " . $record->category2);
-                Log::info("JSON decode result: ", $category2Data ?: ['JSON_DECODE_FAILED']);
-
                 if (is_array($category2Data)) {
                     // Check for courier_addresses array structure
                     if (isset($category2Data['courier_addresses']) && is_array($category2Data['courier_addresses'])) {
