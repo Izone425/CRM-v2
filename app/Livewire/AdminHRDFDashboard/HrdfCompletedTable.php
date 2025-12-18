@@ -123,6 +123,7 @@ class HrdfCompletedTable extends Component implements HasForms, HasTable
 
                 TextColumn::make('lead.companyDetail.company_name')
                     ->label('Company Name')
+                    ->searchable()
                     ->formatStateUsing(function ($state, HRDFHandover $record) {
                         // Determine display name
                         $displayName = $state ?? 'N/A';
