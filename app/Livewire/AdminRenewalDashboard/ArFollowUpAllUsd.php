@@ -99,7 +99,7 @@ class ArFollowUpAllUsd extends Component implements HasForms, HasTable
             ->whereIn('f_company_id', $usdCompanyIds)
             ->where('follow_up_counter', true)
             ->where('mapping_status', 'completed_mapping')
-            ->whereIn('renewal_progress', ['new', 'pending_confirmation'])
+            ->whereIn('renewal_progress', ['pending_confirmation'])
             ->selectRaw('*,
                 DATEDIFF(NOW(), follow_up_date) as pending_days,
                 (SELECT MIN(f_expiry_date) FROM frontenddb.crm_expiring_license

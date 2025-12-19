@@ -883,6 +883,28 @@ class SoftwareHandoverRelationManager extends RelationManager
                                 }),
                         ])
                 ]),
+
+            Section::make('Step 10: Invoice to Reseller')
+                ->columnSpan(1)
+                ->schema([
+                    Grid::make(1)
+                        ->schema([
+                            Select::make('reseller_id')
+                                ->label('Reseller Company')
+                                ->placeholder('Select Reseller Company (Optional)')
+                                ->options(function () {
+                                    return \App\Models\Reseller::orderBy('company_name')
+                                        ->pluck('company_name', 'id')
+                                        ->toArray();
+                                })
+                                ->searchable()
+                                ->preload()
+                                ->nullable()
+                                ->default(function (?SoftwareHandover $record = null) {
+                                    return $record?->reseller_id ?? null;
+                                }),
+                        ])
+                ]),
         ];
     }
 

@@ -101,6 +101,7 @@ class SoftwareHandover extends Model
         'crm_paid_license_ids',
         'project_plan_link',
         'project_plan_generated_at',
+        'reseller_id',
     ];
 
     protected $casts = [
@@ -415,5 +416,10 @@ class SoftwareHandover extends Model
     public function hrdfInvoices()
     {
         return $this->hasMany(\App\Models\CrmHrdfInvoice::class, 'handover_id');
+    }
+
+    public function reseller()
+    {
+        return $this->belongsTo(Reseller::class);
     }
 }
