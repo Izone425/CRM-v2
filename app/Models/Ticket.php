@@ -44,6 +44,7 @@ class Ticket extends Model
         'app_version',
         'windows_version',
         'version_screenshot',
+        'is_internal',
     ];
 
     protected $casts = [

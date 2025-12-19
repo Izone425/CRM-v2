@@ -269,6 +269,7 @@ class CompanyTabs
                                                                 ->default(fn ($record) => $record?->lead_owner ?? null)
                                                                 ->options(
                                                                     \App\Models\User::where('role_id', 1)
+                                                                        ->orWhereIn('id', [4, 5, 52])
                                                                         ->pluck('name', 'id')
                                                                 )
                                                                 ->searchable(),
@@ -303,7 +304,7 @@ class CompanyTabs
                                             // Check and update lead_owner if it's not null
                                             if (!empty($data['lead_owner'])) {
                                                 $leadOwnerName = \App\Models\User::find($data['lead_owner'])?->name ?? 'Unknown Lead Owner';
-                                                $record->update(['lead_owner' => $leadOwnerName]);
+                                                $record->update(['lead_owner' => $data['lead_owner']]); // ✅ Store ID
                                             }
 
                                             $latestActivityLogs = ActivityLog::where('subject_id', $record->id)

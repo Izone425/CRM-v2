@@ -336,7 +336,117 @@
                 <!-- Status -->
                 <div style="margin-bottom: 16px;">
                     <div style="font-size: 11px; color: #9CA3AF; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 500;">Status</div>
-                    <div style="font-weight: 500; color: #111827; font-size: 14px;">{{ $selectedTicket->status ?? '-' }}</div>
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <!-- Current Status Badge -->
+                        <span style="padding: 4px 12px; background:
+                            @if($selectedTicket->status === 'Completed') #FEF3C7
+                            @elseif($selectedTicket->status === 'New') #F3F4F6
+                            @elseif($selectedTicket->status === 'In Progress') #FEF3C7
+                            @elseif($selectedTicket->status === 'Closed') #FEE2E2
+                            @elseif($selectedTicket->status === 'Reopen') #FEF3C7
+                            @else #F3F4F6
+                            @endif;
+                            color:
+                            @if($selectedTicket->status === 'Completed') #D97706
+                            @elseif($selectedTicket->status === 'New') #6B7280
+                            @elseif($selectedTicket->status === 'In Progress') #D97706
+                            @elseif($selectedTicket->status === 'Closed') #DC2626
+                            @elseif($selectedTicket->status === 'Reopen') #D97706
+                            @else #6B7280
+                            @endif;
+                            border-radius: 6px; font-size: 13px; font-weight: 600; border: 1px solid
+                            @if($selectedTicket->status === 'Completed') #FDE047
+                            @elseif($selectedTicket->status === 'New') #E5E7EB
+                            @elseif($selectedTicket->status === 'In Progress') #FDE047
+                            @elseif($selectedTicket->status === 'Closed') #FECACA
+                            @elseif($selectedTicket->status === 'Reopen') #FDE047
+                            @else #E5E7EB
+                            @endif;">
+                            {{ $selectedTicket->status ?? '-' }}
+                        </span>
+
+                        <!-- Edit Icon & Dropdown - ONLY show for Completed status -->
+                        @if($selectedTicket->status === 'Completed')
+                            <div style="position: relative;" x-data="{ open: false }">
+                                <button @click="open = !open"
+                                        style="display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; background: white; border: 1px solid #D1D5DB; border-radius: 6px; cursor: pointer; transition: all 0.2s;"
+                                        onmouseover="this.style.background='#F9FAFB'; this.style.borderColor='#9CA3AF'"
+                                        onmouseout="this.style.background='white'; this.style.borderColor='#D1D5DB'"
+                                        title="Change Status">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: #6B7280;">
+                                        <path d="M12 20h9"></path>
+                                        <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+                                    </svg>
+                                </button>
+
+                                <!-- Dropdown Menu - ONLY Reopen and Closed options -->
+                                <div x-show="open"
+                                    @click.outside="open = false"
+                                    x-transition:enter="transition ease-out duration-200"
+                                    x-transition:enter-start="opacity-0 scale-95"
+                                    x-transition:enter-end="opacity-100 scale-100"
+                                    x-transition:leave="transition ease-in duration-75"
+                                    x-transition:leave-start="opacity-100 scale-100"
+                                    x-transition:leave-end="opacity-0 scale-95"
+                                    style="position: absolute; top: 100%; right: 0; z-index: 50; margin-top: 4px; background: white; border: 1px solid #E5E7EB; border-radius: 8px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); min-width: 180px;">
+
+                                    <!-- Reopen Option -->
+                                    <button wire:click="updateTicketStatus({{ $selectedTicket->id }}, 'Reopen')"
+                                            @click="open = false"
+                                            style="width: 100%; padding: 10px 12px; text-align: left; border: none; background: transparent; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 8px; transition: all 0.2s;"
+                                            onmouseover="this.style.background='#F9FAFB'"
+                                            onmouseout="this.style.background='transparent'">
+                                        <span style="padding: 2px 8px; background: #FEF3C7; color: #D97706; border-radius: 4px; font-size: 11px; font-weight: 600; border: 1px solid #FDE047;">
+                                            Reopen
+                                        </span>
+                                        <span style="color: #6B7280; font-size: 12px;">Reopen ticket</span>
+                                    </button>
+
+                                    <!-- Closed Option -->
+                                    <button wire:click="updateTicketStatus({{ $selectedTicket->id }}, 'Closed')"
+                                            @click="open = false"
+                                            style="width: 100%; padding: 10px 12px; text-align: left; border: none; background: transparent; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 8px; transition: all 0.2s;"
+                                            onmouseover="this.style.background='#F9FAFB'"
+                                            onmouseout="this.style.background='transparent'">
+                                        <span style="padding: 2px 8px; background: #FEE2E2; color: #DC2626; border-radius: 4px; font-size: 11px; font-weight: 600; border: 1px solid #FECACA;">
+                                            Closed
+                                        </span>
+                                        <span style="color: #6B7280; font-size: 12px;">Close ticket</span>
+                                    </button>
+                                </div>
+                            </div>
+                        @endif
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 16px;">
+                    <div style="font-size: 11px; color: #9CA3AF; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 500;">Assignees</div>
+                    <div style="font-weight: 500; color: #111827; font-size: 14px;">
+                        @if($selectedTicket->assignee_ids && count($selectedTicket->assignee_ids) > 0)
+                            @php
+                                $assignees = \Illuminate\Support\Facades\DB::connection('ticketingsystem_live')
+                                    ->table('users')
+                                    ->whereIn('id', $selectedTicket->assignee_ids)
+                                    ->pluck('name')
+                                    ->toArray();
+                            @endphp
+
+                            @if(count($assignees) > 0)
+                                <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+                                    @foreach($assignees as $assignee)
+                                        <span style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; background: #EEF2FF; color: #4338CA; border-radius: 6px; font-size: 12px; font-weight: 600; border: 1px solid #C7D2FE;">
+                                            <div style="width: 8px; height: 8px; border-radius: 50%; background: #4338CA;"></div>
+                                            {{ $assignee }}
+                                        </span>
+                                    @endforeach
+                                </div>
+                            @else
+                                <span style="color: #9CA3AF; font-style: italic; font-size: 13px;">No assignees found</span>
+                            @endif
+                        @else
+                            <span style="color: #9CA3AF; font-style: italic; font-size: 13px;">Not assigned</span>
+                        @endif
+                    </div>
                 </div>
 
                 <!-- Due Date -->

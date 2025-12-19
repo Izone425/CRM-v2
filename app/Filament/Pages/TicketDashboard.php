@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\Log;
 use Filament\Actions\Action;
 use Filament\Actions\Concerns\InteractsWithActions;
 use Filament\Actions\Contracts\HasActions;
+use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Components\FileUpload;
@@ -69,6 +70,18 @@ class TicketDashboard extends Page implements HasActions, HasForms
                 ->slideOver()
                 ->modalWidth('3xl')
                 ->form([
+                    // ✅ Priority field first - controls device type visibility
+                    Select::make('priority_id')
+                        ->label('Priority')
+                        ->required()
+                        ->options(
+                            TicketPriority::where('is_active', true)
+                                ->pluck('name', 'id')
+                                ->toArray()
+                        )
+                        ->live() // ✅ Make it reactive
+                        ->columnSpanFull(),
+
                     Grid::make(2)
                         ->schema([
                             Select::make('product_id')
@@ -90,7 +103,6 @@ class TicketDashboard extends Page implements HasActions, HasForms
                                         return [];
                                     }
 
-                                    // ✅ Use the correct database connection
                                     return \Illuminate\Support\Facades\DB::connection('ticketingsystem_live')
                                         ->table('product_has_modules')
                                         ->join('modules', 'product_has_modules.module_id', '=', 'modules.id')
@@ -105,17 +117,46 @@ class TicketDashboard extends Page implements HasActions, HasForms
                                 ->placeholder('Select a product first'),
                         ]),
 
+                    // ✅ Device Type field - shows/hides based on priority
+                    Select::make('device_type')
+                        ->label('Device Type')
+                        ->options([
+                            'Mobile' => 'Mobile',
+                            'Browser' => 'Browser',
+                        ])
+                        ->live()
+                        ->required(function (Get $get): bool {
+                            // Required when priority is Software Bugs
+                            $priorityId = $get('priority_id');
+                            if (!$priorityId) return false;
+
+                            $priority = TicketPriority::find($priorityId);
+                            return $priority && str_contains(strtolower($priority->name), 'software bugs');
+                        })
+                        ->hidden(function (Get $get): bool {
+                            // Hide when NOT Software Bugs priority
+                            $priorityId = $get('priority_id');
+                            if (!$priorityId) return true; // Hide when no priority selected
+
+                            $priority = TicketPriority::find($priorityId);
+                            return !($priority && str_contains(strtolower($priority->name), 'software bugs'));
+                        })
+                        ->afterStateUpdated(function (callable $set, $state) {
+                            // Clear related fields when device type changes or is cleared
+                            if (!$state) {
+                                $set('mobile_type', null);
+                                $set('browser_type', null);
+                                $set('version_screenshot', null);
+                                $set('device_id', null);
+                                $set('os_version', null);
+                                $set('app_version', null);
+                                $set('windows_version', null);
+                            }
+                        }),
+
+                    // ✅ Mobile/Browser type selection
                     Grid::make(2)
                         ->schema([
-                            Select::make('device_type')
-                                ->label('Device Type')
-                                ->options([
-                                    'Mobile' => 'Mobile',
-                                    'Browser' => 'Browser',
-                                ])
-                                ->live()
-                                ->required(),
-
                             Select::make('mobile_type')
                                 ->label('Mobile Type')
                                 ->options([
@@ -123,8 +164,25 @@ class TicketDashboard extends Page implements HasActions, HasForms
                                     'Android' => 'Android',
                                     'Huawei' => 'Huawei',
                                 ])
-                                ->visible(fn (Get $get): bool => $get('device_type') === 'Mobile')
-                                ->required(fn (Get $get): bool => $get('device_type') === 'Mobile'),
+                                ->hidden(function (Get $get): bool {
+                                    // Hide if NOT (Software Bugs AND Mobile)
+                                    $priorityId = $get('priority_id');
+                                    if (!$priorityId) return true;
+
+                                    $priority = TicketPriority::find($priorityId);
+                                    $isSoftwareBugs = $priority && str_contains(strtolower($priority->name), 'software bugs');
+
+                                    return !($isSoftwareBugs && $get('device_type') === 'Mobile');
+                                })
+                                ->required(function (Get $get): bool {
+                                    $priorityId = $get('priority_id');
+                                    if (!$priorityId) return false;
+
+                                    $priority = TicketPriority::find($priorityId);
+                                    $isSoftwareBugs = $priority && str_contains(strtolower($priority->name), 'software bugs');
+
+                                    return $isSoftwareBugs && $get('device_type') === 'Mobile';
+                                }),
 
                             Select::make('browser_type')
                                 ->label('Browser Type')
@@ -135,10 +193,28 @@ class TicketDashboard extends Page implements HasActions, HasForms
                                     'Edge' => 'Edge',
                                     'Opera' => 'Opera',
                                 ])
-                                ->visible(fn (Get $get): bool => $get('device_type') === 'Browser')
-                                ->required(fn (Get $get): bool => $get('device_type') === 'Browser'),
+                                ->hidden(function (Get $get): bool {
+                                    // Hide if NOT (Software Bugs AND Browser)
+                                    $priorityId = $get('priority_id');
+                                    if (!$priorityId) return true;
+
+                                    $priority = TicketPriority::find($priorityId);
+                                    $isSoftwareBugs = $priority && str_contains(strtolower($priority->name), 'software bugs');
+
+                                    return !($isSoftwareBugs && $get('device_type') === 'Browser');
+                                })
+                                ->required(function (Get $get): bool {
+                                    $priorityId = $get('priority_id');
+                                    if (!$priorityId) return false;
+
+                                    $priority = TicketPriority::find($priorityId);
+                                    $isSoftwareBugs = $priority && str_contains(strtolower($priority->name), 'software bugs');
+
+                                    return $isSoftwareBugs && $get('device_type') === 'Browser';
+                                }),
                         ]),
 
+                    // ✅ Mobile-specific fields (version screenshot & device ID)
                     Grid::make(2)
                         ->schema([
                             FileUpload::make('version_screenshot')
@@ -147,54 +223,110 @@ class TicketDashboard extends Page implements HasActions, HasForms
                                 ->maxSize(5120)
                                 ->directory('version_screenshots')
                                 ->visibility('public')
-                                ->visible(fn (Get $get): bool => $get('device_type') === 'Mobile')
-                                ->required(fn (Get $get): bool => $get('device_type') === 'Mobile'),
+                                ->hidden(function (Get $get): bool {
+                                    $priorityId = $get('priority_id');
+                                    if (!$priorityId) return true;
+
+                                    $priority = TicketPriority::find($priorityId);
+                                    $isSoftwareBugs = $priority && str_contains(strtolower($priority->name), 'software bugs');
+
+                                    return !($isSoftwareBugs && $get('device_type') === 'Mobile');
+                                })
+                                ->required(function (Get $get): bool {
+                                    $priorityId = $get('priority_id');
+                                    if (!$priorityId) return false;
+
+                                    $priority = TicketPriority::find($priorityId);
+                                    $isSoftwareBugs = $priority && str_contains(strtolower($priority->name), 'software bugs');
+
+                                    return $isSoftwareBugs && $get('device_type') === 'Mobile';
+                                }),
 
                             TextInput::make('device_id')
                                 ->label('Device ID')
                                 ->placeholder('Enter device ID')
-                                ->visible(fn (Get $get): bool => $get('device_type') === 'Mobile')
-                                ->required(fn (Get $get): bool => $get('device_type') === 'Mobile'),
+                                ->hidden(function (Get $get): bool {
+                                    $priorityId = $get('priority_id');
+                                    if (!$priorityId) return true;
+
+                                    $priority = TicketPriority::find($priorityId);
+                                    $isSoftwareBugs = $priority && str_contains(strtolower($priority->name), 'software bugs');
+
+                                    return !($isSoftwareBugs && $get('device_type') === 'Mobile');
+                                })
+                                ->required(function (Get $get): bool {
+                                    $priorityId = $get('priority_id');
+                                    if (!$priorityId) return false;
+
+                                    $priority = TicketPriority::find($priorityId);
+                                    $isSoftwareBugs = $priority && str_contains(strtolower($priority->name), 'software bugs');
+
+                                    return $isSoftwareBugs && $get('device_type') === 'Mobile';
+                                }),
                         ]),
 
-                    Grid::make(4)
+                    // ✅ Mobile version details (OS & App version)
+                    Grid::make(2)
                         ->schema([
                             TextInput::make('os_version')
                                 ->label('OS Version')
                                 ->placeholder('e.g., Android 14')
-                                ->visible(fn (Get $get): bool => $get('device_type') === 'Mobile')
-                                ->required(fn (Get $get): bool => $get('device_type') === 'Mobile')
-                                ->columnSpan(1),
+                                ->hidden(function (Get $get): bool {
+                                    $priorityId = $get('priority_id');
+                                    if (!$priorityId) return true;
+
+                                    $priority = TicketPriority::find($priorityId);
+                                    $isSoftwareBugs = $priority && str_contains(strtolower($priority->name), 'software bugs');
+
+                                    return !($isSoftwareBugs && $get('device_type') === 'Mobile');
+                                })
+                                ->required(function (Get $get): bool {
+                                    $priorityId = $get('priority_id');
+                                    if (!$priorityId) return false;
+
+                                    $priority = TicketPriority::find($priorityId);
+                                    $isSoftwareBugs = $priority && str_contains(strtolower($priority->name), 'software bugs');
+
+                                    return $isSoftwareBugs && $get('device_type') === 'Mobile';
+                                }),
 
                             TextInput::make('app_version')
                                 ->label('App Version')
                                 ->placeholder('e.g., 1.2.3')
-                                ->visible(fn (Get $get): bool => $get('device_type') === 'Mobile')
-                                ->required(fn (Get $get): bool => $get('device_type') === 'Mobile')
-                                ->columnSpan(1),
-                        ])
-                        ->visible(fn (Get $get): bool => $get('device_type') === 'Mobile'),
+                                ->hidden(function (Get $get): bool {
+                                    $priorityId = $get('priority_id');
+                                    if (!$priorityId) return true;
 
-                    Grid::make(2)
-                        ->schema([
-                            TextInput::make('windows_version')
-                                ->label('Windows/OS Version')
-                                ->placeholder('e.g., Windows 11, macOS 13.1 (optional)')
-                                ->visible(fn (Get $get): bool => $get('device_type') === 'Browser')
-                                ->columnSpan(1),
-                        ])
-                        ->visible(fn (Get $get): bool => $get('device_type') === 'Browser'),
+                                    $priority = TicketPriority::find($priorityId);
+                                    $isSoftwareBugs = $priority && str_contains(strtolower($priority->name), 'software bugs');
 
-                    Select::make('priority_id')
-                        ->label('Priority')
-                        ->required()
-                        ->options(
-                            TicketPriority::where('is_active', true)
-                                ->pluck('name', 'id')
-                                ->toArray()
-                        )
-                        ->columnSpanFull(),
+                                    return !($isSoftwareBugs && $get('device_type') === 'Mobile');
+                                })
+                                ->required(function (Get $get): bool {
+                                    $priorityId = $get('priority_id');
+                                    if (!$priorityId) return false;
 
+                                    $priority = TicketPriority::find($priorityId);
+                                    $isSoftwareBugs = $priority && str_contains(strtolower($priority->name), 'software bugs');
+
+                                    return $isSoftwareBugs && $get('device_type') === 'Mobile';
+                                }),
+                        ]),
+
+                    TextInput::make('windows_version')
+                        ->label('Windows/OS Version')
+                        ->placeholder('e.g., Windows 11, macOS 13.1 (optional)')
+                        ->hidden(function (Get $get): bool {
+                            $priorityId = $get('priority_id');
+                            if (!$priorityId) return true;
+
+                            $priority = TicketPriority::find($priorityId);
+                            $isSoftwareBugs = $priority && str_contains(strtolower($priority->name), 'software bugs');
+
+                            return !($isSoftwareBugs && $get('device_type') === 'Browser');
+                        }),
+
+                    // ✅ Company selection
                     Select::make('company_name')
                         ->label('Company Name')
                         ->searchable()
@@ -205,7 +337,7 @@ class TicketDashboard extends Page implements HasActions, HasForms
                                 ->table('crm_expiring_license')
                                 ->select('f_company_name', 'f_created_time')
                                 ->groupBy('f_company_name', 'f_created_time')
-                                ->orderBy('f_company_name', 'asc') // ✅ Sort by company name alphabetically
+                                ->orderBy('f_company_name', 'asc')
                                 ->get()
                                 ->mapWithKeys(function ($company) {
                                     return [$company->f_company_name => strtoupper($company->f_company_name)];
@@ -218,7 +350,7 @@ class TicketDashboard extends Page implements HasActions, HasForms
                                 ->select('f_company_name', 'f_created_time')
                                 ->where('f_company_name', 'like', "%{$search}%")
                                 ->groupBy('f_company_name', 'f_created_time')
-                                ->orderBy('f_company_name', 'asc') // ✅ Sort search results alphabetically
+                                ->orderBy('f_company_name', 'asc')
                                 ->limit(50)
                                 ->get()
                                 ->mapWithKeys(function ($company) {
@@ -231,10 +363,18 @@ class TicketDashboard extends Page implements HasActions, HasForms
                         })
                         ->columnSpanFull(),
 
+                    // ✅ Internal ticket checkbox
+                    Checkbox::make('is_internal')
+                        ->label('Internal Ticket')
+                        ->default(false)
+                        ->columnSpan(1),
+
+                    // ✅ Zoho ticket number
                     TextInput::make('zoho_id')
                         ->label('Zoho Ticket Number')
                         ->columnSpanFull(),
 
+                    // ✅ Title and description
                     TextInput::make('title')
                         ->label('Title')
                         ->required()
@@ -268,6 +408,7 @@ class TicketDashboard extends Page implements HasActions, HasForms
                         $data['requestor_id'] = $requestorId;
                         $data['created_date'] = now()->toDateString();
                         $data['isPassed'] = 0;
+                        $data['is_internal'] = $data['is_internal'] ?? false;
 
                         $productCode = $data['product_id'] == 1 ? 'HR1' : 'HR2';
 
@@ -838,6 +979,66 @@ class TicketDashboard extends Page implements HasActions, HasForms
                 ->title('Error')
                 ->body('Failed to update ticket status')
                 ->danger()
+                ->send();
+        }
+    }
+
+    public function updateTicketStatus($ticketId, string $newStatus): void
+    {
+        try {
+            $ticket = Ticket::findOrFail($ticketId);
+            $authUser = auth()->user();
+
+            $ticketSystemUser = null;
+            if ($authUser) {
+                $ticketSystemUser = \Illuminate\Support\Facades\DB::connection('ticketingsystem_live')
+                    ->table('users')
+                    ->where('name', $authUser->name)
+                    ->first();
+            }
+
+            $userId = $ticketSystemUser?->id ?? 22;
+            $oldStatus = $ticket->status;
+
+            // Update ticket status
+            $ticket->update(['status' => $newStatus]);
+
+            // ✅ Create comprehensive ticket log entry
+            TicketLog::create([
+                'ticket_id' => $ticket->id,
+                'old_value' => $oldStatus,
+                'new_value' => $newStatus,
+                'action' => "Changed status from '{$oldStatus}' to '{$newStatus}' for ticket {$ticket->ticket_id}.",
+                'field_name' => 'status',
+                'change_reason' => null,
+                'old_eta' => null,
+                'new_eta' => null,
+                'updated_by' => $userId,
+                'user_name' => $ticketSystemUser?->name ?? 'HRcrm User',
+                'user_role' => $ticketSystemUser?->role ?? 'Internal Staff',
+                'change_type' => 'status_change',
+                'source' => 'dashboard_modal',
+            ]);
+
+            // ✅ Refresh the selected ticket with fresh data including logs
+            $this->selectedTicket = $ticket->fresh(['logs', 'comments', 'attachments', 'priority', 'product', 'module', 'requestor']);
+
+            Notification::make()
+                ->title('Status Updated')
+                ->success()
+                ->body("Ticket {$ticket->ticket_id} status changed from {$oldStatus} to {$newStatus}")
+                ->send();
+
+            // ✅ Refresh the dashboard data to reflect changes
+            $this->dispatch('$refresh');
+
+        } catch (\Exception $e) {
+            Log::error('Error updating ticket status: ' . $e->getMessage());
+
+            Notification::make()
+                ->title('Error')
+                ->danger()
+                ->body('Failed to update ticket status: ' . $e->getMessage())
                 ->send();
         }
     }
