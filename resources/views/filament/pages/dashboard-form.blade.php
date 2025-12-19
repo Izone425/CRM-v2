@@ -187,7 +187,7 @@
         $adminGeneralTotal = \App\Models\InternalTicket::where('status', 'new')->count();
 
         // Calculate totals for both currencies
-        $adminRenewalFollowUp = $followUpTodayMYR + $followUpOverdueMYR + $followUpTodayUSD + $followUpOverdueUSD + $followUpTodayMYRv2 + $followUpOverdueMYRv2 + $followUpTodayUSDv2 + $followUpOverdueUSDv2;
+        $adminRenewalFollowUp = $followUpTodayMYR + $followUpOverdueMYR + $followUpTodayMYRv2 + $followUpOverdueMYRv2;
 
         $initialStageTotal = $newTaskCount + $pendingStockCount + $pendingCourierCount + $pendingAdminPickUpCount + $pendingExternalInstallationCount + $pendingInternalInstallationCount;
 

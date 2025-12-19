@@ -315,8 +315,8 @@ class HardwareV2PendingPaymentTable extends Component implements HasForms, HasTa
                 TextColumn::make('installation_type')
                     ->label('Type')
                     ->formatStateUsing(fn (string $state): string => match($state) {
-                        'external_installation' => 'External Installation',
-                        'internal_installation' => 'Internal Installation',
+                        'external_installation' => 'External',
+                        'internal_installation' => 'Internal',
                         'self_pick_up' => 'Pick-Up',
                         'courier' => 'Courier',
                         default => ucfirst($state ?? 'Unknown')

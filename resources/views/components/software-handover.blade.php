@@ -563,6 +563,17 @@
                         {{ $record->headcount_company_size_label }}
                     </span>
                 </div>
+
+                <hr class="my-6 border-t border-gray-300">
+
+                <div class="sw-info-item">
+                    <span class="sw-label" style="color: #000000;">Invoice to Reseller: </span>
+                    @if($record->reseller && $record->reseller->company_name)
+                        <span class="sw-value" style="color: #dc2626; font-weight: bold;">{{ $record->reseller->company_name }}</span>
+                    @else
+                        <span class="sw-not-available">Not Available</span>
+                    @endif
+                </div>
             </div>
 
             <!-- Right Column -->
