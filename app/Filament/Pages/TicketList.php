@@ -23,6 +23,7 @@ use Filament\Tables\Table;
 use Filament\Notifications\Notification;
 use Filament\Actions\Concerns\InteractsWithActions;
 use Filament\Actions\Contracts\HasActions;
+use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Illuminate\Support\Facades\Log;
@@ -43,6 +44,7 @@ class TicketList extends Page implements HasTable, HasActions, HasForms
     public $showTicketModal = false;
     public $newComment = '';
     public $attachments = [];
+    public $activeTab = 'v1';
 
     public function mount(): void
     {
@@ -54,11 +56,22 @@ class TicketList extends Page implements HasTable, HasActions, HasForms
         return null;
     }
 
+    // Switch tab methods
+    public function switchToV1(): void
+    {
+        $this->activeTab = 'v1';
+    }
+
+    public function switchToV2(): void
+    {
+        $this->activeTab = 'v2';
+    }
+
     public function table(Table $table): Table
     {
         return $table
             ->query(
-                Ticket::whereIn('product_id', [1, 2]) // ✅ Removed ->on() since model has connection
+                Ticket::whereIn('product_id', [1, 2])
             )
             ->paginated([50])
             ->paginationPageOptions([50, 100])
@@ -126,7 +139,7 @@ class TicketList extends Page implements HasTable, HasActions, HasForms
                     ->dateTime('d M Y, H:i'),
             ])
             ->filters([
-                Tables\Filters\SelectFilter::make('product_id') // ✅ Changed from 'product'
+                Tables\Filters\SelectFilter::make('product_id')
                     ->label('Product')
                     ->options([
                         1 => 'Version 1',
@@ -157,39 +170,15 @@ class TicketList extends Page implements HasTable, HasActions, HasForms
                             ->toArray()
                     ),
             ])
-            ->actions([
-                Tables\Actions\ActionGroup::make([
-                    Tables\Actions\Action::make('view')
-                        ->label('View')
-                        ->icon('heroicon-o-eye')
-                        ->action(fn (Ticket $record) => $this->viewTicket($record->id)),
-
-                    Tables\Actions\Action::make('reopen')
-                        ->label('Reopen')
-                        ->icon('heroicon-o-arrow-path')
-                        ->color('warning')
-                        ->requiresConfirmation()
-                        ->modalHeading('Reopen Ticket')
-                        ->modalDescription('Are you sure you want to reopen this ticket?')
-                        ->action(function (Ticket $record) {
-                            $this->updateTicketStatus($record, 'Reopen');
-                        })
-                        ->visible(fn (Ticket $record): bool => $record->status === 'Completed'),
-
-                    Tables\Actions\Action::make('close')
-                        ->label('Close')
-                        ->icon('heroicon-o-x-circle')
-                        ->color('danger')
-                        ->requiresConfirmation()
-                        ->modalHeading('Close Ticket')
-                        ->modalDescription('Are you sure you want to close this ticket?')
-                        ->action(function (Ticket $record) {
-                            $this->updateTicketStatus($record, 'Closed');
-                        })
-                        ->visible(fn (Ticket $record): bool => $record->status === 'Completed'),
-                ])
-            ])
-            ->recordAction('view') // ✅ Make rows clickable
+            // ->actions([
+            //     Tables\Actions\ActionGroup::make([
+            //         Tables\Actions\Action::make('view')
+            //             ->label('View')
+            //             ->icon('heroicon-o-eye')
+            //             ->action(fn (Ticket $record) => $this->viewTicket($record->id)),
+            //     ])
+            // ])
+            ->recordAction('view')
             ->recordUrl(null)
             ->defaultSort('created_at', 'desc')
             ->poll('30s');
@@ -201,9 +190,22 @@ class TicketList extends Page implements HasTable, HasActions, HasForms
             Action::make('createTicket')
                 ->label('Create Ticket')
                 ->icon('heroicon-o-plus')
+                ->color('primary')
                 ->slideOver()
                 ->modalWidth('3xl')
                 ->form([
+                    // ✅ Priority field first - controls device type visibility
+                    Select::make('priority_id')
+                        ->label('Priority')
+                        ->required()
+                        ->options(
+                            TicketPriority::where('is_active', true)
+                                ->pluck('name', 'id')
+                                ->toArray()
+                        )
+                        ->live() // ✅ Make it reactive
+                        ->columnSpanFull(),
+
                     Grid::make(2)
                         ->schema([
                             Select::make('product_id')
@@ -225,7 +227,6 @@ class TicketList extends Page implements HasTable, HasActions, HasForms
                                         return [];
                                     }
 
-                                    // ✅ Use the correct database connection
                                     return \Illuminate\Support\Facades\DB::connection('ticketingsystem_live')
                                         ->table('product_has_modules')
                                         ->join('modules', 'product_has_modules.module_id', '=', 'modules.id')
@@ -240,17 +241,46 @@ class TicketList extends Page implements HasTable, HasActions, HasForms
                                 ->placeholder('Select a product first'),
                         ]),
 
+                    // ✅ Device Type field - now shows/hides based on priority
+                    Select::make('device_type')
+                        ->label('Device Type')
+                        ->options([
+                            'Mobile' => 'Mobile',
+                            'Browser' => 'Browser',
+                        ])
+                        ->live()
+                        ->required(function (Get $get): bool {
+                            // Required when priority is Software Bugs
+                            $priorityId = $get('priority_id');
+                            if (!$priorityId) return false;
+
+                            $priority = TicketPriority::find($priorityId);
+                            return $priority && str_contains(strtolower($priority->name), 'software bugs');
+                        })
+                        ->hidden(function (Get $get): bool {
+                            // Hide when NOT Software Bugs priority
+                            $priorityId = $get('priority_id');
+                            if (!$priorityId) return true; // Hide when no priority selected
+
+                            $priority = TicketPriority::find($priorityId);
+                            return !($priority && str_contains(strtolower($priority->name), 'software bugs'));
+                        })
+                        ->afterStateUpdated(function (callable $set, $state) {
+                            // Clear related fields when device type changes or is cleared
+                            if (!$state) {
+                                $set('mobile_type', null);
+                                $set('browser_type', null);
+                                $set('version_screenshot', null);
+                                $set('device_id', null);
+                                $set('os_version', null);
+                                $set('app_version', null);
+                                $set('windows_version', null);
+                            }
+                        }),
+
+                    // ✅ Update all other device-related fields to use hidden() consistently
                     Grid::make(2)
                         ->schema([
-                            Select::make('device_type')
-                                ->label('Device Type')
-                                ->options([
-                                    'Mobile' => 'Mobile',
-                                    'Browser' => 'Browser',
-                                ])
-                                ->live()
-                                ->required(),
-
                             Select::make('mobile_type')
                                 ->label('Mobile Type')
                                 ->options([
@@ -258,8 +288,25 @@ class TicketList extends Page implements HasTable, HasActions, HasForms
                                     'Android' => 'Android',
                                     'Huawei' => 'Huawei',
                                 ])
-                                ->visible(fn (Get $get): bool => $get('device_type') === 'Mobile')
-                                ->required(fn (Get $get): bool => $get('device_type') === 'Mobile'),
+                                ->hidden(function (Get $get): bool {
+                                    // Hide if NOT (Software Bugs AND Mobile)
+                                    $priorityId = $get('priority_id');
+                                    if (!$priorityId) return true;
+
+                                    $priority = TicketPriority::find($priorityId);
+                                    $isSoftwareBugs = $priority && str_contains(strtolower($priority->name), 'software bugs');
+
+                                    return !($isSoftwareBugs && $get('device_type') === 'Mobile');
+                                })
+                                ->required(function (Get $get): bool {
+                                    $priorityId = $get('priority_id');
+                                    if (!$priorityId) return false;
+
+                                    $priority = TicketPriority::find($priorityId);
+                                    $isSoftwareBugs = $priority && str_contains(strtolower($priority->name), 'software bugs');
+
+                                    return $isSoftwareBugs && $get('device_type') === 'Mobile';
+                                }),
 
                             Select::make('browser_type')
                                 ->label('Browser Type')
@@ -270,8 +317,25 @@ class TicketList extends Page implements HasTable, HasActions, HasForms
                                     'Edge' => 'Edge',
                                     'Opera' => 'Opera',
                                 ])
-                                ->visible(fn (Get $get): bool => $get('device_type') === 'Browser')
-                                ->required(fn (Get $get): bool => $get('device_type') === 'Browser'),
+                                ->hidden(function (Get $get): bool {
+                                    // Hide if NOT (Software Bugs AND Browser)
+                                    $priorityId = $get('priority_id');
+                                    if (!$priorityId) return true;
+
+                                    $priority = TicketPriority::find($priorityId);
+                                    $isSoftwareBugs = $priority && str_contains(strtolower($priority->name), 'software bugs');
+
+                                    return !($isSoftwareBugs && $get('device_type') === 'Browser');
+                                })
+                                ->required(function (Get $get): bool {
+                                    $priorityId = $get('priority_id');
+                                    if (!$priorityId) return false;
+
+                                    $priority = TicketPriority::find($priorityId);
+                                    $isSoftwareBugs = $priority && str_contains(strtolower($priority->name), 'software bugs');
+
+                                    return $isSoftwareBugs && $get('device_type') === 'Browser';
+                                }),
                         ]),
 
                     Grid::make(2)
@@ -312,23 +376,13 @@ class TicketList extends Page implements HasTable, HasActions, HasForms
 
                     Grid::make(2)
                         ->schema([
-                            TextInput::make('windows_version') // ✅ Changed from windows_os_version
+                            TextInput::make('windows_version')
                                 ->label('Windows/OS Version')
                                 ->placeholder('e.g., Windows 11, macOS 13.1 (optional)')
                                 ->visible(fn (Get $get): bool => $get('device_type') === 'Browser')
                                 ->columnSpan(1),
                         ])
                         ->visible(fn (Get $get): bool => $get('device_type') === 'Browser'),
-
-                    Select::make('priority_id')
-                        ->label('Priority')
-                        ->required()
-                        ->options(
-                            TicketPriority::where('is_active', true)
-                                ->pluck('name', 'id')
-                                ->toArray()
-                        )
-                        ->columnSpanFull(),
 
                     Select::make('company_name')
                         ->label('Company Name')
@@ -340,7 +394,7 @@ class TicketList extends Page implements HasTable, HasActions, HasForms
                                 ->table('crm_expiring_license')
                                 ->select('f_company_name', 'f_created_time')
                                 ->groupBy('f_company_name', 'f_created_time')
-                                ->orderBy('f_company_name', 'asc') // ✅ Sort alphabetically
+                                ->orderBy('f_company_name', 'asc')
                                 ->get()
                                 ->mapWithKeys(function ($company) {
                                     return [$company->f_company_name => strtoupper($company->f_company_name)];
@@ -353,7 +407,7 @@ class TicketList extends Page implements HasTable, HasActions, HasForms
                                 ->select('f_company_name', 'f_created_time')
                                 ->where('f_company_name', 'like', "%{$search}%")
                                 ->groupBy('f_company_name', 'f_created_time')
-                                ->orderBy('f_company_name', 'asc') // ✅ Sort search results alphabetically
+                                ->orderBy('f_company_name', 'asc')
                                 ->limit(50)
                                 ->get()
                                 ->mapWithKeys(function ($company) {
@@ -366,7 +420,12 @@ class TicketList extends Page implements HasTable, HasActions, HasForms
                         })
                         ->columnSpanFull(),
 
-                    TextInput::make('zoho_id') // ✅ Changed from zoho_ticket_number
+                    Checkbox::make('is_internal')
+                        ->label('Internal Ticket')
+                        ->default(false)
+                        ->columnSpan(1),
+
+                    TextInput::make('zoho_id')
                         ->label('Zoho Ticket Number')
                         ->columnSpanFull(),
 
@@ -378,7 +437,7 @@ class TicketList extends Page implements HasTable, HasActions, HasForms
 
                     RichEditor::make('description')
                         ->label('Description')
-                        ->required() // ✅ Added required since DB field is NOT NULL
+                        ->required()
                         ->columnSpanFull(),
                 ])
                 ->action(function (array $data): void {
@@ -403,6 +462,7 @@ class TicketList extends Page implements HasTable, HasActions, HasForms
                         $data['requestor_id'] = $requestorId;
                         $data['created_date'] = now()->toDateString();
                         $data['isPassed'] = 0;
+                        $data['is_internal'] = $data['is_internal'] ?? false;
 
                         $productCode = $data['product_id'] == 1 ? 'HR1' : 'HR2';
 
@@ -418,7 +478,6 @@ class TicketList extends Page implements HasTable, HasActions, HasForms
                             $nextNumber = 1;
                         }
 
-                        // Format: TC-HR1-0009
                         $data['ticket_id'] = sprintf('TC-%s-%04d', $productCode, $nextNumber);
 
                         $ticket = Ticket::create($data);
@@ -440,7 +499,6 @@ class TicketList extends Page implements HasTable, HasActions, HasForms
                             ->body("Ticket {$data['ticket_id']} (ID: #{$ticket->id}) has been created successfully.")
                             ->send();
 
-                        // Refresh table
                         $this->dispatch('$refresh');
                     } catch (\Exception $e) {
                         Notification::make()
@@ -476,7 +534,6 @@ class TicketList extends Page implements HasTable, HasActions, HasForms
         }
     }
 
-    // ✅ Add closeTicketModal method
     public function closeTicketModal(): void
     {
         $this->showTicketModal = false;
@@ -485,7 +542,6 @@ class TicketList extends Page implements HasTable, HasActions, HasForms
         $this->attachments = [];
     }
 
-    // ✅ Add addComment method
     public function addComment(): void
     {
         if (empty($this->newComment) || !$this->selectedTicket) {
@@ -532,7 +588,6 @@ class TicketList extends Page implements HasTable, HasActions, HasForms
         }
     }
 
-    // ✅ Add uploadAttachments method
     public function uploadAttachments(): void
     {
         $this->validate([
@@ -604,7 +659,6 @@ class TicketList extends Page implements HasTable, HasActions, HasForms
         }
     }
 
-    // ✅ Add form schema for comment
     protected function getFormSchema(): array
     {
         return [
@@ -632,7 +686,6 @@ class TicketList extends Page implements HasTable, HasActions, HasForms
         ];
     }
 
-    // ✅ Add helper methods
     private function isImageFile($attachment): bool
     {
         if (str_starts_with($attachment->mime_type, 'image/')) {
@@ -642,9 +695,10 @@ class TicketList extends Page implements HasTable, HasActions, HasForms
         return in_array($extension, ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg', 'webp']);
     }
 
-    public function updateTicketStatus(Ticket $ticket, string $newStatus): void
+    public function updateTicketStatus($ticketId, string $newStatus): void
     {
         try {
+            $ticket = Ticket::findOrFail($ticketId);
             $authUser = auth()->user();
 
             $ticketSystemUser = null;
@@ -661,17 +715,25 @@ class TicketList extends Page implements HasTable, HasActions, HasForms
             // Update ticket status
             $ticket->update(['status' => $newStatus]);
 
-            // Create log entry
+            // Log the status change
             TicketLog::create([
                 'ticket_id' => $ticket->id,
                 'old_value' => $oldStatus,
                 'new_value' => $newStatus,
+                'action' => "Changed status from '{$oldStatus}' to '{$newStatus}' for ticket {$ticket->ticket_id}.",
+                'field_name' => 'status',
+                'change_reason' => null,
+                'old_eta' => null,
+                'new_eta' => null,
                 'updated_by' => $userId,
                 'user_name' => $ticketSystemUser?->name ?? 'HRcrm User',
-                'user_role' => $ticketSystemUser?->role ?? 'test role',
+                'user_role' => $ticketSystemUser?->role ?? 'Support Staff',
                 'change_type' => 'status_change',
-                'source' => 'manual',
+                'source' => 'modal',
             ]);
+
+            // ✅ Refresh the selected ticket with fresh data including logs
+            $this->selectedTicket = $ticket->fresh(['logs', 'comments', 'attachments', 'priority', 'product', 'module', 'requestor']);
 
             Notification::make()
                 ->title('Status Updated')
@@ -679,8 +741,8 @@ class TicketList extends Page implements HasTable, HasActions, HasForms
                 ->body("Ticket {$ticket->ticket_id} status changed from {$oldStatus} to {$newStatus}")
                 ->send();
 
-            // Refresh table
-            $this->dispatch('$refresh');
+            // ✅ Dispatch event to refresh both V1 and V2 tables
+            $this->dispatch('ticket-status-updated');
 
         } catch (\Exception $e) {
             Log::error('Error updating ticket status: ' . $e->getMessage());
@@ -688,7 +750,7 @@ class TicketList extends Page implements HasTable, HasActions, HasForms
             Notification::make()
                 ->title('Error')
                 ->danger()
-                ->body('Failed to update ticket status')
+                ->body('Failed to update ticket status: ' . $e->getMessage())
                 ->send();
         }
     }
