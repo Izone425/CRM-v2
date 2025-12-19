@@ -1118,23 +1118,31 @@ class QuotationResource extends Resource
                 //     ->getOptionLabelUsing(
                 //         fn(Lead $lead, $value, QuotationService $quotationService): string => $quotationService->getLeadName($lead, $value)
                 //     ),
-                Filter::make('company_name')
+                Filter::make('any_company_name')
                     ->form([
-                        TextInput::make('company_name')
-                            ->label('Company Name')
-                            // ->hiddenLabel()
-                            ->placeholder('Enter company name'),
+                        TextInput::make('any_company_name')
+                            ->hiddenLabel()
+                            ->placeholder('Search main or subsidiary company'),
                     ])
                     ->query(function (\Illuminate\Database\Eloquent\Builder $query, array $data) {
-                        if (!empty($data['company_name'])) {
-                            $query->whereHas('lead.companyDetail', function ($query) use ($data) {
-                                $query->where('company_name', 'like', '%' . $data['company_name'] . '%');
+                        if (! empty($data['any_company_name'])) {
+                            $searchTerm = $data['any_company_name'];
+
+                            $query->where(function ($query) use ($searchTerm) {
+                                // Search in main company
+                                $query->whereHas('companyDetail', function ($query) use ($searchTerm) {
+                                    $query->where('company_name', 'like', '%'.$searchTerm.'%');
+                                })
+                                // OR search in subsidiaries
+                                ->orWhereHas('subsidiaries', function ($query) use ($searchTerm) {
+                                    $query->where('company_name', 'like', '%'.$searchTerm.'%');
+                                });
                             });
                         }
                     })
                     ->indicateUsing(function (array $data) {
-                        return isset($data['company_name'])
-                            ? 'Company Name: ' . $data['company_name']
+                        return isset($data['any_company_name'])
+                            ? 'Company/Subsidiary: '.$data['any_company_name']
                             : null;
                     }),
                 SelectFilter::make('sales_person_id')
