@@ -172,6 +172,53 @@ class ArFollowUpTodayMyr extends Component implements HasForms, HasTable
                     ])
                     ->placeholder('All Statuses')
                     ->multiple(),
+
+                SelectFilter::make('reseller_status')
+                    ->label('Filter by Reseller')
+                    ->options([
+                        'with_reseller' => 'With Reseller',
+                        'without_reseller' => 'Without Reseller',
+                    ])
+                    ->placeholder('All Companies')
+                    ->query(function ($query, array $data) {
+                        if (empty($data['value'])) {
+                            return $query;
+                        }
+
+                        $filterValue = $data['value'];
+                        $companyIds = $query->pluck('f_company_id')->unique()->toArray();
+
+                        if (empty($companyIds)) {
+                            return $query;
+                        }
+
+                        // Get reseller data for all companies
+                        try {
+                            $resellerData = DB::connection('frontenddb')
+                                ->table('crm_reseller_link')
+                                ->whereIn('f_id', $companyIds)
+                                ->select('f_id', 'f_rate')
+                                ->get()
+                                ->keyBy('f_id');
+
+                            $filteredCompanyIds = [];
+
+                            foreach ($companyIds as $companyId) {
+                                $hasReseller = isset($resellerData[$companyId]) && $resellerData[$companyId]->f_rate;
+
+                                if ($filterValue === 'with_reseller' && $hasReseller) {
+                                    $filteredCompanyIds[] = $companyId;
+                                } elseif ($filterValue === 'without_reseller' && !$hasReseller) {
+                                    $filteredCompanyIds[] = $companyId;
+                                }
+                            }
+
+                            return $query->whereIn('f_company_id', $filteredCompanyIds);
+                        } catch (\Exception $e) {
+                            Log::error("Error filtering by reseller status: " . $e->getMessage());
+                            return $query;
+                        }
+                    }),
             ])
             ->columns([
                 TextColumn::make('admin_renewal')
