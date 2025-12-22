@@ -102,6 +102,7 @@ class SoftwareHandover extends Model
         'project_plan_link',
         'project_plan_generated_at',
         'reseller_id',
+        'tt_invoice_number',
     ];
 
     protected $casts = [
