@@ -24,6 +24,7 @@ class RenewalHandover extends Model
         'notes',
         'processed_at',
         'autocount_response',
+        'tt_invoice_number',
     ];
 
     protected $casts = [

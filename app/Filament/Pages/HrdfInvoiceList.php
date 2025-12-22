@@ -4,6 +4,7 @@ namespace App\Filament\Pages;
 
 use App\Models\CrmHrdfInvoice;
 use App\Models\SoftwareHandover;
+use App\Models\Quotation;
 use Filament\Pages\Page;
 use Filament\Tables\Table;
 use Filament\Tables\Contracts\HasTable;
@@ -11,8 +12,10 @@ use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Actions\Action;
+use Filament\Tables\Actions\ActionGroup;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\HtmlString;
+use Illuminate\View\View;
 
 class HrdfInvoiceList extends Page implements HasTable
 {
@@ -26,7 +29,15 @@ class HrdfInvoiceList extends Page implements HasTable
     public function table(Table $table): Table
     {
         return $table
-            ->query(CrmHrdfInvoice::query()->with('handover'))
+            ->query(
+                CrmHrdfInvoice::query()
+                    ->with([
+                        'quotation',
+                        'softwareHandover',
+                        'hardwareHandover',
+                        'renewalHandover'
+                    ])
+            )
             ->defaultSort('created_at', 'desc')
             ->columns([
                 TextColumn::make('invoice_no')
@@ -66,21 +77,101 @@ class HrdfInvoiceList extends Page implements HasTable
                 TextColumn::make('handover_id')
                     ->label('Handover ID')
                     ->formatStateUsing(function ($state, $record) {
-                        if ($record->handover && $record->handover->formatted_handover_id) {
-                            return $record->handover->formatted_handover_id;
+                        // ✅ Get the actual handover record based on type
+                        $handoverRecord = null;
+
+                        switch ($record->handover_type) {
+                            case 'SW':
+                                $handoverRecord = $record->softwareHandover;
+                                break;
+                            case 'HW':
+                                $handoverRecord = $record->hardwareHandover;
+                                break;
+                            case 'RW':
+                                $handoverRecord = $record->renewalHandover;
+                                break;
                         }
-                        return 'SW_' . str_pad($state, 6, '0', STR_PAD_LEFT);
+
+                        // ✅ If we have the actual handover record, use its formatted_handover_id
+                        if ($handoverRecord && method_exists($handoverRecord, 'getFormattedHandoverIdAttribute')) {
+                            return $handoverRecord->formatted_handover_id;
+                        }
+
+                        // ✅ Fallback: Generate formatted ID based on handover type
+                        switch ($record->handover_type) {
+                            case 'SW': // Software
+                                return 'SW_' . str_pad($state, 6, '0', STR_PAD_LEFT);
+                            case 'HW': // Hardware
+                                return 'HW_' . str_pad($state, 6, '0', STR_PAD_LEFT);
+                            case 'RW': // Renewal
+                                return 'RW_' . str_pad($state, 6, '0', STR_PAD_LEFT);
+                            default:
+                                return 'SW_' . str_pad($state, 6, '0', STR_PAD_LEFT);
+                        }
                     })
-                    ->color('info'),
+                    ->color('primary')
+                    ->weight('bold')
+                    ->action(
+                        Action::make('viewHandoverDetails')
+                            ->modalHeading(false)
+                            ->modalWidth('4xl')
+                            ->modalSubmitAction(false)
+                            ->modalCancelAction(false)
+                            ->modalContent(function (CrmHrdfInvoice $record): View {
+                                // ✅ Get the actual handover record based on type
+                                $handoverRecord = null;
+
+                                switch ($record->handover_type) {
+                                    case 'SW':
+                                        $handoverRecord = $record->softwareHandover;
+                                        break;
+                                    case 'HW':
+                                        $handoverRecord = $record->hardwareHandover;
+                                        break;
+                                    case 'RW':
+                                        $handoverRecord = $record->renewalHandover;
+                                        break;
+                                }
+
+                                if (!$handoverRecord) {
+                                    return view('components.handover-not-found')
+                                        ->with('extraAttributes', ['record' => $record]);
+                                }
+
+                                // ✅ Show different components based on handover type
+                                switch ($record->handover_type) {
+                                    case 'SW':
+                                        return view('components.software-handover')
+                                            ->with('extraAttributes', ['record' => $handoverRecord]);
+
+                                    case 'HW':
+                                        return view('components.hardware-handover')
+                                            ->with('extraAttributes', ['record' => $handoverRecord]);
+
+                                    case 'RW':
+                                        return view('components.renewal-handover')
+                                            ->with('extraAttributes', ['record' => $handoverRecord]);
+
+                                    default:
+                                        return view('components.software-handover')
+                                            ->with('extraAttributes', ['record' => $handoverRecord]);
+                                }
+                            })
+                    ),
 
                 TextColumn::make('salesperson')
-                    ->label('Salesperson')
+                    ->label('SalesPerson')
                     ->searchable()
                     ->limit(20),
 
+                TextColumn::make('tt_invoice_number')
+                    ->label('TT Invoice')
+                    ->searchable(),
+
                 TextColumn::make('debtor_code')
                     ->label('Debtor Code')
-                    ->searchable(),
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('total_amount')
                     ->label('Amount (RM)')
@@ -114,6 +205,18 @@ class HrdfInvoiceList extends Page implements HasTable
                     })
                     ->searchable()
                     ->multiple(),
+            ])
+            // ✅ ADD: Actions for each row
+            ->actions([
+                ActionGroup::make([
+                    Action::make('view_pi')
+                        ->label('View PI')
+                        ->icon('heroicon-o-document-text')
+                        ->color('primary')
+                        ->visible(fn (CrmHrdfInvoice $record) => !is_null($record->quotation_id))
+                        ->url(fn(Quotation $quotation) => route('pdf.print-proforma-invoice-v2', $quotation))
+                        ->openUrlInNewTab(),
+                ])
             ])
             ->defaultPaginationPageOption(50)
             ->paginated([50, 100]);

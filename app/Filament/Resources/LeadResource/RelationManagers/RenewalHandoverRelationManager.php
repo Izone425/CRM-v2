@@ -111,9 +111,18 @@ class RenewalHandoverRelationManager extends RelationManager
                     ),
 
                 Tables\Columns\TextColumn::make('total_amount')
-                    ->label('Amount')
+                    ->label('Amount (with Tax)') // ✅ Updated label to clarify it includes tax
                     ->money('MYR')
-                    ->sortable(),
+                    ->sortable()
+                    ->getStateUsing(function (RenewalHandover $record): float {
+                        // ✅ Recalculate to ensure it includes tax
+                        if (empty($record->selected_quotation_ids)) {
+                            return 0;
+                        }
+
+                        return \App\Models\QuotationDetail::whereIn('quotation_id', $record->selected_quotation_ids)
+                            ->sum('total_after_tax'); // ✅ Sum with tax included
+                    }),
 
                 Tables\Columns\TextColumn::make('status')
                     ->badge()
@@ -144,6 +153,11 @@ class RenewalHandoverRelationManager extends RelationManager
                     ->modalWidth('xl')
                     ->form([
                         Grid::make(1)->schema([
+                            Forms\Components\TextInput::make('tt_invoice_number')
+                                ->label('License Number')
+                                ->placeholder('Enter alphanumeric license number (one-time entry for all invoices)')
+                                ->maxLength(255),
+
                             Select::make('selected_proforma_invoices')
                                 ->label('Select Proforma Invoices (HRDF)')
                                 ->multiple()
@@ -202,9 +216,20 @@ class RenewalHandoverRelationManager extends RelationManager
                                                     return $preview['message'] ?? 'No items to display';
                                                 }
 
+                                                // Get company name from first quotation's subsidiary if available
+                                                $displayCompanyName = $lead->companyDetail->company_name;
+                                                if (!empty($selectedPIs)) {
+                                                    $firstQuotation = \App\Models\Quotation::with('subsidiary', 'lead.companyDetail')->find($selectedPIs[0]);
+                                                    if ($firstQuotation && $firstQuotation->subsidiary && !empty($firstQuotation->subsidiary->company_name)) {
+                                                        $displayCompanyName = $firstQuotation->subsidiary->company_name;
+                                                    } elseif ($firstQuotation && $firstQuotation->lead && $firstQuotation->lead->companyDetail && !empty($firstQuotation->lead->companyDetail->company_name)) {
+                                                        $displayCompanyName = $firstQuotation->lead->companyDetail->company_name;
+                                                    }
+                                                }
+
                                                 $html = '<div class="space-y-4">';
                                                 $html .= '<div><strong>Debtor:</strong> ARM-P0062 - PEMBANGUNAN SUMBER MANUSIA BERHAD</div>';
-                                                $html .= '<div><strong>Company:</strong> ' . $lead->companyDetail->company_name . '</div>';
+                                                $html .= '<div><strong>Company:</strong> ' . $displayCompanyName . '</div>';
                                                 $html .= '<div><strong>Support Person:</strong> FATIMAH</div>'; // ✅ Show support person
                                                 $html .= '<div><strong>Salesperson:</strong> None (Renewal)</div>'; // ✅ Show no salesperson
                                                 $html .= '<div><strong>Total Invoices:</strong> ' . $preview['total_invoices'] . '</div>';
@@ -279,20 +304,33 @@ class RenewalHandoverRelationManager extends RelationManager
 
                             // ✅ Create RenewalHandover record first
                             $totalAmount = 0;
-                            foreach ($selectedPIs as $quotationId) {
-                                $quotation = \App\Models\Quotation::find($quotationId);
-                                if ($quotation) {
-                                    $totalAmount += $quotation->total_before_tax;
+
+                            // Get company name from first quotation's subsidiary if available
+                            $companyName = $lead->companyDetail->company_name;
+                            if (!empty($selectedPIs)) {
+                                $firstQuotation = \App\Models\Quotation::with('subsidiary', 'lead.companyDetail')->find($selectedPIs[0]);
+                                if ($firstQuotation && $firstQuotation->subsidiary && !empty($firstQuotation->subsidiary->company_name)) {
+                                    $companyName = $firstQuotation->subsidiary->company_name;
+                                } elseif ($firstQuotation && $firstQuotation->lead && $firstQuotation->lead->companyDetail && !empty($firstQuotation->lead->companyDetail->company_name)) {
+                                    $companyName = $firstQuotation->lead->companyDetail->company_name;
                                 }
+                            }
+
+                            foreach ($selectedPIs as $quotationId) {
+                                // ✅ UPDATED: Sum up total_after_tax instead of total_before_tax
+                                $quotationTotal = \App\Models\QuotationDetail::where('quotation_id', $quotationId)
+                                    ->sum('total_after_tax'); // ✅ Changed from total_before_tax
+                                $totalAmount += $quotationTotal;
                             }
 
                             $renewalHandover = RenewalHandover::create([
                                 'lead_id' => $lead->id,
-                                'company_name' => $lead->companyDetail->company_name,
+                                'company_name' => $companyName,
                                 'selected_quotation_ids' => $selectedPIs,
-                                'total_amount' => $totalAmount,
+                                'total_amount' => $totalAmount, // ✅ Now includes tax
                                 'status' => 'processing',
                                 'created_by' => auth()->id(),
+                                'tt_invoice_number' => $data['tt_invoice_number'] ?? '',
                             ]);
 
                             // ✅ Create the renewal invoices using AutoCount
@@ -376,7 +414,6 @@ class RenewalHandoverRelationManager extends RelationManager
             ];
         }
 
-        // ✅ Use the same invoice number generation for preview
         $invoiceNumbers = $this->generateMultipleInvoiceNumbers(count($quotationIds));
         $invoices = [];
         $grandTotal = 0;
@@ -393,7 +430,8 @@ class RenewalHandoverRelationManager extends RelationManager
             foreach ($details as $detail) {
                 $productCode = $detail->product->code ?? 'Item-' . $detail->product_id;
                 $unitPrice = (float) $detail->unit_price;
-                $amount = (float) $detail->total_before_tax;
+                // ✅ UPDATED: Use total_after_tax instead of total_before_tax
+                $amount = (float) $detail->total_after_tax; // ✅ Changed to include tax
                 $quantity = (float) $detail->quantity;
 
                 $key = $productCode . '|' . $unitPrice;
@@ -406,31 +444,31 @@ class RenewalHandoverRelationManager extends RelationManager
                         'code' => $productCode,
                         'quantity' => $quantity,
                         'unit_price' => $unitPrice,
-                        'amount' => $amount
+                        'amount' => $amount // ✅ Now includes tax
                     ];
                 }
 
-                $invoiceTotal += $amount;
+                $invoiceTotal += $amount; // ✅ Total now includes tax
             }
 
             $items = array_values($groupedItems);
 
             $invoices[] = [
-                'invoice_no' => $invoiceNumbers[$index], // ✅ Use pre-generated number
+                'invoice_no' => $invoiceNumbers[$index],
                 'items' => $items,
-                'total' => $invoiceTotal,
+                'total' => $invoiceTotal, // ✅ Total with tax
                 'quotation_ids' => [$quotationId],
-                'support_person' => 'FATIMAH', // ✅ Add support person to preview
+                'support_person' => 'FATIMAH',
             ];
 
-            $grandTotal += $invoiceTotal;
+            $grandTotal += $invoiceTotal; // ✅ Grand total with tax
         }
 
         return [
             'invoices' => $invoices,
             'total_invoices' => count($invoices),
-            'grand_total' => $grandTotal,
-            'support_person' => 'FATIMAH' // ✅ Add to overall preview
+            'grand_total' => $grandTotal, // ✅ Includes tax
+            'support_person' => 'FATIMAH'
         ];
     }
 
@@ -478,18 +516,31 @@ class RenewalHandoverRelationManager extends RelationManager
                     continue;
                 }
 
+                // Get company name from quotation subsidiary if available
+                $quotation = \App\Models\Quotation::with('subsidiary', 'lead.companyDetail')->find($quotationId);
+                $customerName = $lead->companyDetail->company_name;
+                if ($quotation) {
+                    if ($quotation->subsidiary_id && $quotation->subsidiary) {
+                        $customerName = $quotation->subsidiary->company_name;
+                    } elseif ($quotation->lead && $quotation->lead->companyDetail) {
+                        $customerName = $quotation->lead->companyDetail->company_name;
+                    }
+                }
+
                 // ✅ Prepare invoice data for AutoCount API with FATIMAH as support
                 $invoiceData = [
                     'company' => 'TIMETEC CLOUD Sandbox',
                     'customer_code' => 'ARM-P0062',
                     'document_no' => $invoiceNo,
                     'document_date' => now()->format('Y-m-d'),
-                    'description' => 'Renewal Invoice - ' . $lead->companyDetail->company_name,
+                    'description' => 'Renewal Invoice - ' . $customerName,
                     'salesperson' => null, // ✅ No salesperson for renewals
                     'round_method' => 0,
                     'inclusive' => true,
                     'details' => $this->getInvoiceDetailsFromQuotation($quotationId),
                     'udfSupport' => 'FATIMAH', // ✅ Add udfSupport field for FATIMAH
+                    'uDFCustomerName' => $customerName,
+                    'uDFLicenseNumber' => $renewalHandover->tt_invoice_number ?? '',
                 ];
 
                 // Use the AutoCountInvoiceService
@@ -505,16 +556,41 @@ class RenewalHandoverRelationManager extends RelationManager
                 $createdInvoices[] = $invoiceNo;
 
                 // ✅ Create CrmHrdfInvoice record with FATIMAH as salesperson (support)
-                $total = $details->sum('total_before_tax');
+                $total = \App\Models\QuotationDetail::where('quotation_id', $quotationId)
+                    ->sum('total_after_tax'); // ✅ Changed from total_before_tax to total_after_tax
+
+                // Get company name from quotation subsidiary if available (same as AutoCount logic)
+                $quotationRecord = \App\Models\Quotation::with('subsidiary', 'lead.companyDetail')->find($quotationId);
+                $customerName = $lead->companyDetail->company_name;
+                if ($quotationRecord && $quotationRecord->subsidiary && !empty($quotationRecord->subsidiary->company_name)) {
+                    $customerName = $quotationRecord->subsidiary->company_name;
+                } elseif ($quotationRecord && $quotationRecord->lead && $quotationRecord->lead->companyDetail && !empty($quotationRecord->lead->companyDetail->company_name)) {
+                    $customerName = $quotationRecord->lead->companyDetail->company_name;
+                }
+
+                // Get FATIMAH's autocount_name
+                $fatimahUser = \App\Models\User::where('name', 'FATIMAH')->first();
+                $fatimahAutoCountName = $fatimahUser?->autocount_name ?? 'FATIMAH';
 
                 CrmHrdfInvoice::create([
                     'invoice_no' => $invoiceNo,
                     'invoice_date' => now()->toDateString(),
-                    'company_name' => $lead->companyDetail->company_name,
+                    'company_name' => $customerName,
                     'handover_type' => 'RW',
-                    'salesperson' => 'FATIMAH', // ✅ Set FATIMAH as support person
+                    'salesperson' => $fatimahAutoCountName, // ✅ Use FATIMAH's autocount_name
+                    'handover_id' => $renewalHandover->id, // ✅ Use renewal handover ID
+                    'quotation_id' => $quotationId, // ✅ Store quotation ID for "View PI" functionality
                     'debtor_code' => 'ARM-P0062',
-                    'total_amount' => $total,
+                    'total_amount' => $total, // ✅ Now includes tax
+                    'tt_invoice_number' => $renewalHandover->tt_invoice_number ?? '',
+                ]);
+
+                Log::info('Renewal HRDF Invoice record created', [
+                    'invoice_no' => $invoiceNo,
+                    'renewal_handover_id' => $renewalHandover->id,
+                    'quotation_id' => $quotationId,
+                    'total_after_tax' => $total, // ✅ Log with tax included
+                    'handover_type' => 'RW',
                 ]);
 
                 // ✅ Mark the quotation as having AutoCount invoice generated
@@ -610,13 +686,32 @@ class RenewalHandoverRelationManager extends RelationManager
             $product = $detail->product;
             $account = $this->getAccountFromProduct($product);
 
+            // ✅ Tax information
+            $taxCode = '';
+            $taxRate = 0;
+            if ($product && $product->taxable) {
+                $taxCode = 'SV-8';
+                $taxRate = 8;
+            }
+
+            // ✅ Calculate tax-inclusive unit price for AutoCount
+            $baseUnitPrice = (float) $detail->unit_price;
+            $taxInclusiveUnitPrice = $baseUnitPrice;
+
+            if ($product && $product->taxable && $taxRate > 0) {
+                // Calculate tax-inclusive price: base price * (1 + tax rate)
+                $taxInclusiveUnitPrice = $baseUnitPrice * (1 + ($taxRate / 100));
+            }
+
             $invoiceDetails[] = [
                 'account' => $account,
                 'itemCode' => $product->code ?? 'ITEM-' . $product->id,
                 'location' => 'HQ',
                 'quantity' => (float) $detail->quantity,
                 'uom' => 'UNIT',
-                'unitPrice' => (float) $detail->unit_price,
+                'unitPrice' => $taxInclusiveUnitPrice, // ✅ Send tax-inclusive price to AutoCount
+                'taxCode' => $taxCode,
+                'taxRate' => $taxRate,
             ];
         }
 

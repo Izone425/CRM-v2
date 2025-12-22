@@ -531,7 +531,7 @@ class HardwareV2PendingInternalInstallationTable extends Component implements Ha
                                                                     ->default('ONSITE'),
 
                                                                 \Filament\Forms\Components\Hidden::make('technician')
-                                                                    ->default('KHAIRUL IZZUDIN'),
+                                                                    ->default('Khairul Izzuddin'),
                                                             ]),
 
                                                         Grid::make(3)
@@ -541,7 +541,7 @@ class HardwareV2PendingInternalInstallationTable extends Component implements Ha
                                                                     ->required()
                                                                     ->native(false)
                                                                     ->displayFormat('d/m/Y')
-                                                                    ->minDate(now()),
+                                                                    ->minDate(now()->subDay()),
 
                                                                 TimePicker::make('start_time')
                                                                     ->label('START TIME')
@@ -891,7 +891,7 @@ class HardwareV2PendingInternalInstallationTable extends Component implements Ha
                                         'date' => $installation['appointment_date'],
                                         'start_time' => $installation['start_time'],
                                         'end_time' => $installation['end_time'],
-                                        'technician' => 'KHAIRUL IZZUDIN',
+                                        'technician' => 'Khairul Izzuddin',
                                         'causer_id' => auth()->user()->id,
                                         'technician_assigned_date' => now(),
                                         'remarks' => $installation['installation_remark'] ?? '',
@@ -1042,7 +1042,7 @@ class HardwareV2PendingInternalInstallationTable extends Component implements Ha
             $emailData = [
                 'hardware_id' => $hardwareId,
                 'company_name' => strtoupper($lead->companyDetail->company_name ?? 'N/A'),
-                'technician_name' => 'Khairul Izzudin',
+                'technician_name' => 'Khairul Izzuddin',
                 'technician_phone' => '', // Add if available
                 'pic_name' => $installation['pic_name'] ?? 'N/A',
                 'pic_phone' => $installation['pic_phone'] ?? 'N/A',

@@ -91,19 +91,22 @@ class QuotationResource extends Resource
                         Select::make('lead_id')
                             ->label('Company Name')
                             ->searchable()
-                            ->options(function () {
-                                $query = Lead::with('companyDetail')
+                            ->getSearchResultsUsing(function (string $search) {
+                                return Lead::with('companyDetail')
                                     ->when(auth()->user()->role_id == 2, function ($q) {
-                                        $q->where('salesperson', auth()->id()); // Filter leads by salesperson if role_id == 2
+                                        $q->where('salesperson', auth()->id());
                                     })
-                                    ->get();
-
-                                return $query
-                                    ->filter(fn($lead) => $lead->companyDetail && $lead->companyDetail->company_name)
-                                    ->mapWithKeys(function ($lead) {
-                                        return [$lead->id => $lead->companyDetail->company_name];
+                                    ->whereHas('companyDetail', function ($q) use ($search) {
+                                        $q->where('company_name', 'like', "%{$search}%");
                                     })
+                                    ->limit(50)
+                                    ->get()
+                                    ->pluck('companyDetail.company_name', 'id')
                                     ->toArray();
+                            })
+                            ->getOptionLabelUsing(function ($value) {
+                                $lead = Lead::with('companyDetail')->find($value);
+                                return $lead?->companyDetail?->company_name ?? 'Unknown Company';
                             })
                             ->default(
                                 fn() => request()->has('lead_id')
@@ -142,19 +145,16 @@ class QuotationResource extends Resource
                             ->options(function (Forms\Get $get) {
                                 $leadId = $get('lead_id');
                                 if (!$leadId) {
-                                    return [];
+                                    return ['' => 'Use Default Company Details'];
                                 }
 
-                                $lead = Lead::find($leadId);
-                                if (!$lead) {
-                                    return [];
-                                }
-
-                                // Return "None" option plus all subsidiaries
                                 $options = ['' => 'Use Default Company Details'];
 
-                                // Add subsidiaries
-                                $subsidiaries = $lead->subsidiaries()->get();
+                                // Use efficient query to get subsidiaries
+                                $subsidiaries = \App\Models\Subsidiary::where('lead_id', $leadId)
+                                    ->select('id', 'company_name')
+                                    ->get();
+
                                 foreach ($subsidiaries as $subsidiary) {
                                     $options[$subsidiary->id] = $subsidiary->company_name;
                                 }
@@ -223,9 +223,7 @@ class QuotationResource extends Resource
                             ->default(function (Forms\Get $get) {
                                 $leadId = $get('lead_id');
                                 if ($leadId) {
-                                    $lead = Lead::find($leadId);
-                                    info($lead?->eInvoiceDetail?->currency);
-                                    // Get currency from lead's e-invoice details, fallback to MYR
+                                    $lead = Lead::select('id')->with('eInvoiceDetail:id,lead_id,currency')->find($leadId);
                                     return $lead?->eInvoiceDetail?->currency ?? 'MYR';
                                 }
                                 return 'MYR';
@@ -233,15 +231,22 @@ class QuotationResource extends Resource
                             ->required()
                             ->live()
                             ->afterStateUpdated(function (string $state, Forms\Get $get, Forms\Set $set) {
-                                // When USD is selected, set SST rate to 0
+                                // Cache SST rate to avoid repeated queries
+                                static $cachedSstRate = null;
+
                                 if ($state === 'USD') {
                                     $set('sst_rate', 0);
                                 } else {
-                                    // Reset to default SST rate from settings when MYR is selected
-                                    $set('sst_rate', Setting::where('name', 'sst_rate')->first()->value);
+                                    if ($cachedSstRate === null) {
+                                        $cachedSstRate = \Illuminate\Support\Facades\Cache::remember(
+                                            'sst_rate_setting',
+                                            3600,
+                                            fn() => Setting::where('name', 'sst_rate')->value('value') ?? 8
+                                        );
+                                    }
+                                    $set('sst_rate', $cachedSstRate);
                                 }
 
-                                // Recalculate all totals after changing the SST rate
                                 self::recalculateAllRowsFromParent($get, $set);
                             })
                             ->reactive() // Keep reactive for when lead_id changes
@@ -440,8 +445,10 @@ class QuotationResource extends Resource
                         TextInput::make('num_of_participant')
                             ->label('Number Of Participant(s)')
                             ->numeric()
-                            ->live(onBlur: true)
+                            ->live(debounce: 1000)
                             ->afterStateUpdated(function (Forms\Get $get, Forms\Set $set, $state) {
+                                if (!$state) return;
+
                                 $set('num_of_participant', $state);
 
                                 $items = $get('items') ?? [];
@@ -456,8 +463,10 @@ class QuotationResource extends Resource
                         TextInput::make('unit_price')
                             ->label('Unit Price')
                             ->numeric()
-                            ->live(onBlur: true)
+                            ->live(debounce: 1000)
                             ->afterStateUpdated(function(?string $state, Forms\Get $get, Forms\Set $set) {
+                                if (!$state) return;
+
                                 $items = $get('items');
                                 foreach ($items as $index => $item) {
                                     $set("items.{$index}.unit_price", $state);
@@ -917,15 +926,24 @@ class QuotationResource extends Resource
                             ])
                             ->deleteAction(fn(Actions\Action $action) => $action->requiresConfirmation())
                             ->afterStateUpdated(function(Forms\Get $get, Forms\Set $set) {
-                                // Recalculate everything when items are added, removed, or cloned
-                                self::recalculateAllRowsFromParent($get, $set);
-                                self::recalculateAllYearsFromParent($get, $set);
-                                self::updateFields(null, $get, $set, null);
+                                // Use debounced recalculation to improve performance
+                                static $lastUpdate = 0;
+                                $currentTime = microtime(true);
+
+                                if ($currentTime - $lastUpdate > 0.5) { // 500ms debounce
+                                    self::recalculateAllRowsFromParent($get, $set);
+                                    self::recalculateAllYearsFromParent($get, $set);
+                                    self::updateFields(null, $get, $set, null);
+                                    $lastUpdate = $currentTime;
+                                }
                             })
                             ->afterStateHydrated(function(Forms\Get $get, Forms\Set $set) {
-                                // Recalculate years when form loads
-                                self::recalculateAllYearsFromParent($get, $set);
-                                self::updateFields(null, $get, $set, null);
+                                // Only recalculate if items exist and have meaningful data
+                                $items = $get('items');
+                                if ($items && count($items) > 0 && !empty(array_filter($items, fn($item) => !empty($item['product_id'])))) {
+                                    self::recalculateAllYearsFromParent($get, $set);
+                                    self::updateFields(null, $get, $set, null);
+                                }
                             })
                             ->defaultItems(1)
                             ->columns(8)
@@ -954,7 +972,7 @@ class QuotationResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
-            ->poll('10s')
+            ->poll('30s')
             ->recordUrl(null)
             // ->modifyQueryUsing(function(Quotation $quotation) {
             //     $currentUser = auth('web')->user();
@@ -971,21 +989,28 @@ class QuotationResource extends Resource
             ->defaultPaginationPageOption(50)
             ->paginated([50, 100])
             ->paginationPageOptions([50, 100])
-            ->modifyQueryUsing(function (Quotation $quotation) {
+            ->modifyQueryUsing(function (\Illuminate\Database\Eloquent\Builder $query) {
                 $currentUser = auth('web')->user();
 
+                // Always eager load relationships to prevent N+1 queries
+                $query->with([
+                    'lead.companyDetail:id,lead_id,company_name',
+                    'subsidiary:id,company_name',
+                    'sales_person:id,name',
+                    'items:id,quotation_id,total_before_tax,total_after_tax'
+                ]);
+
                 if ($currentUser->role_id == 3) {
-                    // If role_id is 3, return all quotations ordered by ID
-                    return $quotation->orderBy('id', 'desc');
-                }else if ($currentUser->role_id == 2) {
-                    // Fetch the quotations related to the lead where the current user is either the lead owner or the salesperson
-                    return $quotation->whereHas('lead', function ($query) use ($currentUser) {
-                        $query->where('lead_owner', $currentUser->name); // Lead owner (by name)
-                    })->orWhere('sales_person_id', $currentUser->id) // Salesperson (by ID)
-                    ->orderBy('id', 'desc');
-                }else{
-                    return $quotation->whereHas('lead', function ($query) {
-                        $query->where('lead_owner', auth()->user()->name);
+                    return $query->orderBy('id', 'desc');
+                } elseif ($currentUser->role_id == 2) {
+                    return $query->where(function ($q) use ($currentUser) {
+                        $q->whereHas('lead', function ($leadQuery) use ($currentUser) {
+                            $leadQuery->where('lead_owner', $currentUser->name);
+                        })->orWhere('sales_person_id', $currentUser->id);
+                    })->orderBy('id', 'desc');
+                } else {
+                    return $query->whereHas('lead', function ($leadQuery) {
+                        $leadQuery->where('lead_owner', auth()->user()->name);
                     })->orderBy('id', 'desc');
                 }
             })
@@ -1121,20 +1146,24 @@ class QuotationResource extends Resource
                 Filter::make('any_company_name')
                     ->form([
                         TextInput::make('any_company_name')
-                            ->hiddenLabel()
+                            ->label('Company/Subsidiary Name')
                             ->placeholder('Search main or subsidiary company'),
                     ])
                     ->query(function (\Illuminate\Database\Eloquent\Builder $query, array $data) {
-                        if (! empty($data['any_company_name'])) {
+                        if (!empty($data['any_company_name'])) {
                             $searchTerm = $data['any_company_name'];
 
                             $query->where(function ($query) use ($searchTerm) {
                                 // Search in main company
-                                $query->whereHas('companyDetail', function ($query) use ($searchTerm) {
+                                $query->whereHas('lead.companyDetail', function ($query) use ($searchTerm) {
                                     $query->where('company_name', 'like', '%'.$searchTerm.'%');
                                 })
                                 // OR search in subsidiaries
-                                ->orWhereHas('subsidiaries', function ($query) use ($searchTerm) {
+                                ->orWhereHas('lead.subsidiaries', function ($query) use ($searchTerm) {
+                                    $query->where('company_name', 'like', '%'.$searchTerm.'%');
+                                })
+                                // OR search in quotation's subsidiary (if quotation uses subsidiary)
+                                ->orWhereHas('subsidiary', function ($query) use ($searchTerm) {
                                     $query->where('company_name', 'like', '%'.$searchTerm.'%');
                                 });
                             });
@@ -1142,7 +1171,7 @@ class QuotationResource extends Resource
                     })
                     ->indicateUsing(function (array $data) {
                         return isset($data['any_company_name'])
-                            ? 'Company/Subsidiary: '.$data['any_company_name']
+                            ? 'Company/Subsidiary: ' . $data['any_company_name']
                             : null;
                     }),
                 SelectFilter::make('sales_person_id')
@@ -2038,12 +2067,15 @@ class QuotationResource extends Resource
         $grandTotal = 0;
         $totalTax = 0;
 
+        // Bulk fetch all products to reduce database queries
+        $productIds = collect($items)->pluck('product_id')->filter()->unique()->toArray();
+        $products = Product::whereIn('id', $productIds)->get()->keyBy('id');
+
         foreach ($items as $index => $item) {
             $product = null;
 
-            if (array_key_exists('product_id', $item)) {
-                $product_id = $item['product_id'];
-                $product = Product::find($product_id);
+            if (array_key_exists('product_id', $item) && isset($products[$item['product_id']])) {
+                $product = $products[$item['product_id']];
 
                 if ($product) {
                     $set("items.{$index}.convert_pi", $product->convert_pi);

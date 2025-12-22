@@ -482,6 +482,7 @@ class AutoCountInvoiceService
     public function createDebtor(array $debtorData): array
     {
         try {
+            // ✅ Updated payload structure to match the sample you provided
             $payload = [
                 'apiUsername' => $this->username,
                 'apiPassword' => $this->generateApiPassword(),
@@ -511,11 +512,9 @@ class AutoCountInvoiceService
                 ]
             ];
 
-            Log::info('AutoCount Create Debtor Payload', [
+            Log::info('AutoCount Create Debtor Request', [
                 'company_name' => $debtorData['company_name'],
-                'contact_person' => $debtorData['contact_person'] ?? '',
-                'sales_agent' => $debtorData['sales_agent'] ?? '',
-                'area_code' => $debtorData['area_code'] ?? 'MYS-SEL',
+                'payload' => $payload,
             ]);
 
             $response = Http::timeout(30)
@@ -524,28 +523,88 @@ class AutoCountInvoiceService
             if ($response->successful()) {
                 $data = $response->json();
 
-                if ($data['dataResults'] && $data['dataResults']['newDebtorCode']) {
+                Log::info('AutoCount Debtor API Response', [
+                    'full_response' => $data,
+                    'status' => $response->status(),
+                ]);
+
+                // ✅ Updated response handling to handle multiple possible response structures
+                $debtorCode = null;
+                $success = false;
+                $errorMessage = null;
+
+                // Check different possible response structures
+                if (isset($data['dataResults'])) {
+                    // Structure 1: dataResults.newDebtorCode
+                    if (isset($data['dataResults']['newDebtorCode'])) {
+                        $debtorCode = $data['dataResults']['newDebtorCode'];
+                        $success = true;
+                    }
+                    // Structure 2: dataResults.debtorCode
+                    elseif (isset($data['dataResults']['debtorCode'])) {
+                        $debtorCode = $data['dataResults']['debtorCode'];
+                        $success = true;
+                    }
+                    // Structure 3: error in dataResults
+                    elseif (isset($data['dataResults']['error'])) {
+                        $errorMessage = $data['dataResults']['error'];
+                    }
+                    // Structure 4: check if dataResults is a string (debtor code)
+                    elseif (is_string($data['dataResults'])) {
+                        $debtorCode = $data['dataResults'];
+                        $success = true;
+                    }
+                }
+                // Structure 5: Direct response fields
+                elseif (isset($data['newDebtorCode'])) {
+                    $debtorCode = $data['newDebtorCode'];
+                    $success = true;
+                }
+                elseif (isset($data['debtorCode'])) {
+                    $debtorCode = $data['debtorCode'];
+                    $success = true;
+                }
+                // Structure 6: Check message field
+                elseif (isset($data['message'])) {
+                    if (str_contains(strtolower($data['message']), 'success')) {
+                        $success = true;
+                        // Try to extract debtor code from message if present
+                        if (preg_match('/([A-Z]+-[A-Z0-9]+)/', $data['message'], $matches)) {
+                            $debtorCode = $matches[1];
+                        } else {
+                            // If no code found, use the requested code
+                            $debtorCode = $debtorData['debtor_code'] ?? 'Unknown';
+                        }
+                    } else {
+                        $errorMessage = $data['message'];
+                    }
+                }
+
+                if ($success && $debtorCode) {
                     Log::info('AutoCount Debtor Created Successfully', [
-                        'debtor_code' => $data['dataResults']['newDebtorCode'],
+                        'debtor_code' => $debtorCode,
                         'company_name' => $debtorData['company_name'],
+                        'response_structure' => 'Parsed successfully',
                     ]);
 
                     return [
                         'success' => true,
-                        'debtor_code' => $data['dataResults']['newDebtorCode'],
+                        'debtor_code' => $debtorCode,
                         'message' => 'Debtor created successfully',
                         'data' => $data
                     ];
                 } else {
+                    $finalError = $errorMessage ?? 'Unknown error - no debtor code found in response';
+
                     Log::error('AutoCount Debtor Creation Failed', [
-                        'error' => $data['dataResults']['error'] ?? 'Unknown error',
-                        'message' => $data['message'] ?? null,
-                        'response' => $data,
+                        'error' => $finalError,
+                        'full_response' => $data,
+                        'payload_sent' => $payload,
                     ]);
 
                     return [
                         'success' => false,
-                        'error' => $data['dataResults']['error'] ?? $data['message'] ?? 'Unknown error',
+                        'error' => $finalError,
                         'data' => $data
                     ];
                 }
@@ -553,6 +612,7 @@ class AutoCountInvoiceService
                 Log::error('AutoCount Debtor API Request Failed', [
                     'status' => $response->status(),
                     'body' => $response->body(),
+                    'payload_sent' => $payload,
                 ]);
 
                 return [
@@ -565,6 +625,7 @@ class AutoCountInvoiceService
             Log::error('AutoCount Debtor Creation Exception', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
+                'payload_attempted' => $payload ?? null,
             ]);
 
             return [
@@ -595,7 +656,10 @@ class AutoCountInvoiceService
                     "salesPerson" => $data['salesperson'],
                     "roundMethod" => $data['round_method'],
                     "inclusive" => $data['inclusive'],
-                    "details" => $data['details']
+                    "details" => $data['details'],
+                    "uDFCustomerName" => $data['uDFCustomerName'] ?? '',
+                    "uDFLicenseNumber" => $data['uDFLicenseNumber'] ?? '',
+                    "udfSupport" => $data['udfSupport'] ?? '',
                 ]
             ];
 
@@ -774,6 +838,16 @@ class AutoCountInvoiceService
         foreach ($quotation->items as $item) {
             $product = $item->product;
 
+            // ✅ Calculate tax-inclusive unit price for AutoCount
+            $baseUnitPrice = (float) $item->unit_price;
+            $taxInclusiveUnitPrice = $baseUnitPrice;
+
+            // Check if product is taxable and calculate inclusive price
+            if ($product && $product->taxable && ($quotation->sst_rate ?? 0) > 0) {
+                $taxRate = (float) ($quotation->sst_rate ?? 0);
+                $taxInclusiveUnitPrice = $baseUnitPrice * (1 + ($taxRate / 100));
+            }
+
             $details[] = [
                 'account' => 'TCL-R5003', // Default account
                 'itemCode' => $product->code ?? $product->id,
@@ -783,9 +857,9 @@ class AutoCountInvoiceService
                 'department' => '',
                 'quantity' => (float) $item->quantity,
                 'uom' => 'UNIT',
-                'unitPrice' => (float) $item->unit_price,
+                'unitPrice' => $taxInclusiveUnitPrice, // ✅ Use tax-inclusive price for AutoCount
                 'discount' => '0',
-                'amount' => (float) $item->total_before_tax,
+                'amount' => (float) $item->total_after_tax, // ✅ Use total after tax
                 'gstCode' => '',
                 'gstAdjustment' => 0,
                 'taxCode' => $item->tax_code ?? '',

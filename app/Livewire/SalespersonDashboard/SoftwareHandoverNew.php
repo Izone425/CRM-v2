@@ -495,6 +495,11 @@ class SoftwareHandoverNew extends Component implements HasForms, HasTable
 
                             Section::make('AutoCount Invoice Creation')
                                 ->schema([
+                                    TextInput::make('tt_invoice_number')
+                                        ->label('License Number')
+                                        ->placeholder('Enter alphanumeric license number (one-time entry for all invoices)')
+                                        ->maxLength(255),
+
                                     Grid::make(2)->schema([
                                         // ✅ Fixed debtor display (no selection needed)
                                         Placeholder::make('debtor_info')
@@ -677,10 +682,10 @@ class SoftwareHandoverNew extends Component implements HasForms, HasTable
                                     $service = app(AutoCountIntegrationService::class);
                                     $preview = $service->generateInvoicePreview($record);
 
-                                    // Get salesperson name
+                                    // Get salesperson autocount_name
                                     $salespersonId = $record->lead->salesperson ?? null;
                                     $salesperson = \App\Models\User::find($salespersonId);
-                                    $salespersonName = $salesperson?->name ?? 'Unknown Salesperson';
+                                    $salespersonName = $salesperson?->autocount_name ?? ($salesperson?->name ?? 'Unknown Salesperson');
 
                                     // ✅ Debug log to check data structure
                                     Log::info('Creating CrmHrdfInvoice records - Data check', [
@@ -692,49 +697,90 @@ class SoftwareHandoverNew extends Component implements HasForms, HasTable
 
                                     // ✅ Use invoice_numbers array directly if preview doesn't match
                                     foreach ($autoCountResult['invoice_numbers'] as $index => $invoiceNumber) {
-                                        // Try to get amount from preview, fallback to 0 if not available
+                                        // ✅ Get the quotation ID and amount using same logic as preview
+                                        $quotationId = null;
                                         $amount = 0;
-                                        if (isset($preview['invoices'][$index]['total'])) {
-                                            $amount = $preview['invoices'][$index]['total'];
-                                        } elseif (isset($preview['grand_total'])) {
-                                            // If only one total available, use it
-                                            $amount = $preview['grand_total'];
+
+                                        // Get quotation groups from autoCount result
+                                        if (isset($autoCountResult['quotation_groups']) && isset($autoCountResult['quotation_groups'][$index])) {
+                                            $quotationGroup = $autoCountResult['quotation_groups'][$index];
+
+                                            // Get the first quotation ID from this group
+                                            if (!empty($quotationGroup['quotation_ids'])) {
+                                                $quotationId = $quotationGroup['quotation_ids'][0];
+                                            }
+
+                                            // ✅ Get amount from quotation_groups (same as preview)
+                                            if (isset($quotationGroup['total_amount'])) {
+                                                $amount = $quotationGroup['total_amount'];
+                                            }
+
+                                            Log::info('Got amount from quotation_groups (same as preview)', [
+                                                'invoice_number' => $invoiceNumber,
+                                                'quotation_id' => $quotationId,
+                                                'amount_from_groups' => $amount,
+                                                'group_index' => $index,
+                                            ]);
+                                        }
+
+                                        // ✅ Fallback: If no quotation group found, get directly from quotation
+                                        if (!$quotationId && !empty($quotationIds)) {
+                                            $quotationId = $quotationIds[$index] ?? $quotationIds[0];
+
+                                            if ($quotationId) {
+                                                // ✅ Get amount from QuotationDetail total_after_tax (sum all items in the quotation)
+                                                $amount = \App\Models\QuotationDetail::where('quotation_id', $quotationId)
+                                                    ->sum('total_after_tax');
+
+                                                Log::info('Got amount from QuotationDetail total_after_tax (fallback)', [
+                                                    'invoice_number' => $invoiceNumber,
+                                                    'quotation_id' => $quotationId,
+                                                    'total_after_tax_sum' => $amount,
+                                                ]);
+                                            }
                                         }
 
                                         try {
+                                            // Get company name from quotation subsidiary if available
+                                            $customerName = $record->company_name;
+                                            if (!empty($quotationId)) {
+                                                $quotation = \App\Models\Quotation::with('subsidiary', 'lead.companyDetail')->find($quotationId);
+                                                if ($quotation && $quotation->subsidiary && !empty($quotation->subsidiary->company_name)) {
+                                                    $customerName = $quotation->subsidiary->company_name;
+                                                } elseif ($quotation && $quotation->lead && $quotation->lead->companyDetail && !empty($quotation->lead->companyDetail->company_name)) {
+                                                    $customerName = $quotation->lead->companyDetail->company_name;
+                                                }
+                                            }
+
                                             $crmInvoice = CrmHrdfInvoice::create([
                                                 'invoice_no' => $invoiceNumber,
                                                 'invoice_date' => now()->toDateString(),
-                                                'company_name' => $record->company_name,
+                                                'company_name' => $customerName,
                                                 'handover_type' => 'SW', // SW for Software Handover
                                                 'salesperson' => $salespersonName,
                                                 'handover_id' => $record->id,
+                                                'quotation_id' => $quotationId, // ✅ Store the quotation ID
                                                 'debtor_code' => $autoCountResult['debtor_code'],
-                                                'total_amount' => $amount,
+                                                'total_amount' => $amount, // ✅ Use amount from quotation_groups
+                                                'tt_invoice_number' => $data['tt_invoice_number'] ?? '',
                                             ]);
 
                                             Log::info('CrmHrdfInvoice record created successfully', [
                                                 'crm_invoice_id' => $crmInvoice->id,
                                                 'invoice_no' => $invoiceNumber,
+                                                'quotation_id' => $quotationId,
                                                 'amount' => $amount,
                                                 'handover_id' => $record->id,
+                                                'source' => 'quotation_groups',
                                             ]);
 
                                         } catch (\Exception $e) {
                                             Log::error('Failed to create individual CrmHrdfInvoice record', [
                                                 'invoice_no' => $invoiceNumber,
+                                                'quotation_id' => $quotationId,
                                                 'handover_id' => $record->id,
                                                 'error' => $e->getMessage(),
-                                                'data' => [
-                                                    'invoice_no' => $invoiceNumber,
-                                                    'invoice_date' => now()->toDateString(),
-                                                    'company_name' => $record->company_name,
-                                                    'handover_type' => 'SW',
-                                                    'salesperson' => $salespersonName,
-                                                    'handover_id' => $record->id,
-                                                    'debtor_code' => $autoCountResult['debtor_code'],
-                                                    'total_amount' => $amount,
-                                                ]
+                                                'amount_attempted' => $amount,
                                             ]);
                                         }
                                     }
@@ -814,6 +860,11 @@ class SoftwareHandoverNew extends Component implements HasForms, HasTable
                             // Add invoice file if it exists
                             if (isset($data['invoice_file'])) {
                                 $updateData['invoice_file'] = $data['invoice_file'];
+                            }
+
+                            // Add license number if it exists
+                            if (isset($data['tt_invoice_number'])) {
+                                $updateData['tt_invoice_number'] = $data['tt_invoice_number'];
                             }
 
                             // Update the record

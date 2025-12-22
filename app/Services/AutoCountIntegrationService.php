@@ -69,12 +69,16 @@ class AutoCountIntegrationService
 
             $result['steps'][] = "Found " . count($quotationGroups) . " proforma invoice(s) to process";
 
+            // ✅ Pre-generate ALL invoice numbers at once to avoid conflicts
+            $preGeneratedInvoiceNumbers = $this->generateMultipleInvoiceNumbers($handover, count($quotationGroups));
+            $result['steps'][] = "Pre-generated invoice numbers: " . implode(', ', $preGeneratedInvoiceNumbers);
+
             // ✅ Create separate invoice for each proforma invoice
             foreach ($quotationGroups as $index => $quotationIds) {
-                $result['steps'][] = "Processing proforma invoice group " . ($index + 1) . "...";
+                $result['steps'][] = "Processing proforma invoice group " . ($index + 1) . " with quotations: " . implode(', ', $quotationIds);
 
-                // Generate unique invoice number for each invoice
-                $invoiceNo = $this->generateInvoiceDocumentNumber($handover, $index);
+                // Use pre-generated invoice number
+                $invoiceNo = $preGeneratedInvoiceNumbers[$index];
                 $result['invoice_numbers'][] = $invoiceNo;
 
                 // Create invoice for this specific group
@@ -98,6 +102,12 @@ class AutoCountIntegrationService
                     \App\Models\Quotation::where('id', $quotationId)->update([
                         'autocount_generated_pi' => true
                     ]);
+
+                    Log::info('Marked quotation as having AutoCount invoice generated', [
+                        'quotation_id' => $quotationId,
+                        'invoice_no' => $invoiceNo,
+                        'handover_id' => $handover->id
+                    ]);
                 }
 
                 $result['steps'][] = "Invoice " . ($index + 1) . " created successfully: {$invoiceNo}";
@@ -105,7 +115,8 @@ class AutoCountIntegrationService
             }
 
             $result['success'] = true;
-            $result['steps'][] = "All " . count($quotationGroups) . " invoices created successfully";
+            $result['total_invoices'] = count($result['invoice_numbers']);
+            $result['steps'][] = "Successfully created " . count($result['invoice_numbers']) . " invoices: " . implode(', ', $result['invoice_numbers']);
 
             // ✅ Update handover record with all invoice numbers
             $handover->update([
@@ -141,7 +152,7 @@ class AutoCountIntegrationService
         }
     }
 
-    protected function getQuotationGroups(SoftwareHandover $handover): array
+    public function getQuotationGroups(SoftwareHandover $handover): array
     {
         $groups = [];
 
@@ -158,10 +169,18 @@ class AutoCountIntegrationService
                     ->pluck('id')
                     ->toArray();
 
-                // ✅ Each quotation ID becomes its own invoice
+                // ✅ Each quotation ID becomes its own invoice - return simple arrays
                 foreach ($validPis as $quotationId) {
-                    $groups[] = [$quotationId];
+                    $groups[] = [$quotationId]; // Simple array of quotation IDs
                 }
+
+                Log::info('Generated quotation groups for HRDF invoices', [
+                    'handover_id' => $handover->id,
+                    'total_quotations' => count($hrdfPis),
+                    'valid_quotations' => count($validPis),
+                    'groups_created' => count($groups),
+                    'groups' => $groups
+                ]);
             }
         }
 
@@ -170,16 +189,29 @@ class AutoCountIntegrationService
 
     protected function createInvoiceForQuotationGroup(SoftwareHandover $handover, string $customerCode, array $quotationIds, string $invoiceNo): array
     {
+        // Get company name from quotation subsidiary if available
+        $customerName = $handover->company_name;
+        if (!empty($quotationIds)) {
+            $quotation = Quotation::with('subsidiary', 'lead.companyDetail')->find($quotationIds[0]);
+            if ($quotation && $quotation->subsidiary && !empty($quotation->subsidiary->company_name)) {
+                $customerName = $quotation->subsidiary->company_name;
+            } elseif ($quotation && $quotation->lead && $quotation->lead->companyDetail && !empty($quotation->lead->companyDetail->company_name)) {
+                $customerName = $quotation->lead->companyDetail->company_name;
+            }
+        }
+
         $invoiceData = [
             'company' => $this->determineCompanyByHandover($handover),
             'customer_code' => $customerCode,
             'document_no' => $invoiceNo,
             'document_date' => now()->format('Y-m-d'),
-            'description' => 'Software Handover Invoice - ' . $handover->company_name,
+            'description' => 'Software Handover Invoice - ' . $customerName,
             'salesperson' => $this->getAutoCountSalesperson($handover),
             'round_method' => 0,
             'inclusive' => true,
             'details' => $this->getInvoiceDetailsFromQuotationIds($quotationIds),
+            'uDFCustomerName' => $customerName,
+            'uDFLicenseNumber' => $handover->tt_invoice_number ?? '',
         ];
 
         return $this->autoCountService->createInvoice($invoiceData);
@@ -213,7 +245,7 @@ class AutoCountIntegrationService
         foreach ($quotationDetails as $detail) {
             $product = $detail->product;
             $productCode = $product->code ?? 'ITEM-' . $product->id;
-            $unitPrice = (float) $detail->unit_price;
+            $baseUnitPrice = (float) $detail->unit_price;
             $account = $this->getAccountFromProduct($product);
 
             // ✅ Determine tax information based on product->taxable
@@ -225,8 +257,15 @@ class AutoCountIntegrationService
                 $taxRate = 8;
             }
 
-            // Create a unique key based on product code, unit price, account, and tax info
-            $key = $productCode . '|' . $unitPrice . '|' . $account . '|' . $taxCode . '|' . $taxRate;
+            // ✅ Calculate tax-inclusive unit price for AutoCount
+            $taxInclusiveUnitPrice = $baseUnitPrice;
+            if ($product && $product->taxable && $taxRate > 0) {
+                // Calculate tax-inclusive price: base price * (1 + tax rate)
+                $taxInclusiveUnitPrice = $baseUnitPrice * (1 + ($taxRate / 100));
+            }
+
+            // Create a unique key based on product code, tax-inclusive unit price, account, and tax info
+            $key = $productCode . '|' . $taxInclusiveUnitPrice . '|' . $account . '|' . $taxCode . '|' . $taxRate;
 
             if (isset($groupedDetails[$key])) {
                 // ✅ Combine with existing item (within the same quotation)
@@ -240,7 +279,7 @@ class AutoCountIntegrationService
                     'location' => 'HQ',
                     'quantity' => (float) $detail->quantity,
                     'uom' => 'UNIT',
-                    'unitPrice' => $unitPrice,
+                    'unitPrice' => $taxInclusiveUnitPrice, // ✅ Use tax-inclusive price for AutoCount
                     'amount' => (float) $detail->total_after_tax, // ✅ CHANGED from total_before_tax
                     'taxCode' => $taxCode,
                     'taxRate' => $taxRate,
@@ -254,8 +293,9 @@ class AutoCountIntegrationService
                 'product_code' => $productCode,
                 'gl_posting' => $product->gl_posting ?? 'null',
                 'assigned_account' => $account,
+                'base_unit_price' => $baseUnitPrice,
+                'tax_inclusive_unit_price' => $taxInclusiveUnitPrice,
                 'quantity' => $detail->quantity,
-                'unit_price' => $detail->unit_price,
                 'amount' => $detail->total_after_tax, // ✅ CHANGED from total_before_tax
                 'taxable' => $product->taxable ?? false,
                 'tax_code' => $taxCode,
@@ -322,6 +362,20 @@ class AutoCountIntegrationService
      */
     protected function createInvoiceForHandover(SoftwareHandover $handover, string $customerCode): array
     {
+        // Get company name from quotation subsidiary if available
+        $quotationIds = $this->getQuotationIds($handover);
+        $customerName = $handover->company_name;
+        if (!empty($quotationIds)) {
+            $quotation = Quotation::with('subsidiary', 'lead.companyDetail')->find($quotationIds[0]);
+            if ($quotation) {
+                if ($quotation->subsidiary_id && $quotation->subsidiary) {
+                    $customerName = $quotation->subsidiary->company_name;
+                } elseif ($quotation->lead && $quotation->lead->companyDetail) {
+                    $customerName = $quotation->lead->companyDetail->company_name;
+                }
+            }
+        }
+
         $invoiceData = [
             'company' => $this->determineCompanyByHandover($handover),
             'customer_code' => $customerCode,
@@ -332,6 +386,8 @@ class AutoCountIntegrationService
             'round_method' => 0,
             'inclusive' => true,
             'details' => $this->getInvoiceDetailsFromHandover($handover),
+            'uDFCustomerName' => $customerName,
+            'uDFLicenseNumber' => $handover->tt_invoice_number ?? '',
         ];
 
         return $this->autoCountService->createInvoice($invoiceData);
@@ -396,7 +452,7 @@ class AutoCountIntegrationService
         foreach ($quotationDetails as $detail) {
             $product = $detail->product;
             $productCode = $product->code ?? 'ITEM-' . $product->id;
-            $unitPrice = (float) $detail->unit_price;
+            $baseUnitPrice = (float) $detail->unit_price;
             $account = $this->getAccountFromProduct($product);
 
             // ✅ Determine tax information based on product->taxable
@@ -408,8 +464,15 @@ class AutoCountIntegrationService
                 $taxRate = 8;
             }
 
-            // Create a unique key based on product code, unit price, account, and tax info
-            $key = $productCode . '|' . $unitPrice . '|' . $account . '|' . $taxCode . '|' . $taxRate;
+            // ✅ Calculate tax-inclusive unit price for AutoCount
+            $taxInclusiveUnitPrice = $baseUnitPrice;
+            if ($product && $product->taxable && $taxRate > 0) {
+                // Calculate tax-inclusive price: base price * (1 + tax rate)
+                $taxInclusiveUnitPrice = $baseUnitPrice * (1 + ($taxRate / 100));
+            }
+
+            // Create a unique key based on product code, tax-inclusive unit price, account, and tax info
+            $key = $productCode . '|' . $taxInclusiveUnitPrice . '|' . $account . '|' . $taxCode . '|' . $taxRate;
 
             if (isset($groupedDetails[$key])) {
                 // ✅ Combine with existing item
@@ -423,7 +486,7 @@ class AutoCountIntegrationService
                     'location' => 'HQ',
                     'quantity' => (float) $detail->quantity,
                     'uom' => 'UNIT',
-                    'unitPrice' => $unitPrice,
+                    'unitPrice' => $taxInclusiveUnitPrice, // ✅ Use tax-inclusive price for AutoCount
                     'amount' => (float) $detail->total_after_tax, // ✅ CHANGED to total_after_tax
                     'taxCode' => $taxCode,
                     'taxRate' => $taxRate,
@@ -437,8 +500,9 @@ class AutoCountIntegrationService
                 'product_code' => $productCode,
                 'gl_posting' => $product->gl_posting ?? 'null',
                 'assigned_account' => $account,
+                'base_unit_price' => $baseUnitPrice,
+                'tax_inclusive_unit_price' => $taxInclusiveUnitPrice,
                 'quantity' => $detail->quantity,
-                'unit_price' => $detail->unit_price,
                 'amount' => $detail->total_after_tax, // ✅ CHANGED to total_after_tax
                 'taxable' => $product->taxable ?? false,
                 'tax_code' => $taxCode,
@@ -596,6 +660,43 @@ class AutoCountIntegrationService
     }
 
     /**
+     * Generate multiple invoice numbers at once to avoid conflicts
+     */
+    protected function generateMultipleInvoiceNumbers(SoftwareHandover $handover, int $count): array
+    {
+        $year = date('y');
+        $month = date('m');
+        $yearMonth = $year . $month;
+
+        // Get latest sequence from CRM HRDF invoices table - ONE TIME ONLY
+        $latestInvoice = \App\Models\CrmHrdfInvoice::where('invoice_no', 'LIKE', "EHIN{$yearMonth}-%")
+            ->orderByRaw('CAST(SUBSTRING(invoice_no, -4) AS UNSIGNED) DESC')
+            ->first();
+
+        $startSequence = 1;
+        if ($latestInvoice) {
+            preg_match("/EHIN{$yearMonth}-(\d+)/", $latestInvoice->invoice_no, $matches);
+            $startSequence = (isset($matches[1]) ? intval($matches[1]) : 0) + 1;
+        }
+
+        // Generate all invoice numbers sequentially
+        $invoiceNumbers = [];
+        for ($i = 0; $i < $count; $i++) {
+            $sequence = str_pad($startSequence + $i, 4, '0', STR_PAD_LEFT);
+            $invoiceNumbers[] = "EHIN{$yearMonth}-{$sequence}";
+        }
+
+        Log::info('Generated multiple invoice numbers', [
+            'handover_id' => $handover->id,
+            'count' => $count,
+            'start_sequence' => $startSequence,
+            'invoice_numbers' => $invoiceNumbers
+        ]);
+
+        return $invoiceNumbers;
+    }
+
+    /**
      * Generate invoice document number
      */
     protected function generateInvoiceDocumentNumber(SoftwareHandover $handover, int $invoiceIndex = 0): string
@@ -737,5 +838,405 @@ class AutoCountIntegrationService
             'salesperson' => $this->getAutoCountSalesperson($handover),
             'company' => $handover->company_name
         ];
+    }
+
+    /**
+     * Main method to handle product invoice creation for software handover
+     */
+    public function processProductInvoiceCreation(
+        SoftwareHandover $handover,
+        array $formData
+    ): array {
+        try {
+            $result = [
+                'success' => false,
+                'debtor_code' => null,
+                'invoice_numbers' => [],
+                'error' => null,
+                'steps' => []
+            ];
+
+            // Check if product invoice creation is requested
+            if (!($formData['create_product_invoice'] ?? false)) {
+                return [
+                    'success' => true,
+                    'message' => 'Product invoice creation skipped',
+                    'skipped' => true
+                ];
+            }
+
+            // ✅ Get SOFTWARE ONLY quotation groups from proforma_invoice_product
+            $quotationGroups = $this->getProductQuotationGroups($handover);
+
+            if (empty($quotationGroups)) {
+                $result['error'] = 'No software products found in proforma_invoice_product for invoice creation';
+                return $result;
+            }
+
+            // ✅ Use selected debtor code
+            $result['debtor_code'] = $formData['product_debtor_selection'];
+            $result['steps'][] = "Using selected debtor: {$result['debtor_code']}";
+
+            $result['steps'][] = "Found " . count($quotationGroups) . " software product invoice(s) to process";
+
+            // ✅ Create separate invoice for each product group
+            foreach ($quotationGroups as $index => $quotationIds) {
+                $result['steps'][] = "Processing product invoice group " . ($index + 1) . "...";
+
+                // Generate unique invoice number for each invoice
+                $invoiceNo = $this->generateProductInvoiceDocumentNumber($handover, $index);
+                $result['invoice_numbers'][] = $invoiceNo;
+
+                // Create invoice for this specific group
+                $invoiceResult = $this->createProductInvoiceForQuotationGroup($handover, $result['debtor_code'], $quotationIds, $invoiceNo);
+
+                if (!$invoiceResult['success']) {
+                    $result['error'] = "Failed to create product invoice " . ($index + 1) . ": " . $invoiceResult['error'];
+                    $result['steps'][] = "Product invoice " . ($index + 1) . " creation failed";
+                    return $result;
+                }
+
+                // ✅ Mark quotations as processed
+                foreach ($quotationIds as $quotationId) {
+                    \App\Models\Quotation::where('id', $quotationId)->update([
+                        'autocount_generated_pi' => true
+                    ]);
+                }
+
+                $result['steps'][] = "Product invoice " . ($index + 1) . " created successfully: {$invoiceNo}";
+            }
+
+            $result['success'] = true;
+            $result['steps'][] = "All " . count($quotationGroups) . " product invoices created successfully";
+
+            return $result;
+
+        } catch (\Exception $e) {
+            Log::error('AutoCount product invoice integration failed', [
+                'handover_id' => $handover->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+            ];
+        }
+    }
+
+    /**
+     * Get SOFTWARE ONLY quotation groups from proforma_invoice_product
+     */
+    protected function getProductQuotationGroups(SoftwareHandover $handover): array
+    {
+        $groups = [];
+
+        if ($handover->proforma_invoice_product) {
+            $productPis = is_string($handover->proforma_invoice_product)
+                ? json_decode($handover->proforma_invoice_product, true)
+                : $handover->proforma_invoice_product;
+
+            if (is_array($productPis)) {
+                // ✅ Filter quotations that contain ONLY SOFTWARE products
+                foreach ($productPis as $quotationId) {
+                    // Check if this quotation has any software products
+                    $hasSoftwareProducts = \App\Models\QuotationDetail::where('quotation_id', $quotationId)
+                        ->whereHas('product', function($query) {
+                            $query->where('solution', 'software');
+                        })
+                        ->exists();
+
+                    // ✅ Only include quotations with software products
+                    if ($hasSoftwareProducts) {
+                        $groups[] = [$quotationId];
+
+                        Log::info('Including quotation for software product invoice', [
+                            'quotation_id' => $quotationId,
+                            'handover_id' => $handover->id,
+                        ]);
+                    } else {
+                        Log::info('Skipping quotation - no software products found', [
+                            'quotation_id' => $quotationId,
+                            'handover_id' => $handover->id,
+                        ]);
+                    }
+                }
+            }
+        }
+
+        return $groups;
+    }
+
+    /**
+     * Create product invoice for quotation group (SOFTWARE ONLY)
+     */
+    protected function createProductInvoiceForQuotationGroup(SoftwareHandover $handover, string $customerCode, array $quotationIds, string $invoiceNo): array
+    {
+        // Get company name from quotation subsidiary if available
+        $customerName = $handover->company_name;
+        if (!empty($quotationIds)) {
+            $quotation = Quotation::with('subsidiary', 'lead.companyDetail')->find($quotationIds[0]);
+            if ($quotation) {
+                if ($quotation->subsidiary_id && $quotation->subsidiary) {
+                    $customerName = $quotation->subsidiary->company_name;
+                } elseif ($quotation->lead && $quotation->lead->companyDetail) {
+                    $customerName = $quotation->lead->companyDetail->company_name;
+                }
+            }
+        }
+
+        $invoiceData = [
+            'company' => $this->determineCompanyByHandover($handover),
+            'customer_code' => $customerCode,
+            'document_no' => $invoiceNo,
+            'document_date' => now()->format('Y-m-d'),
+            'description' => 'Software Product Invoice - ' . $customerName,
+            'salesperson' => $this->getAutoCountSalesperson($handover),
+            'round_method' => 0,
+            'inclusive' => true,
+            'details' => $this->getSoftwareProductInvoiceDetails($quotationIds),
+            'uDFCustomerName' => $customerName,
+            'uDFLicenseNumber' => $handover->tt_invoice_number ?? '',
+        ];
+
+        return $this->autoCountService->createInvoice($invoiceData);
+    }
+
+    /**
+     * Get SOFTWARE ONLY invoice details from quotation IDs
+     */
+    protected function getSoftwareProductInvoiceDetails(array $quotationIds): array
+    {
+        if (empty($quotationIds)) {
+            return [[
+                'account' => $this->getDefaultAccountCode(),
+                'itemCode' => 'TCL_ACCESS-NEW',
+                'location' => 'HQ',
+                'quantity' => 1,
+                'uom' => 'USER',
+                'unitPrice' => 1275,
+                'amount' => 1275,
+                'taxCode' => 'SV-8',
+                'taxRate' => 8,
+            ]];
+        }
+
+        // ✅ Only get quotation details for SOFTWARE products
+        $quotationDetails = QuotationDetail::whereIn('quotation_id', $quotationIds)
+            ->whereHas('product', function($query) {
+                $query->where('solution', 'software');
+            })
+            ->with('product')
+            ->get();
+
+        $groupedDetails = [];
+
+        foreach ($quotationDetails as $detail) {
+            $product = $detail->product;
+
+            // ✅ Double-check that this is a software product
+            if ($product->solution !== 'software') {
+                Log::warning('Non-software product found in software invoice processing', [
+                    'product_id' => $product->id,
+                    'product_code' => $product->code,
+                    'solution' => $product->solution,
+                ]);
+                continue; // Skip non-software products
+            }
+
+            $productCode = $product->code ?? 'ITEM-' . $product->id;
+            $baseUnitPrice = (float) $detail->unit_price;
+            $account = $this->getAccountFromProduct($product);
+
+            // ✅ Tax information
+            $taxCode = '';
+            $taxRate = 0;
+            if ($product && $product->taxable) {
+                $taxCode = 'SV-8';
+                $taxRate = 8;
+            }
+
+            // ✅ Calculate tax-inclusive unit price for AutoCount
+            $taxInclusiveUnitPrice = $baseUnitPrice;
+            if ($product && $product->taxable && $taxRate > 0) {
+                // Calculate tax-inclusive price: base price * (1 + tax rate)
+                $taxInclusiveUnitPrice = $baseUnitPrice * (1 + ($taxRate / 100));
+            }
+
+            $key = $productCode . '|' . $taxInclusiveUnitPrice . '|' . $account . '|' . $taxCode . '|' . $taxRate;
+
+            if (isset($groupedDetails[$key])) {
+                $groupedDetails[$key]['quantity'] += (float) $detail->quantity;
+                $groupedDetails[$key]['amount'] += (float) $detail->total_after_tax;
+            } else {
+                $groupedDetails[$key] = [
+                    'account' => $account,
+                    'itemCode' => $productCode,
+                    'location' => 'HQ',
+                    'quantity' => (float) $detail->quantity,
+                    'uom' => 'USER',
+                    'unitPrice' => $taxInclusiveUnitPrice, // ✅ Use tax-inclusive price for AutoCount
+                    'amount' => (float) $detail->total_after_tax,
+                    'taxCode' => $taxCode,
+                    'taxRate' => $taxRate,
+                ];
+            }
+
+            Log::info('Software product included in invoice', [
+                'quotation_ids' => $quotationIds,
+                'product_id' => $product->id,
+                'product_code' => $productCode,
+                'solution' => $product->solution,
+                'amount' => $detail->total_after_tax,
+                'uom' => 'USER',
+            ]);
+        }
+
+        return array_values($groupedDetails);
+    }
+
+    /**
+     * Generate product invoice preview (SOFTWARE ONLY)
+     */
+    public function generateProductInvoicePreview(SoftwareHandover $handover, string $selectedDebtor = null): array
+    {
+        $quotationGroups = $this->getProductQuotationGroups($handover);
+
+        if (empty($quotationGroups)) {
+            return [
+                'invoices' => [],
+                'total_invoices' => 0,
+                'grand_total' => 0,
+                'salesperson' => $this->getAutoCountSalesperson($handover),
+                'company' => $handover->company_name,
+                'message' => 'No software products found in proforma_invoice_product'
+            ];
+        }
+
+        $invoices = [];
+        $grandTotal = 0;
+
+        foreach ($quotationGroups as $index => $quotationIds) {
+            // ✅ Only get SOFTWARE products
+            $details = QuotationDetail::whereIn('quotation_id', $quotationIds)
+                ->whereHas('product', function($query) {
+                    $query->where('solution', 'software');
+                })
+                ->with('product')
+                ->get();
+
+            $groupedItems = [];
+            $invoiceTotal = 0;
+
+            foreach ($details as $detail) {
+                $product = $detail->product;
+
+                // Skip if not software (additional safety check)
+                if ($product->solution !== 'software') {
+                    continue;
+                }
+
+                $productCode = $product->code ?? 'Item-' . $detail->product_id;
+                $unitPrice = (float) $detail->unit_price;
+                $amount = (float) $detail->total_after_tax;
+                $quantity = (float) $detail->quantity;
+
+                $key = $productCode . '|' . $unitPrice;
+
+                if (isset($groupedItems[$key])) {
+                    $groupedItems[$key]['quantity'] += $quantity;
+                    $groupedItems[$key]['amount'] += $amount;
+                } else {
+                    $groupedItems[$key] = [
+                        'code' => $productCode,
+                        'quantity' => $quantity,
+                        'unit_price' => $unitPrice,
+                        'amount' => $amount
+                    ];
+                }
+
+                $invoiceTotal += $amount;
+            }
+
+            if (!empty($groupedItems)) {
+                $items = array_values($groupedItems);
+
+                $invoices[] = [
+                    'invoice_no' => $this->generateProductInvoiceDocumentNumber($handover, $index),
+                    'items' => $items,
+                    'total' => $invoiceTotal,
+                    'quotation_ids' => $quotationIds
+                ];
+
+                $grandTotal += $invoiceTotal;
+            }
+        }
+
+        return [
+            'invoices' => $invoices,
+            'total_invoices' => count($invoices),
+            'grand_total' => $grandTotal,
+            'salesperson' => $this->getAutoCountSalesperson($handover),
+            'company' => $handover->company_name
+        ];
+    }
+
+    /**
+     * Generate product invoice document number
+     */
+    protected function generateProductInvoiceDocumentNumber(SoftwareHandover $handover, int $invoiceIndex = 0): string
+    {
+        // Format: PROD + YYMM + sequence (different from HRDF invoices)
+        $year = date('y');
+        $month = date('m');
+        $yearMonth = $year . $month;
+
+        // Get the latest sequence from product invoices
+        $latestInvoice = \App\Models\CrmHrdfInvoice::where('invoice_no', 'LIKE', "EPIN{$yearMonth}-%")
+            ->orderByRaw('CAST(SUBSTRING(invoice_no, -4) AS UNSIGNED) DESC')
+            ->first();
+
+        $nextSequence = 1 + $invoiceIndex;
+        if ($latestInvoice) {
+            preg_match("/EPIN{$yearMonth}-(\d+)/", $latestInvoice->invoice_no, $matches);
+            $nextSequence = (isset($matches[1]) ? intval($matches[1]) : 0) + 1 + $invoiceIndex;
+        }
+
+        $sequence = str_pad($nextSequence, 4, '0', STR_PAD_LEFT);
+
+        return "EPIN{$yearMonth}-{$sequence}";
+    }
+
+    public function getExistingDebtorsFromAutoCount(): array
+    {
+        try {
+            Log::info('Fetching debtors from local database table');
+
+            // ✅ Get debtors from local database table
+            $debtors = \App\Models\Debtor::select('debtor_code', 'debtor_name')
+                ->orderBy('debtor_name')
+                ->get()
+                ->mapWithKeys(function ($debtor) {
+                    // Format: "ARM-C0001 - Company Name"
+                    $displayText = $debtor->debtor_code . ' - ' . $debtor->debtor_name;
+                    return [$debtor->debtor_code => $displayText];
+                })
+                ->toArray();
+
+            Log::info('Retrieved debtors from database', [
+                'count' => count($debtors),
+                'debtors' => array_keys($debtors)
+            ]);
+
+            return $debtors;
+
+        } catch (\Exception $e) {
+            Log::error('Failed to fetch debtors from database table', [
+                'error' => $e->getMessage()
+            ]);
+
+            // Return empty array if database query fails
+            return [];
+        }
     }
 }
