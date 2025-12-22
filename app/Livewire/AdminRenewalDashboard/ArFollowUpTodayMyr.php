@@ -36,10 +36,34 @@ class ArFollowUpTodayMyr extends Component implements HasForms, HasTable
 
     public $selectedUser;
     public $lastRefreshTime;
+    protected $resellerCache = [];
 
     public function mount()
     {
         $this->lastRefreshTime = now()->format('Y-m-d H:i:s');
+    }
+
+    // Cache reseller data method (similar to AdminRenewalProcessDataMyr)
+    protected function getCachedReseller($companyId)
+    {
+        if (!isset($this->resellerCache[$companyId])) {
+            $this->resellerCache[$companyId] = $this->getResellerForCompany($companyId);
+        }
+        return $this->resellerCache[$companyId];
+    }
+
+    // Get reseller information for a company (similar to AdminRenewalProcessDataMyr)
+    protected function getResellerForCompany($companyId)
+    {
+        try {
+            return DB::connection('frontenddb')->table('crm_reseller_link')
+                ->select('reseller_name', 'f_rate')
+                ->where('f_id', $companyId)
+                ->first();
+        } catch (\Exception $e) {
+            Log::error("Error fetching reseller for company $companyId: ".$e->getMessage());
+            return null;
+        }
     }
 
     public function refreshTable()

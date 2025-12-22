@@ -116,6 +116,9 @@ class QuotationService
 
     public function duplicate(Quotation $quotation): void
     {
+        // Ensure items are loaded before duplication
+        $quotation->load('items');
+
         $newQuotation = $quotation->replicate();
         /**
          * remove items_sum_total_after_tax field
@@ -140,9 +143,11 @@ class QuotationService
         $newQuotation->quotation_reference_no = $this->update_reference_no_for_auth_user($newQuotation);
         $newQuotation->save();
 
+        // Clone all items from the original quotation
         $items = $quotation->items;
         $items->each(function($item) use($newQuotation) {
             $clonedItem = $item->replicate();
+            $clonedItem->quotation_id = $newQuotation->id; // Ensure proper relationship
             $newQuotation->items()->save($clonedItem);
         });
     }
