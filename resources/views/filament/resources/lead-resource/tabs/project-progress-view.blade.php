@@ -3,7 +3,8 @@
     // Get the data directly from the Livewire component
     $leadId = null;
     $selectedModules = [];
-    $swId = null;
+    $swIds = []; // Array to store multiple software handover IDs
+    $softwareHandovers = []; // Collection of software handovers
     $projectPlans = [];
     $progressOverview = [];
     $overallSummary = [
@@ -21,21 +22,30 @@
             if ($record) {
                 $leadId = $record->id;
 
-                // Get the latest software handover for this lead
-                $softwareHandover = \App\Models\SoftwareHandover::where('lead_id', $leadId)
-                    ->latest()
-                    ->first();
+                // Get all non-closed software handovers for this lead
+                $softwareHandovers = \App\Models\SoftwareHandover::where('lead_id', $leadId)
+                    ->where('status_handover', '!=', 'Closed')
+                    ->orderBy('created_at', 'desc')
+                    ->get();
 
-                if ($softwareHandover) {
-                    $projectPlanGeneratedAt = $softwareHandover->project_plan_generated_at;
+                if ($softwareHandovers->isNotEmpty()) {
+                    // Get the latest project plan generation timestamp from any handover
+                    $projectPlanGeneratedAt = $softwareHandovers
+                        ->whereNotNull('project_plan_generated_at')
+                        ->max('project_plan_generated_at');
 
-                    // Get modules from latest SoftwareHandover
-                    $selectedModules = $softwareHandover->getSelectedModules();
+                    // Collect modules from ALL non-closed software handovers
+                    $allSelectedModules = [];
+                    $swIds = [];
+
+                    foreach ($softwareHandovers as $handover) {
+                        $handoverModules = $handover->getSelectedModules();
+                        $allSelectedModules = array_merge($allSelectedModules, $handoverModules);
+                        $swIds[] = $handover->id;
+                    }
 
                     // Always include Phase 1 and Phase 2 (NO UNDERSCORES)
-                    $selectedModules = array_unique(array_merge(['phase 1', 'phase 2'], $selectedModules));
-
-                    $swId = $softwareHandover->id;
+                    $selectedModules = array_unique(array_merge(['phase 1', 'phase 2'], $allSelectedModules));
 
                     // Sort modules by module_order
                     usort($selectedModules, function($a, $b) {
@@ -65,7 +75,7 @@
 
                         foreach ($moduleNames as $moduleName) {
                             $modulePlans = \App\Models\ProjectPlan::where('lead_id', $leadId)
-                                ->where('sw_id', $swId)
+                                ->whereIn('sw_id', $swIds) // Use all non-closed software handover IDs
                                 ->whereHas('projectTask', function ($query) use ($moduleName) {
                                     $query->where('module_name', $moduleName)
                                         ->where('is_active', true);
@@ -784,6 +794,11 @@
             <div class="overall-header">
                 <div class="overall-title-section">
                     <h4 class="overall-title">Project Progress Overview</h4>
+                    @if(count($softwareHandovers) > 1)
+                        <div class="overall-sw-badge">{{ count($softwareHandovers) }} Active Software Handovers</div>
+                    @else
+                        <div class="overall-sw-badge">1 Active Software Handover</div>
+                    @endif
                     <div class="overall-meta">{{ $overallSummary['completedTasks'] }}/{{ $overallSummary['totalTasks'] }} tasks completed</div>
                 </div>
                 <div class="overall-stats">
@@ -895,6 +910,20 @@
                 <div class="module-header-section">
                     <div class="module-title-wrapper">
                         <h4 class="module-title">{{ $moduleName }}</h4>
+                        @php
+                            // Get which software handovers have tasks for this module
+                            $moduleHandoverIds = \App\Models\ProjectPlan::where('lead_id', $leadId)
+                                ->whereIn('sw_id', $swIds)
+                                ->whereHas('projectTask', function ($query) use ($moduleName) {
+                                    $query->where('module_name', $moduleName)->where('is_active', true);
+                                })
+                                ->pluck('sw_id')
+                                ->unique()
+                                ->toArray();
+                        @endphp
+                        @if(count($moduleHandoverIds) > 1)
+                            <div class="sw-id-badge">{{ count($moduleHandoverIds) }} Software Handovers</div>
+                        @endif
                         <div class="module-meta">{{ $moduleData['completedTasks'] }}/{{ $moduleData['totalTasks'] }} tasks completed</div>
                     </div>
                     <div class="module-stats">

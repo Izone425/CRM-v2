@@ -204,24 +204,36 @@ class ProjectPlanTabs
                             }
 
                             $lead = Lead::find($leadId);
-                            $softwareHandover = SoftwareHandover::where('lead_id', $leadId)
-                                ->latest()
-                                ->first();
 
-                            if (!$softwareHandover) {
+                            // Get all non-closed software handovers with project plans
+                            $softwareHandovers = SoftwareHandover::where('lead_id', $leadId)
+                                ->where('status_handover', '!=', 'Closed')
+                                ->whereHas('projectPlans')
+                                ->get();
+
+                            if ($softwareHandovers->isEmpty()) {
                                 Notification::make()
-                                    ->title('No Software Handover Found')
+                                    ->title('No Active Software Handovers Found')
+                                    ->body('No non-closed software handovers with project plans found')
                                     ->warning()
                                     ->send();
                                 return;
                             }
 
-                            $filePath = self::generateProjectPlanExcel($lead, $softwareHandover); // Changed method name
+                            // If multiple handovers, generate combined Excel
+                            if ($softwareHandovers->count() > 1) {
+                                $filePath = self::generateCombinedProjectPlanExcel($lead, $softwareHandovers);
+                            } else {
+                                $filePath = self::generateProjectPlanExcel($lead, $softwareHandovers->first());
+                            }
 
                             if ($filePath) {
-                                $softwareHandover->update([
-                                    'project_plan_generated_at' => now(),
-                                ]);
+                                // Update all handovers with generation timestamp
+                                foreach ($softwareHandovers as $handover) {
+                                    $handover->update([
+                                        'project_plan_generated_at' => now(),
+                                    ]);
+                                }
 
                                 // ✅ Get file details for the notification actions
                                 $companyName = $lead->companyDetail?->company_name ?? 'Unknown';
@@ -250,10 +262,15 @@ class ProjectPlanTabs
                                     $fileName = basename($latestFile['path']);
                                     $fileFullPath = storage_path('app/public/' . $latestFile['path']);
 
+                                    $handoverCount = $softwareHandovers->count();
+                                    $bodyMessage = $handoverCount > 1
+                                        ? "Combined project plan Excel file from {$handoverCount} software handovers has been generated."
+                                        : 'Project plan Excel file has been generated.';
+
                                     // ✅ Notification with View and Download actions
                                     Notification::make()
                                         ->title('Excel File Generated Successfully')
-                                        ->body('Project plan Excel file has been generated. Click below to view or download.')
+                                        ->body($bodyMessage . ' Click below to view or download.')
                                         ->success()
                                         ->duration(10000) // 10 seconds to give time to click
                                         ->actions([
@@ -307,19 +324,27 @@ class ProjectPlanTabs
                                 return false;
                             }
 
-                            $softwareHandover = SoftwareHandover::where('lead_id', $leadId)
-                                ->latest()
-                                ->first();
+                            // Get non-closed software handovers
+                            $softwareHandovers = SoftwareHandover::where('lead_id', $leadId)
+                                ->where('status_handover', '!=', 'Closed')
+                                ->get();
 
-                            if (!$softwareHandover) {
+                            if ($softwareHandovers->isEmpty()) {
                                 return false;
                             }
 
-                            $hasProjectPlans = ProjectPlan::where('lead_id', $leadId)
-                                ->where('sw_id', $softwareHandover->id)
-                                ->exists();
+                            // Show sync button if there are non-closed handovers without project plans
+                            foreach ($softwareHandovers as $softwareHandover) {
+                                $hasProjectPlans = ProjectPlan::where('lead_id', $leadId)
+                                    ->where('sw_id', $softwareHandover->id)
+                                    ->exists();
 
-                            return !$hasProjectPlans;
+                                if (!$hasProjectPlans) {
+                                    return true; // Show button if any handover needs sync
+                                }
+                            }
+
+                            return false; // All handovers already have project plans
                         })
                         ->action(function (Set $set, Get $get, $livewire) {
                             $leadId = $livewire->record?->id ?? $get('id') ?? 0;
@@ -333,31 +358,54 @@ class ProjectPlanTabs
                                 return;
                             }
 
-                            $softwareHandover = SoftwareHandover::where('lead_id', $leadId)
-                                ->latest()
-                                ->first();
+                            // Get all non-closed software handovers
+                            $softwareHandovers = SoftwareHandover::where('lead_id', $leadId)
+                                ->where('status_handover', '!=', 'Closed')
+                                ->get();
 
-                            if (!$softwareHandover) {
+                            if ($softwareHandovers->isEmpty()) {
                                 Notification::make()
-                                    ->title('No Software Handover Found')
-                                    ->body('Please create a software handover first to define project modules')
+                                    ->title('No Active Software Handovers Found')
+                                    ->body('Please create non-closed software handovers first to define project modules')
                                     ->warning()
                                     ->send();
                                 return;
                             }
 
-                            $selectedModules = $softwareHandover->getSelectedModules();
-                            $modulesToSync = array_unique(array_merge(['phase 1', 'phase 2'], $selectedModules));
-                            $createdCount = self::createProjectPlansForModules($leadId, $softwareHandover->id, $modulesToSync);
+                            $totalCreatedCount = 0;
+                            $syncedHandovers = [];
+
+                            foreach ($softwareHandovers as $softwareHandover) {
+                                $selectedModules = $softwareHandover->getSelectedModules();
+                                $modulesToSync = array_unique(array_merge(['phase 1', 'phase 2'], $selectedModules));
+                                $createdCount = self::createProjectPlansForModules($leadId, $softwareHandover->id, $modulesToSync);
+
+                                if ($createdCount > 0) {
+                                    $totalCreatedCount += $createdCount;
+                                    $syncedHandovers[] = [
+                                        'id' => $softwareHandover->id,
+                                        'modules' => $modulesToSync,
+                                        'count' => $createdCount
+                                    ];
+                                }
+                            }
 
                             $set('refresh_trigger', time());
 
-                            $modulesList = implode(', ', $modulesToSync);
-                            Notification::make()
-                                ->title('Tasks Synced Successfully')
-                                ->body("Created/updated {$createdCount} tasks from templates for modules: {$modulesList}")
-                                ->success()
-                                ->send();
+                            if ($totalCreatedCount > 0) {
+                                $handoverCount = count($syncedHandovers);
+                                Notification::make()
+                                    ->title('Tasks Synced Successfully')
+                                    ->body("Synced {$totalCreatedCount} tasks from {$handoverCount} software handover(s)")
+                                    ->success()
+                                    ->send();
+                            } else {
+                                Notification::make()
+                                    ->title('No New Tasks Created')
+                                    ->body('All non-closed software handovers already have their project plans synced')
+                                    ->info()
+                                    ->send();
+                            }
                         }),
 
                     \Filament\Forms\Components\Actions\Action::make('setTaskDates')
@@ -398,19 +446,26 @@ class ProjectPlanTabs
                                 ];
                             }
 
-                            $softwareHandover = SoftwareHandover::where('lead_id', $leadId)
-                                ->latest()
-                                ->first();
+                            // Get all non-closed software handovers
+                            $softwareHandovers = SoftwareHandover::where('lead_id', $leadId)
+                                ->where('status_handover', '!=', 'Closed')
+                                ->get();
 
-                            if (!$softwareHandover) {
+                            if ($softwareHandovers->isEmpty()) {
                                 return [
                                     \Filament\Forms\Components\Placeholder::make('no_sw')
-                                        ->content('No software handover found. Please create a software handover first.')
+                                        ->content('No active software handovers found. Please create non-closed software handovers first.')
                                 ];
                             }
 
-                            $selectedModules = $softwareHandover->getSelectedModules();
-                            $allModules = array_unique(array_merge(['phase 1', 'phase 2'], $selectedModules));
+                            // Collect all selected modules from all non-closed handovers
+                            $allSelectedModules = [];
+                            foreach ($softwareHandovers as $handover) {
+                                $selectedModules = $handover->getSelectedModules();
+                                $allSelectedModules = array_merge($allSelectedModules, $selectedModules);
+                            }
+
+                            $allModules = array_unique(array_merge(['phase 1', 'phase 2'], $allSelectedModules));
 
                             // ✅ Get all unique module_names from selected modules
                             $moduleNames = ProjectTask::whereIn('module', $allModules)
@@ -423,9 +478,10 @@ class ProjectPlanTabs
                                 ->pluck('module_name')
                                 ->toArray();
 
-                            // Get project plans (only non-completed tasks)
+                            // Get project plans from all non-closed software handovers (only non-completed tasks)
+                            $swIds = $softwareHandovers->pluck('id')->toArray();
                             $projectPlans = ProjectPlan::where('lead_id', $leadId)
-                                ->where('sw_id', $softwareHandover->id)
+                                ->whereIn('sw_id', $swIds)
                                 ->where('status', '!=', 'completed')
                                 ->whereHas('projectTask', function ($query) use ($moduleNames) {
                                     $query->whereIn('module_name', $moduleNames)
@@ -456,9 +512,9 @@ class ProjectPlanTabs
                                     $modulePercentage = $firstTask->module_percentage;
                                     $moduleOrder = $firstTask->module_order ?? 999;
 
-                                    // Calculate module progress
+                                    // Calculate module progress from all non-closed handovers
                                     $allModulePlans = ProjectPlan::where('lead_id', $leadId)
-                                        ->where('sw_id', $softwareHandover->id)
+                                        ->whereIn('sw_id', $swIds)
                                         ->whereHas('projectTask', function ($query) use ($moduleName) {
                                             $query->where('module_name', $moduleName)
                                                 ->where('is_active', true);
@@ -1009,16 +1065,26 @@ class ProjectPlanTabs
                                         if ($plan && $plan->lead_id == $leadId && $value) {
                                             try {
                                                 [$start, $end] = explode(' - ', $value);
-                                                $plan->plan_start_date = \Carbon\Carbon::createFromFormat('d/m/Y', trim($start))->format('Y-m-d');
-                                                $plan->plan_end_date = \Carbon\Carbon::createFromFormat('d/m/Y', trim($end))->format('Y-m-d');
+                                                $startDate = \Carbon\Carbon::createFromFormat('d/m/Y', trim($start))->format('Y-m-d');
+                                                $endDate = \Carbon\Carbon::createFromFormat('d/m/Y', trim($end))->format('Y-m-d');
 
-                                                if ($plan->status === 'pending') {
-                                                    $plan->status = 'in_progress';
+                                                // Update all project plans with the same project_task_id and lead_id
+                                                $affectedPlans = ProjectPlan::where('lead_id', $leadId)
+                                                    ->where('project_task_id', $plan->project_task_id)
+                                                    ->get();
+
+                                                foreach ($affectedPlans as $affectedPlan) {
+                                                    $affectedPlan->plan_start_date = $startDate;
+                                                    $affectedPlan->plan_end_date = $endDate;
+
+                                                    if ($affectedPlan->status === 'pending') {
+                                                        $affectedPlan->status = 'in_progress';
+                                                    }
+
+                                                    $affectedPlan->save();
+                                                    $affectedPlan->calculatePlanDuration();
+                                                    $updatedCount++;
                                                 }
-
-                                                $plan->save();
-                                                $plan->calculatePlanDuration();
-                                                $updatedCount++;
                                             } catch (\Exception $e) {
                                                 // Invalid date format
                                             }
@@ -1030,14 +1096,23 @@ class ProjectPlanTabs
 
                                         if ($plan && $plan->lead_id == $leadId && $value) {
                                             try {
-                                                $plan->actual_start_date = \Carbon\Carbon::createFromFormat('d/m/Y', trim($value))->format('Y-m-d');
+                                                $actualStartDate = \Carbon\Carbon::createFromFormat('d/m/Y', trim($value))->format('Y-m-d');
 
-                                                if ($plan->status === 'pending') {
-                                                    $plan->status = 'in_progress';
+                                                // Update all project plans with the same project_task_id and lead_id
+                                                $affectedPlans = ProjectPlan::where('lead_id', $leadId)
+                                                    ->where('project_task_id', $plan->project_task_id)
+                                                    ->get();
+
+                                                foreach ($affectedPlans as $affectedPlan) {
+                                                    $affectedPlan->actual_start_date = $actualStartDate;
+
+                                                    if ($affectedPlan->status === 'pending') {
+                                                        $affectedPlan->status = 'in_progress';
+                                                    }
+
+                                                    $affectedPlan->save();
+                                                    $updatedCount++;
                                                 }
-
-                                                $plan->save();
-                                                $updatedCount++;
                                             } catch (\Exception $e) {
                                                 // Invalid date format
                                             }
@@ -1049,11 +1124,20 @@ class ProjectPlanTabs
 
                                         if ($plan && $plan->lead_id == $leadId && $value) {
                                             try {
-                                                $plan->actual_end_date = \Carbon\Carbon::createFromFormat('d/m/Y', trim($value))->format('Y-m-d');
-                                                $plan->status = 'completed';
-                                                $plan->save();
-                                                $plan->calculateActualDuration();
-                                                $updatedCount++;
+                                                $actualEndDate = \Carbon\Carbon::createFromFormat('d/m/Y', trim($value))->format('Y-m-d');
+
+                                                // Update all project plans with the same project_task_id and lead_id
+                                                $affectedPlans = ProjectPlan::where('lead_id', $leadId)
+                                                    ->where('project_task_id', $plan->project_task_id)
+                                                    ->get();
+
+                                                foreach ($affectedPlans as $affectedPlan) {
+                                                    $affectedPlan->actual_end_date = $actualEndDate;
+                                                    $affectedPlan->status = 'completed';
+                                                    $affectedPlan->save();
+                                                    $affectedPlan->calculateActualDuration();
+                                                    $updatedCount++;
+                                                }
                                             } catch (\Exception $e) {
                                                 // Invalid date format
                                             }
@@ -1064,9 +1148,16 @@ class ProjectPlanTabs
                                         $plan = ProjectPlan::find($planId);
 
                                         if ($plan && $plan->lead_id == $leadId) {
-                                            $plan->status = $value;
-                                            $plan->save();
-                                            $updatedCount++;
+                                            // Update all project plans with the same project_task_id and lead_id
+                                            $affectedPlans = ProjectPlan::where('lead_id', $leadId)
+                                                ->where('project_task_id', $plan->project_task_id)
+                                                ->get();
+
+                                            foreach ($affectedPlans as $affectedPlan) {
+                                                $affectedPlan->status = $value;
+                                                $affectedPlan->save();
+                                                $updatedCount++;
+                                            }
                                         }
                                     }
                                     elseif (preg_match('/plan_(\d+)_remarks/', $key, $matches)) {
@@ -1074,9 +1165,16 @@ class ProjectPlanTabs
                                         $plan = ProjectPlan::find($planId);
 
                                         if ($plan && $plan->lead_id == $leadId) {
-                                            $plan->remarks = $value;
-                                            $plan->save();
-                                            $updatedCount++;
+                                            // Update all project plans with the same project_task_id and lead_id
+                                            $affectedPlans = ProjectPlan::where('lead_id', $leadId)
+                                                ->where('project_task_id', $plan->project_task_id)
+                                                ->get();
+
+                                            foreach ($affectedPlans as $affectedPlan) {
+                                                $affectedPlan->remarks = $value;
+                                                $affectedPlan->save();
+                                                $updatedCount++;
+                                            }
                                         }
                                     }
                                 }
@@ -1359,6 +1457,275 @@ class ProjectPlanTabs
         \Illuminate\Support\Facades\Log::info("Project plan Excel generated", [
             'lead_id' => $lead->id,
             'company_name' => $companyName,
+            'file_path' => $filePath,
+            'filename' => $filename,
+        ]);
+
+        return storage_path('app/public/' . $filePath);
+    }
+
+    protected static function generateCombinedProjectPlanExcel(Lead $lead, $softwareHandovers): string
+    {
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+
+        // Set document properties
+        $companyName = $lead->companyDetail?->company_name ?? 'Unknown Company';
+        $handoverCount = $softwareHandovers->count();
+
+        $spreadsheet->getProperties()
+            ->setCreator('TimeTec CRM')
+            ->setTitle("Combined Project Plan - {$companyName}")
+            ->setSubject('Combined Project Implementation Plan');
+
+        $currentRow = 1;
+
+        // Row 1: Company Name
+        $sheet->setCellValue("A{$currentRow}", 'Company Name');
+        $sheet->mergeCells("A{$currentRow}:B{$currentRow}");
+        $sheet->setCellValue("C{$currentRow}", $companyName);
+        $sheet->mergeCells("C{$currentRow}:K{$currentRow}");
+        $sheet->getStyle("A{$currentRow}:K{$currentRow}")->applyFromArray([
+            'font' => ['bold' => true, 'size' => 12],
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'E8F5E9']],
+            'borders' => [
+                'allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => '000000']],
+            ],
+        ]);
+        $currentRow++;
+
+        // Row 2: Software Handover Count
+        $sheet->setCellValue("A{$currentRow}", 'Software Handovers');
+        $sheet->mergeCells("A{$currentRow}:B{$currentRow}");
+        $sheet->setCellValue("C{$currentRow}", "{$handoverCount} Active Handovers Combined");
+        $sheet->mergeCells("C{$currentRow}:K{$currentRow}");
+        $sheet->getStyle("A{$currentRow}:K{$currentRow}")->applyFromArray([
+            'font' => ['bold' => true, 'size' => 12],
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'E3F2FD']],
+            'borders' => [
+                'allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => '000000']],
+            ],
+        ]);
+        $currentRow++;
+
+        // Row 3: Project Progress Overview
+        $sheet->setCellValue("A{$currentRow}", 'Combined Project Progress Overview');
+        $sheet->mergeCells("A{$currentRow}:K{$currentRow}");
+        $sheet->getStyle("A{$currentRow}:K{$currentRow}")->applyFromArray([
+            'font' => ['bold' => true, 'size' => 14, 'color' => ['rgb' => 'FFFFFF']],
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '1976D2']],
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
+            'borders' => [
+                'allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => '000000']],
+            ],
+        ]);
+        $sheet->getRowDimension($currentRow)->setRowHeight(30);
+        $currentRow++;
+
+        // Add empty row for spacing
+        $currentRow++;
+
+        // Collect all modules from all handovers
+        $allSelectedModules = [];
+        $swIds = [];
+        foreach ($softwareHandovers as $handover) {
+            $handoverModules = $handover->getSelectedModules();
+            $allSelectedModules = array_merge($allSelectedModules, $handoverModules);
+            $swIds[] = $handover->id;
+        }
+
+        $allModules = array_unique(array_merge(['phase 1', 'phase 2'], $allSelectedModules));
+
+        $moduleNames = ProjectTask::whereIn('module', $allModules)
+            ->where('is_active', true)
+            ->select('module_name', 'module_order', 'module_percentage', 'module')
+            ->distinct()
+            ->orderBy('module_order')
+            ->orderBy('module_name')
+            ->get();
+
+        foreach ($moduleNames as $moduleData) {
+            $moduleName = $moduleData->module_name;
+            $modulePercentage = $moduleData->module_percentage;
+            $module = $moduleData->module;
+
+            // Get plans from ALL software handovers for this module
+            $modulePlans = ProjectPlan::where('lead_id', $lead->id)
+                ->whereIn('sw_id', $swIds)
+                ->whereHas('projectTask', function ($query) use ($moduleName) {
+                    $query->where('module_name', $moduleName)
+                        ->where('is_active', true);
+                })
+                ->with('projectTask')
+                ->orderBy('id')
+                ->get();
+
+            if ($modulePlans->isEmpty()) {
+                continue;
+            }
+
+            // Add software handover info for this module
+            $moduleHandoverIds = $modulePlans->pluck('sw_id')->unique()->toArray();
+            $moduleHandoverCount = count($moduleHandoverIds);
+            $handoverInfo = $moduleHandoverCount > 1 ? " (from {$moduleHandoverCount} handovers)" : '';
+
+            // ✅ First row: Plan and Actual headers only (E-J), K is empty
+            $sheet->setCellValue("E{$currentRow}", 'Plan');
+            $sheet->mergeCells("E{$currentRow}:G{$currentRow}");
+
+            $sheet->setCellValue("H{$currentRow}", 'Actual');
+            $sheet->mergeCells("H{$currentRow}:J{$currentRow}");
+
+            $sheet->getStyle("E{$currentRow}:G{$currentRow}")->applyFromArray([
+                'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'FFFF00']],
+                'font' => ['bold' => true, 'color' => ['rgb' => '000000']],
+                'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
+                'borders' => [
+                    'allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => '000000']],
+                ],
+            ]);
+
+            $sheet->getStyle("H{$currentRow}:J{$currentRow}")->applyFromArray([
+                'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '00FF00']],
+                'font' => ['bold' => true, 'color' => ['rgb' => '000000']],
+                'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
+                'borders' => [
+                    'allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => '000000']],
+                ],
+            ]);
+
+            $currentRow++;
+
+            // ✅ Second row: Module code + Module name + Sub-headers + Remarks
+            $sheet->setCellValue("A{$currentRow}", ucfirst(strtolower($module)));
+            $sheet->setCellValue("B{$currentRow}", $moduleName . $handoverInfo);
+            $sheet->setCellValue("C{$currentRow}", 'Status');
+            $sheet->setCellValue("D{$currentRow}", $modulePercentage . '%');
+
+            $sheet->getStyle("A{$currentRow}:D{$currentRow}")->applyFromArray([
+                'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '00B0F0']],
+                'font' => ['bold' => true, 'color' => ['rgb' => '000000']],
+                'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
+                'borders' => [
+                    'allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => '000000']],
+                ],
+            ]);
+
+            // ✅ Sub-headers WITH REMARKS
+            $headers = ['Start Date', 'End Date', 'Duration', 'Start Date', 'End Date', 'Duration', 'Remarks'];
+            $col = 'E';
+            foreach ($headers as $header) {
+                $sheet->setCellValue("{$col}{$currentRow}", $header);
+
+                if (in_array($col, ['E', 'F', 'G'])) {
+                    $sheet->getStyle("{$col}{$currentRow}")->applyFromArray([
+                        'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'FFFF00']],
+                        'font' => ['bold' => true, 'color' => ['rgb' => '000000']],
+                        'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
+                        'borders' => [
+                            'allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => '000000']],
+                        ],
+                    ]);
+                } elseif (in_array($col, ['H', 'I', 'J'])) {
+                    $sheet->getStyle("{$col}{$currentRow}")->applyFromArray([
+                        'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '00FF00']],
+                        'font' => ['bold' => true, 'color' => ['rgb' => '000000']],
+                        'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
+                        'borders' => [
+                            'allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => '000000']],
+                        ],
+                    ]);
+                } elseif ($col === 'K') {
+                    // ✅ Remarks column styling
+                    $sheet->getStyle("{$col}{$currentRow}")->applyFromArray([
+                        'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'FFE699']],
+                        'font' => ['bold' => true, 'color' => ['rgb' => '000000']],
+                        'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
+                        'borders' => [
+                            'allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => '000000']],
+                        ],
+                    ]);
+                }
+
+                $col++;
+            }
+
+            $currentRow++;
+
+            // Task rows
+            $taskNumber = 1;
+            foreach ($modulePlans as $plan) {
+                $task = $plan->projectTask;
+
+                $sheet->setCellValue("A{$currentRow}", $taskNumber);
+                $sheet->setCellValue("B{$currentRow}", $task->task_name);
+                $sheet->setCellValue("C{$currentRow}", ucfirst($plan->status));
+                $sheet->setCellValue("D{$currentRow}", ($task->task_percentage ?? 0) . '%');
+
+                $sheet->getStyle("D{$currentRow}")->applyFromArray([
+                    'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
+                ]);
+
+                // Plan dates
+                $sheet->setCellValue("E{$currentRow}", $plan->plan_start_date ? \Carbon\Carbon::parse($plan->plan_start_date)->format('d/m/Y') : '');
+                $sheet->setCellValue("F{$currentRow}", $plan->plan_end_date ? \Carbon\Carbon::parse($plan->plan_end_date)->format('d/m/Y') : '');
+                $sheet->setCellValue("G{$currentRow}", $plan->plan_duration ?? '');
+
+                // Actual dates
+                $sheet->setCellValue("H{$currentRow}", $plan->actual_start_date ? \Carbon\Carbon::parse($plan->actual_start_date)->format('d/m/Y') : '');
+                $sheet->setCellValue("I{$currentRow}", $plan->actual_end_date ? \Carbon\Carbon::parse($plan->actual_end_date)->format('d/m/Y') : '');
+                $sheet->setCellValue("J{$currentRow}", $plan->actual_duration ?? '');
+
+                // ✅ Remarks column
+                $sheet->setCellValue("K{$currentRow}", $plan->remarks ?? '');
+                $sheet->getStyle("K{$currentRow}")->getAlignment()->setWrapText(true);
+
+                // ✅ Add borders to all columns including Remarks
+                $sheet->getStyle("A{$currentRow}:K{$currentRow}")->applyFromArray([
+                    'borders' => [
+                        'allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => '000000']],
+                    ],
+                ]);
+
+                $currentRow++;
+                $taskNumber++;
+            }
+
+            $currentRow++;
+        }
+
+        // Auto-size columns A-J
+        foreach (range('A', 'J') as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
+
+        // ✅ Set fixed width for Remarks column
+        $sheet->getColumnDimension('K')->setWidth(40);
+
+        // Save to public storage
+        $companySlug = \Illuminate\Support\Str::slug($companyName);
+        $timestamp = now()->format('Y-m-d_His');
+        $filename = "Combined_Project_Plan_{$companySlug}_{$timestamp}.xlsx";
+        $directory = 'project-plans';
+        $filePath = "{$directory}/{$filename}";
+
+        \Illuminate\Support\Facades\Storage::disk('public')->makeDirectory($directory);
+
+        $writer = new Xlsx($spreadsheet);
+        $tempFile = tempnam(sys_get_temp_dir(), 'excel');
+        $writer->save($tempFile);
+
+        \Illuminate\Support\Facades\Storage::disk('public')->put(
+            $filePath,
+            file_get_contents($tempFile)
+        );
+
+        unlink($tempFile);
+
+        \Illuminate\Support\Facades\Log::info("Combined project plan Excel generated", [
+            'lead_id' => $lead->id,
+            'company_name' => $companyName,
+            'handover_count' => $handoverCount,
             'file_path' => $filePath,
             'filename' => $filename,
         ]);
