@@ -419,8 +419,8 @@ class FinanceHandoverRelationManager extends RelationManager
                 $recipients[] = $salesperson->email;
             }
 
-            // Always add soonhock email
-            $recipients[] = 'soonhock@timeteccloud.com';
+            // Always add finance email
+            $recipients[] = 'ap.ttcl@timeteccloud.com';
 
             // Remove duplicates and ensure valid emails
             $recipients = array_unique(array_filter($recipients, function($email) {

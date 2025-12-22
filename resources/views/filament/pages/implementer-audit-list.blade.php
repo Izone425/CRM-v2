@@ -87,7 +87,7 @@
         /* Layout styles */
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
             gap: 1rem;
             margin-bottom: 1.5rem;
         }
@@ -235,7 +235,7 @@
             <div class="stats-grid">
                 @foreach($implementers as $implementer)
                     <div class="stats-card">
-                        <div class="stats-card__header" style="background-color: rgba({{ implode(',', $statsData[$implementer]['color']) }},0.1);">
+                        <div class="stats-card__header" style="background-color: rgba(59, 130, 246, 0.1);">
                             <div class="flex-between">
                                 <h3 class="font-medium">{{ $implementer }}</h3>
                                 <span class="badge">

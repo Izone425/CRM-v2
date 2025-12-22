@@ -98,15 +98,28 @@ class RenewalHandover extends Model
     }
 
     /**
-     * Relationship to quotations
+     * Get quotations for this renewal handover
+     * Since we store quotation IDs in a JSON array, we need a custom method
      */
     public function quotations()
+    {
+        if (empty($this->selected_quotation_ids)) {
+            return Quotation::whereRaw('0 = 1'); // Return empty query builder
+        }
+
+        return Quotation::whereIn('id', $this->selected_quotation_ids);
+    }
+
+    /**
+     * Get quotations collection (for when you need the actual data)
+     */
+    public function getQuotationsDataAttribute()
     {
         if (empty($this->selected_quotation_ids)) {
             return collect();
         }
 
-        return \App\Models\Quotation::whereIn('id', $this->selected_quotation_ids)->get();
+        return Quotation::whereIn('id', $this->selected_quotation_ids)->get();
     }
 
     /**

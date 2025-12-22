@@ -35,7 +35,9 @@ class HrdfInvoiceList extends Page implements HasTable
                         'quotation',
                         'softwareHandover',
                         'hardwareHandover',
-                        'renewalHandover'
+                        'renewalHandover' => function($query) {
+                            // Don't eager load quotations here since it's a custom method
+                        }
                     ])
             )
             ->defaultSort('created_at', 'desc')

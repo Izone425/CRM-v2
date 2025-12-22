@@ -54,14 +54,18 @@ class CustomerProjectPlan extends Component
         }
 
         $lead = Lead::find($customer->lead_id);
-        $softwareHandover = SoftwareHandover::where('lead_id', $customer->lead_id)
-            ->latest()
-            ->first();
+        $softwareHandovers = SoftwareHandover::where('lead_id', $customer->lead_id)
+            ->where('status_handover', '!=', 'Closed')
+            ->orderBy('created_at', 'desc')
+            ->get();
 
-        if (!$softwareHandover) {
-            session()->flash('error', 'No software handover found');
+        if ($softwareHandovers->isEmpty()) {
+            session()->flash('error', 'No active software handover found');
             return;
         }
+
+        // Use the latest handover for download
+        $softwareHandover = $softwareHandovers->first();
 
         $filePath = $this->generateProjectPlanExcel($lead, $softwareHandover);
 
@@ -150,7 +154,7 @@ class CustomerProjectPlan extends Component
             $module = $moduleData->module;
 
             $modulePlans = ProjectPlan::where('lead_id', $lead->id)
-                ->where('sw_id', $softwareHandover->id)
+                ->whereIn('sw_id', $softwareHandovers->pluck('id')->toArray())
                 ->whereHas('projectTask', function ($query) use ($moduleName) {
                     $query->where('module_name', $moduleName)
                         ->where('is_active', true);
@@ -331,18 +335,34 @@ class CustomerProjectPlan extends Component
         ];
 
         try {
-            $softwareHandover = SoftwareHandover::where('lead_id', $leadId)
-                ->latest()
-                ->first();
+            // Get all non-closed software handovers for this lead
+            $softwareHandovers = SoftwareHandover::where('lead_id', $leadId)
+                ->where('status_handover', '!=', 'Closed')
+                ->orderBy('created_at', 'desc')
+                ->get();
 
-            if (!$softwareHandover) {
+            if ($softwareHandovers->isEmpty()) {
                 return $progressData;
             }
 
-            $progressData['projectPlanGeneratedAt'] = $softwareHandover->project_plan_generated_at;
-            $progressData['selectedModules'] = $softwareHandover->getSelectedModules();
-            $progressData['selectedModules'] = array_unique(array_merge(['phase 1', 'phase 2'], $progressData['selectedModules']));
-            $progressData['swId'] = $softwareHandover->id;
+            // Get the latest project plan generation timestamp from any handover
+            $progressData['projectPlanGeneratedAt'] = $softwareHandovers
+                ->whereNotNull('project_plan_generated_at')
+                ->max('project_plan_generated_at');
+
+            // Collect modules from ALL non-closed software handovers
+            $allSelectedModules = [];
+            $swIds = [];
+
+            foreach ($softwareHandovers as $handover) {
+                $handoverModules = $handover->getSelectedModules();
+                $allSelectedModules = array_merge($allSelectedModules, $handoverModules);
+                $swIds[] = $handover->id;
+            }
+
+            // Always include Phase 1 and Phase 2
+            $progressData['selectedModules'] = array_unique(array_merge(['phase 1', 'phase 2'], $allSelectedModules));
+            $progressData['swIds'] = $swIds;
 
             usort($progressData['selectedModules'], function($a, $b) {
                 return ProjectTask::getModuleOrder($a) - ProjectTask::getModuleOrder($b);
@@ -368,7 +388,7 @@ class CustomerProjectPlan extends Component
 
                 foreach ($moduleNames as $moduleName) {
                     $modulePlans = ProjectPlan::where('lead_id', $leadId)
-                        ->where('sw_id', $softwareHandover->id)
+                        ->whereIn('sw_id', $swIds)
                         ->whereHas('projectTask', function ($query) use ($moduleName) {
                             $query->where('module_name', $moduleName)
                                 ->where('is_active', true);
