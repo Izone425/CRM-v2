@@ -4,7 +4,7 @@
     // Use Livewire component properties directly
     $leadId = $this->projectProgressData['leadId'] ?? null;
     $selectedModules = $this->projectProgressData['selectedModules'] ?? [];
-    $swId = $this->projectProgressData['swId'] ?? null;
+    $swIds = $this->projectProgressData['swIds'] ?? []; // Changed from swId to swIds
     $progressOverview = $this->projectProgressData['progressOverview'] ?? [];
     $overallSummary = $this->projectProgressData['overallSummary'] ?? [
         'totalTasks' => 0,

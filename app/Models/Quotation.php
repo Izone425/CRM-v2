@@ -98,4 +98,12 @@ class Quotation extends Model
 
         return $this->lead->companyDetail;
     }
+
+    /**
+     * Calculate total after tax from quotation items
+     */
+    public function getTotalAfterTaxAttribute()
+    {
+        return $this->items()->sum('total_after_tax');
+    }
 }

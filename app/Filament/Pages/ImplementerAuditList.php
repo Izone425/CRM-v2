@@ -40,12 +40,14 @@ class ImplementerAuditList extends Page
     {
         // List of implementers in the specified order
         $this->implementers = [
+            'Rahmah',
+            'Mohd Fairos',
+            'Siti Nadia',
             'Mohd Amirul Ashraf',
             'John Low',
             'Zulhilmie',
             'Muhamad Izzul Aiman',
             'Ahmad Syamim',
-            'Siti Shahilah',
             'Nur Alia',
             'Ameerul Asyraf',
         ];
@@ -182,15 +184,17 @@ class ImplementerAuditList extends Page
     private function getImplementerColor($implementer)
     {
         return match($implementer) {
-            'Mohd Amirul Ashraf' => [239, 68, 68],
-            'John Low' => [16, 185, 129],
-            'Zulhilmie' => [245, 158, 11],
-            'Muhamad Izzul Aiman' => [236, 72, 153],
-            'Ahmad Syamim' => [59, 130, 246],
-            'Siti Shahilah' => [168, 85, 247],
-            'Nur Alia' => [34, 197, 94],
-            'Ameerul Asyraf' => [234, 179, 8],
-            default => [107, 114, 128],
+            'Rahmah' => [239, 68, 68],                    // Red
+            'Mohd Fairos' => [16, 185, 129],              // Emerald Green
+            'Siti Nadia' => [245, 158, 11],               // Amber Orange
+            'Mohd Amirul Ashraf' => [236, 72, 153],       // Pink
+            'John Low' => [59, 130, 246],                 // Blue
+            'Zulhilmie' => [168, 85, 247],                // Purple
+            'Muhamad Izzul Aiman' => [34, 197, 94],       // Green
+            'Ahmad Syamim' => [234, 179, 8],              // Yellow
+            'Nur Alia' => [20, 184, 166],                 // Teal
+            'Ameerul Asyraf' => [251, 146, 60],           // Orange
+            default => [107, 114, 128],                   // Gray
         };
     }
 
