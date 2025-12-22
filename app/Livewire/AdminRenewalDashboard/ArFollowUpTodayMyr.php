@@ -201,6 +201,30 @@ class ArFollowUpTodayMyr extends Component implements HasForms, HasTable
                         return Carbon::parse(self::getEarliestExpiryDate($record->f_company_id))->format('d M Y') ?? 'N/A';
                     }),
 
+                TextColumn::make('reseller_status')
+                    ->label('Reseller')
+                    ->alignCenter()
+                    ->formatStateUsing(function ($state, $record) {
+                        $reseller = $this->getCachedReseller($record->f_company_id);
+                        return $reseller && $reseller->f_rate ? 'Yes' : 'No';
+                    })
+                    ->color(function ($state, $record) {
+                        $reseller = $this->getCachedReseller($record->f_company_id);
+                        return $reseller && $reseller->f_rate ? 'danger' : 'gray';
+                    })
+                    ->tooltip(function ($state, $record) {
+                        $reseller = $this->getCachedReseller($record->f_company_id);
+                        return $reseller && $reseller->reseller_name
+                            ? 'Reseller: ' . $reseller->reseller_name
+                            : '';
+                    })
+                    ->badge()
+                    ->state(function ($record) {
+                        // Ensure we return a value for the state
+                        $reseller = $this->getCachedReseller($record->f_company_id);
+                        return $reseller && $reseller->f_rate ? 'yes' : 'no';
+                    }),
+
                 TextColumn::make('pending_days')
                     ->label('Pending Days')
                     ->alignCenter()

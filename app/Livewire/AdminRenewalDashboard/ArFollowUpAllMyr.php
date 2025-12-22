@@ -35,10 +35,34 @@ class ArFollowUpAllMyr extends Component implements HasForms, HasTable
 
     public $selectedUser;
     public $lastRefreshTime;
+    protected $resellerCache = [];
 
     public function mount()
     {
         $this->lastRefreshTime = now()->format('Y-m-d H:i:s');
+    }
+
+    // Cache reseller data method (similar to AdminRenewalProcessDataMyr)
+    protected function getCachedReseller($companyId)
+    {
+        if (!isset($this->resellerCache[$companyId])) {
+            $this->resellerCache[$companyId] = $this->getResellerForCompany($companyId);
+        }
+        return $this->resellerCache[$companyId];
+    }
+
+    // Get reseller information for a company (similar to AdminRenewalProcessDataMyr)
+    protected function getResellerForCompany($companyId)
+    {
+        try {
+            return DB::connection('frontenddb')->table('crm_reseller_link')
+                ->select('reseller_name', 'f_rate')
+                ->where('f_id', $companyId)
+                ->first();
+        } catch (\Exception $e) {
+            Log::error("Error fetching reseller for company $companyId: ".$e->getMessage());
+            return null;
+        }
     }
 
     public function refreshTable()
@@ -193,6 +217,30 @@ class ArFollowUpAllMyr extends Component implements HasForms, HasTable
                     ->formatStateUsing(function ($state, $record) {
 
                         return Carbon::parse(self::getEarliestExpiryDate($record->f_company_id))->format('d M Y') ?? 'N/A';
+                    }),
+
+                TextColumn::make('reseller_status')
+                    ->label('Reseller')
+                    ->alignCenter()
+                    ->formatStateUsing(function ($state, $record) {
+                        $reseller = $this->getCachedReseller($record->f_company_id);
+                        return $reseller && $reseller->f_rate ? 'Yes' : 'No';
+                    })
+                    ->color(function ($state, $record) {
+                        $reseller = $this->getCachedReseller($record->f_company_id);
+                        return $reseller && $reseller->f_rate ? 'danger' : 'gray';
+                    })
+                    ->tooltip(function ($state, $record) {
+                        $reseller = $this->getCachedReseller($record->f_company_id);
+                        return $reseller && $reseller->reseller_name
+                            ? 'Reseller: ' . $reseller->reseller_name
+                            : '';
+                    })
+                    ->badge()
+                    ->state(function ($record) {
+                        // Ensure we return a value for the state
+                        $reseller = $this->getCachedReseller($record->f_company_id);
+                        return $reseller && $reseller->f_rate ? 'yes' : 'no';
                     }),
 
                 TextColumn::make('pending_days')

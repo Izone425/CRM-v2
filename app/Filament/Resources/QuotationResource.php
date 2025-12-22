@@ -1271,7 +1271,11 @@ class QuotationResource extends Resource
                         //         return $lastUpdatedAt->diffInHours(now()) < 48;
                         //     }
                         // )
-                        ->action(fn(Quotation $quotation, QuotationService $quotationService) => $quotationService->duplicate($quotation)),
+                        ->action(function(Quotation $quotation, QuotationService $quotationService) {
+                            // Ensure the quotation has its items loaded before duplication
+                            $quotation->load('items');
+                            return $quotationService->duplicate($quotation);
+                        }),
                     // Tables\Actions\Action::make('preview_pdf')
                     //     ->label('Preview PDF')
                     //     ->icon('heroicon-o-viewfinder-circle')
