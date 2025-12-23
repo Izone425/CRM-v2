@@ -290,7 +290,7 @@ class SalesAdminInvoice extends Page implements HasTable
 
             $status = 'Full Payment';
 
-            if (!$debtorAging || (float)$debtorAging->outstanding === 0.0) {
+            if ((float)$debtorAging->outstanding === 0.0) {
                 $status = 'Full Payment';
             } elseif ((float)$debtorAging->outstanding === (float)$totalInvoiceAmount) {
                 $status = 'UnPaid';
