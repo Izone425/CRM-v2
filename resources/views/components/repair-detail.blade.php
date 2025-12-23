@@ -172,7 +172,7 @@
                 </p>
                 <p class="mb-2">
                     <span class="font-semibold">Repair Handover ID:</span>
-                    OR_250{{ str_pad($record->id, 3, '0', STR_PAD_LEFT) }}
+                    {{ $record->formatted_handover_id }}
                 </p>
                 <p class="mb-2">
                     <span class="font-semibold">Submitted Date:</span>

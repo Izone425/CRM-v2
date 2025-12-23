@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('internal_tickets', function (Blueprint $table) {
             $table->id();
-            $table->string('ticket_id')->unique(); // T-AD-250001 format
+            $table->string('ticket_id')->unique();
             $table->foreignId('created_by')->constrained('users')->onDelete('cascade');
             $table->foreignId('attention_to')->constrained('users')->onDelete('cascade');
             $table->enum('status', ['pending', 'in_progress', 'completed'])->default('pending');

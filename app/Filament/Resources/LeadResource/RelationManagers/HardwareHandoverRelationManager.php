@@ -80,7 +80,7 @@ class HardwareHandoverRelationManager extends RelationManager
                                 ->get()
                                 ->mapWithKeys(function ($handover) {
                                     $id = $handover->id;
-                                    $formattedId = 'SW_250' . str_pad($id, 3, '0', STR_PAD_LEFT);
+                                    $formattedId = $handover->formatted_handover_id;
                                     $date = $handover->created_at ? $handover->created_at->format('d M Y') : 'Unknown date';
                                     return [$id => "{$formattedId} - {$date}"];
                                 })
@@ -423,8 +423,9 @@ class HardwareHandoverRelationManager extends RelationManager
                         ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file): string {
                             // Get lead ID from ownerRecord
                             $leadId = $this->getOwnerRecord()->id;
-                            // Format ID with prefix (250) and padding
-                            $formattedId = '250' . str_pad($leadId, 3, '0', STR_PAD_LEFT);
+                            $year = now()->format('y');
+                            // Format ID with new pattern
+                            $formattedId = sprintf('HW_%02d%04d', $year, $leadId);
                             // Get extension
                             $extension = $file->getClientOriginalExtension();
 
@@ -432,7 +433,7 @@ class HardwareHandoverRelationManager extends RelationManager
                             $timestamp = now()->format('YmdHis');
                             $random = rand(1000, 9999);
 
-                            return "{$formattedId}-HW-VIDEO-{$timestamp}-{$random}.{$extension}";
+                            return "{$formattedId}-VIDEO-{$timestamp}-{$random}.{$extension}";
                         })
                         ->openable()
                         ->previewable(false) // No preview for videos directly in form
@@ -582,8 +583,9 @@ class HardwareHandoverRelationManager extends RelationManager
                                 ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
                                     // Get lead ID from ownerRecord
                                     $leadId = $this->getOwnerRecord()->id;
-                                    // Format ID with prefix (250) and padding
-                                    $formattedId = '250' . str_pad($leadId, 3, '0', STR_PAD_LEFT);
+                                    $year = now()->format('y');
+                                    // Format ID with new pattern
+                                    $formattedId = sprintf('HW_%02d%04d', $year, $leadId);
                                     // Get extension
                                     $extension = $file->getClientOriginalExtension();
 
@@ -591,7 +593,7 @@ class HardwareHandoverRelationManager extends RelationManager
                                     $timestamp = now()->format('YmdHis');
                                     $random = rand(1000, 9999);
 
-                                    return "{$formattedId}-HW-CONFIRM-{$timestamp}-{$random}.{$extension}";
+                                    return "{$formattedId}-CONFIRM-{$timestamp}-{$random}.{$extension}";
                                 })
                                 ->default(function (?HardwareHandover $record) {
                                     if (!$record || !$record->confirmation_order_file) {
@@ -618,8 +620,9 @@ class HardwareHandoverRelationManager extends RelationManager
                                 ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
                                     // Get lead ID from ownerRecord
                                     $leadId = $this->getOwnerRecord()->id;
-                                    // Format ID with prefix (250) and padding
-                                    $formattedId = '250' . str_pad($leadId, 3, '0', STR_PAD_LEFT);
+                                    $year = now()->format('y');
+                                    // Format ID with new pattern
+                                    $formattedId = sprintf('HW_%02d%04d', $year, $leadId);
                                     // Get extension
                                     $extension = $file->getClientOriginalExtension();
 
@@ -627,7 +630,7 @@ class HardwareHandoverRelationManager extends RelationManager
                                     $timestamp = now()->format('YmdHis');
                                     $random = rand(1000, 9999);
 
-                                    return "{$formattedId}-HW-PAYMENT-{$timestamp}-{$random}.{$extension}";
+                                    return "{$formattedId}-PAYMENT-{$timestamp}-{$random}.{$extension}";
                                 })
                                 ->default(function (?HardwareHandover $record) {
                                     if (!$record || !$record->payment_slip_file) {
@@ -680,8 +683,9 @@ class HardwareHandoverRelationManager extends RelationManager
                                 ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
                                     // Get lead ID from ownerRecord
                                     $leadId = $this->getOwnerRecord()->id;
-                                    // Format ID with prefix (250) and padding
-                                    $formattedId = '250' . str_pad($leadId, 3, '0', STR_PAD_LEFT);
+                                    $year = now()->format('y');
+                                    // Format ID with new pattern
+                                    $formattedId = sprintf('HW_%02d%04d', $year, $leadId);
                                     // Get extension
                                     $extension = $file->getClientOriginalExtension();
 
@@ -689,7 +693,7 @@ class HardwareHandoverRelationManager extends RelationManager
                                     $timestamp = now()->format('YmdHis');
                                     $random = rand(1000, 9999);
 
-                                    return "{$formattedId}-HW-HRDF-{$timestamp}-{$random}.{$extension}";
+                                    return "{$formattedId}-HRDF-{$timestamp}-{$random}.{$extension}";
                                 })
                                 ->afterStateUpdated(function () {
                                     // Reset the counter after the upload is complete
@@ -868,8 +872,7 @@ class HardwareHandoverRelationManager extends RelationManager
                             return 'Unknown';
                         }
 
-                        // Format ID with prefix 250 and padding to ensure at least 3 digits
-                        return 'HW_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+                        return $record->formatted_handover_id;
                     })
                     ->color('primary')
                     ->weight('bold')
@@ -1038,9 +1041,7 @@ class HardwareHandoverRelationManager extends RelationManager
 
                     Action::make('edit_hardware_handover')
                         ->modalHeading(function (HardwareHandover $record): string {
-                            // Format ID with prefix 250 and pad with zeros to ensure at least 3 digits
-                            $formattedId = '250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
-                            return "Edit Hardware Handover {$formattedId}";
+                            return "Edit Hardware Handover {$record->formatted_handover_id}";
                         })
                         ->label('Edit Hardware Handover')
                         ->icon('heroicon-o-pencil')

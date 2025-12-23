@@ -152,7 +152,7 @@ class TechnicianPendingOnsiteRepair extends Component implements HasForms, HasTa
                         if (!$state) {
                             return 'Unknown';
                         }
-                        return 'OR_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+                        return $record->formatted_handover_id;
                     })
                     ->color('primary')
                     ->weight('bold')
@@ -961,7 +961,7 @@ class TechnicianPendingOnsiteRepair extends Component implements HasForms, HasTa
     {
         try {
             // Format the repair ID properly
-            $repairId = 'OR_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+            $repairId = $record->formatted_handover_id;
 
             // Get company name
             $companyName = $record->company_name ?? 'Unknown Company';

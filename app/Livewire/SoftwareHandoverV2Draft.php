@@ -53,8 +53,8 @@ class SoftwareHandoverV2Draft extends Component implements HasForms, HasTable
             ->columns([
                 TextColumn::make('id')
                     ->label('SW ID')
-                    ->formatStateUsing(function ($state) {
-                        return 'SW_250' . str_pad($state, 3, '0', STR_PAD_LEFT);
+                    ->formatStateUsing(function ($state, $record) {
+                        return $record->formatted_handover_id;
                     })
                     ->searchable()
                     ->sortable(),

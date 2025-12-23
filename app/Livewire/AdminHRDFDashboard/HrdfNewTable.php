@@ -101,7 +101,7 @@ class HrdfNewTable extends Component implements HasForms, HasTable
                         if (!$state) {
                             return 'Unknown';
                         }
-                        return 'HRDF_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+                        return $record->formatted_handover_id;
                     })
                     ->color('primary')
                     ->weight('bold')
@@ -261,7 +261,7 @@ class HrdfNewTable extends Component implements HasForms, HasTable
                                 });
 
                                 // Get necessary data for email
-                                $handoverId = 'HRDF_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+                                $handoverId = $record->formatted_handover_id;
                                 $companyDetail = $record->lead->companyDetail;
                                 $companyName = $companyDetail ? $companyDetail->company_name : 'Unknown Company';
 
@@ -354,7 +354,7 @@ class HrdfNewTable extends Component implements HasForms, HasTable
                                 ]);
 
                                 // Get necessary data for email
-                                $handoverId = 'HRDF_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+                                $handoverId = $record->formatted_handover_id;
                                 $companyDetail = $record->lead->companyDetail;
                                 $companyName = $companyDetail ? $companyDetail->company_name : 'Unknown Company';
 

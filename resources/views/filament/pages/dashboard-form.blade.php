@@ -60,15 +60,6 @@
             ->count();
         $adminSoftwareV2Total = $softwareV2NewCount + $softwareV2PendingKickOffCount + $softwareV2PendingLicenseCount;
 
-        // ADMIN HARDWARE counts (NEW TASK + PENDING STOCK)
-        $hardwareNewCount = app(\App\Livewire\SalespersonDashboard\HardwareHandoverNew::class)
-            ->getNewHardwareHandovers()
-            ->count();
-        $hardwarePendingStockCount = app(\App\Livewire\HardwareHandoverPendingStock::class)
-            ->getOverdueHardwareHandovers()
-            ->count();
-        $adminHardwareTotal = $hardwareNewCount + $hardwarePendingStockCount;
-
         // ADMIN HEADCOUNT counts (NEW TASK)
         $adminHeadcountTotal = app(\App\Livewire\AdminHeadcountDashboard\HeadcountNewTable::class)
             ->getNewHeadcountHandovers()

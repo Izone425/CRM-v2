@@ -43,7 +43,8 @@ class RPTableRelationManager extends RelationManager
                         if (!$state) {
                             return 'Unknown';
                         }
-                        return 'OR_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+                        // Use the model's formatted_handover_id accessor
+                        return $record->formatted_handover_id;
                     })
                     ->color('primary')
                     ->weight('bold')

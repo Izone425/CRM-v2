@@ -7,8 +7,8 @@
         return;
     }
 
-    // Format the handover ID
-    $handoverId = 'HW_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+    // Format the handover ID using the model accessor
+    $handoverId = $record->formatted_handover_id;
 
     // Get company detail
     $companyDetail = $record->lead->companyDetail ?? null;
@@ -472,7 +472,7 @@
                         <span class="hw-value">
                             @foreach($relatedHandovers as $index => $softwareHandover)
                                 @php
-                                    $formattedId = 'SW_250' . str_pad($softwareHandover->id, 3, '0', STR_PAD_LEFT);
+                                    $formattedId = $softwareHandover->formatted_handover_id;
                                 @endphp
                                 @if($index > 0), @endif
                                 {{ $formattedId }}

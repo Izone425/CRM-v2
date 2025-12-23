@@ -208,15 +208,15 @@ class HRDFHandoverRelationManager extends RelationManager
                         ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
                             // Get lead ID from ownerRecord
                             $leadId = $this->getOwnerRecord()->id;
-                            // Format ID with prefix (250) and padding
-                            $formattedId = '250' . str_pad($leadId, 3, '0', STR_PAD_LEFT);
+                            // Use standardized format matching HRDFHandover accessor
+                            $formattedId = HRDFHandover::generateFormattedId($leadId);
                             // Get extension
                             $extension = $file->getClientOriginalExtension();
                             // Generate a unique identifier (timestamp) to avoid overwriting files
                             $timestamp = now()->format('YmdHis');
                             $random = rand(1000, 9999);
 
-                            return "{$formattedId}-HRDF-JD14-{$timestamp}-{$random}.{$extension}";
+                            return "{$formattedId}-JD14-{$timestamp}-{$random}.{$extension}";
                         })
                         ->default(function (?HRDFHandover $record = null) {
                             if (!$record || !$record->jd14_form_files) {
@@ -244,15 +244,15 @@ class HRDFHandoverRelationManager extends RelationManager
                         ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
                             // Get lead ID from ownerRecord
                             $leadId = $this->getOwnerRecord()->id;
-                            // Format ID with prefix (250) and padding
-                            $formattedId = '250' . str_pad($leadId, 3, '0', STR_PAD_LEFT);
+                            // Use standardized format matching HRDFHandover accessor
+                            $formattedId = HRDFHandover::generateFormattedId($leadId);
                             // Get extension
                             $extension = $file->getClientOriginalExtension();
                             // Generate a unique identifier (timestamp) to avoid overwriting files
                             $timestamp = now()->format('YmdHis');
                             $random = rand(1000, 9999);
 
-                            return "{$formattedId}-HRDF-AUTOCOUNT-{$timestamp}-{$random}.{$extension}";
+                            return "{$formattedId}-AUTOCOUNT-{$timestamp}-{$random}.{$extension}";
                         })
                         ->default(function (?HRDFHandover $record = null) {
                             if (!$record || !$record->autocount_invoice_file) {
@@ -280,15 +280,15 @@ class HRDFHandoverRelationManager extends RelationManager
                         ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
                             // Get lead ID from ownerRecord
                             $leadId = $this->getOwnerRecord()->id;
-                            // Format ID with prefix (250) and padding
-                            $formattedId = '250' . str_pad($leadId, 3, '0', STR_PAD_LEFT);
+                            // Use standardized format matching HRDFHandover accessor
+                            $formattedId = HRDFHandover::generateFormattedId($leadId);
                             // Get extension
                             $extension = $file->getClientOriginalExtension();
                             // Generate a unique identifier (timestamp) to avoid overwriting files
                             $timestamp = now()->format('YmdHis');
                             $random = rand(1000, 9999);
 
-                            return "{$formattedId}-HRDF-GRANT-{$timestamp}-{$random}.{$extension}";
+                            return "{$formattedId}-GRANT-{$timestamp}-{$random}.{$extension}";
                         })
                         ->default(function (?HRDFHandover $record = null) {
                             if (!$record || !$record->hrdf_grant_approval_file) {
@@ -440,8 +440,8 @@ class HRDFHandoverRelationManager extends RelationManager
                             return 'Unknown';
                         }
 
-                        // Format ID with HRDF prefix and pad with zeros to ensure at least 3 digits
-                        return 'HRDF_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+                        // Use the model's formatted_handover_id accessor
+                        return $record->formatted_handover_id;
                     })
                     ->color('primary')
                     ->weight('bold')
@@ -513,8 +513,7 @@ class HRDFHandoverRelationManager extends RelationManager
 
                     Action::make('edit_hrdf_handover')
                         ->modalHeading(function (HRDFHandover $record): string {
-                            $formattedId = 'HRDF_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
-                            return "Edit HRDF Handover {$formattedId}";
+                            return "Edit HRDF Handover {$record->formatted_handover_id}";
                         })
                         ->label('Edit HRDF Handover')
                         ->icon('heroicon-o-pencil')

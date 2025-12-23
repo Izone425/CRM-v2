@@ -202,7 +202,7 @@ class SoftwareHandoverV2New extends Component implements HasForms, HasTable
                             return $filename;
                         }
 
-                        // Format ID with 250 prefix and pad with zeros to ensure at least 3 digits
+
                         return $record->formatted_handover_id;
                     })
                     ->color('primary') // Makes it visually appear as a link
@@ -310,7 +310,6 @@ class SoftwareHandoverV2New extends Component implements HasForms, HasTable
                         }),
                     Action::make('edit_software_handover')
                         ->label(function (SoftwareHandover $record): string {
-                            // Format ID with prefix 250 and pad with zeros to ensure at least 3 digits
                             $formattedId = $record->formatted_handover_id;
                             return "Edit Software Handover {$formattedId}";
                         })
@@ -471,10 +470,8 @@ class SoftwareHandoverV2New extends Component implements HasForms, HasTable
                                                         ->openable()
                                                         ->downloadable()
                                                         ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get, SoftwareHandover $record): string {
-                                                            // Get lead ID directly from the record
-                                                            $leadId = $record->lead_id;
-                                                            // Format ID with prefix (250) and padding
-                                                            $formattedId = '250' . str_pad($leadId, 3, '0', STR_PAD_LEFT);
+                                                            // Use the record's formatted handover ID
+                                                            $formattedId = $record->formatted_handover_id;
                                                             // Get extension
                                                             $extension = $file->getClientOriginalExtension();
 
@@ -614,10 +611,8 @@ class SoftwareHandoverV2New extends Component implements HasForms, HasTable
                                                 ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
                                                 ->openable()
                                                 ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get, SoftwareHandover $record): string {
-                                                    // Get lead ID directly from the record
-                                                    $leadId = $record->lead_id;
-                                                    // Format ID with prefix (250) and padding
-                                                    $formattedId = '250' . str_pad($leadId, 3, '0', STR_PAD_LEFT);
+                                                    // Use the record's formatted handover ID
+                                                    $formattedId = $record->formatted_handover_id;
                                                     // Get extension
                                                     $extension = $file->getClientOriginalExtension();
 
@@ -648,10 +643,8 @@ class SoftwareHandoverV2New extends Component implements HasForms, HasTable
                                                 ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
                                                 ->openable()
                                                 ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get, SoftwareHandover $record): string {
-                                                    // Get lead ID directly from the record
-                                                    $leadId = $record->lead_id;
-                                                    // Format ID with prefix (250) and padding
-                                                    $formattedId = '250' . str_pad($leadId, 3, '0', STR_PAD_LEFT);
+                                                    // Use the record's formatted handover ID
+                                                    $formattedId = $record->formatted_handover_id;
                                                     // Get extension
                                                     $extension = $file->getClientOriginalExtension();
 
@@ -681,10 +674,8 @@ class SoftwareHandoverV2New extends Component implements HasForms, HasTable
                                                 ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
                                                 ->openable()
                                                 ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get, SoftwareHandover $record): string {
-                                                    // Get lead ID directly from the record
-                                                    $leadId = $record->lead_id;
-                                                    // Format ID with prefix (250) and padding
-                                                    $formattedId = '250' . str_pad($leadId, 3, '0', STR_PAD_LEFT);
+                                                    // Use the record's formatted handover ID
+                                                    $formattedId = $record->formatted_handover_id;
                                                     // Get extension
                                                     $extension = $file->getClientOriginalExtension();
 
@@ -1875,7 +1866,7 @@ class SoftwareHandoverV2New extends Component implements HasForms, HasTable
                 Notification::make()
                     ->title('Existing HRV2 Account Found')
                     ->success()
-                    ->body("Reusing existing HRV2 account from previous handover (ID: SW_250" . str_pad($existingHandover->id, 3, '0', STR_PAD_LEFT) . ")")
+                    ->body("Reusing existing HRV2 account from previous handover (ID: {$existingHandover->formatted_handover_id})")
                     ->send();
 
                 return [

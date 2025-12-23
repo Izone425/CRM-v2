@@ -228,7 +228,7 @@ class HardwareV2PendingMigrationTable extends Component implements HasForms, Has
                             return $filename;
                         }
 
-                        return '250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+                        return $record->formatted_handover_id;
                     })
                     ->color('primary')
                     ->weight('bold')
@@ -492,7 +492,7 @@ class HardwareV2PendingMigrationTable extends Component implements HasForms, Has
                                                                     ->first();
 
                                                                 if ($existingHandover) {
-                                                                    $existingHandoverId = 'HW_250' . str_pad($existingHandover->id, 3, '0', STR_PAD_LEFT);
+                                                                    $existingHandoverId = $existingHandover->formatted_handover_id;
                                                                     $fail("Invoice number already used in Hardware Handover {$existingHandoverId}.");
                                                                 }
                                                             },
@@ -611,7 +611,7 @@ class HardwareV2PendingMigrationTable extends Component implements HasForms, Has
                                     ->first();
 
                                 if ($existingHandover) {
-                                    $existingHandoverId = 'HW_250' . str_pad($existingHandover->id, 3, '0', STR_PAD_LEFT);
+                                    $existingHandoverId = $existingHandover->formatted_handover_id;
                                     Notification::make()
                                         ->title('Duplicate Invoice Number')
                                         ->body("Invoice {$invoiceNo} is already used in Hardware Handover {$existingHandoverId}")

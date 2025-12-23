@@ -65,8 +65,8 @@ class SalesPersonSurveyRequest extends Page implements HasTable
             ->columns([
                 TextColumn::make('id')
                     ->label('Survey ID')
-                    ->formatStateUsing(function ($state) {
-                        return 'SS_250' . str_pad($state, 4, '0', STR_PAD_LEFT);
+                    ->formatStateUsing(function ($state, RepairAppointment $record) {
+                        return $record->formatted_handover_id;
                     })
                     ->sortable(),
 
@@ -545,7 +545,7 @@ class SalesPersonSurveyRequest extends Page implements HasTable
                         $appointment = RepairAppointment::create($data);
 
                         // Generate survey ID
-                        $surveyId = 'SS_250' . str_pad($appointment->id, 4, '0', STR_PAD_LEFT);
+                        $surveyId = $appointment->formatted_handover_id;
 
                         // Send email notification
                         $this->sendSurveyNotification($appointment, $surveyId);

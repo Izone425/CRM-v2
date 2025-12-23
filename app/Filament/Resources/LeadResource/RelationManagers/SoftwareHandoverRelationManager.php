@@ -286,31 +286,6 @@ class SoftwareHandoverRelationManager extends RelationManager
                                     ->placeholder('Write Remark')
                                     ->autosize()
                                     ->rows(2),
-
-                                // FileUpload::make('attachments')
-                                //     ->hiddenLabel(true)
-                                //     ->disk('public')
-                                //     ->directory('handovers/remark_attachments')
-                                //     ->visibility('public')
-                                //     ->multiple()
-                                //     ->maxFiles(3)
-                                //     ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'])
-                                //     ->openable()
-                                //     ->downloadable()
-                                //     ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
-                                //         // Get lead ID from ownerRecord
-                                //         $leadId = $this->getOwnerRecord()->id;
-                                //         // Format ID with prefix (250) and padding
-                                //         $formattedId = '250' . str_pad($leadId, 3, '0', STR_PAD_LEFT);
-                                //         // Get extension
-                                //         $extension = $file->getClientOriginalExtension();
-
-                                //         // Generate a unique identifier (timestamp) to avoid overwriting files
-                                //         $timestamp = now()->format('YmdHis');
-                                //         $random = rand(1000, 9999);
-
-                                //         return "{$formattedId}-SW-REMARK-{$timestamp}-{$random}.{$extension}";
-                                //     }),
                             ])
                         ])
                         ->itemLabel(fn() => __('Remark') . ' ' . ++self::$indexRepeater2)
@@ -708,8 +683,8 @@ class SoftwareHandoverRelationManager extends RelationManager
                             ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
                                 // Get lead ID from ownerRecord
                                 $leadId = $this->getOwnerRecord()->id;
-                                // Format ID with prefix (250) and padding
-                                $formattedId = '250' . str_pad($leadId, 3, '0', STR_PAD_LEFT);
+                                // Use standardized format matching SoftwareHandover accessor
+                                $formattedId = SoftwareHandover::generateFormattedId($leadId);
                                 // Get extension
                                 $extension = $file->getClientOriginalExtension();
 
@@ -717,7 +692,7 @@ class SoftwareHandoverRelationManager extends RelationManager
                                 $timestamp = now()->format('YmdHis');
                                 $random = rand(1000, 9999);
 
-                                return "{$formattedId}-SW-CONFIRM-{$timestamp}-{$random}.{$extension}";
+                                return "{$formattedId}-CONFIRM-{$timestamp}-{$random}.{$extension}";
                             })
                             ->default(function (?SoftwareHandover $record = null) {
                                 if (!$record || !$record->confirmation_order_file) {
@@ -751,8 +726,8 @@ class SoftwareHandoverRelationManager extends RelationManager
                             ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
                                 // Get lead ID from ownerRecord
                                 $leadId = $this->getOwnerRecord()->id;
-                                // Format ID with prefix (250) and padding
-                                $formattedId = '250' . str_pad($leadId, 3, '0', STR_PAD_LEFT);
+                                // Use standardized format matching SoftwareHandover accessor
+                                $formattedId = SoftwareHandover::generateFormattedId($leadId);
                                 // Get extension
                                 $extension = $file->getClientOriginalExtension();
 
@@ -760,7 +735,7 @@ class SoftwareHandoverRelationManager extends RelationManager
                                 $timestamp = now()->format('YmdHis');
                                 $random = rand(1000, 9999);
 
-                                return "{$formattedId}-SW-PAYMENT-{$timestamp}-{$random}.{$extension}";
+                                return "{$formattedId}-PAYMENT-{$timestamp}-{$random}.{$extension}";
                             })
                             ->default(function (?SoftwareHandover $record = null) {
                                 if (!$record || !$record->payment_slip_file) {
@@ -794,8 +769,8 @@ class SoftwareHandoverRelationManager extends RelationManager
                             ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
                                 // Get lead ID from ownerRecord
                                 $leadId = $this->getOwnerRecord()->id;
-                                // Format ID with prefix (250) and padding
-                                $formattedId = '250' . str_pad($leadId, 3, '0', STR_PAD_LEFT);
+                                // Use standardized format matching SoftwareHandover accessor
+                                $formattedId = SoftwareHandover::generateFormattedId($leadId);
                                 // Get extension
                                 $extension = $file->getClientOriginalExtension();
 
@@ -803,7 +778,7 @@ class SoftwareHandoverRelationManager extends RelationManager
                                 $timestamp = now()->format('YmdHis');
                                 $random = rand(1000, 9999);
 
-                                return "{$formattedId}-SW-HRDF-{$timestamp}-{$random}.{$extension}";
+                                return "{$formattedId}-HRDF-{$timestamp}-{$random}.{$extension}";
                             })
                             ->afterStateUpdated(function () {
                                 // Reset the counter after the upload is complete
@@ -1066,8 +1041,8 @@ class SoftwareHandoverRelationManager extends RelationManager
                     app(GenerateSoftwareHandoverPdfController::class)->generateInBackground($handover);
 
                     try {
-                        // Format handover ID
-                        $handoverId = 'SW_250' . str_pad($handover->id, 3, '0', STR_PAD_LEFT);
+                        // Format handover ID using model accessor
+                        $handoverId = $handover->formatted_handover_id;
 
                         // Get company name from CompanyDetail
                         $companyDetail = \App\Models\CompanyDetail::where('lead_id', $handover->lead_id)->first();
@@ -1130,7 +1105,7 @@ class SoftwareHandoverRelationManager extends RelationManager
                             return $filename;
                         }
 
-                        // Format ID with 250 prefix and pad with zeros to ensure at least 3 digits
+
                         return $record->formatted_handover_id;
                     })
                     ->color('primary') // Makes it visually appear as a link
@@ -1217,7 +1192,6 @@ class SoftwareHandoverRelationManager extends RelationManager
 
                     Action::make('edit_software_handover')
                         ->modalHeading(function (SoftwareHandover $record): string {
-                            // Format ID with prefix 250 and pad with zeros to ensure at least 3 digits
                             $formattedId = $record->formatted_handover_id;
                             return "Edit Software Handover {$formattedId}";
                         })

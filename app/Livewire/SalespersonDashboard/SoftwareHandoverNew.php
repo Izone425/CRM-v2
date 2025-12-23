@@ -493,108 +493,108 @@ class SoftwareHandoverNew extends Component implements HasForms, HasTable
                                         }),
                                 ]),
 
-                            Section::make('AutoCount Invoice Creation')
-                                ->schema([
-                                    TextInput::make('tt_invoice_number')
-                                        ->label('License Number')
-                                        ->placeholder('Enter alphanumeric license number (one-time entry for all invoices)')
-                                        ->maxLength(255),
+                            // Section::make('AutoCount Invoice Creation')
+                            //     ->schema([
+                            //         TextInput::make('tt_invoice_number')
+                            //             ->label('License Number')
+                            //             ->placeholder('Enter alphanumeric license number (one-time entry for all invoices)')
+                            //             ->maxLength(255),
 
-                                    Grid::make(2)->schema([
-                                        // ✅ Fixed debtor display (no selection needed)
-                                        Placeholder::make('debtor_info')
-                                            ->label('Debtor Code')
-                                            ->content('ARM-P0062 - PEMBANGUNAN SUMBER MANUSIA BERHAD')
-                                            ->columnSpan(1),
+                            //         Grid::make(2)->schema([
+                            //             // ✅ Fixed debtor display (no selection needed)
+                            //             Placeholder::make('debtor_info')
+                            //                 ->label('Debtor Code')
+                            //                 ->content('ARM-P0062 - PEMBANGUNAN SUMBER MANUSIA BERHAD')
+                            //                 ->columnSpan(1),
 
-                                        Checkbox::make('create_autocount_invoice')
-                                            ->label('Create AutoCount Invoice')
-                                            ->default(true)
-                                            ->live()
-                                            ->columnSpan(1),
-                                    ]),
+                            //             Checkbox::make('create_autocount_invoice')
+                            //                 ->label('Create AutoCount Invoice')
+                            //                 ->default(true)
+                            //                 ->live()
+                            //                 ->columnSpan(1),
+                            //         ]),
 
-                                    // ✅ Hidden field to store the fixed debtor selection
-                                    \Filament\Forms\Components\Hidden::make('debtor_selection')
-                                        ->default('ARM-P0062'),
+                            //         // ✅ Hidden field to store the fixed debtor selection
+                            //         \Filament\Forms\Components\Hidden::make('debtor_selection')
+                            //             ->default('ARM-P0062'),
 
-                                    // Invoice preview
-                                    Section::make('Invoice Preview')
-                                        ->schema([
-                                            Placeholder::make('invoice_preview')
-                                                ->label('')
-                                                ->content(function (SoftwareHandover $record, callable $get) {
-                                                    if (!$get('create_autocount_invoice')) {
-                                                        return 'AutoCount invoice creation is disabled.';
-                                                    }
+                            //         // Invoice preview
+                            //         Section::make('Invoice Preview')
+                            //             ->schema([
+                            //                 Placeholder::make('invoice_preview')
+                            //                     ->label('')
+                            //                     ->content(function (SoftwareHandover $record, callable $get) {
+                            //                         if (!$get('create_autocount_invoice')) {
+                            //                             return 'AutoCount invoice creation is disabled.';
+                            //                         }
 
-                                                    $service = app(AutoCountIntegrationService::class);
-                                                    $preview = $service->generateInvoicePreview($record);
+                            //                         $service = app(AutoCountIntegrationService::class);
+                            //                         $preview = $service->generateInvoicePreview($record);
 
-                                                    if (empty($preview['invoices'])) {
-                                                        return $preview['message'] ?? 'No items to display';
-                                                    }
+                            //                         if (empty($preview['invoices'])) {
+                            //                             return $preview['message'] ?? 'No items to display';
+                            //                         }
 
-                                                    $html = '<div class="space-y-4">';
-                                                    $html .= '<div><strong>Salesperson:</strong> ' . $preview['salesperson'] . '</div>';
-                                                    $html .= '<div><strong>Company:</strong> ' . $preview['company'] . '</div>';
-                                                    $html .= '<div><strong>Total Invoices:</strong> ' . $preview['total_invoices'] . '</div>';
+                            //                         $html = '<div class="space-y-4">';
+                            //                         $html .= '<div><strong>Salesperson:</strong> ' . $preview['salesperson'] . '</div>';
+                            //                         $html .= '<div><strong>Company:</strong> ' . $preview['company'] . '</div>';
+                            //                         $html .= '<div><strong>Total Invoices:</strong> ' . $preview['total_invoices'] . '</div>';
 
-                                                    // ✅ Show each invoice separately
-                                                    foreach ($preview['invoices'] as $index => $invoice) {
-                                                        $html .= '<div class="p-3 mt-4 border rounded bg-gray-50">';
-                                                        $html .= '<div class="font-semibold text-blue-600">Invoice ' . ($index + 1) . '</div>';
-                                                        $html .= '<div><strong>Document No:</strong> ' . $invoice['invoice_no'] . '</div>';
-                                                        $html .= '<div class="mt-2">';
-                                                        $html .= '<div class="mb-2 text-sm font-semibold">Items:</div>';
+                            //                         // ✅ Show each invoice separately
+                            //                         foreach ($preview['invoices'] as $index => $invoice) {
+                            //                             $html .= '<div class="p-3 mt-4 border rounded bg-gray-50">';
+                            //                             $html .= '<div class="font-semibold text-blue-600">Invoice ' . ($index + 1) . '</div>';
+                            //                             $html .= '<div><strong>Document No:</strong> ' . $invoice['invoice_no'] . '</div>';
+                            //                             $html .= '<div class="mt-2">';
+                            //                             $html .= '<div class="mb-2 text-sm font-semibold">Items:</div>';
 
-                                                        foreach ($invoice['items'] as $item) {
-                                                            $html .= '<div class="flex justify-between py-1 text-sm">';
-                                                            $html .= '<div class="flex items-center gap-2">';
-                                                            $html .= '<span class="px-2 py-1 font-mono text-xs bg-gray-100 rounded">' . $item['code'] . '</span>';
-                                                            $html .= '<span class="text-gray-600">× ' . number_format($item['quantity']) . '</span>';
-                                                            $html .= '</div>';
-                                                            $html .= '<span class="font-semibold">RM ' . number_format($item['amount'], 2) . '</span>';
-                                                            $html .= '</div>';
-                                                        }
+                            //                             foreach ($invoice['items'] as $item) {
+                            //                                 $html .= '<div class="flex justify-between py-1 text-sm">';
+                            //                                 $html .= '<div class="flex items-center gap-2">';
+                            //                                 $html .= '<span class="px-2 py-1 font-mono text-xs bg-gray-100 rounded">' . $item['code'] . '</span>';
+                            //                                 $html .= '<span class="text-gray-600">× ' . number_format($item['quantity']) . '</span>';
+                            //                                 $html .= '</div>';
+                            //                                 $html .= '<span class="font-semibold">RM ' . number_format($item['amount'], 2) . '</span>';
+                            //                                 $html .= '</div>';
+                            //                             }
 
-                                                        $html .= '</div>';
-                                                        $html .= '<div class="flex justify-between pt-2 mt-2 font-semibold border-t">';
-                                                        $html .= '<span>Invoice Total:</span><span>RM ' . number_format($invoice['total'], 2) . '</span>';
-                                                        $html .= '</div></div>';
-                                                    }
+                            //                             $html .= '</div>';
+                            //                             $html .= '<div class="flex justify-between pt-2 mt-2 font-semibold border-t">';
+                            //                             $html .= '<span>Invoice Total:</span><span>RM ' . number_format($invoice['total'], 2) . '</span>';
+                            //                             $html .= '</div></div>';
+                            //                         }
 
-                                                    // ✅ Show grand total if multiple invoices
-                                                    if ($preview['total_invoices'] > 1) {
-                                                        $html .= '<div class="flex justify-between pt-2 mt-4 text-lg font-bold border-t-2 border-blue-500">';
-                                                        $html .= '<span>Grand Total:</span><span>RM ' . number_format($preview['grand_total'], 2) . '</span>';
-                                                        $html .= '</div>';
-                                                    }
+                            //                         // ✅ Show grand total if multiple invoices
+                            //                         if ($preview['total_invoices'] > 1) {
+                            //                             $html .= '<div class="flex justify-between pt-2 mt-4 text-lg font-bold border-t-2 border-blue-500">';
+                            //                             $html .= '<span>Grand Total:</span><span>RM ' . number_format($preview['grand_total'], 2) . '</span>';
+                            //                             $html .= '</div>';
+                            //                         }
 
-                                                    $html .= '</div>';
+                            //                         $html .= '</div>';
 
-                                                    return new \Illuminate\Support\HtmlString($html);
-                                                })
-                                        ])
-                                        ->visible(fn (callable $get) => $get('create_autocount_invoice')),
-                                ])
-                                // ✅ Hide the entire AutoCount section if no proforma_invoice_hrdf
-                                ->visible(function (SoftwareHandover $record) {
-                                    // Check if proforma_invoice_hrdf exists and is not empty
-                                    if (empty($record->proforma_invoice_hrdf)) {
-                                        return false;
-                                    }
+                            //                         return new \Illuminate\Support\HtmlString($html);
+                            //                     })
+                            //             ])
+                            //             ->visible(fn (callable $get) => $get('create_autocount_invoice')),
+                            //     ])
+                            //     // ✅ Hide the entire AutoCount section if no proforma_invoice_hrdf
+                            //     ->visible(function (SoftwareHandover $record) {
+                            //         // Check if proforma_invoice_hrdf exists and is not empty
+                            //         if (empty($record->proforma_invoice_hrdf)) {
+                            //             return false;
+                            //         }
 
-                                    // Parse the JSON and check if it contains any valid quotation IDs
-                                    $hrdfPis = is_string($record->proforma_invoice_hrdf)
-                                        ? json_decode($record->proforma_invoice_hrdf, true)
-                                        : $record->proforma_invoice_hrdf;
+                            //         // Parse the JSON and check if it contains any valid quotation IDs
+                            //         $hrdfPis = is_string($record->proforma_invoice_hrdf)
+                            //             ? json_decode($record->proforma_invoice_hrdf, true)
+                            //             : $record->proforma_invoice_hrdf;
 
-                                    // Return true only if we have a valid array with content
-                                    return is_array($hrdfPis) && !empty($hrdfPis);
-                                })
-                                ->collapsible()
-                                ->collapsed(false),
+                            //         // Return true only if we have a valid array with content
+                            //         return is_array($hrdfPis) && !empty($hrdfPis);
+                            //     })
+                            //     ->collapsible()
+                            //     ->collapsed(false),
                             FileUpload::make('invoice_file')
                                 ->label('Upload Invoice')
                                 ->disk('public')

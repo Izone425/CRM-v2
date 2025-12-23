@@ -580,7 +580,7 @@ class SearchLicense extends Page implements HasForms
         }
 
         // Format project ID
-        $projectId = 'SW_250' . str_pad($project->id, 3, '0', STR_PAD_LEFT);
+        $projectId = $project->formatted_handover_id;
         if ($project->handover_pdf) {
             $projectId = basename($project->handover_pdf, '.pdf');
         }

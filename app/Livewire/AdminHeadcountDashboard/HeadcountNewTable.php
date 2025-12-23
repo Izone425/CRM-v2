@@ -76,7 +76,7 @@ class HeadcountNewTable extends Component implements HasForms, HasTable
                         if (!$state) {
                             return 'Unknown';
                         }
-                        return 'HC_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+                        return $record->formatted_handover_id;
                     })
                     ->color('primary')
                     ->weight('bold')
@@ -159,7 +159,7 @@ class HeadcountNewTable extends Component implements HasForms, HasTable
                         ->icon('heroicon-o-check-circle')
                         ->color('success')
                         ->modalHeading(function (HeadcountHandover $record): string {
-                            $formattedId = 'HC_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+                            $formattedId = $record->formatted_handover_id;
                             return "Complete Headcount Handover {$formattedId}";
                         })
                         ->modalSubmitActionLabel('Mark as Completed')
@@ -194,7 +194,8 @@ class HeadcountNewTable extends Component implements HasForms, HasTable
 
                                             $leadId = $record->lead_id;
                                             $handoverId = $record->id;
-                                            $formattedLeadId = '250' . str_pad($leadId, 3, '0', STR_PAD_LEFT);
+                                            $lead = \App\Models\Lead::find($leadId);
+                                            $formattedLeadId = $lead ? $lead->formatted_handover_id : '250' . str_pad($leadId, 3, '0', STR_PAD_LEFT);
                                             $formattedHandoverId = str_pad($handoverId, 3, '0', STR_PAD_LEFT);
                                             $extension = $file->getClientOriginalExtension();
                                             $timestamp = now()->format('YmdHis');
@@ -214,7 +215,7 @@ class HeadcountNewTable extends Component implements HasForms, HasTable
                                 ]);
 
                                 // Get necessary data for email
-                                $handoverId = 'HC_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+                                $handoverId = $record->formatted_handover_id;
                                 $companyDetail = $record->lead->companyDetail;
                                 $companyName = $companyDetail ? $companyDetail->company_name : 'Unknown Company';
 
@@ -288,7 +289,7 @@ class HeadcountNewTable extends Component implements HasForms, HasTable
                         ->icon('heroicon-o-x-circle')
                         ->color('danger')
                         ->modalHeading(function (HeadcountHandover $record): string {
-                            $formattedId = 'HC_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+                            $formattedId = $record->formatted_handover_id;
                             return "Reject Headcount Handover {$formattedId}";
                         })
                         ->modalSubmitActionLabel('Reject Handover')
@@ -313,7 +314,7 @@ class HeadcountNewTable extends Component implements HasForms, HasTable
                                 'reject_reason' => $data['reject_reason'],
                             ]);
 
-                            $handoverId = 'HC_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+                            $handoverId = $record->formatted_handover_id;
 
                             Notification::make()
                                 ->title('Headcount Handover Rejected')

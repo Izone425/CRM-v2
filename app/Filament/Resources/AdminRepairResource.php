@@ -257,8 +257,8 @@ class AdminRepairResource extends Resource
                                         ->enableOpen()
                                         ->enableDownload()
                                         ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file): string {
-                                            // Generate a formatted ID for the file name
-                                            $formattedId = 'OR_' . now()->format('Ymd');
+                                            // Generate a formatted ID for the file name using current year format
+                                            $formattedId = 'OR_' . now()->format('y') . now()->format('md');
 
                                             // Get extension
                                             $extension = $file->getClientOriginalExtension();
@@ -384,8 +384,7 @@ class AdminRepairResource extends Resource
                         //     return $filename;
                         // }
 
-                        // Format ID with 250 prefix and pad with zeros to ensure at least 3 digits
-                        return 'OR_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+                        return $record->formatted_handover_id;
                     })
                     ->color('primary') // Makes it visually appear as a link
                     ->weight('bold')

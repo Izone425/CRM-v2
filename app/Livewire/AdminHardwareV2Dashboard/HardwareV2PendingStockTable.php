@@ -225,7 +225,7 @@ class HardwareV2PendingStockTable extends Component implements HasForms, HasTabl
                             return $filename;
                         }
 
-                        return '250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+                        return $record->formatted_handover_id;
                     })
                     ->color('primary')
                     ->weight('bold')
@@ -615,7 +615,7 @@ class HardwareV2PendingStockTable extends Component implements HasForms, HasTabl
                                                                     ->first();
 
                                                                 if ($existingHandover) {
-                                                                    $existingHandoverId = 'HW_250' . str_pad($existingHandover->id, 3, '0', STR_PAD_LEFT);
+                                                                    $existingHandoverId = $existingHandover->formatted_handover_id;
                                                                     $fail("Invoice number already used in Hardware Handover {$existingHandoverId}.");
                                                                 }
                                                             },
@@ -771,7 +771,7 @@ class HardwareV2PendingStockTable extends Component implements HasForms, HasTabl
                                     ->first();
 
                                 if ($existingHandover) {
-                                    $existingHandoverId = 'HW_250' . str_pad($existingHandover->id, 3, '0', STR_PAD_LEFT);
+                                    $existingHandoverId = $existingHandover->formatted_handover_id;
                                     Notification::make()
                                         ->title('Duplicate Invoice Number')
                                         ->body("Invoice {$invoiceNo} is already used in Hardware Handover {$existingHandoverId}")
@@ -997,7 +997,7 @@ class HardwareV2PendingStockTable extends Component implements HasForms, HasTabl
             $updatedByName = $updatedByUser ? $updatedByUser->name : 'Unknown User';
 
             // Generate handover ID
-            $handoverId = 'HW_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+            $handoverId = $record->formatted_handover_id;
 
             // Generate handover form URL (you may need to adjust this URL)
             $handoverFormUrl = url("admin/hardware-handover/{$record->id}");
