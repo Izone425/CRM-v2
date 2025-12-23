@@ -714,7 +714,7 @@ class HardwareV2PendingPaymentTable extends Component implements HasForms, HasTa
                         ->label('Bypass Payment')
                         ->icon('heroicon-o-forward')
                         ->color('warning')
-                        ->visible(fn(): bool => in_array(auth()->id(), [1, 14]))
+                        ->visible(fn(): bool => in_array(auth()->id(), [1, 4, 5, 14]))
                         ->requiresConfirmation()
                         ->modalHeading(function (HardwareHandoverV2 $record) {
                             // Get company name from the lead relationship
@@ -809,23 +809,17 @@ class HardwareV2PendingPaymentTable extends Component implements HasForms, HasTa
             ->where('invoice_number', $invoiceNo)
             ->first();
 
-        // If no matching record in debtor_agings or outstanding is 0
-        if ((float)$debtorAging->outstanding === 0.0) {
-            return 'Full Payment';
+        if ($debtorAging && (float)$debtorAging->outstanding === 0.0) {
+            $status = 'Full Payment';
+        } elseif ($debtorAging && (float)$debtorAging->outstanding === (float)$totalInvoiceAmount) {
+            $status = 'UnPaid';
+        } elseif ($debtorAging && (float)$debtorAging->outstanding < (float)$totalInvoiceAmount && (float)$debtorAging->outstanding > 0) {
+            $status = 'Partial Payment';
+        } else {
+            $status = 'UnPaid';
         }
 
-        // If outstanding equals total invoice amount
-        if ((float)$debtorAging->outstanding === (float)$totalInvoiceAmount) {
-            return 'UnPaid';
-        }
-
-        // If outstanding is less than invoice amount but greater than 0
-        if ((float)$debtorAging->outstanding < (float)$totalInvoiceAmount && (float)$debtorAging->outstanding > 0) {
-            return 'Partial Payment';
-        }
-
-        // Fallback (shouldn't normally reach here)
-        return 'UnPaid';
+        return $status;
     }
 
     public function render()

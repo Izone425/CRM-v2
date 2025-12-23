@@ -27,6 +27,7 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Get;
 use Filament\Notifications\Notification;
+use Illuminate\Support\Facades\Storage;
 
 class TicketDashboard extends Page implements HasActions, HasForms
 {
@@ -53,12 +54,10 @@ class TicketDashboard extends Page implements HasActions, HasForms
     public $newComment = '';
     public $attachments = [];
 
-    public function mount(): void
-    {
-        $this->currentMonth = Carbon::now()->month;
-        $this->currentYear = Carbon::now()->year;
-        $this->selectedDate = Carbon::now()->format('Y-m-d');
-    }
+    // Reopen modal properties
+    public $showReopenModal = false;
+    public $reopenComment = '';
+    public $reopenAttachments = [];
 
     // ✅ Add header actions for Create Ticket button
     protected function getHeaderActions(): array
@@ -581,6 +580,33 @@ class TicketDashboard extends Page implements HasActions, HasForms
         $this->selectedTicket = null;
         $this->newComment = '';
         $this->attachments = []; // ✅ Reset attachments
+        $this->closeReopenModal();
+    }
+
+    public function closeReopenModal(): void
+    {
+        $this->showReopenModal = false;
+        $this->reopenComment = '';
+        $this->reopenAttachments = [];
+        $this->form->fill();
+    }
+
+    public function openReopenModal($ticketId): void
+    {
+        $this->selectedTicket = Ticket::with([
+            'comments',
+            'logs',
+            'priority',
+            'product',
+            'module',
+            'requestor',
+            'attachments',
+            'attachments.uploader',
+        ])->find($ticketId);
+
+        if ($this->selectedTicket) {
+            $this->showReopenModal = true;
+        }
     }
 
     public function addComment(): void
@@ -632,27 +658,19 @@ class TicketDashboard extends Page implements HasActions, HasForms
     protected function getFormSchema(): array
     {
         return [
-            RichEditor::make('newComment')
-                ->label('')
-                ->placeholder('Add a comment...')
-                ->required()
+            RichEditor::make('reopenComment')
+                ->label('Reason for Reopening')
+                ->placeholder('Explain why you\'re reopening this ticket...')
                 ->toolbarButtons([
-                    'attachFiles',
                     'bold',
                     'italic',
                     'underline',
-                    'strike',
                     'bulletList',
                     'orderedList',
-                    'h2',
-                    'h3',
                     'link',
-                    'undo',
-                    'redo',
                 ])
-                ->disableToolbarButtons([
-                    'codeBlock',
-                ])
+                ->disableGrammarly()
+                ->columnSpanFull(),
         ];
     }
 
@@ -1039,6 +1057,157 @@ class TicketDashboard extends Page implements HasActions, HasForms
                 ->title('Error')
                 ->danger()
                 ->body('Failed to update ticket status: ' . $e->getMessage())
+                ->send();
+        }
+    }
+
+    public function reopenTicket()
+    {
+        try {
+            Log::info('Starting reopenTicket method in TicketDashboard');
+
+            // Get the current selected ticket
+            $ticket = Ticket::find($this->selectedTicket->id);
+            if (!$ticket) {
+                throw new \Exception('Ticket not found');
+            }
+
+            // Get proper user ID for the ticketing system
+            $authUser = auth()->user();
+            $ticketSystemUser = null;
+            if ($authUser) {
+                $ticketSystemUser = \Illuminate\Support\Facades\DB::connection('ticketingsystem_live')
+                    ->table('users')
+                    ->where('name', $authUser->name)
+                    ->first();
+            }
+            $userId = $ticketSystemUser?->id ?? 22;
+
+            // Handle file uploads first to get URLs for HTML comment
+            $uploadedImageUrls = [];
+            if (!empty($this->reopenAttachments)) {
+                foreach ($this->reopenAttachments as $file) {
+                    try {
+                        if ($file && $file instanceof \Livewire\Features\SupportFileUploads\TemporaryUploadedFile) {
+                            // Generate unique filename
+                            $originalFilename = $file->getClientOriginalName();
+                            $extension = $file->getClientOriginalExtension();
+
+                            $storedFilename = time() . '_' . \Illuminate\Support\Str::random(10) . '_' .
+                                            \Illuminate\Support\Str::slug(pathinfo($originalFilename, PATHINFO_FILENAME)) .
+                                            '.' . $extension;
+
+                            // Store file in S3
+                            $path = $file->storeAs(
+                                'ticket_attachments/' . date('Y/m/d'),
+                                $storedFilename,
+                                's3-ticketing'
+                            );
+
+                            $fileHash = hash_file('md5', $file->getRealPath());
+
+                            // Create attachment record with correct field names
+                            $attachment = TicketAttachment::create([
+                                'ticket_id' => $ticket->id,
+                                'original_filename' => $originalFilename,
+                                'stored_filename' => $storedFilename,
+                                'file_path' => $path,
+                                'file_size' => $file->getSize(),
+                                'mime_type' => $file->getMimeType(),
+                                'file_hash' => $fileHash,
+                                'uploaded_by' => $userId,
+                            ]);
+
+                            // If it's an image, collect the URL for HTML comment
+                            if (str_starts_with($file->getMimeType(), 'image/')) {
+                                $disk = Storage::disk('s3-ticketing');
+                                $fileUrl = $disk->url($path);
+                                $uploadedImageUrls[] = [
+                                    'url' => $fileUrl,
+                                    'filename' => $originalFilename
+                                ];
+                            }
+                        }
+                    } catch (\Exception $e) {
+                        Log::error('Error uploading reopen attachment: ' . $e->getMessage());
+                    }
+                }
+            }
+
+            // Create HTML comment combining text and images
+            $htmlComment = '';
+            if (!empty(trim($this->reopenComment))) {
+                $htmlComment .= '<p>' . nl2br(e(trim($this->reopenComment))) . '</p>';
+            }
+
+            // Add image attachments as <p><img> tags
+            foreach ($uploadedImageUrls as $image) {
+                $htmlComment .= '<p><img src="' . $image['url'] . '" alt="' . e($image['filename']) . '" style="max-width: 100%; height: auto;" /></p>';
+            }
+
+            // Update ticket status and reopen reason
+            $ticket->status = 'Reopen';
+            if (!empty($htmlComment)) {
+                $ticket->reopen_reason = $htmlComment;
+            } elseif (!empty(trim($this->reopenComment))) {
+                $ticket->reopen_reason = trim($this->reopenComment);
+            }
+            $ticket->save();
+
+            // Also create a TicketComment for the reopen reason with HTML including images
+            if (!empty($htmlComment)) {
+                TicketComment::create([
+                    'ticket_id' => $ticket->id,
+                    'user_id' => $userId,
+                    'comment' => $htmlComment,
+                ]);
+            } elseif (!empty(trim($this->reopenComment))) {
+                TicketComment::create([
+                    'ticket_id' => $ticket->id,
+                    'user_id' => $userId,
+                    'comment' => trim($this->reopenComment),
+                ]);
+            }
+
+            // Log the action
+            TicketLog::create([
+                'ticket_id' => $ticket->id,
+                'old_value' => $this->selectedTicket->status ?? 'Closed',
+                'new_value' => 'Reopen',
+                'action' => "Reopened ticket {$ticket->ticket_id} from '{$this->selectedTicket->status}' to 'Reopen'.",
+                'field_name' => 'status',
+                'change_reason' => !empty($htmlComment) ? $htmlComment : (!empty(trim($this->reopenComment)) ? trim($this->reopenComment) : 'Ticket reopened without comment'),
+                'old_eta' => null,
+                'new_eta' => null,
+                'updated_by' => $userId,
+                'user_name' => $ticketSystemUser?->name ?? 'HRcrm User',
+                'user_role' => $ticketSystemUser?->role ?? 'Support Staff',
+                'change_type' => 'status_change',
+                'source' => 'dashboard_reopen_modal',
+            ]);
+
+            // Close modal and reset form
+            $this->closeReopenModal();
+
+            // Update selected ticket data
+            $this->selectedTicket->status = 'Reopen';
+
+            // Dispatch events to refresh dashboard
+            $this->dispatch('$refresh');
+
+            Notification::make()
+                ->title('Success')
+                ->success()
+                ->body('Ticket has been successfully reopened')
+                ->send();
+
+        } catch (\Exception $e) {
+            Log::error('Error reopening ticket: ' . $e->getMessage());
+
+            Notification::make()
+                ->title('Error')
+                ->danger()
+                ->body('Failed to reopen ticket: ' . $e->getMessage())
                 ->send();
         }
     }

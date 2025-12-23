@@ -236,13 +236,13 @@ class SalesAdminInvoice extends Page implements HasTable
             ->where('invoice_number', $invoiceNo)
             ->first();
 
-        $status = 'Full Payment';
+        $status = 'UnPaid'; // Default when no debtor aging found
 
-        if (!$debtorAging || (float)$debtorAging->outstanding === 0.0) {
+        if ($debtorAging && (float)$debtorAging->outstanding === 0.0) {
             $status = 'Full Payment';
-        } elseif ((float)$debtorAging->outstanding === (float)$totalInvoiceAmount) {
+        } elseif ($debtorAging && (float)$debtorAging->outstanding === (float)$totalInvoiceAmount) {
             $status = 'UnPaid';
-        } elseif ((float)$debtorAging->outstanding < (float)$totalInvoiceAmount && (float)$debtorAging->outstanding > 0) {
+        } elseif ($debtorAging && (float)$debtorAging->outstanding < (float)$totalInvoiceAmount && (float)$debtorAging->outstanding > 0) {
             $status = 'Partial Payment';
         } else {
             $status = 'UnPaid';
@@ -288,13 +288,13 @@ class SalesAdminInvoice extends Page implements HasTable
 
             $debtorAging = $debtorAgings->get($invoiceNo);
 
-            $status = 'Full Payment';
+            $status = 'UnPaid'; // Default when no debtor aging found
 
-            if ((float)$debtorAging->outstanding === 0.0) {
+            if ($debtorAging && (float)$debtorAging->outstanding === 0.0) {
                 $status = 'Full Payment';
-            } elseif ((float)$debtorAging->outstanding === (float)$totalInvoiceAmount) {
+            } elseif ($debtorAging && (float)$debtorAging->outstanding === (float)$totalInvoiceAmount) {
                 $status = 'UnPaid';
-            } elseif ((float)$debtorAging->outstanding < (float)$totalInvoiceAmount && (float)$debtorAging->outstanding > 0) {
+            } elseif ($debtorAging && (float)$debtorAging->outstanding < (float)$totalInvoiceAmount && (float)$debtorAging->outstanding > 0) {
                 $status = 'Partial Payment';
             } else {
                 $status = 'UnPaid';
@@ -471,6 +471,8 @@ class SalesAdminInvoice extends Page implements HasTable
                 }
 
                 $data[$salespersonName] = [
+                    // 'jaja_amount' => $jajaAmount,
+                    // 'sheena_amount' => $sheenaAmount,
                     'jaja_amount' => $jajaAmount,
                     'sheena_amount' => $sheenaAmount,
                 ];
@@ -488,7 +490,8 @@ class SalesAdminInvoice extends Page implements HasTable
     public function table(Table $table): Table
     {
         return $table
-            ->query(Invoice::query())
+            // ->query(Invoice::query())
+            ->query(Invoice::query()->whereRaw('1 = 0'))
             ->defaultPaginationPageOption(50)
             ->heading('Invoices')
             ->deferLoading()

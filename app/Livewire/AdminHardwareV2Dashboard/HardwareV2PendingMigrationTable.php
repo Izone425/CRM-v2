@@ -717,19 +717,14 @@ class HardwareV2PendingMigrationTable extends Component implements HasForms, Has
             ->where('invoice_number', $invoiceNo)
             ->first();
 
-        // If no matching record in debtor_agings or outstanding is 0
-        if ((float)$debtorAging->outstanding === 0.0) {
-            return 'Full Payment';
-        }
-
-        // If outstanding equals total invoice amount
-        if ((float)$debtorAging->outstanding === (float)$totalInvoiceAmount) {
-            return 'UnPaid';
-        }
-
-        // If outstanding is less than invoice amount but greater than 0
-        if ((float)$debtorAging->outstanding < (float)$totalInvoiceAmount && (float)$debtorAging->outstanding > 0) {
-            return 'Partial Payment';
+        if ($debtorAging && (float)$debtorAging->outstanding === 0.0) {
+            $status = 'Full Payment';
+        } elseif ($debtorAging && (float)$debtorAging->outstanding === (float)$totalInvoiceAmount) {
+            $status = 'UnPaid';
+        } elseif ($debtorAging && (float)$debtorAging->outstanding < (float)$totalInvoiceAmount && (float)$debtorAging->outstanding > 0) {
+            $status = 'Partial Payment';
+        } else {
+            $status = 'UnPaid';
         }
 
         // Fallback (shouldn't normally reach here)

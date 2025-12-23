@@ -791,5 +791,11 @@
     @if($showTicketModal && $selectedTicket)
         @include('filament.pages.partials.ticket-modal')
     @endif
+
+    {{-- Reopen Modal --}}
+    @if($showReopenModal && $selectedTicket)
+        @include('filament.pages.partials.reopen-modal')
+    @endif
+
     <x-filament-actions::modals />
 </x-filament-panels::page>
