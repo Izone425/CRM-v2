@@ -97,7 +97,6 @@ class HardwareV2CompletedInternalInstallationTable extends Component implements 
         return HardwareHandoverV2::query()
             ->whereIn('status', ['Completed: Internal Installation'])
             // ->where('created_at', '<', Carbon::today()) // Only those created before today
-            ->orderBy('created_at', 'asc') // Oldest first since they're the most overdue
             ->with(['lead', 'lead.companyDetail', 'creator']);
     }
 
@@ -172,8 +171,6 @@ class HardwareV2CompletedInternalInstallationTable extends Component implements 
                     })
                     ->placeholder('All Implementers')
                     ->multiple(),
-
-                SortFilter::make("sort_by"),
             ])
             ->columns([
                 TextColumn::make('id')

@@ -103,7 +103,6 @@ class HardwareV2PendingInternalInstallationTable extends Component implements Ha
         return HardwareHandoverV2::query()
             ->whereIn('status', ['Pending: Internal Installation'])
             // ->where('created_at', '<', Carbon::today()) // Only those created before today
-            ->orderBy('created_at', 'asc') // Oldest first since they're the most overdue
             ->with(['lead', 'lead.companyDetail', 'creator']);
     }
 
@@ -124,6 +123,7 @@ class HardwareV2PendingInternalInstallationTable extends Component implements Ha
             ->poll('300s')
             ->query($this->getNewHardwareHandovers())
             ->defaultSort('created_at', 'desc')
+            ->allowsReordering()
             ->emptyState(fn () => view('components.empty-state-question'))
             ->defaultPaginationPageOption(5)
             ->paginated([5])
@@ -178,8 +178,6 @@ class HardwareV2PendingInternalInstallationTable extends Component implements Ha
                     })
                     ->placeholder('All Implementers')
                     ->multiple(),
-
-                SortFilter::make("sort_by"),
             ])
             ->columns([
                 TextColumn::make('id')
@@ -301,7 +299,10 @@ class HardwareV2PendingInternalInstallationTable extends Component implements Ha
                 TextColumn::make('updated_at')
                     ->label('Last Modified')
                     ->dateTime('d M Y H:i')
-                    ->sortable(),
+                    ->sortable()
+                    ->getStateUsing(function (HardwareHandoverV2 $record) {
+                        return $record->updated_at;
+                    }),
             ])
             ->actions([
                 ActionGroup::make([

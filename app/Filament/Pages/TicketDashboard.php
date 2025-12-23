@@ -47,7 +47,18 @@ class TicketDashboard extends Page implements HasActions, HasForms
     public $selectedEnhancementType = null;
     public $currentMonth;
     public $currentYear;
-    public $selectedDate = null;
+    public $selectedDate;
+
+    // Track individual combined statuses
+    public $selectedCombinedStatuses = [];
+
+    public function mount()
+    {
+        // Set default date to today
+        $this->selectedDate = now()->format('Y-m-d');
+        $this->currentMonth = now()->month;
+        $this->currentYear = now()->year;
+    }
 
     public $selectedTicket = null;
     public $showTicketModal = false;
@@ -658,19 +669,27 @@ class TicketDashboard extends Page implements HasActions, HasForms
     protected function getFormSchema(): array
     {
         return [
-            RichEditor::make('reopenComment')
-                ->label('Reason for Reopening')
-                ->placeholder('Explain why you\'re reopening this ticket...')
+            RichEditor::make('newComment')
+                ->label('')
+                ->placeholder('Add a comment...')
+                ->required()
                 ->toolbarButtons([
+                    'attachFiles',
                     'bold',
                     'italic',
                     'underline',
+                    'strike',
                     'bulletList',
                     'orderedList',
+                    'h2',
+                    'h3',
                     'link',
+                    'undo',
+                    'redo',
                 ])
-                ->disableGrammarly()
-                ->columnSpanFull(),
+                ->disableToolbarButtons([
+                    'codeBlock',
+                ])
         ];
     }
 
@@ -734,10 +753,9 @@ class TicketDashboard extends Page implements HasActions, HasForms
         return [
             'total' => $bugs->count(),
             'new' => $bugs->where('status', 'New')->count(),
-            'review' => $bugs->where('status', 'In Review')->count(),
-            'progress' => $bugs->where('status', 'In Progress')->count(),
-            'reopen' => $bugs->where('status', 'Reopen')->count(), // ✅ Add Reopen count
-            'closed' => $bugs->where('status', 'Closed')->count(),
+            'progress' => $bugs->whereIn('status', ['In Review', 'In Progress', 'Reopen'])->count(),
+            'completed' => $bugs->whereIn('status', ['Completed', 'Tickets: Live'])->count(),
+            'closed' => $bugs->whereIn('status', ['Closed', 'Closed System Configuration'])->count(),
         ];
     }
 
@@ -754,10 +772,9 @@ class TicketDashboard extends Page implements HasActions, HasForms
         return [
             'total' => $backend->count(),
             'new' => $backend->where('status', 'New')->count(),
-            'review' => $backend->where('status', 'In Review')->count(),
-            'progress' => $backend->where('status', 'In Progress')->count(),
-            'reopen' => $backend->where('status', 'Reopen')->count(),
-            'closed' => $backend->where('status', 'Closed')->count(),
+            'progress' => $backend->whereIn('status', ['In Review', 'In Progress', 'Reopen'])->count(),
+            'completed' => $backend->whereIn('status', ['Completed', 'Tickets: Live'])->count(),
+            'closed' => $backend->whereIn('status', ['Closed', 'Closed System Configuration'])->count(),
         ];
     }
 
@@ -849,6 +866,22 @@ class TicketDashboard extends Page implements HasActions, HasForms
                 });
             })
             ->when($this->selectedStatus, function ($collection) {
+                // Handle combined status with individual selections
+                if (!empty($this->selectedCombinedStatuses)) {
+                    return $collection->whereIn('status', $this->selectedCombinedStatuses);
+                }
+                // Handle combined In Progress status
+                elseif ($this->selectedStatus === 'In Progress') {
+                    return $collection->whereIn('status', ['In Review', 'In Progress', 'Reopen']);
+                }
+                // Handle combined Completed status
+                elseif ($this->selectedStatus === 'Completed') {
+                    return $collection->whereIn('status', ['Completed', 'Tickets: Live']);
+                }
+                // Handle combined Closed status
+                elseif ($this->selectedStatus === 'Closed') {
+                    return $collection->whereIn('status', ['Closed', 'Closed System Configuration']);
+                }
                 return $collection->where('status', $this->selectedStatus);
             })
             ->when($this->selectedEnhancementStatus, function ($collection) {
@@ -863,22 +896,20 @@ class TicketDashboard extends Page implements HasActions, HasForms
         if ($this->selectedCategory === $category && $this->selectedStatus === $status) {
             $this->selectedCategory = null;
             $this->selectedStatus = null;
+            $this->selectedCombinedStatuses = [];
         } else {
             $this->selectedCategory = $category;
             $this->selectedStatus = $status;
             $this->selectedEnhancementStatus = null;
-        }
-    }
 
-    public function selectEnhancement($status = null): void
-    {
-        if ($this->selectedEnhancementStatus === $status) {
-            $this->selectedEnhancementStatus = null;
-            $this->selectedCategory = null;
-        } else {
-            $this->selectedEnhancementStatus = $status;
-            $this->selectedCategory = 'enhancement';
-            $this->selectedStatus = null;
+            // Handle combined statuses
+            if ($status === 'In Progress') {
+                $this->selectedCombinedStatuses = ['In Review', 'In Progress', 'Reopen'];
+            } elseif ($status === 'Closed') {
+                $this->selectedCombinedStatuses = ['Closed', 'Closed System Configuration'];
+            } else {
+                $this->selectedCombinedStatuses = [];
+            }
         }
     }
 
@@ -889,6 +920,19 @@ class TicketDashboard extends Page implements HasActions, HasForms
         } else {
             $this->selectedEnhancementType = $type;
             $this->selectedCategory = 'enhancement';
+        }
+    }
+
+    public function removeIndividualStatus($statusToRemove): void
+    {
+        if (!empty($this->selectedCombinedStatuses)) {
+            $this->selectedCombinedStatuses = array_diff($this->selectedCombinedStatuses, [$statusToRemove]);
+
+            // If no statuses left, clear the filter
+            if (empty($this->selectedCombinedStatuses)) {
+                $this->selectedCategory = null;
+                $this->selectedStatus = null;
+            }
         }
     }
 

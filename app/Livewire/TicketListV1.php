@@ -597,9 +597,6 @@ class TicketListV1 extends Component implements HasTable, HasForms, HasActions
                 ->disableToolbarButtons([
                     'codeBlock',
                 ])
-                ->fileAttachmentsDisk('public')
-                ->fileAttachmentsDirectory('storage')
-                ->fileAttachmentsVisibility('public')
         ];
     }
 
