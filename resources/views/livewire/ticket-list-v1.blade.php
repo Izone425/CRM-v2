@@ -8,6 +8,11 @@
         @include('filament.pages.partials.ticket-modal')
     @endif
 
+    {{-- Reopen Modal --}}
+    @if($showReopenModal && $selectedTicket)
+        @include('filament.pages.partials.reopen-modal')
+    @endif
+
     {{-- Create Ticket Action Modal --}}
     <x-filament-actions::modals />
 </div>

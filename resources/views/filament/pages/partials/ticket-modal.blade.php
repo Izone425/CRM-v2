@@ -365,8 +365,8 @@
                             {{ $selectedTicket->status ?? '-' }}
                         </span>
 
-                        <!-- Edit Icon & Dropdown - ONLY show for Completed status -->
-                        @if($selectedTicket->status === 'Completed')
+                        <!-- Edit Icon & Dropdown - Show for Completed and Closed status -->
+                        @if(in_array($selectedTicket->status, ['Completed', 'Closed']))
                             <div style="position: relative;" x-data="{ open: false }">
                                 <button @click="open = !open"
                                         style="display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; background: white; border: 1px solid #D1D5DB; border-radius: 6px; cursor: pointer; transition: all 0.2s;"
@@ -391,15 +391,15 @@
                                     style="position: absolute; top: 100%; right: 0; z-index: 50; margin-top: 4px; background: white; border: 1px solid #E5E7EB; border-radius: 8px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); min-width: 180px;">
 
                                     <!-- Reopen Option -->
-                                    <button wire:click="updateTicketStatus({{ $selectedTicket->id }}, 'Reopen')"
+                                    <button wire:click="openReopenModal({{ $selectedTicket->id }})"
                                             @click="open = false"
                                             style="width: 100%; padding: 10px 12px; text-align: left; border: none; background: transparent; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 8px; transition: all 0.2s;"
-                                            onmouseover="this.style.background='#F9FAFB'"
+                                            onmouseover="this.style.background='#FEF3C7'"
                                             onmouseout="this.style.background='transparent'">
                                         <span style="padding: 2px 8px; background: #FEF3C7; color: #D97706; border-radius: 4px; font-size: 11px; font-weight: 600; border: 1px solid #FDE047;">
                                             Reopen
                                         </span>
-                                        <span style="color: #6B7280; font-size: 12px;">Reopen ticket</span>
+                                        <span style="color: #D97706; font-size: 12px; font-weight: 600;">Reopen</span>
                                     </button>
 
                                     <!-- Closed Option -->
@@ -422,27 +422,48 @@
                 <div style="margin-bottom: 16px;">
                     <div style="font-size: 11px; color: #9CA3AF; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 500;">Assignees</div>
                     <div style="font-weight: 500; color: #111827; font-size: 14px;">
-                        @if($selectedTicket->assignee_ids && count($selectedTicket->assignee_ids) > 0)
-                            @php
+                        @php
+                            // Get tasks related to this ticket
+                            $relatedTasks = \Illuminate\Support\Facades\DB::connection('ticketingsystem_live')
+                                ->table('tasks')
+                                ->where('related_ticket_id', $selectedTicket->id)
+                                ->pluck('assignee_ids')
+                                ->toArray();
+
+                            $allAssigneeIds = [];
+
+                            // Process each task's assignee_ids (which are JSON encoded)
+                            foreach ($relatedTasks as $assigneeIdsJson) {
+                                if (!empty($assigneeIdsJson)) {
+                                    $assigneeIds = json_decode($assigneeIdsJson, true);
+                                    if (is_array($assigneeIds)) {
+                                        $allAssigneeIds = array_merge($allAssigneeIds, $assigneeIds);
+                                    }
+                                }
+                            }
+
+                            // Remove duplicates
+                            $allAssigneeIds = array_unique($allAssigneeIds);
+
+                            // Get assignee names if we have IDs
+                            $assignees = [];
+                            if (!empty($allAssigneeIds)) {
                                 $assignees = \Illuminate\Support\Facades\DB::connection('ticketingsystem_live')
                                     ->table('users')
-                                    ->whereIn('id', $selectedTicket->assignee_ids)
+                                    ->whereIn('id', $allAssigneeIds)
                                     ->pluck('name')
                                     ->toArray();
-                            @endphp
+                            }
+                        @endphp
 
-                            @if(count($assignees) > 0)
-                                <div style="display: flex; flex-wrap: wrap; gap: 6px;">
-                                    @foreach($assignees as $assignee)
-                                        <span style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; background: #EEF2FF; color: #4338CA; border-radius: 6px; font-size: 12px; font-weight: 600; border: 1px solid #C7D2FE;">
-                                            <div style="width: 8px; height: 8px; border-radius: 50%; background: #4338CA;"></div>
-                                            {{ $assignee }}
-                                        </span>
-                                    @endforeach
-                                </div>
-                            @else
-                                <span style="color: #9CA3AF; font-style: italic; font-size: 13px;">No assignees found</span>
-                            @endif
+                        @if(count($assignees) > 0)
+                            <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+                                @foreach($assignees as $assignee)
+                                    <span style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; background: #EEF2FF; color: #4338CA; border-radius: 6px; font-size: 12px; font-weight: 600; border: 1px solid #C7D2FE;">
+                                        {{ $assignee }}
+                                    </span>
+                                @endforeach
+                            </div>
                         @else
                             <span style="color: #9CA3AF; font-style: italic; font-size: 13px;">Not assigned</span>
                         @endif
@@ -452,18 +473,101 @@
                 <!-- Due Date -->
                 <div style="margin-bottom: 16px;">
                     <div style="font-size: 11px; color: #9CA3AF; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 500;">Due Date</div>
-                    <div style="font-weight: 500; color: #111827; font-size: 14px;">-</div>
+                    <div style="font-weight: 500; color: #111827; font-size: 14px;">
+                        @php
+                            // Get due dates from tasks related to this ticket
+                            $relatedTaskDueDates = \Illuminate\Support\Facades\DB::connection('ticketingsystem_live')
+                                ->table('tasks')
+                                ->where('related_ticket_id', $selectedTicket->id)
+                                ->whereNotNull('due_date')
+                                ->pluck('due_date')
+                                ->filter()
+                                ->toArray();
+
+                            $earliestDueDate = null;
+                            $daysRemaining = null;
+                            $isOverdue = false;
+
+                            if (!empty($relatedTaskDueDates)) {
+                                // Find the earliest due date
+                                $earliestDueDate = min($relatedTaskDueDates);
+
+                                // Calculate days remaining
+                                $dueDate = \Carbon\Carbon::parse($earliestDueDate);
+                                $today = \Carbon\Carbon::today();
+                                $daysRemaining = $today->diffInDays($dueDate, false); // false to get negative for overdue
+                                $isOverdue = $daysRemaining < 0;
+                            }
+                        @endphp
+
+                        @if($earliestDueDate)
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span>{{ \Carbon\Carbon::parse($earliestDueDate)->format('M d, Y') }}</span>
+                                @if($isOverdue)
+                                    <span style="padding: 2px 6px; background: #FEE2E2; color: #DC2626; border-radius: 4px; font-size: 11px; font-weight: 600;">
+                                        {{ abs($daysRemaining) }} {{ abs($daysRemaining) === 1 ? 'day' : 'days' }} overdue
+                                    </span>
+                                @elseif($daysRemaining === 0)
+                                    <span style="padding: 2px 6px; background: #FEF3C7; color: #D97706; border-radius: 4px; font-size: 11px; font-weight: 600;">
+                                        Due today
+                                    </span>
+                                @else
+                                    <span style="padding: 2px 6px; background: #F0F9FF; color: #0369A1; border-radius: 4px; font-size: 11px; font-weight: 600;">
+                                        {{ $daysRemaining }} {{ $daysRemaining === 1 ? 'day' : 'days' }} remaining
+                                    </span>
+                                @endif
+                            </div>
+                        @else
+                            -
+                        @endif
+                    </div>
                 </div>
 
                 <!-- ETA Release Date & Live Release Date -->
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
                     <div>
                         <div style="font-size: 11px; color: #9CA3AF; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 500;">ETA Release Date</div>
-                        <div style="font-weight: 500; color: #111827; font-size: 14px;">{{ $selectedTicket->eta_release ? $selectedTicket->eta_release->format('M d, Y') : '-' }}</div>
+                        <div style="font-weight: 500; color: #111827; font-size: 14px;">
+                            @php
+                                // Get ETA release dates from tasks related to this ticket
+                                $relatedTaskEtaDates = \Illuminate\Support\Facades\DB::connection('ticketingsystem_live')
+                                    ->table('tasks')
+                                    ->where('related_ticket_id', $selectedTicket->id)
+                                    ->whereNotNull('eta_release')
+                                    ->pluck('eta_release')
+                                    ->filter()
+                                    ->toArray();
+
+                                $earliestEtaDate = null;
+                                if (!empty($relatedTaskEtaDates)) {
+                                    // Find the earliest ETA release date
+                                    $earliestEtaDate = min($relatedTaskEtaDates);
+                                }
+                            @endphp
+                            {{ $earliestEtaDate ? \Carbon\Carbon::parse($earliestEtaDate)->format('M d, Y') : '-' }}
+                        </div>
                     </div>
                     <div>
                         <div style="font-size: 11px; color: #9CA3AF; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 500;">Live Release Date</div>
-                        <div style="font-weight: 500; color: #111827; font-size: 14px;">{{ $selectedTicket->live_release ? $selectedTicket->live_release->format('M d, Y') : '-' }}</div>
+                        <div style="font-weight: 500; color: #111827; font-size: 14px;">
+                            @php
+                                // Get live release dates from tasks related to this ticket
+                                $relatedTaskLiveDates = \Illuminate\Support\Facades\DB::connection('ticketingsystem_live')
+                                    ->table('tasks')
+                                    ->where('related_ticket_id', $selectedTicket->id)
+                                    ->whereNotNull('live_release')
+                                    ->pluck('live_release')
+                                    ->filter()
+                                    ->toArray();
+
+                                $earliestLiveDate = null;
+                                if (!empty($relatedTaskLiveDates)) {
+                                    // Find the earliest live release date
+                                    $earliestLiveDate = min($relatedTaskLiveDates);
+                                }
+                            @endphp
+                            {{ $earliestLiveDate ? \Carbon\Carbon::parse($earliestLiveDate)->format('M d, Y') : '-' }}
+                        </div>
                     </div>
                 </div>
 

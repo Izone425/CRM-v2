@@ -69,6 +69,50 @@
         }
     }
 
+    // Function to get real-time payment status for an invoice
+    function getPaymentStatusForInvoice($invoiceNo) {
+        try {
+            // Get the invoice record
+            $invoice = \App\Models\Invoice::where('invoice_no', $invoiceNo)->first();
+
+            if (!$invoice) {
+                return 'Charge Out';
+            }
+
+            // Get total invoice amount from invoice_details
+            $excludedItemCodes = [
+                'SHIPPING', 'BANKCHG', 'DEPOSIT-MYR', 'F.COMMISSION',
+                'L.COMMISSION', 'L.ENTITLEMENT', 'MGT FEES', 'PG.COMMISSION'
+            ];
+
+            $totalInvoiceAmount = \App\Models\InvoiceDetail::where('doc_key', $invoice->doc_key)
+                ->whereNotIn('item_code', $excludedItemCodes)
+                ->sum('local_sub_total');
+
+            if ($totalInvoiceAmount <= 0) {
+                return 'Charge Out';
+            }
+
+            // Look for this invoice in debtor_agings table
+            $debtorAging = \Illuminate\Support\Facades\DB::table('debtor_agings')
+                ->where(\Illuminate\Support\Facades\DB::raw('CAST(invoice_number AS CHAR)'), '=', $invoiceNo)
+                ->first();
+
+            if ($debtorAging && (float)$debtorAging->outstanding === 0.0) {
+                return 'Full Payment';
+            } elseif ($debtorAging && (float)$debtorAging->outstanding === (float)$totalInvoiceAmount) {
+                return 'UnPaid';
+            } elseif ($debtorAging && (float)$debtorAging->outstanding < (float)$totalInvoiceAmount && (float)$debtorAging->outstanding > 0) {
+                return 'Partial Payment';
+            } else {
+                return 'UnPaid';
+            }
+
+        } catch (\Exception $e) {
+            return 'UnPaid';
+        }
+    }
+
     // Get salesperson name
     $salespersonName = "-";
     if (isset($record->lead) && isset($record->lead->salesperson)) {
@@ -1302,13 +1346,13 @@
                                                 <td>{{ $index + 1 }}</td>
                                                 <td>{{ $invoice['invoice_no'] ?? '-' }}</td>
                                                 <td>
-                                                    @if(isset($invoice['payment_status']))
-                                                        <span style="color: {{ $invoice['payment_status'] === 'Full Payment' ? '#059669' : ($invoice['payment_status'] === 'Partial Payment' ? '#d97706' : '#dc2626') }}; font-weight: 600;">
-                                                            {{ $invoice['payment_status'] }}
-                                                        </span>
-                                                    @else
-                                                        -
-                                                    @endif
+                                                    @php
+                                                        // Get real-time payment status instead of stored one
+                                                        $realTimePaymentStatus = isset($invoice['invoice_no']) ? getPaymentStatusForInvoice($invoice['invoice_no']) : 'UnPaid';
+                                                    @endphp
+                                                    <span style="color: {{ $realTimePaymentStatus === 'Full Payment' ? '#059669' : ($realTimePaymentStatus === 'Partial Payment' ? '#d97706' : '#dc2626') }}; font-weight: 600;">
+                                                        {{ $realTimePaymentStatus }}
+                                                    </span>
                                                 </td>
                                                 <td>
                                                     @if(!empty($invoice['invoice_file']))

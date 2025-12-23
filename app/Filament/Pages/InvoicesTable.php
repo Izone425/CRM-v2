@@ -167,13 +167,13 @@ class InvoicesTable extends Page implements HasTable
 
             $debtorAging = $debtorAgings->get($invoiceNo);
 
-            $status = 'Full Payment'; // Default
+            $status = 'UnPaid'; // Default when no debtor aging found
 
-            if ((float)$debtorAging->outstanding === 0.0) {
+            if ($debtorAging && (float)$debtorAging->outstanding === 0.0) {
                 $status = 'Full Payment';
-            } elseif ((float)$debtorAging->outstanding === (float)$totalInvoiceAmount) {
+            } elseif ($debtorAging && (float)$debtorAging->outstanding === (float)$totalInvoiceAmount) {
                 $status = 'UnPaid';
-            } elseif ((float)$debtorAging->outstanding < (float)$totalInvoiceAmount && (float)$debtorAging->outstanding > 0) {
+            } elseif ($debtorAging && (float)$debtorAging->outstanding < (float)$totalInvoiceAmount && (float)$debtorAging->outstanding > 0) {
                 $status = 'Partial Payment';
             } else {
                 $status = 'UnPaid';
@@ -212,13 +212,13 @@ class InvoicesTable extends Page implements HasTable
             ->where(DB::raw('CAST(invoice_number AS CHAR)'), '=', $invoiceNo)
             ->first();
 
-        $status = 'Full Payment'; // Default
+        $status = 'UnPaid'; // Default when no debtor aging found
 
-        if (!$debtorAging || (float)$debtorAging->outstanding === 0.0) {
+        if ($debtorAging && (float)$debtorAging->outstanding === 0.0) {
             $status = 'Full Payment';
-        } elseif ((float)$debtorAging->outstanding === (float)$totalInvoiceAmount) {
+        } elseif ($debtorAging && (float)$debtorAging->outstanding === (float)$totalInvoiceAmount) {
             $status = 'UnPaid';
-        } elseif ((float)$debtorAging->outstanding < (float)$totalInvoiceAmount && (float)$debtorAging->outstanding > 0) {
+        } elseif ($debtorAging && (float)$debtorAging->outstanding < (float)$totalInvoiceAmount && (float)$debtorAging->outstanding > 0) {
             $status = 'Partial Payment';
         } else {
             $status = 'UnPaid';

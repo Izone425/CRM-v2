@@ -155,16 +155,16 @@
 
                     <div class="stat-row">
                         <span class="stat-label">JJ:</span>
-                        <span class="stat-value jaja-value">RM {{ number_format($jajaAmount, 2) }}</span>
+                        <span class="stat-value jaja-value">RM 0.00</span>
                     </div>
 
                     <div class="stat-row">
                         <span class="stat-label">SN:</span>
-                        <span class="stat-value sheena-value">RM {{ number_format($sheenaAmount, 2) }}</span>
+                        <span class="stat-value sheena-value">RM 0.00</span>
                     </div>
 
                     <div class="total-amount">
-                        Total: RM {{ number_format($totalAmount, 2) }}
+                        Total: RM 0.00
                     </div>
                 </div>
             @endforeach

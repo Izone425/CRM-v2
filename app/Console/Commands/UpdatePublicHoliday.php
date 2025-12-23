@@ -3,9 +3,9 @@
 namespace App\Console\Commands;
 
 use App\Models\PublicHoliday;
-use App\Services\LeaveAPIService;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Http;
 
 class UpdatePublicHoliday extends Command
 {
@@ -21,33 +21,79 @@ class UpdatePublicHoliday extends Command
      *
      * @var string
      */
-    protected $description = 'Update Public Holiday From TimeTec WebService';
+    protected $description = 'Update Public Holiday From TimeTec HR API';
 
     /**
      * Execute the console command.
      */
     public function handle()
     {
-
         PublicHoliday::truncate();
 
         $dateFrom = $this->argument('dateFrom');
         $dateTo = $this->argument('dateTo');
-        $wsdl = "https://api.timeteccloud.com/webservice/WebServiceTimeTecAPI.asmx?WSDL";
-        $LeaveAPIService = new LeaveAPIService($wsdl, "hr@timeteccloud.com", "BAKIt9nKbCxr6JJUvLWySQL4oH7a4zJYhIjv4GIJK5CD9RvlLp");
-        $params = ["CompanyID" => 351, "DivisionID" => 31010, "DateFrom" => $dateFrom, "DateTo" => $dateTo, "RecordStartFrom" => "0", "LimitRecordShow" => "100"];
 
-        $holidays = json_decode($LeaveAPIService->getClient()->getOrgStructureHoliday($params)->GetOrgStructureHolidayResult, true);
-        
-        if (isset($holidays['Result']['OrgStructureHolidayObj']) && !empty($holidays['Result']['OrgStructureHolidayObj'][0])) {
-            $holidays = $holidays['Result']['OrgStructureHolidayObj'][0]["TimeTec Cloud Sdn. Bhd."];
-            foreach ($holidays as &$row) {
-                PublicHoliday::create([
-                    'day_of_week' => Carbon::parse($row['Date'])->dayOfWeekIso,
-                    'date'=> $row['Date'],
-                    'name'=>$row['Holiday'] 
-                ]);
+        try {
+            // Get authentication token
+            $authResponse = Http::withHeaders([
+                'Content-Type' => 'application/json',
+                'Accept' => 'application/json',
+            ])->post('https://hr-api.timeteccloud.com/api/auth-mobile/token', [
+                'username' => 'hr@timeteccloud.com',
+                'password' => 'Abc123456'
+            ]);
+
+            if (!$authResponse->successful()) {
+                $this->error('Authentication failed: ' . $authResponse->body());
+                return 1;
             }
+
+            $authData = $authResponse->json();
+            $token = $authData['accessToken'] ?? null;
+
+            if (!$token) {
+                $this->error('Token not found in auth response');
+                return 1;
+            }
+
+            // Get calendar data (include userIds even though we only need holidays)
+            $calendarResponse = Http::withHeaders([
+                'Authorization' => 'Bearer ' . $token,
+                'Accept' => 'application/json',
+                'Content-Type' => 'application/json',
+            ])->get('https://hr-api.timeteccloud.com/api/v1/mobile-calendar/crm-calendar-list', [
+                'userIds' => '342,348,251', // Include some user IDs as the API seems to require this parameter
+                'startDate' => $dateFrom,
+                'endDate' => $dateTo
+            ]);
+
+            if (!$calendarResponse->successful()) {
+                $this->error('Calendar API failed: ' . $calendarResponse->body());
+                return 1;
+            }
+
+            $calendarData = $calendarResponse->json();
+            $calendarList = $calendarData['calendarListView'] ?? [];
+
+            $holidayCount = 0;
+            foreach ($calendarList as $day) {
+                // Only process days with holidays
+                if (!empty($day['holidayName'])) {
+                    PublicHoliday::create([
+                        'day_of_week' => Carbon::parse($day['date'])->dayOfWeekIso,
+                        'date' => $day['date'],
+                        'name' => $day['holidayName']
+                    ]);
+                    $holidayCount++;
+                }
+            }
+
+            $this->info("Successfully updated {$holidayCount} public holidays from {$dateFrom} to {$dateTo}");
+            return 0;
+
+        } catch (\Exception $e) {
+            $this->error('Error updating public holidays: ' . $e->getMessage());
+            return 1;
         }
     }
 }

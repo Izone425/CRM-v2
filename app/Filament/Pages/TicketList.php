@@ -45,6 +45,8 @@ class TicketList extends Page implements HasTable, HasActions, HasForms
     public $newComment = '';
     public $attachments = [];
     public $activeTab = 'v1';
+    public $showReopenModal = false;
+    public $reopenComment = '';
 
     public function mount(): void
     {
@@ -540,6 +542,32 @@ class TicketList extends Page implements HasTable, HasActions, HasForms
         $this->selectedTicket = null;
         $this->newComment = '';
         $this->attachments = [];
+        $this->closeReopenModal();
+    }
+
+    public function closeReopenModal(): void
+    {
+        $this->showReopenModal = false;
+        $this->reopenComment = '';
+        $this->form->fill();
+    }
+
+    public function openReopenModal($ticketId): void
+    {
+        $this->selectedTicket = Ticket::with([
+            'comments',
+            'logs',
+            'priority',
+            'product',
+            'module',
+            'requestor',
+            'attachments',
+            'attachments.uploader',
+        ])->find($ticketId);
+
+        if ($this->selectedTicket) {
+            $this->showReopenModal = true;
+        }
     }
 
     public function addComment(): void
@@ -682,7 +710,7 @@ class TicketList extends Page implements HasTable, HasActions, HasForms
                 ])
                 ->disableToolbarButtons([
                     'codeBlock',
-                ])
+                ]),
         ];
     }
 
@@ -751,6 +779,80 @@ class TicketList extends Page implements HasTable, HasActions, HasForms
                 ->title('Error')
                 ->danger()
                 ->body('Failed to update ticket status: ' . $e->getMessage())
+                ->send();
+        }
+    }
+
+    public function reopenTicket(): void
+    {
+        if (!$this->selectedTicket) {
+            return;
+        }
+
+        try {
+            $authUser = auth()->user();
+            $ticketSystemUser = null;
+            if ($authUser) {
+                $ticketSystemUser = \Illuminate\Support\Facades\DB::connection('ticketingsystem_live')
+                    ->table('users')
+                    ->where('name', $authUser->name)
+                    ->first();
+            }
+            $userId = $ticketSystemUser?->id ?? 22;
+            $oldStatus = $this->selectedTicket->status;
+
+            // Update ticket status to Reopen
+            $this->selectedTicket->update(['status' => 'Reopen']);
+
+            // Add comment if provided
+            $formData = $this->form->getState();
+            if (!empty($formData['reopenComment'])) {
+                TicketComment::create([
+                    'ticket_id' => $this->selectedTicket->id,
+                    'user_id' => $userId,
+                    'comment' => $formData['reopenComment'],
+                ]);
+            }
+
+            // Log the status change
+            TicketLog::create([
+                'ticket_id' => $this->selectedTicket->id,
+                'old_value' => $oldStatus,
+                'new_value' => 'Reopen',
+                'action' => "Ticket {$this->selectedTicket->ticket_id} was reopened from '{$oldStatus}' status." . (!empty($this->reopenComment) ? ' Comment: ' . $this->reopenComment : ''),
+                'field_name' => 'status',
+                'change_reason' => $this->reopenComment,
+                'old_eta' => null,
+                'new_eta' => null,
+                'updated_by' => $userId,
+                'user_name' => $ticketSystemUser?->name ?? 'HRcrm User',
+                'user_role' => $ticketSystemUser?->role ?? 'Support Staff',
+                'change_type' => 'status_change',
+                'source' => 'reopen_modal',
+            ]);
+
+            // Refresh the selected ticket with fresh data
+            $this->selectedTicket = $this->selectedTicket->fresh(['logs', 'comments', 'attachments', 'priority', 'product', 'module', 'requestor']);
+
+            // Close reopen modal
+            $this->closeReopenModal();
+
+            Notification::make()
+                ->title('Ticket Reopen')
+                ->success()
+                ->body("Ticket {$this->selectedTicket->ticket_id} has been reopened successfully.")
+                ->send();
+
+            // Dispatch event to refresh tables
+            $this->dispatch('ticket-status-updated');
+
+        } catch (\Exception $e) {
+            Log::error('Error reopening ticket: ' . $e->getMessage());
+
+            Notification::make()
+                ->title('Error')
+                ->danger()
+                ->body('Failed to reopen ticket: ' . $e->getMessage())
                 ->send();
         }
     }
