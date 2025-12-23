@@ -6,8 +6,8 @@
         return;
     }
 
-    // Format the handover ID
-    $handoverId = 'HC_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+    // Format the handover ID using the model accessor
+    $handoverId = $record->formatted_handover_id;
 
     // Get PI details
     $productPIs = [];

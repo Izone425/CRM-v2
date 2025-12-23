@@ -82,7 +82,7 @@ class HardwareHandoverV2RelationManager extends RelationManager
                                 ->get()
                                 ->mapWithKeys(function ($handover) {
                                     $id = $handover->id;
-                                    $formattedId = 'SW_250' . str_pad($id, 3, '0', STR_PAD_LEFT);
+                                    $formattedId = $handover->formatted_handover_id;
                                     $date = $handover->created_at ? $handover->created_at->format('d M Y') : 'Unknown date';
                                     return [$id => "{$formattedId} - {$date}"];
                                 })
@@ -588,10 +588,10 @@ class HardwareHandoverV2RelationManager extends RelationManager
                                 ->openable()
                                 ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
                                 ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
-                                    // Get lead ID from ownerRecord
-                                    $leadId = $this->getOwnerRecord()->id;
-                                    // Format ID with prefix (250) and padding
-                                    $formattedId = '250' . str_pad($leadId, 3, '0', STR_PAD_LEFT);
+                                    // Generate next available ID for this handover
+                                    $nextId = $this->getNextAvailableId();
+                                    // Use the model's static method to generate formatted ID
+                                    $formattedId = HardwareHandoverV2::generateFormattedId($nextId);
                                     // Get extension
                                     $extension = $file->getClientOriginalExtension();
 
@@ -637,8 +637,8 @@ class HardwareHandoverV2RelationManager extends RelationManager
                                     $component->getContainer()->getComponent('hrdf_grant_file')?->validate();
                                 })
                                 ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
-                                    $leadId = $this->getOwnerRecord()->id;
-                                    $formattedId = '250' . str_pad($leadId, 3, '0', STR_PAD_LEFT);
+                                    $nextId = $this->getNextAvailableId();
+                                    $formattedId = HardwareHandoverV2::generateFormattedId($nextId);
                                     $extension = $file->getClientOriginalExtension();
                                     $timestamp = now()->format('YmdHis');
                                     $random = rand(1000, 9999);
@@ -680,8 +680,8 @@ class HardwareHandoverV2RelationManager extends RelationManager
                                     $component->getContainer()->getComponent('payment_slip_file')?->validate();
                                 })
                                 ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
-                                    $leadId = $this->getOwnerRecord()->id;
-                                    $formattedId = '250' . str_pad($leadId, 3, '0', STR_PAD_LEFT);
+                                    $nextId = $this->getNextAvailableId();
+                                    $formattedId = HardwareHandoverV2::generateFormattedId($nextId);
                                     $extension = $file->getClientOriginalExtension();
                                     $timestamp = now()->format('YmdHis');
                                     $random = rand(1000, 9999);
@@ -740,10 +740,10 @@ class HardwareHandoverV2RelationManager extends RelationManager
                                 ->visible(fn(callable $get) => $get('installation_type') === 'external_installation')
                                 ->required(fn(callable $get) => $get('installation_type') === 'external_installation')
                                 ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
-                                    // Get lead ID from ownerRecord
-                                    $leadId = $this->getOwnerRecord()->id;
-                                    // Format ID with prefix (250) and padding
-                                    $formattedId = '250' . str_pad($leadId, 3, '0', STR_PAD_LEFT);
+                                    // Generate next available ID for this handover
+                                    $nextId = $this->getNextAvailableId();
+                                    // Use the model's static method to generate formatted ID
+                                    $formattedId = HardwareHandoverV2::generateFormattedId($nextId);
                                     // Get extension
                                     $extension = $file->getClientOriginalExtension();
 
@@ -944,8 +944,8 @@ class HardwareHandoverV2RelationManager extends RelationManager
                             return 'Unknown';
                         }
 
-                        // Format ID with prefix 250 and padding to ensure at least 3 digits
-                        return 'HW_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+                        // Use the model's formatted_handover_id accessor
+                        return $record->formatted_handover_id;
                     })
                     ->color('primary')
                     ->weight('bold')
@@ -1038,9 +1038,8 @@ class HardwareHandoverV2RelationManager extends RelationManager
 
                     Action::make('edit_hardware_handover')
                         ->modalHeading(function (HardwareHandoverV2 $record): string {
-                            // Format ID with prefix 250 and pad with zeros to ensure at least 3 digits
-                            $formattedId = '250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
-                            return "Edit Hardware Handover {$formattedId}";
+                            // Use the model's formatted_handover_id accessor
+                            return "Edit Hardware Handover {$record->formatted_handover_id}";
                         })
                         ->label('Edit Hardware Handover')
                         ->icon('heroicon-o-pencil')

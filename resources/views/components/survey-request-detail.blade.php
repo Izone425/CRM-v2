@@ -1,5 +1,5 @@
 <div class="p-6">
-    <div class="mb-6 text-xl font-bold">Site Survey Handover ID: SS_250{{ str_pad($record->id, 4, '0', STR_PAD_LEFT) }}</div>
+    <div class="mb-6 text-xl font-bold">Site Survey Handover ID: {{ $record->formatted_handover_id ?? 'SS_25' . str_pad($record->id, 4, '0', STR_PAD_LEFT) }}</div>
 
     <div class="space-y-4">
         <div class="grid grid-cols-1 gap-4">

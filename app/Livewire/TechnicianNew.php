@@ -148,7 +148,7 @@ class TechnicianNew extends Component implements HasForms, HasTable
                         if (!$state) {
                             return 'Unknown';
                         }
-                        return 'OR_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+                        return $record->formatted_handover_id;
                     })
                     ->color('primary')
                     ->weight('bold')
@@ -411,7 +411,7 @@ class TechnicianNew extends Component implements HasForms, HasTable
                                                             ->openable()
                                                             ->downloadable()
                                                             ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, AdminRepair $record): string {
-                                                                $repairId = 'OR_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+                                                                $repairId = $record->formatted_handover_id;
                                                                 $extension = $file->getClientOriginalExtension();
                                                                 $timestamp = now()->format('YmdHis');
                                                                 $random = rand(1000, 9999);
@@ -582,7 +582,7 @@ class TechnicianNew extends Component implements HasForms, HasTable
                             // Send email notification
                             try {
                                 // Format repair ID
-                                $repairId = 'OR_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+                                $repairId = $record->formatted_handover_id;
 
                                 // Get company name
                                 $companyName = $record->company_name ?? 'Unknown Company';
@@ -607,6 +607,7 @@ class TechnicianNew extends Component implements HasForms, HasTable
                                 // Email data structure
                                 $emailData = [
                                     'repair_id' => $repairId,
+                                    'repair' => $record,
                                     'company_name' => $companyName,
                                     'technician' => $technicianName,
                                     'status' => 'Accepted',

@@ -59,7 +59,7 @@ class HHTableRelationManager extends RelationManager
                             return $filename;
                         }
 
-                        // Format ID with 250 prefix and pad with zeros to ensure at least 3 digits
+
                         return $record->formatted_handover_id;
                     })
                     ->color('primary') // Makes it visually appear as a link

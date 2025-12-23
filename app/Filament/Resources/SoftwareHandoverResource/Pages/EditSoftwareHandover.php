@@ -13,10 +13,7 @@ class EditSoftwareHandover extends EditRecord
 
     public function getTitle(): string
     {
-        // Format ID with 250 prefix and pad with zeros to ensure at least 3 digits
-        $formattedId = 'SW_250' . str_pad($this->record->id, 3, '0', STR_PAD_LEFT);
-
-        return "Software Handover {$formattedId}";
+        return "Software Handover {$this->record->formatted_handover_id}";
     }
 
     protected function getRedirectUrl(): string

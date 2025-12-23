@@ -156,7 +156,7 @@
                 </tr>
                 <tr>
                     <th>Repair Handover ID</th>
-                    <td>{{ $repair_id }}</td>
+                    <td>{{ $repair->formatted_handover_id }}</td>
                 </tr>
                 <tr>
                     <th>Status</th>
@@ -181,7 +181,7 @@
             </table>
 
             <div class="button-container">
-                <a href="{{ $pdf_url ?? url('/admin/repairs/view/' . str_replace('OR_250', '', $repair_id)) }}" class="button" target="_blank">
+                <a href="{{ $pdf_url ?? url('/admin/repairs/view/' . $repair->id) }}" class="button" target="_blank">
                     View Repair Ticket Form
                 </a>
             </div>

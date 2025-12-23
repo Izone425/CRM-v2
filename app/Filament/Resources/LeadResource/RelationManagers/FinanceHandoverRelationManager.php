@@ -57,7 +57,7 @@ class FinanceHandoverRelationManager extends RelationManager
                                     ->get()
                                     ->mapWithKeys(function ($handover) {
                                         // Format the display name with ID and any relevant info
-                                        $formattedId = 'HW_250' . str_pad($handover->id, 4, '0', STR_PAD_LEFT);
+                                        $formattedId = $handover->formatted_handover_id;
                                         $displayName = $formattedId;
 
                                         // Add additional info if available (e.g., status, date)
@@ -125,7 +125,8 @@ class FinanceHandoverRelationManager extends RelationManager
                                 ->required()
                                 ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file): string {
                                     $leadId = $this->getOwnerRecord()->id;
-                                    $formattedId = 'FN_250' . str_pad($leadId, 3, '0', STR_PAD_LEFT);
+                                    $year = now()->format('y');
+                                    $formattedId = sprintf('FN_%02d%04d', $year, $leadId);
                                     $extension = $file->getClientOriginalExtension();
                                     $timestamp = now()->format('YmdHis');
                                     $random = rand(1000, 9999);
@@ -153,7 +154,8 @@ class FinanceHandoverRelationManager extends RelationManager
                                 ->required()
                                 ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file): string {
                                     $leadId = $this->getOwnerRecord()->id;
-                                    $formattedId = 'FN_250' . str_pad($leadId, 3, '0', STR_PAD_LEFT);
+                                    $year = now()->format('y');
+                                    $formattedId = sprintf('FN_%02d%04d', $year, $leadId);
                                     $extension = $file->getClientOriginalExtension();
                                     $timestamp = now()->format('YmdHis');
                                     $random = rand(1000, 9999);
@@ -181,7 +183,8 @@ class FinanceHandoverRelationManager extends RelationManager
                                 ->required()
                                 ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file): string {
                                     $leadId = $this->getOwnerRecord()->id;
-                                    $formattedId = 'FN_250' . str_pad($leadId, 3, '0', STR_PAD_LEFT);
+                                    $year = now()->format('y');
+                                    $formattedId = sprintf('FN_%02d%04d', $year, $leadId);
                                     $extension = $file->getClientOriginalExtension();
                                     $timestamp = now()->format('YmdHis');
                                     $random = rand(1000, 9999);
@@ -271,7 +274,7 @@ class FinanceHandoverRelationManager extends RelationManager
                         if (!$state) {
                             return 'Unknown';
                         }
-                        return 'FN_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+                        return $record->formatted_handover_id;
                     })
                     ->color('primary')
                     ->weight('bold'),
@@ -389,7 +392,7 @@ class FinanceHandoverRelationManager extends RelationManager
                 $salesperson = auth()->user();
             }
 
-            $formattedId = 'FN_250' . str_pad($handover->id, 3, '0', STR_PAD_LEFT);
+            $formattedId = $handover->formatted_handover_id;
             $companyName = $lead->companyDetail->company_name ?? $lead->name ?? 'Unknown Company';
 
             // Prepare attachment details
@@ -522,10 +525,7 @@ class FinanceHandoverRelationManager extends RelationManager
                 $hardwareHandovers = HardwareHandoverV2::whereIn('id', $handoverIds)->get();
 
                 foreach ($hardwareHandovers as $hw) {
-                    // Use dynamic year based on hardware handover creation date
-                    $hwYear = $hw->created_at ? $hw->created_at->format('y') : now()->format('y');
-                    $formattedId = 'HW_' . $hwYear . str_pad($hw->id, 4, '0', STR_PAD_LEFT);
-                    $details[] = $formattedId;
+                    $details[] = $hw->formatted_handover_id;
                 }
             }
         }

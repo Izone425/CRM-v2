@@ -104,7 +104,7 @@
                         <div class="p-6 bg-white border border-gray-200 rounded-lg shadow-sm">
                             <h3 class="mb-4 text-lg font-semibold text-gray-900">
                                 {{ $result['project']->company_name }}
-                                <span class="text-sm font-normal text-gray-500">(Project ID: SW_250{{ str_pad($result['project']->id, 3, '0', STR_PAD_LEFT) }})</span>
+                                <span class="text-sm font-normal text-gray-500">(Project ID: {{ $result['project']->formatted_handover_id }})</span>
                             </h3>
 
                             <div class="project-content">

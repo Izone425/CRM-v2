@@ -194,7 +194,7 @@ class HardwareV2PendingInternalInstallationTable extends Component implements Ha
                             return $filename;
                         }
 
-                        return '250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+                        return $record->formatted_handover_id;
                     })
                     ->color('primary')
                     ->weight('bold')
@@ -1031,7 +1031,7 @@ class HardwareV2PendingInternalInstallationTable extends Component implements Ha
             // Generate Hardware ID
             $hardwareId = $record->handover_pdf ?
                 basename($record->handover_pdf, '.pdf') :
-                'HW_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+                $record->formatted_handover_id;
 
             // Format date and time
             $appointmentDate = Carbon::parse($installation['appointment_date'])->format('d/m/Y');

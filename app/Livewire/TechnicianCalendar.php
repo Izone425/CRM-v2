@@ -178,7 +178,7 @@ class TechnicianCalendar extends Component
         } else {
             $hardwareHandover = \App\Models\HardwareHandoverV2::where('lead_id', $appointment->lead_id)->first();
             if ($hardwareHandover) {
-                $appointment->hardware_id = 'HW_250' . str_pad($hardwareHandover->id, 3, '0', STR_PAD_LEFT);
+                $appointment->hardware_id = $hardwareHandover->formatted_handover_id;
             }
         }
 
@@ -350,7 +350,7 @@ class TechnicianCalendar extends Component
             } else if ($appointment->lead_id) {
                 $hardwareHandover = \App\Models\HardwareHandoverV2::where('lead_id', $appointment->lead_id)->first();
                 if ($hardwareHandover) {
-                    $appointment->hardware_id = 'HW_250' . str_pad($hardwareHandover->id, 3, '0', STR_PAD_LEFT);
+                    $appointment->hardware_id = $hardwareHandover->formatted_handover_id;
                 }
             }
 
@@ -600,7 +600,7 @@ class TechnicianCalendar extends Component
             } else if ($appointment->lead_id) {
                 $hardwareHandover = \App\Models\HardwareHandoverV2::where('lead_id', $appointment->lead_id)->first();
                 if ($hardwareHandover) {
-                    $appointment->hardware_id = 'HW_250' . str_pad($hardwareHandover->id, 3, '0', STR_PAD_LEFT);
+                    $appointment->hardware_id = $hardwareHandover->formatted_handover_id;
                 }
             }
 

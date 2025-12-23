@@ -223,10 +223,10 @@ class HeadcountHandoverRelationManager extends RelationManager
                         ->openable()
                         ->downloadable()
                         ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
-                            // Get lead ID from ownerRecord
-                            $leadId = $this->getOwnerRecord()->id;
-                            // Format ID with prefix (250) and padding
-                            $formattedId = '250' . str_pad($leadId, 3, '0', STR_PAD_LEFT);
+                            // Generate next available ID for this handover
+                            $nextId = $this->getNextAvailableId();
+                            // Use the model's static method to generate formatted ID
+                            $formattedId = HeadcountHandover::generateFormattedId($nextId);
                             // Get extension
                             $extension = $file->getClientOriginalExtension();
                             // Generate a unique identifier (timestamp) to avoid overwriting files
@@ -258,10 +258,10 @@ class HeadcountHandoverRelationManager extends RelationManager
                         ->openable()
                         ->downloadable()
                         ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
-                            // Get lead ID from ownerRecord
-                            $leadId = $this->getOwnerRecord()->id;
-                            // Format ID with prefix (250) and padding
-                            $formattedId = '250' . str_pad($leadId, 3, '0', STR_PAD_LEFT);
+                            // Generate next available ID for this handover
+                            $nextId = $this->getNextAvailableId();
+                            // Use the model's static method to generate formatted ID
+                            $formattedId = HeadcountHandover::generateFormattedId($nextId);
                             // Get extension
                             $extension = $file->getClientOriginalExtension();
                             // Generate a unique identifier (timestamp) to avoid overwriting files
@@ -390,8 +390,8 @@ class HeadcountHandoverRelationManager extends RelationManager
                     $handover->save();
 
                     try {
-                        // Format handover ID
-                        $handoverId = 'HC_250' . str_pad($handover->id, 3, '0', STR_PAD_LEFT);
+                        // Use the handover's formatted_handover_id accessor
+                        $handoverId = $handover->formatted_handover_id;
 
                         // Get company name from CompanyDetail
                         $companyDetail = \App\Models\CompanyDetail::where('lead_id', $handover->lead_id)->first();
@@ -437,8 +437,8 @@ class HeadcountHandoverRelationManager extends RelationManager
                             return 'Unknown';
                         }
 
-                        // Format ID with HC prefix and pad with zeros to ensure at least 3 digits
-                        return 'HC_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+                        // Use the model's formatted_handover_id accessor
+                        return $record->formatted_handover_id;
                     })
                     ->color('primary')
                     ->weight('bold')
@@ -495,8 +495,7 @@ class HeadcountHandoverRelationManager extends RelationManager
 
                     Action::make('edit_headcount_handover')
                         ->modalHeading(function (HeadcountHandover $record): string {
-                            $formattedId = 'HC_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
-                            return "Edit Headcount Handover {$formattedId}";
+                            return "Edit Headcount Handover {$record->formatted_handover_id}";
                         })
                         ->label('Edit Headcount Handover')
                         ->icon('heroicon-o-pencil')

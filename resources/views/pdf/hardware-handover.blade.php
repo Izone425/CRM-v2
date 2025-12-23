@@ -187,7 +187,7 @@
                                 @php
                                     $softwareHandover = \App\Models\SoftwareHandover::find($handoverId);
                                     if ($softwareHandover) {
-                                        $formattedId = 'SW_250' . str_pad($softwareHandover->id, 3, '0', STR_PAD_LEFT);
+                                        $formattedId = $softwareHandover->formatted_handover_id;
                                         $pdfUrl = $softwareHandover->handover_pdf
                                             ? url('storage/' . $softwareHandover->handover_pdf)
                                             : null;

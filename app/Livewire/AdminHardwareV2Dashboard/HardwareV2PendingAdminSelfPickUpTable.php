@@ -189,7 +189,7 @@ class HardwareV2PendingAdminSelfPickUpTable extends Component implements HasForm
                             return $filename;
                         }
 
-                        return '250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+                        return $record->formatted_handover_id;
                     })
                     ->color('primary')
                     ->weight('bold')

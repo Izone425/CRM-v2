@@ -15,7 +15,7 @@ return new class extends Migration
             // ✅ Use foreignId() instead of unsignedBigInteger for better compatibility
             $table->foreignId('lead_id')->constrained('leads')->onDelete('cascade');
 
-            $table->string('handover_id')->unique(); // RW_250001 format
+            $table->string('handover_id')->unique();
             $table->string('company_name');
             $table->json('selected_quotation_ids'); // Store array of quotation IDs
             $table->json('invoice_numbers')->nullable(); // Store array of created invoice numbers

@@ -778,7 +778,7 @@ class OnsiteRepairList extends Page implements HasTable
         $repair = AdminRepair::create($data);
 
         // Generate repair ID after we have a valid record with an ID
-        $repairId = 'OR_250' . str_pad($repair->id, 3, '0', STR_PAD_LEFT);
+        $repairId = $repair->formatted_handover_id;
 
         try {
             // Get company name
@@ -955,7 +955,7 @@ class OnsiteRepairList extends Page implements HasTable
                         if (!$state) {
                             return 'Unknown';
                         }
-                        return 'OR_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+                        return $record->formatted_handover_id;
                     })
                     ->color('primary')
                     ->weight('bold')
@@ -1141,7 +1141,7 @@ class OnsiteRepairList extends Page implements HasTable
                         ->color('warning')
                         ->icon('heroicon-o-pencil')
                         ->visible(fn (AdminRepair $record): bool => $record->status === 'Draft')
-                        ->modalHeading(fn (AdminRepair $record) => "Edit Repair Ticket " . 'OR_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT))
+                        ->modalHeading(fn (AdminRepair $record) => "Edit Repair Ticket " . $record->formatted_handover_id)
                         ->slideOver()
                         ->modalWidth('4xl')
                         ->form($this->defaultForm())
@@ -1173,7 +1173,7 @@ class OnsiteRepairList extends Page implements HasTable
                             $record->save();
 
                             // Format the repair ID properly
-                            $repairId = 'OR_250' . str_pad($record->id, 3, '0', STR_PAD_LEFT);
+                            $repairId = $record->formatted_handover_id;
 
                             try {
                                 // Get company name

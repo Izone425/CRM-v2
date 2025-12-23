@@ -307,7 +307,7 @@ class HeadcountInvoiceDataExportController extends Controller
 
             // Create filename with handover ID
             $companyName = $lead->companyDetail->company_name ?? 'Company';
-            $handoverId = 'HC_250' . str_pad($headcountHandover->id, 3, '0', STR_PAD_LEFT);
+            $handoverId = $headcountHandover->formatted_handover_id;
             $filename = 'Headcount_Invoice_Data_' . $handoverId . '_' . str_replace([' ', '/', '\\', '&'], '_', $companyName) . '_' . date('Y-m-d') . '.xlsx';
 
             Log::info('About to send Headcount Invoice Data Excel file: ' . $filename);

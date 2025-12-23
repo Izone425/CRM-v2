@@ -39,7 +39,7 @@
                                 <a href="{{ route('filament.admin.resources.hardware-handovers.edit', $handover->id) }}"
                                    class="font-semibold text-primary-600 hover:underline"
                                    target="_blank">
-                                    HW_250{{ str_pad($handover->id, 3, '0', STR_PAD_LEFT) }}
+                                    {{ $handover->formatted_handover_id }}
                                 </a>
                             </td> --}}
                             <td class="p-3">
