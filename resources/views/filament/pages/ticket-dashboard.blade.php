@@ -468,26 +468,15 @@
                             <div class="status-number">{{ $softwareBugs['new'] }}</div>
                             <div class="status-text">New</div>
                         </div>
-                        <div class="status-box {{ $selectedCategory === 'softwareBugs' && $selectedStatus === 'In Review' ? 'active' : '' }}"
-                            wire:click="selectCategory('softwareBugs', 'In Review')">
-                            <div class="status-number">{{ $softwareBugs['review'] }}</div>
-                            <div class="status-text">Review</div>
-                        </div>
                         <div class="status-box {{ $selectedCategory === 'softwareBugs' && $selectedStatus === 'In Progress' ? 'active' : '' }}"
-                            wire:click="selectCategory('softwareBugs', 'In Progress')"
-                            style="position: relative;">
-                            {{-- ✅ Reopen badge in top-right corner (RED theme) --}}
-                            @if($softwareBugs['reopen'] > 0)
-                                <div wire:click.stop="selectCategory('softwareBugs', 'Reopen')"
-                                    class="{{ $selectedCategory === 'softwareBugs' && $selectedStatus === 'Reopen' ? 'active-reopen' : '' }}"
-                                    style="position: absolute; top: -5px; right: -5px; font-size: 9px; color: white; background: #DC2626; font-weight: 700; padding: 2px 6px; border-radius: 3px; cursor: pointer; transition: all 0.2s; z-index: 10; line-height: 1.2;"
-                                    onmouseover="this.style.background='#991B1B'; this.style.transform='scale(1.1)'"
-                                    onmouseout="this.style.background='#DC2626'; this.style.transform='scale(1)'">
-                                    Reopen +{{ $softwareBugs['reopen'] }}
-                                </div>
-                            @endif
+                            wire:click="selectCategory('softwareBugs', 'In Progress')">
                             <div class="status-number">{{ $softwareBugs['progress'] }}</div>
                             <div class="status-text">In Progress</div>
+                        </div>
+                        <div class="status-box {{ $selectedCategory === 'softwareBugs' && ($selectedStatus === 'Completed' || $selectedStatus === 'Tickets: Live') ? 'active' : '' }}"
+                            wire:click="selectCategory('softwareBugs', 'Completed')">
+                            <div class="status-number">{{ $softwareBugs['completed'] }}</div>
+                            <div class="status-text">Completed</div>
                         </div>
                         <div class="status-box {{ $selectedCategory === 'softwareBugs' && $selectedStatus === 'Closed' ? 'active' : '' }}"
                             wire:click="selectCategory('softwareBugs', 'Closed')">
@@ -510,26 +499,15 @@
                             <div class="status-number">{{ $backendAssistance['new'] }}</div>
                             <div class="status-text">New</div>
                         </div>
-                        <div class="status-box {{ $selectedCategory === 'backendAssistance' && $selectedStatus === 'In Review' ? 'active' : '' }}"
-                            wire:click="selectCategory('backendAssistance', 'In Review')">
-                            <div class="status-number">{{ $backendAssistance['review'] }}</div>
-                            <div class="status-text">Review</div>
-                        </div>
                         <div class="status-box {{ $selectedCategory === 'backendAssistance' && $selectedStatus === 'In Progress' ? 'active' : '' }}"
-                            wire:click="selectCategory('backendAssistance', 'In Progress')"
-                            style="position: relative;">
-                            {{-- ✅ Reopen badge in top-right corner (BLUE theme) --}}
-                            @if($backendAssistance['reopen'] > 0)
-                                <div wire:click.stop="selectCategory('backendAssistance', 'Reopen')"
-                                    class="{{ $selectedCategory === 'backendAssistance' && $selectedStatus === 'Reopen' ? 'active-reopen' : '' }}"
-                                    style="position: absolute; top: -5px; right: -5px; font-size: 9px; color: white; background: #2563EB; font-weight: 700; padding: 2px 6px; border-radius: 3px; cursor: pointer; transition: all 0.2s; z-index: 10; line-height: 1.2;"
-                                    onmouseover="this.style.background='#1D4ED8'; this.style.transform='scale(1.1)'"
-                                    onmouseout="this.style.background='#2563EB'; this.style.transform='scale(1)'">
-                                    Reopen +{{ $backendAssistance['reopen'] }}
-                                </div>
-                            @endif
+                            wire:click="selectCategory('backendAssistance', 'In Progress')">
                             <div class="status-number">{{ $backendAssistance['progress'] }}</div>
                             <div class="status-text">In Progress</div>
+                        </div>
+                        <div class="status-box {{ $selectedCategory === 'backendAssistance' && ($selectedStatus === 'Completed' || $selectedStatus === 'Tickets: Live') ? 'active' : '' }}"
+                            wire:click="selectCategory('backendAssistance', 'Completed')">
+                            <div class="status-number">{{ $backendAssistance['completed'] }}</div>
+                            <div class="status-text">Completed</div>
                         </div>
                         <div class="status-box {{ $selectedCategory === 'backendAssistance' && $selectedStatus === 'Closed' ? 'active' : '' }}"
                             wire:click="selectCategory('backendAssistance', 'Closed')">
@@ -686,7 +664,14 @@
                         <select class="ticket-filter-select">
                             <option>All</option>
                         </select>
-                        @if($selectedStatus || $selectedEnhancementStatus)
+                        {{-- Show individual status badges when In Progress or Closed is selected --}}
+                        @if(($selectedStatus === 'In Progress' || $selectedStatus === 'Closed') && !empty($selectedCombinedStatuses))
+                            @foreach($selectedCombinedStatuses as $individualStatus)
+                                <span class="close-badge" wire:click="removeIndividualStatus('{{ $individualStatus }}')">
+                                    {{ $individualStatus }} ✕
+                                </span>
+                            @endforeach
+                        @elseif($selectedStatus || $selectedEnhancementStatus)
                             <span class="close-badge" wire:click="selectCategory(null, null)">
                                 {{ $selectedStatus ?? $selectedEnhancementStatus }} ✕
                             </span>
@@ -734,7 +719,7 @@
                                             </span>
                                         </td>
                                         <td style="padding: 12px; text-align: center;" onclick="event.stopPropagation();">
-                                            @if(in_array($ticket->status, ['Tickets: Completed', 'Tickets: Live']))
+                                            @if(in_array($ticket->status, ['Completed', 'Tickets: Live']))
                                                 @if($ticket->isPassed == 0)
                                                     <div style="display: inline-flex; gap: 8px;">
                                                         <button wire:click="markAsPassed({{ $ticket->id }})"

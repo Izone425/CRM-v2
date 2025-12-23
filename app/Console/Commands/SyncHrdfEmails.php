@@ -35,28 +35,61 @@ class SyncHrdfEmails extends Command
 
             $this->info("Checking emails from last {$days} days...");
 
-            // Get recent emails
-            $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . $accessToken,
-                'Content-Type' => 'application/json',
-            ])->get($apiUrl, [
-                '$top' => 100,
-                '$filter' => "receivedDateTime ge " . now()->subDays($days)->toISOString(),
-                '$orderby' => 'receivedDateTime desc',
-                '$select' => 'id,subject,from,receivedDateTime'
-            ]);
+            // Get recent emails with pagination
+            $allEmails = [];
+            $nextLink = null;
+            $pageCount = 0;
 
-            if ($response->failed()) {
-                $this->error('Failed to retrieve emails: ' . $response->status());
-                Log::error('HRDF Email Sync Failed', [
-                    'status' => $response->status(),
-                    'response' => $response->json()
-                ]);
-                return 1;
-            }
+            do {
+                $pageCount++;
+                $this->line("Fetching page {$pageCount}...");
 
-            $emailData = $response->json();
-            $totalEmails = count($emailData['value'] ?? []);
+                if ($nextLink) {
+                    // Use the next link for pagination
+                    $response = Http::withHeaders([
+                        'Authorization' => 'Bearer ' . $accessToken,
+                        'Content-Type' => 'application/json',
+                    ])->get($nextLink);
+                } else {
+                    // First page
+                    $response = Http::withHeaders([
+                        'Authorization' => 'Bearer ' . $accessToken,
+                        'Content-Type' => 'application/json',
+                    ])->get($apiUrl, [
+                        '$top' => 300,
+                        '$filter' => "receivedDateTime ge " . now()->subDays($days)->toISOString(),
+                        '$orderby' => 'receivedDateTime desc',
+                        '$select' => 'id,subject,from,receivedDateTime'
+                    ]);
+                }
+
+                if ($response->failed()) {
+                    $this->error('Failed to retrieve emails: ' . $response->status());
+                    Log::error('HRDF Email Sync Failed', [
+                        'status' => $response->status(),
+                        'response' => $response->json()
+                    ]);
+                    return 1;
+                }
+
+                $pageData = $response->json();
+                $emails = $pageData['value'] ?? [];
+                $allEmails = array_merge($allEmails, $emails);
+
+                // Check if there's a next page
+                $nextLink = $pageData['@odata.nextLink'] ?? null;
+
+                $this->line("  └─ Found " . count($emails) . " emails on page {$pageCount}");
+
+                // Add small delay between pages to avoid rate limiting
+                if ($nextLink) {
+                    usleep(500000); // 0.5 second delay between pages
+                }
+
+            } while ($nextLink && $pageCount < 20); // Safety limit of 20 pages
+
+            $totalEmails = count($allEmails);
+            $this->info("Total emails found across {$pageCount} pages: {$totalEmails}");
             $newEmails = 0;
             $skippedEmails = 0;
             $errors = [];
@@ -67,7 +100,7 @@ class SyncHrdfEmails extends Command
             $bar = $this->output->createProgressBar($totalEmails);
             $bar->start();
 
-            foreach ($emailData['value'] ?? [] as $email) {
+            foreach ($allEmails as $email) {
                 $messageId = $email['id'];
 
                 try {
@@ -78,12 +111,16 @@ class SyncHrdfEmails extends Command
                         $receivedDate = Carbon::parse($receivedDateTime);
 
                         // Check if email with same received_date, subject, and from_email already exists
+                        // Use case-insensitive comparison for subject and email
                         $existingEmail = HrdfMail::where('received_date', $receivedDate)
                             ->where('subject', $email['subject'] ?? '')
                             ->where('from_email', $email['from']['emailAddress']['address'] ?? '')
                             ->first();
 
                         if ($existingEmail) {
+                            $this->line("  └─ Skipped duplicate: " . ($email['subject'] ?? 'No Subject'));
+                            $this->line("      Received: " . $receivedDate->format('Y-m-d H:i:s'));
+                            $this->line("      From: " . ($email['from']['emailAddress']['address'] ?? 'Unknown'));
                             $skippedEmails++;
                             $bar->advance();
                             continue;
@@ -304,21 +341,38 @@ class SyncHrdfEmails extends Command
             if ($hrdfHandover) {
                 // Update the related HRDF claim status through the relationship
                 if ($hrdfHandover->hrdfClaim) {
-                    $hrdfHandover->hrdfClaim->update([
-                        'claim_status' => 'APPROVED',
-                        'approved_at' => now()
-                    ]);
+                    $currentStatus = $hrdfHandover->hrdfClaim->claim_status;
 
-                    Log::info('HRDF Claim Status Updated to APPROVED', [
-                        'claim_ref' => $claimRef,
-                        'handover_id' => $hrdfHandover->id,
-                        'claim_id' => $hrdfHandover->hrdfClaim->id,
-                        'hrdf_grant_id' => $hrdfHandover->hrdf_grant_id,
-                        'company_name' => $hrdfHandover->hrdfClaim->company_name
-                    ]);
+                    // Only approve claims that have been submitted
+                    if ($currentStatus === 'SUBMITTED') {
+                        $hrdfHandover->hrdfClaim->update([
+                            'claim_status' => 'APPROVED',
+                            'approved_at' => now()
+                        ]);
 
-                    $this->line("  └─ Updated claim status to APPROVED for: {$claimRef}");
-                    $this->line("      Company: {$hrdfHandover->hrdfClaim->company_name}");
+                        Log::info('HRDF Claim Status Updated to APPROVED', [
+                            'claim_ref' => $claimRef,
+                            'handover_id' => $hrdfHandover->id,
+                            'claim_id' => $hrdfHandover->hrdfClaim->id,
+                            'hrdf_grant_id' => $hrdfHandover->hrdf_grant_id,
+                            'company_name' => $hrdfHandover->hrdfClaim->company_name,
+                            'previous_status' => $currentStatus
+                        ]);
+
+                        $this->line("  └─ Updated claim status to APPROVED for: {$claimRef}");
+                        $this->line("      Company: {$hrdfHandover->hrdfClaim->company_name}");
+                        $this->line("      Previous status: {$currentStatus}");
+                    } else {
+                        Log::warning('Cannot approve claim - not in SUBMITTED status', [
+                            'claim_ref' => $claimRef,
+                            'current_status' => $currentStatus,
+                            'handover_id' => $hrdfHandover->id,
+                            'company_name' => $hrdfHandover->hrdfClaim->company_name
+                        ]);
+
+                        $this->line("  └─ Warning: Cannot approve claim {$claimRef} - status is '{$currentStatus}', expected 'SUBMITTED'");
+                        $this->line("      Company: {$hrdfHandover->hrdfClaim->company_name}");
+                    }
 
                 } else {
                     Log::warning('No HRDF Claim relationship found for handover', [

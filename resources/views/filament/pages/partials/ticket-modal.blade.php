@@ -366,7 +366,7 @@
                         </span>
 
                         <!-- Edit Icon & Dropdown - Show for Completed and Closed status -->
-                        @if(in_array($selectedTicket->status, ['Completed', 'Closed']))
+                        @if(in_array($selectedTicket->status, ['Completed']))
                             <div style="position: relative;" x-data="{ open: false }">
                                 <button @click="open = !open"
                                         style="display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; background: white; border: 1px solid #D1D5DB; border-radius: 6px; cursor: pointer; transition: all 0.2s;"
@@ -466,59 +466,6 @@
                             </div>
                         @else
                             <span style="color: #9CA3AF; font-style: italic; font-size: 13px;">Not assigned</span>
-                        @endif
-                    </div>
-                </div>
-
-                <!-- Due Date -->
-                <div style="margin-bottom: 16px;">
-                    <div style="font-size: 11px; color: #9CA3AF; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 500;">Due Date</div>
-                    <div style="font-weight: 500; color: #111827; font-size: 14px;">
-                        @php
-                            // Get due dates from tasks related to this ticket
-                            $relatedTaskDueDates = \Illuminate\Support\Facades\DB::connection('ticketingsystem_live')
-                                ->table('tasks')
-                                ->where('related_ticket_id', $selectedTicket->id)
-                                ->whereNotNull('due_date')
-                                ->pluck('due_date')
-                                ->filter()
-                                ->toArray();
-
-                            $earliestDueDate = null;
-                            $daysRemaining = null;
-                            $isOverdue = false;
-
-                            if (!empty($relatedTaskDueDates)) {
-                                // Find the earliest due date
-                                $earliestDueDate = min($relatedTaskDueDates);
-
-                                // Calculate days remaining
-                                $dueDate = \Carbon\Carbon::parse($earliestDueDate);
-                                $today = \Carbon\Carbon::today();
-                                $daysRemaining = $today->diffInDays($dueDate, false); // false to get negative for overdue
-                                $isOverdue = $daysRemaining < 0;
-                            }
-                        @endphp
-
-                        @if($earliestDueDate)
-                            <div style="display: flex; align-items: center; gap: 8px;">
-                                <span>{{ \Carbon\Carbon::parse($earliestDueDate)->format('M d, Y') }}</span>
-                                @if($isOverdue)
-                                    <span style="padding: 2px 6px; background: #FEE2E2; color: #DC2626; border-radius: 4px; font-size: 11px; font-weight: 600;">
-                                        {{ abs($daysRemaining) }} {{ abs($daysRemaining) === 1 ? 'day' : 'days' }} overdue
-                                    </span>
-                                @elseif($daysRemaining === 0)
-                                    <span style="padding: 2px 6px; background: #FEF3C7; color: #D97706; border-radius: 4px; font-size: 11px; font-weight: 600;">
-                                        Due today
-                                    </span>
-                                @else
-                                    <span style="padding: 2px 6px; background: #F0F9FF; color: #0369A1; border-radius: 4px; font-size: 11px; font-weight: 600;">
-                                        {{ $daysRemaining }} {{ $daysRemaining === 1 ? 'day' : 'days' }} remaining
-                                    </span>
-                                @endif
-                            </div>
-                        @else
-                            -
                         @endif
                     </div>
                 </div>
