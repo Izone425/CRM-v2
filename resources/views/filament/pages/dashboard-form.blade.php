@@ -355,8 +355,8 @@
                                         font-weight: bold;
                                         border: none;
                                         border-radius: 20px;
-                                        background: {{ in_array($currentDashboard, ['MainAdminDashboard', 'SoftwareAdmin', 'HardwareAdmin', 'HardwareAdminV2', 'AdminRepair', 'AdminRenewalv1', 'AdminRenewalv2', 'AdminHRDF', 'AdminHRDFAttLog', 'AdminHeadcount']) ? '#431fa1' : 'transparent' }};
-                                        color: {{ in_array($currentDashboard, ['MainAdminDashboard', 'SoftwareAdmin', 'HardwareAdmin', 'HardwareAdminV2', 'AdminRepair', 'AdminRenewalv1', 'AdminRenewalv2', 'AdminHRDF', 'AdminHRDFAttLog', 'AdminHeadcount']) ? '#ffffff' : '#555' }};
+                                        background: {{ in_array($currentDashboard, ['MainAdminDashboard', 'SoftwareAdmin', 'HardwareAdmin', 'HardwareAdminV2', 'AdminRepair', 'AdminRenewalv1', 'AdminRenewalEndUser', 'AdminRenewalv2', 'AdminHRDF', 'AdminHRDFAttLog', 'AdminHeadcount']) ? '#431fa1' : 'transparent' }};
+                                        color: {{ in_array($currentDashboard, ['MainAdminDashboard', 'SoftwareAdmin', 'HardwareAdmin', 'HardwareAdminV2', 'AdminRepair', 'AdminRenewalv1', 'AdminRenewalEndUser', 'AdminRenewalv2', 'AdminHRDF', 'AdminHRDFAttLog', 'AdminHeadcount']) ? '#ffffff' : '#555' }};
                                         cursor: pointer;
                                         display: flex;
                                         align-items: center;
@@ -538,6 +538,7 @@
 
                                     <button
                                         wire:click="toggleDashboard('AdminRenewalEndUser')"
+                                        onclick="console.log('AdminRenewalEndUser clicked')"
                                         style="
                                             display: block;
                                             width: 100%;
@@ -1004,7 +1005,7 @@
                                                 font-weight: bold;
                                                 border: none;
                                                 border-radius: 20px;
-                                                background: {{ in_array($currentDashboard, ['MainAdminDashboard','SoftwareAdmin', 'SoftwareAdminV2', 'HardwareAdmin', 'HardwareAdminV2', 'AdminRepair', 'AdminRenewalv1', 'AdminRenewalv2', 'AdminHRDF', 'AdminHRDFAttLog', 'AdminHeadcount', 'AdminGeneral']) ? '#431fa1' : 'transparent' }};
+                                                background: {{ in_array($currentDashboard, ['MainAdminDashboard','SoftwareAdmin', 'SoftwareAdminV2', 'HardwareAdmin', 'HardwareAdminV2', 'AdminRepair', 'AdminRenewalv1', 'AdminRenewalEndUser', 'AdminRenewalv2', 'AdminHRDF', 'AdminHRDFAttLog', 'AdminHeadcount', 'AdminGeneral']) ? '#431fa1' : 'transparent' }};
                                                 color: {{ in_array($currentDashboard, ['MainAdminDashboard','SoftwareAdmin','SoftwareAdminV2', 'HardwareAdmin', 'HardwareAdminV2', 'AdminRepair', 'AdminRenewalv1', 'AdminRenewalv2', 'AdminHRDF', 'AdminHRDFAttLog', 'AdminHeadcount', 'AdminGeneral']) ? '#ffffff' : '#555' }};
                                                 cursor: pointer;
                                                 display: flex;
@@ -1452,7 +1453,7 @@
                                             </button>
 
                                             <button
-                                                wire:click="toggleDashboard('AdminRenewalv2')"
+                                                wire:click="toggleDashboard('AdminRenewalEndUser')"
                                                 wire:loading.attr="disabled"
                                                 wire:loading.class="opacity-50"
                                                 style="
@@ -1461,13 +1462,13 @@
                                                     padding: 10px 16px;
                                                     text-align: left;
                                                     border: none;
-                                                    background: {{ $currentDashboard === 'AdminRenewalv2' ? '#f3f3f3' : 'white' }};
+                                                    background: {{ $currentDashboard === 'AdminRenewalEndUser' ? '#f3f3f3' : 'white' }};
                                                     cursor: pointer;
                                                     font-size: 14px;
                                                 "
                                             >
-                                                <span wire:loading.remove wire:target="toggleDashboard('AdminRenewalv2')">Renewal v1 - End User</span>
-                                                <span wire:loading wire:target="toggleDashboard('AdminRenewalv2')" class="flex items-center">
+                                                <span wire:loading.remove wire:target="toggleDashboard('AdminRenewalEndUser')">Renewal v1 - End User</span>
+                                                <span wire:loading wire:target="toggleDashboard('AdminRenewalEndUser')" class="flex items-center">
                                                     <svg class="w-4 h-4 mr-1 animate-spin" fill="none" viewBox="0 0 24 24">
                                                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                                                         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 818-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 714 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
@@ -1597,8 +1598,8 @@
                                             font-weight: bold;
                                             border: none;
                                             border-radius: 20px;
-                                            background: {{ in_array($currentDashboard, ['MainAdminDashboard','SoftwareAdmin', 'HardwareAdmin', 'HardwareAdminV2', 'AdminRepair', 'AdminRenewalv1', 'AdminRenewalv2', 'AdminHRDF', 'AdminHRDFAttLog', 'AdminHeadcount']) ? '#431fa1' : 'transparent' }};
-                                            color: {{ in_array($currentDashboard, ['SoftwareAdmin', 'HardwareAdmin', 'HardwareAdminV2', 'AdminRepair', 'AdminRenewalv1', 'AdminRenewalv2', 'AdminHRDF', 'AdminHRDFAttLog', 'AdminHeadcount']) ? '#ffffff' : '#555' }};
+                                            background: {{ in_array($currentDashboard, ['MainAdminDashboard','SoftwareAdmin', 'HardwareAdmin', 'HardwareAdminV2', 'AdminRepair', 'AdminRenewalv1', 'AdminRenewalEndUser', 'AdminRenewalv2', 'AdminHRDF', 'AdminHRDFAttLog', 'AdminHeadcount']) ? '#431fa1' : 'transparent' }};
+                                            color: {{ in_array($currentDashboard, ['SoftwareAdmin', 'HardwareAdmin', 'HardwareAdminV2', 'AdminRepair', 'AdminRenewalv1', 'AdminRenewalEndUser', 'AdminRenewalv2', 'AdminHRDF', 'AdminHRDFAttLog', 'AdminHeadcount']) ? '#ffffff' : '#555' }};
                                             cursor: pointer;
                                             display: flex;
                                             align-items: center;
@@ -1879,10 +1880,12 @@
                 function initializeDropdowns() {
                     const adminDropdowns = document.querySelectorAll('.admin-dropdown');
 
-                    // Clear existing event listeners
+                    // Don't clear existing event listeners on wire:click elements
                     adminDropdowns.forEach(function(dropdown) {
                         const button = dropdown.querySelector('.admin-dropdown-button');
-                        if (button) {
+                        
+                        // Only replace non-wire elements
+                        if (button && !button.hasAttribute('wire:click')) {
                             const newButton = button.cloneNode(true);
                             if (button.parentNode) {
                                 button.parentNode.replaceChild(newButton, button);
@@ -1938,16 +1941,13 @@
                         // Add specific handling for menu items with wire:click
                         const menuItems = dropdown.querySelectorAll('.admin-dropdown-content button[wire\\:click]');
                         menuItems.forEach(function(item) {
-                            // Remove existing click handlers
-                            const newItem = item.cloneNode(true);
-                            item.parentNode.replaceChild(newItem, item);
-
-                            // Add new click handler that closes the dropdown but allows the wire:click to function
-                            newItem.addEventListener('click', function() {
-                                // Hide the dropdown after a short delay to allow the wire:click to process
+                            // Don't replace wire:click elements, just add a simple click handler
+                            // that closes the dropdown without interfering with Livewire
+                            item.addEventListener('click', function(e) {
+                                // Allow the wire:click to execute first, then close dropdown
                                 setTimeout(function() {
                                     content.style.display = 'none';
-                                }, 50);
+                                }, 100);
                             });
                         });
                     });
@@ -1956,8 +1956,17 @@
                     document.addEventListener('click', function(event) {
                         // Check if the click was on a wire:click element in a dropdown
                         const clickedWireElement = event.target.closest('button[wire\\:click]');
-                        if (clickedWireElement) {
-                            // Don't interfere with wire:click elements
+                        const clickedInDropdown = event.target.closest('.admin-dropdown');
+                        
+                        if (clickedWireElement && clickedInDropdown) {
+                            // For wire:click elements inside dropdowns, just close the dropdown after a delay
+                            setTimeout(function() {
+                                const dropdown = clickedWireElement.closest('.admin-dropdown');
+                                const content = dropdown.querySelector('.admin-dropdown-content');
+                                if (content) {
+                                    content.style.display = 'none';
+                                }
+                            }, 150);
                             return;
                         }
 
@@ -1976,13 +1985,16 @@
                 // Initialize on DOMContentLoaded
                 document.addEventListener('DOMContentLoaded', initializeDropdowns);
 
-                // Re-initialize on Livewire updates
+                // Re-initialize on Livewire updates (less frequently)
                 document.addEventListener('livewire:navigated', initializeDropdowns);
                 document.addEventListener('livewire:load', initializeDropdowns);
-                document.addEventListener('livewire:update', initializeDropdowns);
-
-                // Re-initialize periodically to ensure dropdowns work
-                setInterval(initializeDropdowns, 2000);
+                
+                // Only re-initialize when specifically needed, not on every update
+                let initTimeout;
+                document.addEventListener('livewire:update', function() {
+                    clearTimeout(initTimeout);
+                    initTimeout = setTimeout(initializeDropdowns, 500);
+                });
             </script>
         </div>
     </div>

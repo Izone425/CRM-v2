@@ -1,160 +1,203 @@
 <!-- Admin Renewal Non-Reseller Dashboard -->
 <style>
+    /* Container styling */
     .implementer-container {
+        grid-column: 1 / -1;
         width: 100%;
-        height: 100%;
-        padding: 20px;
-        background-color: #f8fafc;
-        border-radius: 12px;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     }
 
+    /* Main layout with grid setup */
     .dashboard-layout {
         display: grid;
-        grid-template-columns: 380px 1fr;
-        gap: 25px;
-        height: calc(100vh - 160px);
-        min-height: 600px;
-    }
-
-    .group-column {
-        display: flex;
-        flex-direction: column;
+        grid-template-columns: auto 1fr;
         gap: 15px;
     }
 
-    .content-column {
-        display: flex;
-        flex-direction: column;
-        gap: 20px;
-        background-color: #ffffff;
-        border-radius: 12px;
-        padding: 20px;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-        overflow: auto;
+    /* Group column styling */
+    .group-column {
+        padding-right: 10px;
+        width: 230px;
     }
 
     .group-box {
-        padding: 20px;
-        background-color: #ffffff;
-        border: 2px solid #e5e7eb;
-        border-radius: 10px;
+        background-color: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        padding: 20px 0px 20px 0px;
         cursor: pointer;
-        transition: all 0.2s ease-out;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    }
-
-    .group-box:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-    }
-
-    .group-box.selected {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
-        border-width: 3px;
-    }
-
-    .group-info .group-title {
-        font-size: 16px;
-        font-weight: 600;
-        color: #374151;
-        line-height: 1.2;
-    }
-
-    .group-count {
-        font-size: 28px;
-        font-weight: 700;
-        color: #1f2937;
-        min-width: 60px;
-        text-align: right;
-    }
-
-    /* Group color themes */
-    .group-follow-up-myr { border-left: 6px solid #f59e0b; }
-    .group-follow-up-myr.selected { border-left-color: #f59e0b; }
-
-    .group-follow-up-myr-v2 { border-left: 6px solid #d97706; }
-    .group-follow-up-myr-v2.selected { border-left-color: #d97706; }
-
-    .group-follow-up-usd { border-left: 6px solid #3b82f6; }
-    .group-follow-up-usd.selected { border-left-color: #3b82f6; }
-
-    .group-follow-up-usd-v2 { border-left: 6px solid #6366f1; }
-    .group-follow-up-usd-v2.selected { border-left-color: #6366f1; }
-
-    .category-container {
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 15px;
-        padding: 20px;
-        background-color: #f9fafb;
-        border-radius: 8px;
-        border-right: 1px solid #e5e7eb;
-        max-height: 160px;
-    }
-
-    .stat-box {
-        padding: 16px;
-        background-color: #ffffff;
-        border: 2px solid #e5e7eb;
-        border-radius: 8px;
-        cursor: pointer;
-        transition: all 0.2s ease-out;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        flex-direction: column;
-        text-align: center;
-        min-height: 90px;
-    }
-
-    .stat-box:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
-    }
-
-    .stat-box.selected {
-        transform: translateY(-1px);
-        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15);
-    }
-
-    .stat-info .stat-label {
-        font-size: 13px;
-        font-weight: 600;
-        color: #6b7280;
-        margin-bottom: 8px;
-    }
-
-    .stat-count {
-        font-size: 24px;
-        font-weight: 700;
-    }
-
-    .content-area {
-        flex: 1;
-        min-height: 400px;
-        background-color: #ffffff;
-        border-radius: 8px;
-        overflow: auto;
-    }
-
-    .hint-message {
+        transition: all 0.2s;
+        border-top: 4px solid transparent;
         display: flex;
         flex-direction: column;
         justify-content: center;
         align-items: center;
-        height: 100%;
+        margin-bottom: 15px;
+        width: 100%;
         text-align: center;
+        max-height: 82px;
+        max-width: 220px;
+    }
+
+    .group-box:hover {
+        background-color: #f9fafb;
+        transform: translateX(3px);
+    }
+
+    .group-box.selected {
+        background-color: #f9fafb;
+        transform: translateX(5px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+
+    .group-info {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .group-title {
+        font-size: 15px;
+        font-weight: 600;
+    }
+
+    .group-desc {
+        font-size: 12px;
         color: #6b7280;
-        padding: 40px;
+    }
+
+    .group-count {
+        font-size: 24px;
+        font-weight: bold;
+    }
+
+    /* MYR GROUP COLORS - Orange Theme */
+    .group-follow-up-myr { border-top-color: #f59e0b; }
+    .group-follow-up-myr .group-count { color: #f59e0b; }
+    .group-follow-up-myr.selected { background-color: rgba(245, 158, 11, 0.05); }
+
+    /* MYR V2 GROUP COLORS - Amber Theme */
+    .group-follow-up-myr-v2 { border-top-color: #d97706; }
+    .group-follow-up-myr-v2 .group-count { color: #d97706; }
+    .group-follow-up-myr-v2.selected { background-color: rgba(217, 119, 6, 0.05); }
+
+    /* USD GROUP COLORS - Blue Theme */
+    .group-follow-up-usd { border-top-color: #3b82f6; }
+    .group-follow-up-usd .group-count { color: #3b82f6; }
+    .group-follow-up-usd.selected { background-color: rgba(59, 130, 246, 0.05); }
+
+    /* USD V2 GROUP COLORS - Indigo Theme */
+    .group-follow-up-usd-v2 { border-top-color: #6366f1; }
+    .group-follow-up-usd-v2 .group-count { color: #6366f1; }
+    .group-follow-up-usd-v2.selected { background-color: rgba(99, 102, 241, 0.05); }
+
+    /* Category column styling */
+    .category-column {
+        padding-right: 10px;
+    }
+
+    /* Category container */
+    .category-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        gap: 10px;
+        border-right: 1px solid #e5e7eb;
+        padding-right: 10px;
+        max-height: 75vh;
+        overflow-y: auto;
+    }
+
+    /* Stat box styling */
+    .stat-box {
+        background-color: white;
+        width: 100%;
+        min-height: 65px;
+        border-radius: 8px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border-left: 4px solid transparent;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 15px;
+        margin-bottom: 8px;
+    }
+
+    .stat-box:hover {
+        background-color: #f9fafb;
+        transform: translateX(3px);
+    }
+
+    .stat-box.selected {
+        background-color: #f9fafb;
+        transform: translateX(5px);
+        box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+    }
+
+    .stat-info {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        justify-content: center;
+    }
+
+    .stat-count {
+        font-size: 20px;
+        font-weight: bold;
+        margin: 0;
+        line-height: 1.2;
+    }
+
+    .stat-label {
+        color: #6b7280;
+        font-size: 13px;
+        font-weight: 500;
+        line-height: 1.2;
+    }
+
+    /* Content area */
+    .content-column {
+        min-height: 600px;
+    }
+
+    .content-area {
+        min-height: 600px;
+    }
+
+    .content-area .fi-ta {
+        margin-top: 0;
+    }
+
+    .content-area .fi-ta-content {
+        padding: 0.75rem !important;
+    }
+
+    /* Hint message */
+    .hint-message {
+        text-align: center;
+        background-color: #f9fafb;
+        border-radius: 0.5rem;
+        border: 1px dashed #d1d5db;
+        height: 530px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
     }
 
     .hint-message h3 {
-        font-size: 20px;
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 0.5rem;
+    }
+
+    .hint-message p {
+        color: #6b7280;
+    }
+
+    /* Column headers */
+    .column-header {
+        font-size: 14px;
         font-weight: 600;
         color: #4b5563;
         margin-bottom: 15px;
@@ -296,27 +339,73 @@
 </style>
 
 @php
-    // Set default counts to 0 for non-reseller dashboard
-    // The actual counts will be loaded by the Livewire components when displayed
-    $followUpTodayMYR = 0;
-    $followUpOverdueMYR = 0;
-    $followUpFutureMYR = 0;
-    $followUpAllMYR = 0;
-    
-    $followUpTodayUSD = 0;
-    $followUpOverdueUSD = 0;
-    $followUpFutureUSD = 0;
-    $followUpAllUSD = 0;
-    
-    $followUpTodayMYRv2 = 0;
-    $followUpOverdueMYRv2 = 0;
-    $followUpFutureMYRv2 = 0;
-    $followUpAllMYRv2 = 0;
-    
-    $followUpTodayUSDv2 = 0;
-    $followUpOverdueUSDv2 = 0;
-    $followUpFutureUSDv2 = 0;
-    $followUpAllUSDv2 = 0;
+    // Admin Renewal Follow Up Counts MYR (Non-Reseller)
+    $followUpTodayMYR = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpTodayMyrNonReseller::class)
+        ->getTodayRenewals()
+        ->count();
+
+    $followUpOverdueMYR = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpOverdueMyrNonReseller::class)
+        ->getOverdueRenewals()
+        ->count();
+
+    $followUpFutureMYR = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpUpcomingMyrNonReseller::class)
+        ->getIncomingRenewals()
+        ->count();
+
+    $followUpAllMYR = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpAllMyrNonReseller::class)
+        ->getOverdueRenewals()
+        ->count();
+
+    // Admin Renewal Follow Up Counts USD (Non-Reseller)
+    $followUpTodayUSD = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpTodayUsdNonReseller::class)
+        ->getTodayRenewals()
+        ->count();
+
+    $followUpOverdueUSD = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpOverdueUsdNonReseller::class)
+        ->getOverdueRenewals()
+        ->count();
+
+    $followUpFutureUSD = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpUpcomingUsdNonReseller::class)
+        ->getIncomingRenewals()
+        ->count();
+
+    $followUpAllUSD = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpAllUsdNonReseller::class)
+        ->getOverdueRenewals()
+        ->count();
+
+    // Admin Renewal Follow Up Counts MYR V2 (Non-Reseller - Pending Payment)
+    $followUpTodayMYRv2 = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpTodayMyrV2NonReseller::class)
+        ->getTodayRenewals()
+        ->count();
+
+    $followUpOverdueMYRv2 = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpOverdueMyrV2NonReseller::class)
+        ->getOverdueRenewals()
+        ->count();
+
+    $followUpFutureMYRv2 = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpUpcomingMyrV2NonReseller::class)
+        ->getIncomingRenewals()
+        ->count();
+
+    $followUpAllMYRv2 = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpAllMyrV2NonReseller::class)
+        ->getOverdueRenewals()
+        ->count();
+
+    // Admin Renewal Follow Up Counts USD V2 (Non-Reseller - Pending Payment)
+    $followUpTodayUSDv2 = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpTodayUsdV2NonReseller::class)
+        ->getTodayRenewals()
+        ->count();
+
+    $followUpOverdueUSDv2 = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpOverdueUsdV2NonReseller::class)
+        ->getOverdueRenewals()
+        ->count();
+
+    $followUpFutureUSDv2 = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpUpcomingUsdV2NonReseller::class)
+        ->getIncomingRenewals()
+        ->count();
+
+    $followUpAllUSDv2 = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpAllUsdV2NonReseller::class)
+        ->getOverdueRenewals()
+        ->count();
 
     // Calculate totals for both currencies
     $followUpTotalMYR = $followUpTodayMYR + $followUpOverdueMYR;
@@ -363,7 +452,7 @@
                 :class="{'selected': selectedGroup === 'follow-up-myr'}"
                 @click="setSelectedGroup('follow-up-myr')">
                 <div class="group-info">
-                    <div class="group-title">Renewal (MYR)</div>
+                    <div class="group-title">Pending Confirmation End User (MYR) </div>
                 </div>
                 <div class="group-count">{{ $followUpTotalMYR }}</div>
             </div>
@@ -373,7 +462,7 @@
                 :class="{'selected': selectedGroup === 'follow-up-myr-v2'}"
                 @click="setSelectedGroup('follow-up-myr-v2')">
                 <div class="group-info">
-                    <div class="group-title">Payment (MYR) </div>
+                    <div class="group-title">Pending Payment End User (MYR) </div>
                 </div>
                 <div class="group-count">{{ $followUpTotalMYRv2 }}</div>
             </div>
@@ -383,7 +472,7 @@
                 :class="{'selected': selectedGroup === 'follow-up-usd'}"
                 @click="setSelectedGroup('follow-up-usd')">
                 <div class="group-info">
-                    <div class="group-title">Renewal (USD)</div>
+                    <div class="group-title">Pending Confirmation End User (USD) </div>
                 </div>
                 <div class="group-count">{{ $followUpTotalUSD }}</div>
             </div>
@@ -393,7 +482,7 @@
                 :class="{'selected': selectedGroup === 'follow-up-usd-v2'}"
                 @click="setSelectedGroup('follow-up-usd-v2')">
                 <div class="group-info">
-                    <div class="group-title">Payment (USD)</div>
+                    <div class="group-title">Pending Payment End User (USD)</div>
                 </div>
                 <div class="group-count">{{ $followUpTotalUSDv2 }}</div>
             </div>

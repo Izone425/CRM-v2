@@ -452,7 +452,7 @@
                 :class="{'selected': selectedGroup === 'follow-up-myr'}"
                 @click="setSelectedGroup('follow-up-myr')">
                 <div class="group-info">
-                    <div class="group-title">Renewal (MYR)</div>
+                    <div class="group-title">Pending Confirmation Reseller (MYR)</div>
                 </div>
                 <div class="group-count">{{ $followUpTotalMYR }}</div>
             </div>
@@ -462,7 +462,7 @@
                 :class="{'selected': selectedGroup === 'follow-up-myr-v2'}"
                 @click="setSelectedGroup('follow-up-myr-v2')">
                 <div class="group-info">
-                    <div class="group-title">Payment (MYR) </div>
+                    <div class="group-title">Pending Payment Reseller (MYR) </div>
                 </div>
                 <div class="group-count">{{ $followUpTotalMYRv2 }}</div>
             </div>
@@ -472,7 +472,7 @@
                 :class="{'selected': selectedGroup === 'follow-up-usd'}"
                 @click="setSelectedGroup('follow-up-usd')">
                 <div class="group-info">
-                    <div class="group-title">Renewal (USD)</div>
+                    <div class="group-title">Pending Confirmation Reseller (USD) </div>
                 </div>
                 <div class="group-count">{{ $followUpTotalUSD }}</div>
             </div>
@@ -482,7 +482,7 @@
                 :class="{'selected': selectedGroup === 'follow-up-usd-v2'}"
                 @click="setSelectedGroup('follow-up-usd-v2')">
                 <div class="group-info">
-                    <div class="group-title">Payment (USD)</div>
+                    <div class="group-title">Pending Payment Reseller (USD)</div>
                 </div>
                 <div class="group-count">{{ $followUpTotalUSDv2 }}</div>
             </div>
