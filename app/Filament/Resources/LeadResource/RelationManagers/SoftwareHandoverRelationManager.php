@@ -429,20 +429,6 @@ class SoftwareHandoverRelationManager extends RelationManager
 
                                     $availableQuotations = $availableQuotations->whereHas('items', function ($query) use ($moduleProductIds) {
                                         $query->whereIn('product_id', $moduleProductIds);
-                                    })
-                                    // ✅ CONDITION 1: Only show quotations that contain product ID 94
-                                    ->whereHas('items', function ($query) {
-                                        $query->where('product_id', 94);
-                                    })
-                                    // ✅ CONDITION 2: Exclude quotations that contain both product ID 94 AND 99
-                                    ->whereDoesntHave('items', function ($query) {
-                                        $query->where('product_id', 99)
-                                              ->whereExists(function ($subQuery) {
-                                                  $subQuery->select('id')
-                                                           ->from('quotation_details')
-                                                           ->whereColumn('quotation_details.quotation_id', 'quotations.id')
-                                                           ->where('quotation_details.product_id', 94);
-                                              });
                                     });
 
                                     return $availableQuotations->pluck('pi_reference_no', 'id')->toArray();
@@ -518,19 +504,9 @@ class SoftwareHandoverRelationManager extends RelationManager
                                         ->where('status', \App\Enums\QuotationStatusEnum::accepted)
                                         ->whereNotIn('id', array_filter($usedPiIds))
                                         ->where('quotation_date', '>=', now()->toDateString())
-                                        // ✅ CONDITION 1: Only show quotations that contain product ID 94
-                                        ->whereHas('items', function ($query) {
-                                            $query->where('product_id', 94);
-                                        })
-                                        // ✅ CONDITION 2: Exclude quotations that contain both product ID 94 AND 99
+                                        // ✅ Exclude quotations that contain product ID 94
                                         ->whereDoesntHave('items', function ($query) {
-                                            $query->where('product_id', 99)
-                                                  ->whereExists(function ($subQuery) {
-                                                      $subQuery->select('id')
-                                                               ->from('quotation_details')
-                                                               ->whereColumn('quotation_details.quotation_id', 'quotations.id')
-                                                               ->where('quotation_details.product_id', 94);
-                                                  });
+                                            $query->where('product_id', 94);
                                         })
                                         ->pluck('pi_reference_no', 'id')
                                         ->toArray();
@@ -609,11 +585,11 @@ class SoftwareHandoverRelationManager extends RelationManager
                                         ->where('status', \App\Enums\QuotationStatusEnum::accepted)
                                         ->whereNotIn('id', array_filter($usedPiIds))
                                         ->where('quotation_date', '>=', now()->toDateString())
-                                        // ✅ CONDITION 1: Only show quotations that contain product ID 94
+                                        // ✅ Only show quotations that contain product ID 94
                                         ->whereHas('items', function ($query) {
                                             $query->where('product_id', 94);
                                         })
-                                        // ✅ CONDITION 2: Exclude quotations that contain both product ID 94 AND 99
+                                        // ✅ Exclude quotations that contain both product ID 94 AND 99
                                         ->whereDoesntHave('items', function ($query) {
                                             $query->where('product_id', 99)
                                                   ->whereExists(function ($subQuery) {

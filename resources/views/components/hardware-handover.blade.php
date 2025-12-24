@@ -1059,6 +1059,17 @@
                     </div>
                 </div>
                 @endif
+
+                <div class="hw-info-item">
+                    <span class="hw-label">Invoice Type:</span>
+                    <span class="hw-value">
+                        @if($record->is_add_on_device)
+                            <span style="color: #dc2626; font-weight: bold;">Add On Device</span>
+                        @else
+                            Not Available
+                        @endif
+                    </span>
+                </div>
             </div>
 
             <!-- Right Column -->

@@ -289,7 +289,7 @@ class ProductResource extends Resource
                     ->badge()
                     ->separator(',')
                     ->width(150)
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('solution')
                     ->width(100)
                     ->formatStateUsing(function (?string $state): string {

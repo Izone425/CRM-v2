@@ -1123,6 +1123,9 @@
                                 <a href="{{ route('filament.admin.pages.project-plan-summary') }}" class="submenu-item">
                                     <span class="module-font">Project Plan</span>
                                 </a>
+                                <a href="{{ route('filament.admin.pages.implementer-audit-list') }}" class="submenu-item">
+                                    <span class="module-font">Project Sequence</span>
+                                </a>
                             </div>
                         </div>
 
