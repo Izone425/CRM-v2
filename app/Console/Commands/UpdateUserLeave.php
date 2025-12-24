@@ -4,9 +4,9 @@ namespace App\Console\Commands;
 
 use App\Models\User;
 use App\Models\UserLeave;
-use App\Services\LeaveAPIService;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Http;
 
 class UpdateUserLeave extends Command
 {
@@ -22,97 +22,141 @@ class UpdateUserLeave extends Command
      *
      * @var string
      */
-    protected $description = 'Update all salesperson leave. eg. 2025-01-01 2026-01-01';
+    protected $description = 'Update all employee leave from TimeTec HR API';
 
     /**
      * Execute the console command.
      */
-    /*public function handle()
+    public function handle()
     {
-        UserLeave::truncate();
+        $currentDate = Carbon::now();
+        $employees = $this->getAllEmployees();
 
-        $dateFrom = $this->argument('dateFrom');
-        $dateTo = $this->argument('dateTo');
-        $salesPeople = $this->getAllSalesPeople();
-        foreach($salesPeople as $salesPerson){
-            $wsdl = "https://api.timeteccloud.com/webservice/WebServiceTimeTecAPI.asmx?WSDL";
-            $LeaveAPIService = new LeaveAPIService($wsdl, "hr@timeteccloud.com", "BAKIt9nKbCxr6JJUvLWySQL4oH7a4zJYhIjv4GIJK5CD9RvlLp");
-            $params = ["CompanyID" => 351, "UserID" => $salesPerson->api_user_id, "CheckTimeFrom" => $dateFrom, "CheckTimeTo" => $dateTo, "RecordStartFrom" => "0", "LimitRecordShow" => "100"];
-
-            $leave = json_decode($LeaveAPIService->getClient()->getUserLeave($params)->GetUserLeaveResult,true);
-
-            if(!empty($leave['Result']['UserLeaveObj'])){
-                foreach($leave['Result']['UserLeaveObj'] as $row){
-                    UserLeave::create([
-                        'user_ID' => $salesPerson->id,
-                        'leave_type' => $row['LeaveType'],
-                        'date' => $row['Date'],
-                        'day_of_week' => Carbon::parse($row['Date'])->dayOfWeekIso,
-                    ]); ;
-                }
-
-            }
-        }
-    }*/ //OLD
-
-    public function handle(){
-        //Clear Current User leave
-        UserLeave::truncate();
-
-        $currentDate = Carbon::now()->startOfYear();
-
-        //
-        $salesPeople = $this->getAllSalesPeople()->toArray();
+        // Create a lookup array for faster user matching
+        $userLookup = $employees->keyBy('api_user_id');
 
         //$i is the number of months forward to keep in DB
-        for ($i=0; $i < 12; $i++) {
+        for ($i = 0; $i < 12; $i++) {
+            $dateFrom = $currentDate->copy()->startOfMonth()->format('Y-m-d');
+            $dateTo = $currentDate->copy()->endOfMonth()->format('Y-m-d');
 
-            $dateFrom = $currentDate->copy()->startOfMonth();
-            $dateTo = $currentDate->copy()->endOfMonth();
-            $wsdl = "https://api.timeteccloud.com/webservice/WebServiceTimeTecAPI.asmx?WSDL";
-            $LeaveAPIService = new LeaveAPIService($wsdl, "hr@timeteccloud.com", "BAKIt9nKbCxr6JJUvLWySQL4oH7a4zJYhIjv4GIJK5CD9RvlLp");
-            $params = ["CompanyID" => 351, "DateFrom" => $dateFrom, "DateTo" => $dateTo];
-            $leave = json_decode($LeaveAPIService->getClient()->GetApprovedPendingLeaves($params)->GetApprovedPendingLeavesResult,true)['Result']['UserLeaveObj'];
+            try {
+                // Get authentication token
+                $authResponse = Http::withHeaders([
+                    'Content-Type' => 'application/json',
+                    'Accept' => 'application/json',
+                ])->post('https://hr-api.timeteccloud.com/api/auth-mobile/token', [
+                    'username' => 'hr@timeteccloud.com',
+                    'password' => 'Abc123456'
+                ]);
 
-            array_map(function ($row) use($salesPeople) {
-                    foreach($salesPeople as $salesPerson){
-                        if($salesPerson['api_user_id'] == $row['User_ID']) {
+                if (!$authResponse->successful()) {
+                    $this->error('Authentication failed for month ' . $currentDate->format('Y-m'));
+                    $currentDate->addMonth(1);
+                    continue;
+                }
 
-                            if(empty($row['StartTime']) || empty($row['EndTime'])){
-                                $session = "full";
+                $authData = $authResponse->json();
+                $token = $authData['accessToken'] ?? null;
+
+                if (!$token) {
+                    $this->error('Token not found for month ' . $currentDate->format('Y-m'));
+                    $currentDate->addMonth(1);
+                    continue;
+                }
+
+                // Get calendar data
+                $calendarResponse = Http::withHeaders([
+                    'Authorization' => 'Bearer ' . $token,
+                    'Accept' => 'application/json',
+                    'Content-Type' => 'application/json',
+                ])->get('https://hr-api.timeteccloud.com/api/v1/mobile-calendar/crm-calendar-list', [
+                    'startDate' => $dateFrom,
+                    'endDate' => $dateTo
+                ]);
+
+                if (!$calendarResponse->successful()) {
+                    $this->error('Calendar API failed for month ' . $currentDate->format('Y-m'));
+                    $currentDate->addMonth(1);
+                    continue;
+                }
+
+                $calendarData = $calendarResponse->json();
+                $calendarList = $calendarData['calendarListView'] ?? [];
+
+                $leaveCount = 0;
+                $updateCount = 0;
+                foreach ($calendarList as $day) {
+                    // Process leaves for this day
+                    foreach ($day['calendarDetailListing'] as $leaveRecord) {
+                        $employeeUserId = (string)$leaveRecord['employeeUserId'];
+                        $user = $userLookup->get($employeeUserId);
+
+                        if (!$user) {
+                            // Skip if user not found in our system
+                            continue;
+                        }
+
+                        // Determine session based on partialAmPm or requestType
+                        $session = 'full'; // default
+                        if (!empty($leaveRecord['partialAmPm'])) {
+                            $session = strtolower($leaveRecord['partialAmPm']);
+                        } elseif ($leaveRecord['requestType'] === 'Partial') {
+                            // If partial but no AM/PM specified, try to determine from times
+                            if (!empty($leaveRecord['startTime']) && !empty($leaveRecord['endTime'])) {
+                                $endTime = Carbon::parse($leaveRecord['endTime'])->hour;
+                                $session = $endTime < 14 ? 'am' : 'pm';
                             }
-                            else {
-                                $convertedEndTime = Carbon::parse($row["EndTime"])->hour;
-                                if($convertedEndTime < 14){
-                                    $session = "am";
-                                }
-                                else
-                                    $session = "pm";
-                            }
+                        }
 
-                            UserLeave::create([
-                                'user_ID' => $salesPerson['id'],
-                                'leave_type' => $row['LeaveType'],
-                                'date' => $row['Date'],
-                                'day_of_week' => Carbon::parse($row['Date'])->dayOfWeekIso,
-                                'status'=> $row['Status'],
-                                'session'=> $session,
-                                'start_time'=> $row['StartTime'] ?? null,
-                                'end_time'=> $row['EndTime'] ?? null,
-                            ]);
+                        // Check if leave record already exists
+                        $existingLeave = UserLeave::where('user_ID', $user->id)
+                            ->where('date', $leaveRecord['date'])
+                            ->where('leave_type', $leaveRecord['leaveType'])
+                            ->where('session', $session)
+                            ->first();
+
+                        $leaveData = [
+                            'user_ID' => $user->id,
+                            'leave_type' => $leaveRecord['leaveType'],
+                            'date' => $leaveRecord['date'],
+                            'day_of_week' => Carbon::parse($leaveRecord['date'])->dayOfWeekIso,
+                            'status' => $leaveRecord['status'],
+                            'session' => $session,
+                            'start_time' => $leaveRecord['startTime'] ?: null,
+                            'end_time' => $leaveRecord['endTime'] ?: null,
+                        ];
+
+                        if ($existingLeave) {
+                            // Update existing leave record (especially status)
+                            $existingLeave->update($leaveData);
+                            $updateCount++;
+                        } else {
+                            // Create new leave record
+                            UserLeave::create($leaveData);
+                            $leaveCount++;
                         }
                     }
-            }, $leave);
+                }
+
+                $this->info("Processed {$leaveCount} new leaves and updated {$updateCount} existing leaves for {$currentDate->format('Y-m')}");
+
+            } catch (\Exception $e) {
+                $this->error('Error processing month ' . $currentDate->format('Y-m') . ': ' . $e->getMessage());
+            }
 
             $currentDate->addMonth(1);
         }
 
+        $this->info('User leave update completed successfully.');
+        return 0;
     }
 
-    private function getAllSalesPeople()
+    private function getAllEmployees()
     {
         return User::whereIn('role_id', ['1', '2', '3', '4', '5', '6', '8', '9'])
-            ->select('id', 'name','api_user_id')
+            ->whereNotNull('api_user_id')
+            ->select('id', 'name', 'api_user_id')
             ->get();
     }
 }

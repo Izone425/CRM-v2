@@ -322,6 +322,35 @@ class HardwareV2PendingInternalInstallationTable extends Component implements Ha
             )
             ->actions([
                 ActionGroup::make([
+                    Action::make('view_contact_details')
+                        ->label('View Contact Details')
+                        ->icon('heroicon-o-eye')
+                        ->color('secondary')
+                        ->modalHeading(function (HardwareHandoverV2 $record) {
+                            $companyName = $record->lead && $record->lead->companyDetail
+                                ? $record->lead->companyDetail->company_name
+                                : 'Unknown Company';
+                            return 'Contact Details - ' . $companyName;
+                        })
+                        ->modalWidth('3xl')
+                        ->modalSubmitAction(false)
+                        ->modalCancelAction(false)
+                        ->modalContent(function (HardwareHandoverV2 $record): View {
+                            $contactDetails = is_string($record->contact_detail)
+                                ? json_decode($record->contact_detail, true)
+                                : $record->contact_detail;
+                            if (!is_array($contactDetails)) $contactDetails = [];
+
+                            return view('components.contact-details-modal', [
+                                'contactDetails' => $contactDetails
+                            ]);
+                        })
+                        ->visible(function (HardwareHandoverV2 $record): bool {
+                            $contactDetails = is_string($record->contact_detail)
+                                ? json_decode($record->contact_detail, true)
+                                : $record->contact_detail;
+                            return is_array($contactDetails) && count($contactDetails) > 0;
+                        }),
                     Action::make('view')
                         ->label('View Details')
                         ->icon('heroicon-o-eye')
@@ -782,6 +811,15 @@ class HardwareV2PendingInternalInstallationTable extends Component implements Ha
                                                                 TextInput::make('pic_name')
                                                                     ->label('PIC Name')
                                                                     ->required()
+                                                                    ->default(function () use ($record) {
+                                                                        $contactDetails = is_string($record->contact_detail)
+                                                                            ? json_decode($record->contact_detail, true)
+                                                                            : $record->contact_detail;
+                                                                        if (is_array($contactDetails) && !empty($contactDetails)) {
+                                                                            return strtoupper($contactDetails[0]['pic_name'] ?? '');
+                                                                        }
+                                                                        return '';
+                                                                    })
                                                                     ->extraAlpineAttributes([
                                                                         'x-on:input' => '
                                                                             const start = $el.selectionStart;
@@ -798,12 +836,30 @@ class HardwareV2PendingInternalInstallationTable extends Component implements Ha
                                                                     ->label('PIC HP Number')
                                                                     ->required()
                                                                     ->tel()
+                                                                    ->default(function () use ($record) {
+                                                                        $contactDetails = is_string($record->contact_detail)
+                                                                            ? json_decode($record->contact_detail, true)
+                                                                            : $record->contact_detail;
+                                                                        if (is_array($contactDetails) && !empty($contactDetails)) {
+                                                                            return $contactDetails[0]['pic_phone'] ?? '';
+                                                                        }
+                                                                        return '';
+                                                                    })
                                                                     ->maxLength(255),
 
                                                                 TextInput::make('pic_email')
                                                                     ->label('PIC Email')
                                                                     ->required()
                                                                     ->email()
+                                                                    ->default(function () use ($record) {
+                                                                        $contactDetails = is_string($record->contact_detail)
+                                                                            ? json_decode($record->contact_detail, true)
+                                                                            : $record->contact_detail;
+                                                                        if (is_array($contactDetails) && !empty($contactDetails)) {
+                                                                            return $contactDetails[0]['pic_email'] ?? '';
+                                                                        }
+                                                                        return '';
+                                                                    })
                                                                     ->maxLength(255),
                                                             ]),
 

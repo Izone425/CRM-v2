@@ -334,6 +334,41 @@ class ImplementerLicense extends Component implements HasForms, HasTable
                                     ->default('0')
                                     ->columnSpan(1),
                             ]),
+                            \Filament\Forms\Components\Section::make('Implementer Reference')
+                            ->schema([
+                                \Filament\Forms\Components\Placeholder::make('subscription_periods_table')
+                                    ->hiddenLabel()
+                                    ->content(function (SoftwareHandover $record) {
+                                        $subscriptionPeriods = $this->getSubscriptionPeriodsForHandover($record);
+
+                                        if (empty($subscriptionPeriods)) {
+                                            return 'No subscription periods found.';
+                                        }
+
+                                        $html = '<table class="w-full text-sm border border-collapse border-gray-300">';
+                                        $html .= '<thead class="bg-gray-50">';
+                                        $html .= '<tr>';
+                                        $html .= '<th class="px-4 py-2 font-semibold text-left border border-gray-300">Product</th>';
+                                        $html .= '<th class="px-4 py-2 font-semibold text-center border border-gray-300">Year</th>';
+                                        $html .= '<th class="px-4 py-2 font-semibold text-center border border-gray-300">Month</th>';
+                                        $html .= '</tr>';
+                                        $html .= '</thead>';
+                                        $html .= '<tbody>';
+
+                                        foreach ($subscriptionPeriods as $period) {
+                                            $html .= '<tr>';
+                                            $html .= '<td class="px-4 py-2 border border-gray-300">' . htmlspecialchars($period['product']) . '</td>';
+                                            $html .= '<td class="px-4 py-2 text-center border border-gray-300">' . $period['years'] . '</td>';
+                                            $html .= '<td class="px-4 py-2 text-center border border-gray-300">' . $period['months'] . '</td>';
+                                            $html .= '</tr>';
+                                        }
+
+                                        $html .= '</tbody>';
+                                        $html .= '</table>';
+
+                                        return new \Illuminate\Support\HtmlString($html);
+                                    }),
+                            ]),
                             \Filament\Forms\Components\Section::make('Email Recipients')
                             ->schema([
                                 \Filament\Forms\Components\Repeater::make('additional_recipients')
@@ -747,18 +782,18 @@ class ImplementerLicense extends Component implements HasForms, HasTable
 
                                             // Get total paid months
                                             $allPiIds = [];
-                                            if (!empty($record->proforma_invoice_product)) {
-                                                $productPis = is_string($record->proforma_invoice_product)
-                                                    ? json_decode($record->proforma_invoice_product, true)
-                                                    : $record->proforma_invoice_product;
+                                            if (!empty($record->software_hardware_pi)) {
+                                                $productPis = is_string($record->software_hardware_pi)
+                                                    ? json_decode($record->software_hardware_pi, true)
+                                                    : $record->software_hardware_pi;
                                                 if (is_array($productPis)) {
                                                     $allPiIds = array_merge($allPiIds, $productPis);
                                                 }
                                             }
-                                            if (!empty($record->proforma_invoice_hrdf)) {
-                                                $hrdfPis = is_string($record->proforma_invoice_hrdf)
-                                                    ? json_decode($record->proforma_invoice_hrdf, true)
-                                                    : $record->proforma_invoice_hrdf;
+                                            if (!empty($record->proforma_invoice_product)) {
+                                                $hrdfPis = is_string($record->proforma_invoice_product)
+                                                    ? json_decode($record->proforma_invoice_product, true)
+                                                    : $record->proforma_invoice_product;
                                                 if (is_array($hrdfPis)) {
                                                     $allPiIds = array_merge($allPiIds, $hrdfPis);
                                                 }
@@ -832,18 +867,18 @@ class ImplementerLicense extends Component implements HasForms, HasTable
 
                             // Get total paid months from quotations
                             $allPiIds = [];
-                            if (!empty($record->proforma_invoice_product)) {
-                                $productPis = is_string($record->proforma_invoice_product)
-                                    ? json_decode($record->proforma_invoice_product, true)
-                                    : $record->proforma_invoice_product;
+                            if (!empty($record->software_hardware_pi)) {
+                                $productPis = is_string($record->software_hardware_pi)
+                                    ? json_decode($record->software_hardware_pi, true)
+                                    : $record->software_hardware_pi;
                                 if (is_array($productPis)) {
                                     $allPiIds = array_merge($allPiIds, $productPis);
                                 }
                             }
-                            if (!empty($record->proforma_invoice_hrdf)) {
-                                $hrdfPis = is_string($record->proforma_invoice_hrdf)
-                                    ? json_decode($record->proforma_invoice_hrdf, true)
-                                    : $record->proforma_invoice_hrdf;
+                            if (!empty($record->proforma_invoice_product)) {
+                                $hrdfPis = is_string($record->proforma_invoice_product)
+                                    ? json_decode($record->proforma_invoice_product, true)
+                                    : $record->proforma_invoice_product;
                                 if (is_array($hrdfPis)) {
                                     $allPiIds = array_merge($allPiIds, $hrdfPis);
                                 }
@@ -953,18 +988,18 @@ class ImplementerLicense extends Component implements HasForms, HasTable
     {
         // Get all PI IDs
         $allPiIds = [];
-        if (!empty($record->proforma_invoice_product)) {
-            $productPis = is_string($record->proforma_invoice_product)
-                ? json_decode($record->proforma_invoice_product, true)
-                : $record->proforma_invoice_product;
+        if (!empty($record->software_hardware_pi)) {
+            $productPis = is_string($record->software_hardware_pi)
+                ? json_decode($record->software_hardware_pi, true)
+                : $record->software_hardware_pi;
             if (is_array($productPis)) {
                 $allPiIds = array_merge($allPiIds, $productPis);
             }
         }
-        if (!empty($record->proforma_invoice_hrdf)) {
-            $hrdfPis = is_string($record->proforma_invoice_hrdf)
-                ? json_decode($record->proforma_invoice_hrdf, true)
-                : $record->proforma_invoice_hrdf;
+        if (!empty($record->proforma_invoice_product)) {
+            $hrdfPis = is_string($record->proforma_invoice_product)
+                ? json_decode($record->proforma_invoice_product, true)
+                : $record->proforma_invoice_product;
             if (is_array($hrdfPis)) {
                 $allPiIds = array_merge($allPiIds, $hrdfPis);
             }
@@ -1001,22 +1036,22 @@ class ImplementerLicense extends Component implements HasForms, HasTable
      */
     protected function shouldModuleBeChecked(SoftwareHandover $record, array $productCodes): bool
     {
-        // Get all PI IDs from proforma_invoice_product and proforma_invoice_hrdf
+        // Get all PI IDs from software_hardware_pi and proforma_invoice_product
         $allPiIds = [];
 
-        if (!empty($record->proforma_invoice_product)) {
-            $productPis = is_string($record->proforma_invoice_product)
-                ? json_decode($record->proforma_invoice_product, true)
-                : $record->proforma_invoice_product;
+        if (!empty($record->software_hardware_pi)) {
+            $productPis = is_string($record->software_hardware_pi)
+                ? json_decode($record->software_hardware_pi, true)
+                : $record->software_hardware_pi;
             if (is_array($productPis)) {
                 $allPiIds = array_merge($allPiIds, $productPis);
             }
         }
 
-        if (!empty($record->proforma_invoice_hrdf)) {
-            $hrdfPis = is_string($record->proforma_invoice_hrdf)
-                ? json_decode($record->proforma_invoice_hrdf, true)
-                : $record->proforma_invoice_hrdf;
+        if (!empty($record->proforma_invoice_product)) {
+            $hrdfPis = is_string($record->proforma_invoice_product)
+                ? json_decode($record->proforma_invoice_product, true)
+                : $record->proforma_invoice_product;
             if (is_array($hrdfPis)) {
                 $allPiIds = array_merge($allPiIds, $hrdfPis);
             }
@@ -1146,22 +1181,22 @@ class ImplementerLicense extends Component implements HasForms, HasTable
         try {
             $crmService = app(\App\Services\CRMApiService::class);
 
-            // Get all PI IDs from proforma_invoice_product and proforma_invoice_hrdf
+            // Get all PI IDs from software_hardware_pi and proforma_invoice_product
             $allPiIds = [];
 
-            if (!empty($record->proforma_invoice_product)) {
-                $productPis = is_string($record->proforma_invoice_product)
-                    ? json_decode($record->proforma_invoice_product, true)
-                    : $record->proforma_invoice_product;
+            if (!empty($record->software_hardware_pi)) {
+                $productPis = is_string($record->software_hardware_pi)
+                    ? json_decode($record->software_hardware_pi, true)
+                    : $record->software_hardware_pi;
                 if (is_array($productPis)) {
                     $allPiIds = array_merge($allPiIds, $productPis);
                 }
             }
 
-            if (!empty($record->proforma_invoice_hrdf)) {
-                $hrdfPis = is_string($record->proforma_invoice_hrdf)
-                    ? json_decode($record->proforma_invoice_hrdf, true)
-                    : $record->proforma_invoice_hrdf;
+            if (!empty($record->proforma_invoice_product)) {
+                $hrdfPis = is_string($record->proforma_invoice_product)
+                    ? json_decode($record->proforma_invoice_product, true)
+                    : $record->proforma_invoice_product;
                 if (is_array($hrdfPis)) {
                     $allPiIds = array_merge($allPiIds, $hrdfPis);
                 }
@@ -1389,6 +1424,97 @@ class ImplementerLicense extends Component implements HasForms, HasTable
         }
 
         return implode(' and ', $parts);
+    }
+
+    /**
+     * Get module subscription periods for implementer reference table
+     */
+    public function getModuleSubscriptionPeriods(): array
+    {
+        // This will be populated when a record is selected for action
+        // For now, return empty array - will be updated when implementing the action modal
+        return [];
+    }
+
+    /**
+     * Get subscription periods from quotations for a specific software handover
+     */
+    protected function getSubscriptionPeriodsForHandover(SoftwareHandover $record): array
+    {
+        // Get all PI IDs from software_hardware_pi and proforma_invoice_product
+        $allPiIds = [];
+
+        if (!empty($record->software_hardware_pi)) {
+            $productPis = is_string($record->software_hardware_pi)
+                ? json_decode($record->software_hardware_pi, true)
+                : $record->software_hardware_pi;
+            if (is_array($productPis)) {
+                $allPiIds = array_merge($allPiIds, $productPis);
+            }
+        }
+
+        if (!empty($record->proforma_invoice_product)) {
+            $hrdfPis = is_string($record->proforma_invoice_product)
+                ? json_decode($record->proforma_invoice_product, true)
+                : $record->proforma_invoice_product;
+            if (is_array($hrdfPis)) {
+                $allPiIds = array_merge($allPiIds, $hrdfPis);
+            }
+        }
+
+        if (empty($allPiIds)) {
+            return [];
+        }
+
+        $quotations = \App\Models\Quotation::whereIn('id', $allPiIds)->get();
+
+        $moduleGroups = [
+            'Attendance' => ['TCL_TA USER-NEW', 'TCL_TA USER-ADDON', 'TCL_TA USER-ADDON(R)', 'TCL_TA USER-RENEWAL', 'TCL_FULL USER-NEW'],
+            'Leave' => ['TCL_LEAVE USER-NEW', 'TCL_LEAVE USER-ADDON', 'TCL_LEAVE USER-ADDON(R)', 'TCL_LEAVE USER-RENEWAL', 'TCL_FULL USER-NEW'],
+            'Claim' => ['TCL_CLAIM USER-NEW', 'TCL_CLAIM USER-ADDON', 'TCL_CLAIM USER-ADDON(R)', 'TCL_CLAIM USER-RENEWAL', 'TCL_FULL USER-NEW'],
+            'Payroll' => ['TCL_PAYROLL USER-NEW', 'TCL_PAYROLL USER-ADDON', 'TCL_PAYROLL USER-ADDON(R)', 'TCL_PAYROLL USER-RENEWAL', 'TCL_FULL USER-NEW'],
+            'Appraisal' => ['TCL_APPRAISAL USER-NEW'],
+            'Hire' => ['TCL_HIRE-NEW', 'TCL_HIRE-RENEWAL'],
+            'Access' => ['TCL_ACCESS-NEW', 'TCL_ACCESS-RENEWAL'],
+            'PowerBI' => ['TCL_POWER BI'],
+        ];
+
+        $periodsByModule = [];
+
+        foreach ($quotations as $quotation) {
+            $details = \App\Models\QuotationDetail::where('quotation_id', $quotation->id)->with('product')->get();
+
+            foreach ($details as $detail) {
+                if (!$detail->product) {
+                    continue;
+                }
+
+                foreach ($moduleGroups as $moduleName => $productCodes) {
+                    if (in_array($detail->product->code, $productCodes)) {
+                        if (!isset($periodsByModule[$moduleName])) {
+                            $periodsByModule[$moduleName] = ['total_months' => 0];
+                        }
+                        $periodsByModule[$moduleName]['total_months'] += (int) $quotation->subscription_period;
+                    }
+                }
+            }
+        }
+
+        // Convert to years and months format
+        $formattedPeriods = [];
+        foreach ($periodsByModule as $moduleName => $data) {
+            $totalMonths = $data['total_months'];
+            $years = floor($totalMonths / 12);
+            $months = $totalMonths % 12;
+
+            $formattedPeriods[] = [
+                'product' => $moduleName,
+                'years' => $years,
+                'months' => $months > 0 ? $months : '-'
+            ];
+        }
+
+        return $formattedPeriods;
     }
 
     public function render()

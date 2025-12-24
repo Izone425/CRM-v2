@@ -36,12 +36,12 @@ class FetchTeamsRecordings extends Command
         }
 
         try {
-            // ✅ Only check meetings that ended within the last 1 hour 30 minutes
+            // ✅ Check meetings that ended within the last 5 hours (accounts for meeting extensions + Teams processing time)
             $now = Carbon::now();
-            $oneHourThirtyMinutesAgo = $now->copy()->subMinutes(90);
+            $fiveHoursAgo = $now->copy()->subHours(5);
 
             $this->info("Current time: " . $now->format('Y-m-d H:i:s'));
-            $this->info("Checking meetings that ended between: " . $oneHourThirtyMinutesAgo->format('Y-m-d H:i:s') . " and " . $now->format('Y-m-d H:i:s'));
+            $this->info("Checking meetings that ended between: " . $fiveHoursAgo->format('Y-m-d H:i:s') . " and " . $now->format('Y-m-d H:i:s'));
 
             // ✅ Updated query: Check for appointments with online_meeting_id but no session_recording_link
             $appointments = ImplementerAppointment::whereNotNull('online_meeting_id')
@@ -54,22 +54,22 @@ class FetchTeamsRecordings extends Command
                         ->orWhere('session_recording_link', 'LIKE', '% %') // Only spaces
                         ->orWhere('session_recording_link', 'null'); // Sometimes stored as string 'null'
                 })
-                ->where(function ($query) use ($oneHourThirtyMinutesAgo, $now) {
-                    // ✅ Time window: within 90 minutes from end time
+                ->where(function ($query) use ($fiveHoursAgo, $now) {
+                    // ✅ Time window: within 5 hours from end time (allows for extensions + processing time)
                     $query->whereRaw("
                         STR_TO_DATE(CONCAT(date, ' ', end_time), '%Y-%m-%d %H:%i:%s')
                         BETWEEN ? AND ?
-                    ", [$oneHourThirtyMinutesAgo->format('Y-m-d H:i:s'), $now->format('Y-m-d H:i:s')]);
+                    ", [$fiveHoursAgo->format('Y-m-d H:i:s'), $now->format('Y-m-d H:i:s')]);
                 })
                 ->orderBy('date', 'desc')
                 ->orderBy('end_time', 'desc')
                 ->get();
 
-            $this->info("Found {$appointments->count()} appointments within the 90-minute window");
+            $this->info("Found {$appointments->count()} appointments within the 5-hour window");
             $this->info("📋 Criteria: online_meeting_id NOT NULL AND session_recording_link IS NULL/EMPTY");
 
             if ($appointments->count() === 0) {
-                $this->info("No meetings found that match criteria within the last 90 minutes. Exiting.");
+                $this->info("No meetings found that match criteria within the last 5 hours. Exiting.");
                 return 0;
             }
 
@@ -212,7 +212,7 @@ class FetchTeamsRecordings extends Command
                 'no_recording_count' => $noRecordingCount,
                 'fail_count' => $failCount,
                 's3_bucket' => env('AWS_BUCKET'),
-                'time_window_minutes' => 90,
+                'time_window_minutes' => 300,
                 'check_time' => $now->format('Y-m-d H:i:s'),
                 'criteria' => 'online_meeting_id NOT NULL AND session_recording_link IS NULL/EMPTY',
             ]);

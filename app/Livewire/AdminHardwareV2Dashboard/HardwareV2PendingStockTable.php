@@ -432,15 +432,15 @@ class HardwareV2PendingStockTable extends Component implements HasForms, HasTabl
                         ->modalWidth('3xl')
                         ->form([
                             // ✅ Add AutoCount invoice checkbox at the top
-                            Section::make('Invoice Creation Options')
-                                ->schema([
-                                    Checkbox::make('create_autocount_invoice')
-                                        ->label('Create AutoCount HRDF Invoice')
-                                        ->helperText('Generate AutoCount invoice from associated quotations')
-                                        ->default(false)
-                                        ->live()
-                                        ->columnSpanFull(),
-                                ]),
+                            // Section::make('Invoice Creation Options')
+                            //     ->schema([
+                            //         Checkbox::make('create_autocount_invoice')
+                            //             ->label('Create AutoCount HRDF Invoice')
+                            //             ->helperText('Generate AutoCount invoice from associated quotations')
+                            //             ->default(false)
+                            //             ->live()
+                            //             ->columnSpanFull(),
+                            //     ]),
 
                             // ✅ Show preview when AutoCount is selected
                             Section::make('AutoCount Invoice Preview')
