@@ -105,7 +105,7 @@ class ArFollowUpOverdueUsdV2 extends Component implements HasForms, HasTable
             ->whereExists(function ($query) {
                 $query->select(DB::raw(1))
                     ->from('frontenddb.crm_reseller_link')
-                    ->whereRaw('crm_reseller_link.f_company_id = renewals.f_company_id');
+                    ->whereRaw('crm_reseller_link.f_id = renewals.f_company_id');
             })
             ->selectRaw('*,
                 DATEDIFF(NOW(), follow_up_date) as pending_days,
