@@ -23,18 +23,17 @@
         background-color: white;
         border-radius: 8px;
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        padding: 20px 0px 20px 0px;
+        padding: 20px 15px;
         cursor: pointer;
         transition: all 0.2s;
         border-top: 4px solid transparent;
         display: flex;
         flex-direction: column;
         justify-content: center;
-        align-items: center;
         margin-bottom: 15px;
         width: 100%;
         text-align: center;
-        max-height: 82px;
+        max-height: 95px;
         max-width: 220px;
     }
 
@@ -57,6 +56,8 @@
     .group-title {
         font-size: 15px;
         font-weight: 600;
+        margin-bottom: 8px;
+        text-align: left;
     }
 
     .group-desc {
@@ -452,7 +453,7 @@
                 :class="{'selected': selectedGroup === 'follow-up-myr'}"
                 @click="setSelectedGroup('follow-up-myr')">
                 <div class="group-info">
-                    <div class="group-title">Pending Confirmation Reseller (MYR)</div>
+                    <div class="group-title">Pending Confirmation <br>Reseller (MYR)</div>
                 </div>
                 <div class="group-count">{{ $followUpTotalMYR }}</div>
             </div>
@@ -462,7 +463,7 @@
                 :class="{'selected': selectedGroup === 'follow-up-myr-v2'}"
                 @click="setSelectedGroup('follow-up-myr-v2')">
                 <div class="group-info">
-                    <div class="group-title">Pending Payment Reseller (MYR) </div>
+                    <div class="group-title">Pending Payment <br> Reseller (MYR) </div>
                 </div>
                 <div class="group-count">{{ $followUpTotalMYRv2 }}</div>
             </div>
@@ -472,7 +473,7 @@
                 :class="{'selected': selectedGroup === 'follow-up-usd'}"
                 @click="setSelectedGroup('follow-up-usd')">
                 <div class="group-info">
-                    <div class="group-title">Pending Confirmation Reseller (USD) </div>
+                    <div class="group-title">Pending Confirmation <br> Reseller (USD) </div>
                 </div>
                 <div class="group-count">{{ $followUpTotalUSD }}</div>
             </div>
@@ -482,7 +483,7 @@
                 :class="{'selected': selectedGroup === 'follow-up-usd-v2'}"
                 @click="setSelectedGroup('follow-up-usd-v2')">
                 <div class="group-info">
-                    <div class="group-title">Pending Payment Reseller (USD)</div>
+                    <div class="group-title">Pending Payment <br> Reseller (USD)</div>
                 </div>
                 <div class="group-count">{{ $followUpTotalUSDv2 }}</div>
             </div>

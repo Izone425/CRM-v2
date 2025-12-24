@@ -23,18 +23,17 @@
         background-color: white;
         border-radius: 8px;
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        padding: 20px 0px 20px 0px;
+        padding: 20px 15px;
         cursor: pointer;
         transition: all 0.2s;
         border-top: 4px solid transparent;
         display: flex;
         flex-direction: column;
         justify-content: center;
-        align-items: center;
         margin-bottom: 15px;
         width: 100%;
         text-align: center;
-        max-height: 82px;
+        max-height: 95px;
         max-width: 220px;
     }
 
@@ -52,21 +51,27 @@
     .group-info {
         display: flex;
         flex-direction: column;
+        width: 100%;
     }
 
     .group-title {
         font-size: 15px;
         font-weight: 600;
+        margin-bottom: 8px;
+        text-align: left;
     }
 
     .group-desc {
         font-size: 12px;
         color: #6b7280;
+        text-align: left;
     }
 
     .group-count {
         font-size: 24px;
         font-weight: bold;
+        text-align: center;
+        margin-top: 5px;
     }
 
     /* MYR GROUP COLORS - Orange Theme */
@@ -452,9 +457,9 @@
                 :class="{'selected': selectedGroup === 'follow-up-myr'}"
                 @click="setSelectedGroup('follow-up-myr')">
                 <div class="group-info">
-                    <div class="group-title">Pending Confirmation End User (MYR) </div>
+                    <div class="group-title">Pending Confirmation <br>End User (MYR) </div>
+                    <div class="group-count">{{ $followUpTotalMYR }}</div>
                 </div>
-                <div class="group-count">{{ $followUpTotalMYR }}</div>
             </div>
 
             <!-- 2. ADMIN RENEWAL FOLLOW UP MYR V2 (Amber Theme) -->
@@ -462,9 +467,9 @@
                 :class="{'selected': selectedGroup === 'follow-up-myr-v2'}"
                 @click="setSelectedGroup('follow-up-myr-v2')">
                 <div class="group-info">
-                    <div class="group-title">Pending Payment End User (MYR) </div>
+                    <div class="group-title">Pending Payment <br>End User (MYR) </div>
+                    <div class="group-count">{{ $followUpTotalMYRv2 }}</div>
                 </div>
-                <div class="group-count">{{ $followUpTotalMYRv2 }}</div>
             </div>
 
             <!-- 3. ADMIN RENEWAL FOLLOW UP USD (Blue Theme) -->
@@ -472,9 +477,9 @@
                 :class="{'selected': selectedGroup === 'follow-up-usd'}"
                 @click="setSelectedGroup('follow-up-usd')">
                 <div class="group-info">
-                    <div class="group-title">Pending Confirmation End User (USD) </div>
+                    <div class="group-title">Pending Confirmation <br>End User (USD) </div>
+                    <div class="group-count">{{ $followUpTotalUSD }}</div>
                 </div>
-                <div class="group-count">{{ $followUpTotalUSD }}</div>
             </div>
 
             <!-- 4. ADMIN RENEWAL FOLLOW UP USD V2 (Indigo Theme) -->
@@ -482,9 +487,9 @@
                 :class="{'selected': selectedGroup === 'follow-up-usd-v2'}"
                 @click="setSelectedGroup('follow-up-usd-v2')">
                 <div class="group-info">
-                    <div class="group-title">Pending Payment End User (USD)</div>
+                    <div class="group-title">Pending Payment <br>End User (USD)</div>
+                    <div class="group-count">{{ $followUpTotalUSDv2 }}</div>
                 </div>
-                <div class="group-count">{{ $followUpTotalUSDv2 }}</div>
             </div>
         </div>
 

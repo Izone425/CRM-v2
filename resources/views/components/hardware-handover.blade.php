@@ -1060,7 +1060,7 @@
                 </div>
                 @endif
 
-                <div class="hw-info-item">
+                {{-- <div class="hw-info-item">
                     <span class="hw-label">Invoice Type:</span>
                     <span class="hw-value">
                         @if($record->is_add_on_device)
@@ -1069,7 +1069,7 @@
                             Not Available
                         @endif
                     </span>
-                </div>
+                </div> --}}
             </div>
 
             <!-- Right Column -->

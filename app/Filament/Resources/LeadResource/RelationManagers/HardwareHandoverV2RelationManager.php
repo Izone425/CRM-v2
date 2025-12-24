@@ -765,15 +765,15 @@ class HardwareHandoverV2RelationManager extends RelationManager
                         ])
                 ]),
 
-            Section::make('Step 9: Invoice Type')
-                ->columnSpan(1)
-                ->schema([
-                    Forms\Components\Checkbox::make('is_add_on_device')
-                        ->label('Add On Device')
-                        ->default(function (?HardwareHandoverV2 $record) {
-                            return $record?->is_add_on_device ?? false;
-                        }),
-                ]),
+            // Section::make('Step 9: Invoice Type')
+            //     ->columnSpan(1)
+            //     ->schema([
+            //         Forms\Components\Checkbox::make('is_add_on_device')
+            //             ->label('Add On Device')
+            //             ->default(function (?HardwareHandoverV2 $record) {
+            //                 return $record?->is_add_on_device ?? false;
+            //             }),
+            //     ]),
         ];
     }
 
