@@ -633,7 +633,7 @@ class TicketDashboard extends Page implements HasActions, HasForms
             if ($authUser) {
                 $ticketSystemUser = \Illuminate\Support\Facades\DB::connection('ticketingsystem_live')
                     ->table('users')
-                    ->where('name', $authUser->name)
+                    ->where('email', $authUser->email)
                     ->first();
             }
 
@@ -1055,7 +1055,7 @@ class TicketDashboard extends Page implements HasActions, HasForms
             if ($authUser) {
                 $ticketSystemUser = \Illuminate\Support\Facades\DB::connection('ticketingsystem_live')
                     ->table('users')
-                    ->where('name', $authUser->name)
+                    ->where('email', $authUser->email)
                     ->first();
             }
 
@@ -1122,7 +1122,7 @@ class TicketDashboard extends Page implements HasActions, HasForms
             if ($authUser) {
                 $ticketSystemUser = \Illuminate\Support\Facades\DB::connection('ticketingsystem_live')
                     ->table('users')
-                    ->where('name', $authUser->name)
+                    ->where('email', $authUser->email)
                     ->first();
             }
             $userId = $ticketSystemUser?->id ?? 22;
