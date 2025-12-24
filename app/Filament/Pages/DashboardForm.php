@@ -104,7 +104,7 @@ class DashboardForm extends Page
             'HRDF',
             'AdminHRDFAttLog',
             'AdminRenewalv1',
-            'AdminRenewalv2',
+            'AdminRenewalEndUser',
             'AdminHRDF',
             'AdminHeadcount',
             'AdminGeneral',

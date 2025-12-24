@@ -102,23 +102,24 @@ class TechnicianCalendar extends Component
             ->select(
                 DB::raw('CASE
                     WHEN repair_appointments.lead_id IS NULL THEN "No Company"
-                    ELSE COALESCE(company_details.company_name, "No Company")
+                    ELSE COALESCE(MAX(company_details.company_name), "No Company")
                 END as company_name'),
                 'repair_appointments.*',
-                // ✅ Fix the field mappings from company_details
-                'company_details.name as pic_name',
-                'company_details.contact_no as pic_phone',
-                'company_details.email as pic_email',
-                // ✅ Add hardware details from hardware_handovers_v2
-                'hardware_handovers_v2.tc10_quantity',
-                'hardware_handovers_v2.face_id5_quantity',
-                'hardware_handovers_v2.tc20_quantity',
-                'hardware_handovers_v2.face_id6_quantity',
-                'hardware_handovers_v2.category2',
-                'hardware_handovers_v2.handover_pdf'
+                // ✅ Fix the field mappings from company_details with MAX() for GROUP BY compatibility
+                DB::raw('MAX(company_details.name) as pic_name'),
+                DB::raw('MAX(company_details.contact_no) as pic_phone'),
+                DB::raw('MAX(company_details.email) as pic_email'),
+                // ✅ Add hardware details from hardware_handovers_v2 with MAX() for GROUP BY compatibility
+                DB::raw('MAX(hardware_handovers_v2.tc10_quantity) as tc10_quantity'),
+                DB::raw('MAX(hardware_handovers_v2.face_id5_quantity) as face_id5_quantity'),
+                DB::raw('MAX(hardware_handovers_v2.tc20_quantity) as tc20_quantity'),
+                DB::raw('MAX(hardware_handovers_v2.face_id6_quantity) as face_id6_quantity'),
+                DB::raw('MAX(hardware_handovers_v2.category2) as category2'),
+                DB::raw('MAX(hardware_handovers_v2.handover_pdf) as handover_pdf')
             )
             ->where('repair_appointments.id', $appointmentId)
             ->where('repair_appointments.date', $date)
+            ->groupBy('repair_appointments.id')
             ->first();
 
         if (!$appointment) {
@@ -214,22 +215,23 @@ class TechnicianCalendar extends Component
             ->select(
                 DB::raw('CASE
                     WHEN repair_appointments.lead_id IS NULL THEN "No Company"
-                    ELSE COALESCE(company_details.company_name, "No Company")
+                    ELSE COALESCE(MAX(company_details.company_name), "No Company")
                 END as company_name'),
                 'repair_appointments.*',
-                // ✅ Add customer details
-                'company_details.name',
-                'company_details.contact_no',
-                'company_details.email',
-                // ✅ Add hardware details
-                'hardware_handovers_v2.tc10_quantity',
-                'hardware_handovers_v2.face_id5_quantity',
-                'hardware_handovers_v2.tc20_quantity',
-                'hardware_handovers_v2.face_id6_quantity',
-                'hardware_handovers_v2.category2',
-                'hardware_handovers_v2.handover_pdf'
+                // ✅ Add customer details with MAX() for GROUP BY compatibility
+                DB::raw('MAX(company_details.name) as name'),
+                DB::raw('MAX(company_details.contact_no) as contact_no'),
+                DB::raw('MAX(company_details.email) as email'),
+                // ✅ Add hardware details with MAX() for GROUP BY compatibility
+                DB::raw('MAX(hardware_handovers_v2.tc10_quantity) as tc10_quantity'),
+                DB::raw('MAX(hardware_handovers_v2.face_id5_quantity) as face_id5_quantity'),
+                DB::raw('MAX(hardware_handovers_v2.tc20_quantity) as tc20_quantity'),
+                DB::raw('MAX(hardware_handovers_v2.face_id6_quantity) as face_id6_quantity'),
+                DB::raw('MAX(hardware_handovers_v2.category2) as category2'),
+                DB::raw('MAX(hardware_handovers_v2.handover_pdf) as handover_pdf')
             )
             ->whereBetween("repair_appointments.date", [$this->startDate, $this->endDate])
+            ->groupBy('repair_appointments.id')
             ->orderBy('repair_appointments.start_time', 'asc')
             ->when($this->selectedTechnicians, function ($query) {
                 return $query->whereIn('repair_appointments.technician', $this->selectedTechnicians);
@@ -514,22 +516,23 @@ class TechnicianCalendar extends Component
             ->select(
                 DB::raw('CASE
                     WHEN repair_appointments.lead_id IS NULL THEN "No Company"
-                    ELSE COALESCE(company_details.company_name, "No Company")
+                    ELSE COALESCE(MAX(company_details.company_name), "No Company")
                 END as company_name'),
                 'repair_appointments.*',
-                // ✅ Add the missing PIC fields
-                'company_details.name',
-                'company_details.contact_no',
-                'company_details.email',
-                // ✅ Add hardware details
-                'hardware_handovers_v2.tc10_quantity',
-                'hardware_handovers_v2.face_id5_quantity',
-                'hardware_handovers_v2.tc20_quantity',
-                'hardware_handovers_v2.face_id6_quantity',
-                'hardware_handovers_v2.category2',
-                'hardware_handovers_v2.handover_pdf'
+                // ✅ Add the missing PIC fields with MAX() for GROUP BY compatibility
+                DB::raw('MAX(company_details.name) as name'),
+                DB::raw('MAX(company_details.contact_no) as contact_no'),
+                DB::raw('MAX(company_details.email) as email'),
+                // ✅ Add hardware details with MAX() for GROUP BY compatibility
+                DB::raw('MAX(hardware_handovers_v2.tc10_quantity) as tc10_quantity'),
+                DB::raw('MAX(hardware_handovers_v2.face_id5_quantity) as face_id5_quantity'),
+                DB::raw('MAX(hardware_handovers_v2.tc20_quantity) as tc20_quantity'),
+                DB::raw('MAX(hardware_handovers_v2.face_id6_quantity) as face_id6_quantity'),
+                DB::raw('MAX(hardware_handovers_v2.category2) as category2'),
+                DB::raw('MAX(hardware_handovers_v2.handover_pdf) as handover_pdf')
             )
             ->whereBetween("repair_appointments.date", [$this->startDate, $this->endDate])
+            ->groupBy('repair_appointments.id')
             ->orderBy('repair_appointments.start_time', 'asc');
 
         // Apply technician filter

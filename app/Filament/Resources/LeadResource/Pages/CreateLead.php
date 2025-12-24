@@ -246,6 +246,12 @@ class CreateLead extends CreateRecord
                 ->extraInputAttributes(['style' => 'text-transform: uppercase'])
                 ->afterStateHydrated(fn($state) => Str::upper($state))
                 ->afterStateUpdated(fn($state) => Str::upper($state))
+                ->rules([
+                    'regex:/^[^.]*$/',
+                ])
+                ->validationMessages([
+                    'regex' => 'Company name cannot contain periods (.)',
+                ])
                 ->rule(function () {
                     return function (string $attribute, $value, \Closure $fail) {
                         if (empty($value)) {

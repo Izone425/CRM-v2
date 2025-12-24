@@ -5,39 +5,65 @@ namespace App\Livewire\AdminRenewalDashboard;
 use App\Filament\Actions\AdminRenewalActions;
 use App\Filament\Filters\SortFilter;
 use App\Filament\Pages\RenewalDataMyr;
-use App\Models\AdminRenewalLogs;
 use App\Models\CompanyDetail;
+use App\Models\AdminRenewalLogs;
 use App\Models\Renewal;
+use App\Models\Lead;
 use App\Models\User;
-use Carbon\Carbon;
-use Filament\Forms\Concerns\InteractsWithForms;
-use Filament\Forms\Contracts\HasForms;
-use Filament\Notifications\Notification;
 use Filament\Tables\Actions\Action;
+use Filament\Tables\Table;
+use Filament\Forms\Contracts\HasForms;
+use Filament\Tables\Contracts\HasTable;
+use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Tables\Actions\ActionGroup;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
-use Filament\Tables\Contracts\HasTable;
+use Illuminate\Support\Carbon;
+use Livewire\Component;
+use Illuminate\Support\Str;
+use Filament\Notifications\Notification;
 use Filament\Tables\Filters\SelectFilter;
-use Filament\Tables\Table;
+use Illuminate\Support\HtmlString;
+use Illuminate\View\View;
+use Livewire\Attributes\On;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\HtmlString;
-use Livewire\Attributes\On;
-use Livewire\Component;
 
-class ArFollowUpTodayUsd extends Component implements HasForms, HasTable
+class ArFollowUpTodayMyrV2NonReseller extends Component implements HasForms, HasTable
 {
-    use InteractsWithForms;
     use InteractsWithTable;
+    use InteractsWithForms;
 
     public $selectedUser;
-
     public $lastRefreshTime;
+    protected $resellerCache = [];
 
     public function mount()
     {
         $this->lastRefreshTime = now()->format('Y-m-d H:i:s');
+    }
+
+    // Cache reseller data method (similar to AdminRenewalProcessDataMyr)
+    protected function getCachedReseller($companyId)
+    {
+        if (!isset($this->resellerCache[$companyId])) {
+            $this->resellerCache[$companyId] = $this->getResellerForCompany($companyId);
+        }
+        return $this->resellerCache[$companyId];
+    }
+
+    // Get reseller information for a company (similar to AdminRenewalProcessDataMyr)
+    protected function getResellerForCompany($companyId)
+    {
+        try {
+            return DB::connection('frontenddb')->table('crm_reseller_link')
+                ->select('reseller_name', 'f_rate')
+                ->where('f_id', $companyId)
+                ->first();
+        } catch (\Exception $e) {
+            Log::error("Error fetching reseller for company $companyId: ".$e->getMessage());
+            return null;
+        }
     }
 
     public function refreshTable()
@@ -76,10 +102,10 @@ class ArFollowUpTodayUsd extends Component implements HasForms, HasTable
     {
         $this->selectedUser = $this->selectedUser ?? session('selectedUser') ?? auth()->user()->id;
 
-        // Get company IDs that have USD expiring licenses
-        $usdCompanyIds = DB::connection('frontenddb')->table('crm_expiring_license')
+        // Get company IDs that have MYR expiring licenses - cast to integer for proper comparison
+        $myrCompanyIds = DB::connection('frontenddb')->table('crm_expiring_license')
             ->select('f_company_id')
-            ->where('f_currency', 'USD')
+            ->where('f_currency', 'MYR')
             ->whereDate('f_expiry_date', '>=', today())
             ->whereDate('f_expiry_date', '<=', today()->addDays(90))
             ->distinct()
@@ -94,13 +120,13 @@ class ArFollowUpTodayUsd extends Component implements HasForms, HasTable
             ->toArray();
 
         $query = Renewal::query()
-            ->whereIn('f_company_id', $usdCompanyIds)
+            ->whereIn('f_company_id', $myrCompanyIds)
             ->whereDate('follow_up_date', today())
             ->where('follow_up_counter', true)
             ->where('mapping_status', 'completed_mapping')
-            ->whereIn('renewal_progress', ['pending_confirmation'])
-            // Only show records that have a reseller
-            ->whereExists(function ($query) {
+            ->whereIn('renewal_progress', ['pending_payment'])
+            // Only show records that DON'T have a reseller
+            ->whereNotExists(function ($query) {
                 $query->select(DB::raw(1))
                     ->from('frontenddb.crm_reseller_link')
                     ->whereRaw('crm_reseller_link.f_company_id = renewals.f_company_id');
@@ -109,7 +135,7 @@ class ArFollowUpTodayUsd extends Component implements HasForms, HasTable
                 DATEDIFF(NOW(), follow_up_date) as pending_days,
                 (SELECT MIN(f_expiry_date) FROM frontenddb.crm_expiring_license
                 WHERE f_company_id = renewals.f_company_id
-                AND f_currency = "USD"
+                AND f_currency = "MYR"
                 AND f_expiry_date >= CURDATE()
                 AND f_name NOT IN (
                     "TimeTec VMS Corporate (1 Floor License)",
@@ -122,35 +148,6 @@ class ArFollowUpTodayUsd extends Component implements HasForms, HasTable
                 ) as earliest_expiry_date');
 
         return $query;
-    }
-
-    protected static function getEarliestExpiryDate($companyId)
-    {
-        try {
-            $today = Carbon::now()->format('Y-m-d');
-
-            $earliestExpiry = DB::connection('frontenddb')
-                ->table('crm_expiring_license')
-                ->where('f_company_id', $companyId)
-                ->where('f_expiry_date', '>=', $today)
-                ->whereDate('f_expiry_date', '<=', today()->addDays(90))
-                ->where('f_currency', 'USD')
-                ->whereNotIn('f_name', [
-                    'TimeTec VMS Corporate (1 Floor License)',
-                    'TimeTec VMS SME (1 Location License)',
-                    'TimeTec Patrol (1 Checkpoint License)',
-                    'TimeTec Patrol (10 Checkpoint License)',
-                    'Other',
-                    'TimeTec Profile (10 User License)',
-                ])
-                ->min('f_expiry_date');
-
-            return $earliestExpiry;
-        } catch (\Exception $e) {
-            Log::error("Error fetching earliest expiry date for company {$companyId}: ".$e->getMessage());
-
-            return null;
-        }
     }
 
     public function table(Table $table): Table
@@ -181,11 +178,57 @@ class ArFollowUpTodayUsd extends Component implements HasForms, HasTable
                     ])
                     ->placeholder('All Statuses')
                     ->multiple(),
+
+                SelectFilter::make('reseller_status')
+                    ->label('Filter by Reseller')
+                    ->options([
+                        'with_reseller' => 'With Reseller',
+                        'without_reseller' => 'Without Reseller',
+                    ])
+                    ->placeholder('All Companies')
+                    ->query(function ($query, array $data) {
+                        if (empty($data['value'])) {
+                            return $query;
+                        }
+
+                        $filterValue = $data['value'];
+                        $companyIds = $query->pluck('f_company_id')->unique()->toArray();
+
+                        if (empty($companyIds)) {
+                            return $query;
+                        }
+
+                        // Get reseller data for all companies
+                        try {
+                            $resellerData = DB::connection('frontenddb')
+                                ->table('crm_reseller_link')
+                                ->select('f_id', 'f_rate')
+                                ->whereIn('f_id', $companyIds)
+                                ->get()
+                                ->keyBy('f_id');
+
+                            $filteredCompanyIds = [];
+
+                            foreach ($companyIds as $companyId) {
+                                $hasReseller = isset($resellerData[$companyId]) && $resellerData[$companyId]->f_rate;
+
+                                if (($filterValue === 'with_reseller' && $hasReseller) ||
+                                    ($filterValue === 'without_reseller' && !$hasReseller)) {
+                                    $filteredCompanyIds[] = $companyId;
+                                }
+                            }
+
+                            return $query->whereIn('f_company_id', $filteredCompanyIds);
+                        } catch (\Exception $e) {
+                            Log::error("Error filtering by reseller status: " . $e->getMessage());
+                            return $query;
+                        }
+                    }),
             ])
             ->columns([
                 TextColumn::make('admin_renewal')
                     ->label('Admin Renewal')
-                    ->visible(fn (): bool => auth()->user()->role_id !== 3),
+                    ->visible(fn(): bool => auth()->user()->role_id !== 3),
 
                 TextColumn::make('company_name')
                     ->label('Company Name')
@@ -197,12 +240,12 @@ class ArFollowUpTodayUsd extends Component implements HasForms, HasTable
                             if ($company) {
                                 $encryptedId = \App\Classes\Encryptor::encrypt($company->lead_id);
 
-                                return new HtmlString('<a href="'.url('admin/leads/'.$encryptedId).'"
+                                return new HtmlString('<a href="' . url('admin/leads/' . $encryptedId) . '"
                                         target="_blank"
-                                        title="'.e($state).'"
+                                        title="' . e($state) . '"
                                         class="inline-block"
                                         style="color:#338cf0;">
-                                        '.$company->company_name.'
+                                        ' . $company->company_name . '
                                     </a>');
                             }
                         }
@@ -228,9 +271,34 @@ class ArFollowUpTodayUsd extends Component implements HasForms, HasTable
                 TextColumn::make('earliest_expiry_date')
                     ->label('Expiry Date')
                     ->default('N/A')
+                    ->sortable()
                     ->formatStateUsing(function ($state, $record) {
 
                         return Carbon::parse(self::getEarliestExpiryDate($record->f_company_id))->format('d M Y') ?? 'N/A';
+                    }),
+
+                TextColumn::make('reseller_status')
+                    ->label('Reseller')
+                    ->alignCenter()
+                    ->formatStateUsing(function ($state, $record) {
+                        $reseller = $this->getCachedReseller($record->f_company_id);
+                        return $reseller && $reseller->f_rate ? 'Yes' : 'No';
+                    })
+                    ->color(function ($state, $record) {
+                        $reseller = $this->getCachedReseller($record->f_company_id);
+                        return $reseller && $reseller->f_rate ? 'danger' : 'gray';
+                    })
+                    ->tooltip(function ($state, $record) {
+                        $reseller = $this->getCachedReseller($record->f_company_id);
+                        return $reseller && $reseller->reseller_name
+                            ? "Reseller: {$reseller->reseller_name}"
+                            : '';
+                    })
+                    ->badge()
+                    ->state(function ($record) {
+                        // Ensure we return a value for the state
+                        $reseller = $this->getCachedReseller($record->f_company_id);
+                        return $reseller && $reseller->f_rate ? 'yes' : 'no';
                     }),
 
                 TextColumn::make('pending_days')
@@ -238,11 +306,10 @@ class ArFollowUpTodayUsd extends Component implements HasForms, HasTable
                     ->alignCenter()
                     ->sortable()
                     ->default('0')
-                    ->formatStateUsing(fn ($state) => $state.' '.($state == 0 ? 'Day' : 'Days')),
+                    ->formatStateUsing(fn ($state) => $state . ' ' . ($state == 0 ? 'Day' : 'Days')),
 
                 TextColumn::make('follow_up_date')
                     ->label('Follow Up Date')
-                    ->sortable()
                     ->date('d M Y'),
             ])
             ->actions([
@@ -257,16 +324,41 @@ class ArFollowUpTodayUsd extends Component implements HasForms, HasTable
                         }),
                 ])
                 ->button()
-                ->color('info') // Blue color for USD
+                ->color('info') // Blue color for non-reseller
                 ->label('Actions')
-                    ->button()
-                    ->color('warning')
-                    ->label('Actions'),
             ]);
     }
 
     public function render()
     {
-        return view('livewire.admin_renewal_dashboard.ar-follow-up-today-usd');
+        return view('livewire.admin_renewal_dashboard.ar-follow-up-today-myr-v2-non-reseller');
+    }
+
+    protected static function getEarliestExpiryDate($companyId)
+    {
+        try {
+            $today = Carbon::now()->format('Y-m-d');
+
+            $earliestExpiry = DB::connection('frontenddb')
+                ->table('crm_expiring_license')
+                ->where('f_company_id', $companyId)
+                ->where('f_expiry_date', '>=', $today)
+                ->where('f_currency', 'MYR')
+                ->whereNotIn('f_name', [
+                    'TimeTec VMS Corporate (1 Floor License)',
+                    'TimeTec VMS SME (1 Location License)',
+                    'TimeTec Patrol (1 Checkpoint License)',
+                    'TimeTec Patrol (10 Checkpoint License)',
+                    'Other',
+                    'TimeTec Profile (10 User License)',
+                ])
+                ->min('f_expiry_date');
+
+            return $earliestExpiry;
+        } catch (\Exception $e) {
+            Log::error("Error fetching earliest expiry date for company {$companyId}: ".$e->getMessage());
+
+            return null;
+        }
     }
 }

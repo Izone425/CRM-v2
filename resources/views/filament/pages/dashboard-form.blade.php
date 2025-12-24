@@ -117,77 +117,165 @@
             ->distinct('f_invoice_no')
             ->count('f_invoice_no');
 
-        $followUpTodayMYR = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpTodayMyr::class)
-            ->getTodayRenewals()
-            ->count();
+        $followUpTodayMYR = 0;
+        $followUpOverdueMYR = 0;
+        $followUpFutureMYR = 0;
+        $followUpAllMYR = 0;
 
-        $followUpOverdueMYR = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpOverdueMyr::class)
-            ->getOverdueRenewals()
-            ->count();
+        try {
+            $followUpTodayMYR = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpTodayMyr::class)
+                ->getTodayRenewals()
+                ->count();
+        } catch (Exception $e) {
+            $followUpTodayMYR = 0;
+        }
 
-        $followUpFutureMYR = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpUpcomingMyr::class)
-            ->getIncomingRenewals()
-            ->count();
+        try {
+            $followUpOverdueMYR = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpOverdueMyr::class)
+                ->getOverdueRenewals()
+                ->count();
+        } catch (Exception $e) {
+            $followUpOverdueMYR = 0;
+        }
 
-        $followUpAllMYR = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpAllMyr::class)
-            ->getOverdueRenewals()
-            ->count();
+        try {
+            $followUpFutureMYR = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpUpcomingMyr::class)
+                ->getIncomingRenewals()
+                ->count();
+        } catch (Exception $e) {
+            $followUpFutureMYR = 0;
+        }
+
+        try {
+            $followUpAllMYR = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpAllMyr::class)
+                ->getOverdueRenewals()
+                ->count();
+        } catch (Exception $e) {
+            $followUpAllMYR = 0;
+        }
 
         // Admin Renewal Follow Up Counts USD
-        $followUpTodayUSD = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpTodayUsd::class)
-            ->getTodayRenewals()
-            ->count();
+        $followUpTodayUSD = 0;
+        $followUpOverdueUSD = 0;
+        $followUpFutureUSD = 0;
+        $followUpAllUSD = 0;
 
-        $followUpOverdueUSD = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpOverdueUsd::class)
-            ->getOverdueRenewals()
-            ->count();
+        try {
+            $followUpTodayUSD = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpTodayUsd::class)
+                ->getTodayRenewals()
+                ->count();
+        } catch (Exception $e) {
+            $followUpTodayUSD = 0;
+        }
 
-        $followUpFutureUSD = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpUpcomingUsd::class)
-            ->getIncomingRenewals()
-            ->count();
+        try {
+            $followUpOverdueUSD = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpOverdueUsd::class)
+                ->getOverdueRenewals()
+                ->count();
+        } catch (Exception $e) {
+            $followUpOverdueUSD = 0;
+        }
 
-        $followUpAllUSD = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpAllUsd::class)
-            ->getOverdueRenewals()
-            ->count();
+        try {
+            $followUpFutureUSD = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpUpcomingUsd::class)
+                ->getIncomingRenewals()
+                ->count();
+        } catch (Exception $e) {
+            $followUpFutureUSD = 0;
+        }
+
+        try {
+            $followUpAllUSD = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpAllUsd::class)
+                ->getOverdueRenewals()
+                ->count();
+        } catch (Exception $e) {
+            $followUpAllUSD = 0;
+        }
 
         // Admin Renewal Follow Up Counts MYR V2 (Pending Payment)
-        $followUpTodayMYRv2 = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpTodayMyrV2::class)
-            ->getTodayRenewals()
-            ->count();
+        $followUpTodayMYRv2 = 0;
+        $followUpOverdueMYRv2 = 0;
+        $followUpFutureMYRv2 = 0;
+        $followUpAllMYRv2 = 0;
 
-        $followUpOverdueMYRv2 = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpOverdueMyrV2::class)
-            ->getOverdueRenewals()
-            ->count();
+        try {
+            $followUpTodayMYRv2 = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpTodayMyrV2::class)
+                ->getTodayRenewals()
+                ->count();
+        } catch (Exception $e) {
+            $followUpTodayMYRv2 = 0;
+        }
 
-        $followUpFutureMYRv2 = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpUpcomingMyrV2::class)
-            ->getIncomingRenewals()
-            ->count();
+        try {
+            $followUpOverdueMYRv2 = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpOverdueMyrV2::class)
+                ->getOverdueRenewals()
+                ->count();
+        } catch (Exception $e) {
+            $followUpOverdueMYRv2 = 0;
+        }
 
-        $followUpAllMYRv2 = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpAllMyrV2::class)
-            ->getOverdueRenewals()
-            ->count();
+        try {
+            $followUpFutureMYRv2 = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpUpcomingMyrV2::class)
+                ->getIncomingRenewals()
+                ->count();
+        } catch (Exception $e) {
+            $followUpFutureMYRv2 = 0;
+        }
+
+        try {
+            $followUpAllMYRv2 = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpAllMyrV2::class)
+                ->getOverdueRenewals()
+                ->count();
+        } catch (Exception $e) {
+            $followUpAllMYRv2 = 0;
+        }
 
         // Admin Renewal Follow Up Counts USD V2 (Pending Payment)
-        $followUpTodayUSDv2 = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpTodayUsdV2::class)
-            ->getTodayRenewals()
-            ->count();
+        $followUpTodayUSDv2 = 0;
+        $followUpOverdueUSDv2 = 0;
+        $followUpFutureUSDv2 = 0;
+        $followUpAllUSDv2 = 0;
 
-        $followUpOverdueUSDv2 = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpOverdueUsdV2::class)
-            ->getOverdueRenewals()
-            ->count();
+        try {
+            $followUpTodayUSDv2 = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpTodayUsdV2::class)
+                ->getTodayRenewals()
+                ->count();
+        } catch (Exception $e) {
+            $followUpTodayUSDv2 = 0;
+        }
 
-        $followUpFutureUSDv2 = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpUpcomingUsdV2::class)
-            ->getIncomingRenewals()
-            ->count();
+        try {
+            $followUpOverdueUSDv2 = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpOverdueUsdV2::class)
+                ->getOverdueRenewals()
+                ->count();
+        } catch (Exception $e) {
+            $followUpOverdueUSDv2 = 0;
+        }
 
-        $followUpAllUSDv2 = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpAllUsdV2::class)
-            ->getOverdueRenewals()
-            ->count();
+        try {
+            $followUpFutureUSDv2 = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpUpcomingUsdV2::class)
+                ->getIncomingRenewals()
+                ->count();
+        } catch (Exception $e) {
+            $followUpFutureUSDv2 = 0;
+        }
+
+        try {
+            $followUpAllUSDv2 = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpAllUsdV2::class)
+                ->getOverdueRenewals()
+                ->count();
+        } catch (Exception $e) {
+            $followUpAllUSDv2 = 0;
+        }
 
         $adminGeneralTotal = \App\Models\InternalTicket::where('status', 'new')->count();
 
-        // Calculate totals for both currencies
-        $adminRenewalFollowUp = $followUpTodayMYR + $followUpOverdueMYR + $followUpTodayMYRv2 + $followUpOverdueMYRv2;
+        // Calculate totals for both currencies with error handling
+        try {
+            $adminRenewalFollowUp = $followUpTodayMYR + $followUpOverdueMYR + $followUpTodayMYRv2 + $followUpOverdueMYRv2;
+        } catch (Exception $e) {
+            $adminRenewalFollowUp = 0;
+        }
 
         $initialStageTotal = $newTaskCount + $pendingStockCount + $pendingCourierCount + $pendingAdminPickUpCount + $pendingExternalInstallationCount + $pendingInternalInstallationCount;
 
@@ -445,23 +533,23 @@
                                             font-size: 14px;
                                         "
                                     >
-                                        Admin - Renewal v1
+                                        Renewal v1 – Reseller
                                     </button>
 
                                     <button
-                                        wire:click="toggleDashboard('AdminRenewalv2')"
+                                        wire:click="toggleDashboard('AdminRenewalEndUser')"
                                         style="
                                             display: block;
                                             width: 100%;
                                             padding: 10px 16px;
                                             text-align: left;
                                             border: none;
-                                            background: {{ $currentDashboard === 'AdminRenewalv2' ? '#f3f3f3' : 'white' }};
+                                            background: {{ $currentDashboard === 'AdminRenewalEndUser' ? '#f3f3f3' : 'white' }};
                                             cursor: pointer;
                                             font-size: 14px;
                                         "
                                     >
-                                        Admin - Renewal v2
+                                        Renewal v1 – End User
                                     </button>
                                 </div>
                             </div>
@@ -1042,7 +1130,7 @@
                                                 @endif
                                             </button>
 
-                                            <button
+                                            {{-- <button
                                                 wire:click="toggleDashboard('SoftwareAdminV2')"
                                                 wire:loading.attr="disabled"
                                                 wire:loading.class="opacity-50"
@@ -1079,7 +1167,7 @@
                                                         text-align: center;
                                                     ">{{ $adminSoftwareV2Total }}</span>
                                                 @endif
-                                            </button>
+                                            </button> --}}
 
                                             <button
                                                 wire:click="toggleDashboard('HardwareAdminV2')"
@@ -1341,7 +1429,7 @@
                                                     font-size: 14px;
                                                 "
                                             >
-                                                <span wire:loading.remove wire:target="toggleDashboard('AdminRenewalv1')">Admin - Renewal v1</span>
+                                                <span wire:loading.remove wire:target="toggleDashboard('AdminRenewalv1')">Renewal v1 - Reseller</span>
                                                 <span wire:loading wire:target="toggleDashboard('AdminRenewalv1')" class="flex items-center">
                                                     <svg class="w-4 h-4 mr-1 animate-spin" fill="none" viewBox="0 0 24 24">
                                                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -1378,7 +1466,7 @@
                                                     font-size: 14px;
                                                 "
                                             >
-                                                <span wire:loading.remove wire:target="toggleDashboard('AdminRenewalv2')">Admin - Renewal v2</span>
+                                                <span wire:loading.remove wire:target="toggleDashboard('AdminRenewalv2')">Renewal v1 - End User</span>
                                                 <span wire:loading wire:target="toggleDashboard('AdminRenewalv2')" class="flex items-center">
                                                     <svg class="w-4 h-4 mr-1 animate-spin" fill="none" viewBox="0 0 24 24">
                                                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -1687,7 +1775,7 @@
                                                 font-size: 14px;
                                             "
                                         >
-                                            Admin - Renewal v1
+                                            Admin - Renewal (Reseller)
                                         </button>
 
                                         <button
@@ -1703,7 +1791,7 @@
                                                 font-size: 14px;
                                             "
                                         >
-                                            Admin - Renewal v2
+                                            Admin - Renewal (Non-Reseller)
                                         </button>
                                     </div>
                                 </div>
@@ -1755,8 +1843,8 @@
                             @include('filament.pages.adminrepair')
                         @elseif ($currentDashboard === 'AdminRenewalv1')
                             @include('filament.pages.adminrenewal')
-                        @elseif ($currentDashboard === 'AdminRenewalv2')
-                            @include('filament.pages.adminrenewal')
+                        @elseif ($currentDashboard === 'AdminRenewalEndUser')
+                            @include('filament.pages.adminrenewalnonreseller')
                         @elseif ($currentDashboard === 'AdminHRDF')
                             @include('filament.pages.adminhrdf')
                         @elseif ($currentDashboard === 'AdminHRDFAttLog')
