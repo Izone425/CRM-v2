@@ -33,6 +33,7 @@ use Filament\Forms\Set;
 use Filament\Tables\Actions\ActionGroup;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
+use Filament\Actions\Concerns\InteractsWithActions;
 use Illuminate\Support\Carbon;
 use Livewire\Component;
 use Illuminate\Support\Str;
@@ -56,6 +57,7 @@ class HardwareV2PendingInternalInstallationTable extends Component implements Ha
 {
     use InteractsWithTable;
     use InteractsWithForms;
+    use InteractsWithActions;
 
     protected static ?int $indexRepeater = 0;
     protected static ?int $indexRepeater2 = 0;
@@ -123,7 +125,6 @@ class HardwareV2PendingInternalInstallationTable extends Component implements Ha
             ->poll('300s')
             ->query($this->getNewHardwareHandovers())
             ->defaultSort('created_at', 'desc')
-            ->allowsReordering()
             ->emptyState(fn () => view('components.empty-state-question'))
             ->defaultPaginationPageOption(5)
             ->paginated([5])
@@ -163,11 +164,18 @@ class HardwareV2PendingInternalInstallationTable extends Component implements Ha
                     ->options(function () {
                         return User::where('role_id', '2')
                             ->whereNot('id', 15) // Exclude Testing Account
-                            ->pluck('name', 'name')
+                            ->pluck('name', 'id')
                             ->toArray();
                     })
                     ->placeholder('All Salesperson')
-                    ->multiple(),
+                    ->multiple()
+                    ->query(function ($query, array $data) {
+                        if (filled($data['values'])) {
+                            $query->whereHas('lead', function ($query) use ($data) {
+                                $query->whereIn('salesperson', $data['values']);
+                            });
+                        }
+                    }),
 
                 SelectFilter::make('implementer')
                     ->label('Filter by Implementer')
@@ -278,32 +286,40 @@ class HardwareV2PendingInternalInstallationTable extends Component implements Ha
 
                 TextColumn::make('installation_type')
                     ->label('Type')
-                    ->formatStateUsing(fn (string $state): string => match($state) {
-                        'external_installation' => 'External Installation',
-                        'internal_installation' => 'Internal Installation',
-                        'self_pick_up' => 'Pick-Up',
-                        'courier' => 'Courier',
-                        default => ucfirst($state ?? 'Unknown')
+                    ->formatStateUsing(function (string $state): string {
+                        return match($state) {
+                            'external_installation' => 'External Installation',
+                            'internal_installation' => 'Internal Installation',
+                            'self_pick_up' => 'Pick-Up',
+                            'courier' => 'Courier',
+                            default => ucfirst($state ?? 'Unknown')
+                        };
                     }),
 
                 TextColumn::make('status')
                     ->label('Status')
-                    ->formatStateUsing(fn (string $state): HtmlString => match ($state) {
-                        'New' => new HtmlString('<span style="color: blue;">New</span>'),
-                        'Approved' => new HtmlString('<span style="color: green;">Approved</span>'),
-                        'Pending Stock' => new HtmlString('<span style="color: orange;">Pending Stock</span>'),
-                        'Pending Migration' => new HtmlString('<span style="color: purple;">Pending Migration</span>'),
-                        default => new HtmlString('<span>' . ucfirst($state) . '</span>'),
+                    ->formatStateUsing(function (string $state): HtmlString {
+                        return match ($state) {
+                            'New' => new HtmlString('<span style="color: blue;">New</span>'),
+                            'Approved' => new HtmlString('<span style="color: green;">Approved</span>'),
+                            'Pending Stock' => new HtmlString('<span style="color: orange;">Pending Stock</span>'),
+                            'Pending Migration' => new HtmlString('<span style="color: purple;">Pending Migration</span>'),
+                            default => new HtmlString('<span>' . ucfirst($state) . '</span>'),
+                        };
                     }),
 
                 TextColumn::make('updated_at')
                     ->label('Last Modified')
                     ->dateTime('d M Y H:i')
-                    ->sortable()
-                    ->getStateUsing(function (HardwareHandoverV2 $record) {
-                        return $record->updated_at;
-                    }),
+                    ->sortable(),
             ])
+            ->recordClasses(fn (HardwareHandoverV2 $record) =>
+                match(true) {
+                    (bool)($record->part_2_completed) => 'success',
+                    (bool)($record->part_1_completed) && !($record->part_2_completed) => 'warning',
+                    default => null
+                }
+            )
             ->actions([
                 ActionGroup::make([
                     Action::make('view')
@@ -1022,6 +1038,81 @@ class HardwareV2PendingInternalInstallationTable extends Component implements Ha
                         ->visible(fn (HardwareHandoverV2 $record): bool =>
                             $record->status === 'Pending: Internal Installation' && auth()->user()->role_id !== 2
                         ),
+
+                    Action::make('completed_part_1')
+                        ->label('Completed Part 1')
+                        ->icon('heroicon-o-check-badge')
+                        ->color('warning')
+                        ->visible(fn (HardwareHandoverV2 $record): bool =>
+                            $record->status === 'Pending: Internal Installation' &&
+                            !($record->part_1_completed ?? false) &&
+                            auth()->user()->role_id !== 2
+                        )
+                        ->action(function (HardwareHandoverV2 $record): void {
+                            try {
+                                $record->update([
+                                    'part_1_completed' => true,
+                                    'part_1_completed_at' => now(),
+                                    'part_1_completed_by' => auth()->id(),
+                                ]);
+
+                                Notification::make()
+                                    ->title('Part 1 Completed')
+                                    ->body('Part 1 has been marked as completed. Part 2 is now available.')
+                                    ->success()
+                                    ->send();
+
+                                // Refresh the table to update the UI
+                                $this->resetTable();
+
+                            } catch (\Exception $e) {
+                                Log::error("Error marking Part 1 as completed for handover {$record->id}: " . $e->getMessage());
+
+                                Notification::make()
+                                    ->title('Error')
+                                    ->body('Failed to complete Part 1. Please try again.')
+                                    ->danger()
+                                    ->send();
+                            }
+                        }),
+
+                    Action::make('completed_part_2')
+                        ->label('Completed Part 2')
+                        ->icon('heroicon-o-check-badge')
+                        ->color('success')
+                        ->visible(fn (HardwareHandoverV2 $record): bool =>
+                            $record->status === 'Pending: Internal Installation' &&
+                            ($record->part_1_completed ?? false) &&
+                            !($record->part_2_completed ?? false) &&
+                            auth()->user()->role_id !== 2
+                        )
+                        ->action(function (HardwareHandoverV2 $record): void {
+                            try {
+                                $record->update([
+                                    'part_2_completed' => true,
+                                    'part_2_completed_at' => now(),
+                                    'part_2_completed_by' => auth()->id(),
+                                ]);
+
+                                Notification::make()
+                                    ->title('Installation Completed')
+                                    ->body('Both parts have been completed. Internal installation process is now complete.')
+                                    ->success()
+                                    ->send();
+
+                                // Refresh the table to update the UI
+                                $this->resetTable();
+
+                            } catch (\Exception $e) {
+                                Log::error("Error marking Part 2 as completed for handover {$record->id}: " . $e->getMessage());
+
+                                Notification::make()
+                                    ->title('Error')
+                                    ->body('Failed to complete Part 2. Please try again.')
+                                    ->danger()
+                                    ->send();
+                            }
+                        }),
                 ])->button()
             ]);
     }

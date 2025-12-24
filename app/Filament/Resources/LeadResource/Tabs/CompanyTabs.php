@@ -91,7 +91,13 @@ class CompanyTabs
                                                     return $isOlderThan30Days && !$isAdmin ?
                                                         'Company name cannot be changed after 30 days. Please ask for Faiz on this issue.' : '';
                                                 })
-                                                ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()']);
+                                                ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()'])
+                                                ->rules([
+                                                    'regex:/^[^.]*$/',
+                                                ])
+                                                ->validationMessages([
+                                                    'regex' => 'Company name cannot contain periods (.)',
+                                                ]);
 
                                             $schema[] = Grid::make(2)
                                                 ->schema([

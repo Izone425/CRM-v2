@@ -157,11 +157,18 @@ class HardwareV2CompletedCourierTable extends Component implements HasForms, Has
                     ->options(function () {
                         return User::where('role_id', '2')
                             ->whereNot('id', 15) // Exclude Testing Account
-                            ->pluck('name', 'name')
+                            ->pluck('name', 'id')
                             ->toArray();
                     })
                     ->placeholder('All Salesperson')
-                    ->multiple(),
+                    ->multiple()
+                    ->query(function ($query, array $data) {
+                        if (filled($data['values'])) {
+                            $query->whereHas('lead', function ($query) use ($data) {
+                                $query->whereIn('salesperson', $data['values']);
+                            });
+                        }
+                    }),
 
                 SelectFilter::make('implementer')
                     ->label('Filter by Implementer')

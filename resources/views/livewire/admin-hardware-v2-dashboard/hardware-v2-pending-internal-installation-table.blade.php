@@ -1,4 +1,19 @@
 <div class="p-4 bg-white rounded-lg shadow-lg" style="height: auto;" x-data="{ showRefresh: false }" @mouseenter="showRefresh = true" @mouseleave="showRefresh = false">
+    <style>
+        .fi-ta-row.success {
+            background-color: #d4edda !important;
+        }
+        .fi-ta-row.warning {
+            background-color: #fff3cd !important;
+        }
+        /* Hover effects */
+        .fi-ta-row.success:hover {
+            background-color: #c3e6cb !important;
+        }
+        .fi-ta-row.warning:hover {
+            background-color: #ffeaa7 !important;
+        }
+    </style>
     <div class="flex items-center justify-between">
         <div class="flex items-center space-x-2">
             <h3 class="text-lg font-bold">

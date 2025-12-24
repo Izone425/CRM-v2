@@ -10,6 +10,7 @@ use App\Models\HardwareHandoverV2;
 use App\Models\Lead;
 use App\Models\User;
 use App\Services\CategoryService;
+use Filament\Actions\Concerns\InteractsWithActions;
 use Filament\Forms\Components\Actions;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Grid;
@@ -51,6 +52,7 @@ class HardwareV2PendingAdminSelfPickUpTable extends Component implements HasForm
 {
     use InteractsWithTable;
     use InteractsWithForms;
+    use InteractsWithActions;
 
     protected static ?int $indexRepeater = 0;
     protected static ?int $indexRepeater2 = 0;
@@ -158,11 +160,18 @@ class HardwareV2PendingAdminSelfPickUpTable extends Component implements HasForm
                     ->options(function () {
                         return User::where('role_id', '2')
                             ->whereNot('id', 15) // Exclude Testing Account
-                            ->pluck('name', 'name')
+                            ->pluck('name', 'id')
                             ->toArray();
                     })
                     ->placeholder('All Salesperson')
-                    ->multiple(),
+                    ->multiple()
+                    ->query(function ($query, array $data) {
+                        if (filled($data['values'])) {
+                            $query->whereHas('lead', function ($query) use ($data) {
+                                $query->whereIn('salesperson', $data['values']);
+                            });
+                        }
+                    }),
 
                 SelectFilter::make('implementer')
                     ->label('Filter by Implementer')
@@ -298,6 +307,9 @@ class HardwareV2PendingAdminSelfPickUpTable extends Component implements HasForm
                     ->dateTime('d M Y H:i')
                     ->sortable(),
             ])
+            ->recordClasses(fn (HardwareHandoverV2 $record) =>
+                (bool)($record->part_1_completed) ? 'warning' : null
+            )
             ->actions([
                 ActionGroup::make([
                     Action::make('view')
@@ -382,6 +394,43 @@ class HardwareV2PendingAdminSelfPickUpTable extends Component implements HasForm
                         ->visible(fn (HardwareHandoverV2 $record): bool =>
                             $record->status === 'Pending Admin: Self Pick-Up' && auth()->user()->role_id !== 2
                         ),
+
+                    Action::make('completed_part_1')
+                        ->label('Completed Part 1')
+                        ->icon('heroicon-o-check-badge')
+                        ->color('warning')
+                        ->visible(fn (HardwareHandoverV2 $record): bool =>
+                            $record->status === 'Pending Admin: Self Pick-Up' &&
+                            !($record->part_1_completed ?? false) &&
+                            auth()->user()->role_id !== 2
+                        )
+                        ->action(function (HardwareHandoverV2 $record): void {
+                            try {
+                                $record->update([
+                                    'part_1_completed' => true,
+                                    'part_1_completed_at' => now(),
+                                    'part_1_completed_by' => auth()->id(),
+                                ]);
+
+                                Notification::make()
+                                    ->title('Part 1 Completed')
+                                    ->body('Part 1 has been marked as completed.')
+                                    ->success()
+                                    ->send();
+
+                                // Refresh the table to update the UI
+                                $this->resetTable();
+
+                            } catch (\Exception $e) {
+                                Log::error("Error marking Part 1 as completed for handover {$record->id}: " . $e->getMessage());
+
+                                Notification::make()
+                                    ->title('Error')
+                                    ->body('Failed to complete Part 1. Please try again.')
+                                    ->danger()
+                                    ->send();
+                            }
+                        }),
                 ])->button()
             ]);
     }
