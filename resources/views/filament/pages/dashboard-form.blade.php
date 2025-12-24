@@ -154,6 +154,44 @@
             $followUpAllMYR = 0;
         }
 
+        // Admin Renewal Follow Up Counts MYR (Non-Reseller)
+        $followUpTodayMYRNonReseller = 0;
+        $followUpOverdueMYRNonReseller = 0;
+        $followUpFutureMYRNonReseller = 0;
+        $followUpAllMYRNonReseller = 0;
+
+        try {
+            $followUpTodayMYRNonReseller = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpTodayMyrNonReseller::class)
+                ->getTodayRenewals()
+                ->count();
+        } catch (Exception $e) {
+            $followUpTodayMYRNonReseller = 0;
+        }
+
+        try {
+            $followUpOverdueMYRNonReseller = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpOverdueMyrNonReseller::class)
+                ->getOverdueRenewals()
+                ->count();
+        } catch (Exception $e) {
+            $followUpOverdueMYRNonReseller = 0;
+        }
+
+        try {
+            $followUpFutureMYRNonReseller = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpUpcomingMyrNonReseller::class)
+                ->getIncomingRenewals()
+                ->count();
+        } catch (Exception $e) {
+            $followUpFutureMYRNonReseller = 0;
+        }
+
+        try {
+            $followUpAllMYRNonReseller = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpAllMyrNonReseller::class)
+                ->getOverdueRenewals()
+                ->count();
+        } catch (Exception $e) {
+            $followUpAllMYRNonReseller = 0;
+        }
+
         // Admin Renewal Follow Up Counts USD
         $followUpTodayUSD = 0;
         $followUpOverdueUSD = 0;
@@ -190,6 +228,44 @@
                 ->count();
         } catch (Exception $e) {
             $followUpAllUSD = 0;
+        }
+
+        // Admin Renewal Follow Up Counts USD (Non-Reseller)
+        $followUpTodayUSDNonReseller = 0;
+        $followUpOverdueUSDNonReseller = 0;
+        $followUpFutureUSDNonReseller = 0;
+        $followUpAllUSDNonReseller = 0;
+
+        try {
+            $followUpTodayUSDNonReseller = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpTodayUsdNonReseller::class)
+                ->getTodayRenewals()
+                ->count();
+        } catch (Exception $e) {
+            $followUpTodayUSDNonReseller = 0;
+        }
+
+        try {
+            $followUpOverdueUSDNonReseller = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpOverdueUsdNonReseller::class)
+                ->getOverdueRenewals()
+                ->count();
+        } catch (Exception $e) {
+            $followUpOverdueUSDNonReseller = 0;
+        }
+
+        try {
+            $followUpFutureUSDNonReseller = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpUpcomingUsdNonReseller::class)
+                ->getIncomingRenewals()
+                ->count();
+        } catch (Exception $e) {
+            $followUpFutureUSDNonReseller = 0;
+        }
+
+        try {
+            $followUpAllUSDNonReseller = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpAllUsdNonReseller::class)
+                ->getOverdueRenewals()
+                ->count();
+        } catch (Exception $e) {
+            $followUpAllUSDNonReseller = 0;
         }
 
         // Admin Renewal Follow Up Counts MYR V2 (Pending Payment)
@@ -230,6 +306,44 @@
             $followUpAllMYRv2 = 0;
         }
 
+        // Admin Renewal Follow Up Counts MYR V2 (Non-Reseller - Pending Payment)
+        $followUpTodayMYRv2NonReseller = 0;
+        $followUpOverdueMYRv2NonReseller = 0;
+        $followUpFutureMYRv2NonReseller = 0;
+        $followUpAllMYRv2NonReseller = 0;
+
+        try {
+            $followUpTodayMYRv2NonReseller = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpTodayMyrV2NonReseller::class)
+                ->getTodayRenewals()
+                ->count();
+        } catch (Exception $e) {
+            $followUpTodayMYRv2NonReseller = 0;
+        }
+
+        try {
+            $followUpOverdueMYRv2NonReseller = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpOverdueMyrV2NonReseller::class)
+                ->getOverdueRenewals()
+                ->count();
+        } catch (Exception $e) {
+            $followUpOverdueMYRv2NonReseller = 0;
+        }
+
+        try {
+            $followUpFutureMYRv2NonReseller = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpUpcomingMyrV2NonReseller::class)
+                ->getIncomingRenewals()
+                ->count();
+        } catch (Exception $e) {
+            $followUpFutureMYRv2NonReseller = 0;
+        }
+
+        try {
+            $followUpAllMYRv2NonReseller = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpAllMyrV2NonReseller::class)
+                ->getOverdueRenewals()
+                ->count();
+        } catch (Exception $e) {
+            $followUpAllMYRv2NonReseller = 0;
+        }
+
         // Admin Renewal Follow Up Counts USD V2 (Pending Payment)
         $followUpTodayUSDv2 = 0;
         $followUpOverdueUSDv2 = 0;
@@ -268,11 +382,65 @@
             $followUpAllUSDv2 = 0;
         }
 
+        // Admin Renewal Follow Up Counts USD V2 (Non-Reseller - Pending Payment)
+        $followUpTodayUSDv2NonReseller = 0;
+        $followUpOverdueUSDv2NonReseller = 0;
+        $followUpFutureUSDv2NonReseller = 0;
+        $followUpAllUSDv2NonReseller = 0;
+
+        try {
+            $followUpTodayUSDv2NonReseller = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpTodayUsdV2NonReseller::class)
+                ->getTodayRenewals()
+                ->count();
+        } catch (Exception $e) {
+            $followUpTodayUSDv2NonReseller = 0;
+        }
+
+        try {
+            $followUpOverdueUSDv2NonReseller = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpOverdueUsdV2NonReseller::class)
+                ->getOverdueRenewals()
+                ->count();
+        } catch (Exception $e) {
+            $followUpOverdueUSDv2NonReseller = 0;
+        }
+
+        try {
+            $followUpFutureUSDv2NonReseller = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpUpcomingUsdV2NonReseller::class)
+                ->getIncomingRenewals()
+                ->count();
+        } catch (Exception $e) {
+            $followUpFutureUSDv2NonReseller = 0;
+        }
+
+        try {
+            $followUpAllUSDv2NonReseller = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpAllUsdV2NonReseller::class)
+                ->getOverdueRenewals()
+                ->count();
+        } catch (Exception $e) {
+            $followUpAllUSDv2NonReseller = 0;
+        }
+
         $adminGeneralTotal = \App\Models\InternalTicket::where('status', 'new')->count();
 
-        // Calculate totals for both currencies with error handling
+        // Calculate separate totals for reseller vs non-reseller
         try {
-            $adminRenewalFollowUp = $followUpTodayMYR + $followUpOverdueMYR + $followUpTodayMYRv2 + $followUpOverdueMYRv2;
+            // Reseller totals (only reseller companies)
+            $adminRenewalFollowUpReseller = $followUpTodayMYR + $followUpOverdueMYR + $followUpTodayMYRv2 + $followUpOverdueMYRv2;
+        } catch (Exception $e) {
+            $adminRenewalFollowUpReseller = 0;
+        }
+
+        try {
+            // Non-reseller totals (end user companies)
+            $adminRenewalFollowUpNonReseller = $followUpTodayMYRNonReseller + $followUpOverdueMYRNonReseller + 
+                                             $followUpTodayMYRv2NonReseller + $followUpOverdueMYRv2NonReseller;
+        } catch (Exception $e) {
+            $adminRenewalFollowUpNonReseller = 0;
+        }
+
+        // Total for main admin badge (both reseller and non-reseller)  
+        try {
+            $adminRenewalFollowUp = $adminRenewalFollowUpReseller + $adminRenewalFollowUpNonReseller;
         } catch (Exception $e) {
             $adminRenewalFollowUp = 0;
         }
@@ -1006,7 +1174,7 @@
                                                 border: none;
                                                 border-radius: 20px;
                                                 background: {{ in_array($currentDashboard, ['MainAdminDashboard','SoftwareAdmin', 'SoftwareAdminV2', 'HardwareAdmin', 'HardwareAdminV2', 'AdminRepair', 'AdminRenewalv1', 'AdminRenewalEndUser', 'AdminRenewalv2', 'AdminHRDF', 'AdminHRDFAttLog', 'AdminHeadcount', 'AdminGeneral']) ? '#431fa1' : 'transparent' }};
-                                                color: {{ in_array($currentDashboard, ['MainAdminDashboard','SoftwareAdmin','SoftwareAdminV2', 'HardwareAdmin', 'HardwareAdminV2', 'AdminRepair', 'AdminRenewalv1', 'AdminRenewalv2', 'AdminHRDF', 'AdminHRDFAttLog', 'AdminHeadcount', 'AdminGeneral']) ? '#ffffff' : '#555' }};
+                                                color: {{ in_array($currentDashboard, ['MainAdminDashboard','SoftwareAdmin','SoftwareAdminV2', 'HardwareAdmin', 'HardwareAdminV2', 'AdminRepair', 'AdminRenewalv1', 'AdminRenewalEndUser', 'AdminRenewalv2', 'AdminHRDF', 'AdminHRDFAttLog', 'AdminHeadcount', 'AdminGeneral']) ? '#ffffff' : '#555' }};
                                                 cursor: pointer;
                                                 display: flex;
                                                 align-items: center;
@@ -1438,7 +1606,7 @@
                                                     </svg>
                                                     Loading...
                                                 </span>
-                                                @if($adminRenewalFollowUp > 0)
+                                                @if($adminRenewalFollowUpReseller > 0)
                                                     <span style="
                                                         background: #ef4444;
                                                         color: white;
@@ -1448,7 +1616,7 @@
                                                         font-weight: bold;
                                                         min-width: 20px;
                                                         text-align: center;
-                                                    ">{{ $adminRenewalFollowUp }}</span>
+                                                    ">{{ $adminRenewalFollowUpReseller }}</span>
                                                 @endif
                                             </button>
 
@@ -1457,13 +1625,14 @@
                                                 wire:loading.attr="disabled"
                                                 wire:loading.class="opacity-50"
                                                 style="
-                                                    display: block;
+                                                    display: flex;
+                                                    justify-content: space-between;
+                                                    align-items: center;
                                                     width: 100%;
                                                     padding: 10px 16px;
                                                     text-align: left;
                                                     border: none;
                                                     background: {{ $currentDashboard === 'AdminRenewalEndUser' ? '#f3f3f3' : 'white' }};
-                                                    cursor: pointer;
                                                     font-size: 14px;
                                                 "
                                             >
@@ -1475,6 +1644,18 @@
                                                     </svg>
                                                     Loading...
                                                 </span>
+                                                @if($adminRenewalFollowUpNonReseller > 0)
+                                                    <span style="
+                                                        background: #ef4444;
+                                                        color: white;
+                                                        border-radius: 12px;
+                                                        padding: 2px 8px;
+                                                        font-size: 12px;
+                                                        font-weight: bold;
+                                                        min-width: 20px;
+                                                        text-align: center;
+                                                    ">{{ $adminRenewalFollowUpNonReseller }}</span>
+                                                @endif
                                             </button>
                                         </div>
                                     </div>

@@ -356,8 +356,7 @@ class SoftwareResource extends Resource
                             WHERE implementer_appointments.software_handover_id = software_handovers.id
                             AND implementer_appointments.status = "Cancelled"
                         ) as cancel_session_count')
-                    ])
-                    ->orderBy('id', 'desc');
+                    ]);
 
                 // if (auth()->user()->role_id === 2) {
                 //     $userId = auth()->id();
@@ -366,6 +365,7 @@ class SoftwareResource extends Resource
                 //     });
                 // }
             })
+            ->defaultSort('id', 'desc')
             ->defaultPaginationPageOption(50) // Set default pagination to 50 records per page
             ->paginationPageOptions([25, 50]) // Customize pagination options
             ->columns([
@@ -450,6 +450,16 @@ class SoftwareResource extends Resource
 
                         return Color::hex("#000000");
                     }),
+
+                TextColumn::make('state')
+                    ->label('State')
+                    ->getStateUsing(function ($record) {
+                        if ($record->lead && $record->lead->companyDetail) {
+                            return $record->lead->companyDetail->state;
+                        }
+                        return '-';
+                    })
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('salesperson')
                     ->label('SalesPerson'),
@@ -578,6 +588,7 @@ class SoftwareResource extends Resource
                     ->toggleable(),
                 TextColumn::make('headcount')
                     ->label('Headcount')
+                    ->sortable()
                     ->toggleable(),
                 TextColumn::make('completed_at')
                     ->label('DB Creation')
@@ -926,6 +937,27 @@ class SoftwareResource extends Resource
                         'Closed' => 'Closed',
                     ]),
 
+                // State filter
+                Tables\Filters\SelectFilter::make('state')
+                    ->label('State')
+                    ->options(function () {
+                        return \App\Models\CompanyDetail::whereNotNull('state')
+                            ->where('state', '!=', '')
+                            ->orderBy('state')
+                            ->pluck('state', 'state')
+                            ->toArray();
+                    })
+                    ->query(function (Builder $query, array $data) {
+                        if (empty($data['value'])) {
+                            return $query;
+                        }
+
+                        return $query->whereHas('lead.companyDetail', function ($subQuery) use ($data) {
+                            $subQuery->where('state', $data['value']);
+                        });
+                    })
+                    ->searchable(),
+
                 // Company size filter
                 Filter::make('company_size')
                     ->form([
@@ -937,6 +969,7 @@ class SoftwareResource extends Resource
                                 'Large' => 'Large (100-500)',
                                 'Enterprise' => 'Enterprise (501+)',
                             ])
+                            ->multiple()
                             ->searchable()
                             ->placeholder('Select company size'),
                     ])
@@ -945,21 +978,25 @@ class SoftwareResource extends Resource
                             return;
                         }
 
-                        // Apply different headcount filters based on selected company size
-                        switch ($data['company_size']) {
-                            case 'Small':
-                                $query->whereBetween('headcount', [1, 24]);
-                                break;
-                            case 'Medium':
-                                $query->whereBetween('headcount', [25, 99]);
-                                break;
-                            case 'Large':
-                                $query->whereBetween('headcount', [100, 500]);
-                                break;
-                            case 'Enterprise':
-                                $query->where('headcount', '>=', 501);
-                                break;
-                        }
+                        // Handle multiple company size selections
+                        $query->where(function ($subQuery) use ($data) {
+                            foreach ($data['company_size'] as $size) {
+                                switch ($size) {
+                                    case 'Small':
+                                        $subQuery->orWhereBetween('headcount', [1, 24]);
+                                        break;
+                                    case 'Medium':
+                                        $subQuery->orWhereBetween('headcount', [25, 99]);
+                                        break;
+                                    case 'Large':
+                                        $subQuery->orWhereBetween('headcount', [100, 500]);
+                                        break;
+                                    case 'Enterprise':
+                                        $subQuery->orWhere('headcount', '>=', 501);
+                                        break;
+                                }
+                            }
+                        });
                     }),
             ])
             ->filtersFormColumns(1)
