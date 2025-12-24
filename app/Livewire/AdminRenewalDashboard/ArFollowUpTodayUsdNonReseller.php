@@ -26,13 +26,12 @@ use Illuminate\Support\HtmlString;
 use Livewire\Attributes\On;
 use Livewire\Component;
 
-class ArFollowUpTodayUsd extends Component implements HasForms, HasTable
+class ArFollowUpTodayUsdNonReseller extends Component implements HasForms, HasTable
 {
     use InteractsWithForms;
     use InteractsWithTable;
 
     public $selectedUser;
-
     public $lastRefreshTime;
 
     public function mount()
@@ -99,8 +98,8 @@ class ArFollowUpTodayUsd extends Component implements HasForms, HasTable
             ->where('follow_up_counter', true)
             ->where('mapping_status', 'completed_mapping')
             ->whereIn('renewal_progress', ['pending_confirmation'])
-            // Only show records that have a reseller
-            ->whereExists(function ($query) {
+            // Only show records that do NOT have a reseller
+            ->whereNotExists(function ($query) {
                 $query->select(DB::raw(1))
                     ->from('frontenddb.crm_reseller_link')
                     ->whereRaw('crm_reseller_link.f_company_id = renewals.f_company_id');
@@ -228,6 +227,7 @@ class ArFollowUpTodayUsd extends Component implements HasForms, HasTable
                 TextColumn::make('earliest_expiry_date')
                     ->label('Expiry Date')
                     ->default('N/A')
+                    ->sortable()
                     ->formatStateUsing(function ($state, $record) {
 
                         return Carbon::parse(self::getEarliestExpiryDate($record->f_company_id))->format('d M Y') ?? 'N/A';
@@ -237,12 +237,11 @@ class ArFollowUpTodayUsd extends Component implements HasForms, HasTable
                     ->label('Pending Days')
                     ->alignCenter()
                     ->sortable()
-                    ->default('0')
-                    ->formatStateUsing(fn ($state) => $state.' '.($state == 0 ? 'Day' : 'Days')),
+                    ->formatStateUsing(fn ($record) => $this->getWeekdayCount($record->follow_up_date, now()).' days')
+                    ->color(fn ($record) => $this->getWeekdayCount($record->follow_up_date, now()) == 0 ? 'draft' : 'danger'),
 
                 TextColumn::make('follow_up_date')
                     ->label('Follow Up Date')
-                    ->sortable()
                     ->date('d M Y'),
             ])
             ->actions([
@@ -250,6 +249,7 @@ class ArFollowUpTodayUsd extends Component implements HasForms, HasTable
                     AdminRenewalActions::viewAction(),
                     AdminRenewalActions::viewLastFollowUpAction(),
                     AdminRenewalActions::viewProcessDataAction(),
+
                     AdminRenewalActions::addAdminRenewalFollowUp()
                         ->action(function (Renewal $record, array $data) {
                             AdminRenewalActions::processFollowUpWithEmail($record, $data);
@@ -258,15 +258,28 @@ class ArFollowUpTodayUsd extends Component implements HasForms, HasTable
                 ])
                 ->button()
                 ->color('info') // Blue color for USD
-                ->label('Actions')
-                    ->button()
-                    ->color('warning')
-                    ->label('Actions'),
+                ->label('Actions'),
             ]);
     }
 
     public function render()
     {
-        return view('livewire.admin_renewal_dashboard.ar-follow-up-today-usd');
+        return view('livewire.admin_renewal_dashboard.ar-follow-up-today-usd-non-reseller');
+    }
+
+    private function getWeekdayCount($startDate, $endDate)
+    {
+        $weekdayCount = 0;
+        $currentDate = Carbon::parse($startDate);
+        $endDate = Carbon::parse($endDate);
+
+        while ($currentDate->lte($endDate)) {
+            if (! $currentDate->isWeekend()) {
+                $weekdayCount++;
+            }
+            $currentDate->addDay();
+        }
+
+        return $weekdayCount;
     }
 }

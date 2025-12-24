@@ -99,6 +99,12 @@ class ArFollowUpUpcomingUsdV2 extends Component implements HasForms, HasTable
             ->where('follow_up_counter', true)
             ->where('mapping_status', 'completed_mapping')
             ->whereIn('renewal_progress', ['pending_payment'])
+            // Only show records that have a reseller
+            ->whereExists(function ($query) {
+                $query->select(DB::raw(1))
+                    ->from('frontenddb.crm_reseller_link')
+                    ->whereRaw('crm_reseller_link.f_company_id = renewals.f_company_id');
+            })
             ->selectRaw('*,
                 DATEDIFF(NOW(), follow_up_date) as pending_days,
                 (SELECT MIN(f_expiry_date) FROM frontenddb.crm_expiring_license

@@ -7,9 +7,9 @@ use App\Filament\Filters\SortFilter;
 use App\Filament\Pages\RenewalDataMyr;
 use App\Models\AdminRenewalLogs;
 use App\Models\CompanyDetail;
+use App\Models\Lead;
 use App\Models\Renewal;
 use App\Models\User;
-use Carbon\Carbon;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Notifications\Notification;
@@ -20,13 +20,15 @@ use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\HtmlString;
+use Illuminate\Support\Str;
 use Livewire\Attributes\On;
 use Livewire\Component;
 
-class ArFollowUpTodayUsd extends Component implements HasForms, HasTable
+class ArFollowUpOverdueUsdNonReseller extends Component implements HasForms, HasTable
 {
     use InteractsWithForms;
     use InteractsWithTable;
@@ -72,7 +74,7 @@ class ArFollowUpTodayUsd extends Component implements HasForms, HasTable
         $this->resetTable();
     }
 
-    public function getTodayRenewals()
+    public function getOverdueRenewals()
     {
         $this->selectedUser = $this->selectedUser ?? session('selectedUser') ?? auth()->user()->id;
 
@@ -95,12 +97,12 @@ class ArFollowUpTodayUsd extends Component implements HasForms, HasTable
 
         $query = Renewal::query()
             ->whereIn('f_company_id', $usdCompanyIds)
-            ->whereDate('follow_up_date', today())
+            ->whereDate('follow_up_date', '<', today())
             ->where('follow_up_counter', true)
             ->where('mapping_status', 'completed_mapping')
             ->whereIn('renewal_progress', ['pending_confirmation'])
-            // Only show records that have a reseller
-            ->whereExists(function ($query) {
+            // Only show records that do NOT have a reseller
+            ->whereNotExists(function ($query) {
                 $query->select(DB::raw(1))
                     ->from('frontenddb.crm_reseller_link')
                     ->whereRaw('crm_reseller_link.f_company_id = renewals.f_company_id');
@@ -157,7 +159,7 @@ class ArFollowUpTodayUsd extends Component implements HasForms, HasTable
     {
         return $table
             ->poll('300s')
-            ->query($this->getTodayRenewals())
+            ->query($this->getOverdueRenewals())
             ->emptyState(fn () => view('components.empty-state-question'))
             ->defaultPaginationPageOption(5)
             ->paginated([5])
@@ -183,10 +185,6 @@ class ArFollowUpTodayUsd extends Component implements HasForms, HasTable
                     ->multiple(),
             ])
             ->columns([
-                TextColumn::make('admin_renewal')
-                    ->label('Admin Renewal')
-                    ->visible(fn (): bool => auth()->user()->role_id !== 3),
-
                 TextColumn::make('company_name')
                     ->label('Company Name')
                     ->searchable()
@@ -237,8 +235,8 @@ class ArFollowUpTodayUsd extends Component implements HasForms, HasTable
                     ->label('Pending Days')
                     ->alignCenter()
                     ->sortable()
-                    ->default('0')
-                    ->formatStateUsing(fn ($state) => $state.' '.($state == 0 ? 'Day' : 'Days')),
+                    ->formatStateUsing(fn ($record) => $this->getWeekdayCount($record->follow_up_date, now()).' days')
+                    ->color(fn ($record) => $this->getWeekdayCount($record->follow_up_date, now()) == 0 ? 'draft' : 'danger'),
 
                 TextColumn::make('follow_up_date')
                     ->label('Follow Up Date')
@@ -250,6 +248,7 @@ class ArFollowUpTodayUsd extends Component implements HasForms, HasTable
                     AdminRenewalActions::viewAction(),
                     AdminRenewalActions::viewLastFollowUpAction(),
                     AdminRenewalActions::viewProcessDataAction(),
+
                     AdminRenewalActions::addAdminRenewalFollowUp()
                         ->action(function (Renewal $record, array $data) {
                             AdminRenewalActions::processFollowUpWithEmail($record, $data);
@@ -257,16 +256,29 @@ class ArFollowUpTodayUsd extends Component implements HasForms, HasTable
                         }),
                 ])
                 ->button()
-                ->color('info') // Blue color for USD
+                ->color('info') // Changed from warning to info
                 ->label('Actions')
-                    ->button()
-                    ->color('warning')
-                    ->label('Actions'),
             ]);
     }
 
     public function render()
     {
-        return view('livewire.admin_renewal_dashboard.ar-follow-up-today-usd');
+        return view('livewire.admin_renewal_dashboard.ar-follow-up-overdue-usd-non-reseller');
+    }
+
+    private function getWeekdayCount($startDate, $endDate)
+    {
+        $weekdayCount = 0;
+        $currentDate = Carbon::parse($startDate);
+        $endDate = Carbon::parse($endDate);
+
+        while ($currentDate->lte($endDate)) {
+            if (! $currentDate->isWeekend()) {
+                $weekdayCount++;
+            }
+            $currentDate->addDay();
+        }
+
+        return $weekdayCount;
     }
 }

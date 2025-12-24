@@ -123,8 +123,8 @@ class UpdateUserLeave extends Command
                             'day_of_week' => Carbon::parse($leaveRecord['date'])->dayOfWeekIso,
                             'status' => $leaveRecord['status'],
                             'session' => $session,
-                            'start_time' => $leaveRecord['startTime'] ?: null,
-                            'end_time' => $leaveRecord['endTime'] ?: null,
+                            'start_time' => $session === 'full' ? '00:00:00' : ($leaveRecord['startTime'] ?: null),
+                            'end_time' => $session === 'full' ? '00:00:00' : ($leaveRecord['endTime'] ?: null),
                         ];
 
                         if ($existingLeave) {

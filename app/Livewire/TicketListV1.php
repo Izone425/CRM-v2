@@ -75,17 +75,21 @@ class TicketListV1 extends Component implements HasTable, HasForms, HasActions
                     ->searchable()
                     ->sortable()
                     ->default('Unknown User')
-                    ->formatStateUsing(fn ($state) => $state ?? 'Unknown User'),
+                    ->formatStateUsing(fn ($state) => substr($state ?? 'Unknown User', 0, 15)),
 
                 Tables\Columns\TextColumn::make('company_name')
                     ->label('Company')
                     ->searchable()
                     ->sortable()
-                    ->formatStateUsing(fn ($state) => strtoupper($state)),
+                    ->formatStateUsing(fn ($state) => strtoupper(substr($state ?? '', 0, 15))),
 
                 Tables\Columns\TextColumn::make('product.name')
                     ->label('Product')
-                    ->default('N/A'),
+                    ->default('N/A')
+                    ->formatStateUsing(fn ($state) =>
+                        $state === 'TimeTec HR - Version 1' ? 'V1' :
+                        ($state === 'TimeTec HR - Version 2' ? 'V2' : $state)
+                    ),
 
                 Tables\Columns\TextColumn::make('module.name')
                     ->label('Module')
