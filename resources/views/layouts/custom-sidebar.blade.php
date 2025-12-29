@@ -663,7 +663,7 @@
                     </div>
                 @endif
 
-                @if(auth()->user()->role_id === 8 || auth()->user()->role_id === 3 || auth()->user()->role_id === 5 || auth()->user()->id == 35)
+                @if(auth()->user()->role_id === 8 || auth()->user()->role_id === 3 || auth()->user()->role_id === 5 || in_array(auth()->user()->id, [35, 41, 17, 24]))
                     <div class="icon-link" data-section="support">
                         <div class="icon-wrapper">
                             <i class="bi bi-headset icon"></i>

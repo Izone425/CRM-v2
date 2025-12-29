@@ -91,8 +91,7 @@ class ImplementerSessionPending extends Component implements HasForms, HasTable
             }
         }
 
-        return $query->orderBy('date', 'asc')
-                ->orderBy('start_time', 'asc');
+        return $query;
     }
 
     public function table(Table $table): Table
@@ -167,7 +166,7 @@ class ImplementerSessionPending extends Component implements HasForms, HasTable
                 ->color('primary')
                 ->button(),
             ])
-            ->defaultSort('date', 'asc')
+            ->defaultSort('date', 'desc')
             ->paginated([10, 25]);
     }
 

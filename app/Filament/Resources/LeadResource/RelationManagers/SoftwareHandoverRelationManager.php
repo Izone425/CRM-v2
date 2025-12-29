@@ -589,15 +589,9 @@ class SoftwareHandoverRelationManager extends RelationManager
                                         ->whereHas('items', function ($query) {
                                             $query->where('product_id', 94);
                                         })
-                                        // ✅ Exclude quotations that contain both product ID 94 AND 99
+                                        // ✅ Exclude quotations that have any product IDs other than 94
                                         ->whereDoesntHave('items', function ($query) {
-                                            $query->where('product_id', 99)
-                                                  ->whereExists(function ($subQuery) {
-                                                      $subQuery->select('id')
-                                                               ->from('quotation_details')
-                                                               ->whereColumn('quotation_details.quotation_id', 'quotations.id')
-                                                               ->where('quotation_details.product_id', 94);
-                                                  });
+                                            $query->where('product_id', '!=', 94);
                                         })
                                         ->pluck('pi_reference_no', 'id')
                                         ->toArray();

@@ -91,8 +91,7 @@ class ImplementerSessionCompleted extends Component implements HasForms, HasTabl
             }
         }
 
-        return $query->orderBy('date', 'asc')
-                ->orderBy('start_time', 'asc');
+        return $query;
     }
 
     public function table(Table $table): Table

@@ -67,7 +67,7 @@ class CustomerProjectPlan extends Component
         // Use the latest handover for download
         $softwareHandover = $softwareHandovers->first();
 
-        $filePath = $this->generateProjectPlanExcel($lead, $softwareHandover);
+        $filePath = $this->generateProjectPlanExcel($lead, $softwareHandover, $softwareHandovers);
 
         if ($filePath && file_exists($filePath)) {
             return response()->download($filePath)->deleteFileAfterSend(true);
@@ -76,7 +76,7 @@ class CustomerProjectPlan extends Component
         session()->flash('error', 'Failed to generate project plan');
     }
 
-    protected function generateProjectPlanExcel(Lead $lead, SoftwareHandover $softwareHandover): ?string
+    protected function generateProjectPlanExcel(Lead $lead, SoftwareHandover $softwareHandover, $softwareHandovers): ?string
     {
         $spreadsheet = new Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();

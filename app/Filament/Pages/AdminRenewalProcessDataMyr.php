@@ -1267,6 +1267,18 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
                             ->weight('bold')
                             ->alignLeft()
                             ->grow()
+                            ->url(function ($record) {
+                                $renewal = Renewal::where('f_company_id', $record->f_company_id)->first();
+
+                                if ($renewal && $renewal->lead_id) {
+                                    return route('filament.admin.resources.leads.view', [
+                                        'record' => \App\Classes\Encryptor::encrypt($renewal->lead_id),
+                                    ]);
+                                }
+
+                                return null;
+                            })
+                            ->openUrlInNewTab()
                     ]),
 
                     Stack::make([
@@ -1407,15 +1419,7 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
 
                             return null;
                         })
-                        ->openUrlInNewTab()
-                        ->visible(function ($record) {
-                            // Only show if mapping is completed and lead_id exists
-                            $renewal = Renewal::where('f_company_id', $record->f_company_id)->first();
-
-                            return $renewal &&
-                                $renewal->mapping_status === 'completed_mapping' &&
-                                $renewal->lead_id;
-                        }),
+                        ->openUrlInNewTab(),
 
                     Action::make('assign_to_me')
                         ->label('Assign to Me')

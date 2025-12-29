@@ -130,31 +130,31 @@ class ActivityLogRelationManager extends RelationManager
                 return $query->orderBy('updated_at', 'desc'); // Sort by created_at in descending order
             })
             ->headerActions([
-                Action::make('view_followup_history')
-                    ->label('Follow-up History')
-                    ->icon('heroicon-o-clock')
-                    ->color('info')
-                    ->modalHeading('Admin Renewal Follow-up History')
-                    ->modalWidth('7xl')
-                    ->modalContent(function () {
-                        $lead = $this->getOwnerRecord();
-                        
-                        // Get admin renewal logs that are follow-ups
-                        $followUps = $lead->adminRenewalLogs()->with('causer')->orderBy('created_at', 'desc')->get();
-                        $totalFollowUps = $followUps->count();
+                // Action::make('view_followup_history')
+                //     ->label('Follow-up History')
+                //     ->icon('heroicon-o-clock')
+                //     ->color('info')
+                //     ->modalHeading('Admin Renewal Follow-up History')
+                //     ->modalWidth('7xl')
+                //     ->modalContent(function () {
+                //         $lead = $this->getOwnerRecord();
 
-                        return view('components.admin-renewal-followup-history-modal', [
-                            'followUps' => $followUps,
-                            'totalFollowUps' => $totalFollowUps,
-                            'lead' => $lead
-                        ]);
-                    })
-                    ->modalSubmitAction(false)
-                    ->modalCancelActionLabel('Close')
-                    ->visible(function () {
-                        $lead = $this->getOwnerRecord();
-                        return $lead->adminRenewalLogs()->exists();
-                    }),
+                //         // Get admin renewal logs that are follow-ups
+                //         $followUps = $lead->adminRenewalLogs()->with('causer')->orderBy('created_at', 'desc')->get();
+                //         $totalFollowUps = $followUps->count();
+
+                //         return view('components.admin-renewal-followup-history-modal', [
+                //             'followUps' => $followUps,
+                //             'totalFollowUps' => $totalFollowUps,
+                //             'lead' => $lead
+                //         ]);
+                //     })
+                //     ->modalSubmitAction(false)
+                //     ->modalCancelActionLabel('Close')
+                //     ->visible(function () {
+                //         $lead = $this->getOwnerRecord();
+                //         return $lead->adminRenewalLogs()->exists();
+                //     }),
                 Action::make('view_salesperson_history')
                     ->label('Salesperson History')
                     ->icon('heroicon-o-user')
@@ -163,18 +163,19 @@ class ActivityLogRelationManager extends RelationManager
                     ->modalWidth('7xl')
                     ->modalContent(function () {
                         $lead = $this->getOwnerRecord();
-                        
-                        // Get activity logs from salespersons (role_id = 2)
+
+                        // Get activity logs from salespersons (role_id = 2) with "Salesperson Follow Up" in description
                         $salespersonActivities = ActivityLog::where('subject_id', $lead->id)
                             ->whereIn('causer_id', function($query) {
                                 $query->select('id')
                                       ->from('users')
                                       ->where('role_id', 2);
                             })
+                            ->where('description', 'LIKE', '%Salesperson Follow Up%')
                             ->with('causer')
                             ->orderBy('created_at', 'desc')
                             ->get();
-                        
+
                         $totalActivities = $salespersonActivities->count();
 
                         return view('components.salesperson-activity-history-modal', [
@@ -193,6 +194,7 @@ class ActivityLogRelationManager extends RelationManager
                                       ->from('users')
                                       ->where('role_id', 2);
                             })
+                            ->where('description', 'LIKE', '%Salesperson Follow Up%')
                             ->exists();
                     }),
             ])
