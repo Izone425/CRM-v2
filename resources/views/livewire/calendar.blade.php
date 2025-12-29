@@ -436,7 +436,7 @@
         }
     </style>
 
-    <div class="leave-summary-container">
+    {{-- <div class="leave-summary-container">
         <div class="leave-summary-header">
             <!-- Toggle Buttons with Show/Hide Logic -->
             <div x-data="{ showDaily: true, showWeekly: false }">
@@ -611,7 +611,7 @@
                 </div>
             </div>
         </div>
-    </div>
+    </div> --}}
 
     <!-- Filter and Header Section -->
     <div class="flex items-center justify-between p-4 mb-6 bg-white shadow-xl rounded-2xl">

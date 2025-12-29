@@ -2063,7 +2063,7 @@ class QuotationResource extends Resource
 
     public static function recalculateAllRowsFromParent($get, $set): void
     {
-        $items = $get('items');
+        $items = $get('items') ?? [];
         $taxationCategory = $get('taxation_category');
         $currency = $get('currency');
 

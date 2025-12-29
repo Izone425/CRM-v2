@@ -413,7 +413,7 @@
         }
     </style>
 
-    <div x-data="{ filterExpanded: true }">
+    <div x-data="{ filterExpanded: false }">
         <!-- Title and Toggle Button -->
         <div class="flex items-center justify-between mb-4">
             <h2 class="text-lg font-semibold">SalesPerson Calendar</h2>

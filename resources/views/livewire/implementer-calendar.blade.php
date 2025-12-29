@@ -819,10 +819,55 @@
             position: relative;
             z-index: 1;
         }
+
+        /* Category styles */
+        .category-header {
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+            color: white;
+            padding: 0.75rem 1rem;
+            font-weight: 700;
+            font-size: 1rem;
+            text-align: center;
+            grid-column: 1 / -1;
+            margin-top: 1px;
+            border-top: 3px solid #1e40af;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            text-align: left;
+            position: relative;
+            z-index: 20; /* Higher z-index to appear above public holidays */
+        }
+
+        .category-border-1 {
+            border-top: 3px solid #ef4444; /* Red border for Active Implementer */
+        }
+
+        .category-border-2 {
+            border-top: 3px solid #10b981; /* Green border for Active Boot Camp Implementer */
+        }
+
+        .category-border-3 {
+            border-top: 3px solid #f59e0b; /* Yellow border for InActive Boot Camp Implementer */
+        }
+
+        .implementer-row {
+            border-left: 4px solid transparent;
+        }
+
+        /* .implementer-row.border-1 {
+            border-left-color: #ef4444;
+        }
+
+        .implementer-row.border-2 {
+            border-left-color: #10b981;
+        }
+
+        .implementer-row.border-3 {
+            border-left-color: #f59e0b;
+        } */
     </style>
 
 
-<div x-data="{ filterExpanded: true }">
+<div x-data="{ filterExpanded: false }">
     <!-- Title and Toggle Button -->
     <div class="flex items-center justify-between mb-4">
         <h2 class="text-lg font-semibold">Implementer Calendar</h2>
@@ -1239,8 +1284,44 @@
         @endif
 
         <!-- Implementer Rows -->
-        @foreach ($rows as $row)
-            <div class="time">
+        @php
+            $currentCategory = '';
+            $categoryBorderClass = '';
+        @endphp
+
+        @foreach ($rows as $index => $row)
+            @php
+                // Get the category for current implementer
+                $implementerCategory = app('App\Livewire\ImplementerCalendar')->getImplementerCategory($row['implementerName']);
+
+                // Determine border class
+                if (strpos($implementerCategory, 'Border 1') !== false) {
+                    $categoryBorderClass = 'border-1';
+                } elseif (strpos($implementerCategory, 'Border 2') !== false) {
+                    $categoryBorderClass = 'border-2';
+                } elseif (strpos($implementerCategory, 'Border 3') !== false) {
+                    $categoryBorderClass = 'border-3';
+                } else {
+                    $categoryBorderClass = '';
+                }
+
+                // Check if we need to show category header
+                $showCategoryHeader = $currentCategory !== $implementerCategory && !empty($implementerCategory);
+                $currentCategory = $implementerCategory;
+            @endphp
+
+            @if($showCategoryHeader)
+                <!-- Category Header -->
+                <div class="category-header {{
+                    strpos($implementerCategory, 'Border 1') !== false ? 'category-border-1' :
+                    (strpos($implementerCategory, 'Border 2') !== false ? 'category-border-2' :
+                    (strpos($implementerCategory, 'Border 3') !== false ? 'category-border-3' : ''))
+                }}">
+                    {{ $implementerCategory }}
+                </div>
+            @endif
+
+            <div class="time implementer-row {{ $categoryBorderClass }}">
                 <div class="flex-container">
                     <div class="image-container">
                         <img style="border-radius: 50%;" src="{{ $row['implementerAvatar'] }}"
@@ -1251,7 +1332,7 @@
             </div>
 
             @foreach (['monday', 'tuesday', 'wednesday', 'thursday', 'friday'] as $day)
-                <div class="day {{ isset($row['leave'][$loop->iteration]) && $row['leave'][$loop->iteration]['session'] === 'full' ? 'full-leave' : '' }}
+                <div class="day implementer-row {{ $categoryBorderClass }} {{ isset($row['leave'][$loop->iteration]) && $row['leave'][$loop->iteration]['session'] === 'full' ? 'full-leave' : '' }}
                         {{ isset($row['leave'][$loop->iteration]) && $row['leave'][$loop->iteration]['session'] === 'am' ? 'leave-am' : '' }}
                         {{ isset($row['leave'][$loop->iteration]) && $row['leave'][$loop->iteration]['session'] === 'pm' ? 'leave-pm' : '' }}">
                     @if (isset($row['leave'][$loop->iteration]) && $row['leave'][$loop->iteration]['session'] === 'full')
