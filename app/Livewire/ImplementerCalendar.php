@@ -566,18 +566,23 @@ class ImplementerCalendar extends Component
         $this->startDate = $date->copy()->startOfWeek()->toDateString(); // Monday
         $this->endDate = $date->copy()->startOfWeek()->addDays(4)->toDateString(); // Friday
 
-        // Define the custom order for implementers
+        // Define the custom order for implementers with categories
         $customOrder = [
-            'Mohd Amirul Ashraf' => 2,
-            'John Low' => 3,
-            'Zulhilmie' => 4,
-            'Muhamad Izzul Aiman' => 5,
-            'Ahmad Syamim' => 6,
-            'Siti Shahilah' => 7,
-            'Nur Alia' => 8,
-            'Ameerul Asyraf' => 9,
+            // Border 1 - Active Implementer
+            'John Low' => 1,
+            'Zulhilmie' => 2,
+            'Muhamad Izzul Aiman' => 3,
+            'Ahmad Syamim' => 4,
+            'Nur Alia' => 5,
+            'Ameerul Asyraf' => 6,
+            // Border 2 - Active Boot Camp Implementer
+            'Rahmah' => 7,
+            'Mohd Fairos' => 8,
+            'Siti Nadia' => 9,
             'Nur Fazuliana' => 10,
-            'Ahmad Syazwan' => 11
+            // Border 3 - InActive Boot Camp Implementer
+            'Mohd Amirul Ashraf' => 11,
+            'Ahmad Syazwan' => 12,
         ];
 
         // Get implementers data
@@ -848,18 +853,23 @@ class ImplementerCalendar extends Component
 
     public function getAllImplementers()
     {
-        // Define the custom order for implementers
+        // Define the custom order for implementers with categories
         $customOrder = [
-            'Mohd Amirul Ashraf' => 2,
-            'John Low' => 3,
-            'Zulhilmie' => 4,
-            'Muhamad Izzul Aiman' => 5,
-            'Ahmad Syamim' => 6,
-            'Siti Shahilah' => 7,
-            'Nur Alia' => 8,
-            'Ameerul Asyraf' => 9,
+            // Border 1 - Active Implementer
+            'John Low' => 1,
+            'Zulhilmie' => 2,
+            'Muhamad Izzul Aiman' => 3,
+            'Ahmad Syamim' => 4,
+            'Nur Alia' => 5,
+            'Ameerul Asyraf' => 6,
+            // Border 2 - Active Boot Camp Implementer
+            'Rahmah' => 7,
+            'Mohd Fairos' => 8,
+            'Siti Nadia' => 9,
             'Nur Fazuliana' => 10,
-            'Ahmad Syazwan' => 11
+            // Border 3 - InActive Boot Camp Implementer
+            'Mohd Amirul Ashraf' => 11,
+            'Ahmad Syazwan' => 12,
         ];
 
         // Get implementers (role_id 4 and 5)
@@ -895,6 +905,43 @@ class ImplementerCalendar extends Component
             ->toArray();
 
         return $implementers;
+    }
+
+    public function getImplementerCategories()
+    {
+        return [
+            'Active Implementer' => [
+                'John Low',
+                'Zulhilmie',
+                'Muhamad Izzul Aiman',
+                'Ahmad Syamim',
+                'Nur Alia',
+                'Ameerul Asyraf',
+            ],
+            'Active Boot Camp Implementer' => [
+                'Rahmah',
+                'Mohd Fairos',
+                'Siti Nadia',
+                'Nur Fazuliana',
+            ],
+            'InActive Boot Camp Implementer' => [
+                'Mohd Amirul Ashraf',
+                'Ahmad Syazwan',
+            ],
+        ];
+    }
+
+    public function getImplementerCategory($implementerName)
+    {
+        $categories = $this->getImplementerCategories();
+
+        foreach ($categories as $categoryName => $implementers) {
+            if (in_array($implementerName, $implementers)) {
+                return $categoryName;
+            }
+        }
+
+        return null;
     }
 
     private function countAppointments($data)

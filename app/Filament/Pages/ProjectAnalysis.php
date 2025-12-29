@@ -142,17 +142,12 @@ class ProjectAnalysis extends Page
     {
         // Updated list of active implementers
         $activeImplementers = [
-            'Rahmah',
-            'Mohd Fairos',
-            'Siti Nadia',
-            'Mohd Amirul Ashraf',
             'John Low',
             'Zulhilmie',
             'Muhamad Izzul Aiman',
             'Ahmad Syamim',
             'Nur Alia',
             'Ameerul Asyraf',
-            'Rahmah',
         ];
 
         $implementers = [];
@@ -302,29 +297,41 @@ class ProjectAnalysis extends Page
     public function getAllActiveImplementers()
     {
         return [
-            'Rahmah',
-            'Mohd Fairos',
-            'Siti Nadia',
-            'Mohd Amirul Ashraf',
             'John Low',
             'Zulhilmie',
             'Muhamad Izzul Aiman',
             'Ahmad Syamim',
             'Nur Alia',
             'Ameerul Asyraf',
+        ];
+    }
+
+    public function getAllActiveBootCampImplementers()
+    {
+        return [
             'Rahmah',
+            'Mohd Fairos',
+            'Siti Nadia',
+        ];
+    }
+
+    public function getAllInactiveBootCampImplementers()
+    {
+        return [
+            'Nur Fazuliana' => 'Nur Fazuliana',
+            'HANIF' => 'Hanif',
+            'BARI' => 'Muhammad Khoirul Bariah',
+            'Ummu Najwa Fajrina' => 'Ummu Najwa Fajrina',
+            'Noor Syazana' => 'Noor Syazana',
+            'Ahmad Syazwan' => 'Ahmad Syazwan',
+            'Mohd Amirul Ashraf' => 'Mohd Amirul Ashraf',
+            'Siti Shahilah' => 'Siti Shahilah',
         ];
     }
 
     public function getAllInactiveImplementers()
     {
         return [
-            'HANIF' => 'Hanif',
-            'Nur Fazuliana' => 'Nur Fazuliana',
-            'BARI' => 'Muhammad Khoirul Bariah',
-            'Ummu Najwa Fajrina' => 'Ummu Najwa Fajrina',
-            'Noor Syazana' => 'Noor Syazana',
-            'Ahmad Syazwan' => 'Ahmad Syazwan',
             'ADZZIM' => 'Adzzim Bin Kassim',
             'AZRUL' => 'Azrul Nizam',
             'Nurul Shaqinur Ain' => 'Nurul Shaqinur Ain',

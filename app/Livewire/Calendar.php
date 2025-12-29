@@ -696,41 +696,45 @@ class Calendar extends Component
             ],
             'Admin Department' => [
                 ['name' => 'Fatimah Nurnabilah', 'order' => 2],
-                ['name' => 'Nurul Najaa Nadiah', 'order' => 3],
-                ['name' => 'Norhaiyati', 'order' => 4],
-                ['name' => 'Sheena Liew', 'order' => 5],
-                ['name' => 'Nur Irdina', 'order' => 6],
+                ['name' => 'Norhaiyati', 'order' => 3],
+                ['name' => 'Nur Irdina', 'order' => 4],
+            ],
+            'Sales Admin Department' => [
+                ['name' => 'Nurul Najaa Nadiah', 'order' => 5],
+                ['name' => 'Sheena Liew', 'order' => 6],
             ],
             'SalesPerson Department' => [
                 ['name' => 'Wan Amirul Muim', 'order' => 7],
-                ['name' => 'Muhammad Khoirul Bariah', 'order' => 8],
-                ['name' => 'Yasmin', 'order' => 9],
-                ['name' => 'Abdul Aziz', 'order' => 10],
-                ['name' => 'Farhanah Jamil', 'order' => 11],
-                ['name' => 'Joshua Ho', 'order' => 12],
+                ['name' => 'Yasmin', 'order' => 8],
+                ['name' => 'Farhanah Jamil', 'order' => 9],
+                ['name' => 'Joshua Ho', 'order' => 10],
+                ['name' => 'Abdul Aziz', 'order' => 11],
+                ['name' => 'Muhammad Khoirul Bariah', 'order' => 12],
                 ['name' => 'Vince Leong', 'order' => 13]
             ],
-            'Support Department' => [
-                ['name' => 'Siti Nadia', 'order' => 14],
-                ['name' => 'Noor Syazana', 'order' => 15],
-                ['name' => 'Ummu Najwa Fajrina', 'order' => 16],
-                ['name' => 'Ahmad Syazwan', 'order' => 17],
-                ['name' => 'Rahmah', 'order' => 18],
-                ['name' => 'Hanif Razali', 'order' => 19]
+            'Boot Camp Implementer' => [
+                ['name' => 'Rahmah', 'order' => 14],
+                ['name' => 'Mohd Fairos', 'order' => 15],
+                ['name' => 'Siti Nadia', 'order' => 16],
+                ['name' => 'Nur Fazuliana', 'order' => 17],
             ],
             'Implementer Department' => [
-                ['name' => 'Ahmad Syamim', 'order' => 20],
-                ['name' => 'Siti Shahilah', 'order' => 21],
-                ['name' => 'Muhamad Izzul Aiman', 'order' => 22],
-                ['name' => 'Zulhilmie', 'order' => 23],
-                ['name' => 'Nur Alia', 'order' => 24],
-                ['name' => 'John Low', 'order' => 25],
-                ['name' => 'Mohd Amirul Ashraf', 'order' => 26],
-                ['name' => 'Nur Fazuliana', 'order' => 27],
-                ['name' => 'Ameerul Asyraf', 'order' => 28],
+                ['name' => 'John Low', 'order' => 18],
+                ['name' => 'Zulhilmie', 'order' => 19],
+                ['name' => 'Muhamad Izzul Aiman', 'order' => 20],
+                ['name' => 'Ahmad Syamim', 'order' => 21],
+                ['name' => 'Nur Alia', 'order' => 22],
+                ['name' => 'Ameerul Asyraf', 'order' => 23],
+            ],
+            'Support Department' => [
+                ['name' => 'Ummu Najwa Fajrina', 'order' => 24],
+                ['name' => 'Noor Syazana', 'order' => 25],
+                ['name' => 'Ahmad Syazwan', 'order' => 26],
+                ['name' => 'Siti Shahilah', 'order' => 27],
             ],
             'Trainer Department' => [
-                ['name' => 'Mohd Fairos', 'order' => 29]
+                ['name' => 'Hanif Razali', 'order' => 28],
+                ['name' => 'Mohd Amirul Ashraf', 'order' => 29],
             ],
             'Technician Department' => [
                 ['name' => 'Khairul Izzuddin', 'order' => 30]
