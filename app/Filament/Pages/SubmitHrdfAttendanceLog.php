@@ -71,10 +71,10 @@ class SubmitHrdfAttendanceLog extends Page implements HasTable
 
                                             $set('training_date_2', $date2->format('Y-m-d'));
                                             $set('training_date_3', $date3->format('Y-m-d'));
-                                        })
-                                        ->disabledDates(function () {
-                                            return $this->getDisabledDates();
                                         }),
+                                        // ->disabledDates(function () {
+                                        //     return $this->getDisabledDates();
+                                        // }),
 
                                     DatePicker::make('training_date_2')
                                         ->label('Training Date 2')
