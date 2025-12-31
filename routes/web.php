@@ -82,6 +82,10 @@ Route::get('/headcount-invoice-data/export/{headcountHandover}', [App\Http\Contr
     ->name('headcount-invoice-data.export')
     ->middleware(['auth']);
 
+Route::get('/hrdf-invoice-data/export/{hrdfInvoice}', [App\Http\Controllers\HrdfInvoiceDataExportController::class, 'exportHrdfInvoiceData'])
+    ->name('hrdf-invoice-data.export')
+    ->middleware(['auth']);
+
 Route::get('/demo-request/{lead_code}', function ($lead_code) {
     // Check if the lead_code exists in the database
     $site = LeadSource::where('lead_code', $lead_code)->first();
@@ -94,9 +98,9 @@ Route::get('/demo-request/{lead_code}', function ($lead_code) {
     return view('demoRequest', ['lead_code' => $lead_code]);
 });
 
-Route::get('generate-invoice-pdf/{invoice_no}', GenerateInvoicePdfController::class)
-    ->name('invoices.generate_pdf')
-    ->middleware(['auth']);
+// Route::get('generate-invoice-pdf/{invoice_no}', GenerateInvoicePdfController::class)
+//     ->name('invoices.generate_pdf')
+//     ->middleware(['auth']);
 
 Route::get('/referral-demo-request/{lead_code}', function ($lead_code) {
     // Check if the lead_code exists in the database

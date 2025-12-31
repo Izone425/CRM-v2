@@ -207,8 +207,8 @@ class SalesAdminAnalysisV3 extends Page
         $result = [];
 
         foreach ($leadOwners as $name => $userId) {
-            $count = Appointment::query()
-                ->whereIn('status', ['New', 'Done'])
+            $count = ActivityLog::query()
+                ->where('description', 'like', 'Demo created.%')
                 ->where('causer_id', $userId)
                 ->whereBetween('created_at', [$start, $end])
                 ->count();
@@ -444,11 +444,11 @@ class SalesAdminAnalysisV3 extends Page
         } elseif ($type === 'demo') {
             $userId = User::where('name', $owner)->value('id');
 
-            $leadIds = Appointment::query()
-                ->whereIn('status', ['New', 'Done'])
+            $leadIds = ActivityLog::query()
+                ->where('description', 'like', 'Demo created.%')
                 ->where('causer_id', $userId)
                 ->whereBetween('created_at', [$start, $end])
-                ->pluck('lead_id')
+                ->pluck('subject_id')
                 ->toArray();
 
             $query = Lead::whereIn('id', $leadIds);

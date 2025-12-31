@@ -153,11 +153,6 @@ class RenewalHandoverRelationManager extends RelationManager
                     ->modalWidth('xl')
                     ->form([
                         Grid::make(1)->schema([
-                            Forms\Components\TextInput::make('tt_invoice_number')
-                                ->label('License Number')
-                                ->placeholder('Enter alphanumeric license number (one-time entry for all invoices)')
-                                ->maxLength(255),
-
                             Select::make('selected_proforma_invoices')
                                 ->label('Select Proforma Invoices (HRDF)')
                                 ->multiple()
@@ -328,55 +323,61 @@ class RenewalHandoverRelationManager extends RelationManager
                                 'company_name' => $companyName,
                                 'selected_quotation_ids' => $selectedPIs,
                                 'total_amount' => $totalAmount, // ✅ Now includes tax
-                                'status' => 'processing',
+                                'status' => 'new',
                                 'created_by' => auth()->id(),
-                                'tt_invoice_number' => $data['tt_invoice_number'] ?? '',
+                                'tt_invoice_number' => '', // Empty since we removed license number field
                             ]);
 
+                            Notification::make()
+                                ->title('Created Successfully')
+                                ->body('Renewal Handover ' . $renewalHandover->handover_id . ' created successfully.')
+                                ->success()
+                                ->send();
+
                             // ✅ Create the renewal invoices using AutoCount
-                            $result = $this->createRenewalInvoices($lead, $selectedPIs, $renewalHandover);
+                            // $result = $this->createRenewalInvoices($lead, $selectedPIs, $renewalHandover);
 
-                            if ($result['success']) {
-                                // ✅ Update RenewalHandover as completed
-                                $renewalHandover->markAsCompleted(
-                                    $result['invoice_numbers'],
-                                    $result['autocount_response'] ?? null
-                                );
+                            // if ($result['success']) {
+                            //     // ✅ Update RenewalHandover as completed
+                            //     $renewalHandover->markAsCompleted(
+                            //         $result['invoice_numbers'],
+                            //         $result['autocount_response'] ?? null
+                            //     );
 
-                                $notificationBody = "Created {$result['total_invoices']} invoice(s) successfully";
-                                if (isset($result['invoice_numbers'])) {
-                                    $notificationBody .= "\nInvoice Numbers: " . implode(', ', $result['invoice_numbers']);
-                                }
+                            //     $notificationBody = "Created {$result['total_invoices']} invoice(s) successfully";
+                            //     if (isset($result['invoice_numbers'])) {
+                            //         $notificationBody .= "\nInvoice Numbers: " . implode(', ', $result['invoice_numbers']);
+                            //     }
 
-                                Notification::make()
-                                    ->title('HRDF Invoices Created Successfully')
-                                    ->body($notificationBody)
-                                    ->success()
-                                    ->send();
+                            //     Notification::make()
+                            //         ->title('HRDF Invoices Created Successfully')
+                            //         ->body($notificationBody)
+                            //         ->success()
+                            //         ->send();
 
-                                Log::info('Renewal HRDF invoices created successfully', [
-                                    'renewal_handover_id' => $renewalHandover->handover_id,
-                                    'lead_id' => $lead->id,
-                                    'company_name' => $lead->companyDetail->company_name,
-                                    'selected_pis' => $selectedPIs,
-                                    'invoice_numbers' => $result['invoice_numbers'] ?? [],
-                                ]);
-                            } else {
-                                // ✅ Mark RenewalHandover as failed
-                                $renewalHandover->markAsFailed($result['error'] ?? 'Unknown error');
+                            //     Log::info('Renewal HRDF invoices created successfully', [
+                            //         'renewal_handover_id' => $renewalHandover->handover_id,
+                            //         'lead_id' => $lead->id,
+                            //         'company_name' => $lead->companyDetail->company_name,
+                            //         'selected_pis' => $selectedPIs,
+                            //         'invoice_numbers' => $result['invoice_numbers'] ?? [],
+                            //     ]);
+                            // } else {
+                            //     // ✅ Mark RenewalHandover as failed
+                            //     $renewalHandover->markAsFailed($result['error'] ?? 'Unknown error');
 
-                                Notification::make()
-                                    ->title('Failed to Create HRDF Invoices')
-                                    ->body($result['error'] ?? 'Unknown error occurred')
-                                    ->danger()
-                                    ->send();
+                            //     Notification::make()
+                            //         ->title('Failed to Create HRDF Invoices')
+                            //         ->body($result['error'] ?? 'Unknown error occurred')
+                            //         ->danger()
+                            //         ->send();
 
-                                Log::error('Failed to create renewal HRDF invoices', [
-                                    'renewal_handover_id' => $renewalHandover->handover_id,
-                                    'lead_id' => $lead->id,
-                                    'error' => $result['error'] ?? 'Unknown error',
-                                ]);
-                            }
+                            //     Log::error('Failed to create renewal HRDF invoices', [
+                            //         'renewal_handover_id' => $renewalHandover->handover_id,
+                            //         'lead_id' => $lead->id,
+                            //         'error' => $result['error'] ?? 'Unknown error',
+                            //     ]);
+                            // }
 
                         } catch (\Exception $e) {
                             Log::error('Exception in renewal invoice creation: ' . $e->getMessage());
@@ -540,7 +541,7 @@ class RenewalHandoverRelationManager extends RelationManager
                     'details' => $this->getInvoiceDetailsFromQuotation($quotationId),
                     'udfSupport' => 'FATIMAH', // ✅ Add udfSupport field for FATIMAH
                     'uDFCustomerName' => $customerName,
-                    'uDFLicenseNumber' => $renewalHandover->tt_invoice_number ?? '',
+                    'uDFLicenseNumber' => '', // Empty since license number field was removed
                 ];
 
                 // Use the AutoCountInvoiceService
@@ -582,7 +583,7 @@ class RenewalHandoverRelationManager extends RelationManager
                     'quotation_id' => $quotationId, // ✅ Store quotation ID for "View PI" functionality
                     'debtor_code' => 'ARM-P0062',
                     'total_amount' => $total, // ✅ Now includes tax
-                    'tt_invoice_number' => $renewalHandover->tt_invoice_number ?? '',
+                    'tt_invoice_number' => '', // Empty since license number field was removed
                 ]);
 
                 Log::info('Renewal HRDF Invoice record created', [

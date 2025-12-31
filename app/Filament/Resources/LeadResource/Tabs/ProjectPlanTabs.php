@@ -176,20 +176,35 @@ class ProjectPlanTabs
                                 return false;
                             }
 
-                            $softwareHandover = SoftwareHandover::where('lead_id', $leadId)
-                                ->latest()
-                                ->first();
+                            // ✅ Smart filtering: Same logic as view
+                            $allHandovers = SoftwareHandover::where('lead_id', $leadId)
+                                ->orderBy('created_at', 'desc')
+                                ->get();
 
-                            if (!$softwareHandover) {
+                            if ($allHandovers->isEmpty()) {
                                 return false;
                             }
 
-                            // ✅ Check if there are any project plans for this lead and software handover
-                            $hasProjectPlans = ProjectPlan::where('lead_id', $leadId)
-                                ->where('sw_id', $softwareHandover->id)
-                                ->exists();
+                            $latestHandover = $allHandovers->first();
 
-                            return $hasProjectPlans;
+                            // Apply same filtering logic
+                            if ($latestHandover->status_handover !== 'Closed') {
+                                $targetHandovers = $allHandovers->where('status_handover', '!=', 'Closed');
+                            } else {
+                                $targetHandovers = $allHandovers;
+                            }
+
+                            // Check if any handover has project plans
+                            foreach ($targetHandovers as $handover) {
+                                $hasProjectPlans = ProjectPlan::where('lead_id', $leadId)
+                                    ->where('sw_id', $handover->id)
+                                    ->exists();
+                                if ($hasProjectPlans) {
+                                    return true;
+                                }
+                            }
+
+                            return false;
                         })
                         ->action(function (Get $get, $livewire) {
                             $leadId = $livewire->record?->id ?? $get('id') ?? 0;
@@ -205,16 +220,38 @@ class ProjectPlanTabs
 
                             $lead = Lead::find($leadId);
 
-                            // Get all non-closed software handovers with project plans
-                            $softwareHandovers = SoftwareHandover::where('lead_id', $leadId)
-                                ->where('status_handover', '!=', 'Closed')
-                                ->whereHas('projectPlans')
+                            // ✅ Apply same smart filtering
+                            $allHandovers = SoftwareHandover::where('lead_id', $leadId)
+                                ->orderBy('created_at', 'desc')
                                 ->get();
+
+                            if ($allHandovers->isEmpty()) {
+                                Notification::make()
+                                    ->title('No Software Handover Found')
+                                    ->warning()
+                                    ->send();
+                                return;
+                            }
+
+                            $latestHandover = $allHandovers->first();
+
+                            if ($latestHandover->status_handover !== 'Closed') {
+                                $targetHandovers = $allHandovers->where('status_handover', '!=', 'Closed');
+                            } else {
+                                $targetHandovers = $allHandovers;
+                            }
+
+                            // Filter to only those with project plans
+                            $softwareHandovers = $targetHandovers->filter(function ($handover) use ($leadId) {
+                                return ProjectPlan::where('lead_id', $leadId)
+                                    ->where('sw_id', $handover->id)
+                                    ->exists();
+                            });
 
                             if ($softwareHandovers->isEmpty()) {
                                 Notification::make()
-                                    ->title('No Active Software Handovers Found')
-                                    ->body('No non-closed software handovers with project plans found')
+                                    ->title('No Software Handover Found')
+                                    ->body('No software handovers with project plans found')
                                     ->warning()
                                     ->send();
                                 return;
@@ -324,17 +361,31 @@ class ProjectPlanTabs
                                 return false;
                             }
 
-                            // Get non-closed software handovers
-                            $softwareHandovers = SoftwareHandover::where('lead_id', $leadId)
-                                ->where('status_handover', '!=', 'Closed')
+                            // ✅ Smart filtering: Check latest handover to determine visibility logic
+                            $allHandovers = SoftwareHandover::where('lead_id', $leadId)
+                                ->orderBy('created_at', 'desc')
                                 ->get();
 
-                            if ($softwareHandovers->isEmpty()) {
+                            if ($allHandovers->isEmpty()) {
                                 return false;
                             }
 
-                            // Show sync button if there are non-closed handovers without project plans
-                            foreach ($softwareHandovers as $softwareHandover) {
+                            $latestHandover = $allHandovers->first();
+
+                            // If latest handover is NOT closed, filter out closed ones
+                            if ($latestHandover->status_handover !== 'Closed') {
+                                $targetHandovers = $allHandovers->where('status_handover', '!=', 'Closed');
+                            } else {
+                                // If latest handover IS closed, show all handovers
+                                $targetHandovers = $allHandovers;
+                            }
+
+                            if ($targetHandovers->isEmpty()) {
+                                return false;
+                            }
+
+                            // Show sync button if there are target handovers without project plans
+                            foreach ($targetHandovers as $softwareHandover) {
                                 $hasProjectPlans = ProjectPlan::where('lead_id', $leadId)
                                     ->where('sw_id', $softwareHandover->id)
                                     ->exists();
@@ -358,18 +409,28 @@ class ProjectPlanTabs
                                 return;
                             }
 
-                            // Get all non-closed software handovers
-                            $softwareHandovers = SoftwareHandover::where('lead_id', $leadId)
-                                ->where('status_handover', '!=', 'Closed')
+                            // ✅ Smart filtering: Check latest handover to determine target handovers
+                            $allHandovers = SoftwareHandover::where('lead_id', $leadId)
+                                ->orderBy('created_at', 'desc')
                                 ->get();
 
-                            if ($softwareHandovers->isEmpty()) {
+                            if ($allHandovers->isEmpty()) {
                                 Notification::make()
-                                    ->title('No Active Software Handovers Found')
-                                    ->body('Please create non-closed software handovers first to define project modules')
+                                    ->title('No Software Handovers Found')
+                                    ->body('Please create software handovers first to define project modules')
                                     ->warning()
                                     ->send();
                                 return;
+                            }
+
+                            $latestHandover = $allHandovers->first();
+
+                            // If latest handover is NOT closed, filter out closed ones
+                            if ($latestHandover->status_handover !== 'Closed') {
+                                $softwareHandovers = $allHandovers->where('status_handover', '!=', 'Closed');
+                            } else {
+                                // If latest handover IS closed, show all handovers
+                                $softwareHandovers = $allHandovers;
                             }
 
                             $totalCreatedCount = 0;
@@ -421,20 +482,40 @@ class ProjectPlanTabs
                                 return false;
                             }
 
-                            $softwareHandover = SoftwareHandover::where('lead_id', $leadId)
-                                ->latest()
-                                ->first();
+                            // ✅ Smart filtering: Check latest handover to determine visibility logic
+                            $allHandovers = SoftwareHandover::where('lead_id', $leadId)
+                                ->orderBy('created_at', 'desc')
+                                ->get();
 
-                            if (!$softwareHandover) {
+                            if ($allHandovers->isEmpty()) {
                                 return false;
                             }
 
-                            // ✅ Check if there are any project plans for this lead and software handover
-                            $hasProjectPlans = ProjectPlan::where('lead_id', $leadId)
-                                ->where('sw_id', $softwareHandover->id)
-                                ->exists();
+                            $latestHandover = $allHandovers->first();
 
-                            return $hasProjectPlans;
+                            // If latest handover is NOT closed, filter out closed ones
+                            if ($latestHandover->status_handover !== 'Closed') {
+                                $targetHandovers = $allHandovers->where('status_handover', '!=', 'Closed');
+                            } else {
+                                // If latest handover IS closed, show all handovers
+                                $targetHandovers = $allHandovers;
+                            }
+
+                            if ($targetHandovers->isEmpty()) {
+                                return false;
+                            }
+
+                            // Check if any target handover has project plans
+                            foreach ($targetHandovers as $handover) {
+                                $hasProjectPlans = ProjectPlan::where('lead_id', $leadId)
+                                    ->where('sw_id', $handover->id)
+                                    ->exists();
+                                if ($hasProjectPlans) {
+                                    return true;
+                                }
+                            }
+
+                            return false;
                         })
                         ->form(function (Get $get, $livewire) {
                             $leadId = $livewire->record?->id ?? $get('id') ?? 0;
@@ -446,19 +527,36 @@ class ProjectPlanTabs
                                 ];
                             }
 
-                            // Get all non-closed software handovers
-                            $softwareHandovers = SoftwareHandover::where('lead_id', $leadId)
-                                ->where('status_handover', '!=', 'Closed')
+                            // ✅ Smart filtering: Check latest handover to determine target handovers
+                            $allHandovers = SoftwareHandover::where('lead_id', $leadId)
+                                ->orderBy('created_at', 'desc')
                                 ->get();
 
-                            if ($softwareHandovers->isEmpty()) {
+                            if ($allHandovers->isEmpty()) {
                                 return [
                                     \Filament\Forms\Components\Placeholder::make('no_sw')
-                                        ->content('No active software handovers found. Please create non-closed software handovers first.')
+                                        ->content('No software handovers found. Please create software handovers first.')
                                 ];
                             }
 
-                            // Collect all selected modules from all non-closed handovers
+                            $latestHandover = $allHandovers->first();
+
+                            // If latest handover is NOT closed, filter out closed ones
+                            if ($latestHandover->status_handover !== 'Closed') {
+                                $softwareHandovers = $allHandovers->where('status_handover', '!=', 'Closed');
+                            } else {
+                                // If latest handover IS closed, show all handovers
+                                $softwareHandovers = $allHandovers;
+                            }
+
+                            if ($softwareHandovers->isEmpty()) {
+                                return [
+                                    \Filament\Forms\Components\Placeholder::make('no_active_sw')
+                                        ->content('No suitable software handovers found.')
+                                ];
+                            }
+
+                            // Collect all selected modules from target handovers
                             $allSelectedModules = [];
                             foreach ($softwareHandovers as $handover) {
                                 $selectedModules = $handover->getSelectedModules();
@@ -478,7 +576,7 @@ class ProjectPlanTabs
                                 ->pluck('module_name')
                                 ->toArray();
 
-                            // Get project plans from all non-closed software handovers (only non-completed tasks)
+                            // Get project plans from target software handovers (only non-completed tasks)
                             $swIds = $softwareHandovers->pluck('id')->toArray();
                             $projectPlans = ProjectPlan::where('lead_id', $leadId)
                                 ->whereIn('sw_id', $swIds)
@@ -512,7 +610,7 @@ class ProjectPlanTabs
                                     $modulePercentage = $firstTask->module_percentage;
                                     $moduleOrder = $firstTask->module_order ?? 999;
 
-                                    // Calculate module progress from all non-closed handovers
+                                    // Calculate module progress from target handovers
                                     $allModulePlans = ProjectPlan::where('lead_id', $leadId)
                                         ->whereIn('sw_id', $swIds)
                                         ->whereHas('projectTask', function ($query) use ($moduleName) {
