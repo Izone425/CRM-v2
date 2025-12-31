@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Classes\Encryptor;
 use App\Models\CrmHrdfInvoiceV2;
+use App\Models\HrdfClaim;
 use App\Models\Quotation;
 use App\Models\User;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
@@ -15,17 +16,17 @@ use Illuminate\Support\Facades\Log;
 
 class HrdfInvoiceDataExportController extends Controller
 {
-    public function exportHrdfInvoiceData($hrdfInvoiceId)
+    public function exportHrdfInvoiceData($hrdfInvoice)
     {
         try {
             Log::info('=== HRDF INVOICE EXPORT START ===');
-            Log::info('Raw HRDF Invoice ID parameter received: ' . $hrdfInvoiceId);
-            Log::info('Parameter type: ' . gettype($hrdfInvoiceId));
-            Log::info('Parameter length: ' . strlen($hrdfInvoiceId));
+            Log::info('Raw HRDF Invoice ID parameter received: ' . $hrdfInvoice);
+            Log::info('Parameter type: ' . gettype($hrdfInvoice));
+            Log::info('Parameter length: ' . strlen($hrdfInvoice));
 
             // Decrypt the HRDF invoice ID
             try {
-                $decryptedInvoiceId = Encryptor::decrypt($hrdfInvoiceId);
+                $decryptedInvoiceId = Encryptor::decrypt($hrdfInvoice);
                 Log::info('Successfully decrypted HRDF invoice ID: ' . $decryptedInvoiceId);
             } catch (\Exception $e) {
                 Log::error('Decryption failed: ' . $e->getMessage());
@@ -34,7 +35,7 @@ class HrdfInvoiceDataExportController extends Controller
 
             // Get the HRDF invoice record
             try {
-                $hrdfInvoice = CrmHrdfInvoiceV2::findOrFail($decryptedInvoiceId);
+                $hrdfInvoice = CrmHrdfInvoiceV2::with(['hrdfClaim'])->findOrFail($decryptedInvoiceId);
                 Log::info('HRDF invoice found successfully:');
                 Log::info('- ID: ' . $hrdfInvoice->id);
                 Log::info('- Invoice No: ' . $hrdfInvoice->invoice_no);
@@ -132,9 +133,14 @@ class HrdfInvoiceDataExportController extends Controller
             $docDate = date('j/n/Y');
             Log::info('DocDate set to: ' . $docDate);
 
-            // Company name from HRDF invoice
+            // Company name - use subsidiary name if available, otherwise HRDF invoice company name
             $companyName = $hrdfInvoice->company_name;
-            Log::info('Company name from HRDF invoice: ' . $companyName);
+            if ($quotation->subsidiary_id && $quotation->subsidiary && $quotation->subsidiary->company_name) {
+                $companyName = $quotation->subsidiary->company_name;
+                Log::info('Using subsidiary company name: ' . $companyName);
+            } else {
+                Log::info('Using HRDF invoice company name: ' . $companyName);
+            }
 
             // SalesAgent from quotation sales person autocount_name (but blank for renewal)
             $salesAgent = '';
@@ -187,6 +193,13 @@ class HrdfInvoiceDataExportController extends Controller
             Log::info('- UDF_IV_BillingType: ' . $billingType);
             Log::info('- Cancelled: ' . $cancelled);
 
+            // Get HRDF Claim data for new UDF fields
+            $hrdfClaim = $hrdfInvoice->hrdfClaim;
+            $udfHrDeposit = $hrdfClaim ? $hrdfClaim->upfront_payment : 0;
+
+            // Format UDF_IV_HRDInfo string
+            $udfHrdInfo = $this->formatHrdfInfo($hrdfClaim, $hrdfInvoice, $quotation);
+
             // Create header row
             $headers = [
                 'DocNo',
@@ -203,6 +216,8 @@ class HrdfInvoiceDataExportController extends Controller
                 'UDF_IV_Support',
                 'UDF_IV_BillingType',
                 'Cancelled',
+                'UDF_IV_HRDeposit',
+                'UDF_IV_HRDInfo',
                 'ItemCode',
                 'Qty',
                 'UnitPrice',
@@ -227,7 +242,10 @@ class HrdfInvoiceDataExportController extends Controller
                     ],
                 ],
             ];
-            $sheet->getStyle('A1:Q1')->applyFromArray($headerStyle);
+            $sheet->getStyle('A1:U1')->applyFromArray($headerStyle);
+
+            // Set column width for UDF_IV_HRDInfo (column P)
+            $sheet->getColumnDimension('P')->setWidth(60);
             Log::info('Header styling applied');
 
             $row = 2; // Start from row 2 for data
@@ -244,23 +262,25 @@ class HrdfInvoiceDataExportController extends Controller
             $firstRowData = [
                 $docNo,                                              // DocNo
                 $docDate,                                           // DocDate
-                'PEMBANGUNAN SUMBER MANUSIA BERHAD',               // UDF_IV_CustomerName (fixed value)
+                'PEMBANGUNAN SUMBER MANUSIA BERHAD',               // CompanyName
                 'ARM-P0062',                                        // DebtorCode
-                $companyName,                                       // CompanyName
+                $companyName,                                       // UDF_IV_CustomerName
                 $hrdfInvoice->tt_invoice_number ?? '',             // UDF_IV_LicenseNumber
                 $salesAgent,                                        // SalesAgent
                 $currencyCode,                                      // CurrencyCode
                 $currencyRate,                                      // CurrencyRate
-                '',                                                 // RefDocNo (use HRDF invoice number)
+                '',                                                 // RefDocNo
                 $salesAdmin,                                        // UDF_IV_SalesAdmin
                 $udfSupport,                                        // UDF_IV_Support
                 $billingType,                                       // UDF_IV_BillingType
                 $cancelled,                                         // Cancelled
+                $udfHrDeposit,                                      // UDF_IV_HRDeposit
+                $udfHrdInfo,                                        // UDF_IV_HRDInfo
                 $firstProduct ? $firstProduct->code : '',          // ItemCode
                 $firstItem->quantity ?? 1,                         // Qty
                 $this->calculateUnitPrice($firstItem, $firstProduct), // UnitPrice
                 $this->getTaxCode($firstItem, $firstProduct, $quotation), // TaxCode
-                ''                                                  // TariffCode
+                $firstProduct ? ($firstProduct->tariff_code ?? '') : '' // TariffCode
             ];
 
             $sheet->fromArray([$firstRowData], null, 'A' . $row);
@@ -275,12 +295,12 @@ class HrdfInvoiceDataExportController extends Controller
                 $product = $item->product;
 
                 $itemRowData = [
-                    '', '', '', '', '', '', '', '', '', '', '', '', '', '', // Empty first 14 columns
+                    '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', // Empty first 16 columns
                     $product ? $product->code : '',                  // ItemCode
                     $item->quantity ?? 1,                           // Qty
                     $this->calculateUnitPrice($item, $product),     // UnitPrice
                     $this->getTaxCode($item, $product, $quotation), // TaxCode
-                    ''                                              // TariffCode
+                    $product ? ($product->tariff_code ?? '') : ''   // TariffCode
                 ];
 
                 $sheet->fromArray([$itemRowData], null, 'A' . $row);
@@ -290,9 +310,11 @@ class HrdfInvoiceDataExportController extends Controller
 
             Log::info('Completed processing all items, final row: ' . ($row - 1));
 
-            // Auto-size columns
-            foreach (range('A', 'Q') as $col) {
-                $sheet->getColumnDimension($col)->setAutoSize(true);
+            // Auto-size columns (except UDF_IV_HRDInfo which has fixed width)
+            foreach (range('A', 'U') as $col) {
+                if ($col !== 'P') { // Don't auto-size UDF_IV_HRDInfo column
+                    $sheet->getColumnDimension($col)->setAutoSize(true);
+                }
             }
 
             // Save as Excel file
@@ -387,5 +409,44 @@ class HrdfInvoiceDataExportController extends Controller
         // Default fallback for other currencies or null currency
         Log::info('Currency is ' . ($quotation->currency ?? 'null') . ' - defaulting to NTS');
         return 'NTS';
+    }
+
+    private function formatHrdfInfo($hrdfClaim, $hrdfInvoice, $quotation)
+    {
+        if (!$hrdfClaim) {
+            Log::warning('No HRDF claim found for formatting HRD info');
+            return 'No HRDF claim data available';
+        }
+
+        // Field 1: Programme Name
+        $programmeName = $hrdfClaim->programme_name ?? 'N/A';
+
+        // Field 2: Date of Programme
+        $trainingDate = $hrdfClaim->hrdf_training_date ?? 'N/A';
+
+        // Field 3: Client Name (from quotation or invoice)
+        $clientName = $quotation->subsidiary->company_name ?? $hrdfInvoice->company_name ?? 'N/A';
+
+        // Field 4: Grant ID
+        $grantId = $hrdfClaim->hrdf_grant_id ?? 'N/A';
+
+        // Field 5: Course Fees (PAX and amount)
+        $pax = $hrdfClaim->pax ?? 0;
+        $totalAmount = $hrdfClaim->invoice_amount ?? 0;
+        $perPaxAmount = $pax > 0 ? ($totalAmount / $pax) : 0;
+
+        // Format the complete string
+        $hrdInfo = sprintf(
+            "PROGRAMME NAME: %s\nDATE OF PROGRAMME: %s\nCLIENT NAME: %s\nGRANT ID: %s\nCOURSE FEES: %d PAX / RM %.2f / PAX",
+            $programmeName,
+            $trainingDate,
+            $clientName,
+            $grantId,
+            $pax,
+            $perPaxAmount
+        );
+
+        Log::info('Formatted HRD Info: ' . $hrdInfo);
+        return $hrdInfo;
     }
 }

@@ -29,11 +29,15 @@ class HrdfClaim extends Model
         'hrdf_mail_id',
         'submitted_at',
         'approved_at',
-        'received_at'
+        'received_at',
+        'upfront_payment',
+        'pax'
     ];
 
     protected $casts = [
         'invoice_amount' => 'decimal:2',
+        'upfront_payment' => 'decimal:2',
+        'pax' => 'integer',
         'approved_date' => 'date',
         'email_processed_at' => 'datetime',
         'hrdf_training_date' => 'string',
@@ -97,6 +101,8 @@ class HrdfClaim extends Model
             'programme_name' => $extractedData['programme_name'] ?? 'Unknown Programme',
             'approved_date' => $extractedData['approved_date'] ?? $hrdfMail->received_date->toDateString(),
             'email_processed_at' => now(),
+            'upfront_payment' => $extractedData['upfront_payment'] ?? 0,
+            'pax' => $extractedData['pax'] ?? 0,
         ];
 
         // Only add hrdf_mail_id if the column exists
@@ -146,6 +152,42 @@ class HrdfClaim extends Model
             // Total amount - TOTAL AMOUNT (RM) : 12,960.00
             if (preg_match('/TOTAL\s+AMOUNT\s*\(RM\)\s*:\s*([\d,\.]+)/', $line, $matches)) {
                 $data['invoice_amount'] = (float) str_replace(',', '', $matches[1]);
+            }
+
+            // Upfront Payment - Upfront Payment to Training Provider ? RM 3,888.00
+            if (preg_match('/Upfront\s+Payment\s+to\s+Training\s+Provider\s*\?\s*RM\s*([\d,\.]+)/', $line, $matches)) {
+                $data['upfront_payment'] = (float) str_replace(',', '', $matches[1]);
+            }
+
+            // Number of People/Pax - Multiple patterns to handle different table formats
+
+            // Pattern 1: Course Fee 4 1,080.00 3.0 12,960.00
+            if (preg_match('/Course\s+Fee\s+(\d+)\s+[\d,\.]+\s+[\d\.]+\s+[\d,\.]+/', $line, $matches)) {
+                $data['pax'] = (int) $matches[1];
+            }
+
+            // Pattern 2: Course Fee followed by number on same line with any spacing
+            if (preg_match('/Course\s+Fee\s+(\d+)/', $line, $matches)) {
+                $data['pax'] = (int) $matches[1];
+            }
+
+            // Pattern 3: Just a number after Course Fee (flexible spacing)
+            if (preg_match('/Course\s*Fee[\s\t]*(\d+)/', $line, $matches)) {
+                $data['pax'] = (int) $matches[1];
+            }
+
+            // Pattern 4: No. of People with number
+            if (preg_match('/No\.\s*of\s*People\s*(\d+)/', $line, $matches)) {
+                $data['pax'] = (int) $matches[1];
+            }
+
+            // Pattern 5: Table format where we look for lines that start with just a number (likely pax)
+            if (preg_match('/^(\d+)$/', $line, $matches) && !isset($data['pax'])) {
+                // Only capture if it's a reasonable number for participants (1-100)
+                $num = (int) $matches[1];
+                if ($num >= 1 && $num <= 100) {
+                    $data['pax'] = $num;
+                }
             }
 
             // Approval date
@@ -224,5 +266,10 @@ class HrdfClaim extends Model
     public function hrdfHandover()
     {
         return $this->hasOne(HRDFHandover::class, 'hrdf_grant_id', 'hrdf_grant_id');
+    }
+
+    public function hrdfInvoices()
+    {
+        return $this->hasMany(CrmHrdfInvoiceV2::class, 'hrdf_grant_id', 'hrdf_grant_id');
     }
 }

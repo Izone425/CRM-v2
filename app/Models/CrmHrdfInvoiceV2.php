@@ -23,6 +23,7 @@ class CrmHrdfInvoiceV2 extends Model
         'salesperson',
         'status',
         'handover_data',
+        'hrdf_grant_id',
         'proforma_invoice_data'
     ];
 
@@ -49,7 +50,7 @@ class CrmHrdfInvoiceV2 extends Model
             $lastNumber = intval(substr($lastInvoice->invoice_no, -4));
             $nextNumber = str_pad($lastNumber + 1, 4, '0', STR_PAD_LEFT);
         } else {
-            $nextNumber = '0001';
+            $nextNumber = '0100';
         }
 
         return "EHIN{$year}{$month}-{$nextNumber}";
@@ -94,5 +95,11 @@ class CrmHrdfInvoiceV2 extends Model
     public function scopeThisYear($query)
     {
         return $query->whereYear('invoice_date', Carbon::now()->year);
+    }
+
+    // Relationships
+    public function hrdfClaim()
+    {
+        return $this->belongsTo(HrdfClaim::class, 'hrdf_grant_id', 'hrdf_grant_id');
     }
 }
