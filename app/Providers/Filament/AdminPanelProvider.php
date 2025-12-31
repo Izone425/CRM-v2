@@ -34,6 +34,7 @@ use App\Filament\Pages\HeadcountHandoverList;
 use App\Filament\Pages\HrdfClaimTracker;
 use App\Filament\Pages\HrdfHandoverList;
 use App\Filament\Pages\HrdfInvoiceList;
+use App\Filament\Pages\HrdfInvoiceListV2;
 use App\Filament\Pages\ImplementationSession;
 use App\Filament\Pages\ImplementerAuditList;
 use App\Filament\Pages\ImplementerCalendar;
@@ -96,7 +97,10 @@ use App\Filament\Pages\TicketDashboard;
 use App\Filament\Pages\TicketList;
 use App\Filament\Pages\TrainingCalendar;
 use App\Filament\Pages\TrainingCalendarBulkManagement;
+use App\Filament\Pages\TrainingRequest;
 use App\Filament\Pages\TrainingSetting;
+use App\Filament\Pages\TrainingSettingTrainer1;
+use App\Filament\Pages\TrainingSettingTrainer2;
 use App\Filament\Pages\WeeklyCalendarV2;
 use App\Filament\Pages\Whatsapp;
 use App\Filament\Resources\AdminRepairResource;
@@ -371,7 +375,10 @@ class AdminPanelProvider extends PanelProvider
                 ProjectPlanSummary::class,
                 ApolloLeadTracker::class,
                 SalespersonLeadSequenceV2::class,
-                TrainingSetting::class,
+                TrainingSettingTrainer1::class,
+                TrainingSettingTrainer2::class,
+                TrainingRequest::class,
+                HrdfInvoiceListV2::class,
                 HrdfInvoiceList::class,
                 InternalTicketsPage::class,
             ])

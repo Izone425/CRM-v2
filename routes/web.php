@@ -15,6 +15,7 @@ use App\Http\Controllers\GenerateSoftwareHandoverPdfController;
 use App\Http\Controllers\MicrosoftAuthController;
 use App\Http\Controllers\PrintPdfController;
 use App\Http\Controllers\ProformaInvoiceController;
+use App\Http\Controllers\GenerateInvoicePdfController;
 use App\Http\Controllers\SoftwareHandoverExportController;
 use App\Http\Controllers\WhatsAppController;
 use App\Http\Livewire\DemoRequest;
@@ -73,6 +74,18 @@ Route::get('/einvoice/export/{lead}', [App\Http\Controllers\EInvoiceExportContro
     ->name('einvoice.export')
     ->middleware(['auth']);
 
+Route::get('/invoice-data/export/{softwareHandover}', [App\Http\Controllers\InvoiceDataExportController::class, 'exportInvoiceData'])
+    ->name('invoice-data.export')
+    ->middleware(['auth']);
+
+Route::get('/headcount-invoice-data/export/{headcountHandover}', [App\Http\Controllers\HeadcountInvoiceDataExportController::class, 'exportInvoiceData'])
+    ->name('headcount-invoice-data.export')
+    ->middleware(['auth']);
+
+Route::get('/hrdf-invoice-data/export/{hrdfInvoice}', [App\Http\Controllers\HrdfInvoiceDataExportController::class, 'exportHrdfInvoiceData'])
+    ->name('hrdf-invoice-data.export')
+    ->middleware(['auth']);
+
 Route::get('/demo-request/{lead_code}', function ($lead_code) {
     // Check if the lead_code exists in the database
     $site = LeadSource::where('lead_code', $lead_code)->first();
@@ -84,6 +97,10 @@ Route::get('/demo-request/{lead_code}', function ($lead_code) {
 
     return view('demoRequest', ['lead_code' => $lead_code]);
 });
+
+// Route::get('generate-invoice-pdf/{invoice_no}', GenerateInvoicePdfController::class)
+//     ->name('invoices.generate_pdf')
+//     ->middleware(['auth']);
 
 Route::get('/referral-demo-request/{lead_code}', function ($lead_code) {
     // Check if the lead_code exists in the database
@@ -174,12 +191,13 @@ Route::prefix('customer')->name('customer.')->group(function () {
     Route::get('/activate/{token}', [CustomerActivationController::class, 'activateAccount'])->name('activate');
     Route::post('/activate/{token}', [CustomerActivationController::class, 'completeActivation'])->name('complete-activation');
 
-    // Protected routes for authenticated customers
-    Route::middleware('auth:customer')->group(function () {
-        Route::get('/dashboard', function () {
-            return view('customer.dashboard');
-        })->name('dashboard');
-    });
+    // ✅ Fix: Remove the extra '/customer' from the path since we're already in the customer prefix group
+    Route::get('/dashboard', function () {
+        if (!auth('customer')->check()) {
+            return redirect()->route('customer.login');
+        }
+        return view('customer.dashboard');
+    })->name('dashboard');
 });
 
 // Admin routes for sending activation emails
@@ -197,6 +215,30 @@ Route::get('/hrms/implementer/{filename}', function ($filename) {
 
     return response()->file($path);
 })->name('implementer.files');
+
+Route::get('/project-plans/{filename}', function ($filename) {
+    $path = storage_path('app/public/project-plans/' . $filename);
+
+    if (!file_exists($path)) {
+        abort(404);
+    }
+
+    // ✅ Force browser to display instead of download
+    return response()->file($path, [
+        'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'Content-Disposition' => 'inline; filename="' . $filename . '"',
+    ]);
+})->name('project-plans.view');
+
+Route::get('/download-project-plan/{file}', function ($file) {
+    $filePath = storage_path('app/public/project-plans/' . $file);
+
+    if (!file_exists($filePath)) {
+        abort(404, 'File not found');
+    }
+
+    return response()->download($filePath);
+})->name('download.project-plan');
 
 Route::get('/hrms/trainer/{filename}', function ($filename) {
     // First try with the exact filename
@@ -225,118 +267,135 @@ Route::get('/file/{filepath}', function ($filepath) {
     return response()->file($path);
 })->where('filepath', '.*')->name('file.serve');
 
-// Route::get('/zoho/auth', function (Request $request) {
-//     $clientId = env('ZOHO_CLIENT_ID');
-//     $clientSecret = env('ZOHO_CLIENT_SECRET');
-//     $redirectUri = env('ZOHO_REDIRECT_URI');
+Route::prefix('hrcrm/api/tickets')->name('api.tickets.')->group(function () {
+    // Get all tickets
+    Route::get('/', [App\Http\Controllers\TicketApiController::class, 'index'])->name('index');
 
-//     // ✅ Check if a valid access token exists
-//     if (Cache::has('zoho_access_token')) {
-//         return response()->json([
-//             'message' => 'Using cached Zoho access token',
-//             'access_token' => Cache::get('zoho_access_token')
-//         ]);
-//     }
+    // Get single ticket
+    Route::get('hrcrm//{ticket}', [App\Http\Controllers\TicketApiController::class, 'show'])->name('show');
 
-//     // ✅ If no access token, check if a refresh token exists to refresh it
-//     if (Cache::has('zoho_refresh_token')) {
-//         $refreshToken = Cache::get('zoho_refresh_token');
-//         $tokenResponse = Http::asForm()->post('https://accounts.zoho.com/oauth/v2/token', [
-//             'refresh_token' => $refreshToken,
-//             'client_id'     => $clientId,
-//             'client_secret' => $clientSecret,
-//             'grant_type'    => 'refresh_token',
-//         ]);
+    // Create ticket (called from Filament Resource)
+    Route::post('/', [App\Http\Controllers\TicketApiController::class, 'store'])->name('store');
 
-//         $tokenData = $tokenResponse->json();
-//         Log::info('Zoho Token Refresh Response:', $tokenData);
+    // Update ticket
+    Route::put('hrcrm//{ticket}', [App\Http\Controllers\TicketApiController::class, 'update'])->name('update');
 
-//         if (isset($tokenData['access_token'])) {
-//             Cache::put('zoho_access_token', $tokenData['access_token'], now()->addMinutes(55));
-//             return response()->json([
-//                 'message' => 'Zoho access token refreshed',
-//                 'access_token' => $tokenData['access_token']
-//             ]);
-//         }
-//     }
+    // Delete ticket
+    Route::delete('hrcrm//{ticket}', [App\Http\Controllers\TicketApiController::class, 'destroy'])->name('destroy');
+});
 
-//     // ✅ If no refresh token, redirect user to Zoho authentication
-//     $authUrl = "https://accounts.zoho.com/oauth/v2/auth?" . http_build_query([
-//         'client_id'     => $clientId,
-//         'response_type' => 'code',
-//         'scope'         => 'ZohoCRM.modules.all',
-//         'redirect_uri'  => $redirectUri,
-//         'access_type'   => 'offline',
-//         'prompt'        => 'consent',
-//     ]);
+Route::get('/zoho/auth', function (Request $request) {
+    $clientId = env('ZOHO_CLIENT_ID');
+    $clientSecret = env('ZOHO_CLIENT_SECRET');
+    $redirectUri = env('ZOHO_REDIRECT_URI');
 
-//     return redirect()->away($authUrl);
-// });
+    // ✅ Check if a valid access token exists
+    if (Cache::has('zoho_access_token')) {
+        return response()->json([
+            'message' => 'Using cached Zoho access token',
+            'access_token' => Cache::get('zoho_access_token')
+        ]);
+    }
 
-// Route::get('/zoho/callback', function (Request $request) {
-//     Log::info('Incoming Zoho Callback Data:', $request->all());
+    // ✅ If no access token, check if a refresh token exists to refresh it
+    if (Cache::has('zoho_refresh_token')) {
+        $refreshToken = Cache::get('zoho_refresh_token');
+        $tokenResponse = Http::asForm()->post('https://accounts.zoho.com/oauth/v2/token', [
+            'refresh_token' => $refreshToken,
+            'client_id'     => $clientId,
+            'client_secret' => $clientSecret,
+            'grant_type'    => 'refresh_token',
+        ]);
 
-//     $code = $request->query('code');
-//     if (!$code) {
-//         return response()->json(['error' => 'No authorization code received'], 400);
-//     }
+        $tokenData = $tokenResponse->json();
+        Log::info('Zoho Token Refresh Response:', $tokenData);
 
-//     $clientId = env('ZOHO_CLIENT_ID');
-//     $clientSecret = env('ZOHO_CLIENT_SECRET');
-//     $redirectUri = env('ZOHO_REDIRECT_URI');
+        if (isset($tokenData['access_token'])) {
+            Cache::put('zoho_access_token', $tokenData['access_token'], now()->addMinutes(55));
+            return response()->json([
+                'message' => 'Zoho access token refreshed',
+                'access_token' => $tokenData['access_token']
+            ]);
+        }
+    }
 
-//     // Exchange Code for Access Token
-//     $tokenResponse = Http::asForm()->post('https://accounts.zoho.com/oauth/v2/token', [
-//         'code'          => $code,
-//         'client_id'     => $clientId,
-//         'client_secret' => $clientSecret,
-//         'redirect_uri'  => $redirectUri,
-//         'grant_type'    => 'authorization_code',
-//     ]);
+    // ✅ If no refresh token, redirect user to Zoho authentication
+    $authUrl = "https://accounts.zoho.com/oauth/v2/auth?" . http_build_query([
+        'client_id'     => $clientId,
+        'response_type' => 'code',
+        'scope'         => 'ZohoCRM.modules.all',
+        'redirect_uri'  => $redirectUri,
+        'access_type'   => 'offline',
+        'prompt'        => 'consent',
+    ]);
 
-//     $tokenData = $tokenResponse->json();
-//     Log::info('Zoho Token Response:', $tokenData);
+    return redirect()->away($authUrl);
+});
 
-//     if (!isset($tokenData['access_token'])) {
-//         return response()->json(['error' => 'Failed to get access token', 'details' => $tokenData], 400);
-//     }
+Route::get('/zoho/callback', function (Request $request) {
+    Log::info('Incoming Zoho Callback Data:', $request->all());
 
-//     // ✅ Store access token & refresh token
-//     Cache::put('zoho_access_token', $tokenData['access_token'], now()->addMinutes(55));
-//     if (isset($tokenData['refresh_token'])) {
-//         Cache::forever('zoho_refresh_token', $tokenData['refresh_token']);
-//     }
+    $code = $request->query('code');
+    if (!$code) {
+        return response()->json(['error' => 'No authorization code received'], 400);
+    }
 
-//     return response()->json([
-//         'message' => 'Zoho authentication successful',
-//         'access_token' => $tokenData['access_token'],
-//         'refresh_token' => $tokenData['refresh_token'] ?? 'Already stored',
-//     ]);
-// });
+    $clientId = env('ZOHO_CLIENT_ID');
+    $clientSecret = env('ZOHO_CLIENT_SECRET');
+    $redirectUri = env('ZOHO_REDIRECT_URI');
 
-// Route::get('/zoho/leads', function (Request $request) {
-//     $accessToken = Cache::get('zoho_access_token');
-//     $apiDomain = 'https://www.zohoapis.com';
+    // Exchange Code for Access Token
+    $tokenResponse = Http::asForm()->post('https://accounts.zoho.com/oauth/v2/token', [
+        'code'          => $code,
+        'client_id'     => $clientId,
+        'client_secret' => $clientSecret,
+        'redirect_uri'  => $redirectUri,
+        'grant_type'    => 'authorization_code',
+    ]);
 
-//     if (!$accessToken) {
-//         return response()->json(['error' => 'No access token available. Please authenticate first.'], 400);
-//     }
+    $tokenData = $tokenResponse->json();
+    Log::info('Zoho Token Response:', $tokenData);
 
-//     // ✅ Get the sorting parameter from the request (default to 'id')
-//     $sortBy = $request->query('sort_by', 'id'); // Possible values: id, Created_Time, Modified_Time
+    if (!isset($tokenData['access_token'])) {
+        return response()->json(['error' => 'Failed to get access token', 'details' => $tokenData], 400);
+    }
 
-//     // Fetch Leads from Zoho with sorting
-//     $response = Http::withHeaders([
-//         'Authorization' => 'Zoho-oauthtoken ' . $accessToken,
-//         'Content-Type'  => 'application/json',
-//     ])->get($apiDomain . '/crm/v2/Leads', [
-//         'page'     => 1,
-//         'per_page' => 200, // ✅ Max limit is 200, not 300
-//         'criteria' => '(Created_Time:after:2025-03-01)'
-//     ]);
+    // ✅ Store access token & refresh token
+    Cache::put('zoho_access_token', $tokenData['access_token'], now()->addMinutes(55));
+    if (isset($tokenData['refresh_token'])) {
+        Cache::forever('zoho_refresh_token', $tokenData['refresh_token']);
+    }
 
-//     return($leadsData = $response->json());
-// });
+    return response()->json([
+        'message' => 'Zoho authentication successful',
+        'access_token' => $tokenData['access_token'],
+        'refresh_token' => $tokenData['refresh_token'] ?? 'Already stored',
+    ]);
+});
+
+Route::get('/zoho/leads', function (Request $request) {
+    $accessToken = Cache::get('zoho_access_token');
+    $apiDomain = 'https://www.zohoapis.com';
+
+    if (!$accessToken) {
+        return response()->json(['error' => 'No access token available. Please authenticate first.'], 400);
+    }
+
+    // ✅ Get the sorting parameter from the request (default to 'id')
+    $sortBy = $request->query('sort_by', 'id'); // Possible values: id, Created_Time, Modified_Time
+
+    // Fetch Leads from Zoho with sorting
+    $response = Http::withHeaders([
+        'Authorization' => 'Zoho-oauthtoken ' . $accessToken,
+        'Content-Type'  => 'application/json',
+    ])->get($apiDomain . '/crm/v2/Leads', [
+        'page'     => 1,
+        'per_page' => 200, // ✅ Max limit is 200, not 300
+        'criteria' => '(Created_Time:after:2025-03-01)'
+    ]);
+
+    return($leadsData = $response->json());
+});
 
 // Route::get('/zoho/deals', function () {
 //     $accessToken = Cache::get('zoho_access_token');

@@ -833,8 +833,9 @@
             border-top: 3px solid #1e40af;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
             text-align: left;
-            position: relative;
-            z-index: 20; /* Higher z-index to appear above public holidays */
+            position: sticky;
+            top: 71px; /* Position below the main header */
+            z-index: 19; /* Just below the main header but above other content */
         }
 
         .category-border-1 {

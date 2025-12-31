@@ -369,6 +369,24 @@ class CreateLead extends CreateRecord
                     ->label('Work Email Address')
                     ->email()
                     ->required()
+                    ->rules([
+                        function () {
+                            return function (string $attribute, $value, \Closure $fail) {
+                                if (empty($value)) {
+                                    return;
+                                }
+
+                                // Check if email already exists
+                                $existingLead = \App\Models\Lead::where('email', strtolower(trim($value)))->first();
+
+                                if ($existingLead) {
+                                    $companyName = $existingLead->companyDetail ? $existingLead->companyDetail->company_name : 'Unknown Company';
+                                    $leadId = str_pad($existingLead->id, 5, '0', STR_PAD_LEFT);
+                                    $fail("This email address is already in use by {$companyName} (Lead ID: {$leadId}). Please check for existing leads before creating a new one.");
+                                }
+                            };
+                        }
+                    ])
                     ->suffixAction(
                         \Filament\Forms\Components\Actions\Action::make('searchEmail')
                             ->label('Verify')
@@ -421,6 +439,27 @@ class CreateLead extends CreateRecord
                 PhoneInput::make('phone')
                     ->label('Phone Number')
                     ->required()
+                    ->rules([
+                        function () {
+                            return function (string $attribute, $value, \Closure $fail) {
+                                if (empty($value)) {
+                                    return;
+                                }
+
+                                // Remove the "+" symbol from the phone number for validation (same as dehydrateStateUsing)
+                                $cleanPhone = ltrim(trim($value), '+');
+
+                                // Check if phone already exists
+                                $existingLead = \App\Models\Lead::where('phone', $cleanPhone)->first();
+
+                                if ($existingLead) {
+                                    $companyName = $existingLead->companyDetail ? $existingLead->companyDetail->company_name : 'Unknown Company';
+                                    $leadId = str_pad($existingLead->id, 5, '0', STR_PAD_LEFT);
+                                    $fail("This phone number is already in use by {$companyName} (Lead ID: {$leadId}). Please check for existing leads before creating a new one.");
+                                }
+                            };
+                        }
+                    ])
                     ->suffixAction(
                         \Filament\Forms\Components\Actions\Action::make('searchPhone')
                             ->label('Verify')

@@ -22,11 +22,24 @@
             if ($record) {
                 $leadId = $record->id;
 
-                // Get all non-closed software handovers for this lead
-                $softwareHandovers = \App\Models\SoftwareHandover::where('lead_id', $leadId)
-                    ->where('status_handover', '!=', 'Closed')
+                // ✅ Smart filtering: Hide closed handovers only if latest is not closed
+                $allHandovers = \App\Models\SoftwareHandover::where('lead_id', $leadId)
                     ->orderBy('created_at', 'desc')
                     ->get();
+
+                if ($allHandovers->isNotEmpty()) {
+                    $latestHandover = $allHandovers->first();
+
+                    // If latest handover is NOT closed, filter out all closed ones
+                    if ($latestHandover->status_handover !== 'Closed') {
+                        $softwareHandovers = $allHandovers->where('status_handover', '!=', 'Closed');
+                    } else {
+                        // If latest handover IS closed, show all handovers
+                        $softwareHandovers = $allHandovers;
+                    }
+                } else {
+                    $softwareHandovers = collect();
+                }
 
                 if ($softwareHandovers->isNotEmpty()) {
                     // Get the latest project plan generation timestamp from any handover
