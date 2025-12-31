@@ -173,7 +173,8 @@ class RenewalHandoverRelationManager extends RelationManager
 
                                         $options = [];
                                         foreach ($quotations as $quotation) {
-                                            $options[$quotation->id] = $quotation->pi_reference_no;
+                                            $label = $quotation->pi_reference_no ?? "Quotation ID: {$quotation->id}";
+                                            $options[$quotation->id] = $label;
                                         }
 
                                         return $options;

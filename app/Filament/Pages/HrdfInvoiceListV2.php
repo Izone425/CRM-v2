@@ -7,6 +7,7 @@ use App\Models\SoftwareHandover;
 use App\Models\HardwareHandoverV2;
 use App\Models\RenewalHandover;
 use App\Models\Quotation;
+use App\Models\HrdfClaim;
 use App\Classes\Encryptor;
 use Filament\Pages\Page;
 use Filament\Tables\Table;
@@ -20,10 +21,13 @@ use Filament\Tables\Actions\Action as TableAction;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Grid;
+use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\Section;
 use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Support\Enums\ActionSize;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class HrdfInvoiceListV2 extends Page implements HasTable
@@ -32,7 +36,7 @@ class HrdfInvoiceListV2 extends Page implements HasTable
 
     protected static ?string $navigationIcon = 'heroicon-o-document-text';
     protected static ?string $navigationLabel = 'HRDF Invoices V2';
-    protected static ?string $title = 'HRDF Invoice List V2';
+    protected static ?string $title = 'HRDF Invoice List';
     protected static string $view = 'filament.pages.hrdf-invoice-list-v2';
 
     public function table(Table $table): Table
@@ -41,7 +45,8 @@ class HrdfInvoiceListV2 extends Page implements HasTable
             ->query(
                 CrmHrdfInvoiceV2::query()
             )
-            ->defaultSort('created_at', 'desc')
+            ->defaultSort('invoice_no', 'desc')
+            ->emptyState(fn () => view('components.empty-state-question'))
             ->columns([
                 TextColumn::make('invoice_no')
                     ->label('Invoice Number')
@@ -58,9 +63,55 @@ class HrdfInvoiceListV2 extends Page implements HasTable
 
                 TextColumn::make('company_name')
                     ->label('Customer Name')
-                    ->searchable()
-                    ->limit(30)
-                    ->tooltip(fn ($record) => $record->company_name),
+                    ->formatStateUsing(function ($state, CrmHrdfInvoiceV2 $record) {
+                        // Get the quotation from proforma_invoice_data
+                        $quotation = null;
+                        if ($record->proforma_invoice_data) {
+                            $quotation = Quotation::with(['subsidiary', 'lead.companyDetail'])->find($record->proforma_invoice_data);
+                        }
+
+                        // Determine which company name to display
+                        $companyName = 'N/A';
+                        $leadId = null;
+
+                        if ($quotation) {
+                            if ($quotation->subsidiary_id && $quotation->subsidiary) {
+                                $companyName = $quotation->subsidiary->company_name;
+                            } elseif ($quotation->lead && $quotation->lead->companyDetail) {
+                                $companyName = $quotation->lead->companyDetail->company_name;
+                            }
+                            // Get lead ID for the link
+                            if ($quotation->lead) {
+                                $leadId = $quotation->lead->id;
+                            }
+                        }
+
+                        // Fall back to HRDF invoice company name if no other source
+                        if ($companyName === 'N/A' && $record->company_name) {
+                            $companyName = $record->company_name;
+                        }
+
+                        // Format the display name
+                        $fullName = $companyName;
+                        $shortened = strtoupper(Str::limit($fullName, 25, '...'));
+
+                        // Create clickable link if we have a lead ID
+                        if ($leadId) {
+                            $encryptedId = \App\Classes\Encryptor::encrypt($leadId);
+
+                            return '<a href="' . url('admin/leads/' . $encryptedId) . '"
+                                        target="_blank"
+                                        title="' . e($fullName) . '"
+                                        class="inline-block"
+                                        style="color:#338cf0;">
+                                        ' . $shortened . '
+                                    </a>';
+                        }
+
+                        // Return plain text if no link available
+                        return $shortened;
+                    })
+                    ->html(),
 
                 TextColumn::make('handover_type')
                     ->label('Type')
@@ -76,6 +127,28 @@ class HrdfInvoiceListV2 extends Page implements HasTable
                         'HW' => 'HARDWARE',
                         'RW' => 'RENEWAL',
                         default => $state,
+                    }),
+
+                TextColumn::make('pi_reference_no')
+                    ->label('PI Reference')
+                    ->limit(20)
+                    ->getStateUsing(function (CrmHrdfInvoiceV2 $record) {
+                        if ($record->proforma_invoice_data) {
+                            $quotation = Quotation::find($record->proforma_invoice_data);
+                            if ($quotation && $quotation->pi_reference_no) {
+                                return $quotation->pi_reference_no;
+                            }
+                        }
+                        return 'N/A';
+                    })
+                    ->tooltip(function (CrmHrdfInvoiceV2 $record) {
+                        if ($record->proforma_invoice_data) {
+                            $quotation = Quotation::find($record->proforma_invoice_data);
+                            if ($quotation && $quotation->pi_reference_no) {
+                                return $quotation->pi_reference_no;
+                            }
+                        }
+                        return 'No PI Reference Available';
                     }),
 
                 TextColumn::make('handover_id')
@@ -132,12 +205,12 @@ class HrdfInvoiceListV2 extends Page implements HasTable
                     ),
 
                 TextColumn::make('tt_invoice_number')
-                    ->label('TT Invoice')
+                    ->label('Details')
                     ->searchable()
                     ->formatStateUsing(fn ($state) => $state ? 'View' : 'N/A')
                     ->action(
                         TableAction::make('viewTTInvoice')
-                            ->modalHeading('TT Proforma Invoice Number')
+                            ->modalHeading('TT Invoice / Sales Order Number')
                             ->modalWidth('md')
                             ->modalSubmitAction(false)
                             ->modalCancelActionLabel('Close')
@@ -175,7 +248,6 @@ class HrdfInvoiceListV2 extends Page implements HasTable
                     ->label('Total')
                     ->money('MYR')
                     ->sortable()
-                    ->weight('bold')
                     ->getStateUsing(function (CrmHrdfInvoiceV2 $record) {
                         if (!$record->proforma_invoice_data) {
                             return 0;
@@ -196,8 +268,8 @@ class HrdfInvoiceListV2 extends Page implements HasTable
             ])
             ->actions([
                 TableAction::make('exportHrdfInvoice')
-                    ->label('Export Excel')
-                    ->icon('heroicon-o-arrow-down-tray')
+                    ->label('')
+                    ->icon('heroicon-o-document-arrow-down')
                     ->color('success')
                     ->url(function (CrmHrdfInvoiceV2 $record) {
                         return route('hrdf-invoice-data.export', [
@@ -223,7 +295,7 @@ class HrdfInvoiceListV2 extends Page implements HasTable
     {
         return [
             \Filament\Actions\Action::make('createHrdfInvoice')
-                ->label('CREATE HRDF INVOICE')
+                ->label('CREATE')
                 ->color('primary')
                 ->icon('heroicon-o-plus')
                 ->size(ActionSize::Large)
@@ -231,7 +303,7 @@ class HrdfInvoiceListV2 extends Page implements HasTable
                 ->modalWidth('2xl')
                 ->form([
                     Select::make('handover_type')
-                        ->label('SELECT TYPE')
+                        ->label('Select Type')
                         ->options([
                             'SW' => 'SOFTWARE HANDOVER',
                             'HW' => 'HARDWARE HANDOVER',
@@ -239,10 +311,13 @@ class HrdfInvoiceListV2 extends Page implements HasTable
                         ])
                         ->required()
                         ->live()
-                        ->afterStateUpdated(fn ($state, callable $set) => $set('handover_id', null)),
+                        ->afterStateUpdated(function ($state, callable $set) {
+                            $set('handover_id', null);
+                            $set('pi_references', []);
+                        }),
 
                     Select::make('handover_id')
-                        ->label('CHOOSE HANDOVER ID')
+                        ->label('Choose handover ID')
                         ->options(function (callable $get) {
                             $handoverType = $get('handover_type');
                             if (!$handoverType) return [];
@@ -250,10 +325,12 @@ class HrdfInvoiceListV2 extends Page implements HasTable
                             $handovers = match ($handoverType) {
                                 'SW' => SoftwareHandover::with(['lead'])
                                     ->where('status', 'New')
-                                    ->limit(50) // Add limit to prevent too many results
+                                    ->whereNotNull('proforma_invoice_hrdf')
+                                    ->limit(50)
                                     ->get(),
                                 'HW' => HardwareHandoverV2::with(['lead'])
                                     ->where('status', 'New')
+                                    ->whereNotNull('proforma_invoice_hrdf')
                                     ->limit(50)
                                     ->get(),
                                 'RW' => RenewalHandover::with(['lead'])
@@ -267,27 +344,141 @@ class HrdfInvoiceListV2 extends Page implements HasTable
                                 return ['no_data' => 'No handovers found'];
                             }
 
-                            return $handovers->mapWithKeys(function ($handover) use ($handoverType) {
-                                // Use the formatted handover ID from each model
+                            return $handovers->mapWithKeys(function ($handover) {
                                 $formattedId = $handover->formatted_handover_id ?? "ID_{$handover->id}";
-
-                                // Try multiple ways to get company name
                                 $companyName = $handover->company_name
-                                    ?? $handover->lead?->company_name
                                     ?? $handover->lead?->companyDetail?->company_name
-                                    ?? "Company ID: {$handover->lead_id}"
                                     ?? 'Unknown Company';
-
                                 return [$handover->id => "{$formattedId} / {$companyName}"];
                             })->toArray();
                         })
                         ->required()
                         ->searchable()
                         ->placeholder('Select handover type first')
-                        ->disabled(fn (callable $get) => !$get('handover_type')),
+                        ->disabled(fn (callable $get) => !$get('handover_type'))
+                        ->live()
+                        ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                            $set('pi_references', []);
+
+                            if (!$state) return;
+
+                            $handoverType = $get('handover_type');
+                            $handover = match ($handoverType) {
+                                'SW' => SoftwareHandover::find($state),
+                                'HW' => HardwareHandoverV2::find($state),
+                                'RW' => RenewalHandover::find($state),
+                                default => null
+                            };
+
+                            if (!$handover) return;
+
+                            // Get proforma invoices
+                            $proformaInvoices = null;
+                            if ($handoverType === 'RW') {
+                                $proformaInvoices = $handover->selected_quotation_ids;
+                                if (is_string($proformaInvoices)) {
+                                    $proformaInvoices = json_decode($proformaInvoices, true);
+                                }
+                            } else {
+                                $proformaInvoices = $handover->proforma_invoice_hrdf;
+                                if (is_string($proformaInvoices)) {
+                                    $proformaInvoices = json_decode($proformaInvoices, true);
+                                }
+                            }
+
+                            if (!$proformaInvoices) return;
+
+                            // Handle different formats
+                            $piReferences = [];
+                            if (is_array($proformaInvoices)) {
+                                $firstItem = $proformaInvoices[0] ?? null;
+                                if (is_string($firstItem) || is_numeric($firstItem)) {
+                                    // Array of IDs
+                                    foreach ($proformaInvoices as $proformaId) {
+                                        $quotation = Quotation::find((int)$proformaId);
+                                        if ($quotation) {
+                                            $piReferences[] = [
+                                                'quotation_id' => $quotation->id,
+                                                'pi_reference' => $quotation->pi_reference_no ?? 'No PI Reference',
+                                                'hrdf_grant_id' => null
+                                            ];
+                                        }
+                                    }
+                                } else {
+                                    // Single quotation ID
+                                    $quotation = Quotation::find((int)$proformaInvoices);
+                                    if ($quotation) {
+                                        $piReferences[] = [
+                                            'quotation_id' => $quotation->id,
+                                            'pi_reference' => $quotation->pi_reference_no ?? 'No PI Reference',
+                                            'hrdf_grant_id' => null
+                                        ];
+                                    }
+                                }
+                            }
+
+                            $set('pi_references', $piReferences);
+                        }),
+
+                    Repeater::make('pi_references')
+                        ->label('PI References & HRDF Grant IDs')
+                        ->schema([
+                            Grid::make(2)->schema([
+                                TextInput::make('pi_reference')
+                                    ->label('PI Reference')
+                                    ->disabled()
+                                    ->dehydrated(false),
+
+                                Select::make('hrdf_grant_id')
+                                    ->label('Select HRDF Grant ID')
+                                    ->options(function (callable $get) {
+                                        $handoverId = $get('../../handover_id');
+                                        $handoverType = $get('../../handover_type');
+
+                                        if (!$handoverId || !$handoverType) return [];
+
+                                        $handover = match ($handoverType) {
+                                            'SW' => SoftwareHandover::find($handoverId),
+                                            'HW' => HardwareHandoverV2::find($handoverId),
+                                            'RW' => RenewalHandover::find($handoverId),
+                                            default => null
+                                        };
+
+                                        if (!$handover) return [];
+
+                                        $companyName = $handover->company_name
+                                            ?? $handover->lead?->companyDetail?->company_name
+                                            ?? $handover->lead?->company_name
+                                            ?? null;
+
+                                        $hrdfClaims = HrdfClaim::where('claim_status', 'PENDING')
+                                            ->whereNotNull('hrdf_grant_id')
+                                            ->where('hrdf_grant_id', '!=', '')
+                                            ->limit(20)
+                                            ->get();
+
+                                        if ($hrdfClaims->isEmpty()) {
+                                            return ['no_data' => 'No HRDF claims found'];
+                                        }
+
+                                        return $hrdfClaims->mapWithKeys(function ($claim) {
+                                            $display = "{$claim->hrdf_grant_id} - {$claim->company_name}";
+                                            return [$claim->hrdf_grant_id => $display];
+                                        })->toArray();
+                                    })
+                                    ->searchable()
+                                    ->placeholder('Select HRDF Grant ID')
+                                    ->required(),
+                            ])
+                        ])
+                        ->addable(false)
+                        ->deletable(false)
+                        ->reorderable(false)
+                        ->visible(fn (callable $get) => !empty($get('pi_references')))
+                        ->columnSpanFull(),
 
                     TextInput::make('tt_invoice_number')
-                        ->label('TT PROFORMA INVOICE')
+                        ->label('TT Invoice / Sales Order Number')
                         ->required()
                         ->rule('regex:/^[A-Z0-9,]+$/')
                         ->reactive(),
@@ -316,86 +507,12 @@ class HrdfInvoiceListV2 extends Page implements HasTable
                         ?? $handover->lead?->companyDetail?->company_name
                         ?? 'Unknown Company';
 
-                    // Check if there are multiple proforma invoices based on handover type
-                    $proformaInvoices = null;
-
-                    if ($data['handover_type'] === 'RW') {
-                        // For renewal handovers, use selected_quotation_ids
-                        $proformaInvoices = $handover->selected_quotation_ids;
-                        if (is_string($proformaInvoices)) {
-                            $proformaInvoices = json_decode($proformaInvoices, true);
-                        }
-                    } else {
-                        // For software and hardware handovers, use proforma_invoice_hrdf
-                        $proformaInvoices = $handover->proforma_invoice_hrdf;
-                    }
-
-                    if (!$proformaInvoices) {
-                        Notification::make()
-                            ->title('Error')
-                            ->body('No proforma invoice found for this handover!')
-                            ->danger()
-                            ->send();
-                        return;
-                    }
-
-                    // Handle both array and JSON string formats
-                    if (is_string($proformaInvoices)) {
-                        $proformaInvoices = json_decode($proformaInvoices, true);
-                    }
-
-                    // Check if it's a single proforma or multiple
                     $invoicesCreated = 0;
 
-                    // If it's an array of IDs (like ["95","96"]), we need to fetch each proforma invoice
-                    if (is_array($proformaInvoices) && !empty($proformaInvoices)) {
-                        // Check if it's an array of IDs or an array of objects
-                        $firstItem = $proformaInvoices[0];
-
-                        if (is_string($firstItem) || is_numeric($firstItem)) {
-                            // Array of IDs - need to fetch each proforma invoice data
-                            foreach ($proformaInvoices as $proformaId) {
-                                $invoiceNo = CrmHrdfInvoiceV2::generateInvoiceNumber();
-
-                                CrmHrdfInvoiceV2::create([
-                                    'invoice_no' => $invoiceNo,
-                                    'invoice_date' => now(),
-                                    'company_name' => $companyName,
-                                    'handover_type' => $data['handover_type'],
-                                    'handover_id' => $data['handover_id'],
-                                    'tt_invoice_number' => $data['tt_invoice_number'],
-                                    'subtotal' => 0, // Will be calculated dynamically
-                                    'total_amount' => 0, // Will be calculated dynamically
-                                    'status' => 'draft',
-                                    'handover_data' => $handover->toArray(),
-                                    'proforma_invoice_data' => (int)$proformaId // Store quotation ID as integer
-                                ]);
-
-                                $invoicesCreated++;
-                            }
-                        } elseif (is_array($firstItem)) {
-                            // Array of objects - use existing logic
-                            foreach ($proformaInvoices as $index => $proformaData) {
-                                $invoiceNo = CrmHrdfInvoiceV2::generateInvoiceNumber();
-
-                                CrmHrdfInvoiceV2::create([
-                                    'invoice_no' => $invoiceNo,
-                                    'invoice_date' => now(),
-                                    'company_name' => $companyName,
-                                    'handover_type' => $data['handover_type'],
-                                    'handover_id' => $data['handover_id'],
-                                    'tt_invoice_number' => $data['tt_invoice_number'],
-                                    'subtotal' => $proformaData['subtotal'] ?? 0,
-                                    'total_amount' => $proformaData['total'] ?? $proformaData['total_amount'] ?? 0,
-                                    'status' => 'draft',
-                                    'handover_data' => $handover->toArray(),
-                                    'proforma_invoice_data' => $proformaData // Store the specific proforma data
-                                ]);
-
-                                $invoicesCreated++;
-                            }
-                        } else {
-                            // Single item in array, treat as single proforma
+                    // Check if we have PI references with HRDF grant IDs
+                    if (!empty($data['pi_references'])) {
+                        // Create invoice for each PI reference
+                        foreach ($data['pi_references'] as $piReference) {
                             $invoiceNo = CrmHrdfInvoiceV2::generateInvoiceNumber();
 
                             CrmHrdfInvoiceV2::create([
@@ -405,17 +522,38 @@ class HrdfInvoiceListV2 extends Page implements HasTable
                                 'handover_type' => $data['handover_type'],
                                 'handover_id' => $data['handover_id'],
                                 'tt_invoice_number' => $data['tt_invoice_number'],
+                                'hrdf_grant_id' => $piReference['hrdf_grant_id'] ?? null,
                                 'subtotal' => 0,
                                 'total_amount' => 0,
                                 'status' => 'draft',
                                 'handover_data' => $handover->toArray(),
-                                'proforma_invoice_data' => (int)$firstItem // Store quotation ID as integer
+                                'proforma_invoice_data' => (int)$piReference['quotation_id']
                             ]);
 
-                            $invoicesCreated = 1;
+                            $invoicesCreated++;
                         }
                     } else {
-                        // Single proforma invoice (not in array)
+                        // Fallback to original logic for single PI
+                        $proformaInvoices = null;
+
+                        if ($data['handover_type'] === 'RW') {
+                            $proformaInvoices = $handover->selected_quotation_ids;
+                            if (is_string($proformaInvoices)) {
+                                $proformaInvoices = json_decode($proformaInvoices, true);
+                            }
+                        } else {
+                            $proformaInvoices = $handover->proforma_invoice_hrdf;
+                        }
+
+                        if (!$proformaInvoices) {
+                            Notification::make()
+                                ->title('Error')
+                                ->body('No proforma invoice found for this handover!')
+                                ->danger()
+                                ->send();
+                            return;
+                        }
+
                         $invoiceNo = CrmHrdfInvoiceV2::generateInvoiceNumber();
 
                         CrmHrdfInvoiceV2::create([
@@ -425,11 +563,12 @@ class HrdfInvoiceListV2 extends Page implements HasTable
                             'handover_type' => $data['handover_type'],
                             'handover_id' => $data['handover_id'],
                             'tt_invoice_number' => $data['tt_invoice_number'],
+                            'hrdf_grant_id' => null,
                             'subtotal' => 0,
                             'total_amount' => 0,
                             'status' => 'draft',
                             'handover_data' => $handover->toArray(),
-                            'proforma_invoice_data' => (int)$proformaInvoices // Store quotation ID as integer
+                            'proforma_invoice_data' => (int)$proformaInvoices
                         ]);
 
                         $invoicesCreated = 1;

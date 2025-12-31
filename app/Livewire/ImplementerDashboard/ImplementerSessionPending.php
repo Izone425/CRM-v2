@@ -166,7 +166,7 @@ class ImplementerSessionPending extends Component implements HasForms, HasTable
                 ->color('primary')
                 ->button(),
             ])
-            ->defaultSort('date', 'desc')
+            ->defaultSort('date', 'asc')
             ->paginated([10, 25]);
     }
 
