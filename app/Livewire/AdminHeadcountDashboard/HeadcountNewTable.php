@@ -170,7 +170,6 @@ class HeadcountNewTable extends Component implements HasForms, HasTable
                                 ->schema([
                                     FileUpload::make('invoice_file')
                                         ->label('Invoice File')
-                                        ->required()
                                         ->disk('public')
                                         ->directory('handovers/headcount/invoices')
                                         ->visibility('public')

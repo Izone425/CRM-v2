@@ -445,6 +445,11 @@
     }"
     x-init="init()">
 
+    <!-- Page Header -->
+    <div class="mb-6" style= "padding: 30px 0px 30px 0px;">
+        <h1 class="text-2xl font-bold text-gray-900">Renewal - Reseller</h1>
+    </div>
+
     <div class="dashboard-layout" wire:poll.300s>
         <!-- Left sidebar with main category groups -->
         <div class="group-column">

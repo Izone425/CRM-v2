@@ -603,7 +603,6 @@ class SoftwareHandoverNew extends Component implements HasForms, HasTable
                                 ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
                                 ->multiple()
                                 ->maxFiles(10)
-                                ->minFiles(1)
                                 ->openable()
                                 ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
                                     $companyName = Str::slug($get('company_name') ?? 'invoice');
