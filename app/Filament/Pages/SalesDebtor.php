@@ -357,9 +357,10 @@ class SalesDebtor extends Page implements HasTable
 
         return $table
             ->query(DebtorAging::query()
-                ->whereIn('salesperson', $this->filteredSalespeople)
-                ->whereIn('invoice_number', $nonVoidedInvoiceNumbers)
-                ->where('outstanding', '>', 0))
+                // ->whereIn('salesperson', $this->filteredSalespeople)
+                // ->whereIn('invoice_number', $nonVoidedInvoiceNumbers)
+                // ->where('outstanding', '>', 0))
+                ->where('id', 0))
                 ->defaultSort('invoice_date', 'desc')
                 ->columns([
                     TextColumn::make('company_name')
@@ -701,10 +702,16 @@ class SalesDebtor extends Page implements HasTable
             $totalAmount += $this->getRecalculatedOutstanding($record);
         }
 
+        // return [
+        //     'total_invoices' => $totalInvoices,
+        //     'total_amount' => $totalAmount,
+        //     'formatted_amount' => number_format($totalAmount, 2)
+        // ];
+
         return [
-            'total_invoices' => $totalInvoices,
-            'total_amount' => $totalAmount,
-            'formatted_amount' => number_format($totalAmount, 2)
+            'total_invoices' => 0,
+            'total_amount' => 0,
+            'formatted_amount' => '0.00'
         ];
     }
 
@@ -721,10 +728,16 @@ class SalesDebtor extends Page implements HasTable
             $totalAmount += $this->getRecalculatedOutstanding($record);
         }
 
+        // return [
+        //     'total_invoices' => $totalInvoices,
+        //     'total_amount' => $totalAmount,
+        //     'formatted_amount' => number_format($totalAmount, 2)
+        // ];
+
         return [
-            'total_invoices' => $totalInvoices,
-            'total_amount' => $totalAmount,
-            'formatted_amount' => number_format($totalAmount, 2)
+            'total_invoices' => 0,
+            'total_amount' => 0,
+            'formatted_amount' => '0.00'
         ];
     }
 
@@ -741,10 +754,16 @@ class SalesDebtor extends Page implements HasTable
             $totalAmount += $this->getRecalculatedOutstanding($record);
         }
 
+        // return [
+        //     'total_invoices' => $totalInvoices,
+        //     'total_amount' => $totalAmount,
+        //     'formatted_amount' => number_format($totalAmount, 2)
+        // ];
+
         return [
-            'total_invoices' => $totalInvoices,
-            'total_amount' => $totalAmount,
-            'formatted_amount' => number_format($totalAmount, 2)
+            'total_invoices' => 0,
+            'total_amount' => 0,
+            'formatted_amount' => '0.00'
         ];
     }
 
@@ -763,10 +782,16 @@ class SalesDebtor extends Page implements HasTable
             }
         }
 
+        // return [
+        //     'total_invoices' => $totalInvoices,
+        //     'total_amount' => $totalAmount,
+        //     'formatted_amount' => number_format($totalAmount, 2)
+        // ];
+
         return [
-            'total_invoices' => $totalInvoices,
-            'total_amount' => $totalAmount,
-            'formatted_amount' => number_format($totalAmount, 2)
+            'total_invoices' => 0,
+            'total_amount' => 0,
+            'formatted_amount' => '0.00'
         ];
     }
 
@@ -785,10 +810,16 @@ class SalesDebtor extends Page implements HasTable
             }
         }
 
+        // return [
+        //     'total_invoices' => $totalInvoices,
+        //     'total_amount' => $totalAmount,
+        //     'formatted_amount' => number_format($totalAmount, 2)
+        // ];
+
         return [
-            'total_invoices' => $totalInvoices,
-            'total_amount' => $totalAmount,
-            'formatted_amount' => number_format($totalAmount, 2)
+            'total_invoices' => 0,
+            'total_amount' => 0,
+            'formatted_amount' => '0.00'
         ];
     }
 

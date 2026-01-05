@@ -237,16 +237,17 @@ class DebtorAgingRawData extends Page implements HasTable
     {
         return $table
             ->query(DebtorAging::query()
-                ->where('outstanding', '>', 0)
-                ->where(function($q) {
-                    $q->where('debtor_code', 'like', 'ARM%')
-                    ->orWhere('debtor_code', 'like', 'ARU%');
-                })
-                ->where(function($q) {
-                    $q->whereNotIn('salesperson', $this->excludedSalespeople)
-                    ->orWhereNull('salesperson')
-                    ->orWhere('salesperson', '');
-                }))
+                // ->where('outstanding', '>', 0)
+                // ->where(function($q) {
+                //     $q->where('debtor_code', 'like', 'ARM%')
+                //     ->orWhere('debtor_code', 'like', 'ARU%');
+                // })
+                // ->where(function($q) {
+                //     $q->whereNotIn('salesperson', $this->excludedSalespeople)
+                //     ->orWhereNull('salesperson')
+                //     ->orWhere('salesperson', '');
+                // }))
+                ->where('id', 0))
                 ->columns([
                     TextColumn::make('company_name')
                         ->label('Company Name')
@@ -692,10 +693,16 @@ class DebtorAgingRawData extends Page implements HasTable
             END
         '));
 
+        // return [
+        //     'total_invoices' => $totalInvoices,
+        //     'total_amount' => $totalAmount,
+        //     'formatted_amount' => number_format($totalAmount, 2)
+        // ];
+
         return [
-            'total_invoices' => $totalInvoices,
-            'total_amount' => $totalAmount,
-            'formatted_amount' => number_format($totalAmount, 2)
+            'total_invoices' => 0,
+            'total_amount' => 0,
+            'formatted_amount' => '0.00'
         ];
     }
 
@@ -712,10 +719,16 @@ class DebtorAgingRawData extends Page implements HasTable
             END
         '));
 
+        // return [
+        //     'total_invoices' => $totalInvoices,
+        //     'total_amount' => $totalAmount,
+        //     'formatted_amount' => number_format($totalAmount, 2)
+        // ];
+
         return [
-            'total_invoices' => $totalInvoices,
-            'total_amount' => $totalAmount,
-            'formatted_amount' => number_format($totalAmount, 2)
+            'total_invoices' => 0,
+            'total_amount' => 0,
+            'formatted_amount' => '0.00'
         ];
     }
 
@@ -732,10 +745,16 @@ class DebtorAgingRawData extends Page implements HasTable
             END
         '));
 
+        // return [
+        //     'total_invoices' => $totalInvoices,
+        //     'total_amount' => $totalAmount,
+        //     'formatted_amount' => number_format($totalAmount, 2)
+        // ];
+
         return [
-            'total_invoices' => $totalInvoices,
-            'total_amount' => $totalAmount,
-            'formatted_amount' => number_format($totalAmount, 2)
+            'total_invoices' => 0,
+            'total_amount' => 0,
+            'formatted_amount' => '0.00'
         ];
     }
 
@@ -752,10 +771,16 @@ class DebtorAgingRawData extends Page implements HasTable
             END
         '));
 
+        // return [
+        //     'total_invoices' => $totalInvoices,
+        //     'total_amount' => $totalAmount,
+        //     'formatted_amount' => number_format($totalAmount, 2)
+        // ];
+
         return [
-            'total_invoices' => $totalInvoices,
-            'total_amount' => $totalAmount,
-            'formatted_amount' => number_format($totalAmount, 2)
+            'total_invoices' => 0,
+            'total_amount' => 0,
+            'formatted_amount' => '0.00'
         ];
     }
 
@@ -772,10 +797,16 @@ class DebtorAgingRawData extends Page implements HasTable
             END
         '));
 
+        // return [
+        //     'total_invoices' => $totalInvoices,
+        //     'total_amount' => $totalAmount,
+        //     'formatted_amount' => number_format($totalAmount, 2)
+        // ];
+
         return [
-            'total_invoices' => $totalInvoices,
-            'total_amount' => $totalAmount,
-            'formatted_amount' => number_format($totalAmount, 2)
+            'total_invoices' => 0,
+            'total_amount' => 0,
+            'formatted_amount' => '0.00'
         ];
     }
 }
