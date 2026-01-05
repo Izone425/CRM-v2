@@ -63,6 +63,7 @@ class HardwareHandoverV2 extends Model
         'reseller_quotation_file',
         'sales_order_status',
         'is_add_on_device',
+        'hrdf_billing_option',
         'part_1_completed',
         'part_2_completed',
         'part_1_completed_at',
