@@ -364,81 +364,81 @@ class InvoicesTable extends Page implements HasTable
 
     protected function calculateSummaryStats(Carbon $startDate, Carbon $endDate, array $allowedSalespersons, string $invoicePrefix = null): array
     {
-        if (empty($allowedSalespersons)) {
-            return [
-                'full_payment_amount' => 0,
-                'partial_payment_amount' => 0,
-                'unpaid_amount' => 0,
-                'total_amount' => 0,
-            ];
-        }
+        // if (empty($allowedSalespersons)) {
+        //     return [
+        //         'full_payment_amount' => 0,
+        //         'partial_payment_amount' => 0,
+        //         'unpaid_amount' => 0,
+        //         'total_amount' => 0,
+        //     ];
+        // }
 
-        $excludedItemCodes = [
-            'SHIPPING', 'BANKCHG',
-            'DEPOSIT-MYR', 'F.COMMISSION', 'L.COMMISSION',
-            'L.ENTITLEMENT', 'MGT FEES', 'PG.COMMISSION'
-        ];
+        // $excludedItemCodes = [
+        //     'SHIPPING', 'BANKCHG',
+        //     'DEPOSIT-MYR', 'F.COMMISSION', 'L.COMMISSION',
+        //     'L.ENTITLEMENT', 'MGT FEES', 'PG.COMMISSION'
+        // ];
 
-        $placeholders = implode(',', array_fill(0, count($excludedItemCodes), '?'));
-        $salespersonPlaceholders = implode(',', array_fill(0, count($allowedSalespersons), '?'));
+        // $placeholders = implode(',', array_fill(0, count($excludedItemCodes), '?'));
+        // $salespersonPlaceholders = implode(',', array_fill(0, count($allowedSalespersons), '?'));
 
-        $params = array_merge($excludedItemCodes, $allowedSalespersons, [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')]);
+        // $params = array_merge($excludedItemCodes, $allowedSalespersons, [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')]);
 
-        $invoiceTypeCondition = '';
-        if ($invoicePrefix) {
-            $invoiceTypeCondition = " AND i.invoice_no LIKE ?";
-            $params[] = $invoicePrefix . '%';
-        }
+        // $invoiceTypeCondition = '';
+        // if ($invoicePrefix) {
+        //     $invoiceTypeCondition = " AND i.invoice_no LIKE ?";
+        //     $params[] = $invoicePrefix . '%';
+        // }
 
-        // Get invoice amounts - exclude voided invoices
-        $results = DB::select("
-            SELECT
-                i.invoice_no,
-                i.doc_key,
-                i.salesperson,
-                COALESCE(SUM(id.local_sub_total), 0) as total_amount,
-                COALESCE(da.outstanding, 0) as outstanding,
-                COALESCE(da.invoice_amount, 0) as debtor_invoice_amount
-            FROM invoices i
-            LEFT JOIN invoice_details id ON i.doc_key = id.doc_key
-                AND id.item_code NOT IN ($placeholders)
-            LEFT JOIN debtor_agings da ON CAST(i.invoice_no AS CHAR) = CAST(da.invoice_number AS CHAR)
-            WHERE i.salesperson IN ($salespersonPlaceholders)
-                AND i.invoice_date BETWEEN ? AND ?
-                AND i.invoice_status != 'V'
-                $invoiceTypeCondition
-            GROUP BY i.invoice_no, i.doc_key, i.salesperson, da.outstanding, da.invoice_amount
-            HAVING total_amount > 0
-        ", $params);
+        // // Get invoice amounts - exclude voided invoices
+        // $results = DB::select("
+        //     SELECT
+        //         i.invoice_no,
+        //         i.doc_key,
+        //         i.salesperson,
+        //         COALESCE(SUM(id.local_sub_total), 0) as total_amount,
+        //         COALESCE(da.outstanding, 0) as outstanding,
+        //         COALESCE(da.invoice_amount, 0) as debtor_invoice_amount
+        //     FROM invoices i
+        //     LEFT JOIN invoice_details id ON i.doc_key = id.doc_key
+        //         AND id.item_code NOT IN ($placeholders)
+        //     LEFT JOIN debtor_agings da ON CAST(i.invoice_no AS CHAR) = CAST(da.invoice_number AS CHAR)
+        //     WHERE i.salesperson IN ($salespersonPlaceholders)
+        //         AND i.invoice_date BETWEEN ? AND ?
+        //         AND i.invoice_status != 'V'
+        //         $invoiceTypeCondition
+        //     GROUP BY i.invoice_no, i.doc_key, i.salesperson, da.outstanding, da.invoice_amount
+        //     HAVING total_amount > 0
+        // ", $params);
 
-        // ✅ Get credit note amounts based on credit_note_date (WITH EXCLUSIONS)
-        $creditNoteParams = array_merge($excludedItemCodes, $allowedSalespersons, [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')]);
+        // // ✅ Get credit note amounts based on credit_note_date (WITH EXCLUSIONS)
+        // $creditNoteParams = array_merge($excludedItemCodes, $allowedSalespersons, [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')]);
 
-        $creditNoteTypeCondition = '';
-        if ($invoicePrefix) {
-            $creditNotePrefix = str_replace('EPIN', 'EPCN', str_replace('EHIN', 'ECN', $invoicePrefix));
-            $creditNoteTypeCondition = " AND cn.credit_note_number LIKE ?";
-            $creditNoteParams[] = $creditNotePrefix . '%';
-        }
+        // $creditNoteTypeCondition = '';
+        // if ($invoicePrefix) {
+        //     $creditNotePrefix = str_replace('EPIN', 'EPCN', str_replace('EHIN', 'ECN', $invoicePrefix));
+        //     $creditNoteTypeCondition = " AND cn.credit_note_number LIKE ?";
+        //     $creditNoteParams[] = $creditNotePrefix . '%';
+        // }
 
-        $creditNotes = DB::select("
-            SELECT
-                cn.salesperson,
-                SUM(cnd.local_sub_total) as total_credit
-            FROM credit_notes cn
-            JOIN credit_note_details cnd ON cn.id = cnd.credit_note_id
-            WHERE cnd.item_code NOT IN ($placeholders)
-                AND cn.salesperson IN ($salespersonPlaceholders)
-                AND cn.credit_note_date BETWEEN ? AND ?
-                $creditNoteTypeCondition
-            GROUP BY cn.salesperson
-        ", $creditNoteParams);
+        // $creditNotes = DB::select("
+        //     SELECT
+        //         cn.salesperson,
+        //         SUM(cnd.local_sub_total) as total_credit
+        //     FROM credit_notes cn
+        //     JOIN credit_note_details cnd ON cn.id = cnd.credit_note_id
+        //     WHERE cnd.item_code NOT IN ($placeholders)
+        //         AND cn.salesperson IN ($salespersonPlaceholders)
+        //         AND cn.credit_note_date BETWEEN ? AND ?
+        //         $creditNoteTypeCondition
+        //     GROUP BY cn.salesperson
+        // ", $creditNoteParams);
 
-        // Create a map of credit notes by salesperson
-        $creditNoteMap = [];
-        foreach ($creditNotes as $cn) {
-            $creditNoteMap[$cn->salesperson] = (float) $cn->total_credit;
-        }
+        // // Create a map of credit notes by salesperson
+        // $creditNoteMap = [];
+        // foreach ($creditNotes as $cn) {
+        //     $creditNoteMap[$cn->salesperson] = (float) $cn->total_credit;
+        // }
 
         $stats = [
             'full_payment_amount' => 0,
@@ -447,40 +447,40 @@ class InvoicesTable extends Page implements HasTable
             'total_amount' => 0,
         ];
 
-        // Group results by salesperson
-        $salespersonTotals = [];
-        foreach ($results as $row) {
-            $salesperson = $row->salesperson;
-            if (!isset($salespersonTotals[$salesperson])) {
-                $salespersonTotals[$salesperson] = [
-                    'invoices' => [],
-                ];
-            }
-            $salespersonTotals[$salesperson]['invoices'][] = $row;
-        }
+        // // Group results by salesperson
+        // $salespersonTotals = [];
+        // foreach ($results as $row) {
+        //     $salesperson = $row->salesperson;
+        //     if (!isset($salespersonTotals[$salesperson])) {
+        //         $salespersonTotals[$salesperson] = [
+        //             'invoices' => [],
+        //         ];
+        //     }
+        //     $salespersonTotals[$salesperson]['invoices'][] = $row;
+        // }
 
-        // Process each salesperson's invoices and subtract their credit notes
-        foreach ($salespersonTotals as $salesperson => $data) {
-            $creditAmount = $creditNoteMap[$salesperson] ?? 0;
+        // // Process each salesperson's invoices and subtract their credit notes
+        // foreach ($salespersonTotals as $salesperson => $data) {
+        //     $creditAmount = $creditNoteMap[$salesperson] ?? 0;
 
-            foreach ($data['invoices'] as $row) {
-                $amount = (float) $row->total_amount;
-                $outstanding = (float) $row->outstanding;
+        //     foreach ($data['invoices'] as $row) {
+        //         $amount = (float) $row->total_amount;
+        //         $outstanding = (float) $row->outstanding;
 
-                $stats['total_amount'] += $amount;
+        //         $stats['total_amount'] += $amount;
 
-                if ($outstanding == 0) {
-                    $stats['full_payment_amount'] += $amount;
-                } elseif ($outstanding < $amount) {
-                    $stats['partial_payment_amount'] += $amount;
-                } else {
-                    $stats['unpaid_amount'] += $amount;
-                }
-            }
+        //         if ($outstanding == 0) {
+        //             $stats['full_payment_amount'] += $amount;
+        //         } elseif ($outstanding < $amount) {
+        //             $stats['partial_payment_amount'] += $amount;
+        //         } else {
+        //             $stats['unpaid_amount'] += $amount;
+        //         }
+        //     }
 
-            // Subtract credit notes from total amount only
-            $stats['total_amount'] -= $creditAmount;
-        }
+        //     // Subtract credit notes from total amount only
+        //     $stats['total_amount'] -= $creditAmount;
+        // }
 
         return $stats;
     }
@@ -636,33 +636,34 @@ class InvoicesTable extends Page implements HasTable
             ])
             ->defaultSort('invoice_date', 'desc')
             ->modifyQueryUsing(function (Builder $query) {
-                $allowedSalespersons = array_keys(static::$salespersonUserIds);
+                // $allowedSalespersons = array_keys(static::$salespersonUserIds);
 
-                // Exclude voided invoices
-                $query->whereIn('salesperson', $allowedSalespersons)
-                    ->where('invoice_status', '!=', 'V')
-                    ->orderBy('invoice_date', 'desc');
+                // // Exclude voided invoices
+                // $query->whereIn('salesperson', $allowedSalespersons)
+                //     ->where('invoice_status', '!=', 'V')
+                //     ->orderBy('invoice_date', 'desc');
 
-                if (Auth::check() && Auth::user()->role_id === 2) {
-                    $userId = Auth::id();
-                    $salespersonName = array_search($userId, static::$salespersonUserIds);
+                // if (Auth::check() && Auth::user()->role_id === 2) {
+                //     $userId = Auth::id();
+                //     $salespersonName = array_search($userId, static::$salespersonUserIds);
 
-                    if ($salespersonName) {
-                        $query->where('salesperson', $salespersonName);
-                    } else {
-                        $query->where('id', 0);
-                    }
-                }
+                //     if ($salespersonName) {
+                //         $query->where('salesperson', $salespersonName);
+                //     } else {
+                //         $query->where('id', 0);
+                //     }
+                // }
 
-                // Batch load data for current page
-                $results = $query->limit(1000)->get();
-                if ($results->isNotEmpty()) {
-                    $docKeys = $results->pluck('doc_key')->toArray();
-                    $invoiceNos = $results->pluck('invoice_no')->toArray();
+                // // Batch load data for current page
+                // $results = $query->limit(1000)->get();
+                // if ($results->isNotEmpty()) {
+                //     $docKeys = $results->pluck('doc_key')->toArray();
+                //     $invoiceNos = $results->pluck('invoice_no')->toArray();
 
-                    $this->batchLoadInvoiceAmounts($docKeys);
-                    $this->batchLoadPaymentStatuses($invoiceNos);
-                }
+                //     $this->batchLoadInvoiceAmounts($docKeys);
+                //     $this->batchLoadPaymentStatuses($invoiceNos);
+                // }
+                $query->where('id', 0);
 
                 return $query;
             })

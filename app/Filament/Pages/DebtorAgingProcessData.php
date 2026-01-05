@@ -211,22 +211,23 @@ class DebtorAgingProcessData extends Page implements HasTable
             ->query(function () {
                 // Build the query with aggregation by debtor_code using base query
                 return DebtorAgingData::getBaseQuery()
-                    ->selectRaw("
-                        CAST(debtor_code AS CHAR) AS debtor_code,
-                        ANY_VALUE(company_name) AS company_name,
-                        ANY_VALUE(currency_code) AS currency_code,
-                        SUM(total) AS total_amount,
-                        SUM(outstanding) AS total_outstanding,
-                        COUNT(*) AS invoice_count,
-                        MIN(due_date) AS earliest_due_date,
-                        MAX(due_date) AS latest_due_date,
-                        ANY_VALUE(exchange_rate) AS exchange_rate,
-                        ANY_VALUE(salesperson) AS salesperson,
-                        ANY_VALUE(support) AS support
-                    ")
-                    ->where('debtor_code', '!=', '') // Avoid empty strings
-                    ->whereNotNull('debtor_code') // Avoid nulls
-                    ->groupBy('debtor_code');
+                    // ->selectRaw("
+                    //     CAST(debtor_code AS CHAR) AS debtor_code,
+                    //     ANY_VALUE(company_name) AS company_name,
+                    //     ANY_VALUE(currency_code) AS currency_code,
+                    //     SUM(total) AS total_amount,
+                    //     SUM(outstanding) AS total_outstanding,
+                    //     COUNT(*) AS invoice_count,
+                    //     MIN(due_date) AS earliest_due_date,
+                    //     MAX(due_date) AS latest_due_date,
+                    //     ANY_VALUE(exchange_rate) AS exchange_rate,
+                    //     ANY_VALUE(salesperson) AS salesperson,
+                    //     ANY_VALUE(support) AS support
+                    // ")
+                    // ->where('debtor_code', '!=', '') // Avoid empty strings
+                    // ->whereNotNull('debtor_code') // Avoid nulls
+                    // ->groupBy('debtor_code');
+                    ->where('id', 0);
             })
             ->columns([
                 // REQUEST 3: Main header - Company Name + Total Invoice Count + Total Outstanding
