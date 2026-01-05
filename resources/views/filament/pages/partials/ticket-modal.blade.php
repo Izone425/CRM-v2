@@ -539,22 +539,6 @@
                         <div style="font-size: 11px; color: #9CA3AF; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 500;">Company Name</div>
                         <div style="font-weight: 500; color: #111827; font-size: 14px;">{{ $selectedTicket->company_name ?? '-' }}</div>
                     </div>
-                    <div>
-                        <div style="font-size: 11px; color: #9CA3AF; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 500;">Requester</div>
-                        <div style="font-weight: 500; color: #111827; font-size: 14px;">{{ $selectedTicket->requestor->name ?? $selectedTicket->created_by ?? '-' }}</div>
-                    </div>
-                </div>
-
-                <!-- Zoho Ticket Number & Created Date -->
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
-                    <div>
-                        <div style="font-size: 11px; color: #9CA3AF; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 500;">Zoho Ticket Number</div>
-                        <div style="font-weight: 500; color: #111827; font-size: 14px;">{{ $selectedTicket->zoho_ticket_number ?? '-' }}</div>
-                    </div>
-                    <div>
-                        <div style="font-size: 11px; color: #9CA3AF; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 500;">Created Date</div>
-                        <div style="font-weight: 500; color: #111827; font-size: 14px;">{{ $selectedTicket->created_at ? $selectedTicket->created_at->format('M d, Y') : '-' }}</div>
-                    </div>
                 </div>
 
                 <!-- Divider -->
@@ -630,6 +614,20 @@
                         <div style="font-weight: 500; color: #111827; font-size: 14px;">-</div>
                     </div>
                 @endif
+
+                <div style="border-top: 1px solid #E5E7EB; margin: 20px 0;"></div>
+
+                <!-- Zoho Ticket Number & Created Date -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+                    <div>
+                        <div style="font-size: 11px; color: #9CA3AF; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 500;">Requester</div>
+                        <div style="font-weight: 500; color: #111827; font-size: 14px;">{{ $selectedTicket->requestor->name ?? $selectedTicket->created_by ?? '-' }}</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 11px; color: #9CA3AF; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 500;">Created Date</div>
+                        <div style="font-weight: 500; color: #111827; font-size: 14px;">{{ $selectedTicket->created_at ? $selectedTicket->created_at->format('M d, Y') : '-' }}</div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

@@ -254,7 +254,7 @@ class InvoiceDataExportController extends Controller
                 'SalesAgent',
                 'CurrencyCode',
                 'CurrencyRate',
-                'RefDocNo',
+                'UDF_IV_LicenseNumber',
                 'UDF_IV_SalesAdmin',
                 'UDF_IV_Support',
                 'UDF_IV_BillingType',
@@ -274,7 +274,7 @@ class InvoiceDataExportController extends Controller
             $headerStyle = [
                 'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
             ];
-            $sheet->getStyle('A1:O1')->applyFromArray($headerStyle);
+            $sheet->getStyle('A1:Q1')->applyFromArray($headerStyle);
             Log::info('Header styling applied');
 
             $row = 2; // Start from row 2 for data
@@ -375,6 +375,23 @@ class InvoiceDataExportController extends Controller
             }
 
             Log::info('Processed all ' . $quotations->count() . ' PIs, final row: ' . ($row - 1));
+
+            // Apply yellow highlighting to specific cells in the 2nd row (first data row)
+            if ($row > 2) { // Only apply if we have data rows
+                $yellowStyle = [
+                    'fill' => [
+                        'fillType' => Fill::FILL_SOLID,
+                        'color' => ['rgb' => 'FFFF00'] // Yellow color
+                    ]
+                ];
+
+                // Apply yellow color to DocNo (A2), DebtorCode (D2), and UDF_IV_LicenseNumber (H2)
+                $sheet->getStyle('A2')->applyFromArray($yellowStyle);
+                $sheet->getStyle('D2')->applyFromArray($yellowStyle);
+                $sheet->getStyle('H2')->applyFromArray($yellowStyle);
+
+                Log::info('Applied yellow highlighting to DocNo, DebtorCode, and UDF_IV_LicenseNumber in row 2');
+            }
 
             // Auto-size columns
             foreach (range('A', 'P') as $col) {

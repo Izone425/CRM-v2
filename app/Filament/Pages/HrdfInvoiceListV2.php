@@ -227,6 +227,14 @@ class HrdfInvoiceListV2 extends Page implements HasTable
                     ->color('primary')
                     ->weight('bold'),
 
+                TextColumn::make('hrdf_grant_id')
+                    ->label('HRDF Grant ID')
+                    ->searchable()
+                    ->sortable()
+                    ->formatStateUsing(fn ($state) => $state ?: 'Not Set')
+                    ->color(fn ($state) => $state ? 'success' : 'warning')
+                    ->weight(fn ($state) => $state ? 'bold' : 'normal'),
+
                 TextColumn::make('subtotal')
                     ->label('Sub Total')
                     ->money('MYR')
@@ -372,37 +380,63 @@ class HrdfInvoiceListV2 extends Page implements HasTable
 
                             if (!$handover) return;
 
-                            // Extract hrdf_grant_ids from handover record
-                            $hrdfGrantIds = null;
+                            // For SW and RW: Extract hrdf_grant_ids from handover record
                             if ($handoverType === 'SW' || $handoverType === 'RW') {
                                 $hrdfGrantIds = $handover->hrdf_grant_ids;
                                 if (is_string($hrdfGrantIds)) {
                                     $hrdfGrantIds = json_decode($hrdfGrantIds, true);
                                 }
-                            }
 
-                            if (!$hrdfGrantIds || !is_array($hrdfGrantIds)) return;
-
-                            // Create PI references from stored hrdf_grant_ids
-                            $piReferences = [];
-                            foreach ($hrdfGrantIds as $grantEntry) {
-                                if (isset($grantEntry['quotation_id']) && isset($grantEntry['hrdf_grant_id'])) {
-                                    $quotation = Quotation::find($grantEntry['quotation_id']);
-                                    if ($quotation) {
-                                        $piReferences[] = [
-                                            'quotation_id' => $quotation->id,
-                                            'pi_reference' => $quotation->pi_reference_no ?? 'No PI Reference',
-                                            'hrdf_grant_id' => $grantEntry['hrdf_grant_id']
-                                        ];
+                                if ($hrdfGrantIds && is_array($hrdfGrantIds)) {
+                                    // Create PI references from stored hrdf_grant_ids
+                                    $piReferences = [];
+                                    foreach ($hrdfGrantIds as $grantEntry) {
+                                        if (isset($grantEntry['quotation_id']) && isset($grantEntry['hrdf_grant_id'])) {
+                                            $quotation = Quotation::find($grantEntry['quotation_id']);
+                                            if ($quotation) {
+                                                $piReferences[] = [
+                                                    'quotation_id' => $quotation->id,
+                                                    'pi_reference' => $quotation->pi_reference_no ?? 'No PI Reference',
+                                                    'hrdf_grant_id' => $grantEntry['hrdf_grant_id']
+                                                ];
+                                            }
+                                        }
                                     }
+                                    $set('pi_references', $piReferences);
                                 }
                             }
+                            // For HW: Use old logic - extract proforma invoices without grant IDs
+                            else if ($handoverType === 'HW') {
+                                $proformaInvoices = $handover->proforma_invoice_hrdf;
+                                if (is_string($proformaInvoices)) {
+                                    $proformaInvoices = json_decode($proformaInvoices, true);
+                                }
 
-                            $set('pi_references', $piReferences);
+                                if ($proformaInvoices && is_array($proformaInvoices)) {
+                                    $piReferences = [];
+                                    foreach ($proformaInvoices as $proformaId) {
+                                        $quotation = Quotation::find((int)$proformaId);
+                                        if ($quotation) {
+                                            $piReferences[] = [
+                                                'quotation_id' => $quotation->id,
+                                                'pi_reference' => $quotation->pi_reference_no ?? 'No PI Reference',
+                                                'hrdf_grant_id' => null // Will be selected manually
+                                            ];
+                                        }
+                                    }
+                                    $set('pi_references', $piReferences);
+                                }
+                            }
                         }),
 
                     Repeater::make('pi_references')
-                        ->label('PI References & HRDF Grant IDs (from Handover)')
+                        ->label(function (callable $get) {
+                            $handoverType = $get('handover_type');
+                            if ($handoverType === 'HW') {
+                                return 'PI References & HRDF Grant IDs';
+                            }
+                            return 'PI References & HRDF Grant IDs (from Handover)';
+                        })
                         ->schema([
                             Grid::make(2)->schema([
                                 TextInput::make('pi_reference')
@@ -410,16 +444,49 @@ class HrdfInvoiceListV2 extends Page implements HasTable
                                     ->disabled()
                                     ->dehydrated(false),
 
-                                TextInput::make('hrdf_grant_id')
-                                    ->label('HRDF Grant ID')
-                                    ->disabled()
-                                    ->dehydrated(false),
+                                Select::make('hrdf_grant_id')
+                                    ->label('Select HRDF Grant ID')
+                                    ->options(function () {
+                                        // Get all HRDF claims with grant IDs, pending status only
+                                        $hrdfClaims = HrdfClaim::where('claim_status', 'PENDING')
+                                            ->whereNotNull('hrdf_grant_id')
+                                            ->where('hrdf_grant_id', '!=', '')
+                                            ->orderBy('created_at', 'desc')
+                                            ->get();
+
+                                        if ($hrdfClaims->isEmpty()) {
+                                            return ['no_data' => 'No HRDF claims found'];
+                                        }
+
+                                        return $hrdfClaims->mapWithKeys(function ($claim) {
+                                            $display = "{$claim->hrdf_grant_id} - {$claim->company_name}";
+                                            return [$claim->hrdf_grant_id => $display];
+                                        })->toArray();
+                                    })
+                                    ->searchable()
+                                    ->placeholder(function (callable $get) {
+                                        $handoverType = $get('../../handover_type');
+                                        if ($handoverType === 'HW') {
+                                            return 'Search for HRDF Grant ID or Company Name';
+                                        }
+                                        return 'Auto-filled from handover data';
+                                    })
+                                    ->required()
+                                    ->disabled(function (callable $get) {
+                                        $handoverType = $get('../../handover_type');
+                                        // Only allow manual selection for HW, SW and RW have pre-filled values
+                                        return $handoverType !== 'HW';
+                                    })
+                                    ->dehydrated(true), // Always include in form submission
                             ])
                         ])
                         ->addable(false)
                         ->deletable(false)
                         ->reorderable(false)
-                        ->visible(fn (callable $get) => !empty($get('pi_references')))
+                        ->visible(function (callable $get) {
+                            $handoverType = $get('handover_type');
+                            return $handoverType && !empty($get('pi_references'));
+                        })
                         ->columnSpanFull(),
 
                     TextInput::make('tt_invoice_number')
@@ -460,6 +527,16 @@ class HrdfInvoiceListV2 extends Page implements HasTable
                         foreach ($data['pi_references'] as $piReference) {
                             $invoiceNo = CrmHrdfInvoiceV2::generateInvoiceNumber();
 
+                            // Validate HRDF grant ID
+                            $hrdfGrantId = $piReference['hrdf_grant_id'] ?? null;
+                            if (!$hrdfGrantId) {
+                                Notification::make()
+                                    ->title('Warning')
+                                    ->body('Missing HRDF Grant ID for PI Reference: ' . ($piReference['pi_reference'] ?? 'Unknown'))
+                                    ->warning()
+                                    ->send();
+                            }
+
                             CrmHrdfInvoiceV2::create([
                                 'invoice_no' => $invoiceNo,
                                 'invoice_date' => now(),
@@ -467,7 +544,7 @@ class HrdfInvoiceListV2 extends Page implements HasTable
                                 'handover_type' => $data['handover_type'],
                                 'handover_id' => $data['handover_id'],
                                 'tt_invoice_number' => $data['tt_invoice_number'],
-                                'hrdf_grant_id' => $piReference['hrdf_grant_id'] ?? null,
+                                'hrdf_grant_id' => $hrdfGrantId,
                                 'subtotal' => 0,
                                 'total_amount' => 0,
                                 'status' => 'draft',

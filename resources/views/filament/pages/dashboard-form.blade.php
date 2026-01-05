@@ -422,29 +422,6 @@
 
         $adminGeneralTotal = \App\Models\InternalTicket::where('status', 'new')->count();
 
-        // Calculate separate totals for reseller vs non-reseller
-        try {
-            // Reseller totals (only reseller companies)
-            $adminRenewalFollowUpReseller = $followUpTodayMYR + $followUpOverdueMYR + $followUpTodayMYRv2 + $followUpOverdueMYRv2;
-        } catch (Exception $e) {
-            $adminRenewalFollowUpReseller = 0;
-        }
-
-        try {
-            // Non-reseller totals (end user companies)
-            $adminRenewalFollowUpNonReseller = $followUpTodayMYRNonReseller + $followUpOverdueMYRNonReseller + 
-                                             $followUpTodayMYRv2NonReseller + $followUpOverdueMYRv2NonReseller;
-        } catch (Exception $e) {
-            $adminRenewalFollowUpNonReseller = 0;
-        }
-
-        // Total for main admin badge (both reseller and non-reseller)  
-        try {
-            $adminRenewalFollowUp = $adminRenewalFollowUpReseller + $adminRenewalFollowUpNonReseller;
-        } catch (Exception $e) {
-            $adminRenewalFollowUp = 0;
-        }
-
         $initialStageTotal = $newTaskCount + $pendingStockCount + $pendingCourierCount + $pendingAdminPickUpCount + $pendingExternalInstallationCount + $pendingInternalInstallationCount;
 
         // Calculate total admin count including Software V2
@@ -1581,82 +1558,6 @@
                                                     Loading...
                                                 </span>
                                             </button>
-
-                                            <button
-                                                wire:click="toggleDashboard('AdminRenewalv1')"
-                                                wire:loading.attr="disabled"
-                                                wire:loading.class="opacity-50"
-                                                style="
-                                                    display: flex;
-                                                    justify-content: space-between;
-                                                    align-items: center;
-                                                    width: 100%;
-                                                    padding: 10px 16px;
-                                                    text-align: left;
-                                                    border: none;
-                                                    background: {{ $currentDashboard === 'AdminRenewalv1' ? '#f3f3f3' : 'white' }};
-                                                    font-size: 14px;
-                                                "
-                                            >
-                                                <span wire:loading.remove wire:target="toggleDashboard('AdminRenewalv1')">Renewal v1 - Reseller</span>
-                                                <span wire:loading wire:target="toggleDashboard('AdminRenewalv1')" class="flex items-center">
-                                                    <svg class="w-4 h-4 mr-1 animate-spin" fill="none" viewBox="0 0 24 24">
-                                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 818-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 714 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                                    </svg>
-                                                    Loading...
-                                                </span>
-                                                @if($adminRenewalFollowUpReseller > 0)
-                                                    <span style="
-                                                        background: #ef4444;
-                                                        color: white;
-                                                        border-radius: 12px;
-                                                        padding: 2px 8px;
-                                                        font-size: 12px;
-                                                        font-weight: bold;
-                                                        min-width: 20px;
-                                                        text-align: center;
-                                                    ">{{ $adminRenewalFollowUpReseller }}</span>
-                                                @endif
-                                            </button>
-
-                                            <button
-                                                wire:click="toggleDashboard('AdminRenewalEndUser')"
-                                                wire:loading.attr="disabled"
-                                                wire:loading.class="opacity-50"
-                                                style="
-                                                    display: flex;
-                                                    justify-content: space-between;
-                                                    align-items: center;
-                                                    width: 100%;
-                                                    padding: 10px 16px;
-                                                    text-align: left;
-                                                    border: none;
-                                                    background: {{ $currentDashboard === 'AdminRenewalEndUser' ? '#f3f3f3' : 'white' }};
-                                                    font-size: 14px;
-                                                "
-                                            >
-                                                <span wire:loading.remove wire:target="toggleDashboard('AdminRenewalEndUser')">Renewal v1 - End User</span>
-                                                <span wire:loading wire:target="toggleDashboard('AdminRenewalEndUser')" class="flex items-center">
-                                                    <svg class="w-4 h-4 mr-1 animate-spin" fill="none" viewBox="0 0 24 24">
-                                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 818-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 714 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                                    </svg>
-                                                    Loading...
-                                                </span>
-                                                @if($adminRenewalFollowUpNonReseller > 0)
-                                                    <span style="
-                                                        background: #ef4444;
-                                                        color: white;
-                                                        border-radius: 12px;
-                                                        padding: 2px 8px;
-                                                        font-size: 12px;
-                                                        font-weight: bold;
-                                                        min-width: 20px;
-                                                        text-align: center;
-                                                    ">{{ $adminRenewalFollowUpNonReseller }}</span>
-                                                @endif
-                                            </button>
                                         </div>
                                     </div>
 
@@ -2023,10 +1924,10 @@
                             @include('filament.pages.admingeneral')
                         @elseif ($currentDashboard === 'AdminRepair')
                             @include('filament.pages.adminrepair')
-                        @elseif ($currentDashboard === 'AdminRenewalv1')
+                        {{-- @elseif ($currentDashboard === 'AdminRenewalv1')
                             @include('filament.pages.adminrenewal')
                         @elseif ($currentDashboard === 'AdminRenewalEndUser')
-                            @include('filament.pages.adminrenewalnonreseller')
+                            @include('filament.pages.adminrenewalnonreseller') --}}
                         @elseif ($currentDashboard === 'AdminHRDF')
                             @include('filament.pages.adminhrdf')
                         @elseif ($currentDashboard === 'AdminHRDFAttLog')
@@ -2064,7 +1965,7 @@
                     // Don't clear existing event listeners on wire:click elements
                     adminDropdowns.forEach(function(dropdown) {
                         const button = dropdown.querySelector('.admin-dropdown-button');
-                        
+
                         // Only replace non-wire elements
                         if (button && !button.hasAttribute('wire:click')) {
                             const newButton = button.cloneNode(true);
@@ -2138,7 +2039,7 @@
                         // Check if the click was on a wire:click element in a dropdown
                         const clickedWireElement = event.target.closest('button[wire\\:click]');
                         const clickedInDropdown = event.target.closest('.admin-dropdown');
-                        
+
                         if (clickedWireElement && clickedInDropdown) {
                             // For wire:click elements inside dropdowns, just close the dropdown after a delay
                             setTimeout(function() {
@@ -2169,7 +2070,7 @@
                 // Re-initialize on Livewire updates (less frequently)
                 document.addEventListener('livewire:navigated', initializeDropdowns);
                 document.addEventListener('livewire:load', initializeDropdowns);
-                
+
                 // Only re-initialize when specifically needed, not on every update
                 let initTimeout;
                 document.addEventListener('livewire:update', function() {

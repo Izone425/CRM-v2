@@ -8,6 +8,8 @@ use App\Filament\Pages\AdminPortalHrV2;
 use App\Filament\Pages\AdminRenewalProcessData;
 use App\Filament\Pages\AdminRenewalProcessDataMyr;
 use App\Filament\Pages\AdminRenewalProcessDataUsd;
+use App\Filament\Pages\AdminRenewalDashboard;
+use App\Filament\Pages\AdminRenewalDashboardNonReseller;
 use App\Filament\Pages\AdminRenewalRawData;
 use App\Filament\Pages\AdminRepairDashboard;
 use App\Filament\Pages\ApolloLeadTracker;
@@ -380,6 +382,8 @@ class AdminPanelProvider extends PanelProvider
                 TrainingRequest::class,
                 HrdfInvoiceListV2::class,
                 HrdfInvoiceList::class,
+                AdminRenewalDashboard::class,
+                AdminRenewalDashboardNonReseller::class,
                 InternalTicketsPage::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')

@@ -103,8 +103,6 @@ class DashboardForm extends Page
             'Finance',
             'HRDF',
             'AdminHRDFAttLog',
-            'AdminRenewalv1',
-            'AdminRenewalEndUser',
             'AdminHRDF',
             'AdminHeadcount',
             'AdminGeneral',
