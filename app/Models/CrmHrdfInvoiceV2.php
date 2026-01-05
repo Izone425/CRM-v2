@@ -50,7 +50,7 @@ class CrmHrdfInvoiceV2 extends Model
             $lastNumber = intval(substr($lastInvoice->invoice_no, -4));
             $nextNumber = str_pad($lastNumber + 1, 4, '0', STR_PAD_LEFT);
         } else {
-            $nextNumber = '0100';
+            $nextNumber = '0001';
         }
 
         return "EHIN{$year}{$month}-{$nextNumber}";

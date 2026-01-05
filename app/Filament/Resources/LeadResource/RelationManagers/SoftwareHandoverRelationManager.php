@@ -740,6 +740,41 @@ class SoftwareHandoverRelationManager extends RelationManager
                                                     ->label('HRDF Grant ID')
                                                     ->placeholder('Enter HRDF Grant ID')
                                                     ->required()
+                                                    ->live(debounce: 500)
+                                                    ->rules([
+                                                        function () {
+                                                            return function (string $attribute, $value, \Closure $fail) {
+                                                                if (empty($value)) {
+                                                                    return;
+                                                                }
+
+                                                                $hrdfClaim = \App\Models\HrdfClaim::where('hrdf_grant_id', $value)->first();
+
+                                                                if (!$hrdfClaim) {
+                                                                    $fail('HRDF Grant ID not found in HRDF Claims.');
+                                                                    return;
+                                                                }
+
+                                                                // Check if required fields have values
+                                                                $requiredFields = [
+                                                                    'invoice_amount' => 'Invoice Amount',
+                                                                    'upfront_payment' => 'Upfront Payment',
+                                                                    'pax' => 'Pax'
+                                                                ];
+
+                                                                $missingFields = [];
+                                                                foreach ($requiredFields as $field => $label) {
+                                                                    if (empty($hrdfClaim->$field) || (is_numeric($hrdfClaim->$field) && $hrdfClaim->$field <= 0)) {
+                                                                        $missingFields[] = $label;
+                                                                    }
+                                                                }
+
+                                                                if (!empty($missingFields)) {
+                                                                    $fail('HRDF Grant ID is missing required data: ' . implode(', ', $missingFields));
+                                                                }
+                                                            };
+                                                        },
+                                                    ])
                                             ])
                                     ])
                                     ->addable(false)

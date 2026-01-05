@@ -133,11 +133,11 @@ class HrdfInvoiceDataExportController extends Controller
             $docDate = date('j/n/Y');
             Log::info('DocDate set to: ' . $docDate);
 
-            // Company name - use subsidiary name if available, otherwise HRDF invoice company name
-            $companyName = $hrdfInvoice->company_name;
-            if ($quotation->subsidiary_id && $quotation->subsidiary && $quotation->subsidiary->company_name) {
-                $companyName = $quotation->subsidiary->company_name;
-                Log::info('Using subsidiary company name: ' . $companyName);
+            // Company name - use hrdfClaim company name if available, otherwise HRDF invoice company name
+            $companyName = $hrdfInvoice->company_name; // Default fallback
+            if ($hrdfInvoice->hrdfClaim && $hrdfInvoice->hrdfClaim->company_name) {
+                $companyName = $hrdfInvoice->hrdfClaim->company_name;
+                Log::info('Using HRDF claim company name: ' . $companyName);
             } else {
                 Log::info('Using HRDF invoice company name: ' . $companyName);
             }
@@ -212,7 +212,6 @@ class HrdfInvoiceDataExportController extends Controller
                 'SalesAgent',
                 'CurrencyCode',
                 'CurrencyRate',
-                'RefDocNo',
                 'UDF_IV_SalesAdmin',
                 'UDF_IV_Support',
                 'UDF_IV_BillingType',
@@ -244,10 +243,10 @@ class HrdfInvoiceDataExportController extends Controller
                     ],
                 ],
             ];
-            $sheet->getStyle('A1:V1')->applyFromArray($headerStyle);
+            $sheet->getStyle('A1:U1')->applyFromArray($headerStyle);
 
-            // Set column width for UDF_IV_HRDInfo (column Q)
-            $sheet->getColumnDimension('Q')->setWidth(60);
+            // Set column width for UDF_IV_HRDInfo (column P) to be wider
+            $sheet->getColumnDimension('P')->setWidth(60);
             Log::info('Header styling applied');
 
             $row = 2; // Start from row 2 for data
@@ -271,7 +270,6 @@ class HrdfInvoiceDataExportController extends Controller
                 $salesAgent,                                        // SalesAgent
                 $currencyCode,                                      // CurrencyCode
                 $currencyRate,                                      // CurrencyRate
-                '',                                                 // RefDocNo
                 $salesAdmin,                                        // UDF_IV_SalesAdmin
                 $udfSupport,                                        // UDF_IV_Support
                 $billingType,                                       // UDF_IV_BillingType
@@ -291,9 +289,9 @@ class HrdfInvoiceDataExportController extends Controller
             // Set row height for the first data row to accommodate multi-line content
             $sheet->getRowDimension($row)->setRowHeight(80);
 
-            // Enable text wrapping for the UDF_IV_HRDInfo cell (column Q)
-            $sheet->getStyle('Q' . $row)->getAlignment()->setWrapText(true);
-            $sheet->getStyle('Q' . $row)->getAlignment()->setVertical(Alignment::VERTICAL_TOP);
+            // Enable text wrapping for the UDF_IV_HRDInfo cell (column P)
+            $sheet->getStyle('P' . $row)->getAlignment()->setWrapText(true);
+            $sheet->getStyle('P' . $row)->getAlignment()->setVertical(Alignment::VERTICAL_TOP);
 
             Log::info('Added full invoice row at row ' . $row);
             $row++;
@@ -306,7 +304,7 @@ class HrdfInvoiceDataExportController extends Controller
                 $product = $item->product;
 
                 $itemRowData = [
-                    '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', // Empty first 17 columns
+                    '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', // Empty first 17 columns
                     $product ? $product->code : '',                  // ItemCode
                     $item->quantity ?? 1,                           // Qty
                     $this->calculateUnitPrice($item, $product),     // UnitPrice
@@ -322,8 +320,8 @@ class HrdfInvoiceDataExportController extends Controller
             Log::info('Completed processing all items, final row: ' . ($row - 1));
 
             // Auto-size columns (except UDF_IV_HRDInfo which has fixed width)
-            foreach (range('A', 'V') as $col) {
-                if ($col !== 'Q') { // Don't auto-size UDF_IV_HRDInfo column
+            foreach (range('A', 'U') as $col) {
+                if ($col !== 'P') { // Don't auto-size UDF_IV_HRDInfo column
                     $sheet->getColumnDimension($col)->setAutoSize(true);
                 }
             }

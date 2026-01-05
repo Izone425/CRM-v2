@@ -1341,6 +1341,12 @@
                         </div>
 
                         <div class="submenu" id="admin-renewal-v1-submenu">
+                            <a href="{{ route('filament.admin.pages.admin-renewal-dashboard') }}" class="submenu-item">
+                                <span class="module-font">Dashboard Reseller</span>
+                            </a>
+                            <a href="{{ route('filament.admin.pages.admin-renewal-dashboard-non-reseller') }}" class="submenu-item">
+                                <span class="module-font">Dashboard End User</span>
+                            </a>
                             <a href="{{ route('filament.admin.pages.admin-renewal-raw-data') }}" class="submenu-item">
                                 <span class="module-font">Raw Data</span>
                             </a>
