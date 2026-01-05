@@ -13,11 +13,15 @@ class LicenseCertificate extends Model
     protected $fillable = [
         'company_name',
         'software_handover_id',
+        'buffer_license_set_id',
+        'buffer_license_data',
         'kick_off_date',
         'buffer_license_start',
         'buffer_license_end',
+        'buffer_months',
         'paid_license_start',
         'paid_license_end',
+        'paid_months',
         'next_renewal_date',
         'license_years',
         'created_by',
@@ -31,37 +35,8 @@ class LicenseCertificate extends Model
         'paid_license_start' => 'datetime',
         'paid_license_end' => 'datetime',
         'next_renewal_date' => 'datetime',
+        'buffer_license_data' => 'array', // ✅ Cast to array
     ];
 
-    /**
-     * Get the lead that this license certificate belongs to.
-     */
-    public function lead(): BelongsTo
-    {
-        return $this->belongsTo(Lead::class);
-    }
-
-    /**
-     * Get the creator of this license certificate.
-     */
-    public function creator(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'created_by');
-    }
-
-    /**
-     * Get the user who last updated this license certificate.
-     */
-    public function updater(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'updated_by');
-    }
-
-    /**
-     * Get the software handovers associated with this certificate.
-     */
-    public function softwareHandovers()
-    {
-        return $this->hasMany(SoftwareHandover::class, 'license_certificate_id');
-    }
+    // ...existing relationships...
 }

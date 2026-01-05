@@ -25,6 +25,7 @@ class RenewalHandover extends Model
         'processed_at',
         'autocount_response',
         'tt_invoice_number',
+        'hrdf_grant_ids',
     ];
 
     protected $casts = [
@@ -33,6 +34,7 @@ class RenewalHandover extends Model
         'total_amount' => 'decimal:2',
         'processed_at' => 'datetime',
         'autocount_response' => 'array',
+        'hrdf_grant_ids' => 'array',
     ];
 
     /**

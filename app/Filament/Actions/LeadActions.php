@@ -2260,9 +2260,9 @@ class LeadActions
                 'follow_up_date' => null
             ];
 
-            if (in_array(auth()->user()->role_id, [1, 3])) {
-                $updateData['salesperson'] = null;
-            }
+            // if (in_array(auth()->user()->role_id, [1, 3])) {
+            //     $updateData['salesperson'] = null;
+            // }
 
             $lead->update($updateData);
 

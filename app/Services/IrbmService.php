@@ -71,7 +71,6 @@ class IrbmService
          */
         try {
             $response = $this->client->validateTaxPayerTin($tin, $idType, $idValue);
-            Log::channel('irbm_log')->info("Response Status Code: {$this->client->statusCode}");
             Log::channel('irbm_log')->info("TIN Validation Response: " . json_encode($response));
 
             // If we get here without exception, validation succeeded
@@ -98,7 +97,6 @@ class IrbmService
          */
         try {
             $response = $this->client->searchTaxPayerTin($name, $idType, $idValue);
-            Log::channel('irbm_log')->info("Response Status Code: {$this->client->statusCode}");
             // Log the response for debugging
             Log::channel('irbm_log')->info("TIN Search Response: " . json_encode($response));
 

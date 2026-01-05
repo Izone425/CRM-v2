@@ -765,6 +765,26 @@ class HardwareHandoverV2RelationManager extends RelationManager
                         ])
                 ]),
 
+            Section::make('Step 9: Add On New Device and Claim via HRDF?')
+                ->columnSpan(1)
+                ->schema([
+                    Forms\Components\Radio::make('hrdf_billing_option')
+                        ->label('')
+                        ->options([
+                            'yes' => 'Yes',
+                            'no' => 'No, this Hardware Handover already bill under HRDF invoice at Software Handover.',
+                        ])
+                        ->required()
+                        ->rule('not_in:yes')
+                        ->validationMessages([
+                            'not_in' => 'Please contact Faiz Shu Izhan.',
+                        ])
+                        ->default(function (?HardwareHandoverV2 $record) {
+                            return $record?->hrdf_billing_option ?? 'yes';
+                        })
+                        ->reactive(),
+                ]),
+
             // Section::make('Step 9: Invoice Type')
             //     ->columnSpan(1)
             //     ->schema([

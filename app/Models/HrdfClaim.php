@@ -31,12 +31,14 @@ class HrdfClaim extends Model
         'approved_at',
         'received_at',
         'upfront_payment',
+        'hrdf_balance',
         'pax'
     ];
 
     protected $casts = [
         'invoice_amount' => 'decimal:2',
         'upfront_payment' => 'decimal:2',
+        'hrdf_balance' => 'decimal:2',
         'pax' => 'integer',
         'approved_date' => 'date',
         'email_processed_at' => 'datetime',
@@ -102,6 +104,7 @@ class HrdfClaim extends Model
             'approved_date' => $extractedData['approved_date'] ?? $hrdfMail->received_date->toDateString(),
             'email_processed_at' => now(),
             'upfront_payment' => $extractedData['upfront_payment'] ?? 0,
+            'hrdf_balance' => $extractedData['hrdf_balance'] ?? 0,
             'pax' => $extractedData['pax'] ?? 0,
         ];
 
@@ -157,6 +160,11 @@ class HrdfClaim extends Model
             // Upfront Payment - Upfront Payment to Training Provider ? RM 3,888.00
             if (preg_match('/Upfront\s+Payment\s+to\s+Training\s+Provider\s*\?\s*RM\s*([\d,\.]+)/', $line, $matches)) {
                 $data['upfront_payment'] = (float) str_replace(',', '', $matches[1]);
+            }
+
+            // Balance Amount - Balance Amount to be Claimed by Training Provider ? RM 2,639.95
+            if (preg_match('/Balance\s+Amount\s+to\s+be\s+Claimed\s+by\s+Training\s+Provider\s*\?\s*RM\s*([\d,\.]+)/', $line, $matches)) {
+                $data['hrdf_balance'] = (float) str_replace(',', '', $matches[1]);
             }
 
             // Number of People/Pax - Multiple patterns to handle different table formats

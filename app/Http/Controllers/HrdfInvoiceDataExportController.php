@@ -196,6 +196,7 @@ class HrdfInvoiceDataExportController extends Controller
             // Get HRDF Claim data for new UDF fields
             $hrdfClaim = $hrdfInvoice->hrdfClaim;
             $udfHrDeposit = $hrdfClaim ? $hrdfClaim->upfront_payment : 0;
+            $udfHrBalance = $hrdfClaim ? $hrdfClaim->hrdf_balance : 0;
 
             // Format UDF_IV_HRDInfo string
             $udfHrdInfo = $this->formatHrdfInfo($hrdfClaim, $hrdfInvoice, $quotation);
@@ -217,6 +218,7 @@ class HrdfInvoiceDataExportController extends Controller
                 'UDF_IV_BillingType',
                 'Cancelled',
                 'UDF_IV_HRDeposit',
+                'UDF_IV_HRDBalance',
                 'UDF_IV_HRDInfo',
                 'ItemCode',
                 'Qty',
@@ -242,10 +244,10 @@ class HrdfInvoiceDataExportController extends Controller
                     ],
                 ],
             ];
-            $sheet->getStyle('A1:U1')->applyFromArray($headerStyle);
+            $sheet->getStyle('A1:V1')->applyFromArray($headerStyle);
 
-            // Set column width for UDF_IV_HRDInfo (column P)
-            $sheet->getColumnDimension('P')->setWidth(60);
+            // Set column width for UDF_IV_HRDInfo (column Q)
+            $sheet->getColumnDimension('Q')->setWidth(60);
             Log::info('Header styling applied');
 
             $row = 2; // Start from row 2 for data
@@ -275,6 +277,7 @@ class HrdfInvoiceDataExportController extends Controller
                 $billingType,                                       // UDF_IV_BillingType
                 $cancelled,                                         // Cancelled
                 $udfHrDeposit,                                      // UDF_IV_HRDeposit
+                $udfHrBalance,                                      // UDF_IV_HRDBalance
                 $udfHrdInfo,                                        // UDF_IV_HRDInfo
                 $firstProduct ? $firstProduct->code : '',          // ItemCode
                 $firstItem->quantity ?? 1,                         // Qty
@@ -284,6 +287,14 @@ class HrdfInvoiceDataExportController extends Controller
             ];
 
             $sheet->fromArray([$firstRowData], null, 'A' . $row);
+
+            // Set row height for the first data row to accommodate multi-line content
+            $sheet->getRowDimension($row)->setRowHeight(80);
+
+            // Enable text wrapping for the UDF_IV_HRDInfo cell (column Q)
+            $sheet->getStyle('Q' . $row)->getAlignment()->setWrapText(true);
+            $sheet->getStyle('Q' . $row)->getAlignment()->setVertical(Alignment::VERTICAL_TOP);
+
             Log::info('Added full invoice row at row ' . $row);
             $row++;
 
@@ -295,7 +306,7 @@ class HrdfInvoiceDataExportController extends Controller
                 $product = $item->product;
 
                 $itemRowData = [
-                    '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', // Empty first 16 columns
+                    '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', // Empty first 17 columns
                     $product ? $product->code : '',                  // ItemCode
                     $item->quantity ?? 1,                           // Qty
                     $this->calculateUnitPrice($item, $product),     // UnitPrice
@@ -311,8 +322,8 @@ class HrdfInvoiceDataExportController extends Controller
             Log::info('Completed processing all items, final row: ' . ($row - 1));
 
             // Auto-size columns (except UDF_IV_HRDInfo which has fixed width)
-            foreach (range('A', 'U') as $col) {
-                if ($col !== 'P') { // Don't auto-size UDF_IV_HRDInfo column
+            foreach (range('A', 'V') as $col) {
+                if ($col !== 'Q') { // Don't auto-size UDF_IV_HRDInfo column
                     $sheet->getColumnDimension($col)->setAutoSize(true);
                 }
             }
@@ -425,7 +436,7 @@ class HrdfInvoiceDataExportController extends Controller
         $trainingDate = $hrdfClaim->hrdf_training_date ?? 'N/A';
 
         // Field 3: Client Name (from quotation or invoice)
-        $clientName = $quotation->subsidiary->company_name ?? $hrdfInvoice->company_name ?? 'N/A';
+        $clientName = $hrdfClaim->company_name ?? 'N/A';
 
         // Field 4: Grant ID
         $grantId = $hrdfClaim->hrdf_grant_id ?? 'N/A';

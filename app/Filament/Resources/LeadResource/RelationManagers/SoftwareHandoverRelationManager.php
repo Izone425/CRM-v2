@@ -431,7 +431,17 @@ class SoftwareHandoverRelationManager extends RelationManager
                                         $query->whereIn('product_id', $moduleProductIds);
                                     });
 
-                                    return $availableQuotations->pluck('pi_reference_no', 'id')->toArray();
+                                    $options = [];
+                                    foreach ($availableQuotations->with(['subsidiary', 'lead.companyDetail'])->get() as $quotation) {
+                                        $companyName = 'N/A';
+                                        if ($quotation->subsidiary_id && $quotation->subsidiary) {
+                                            $companyName = $quotation->subsidiary->company_name;
+                                        } elseif ($quotation->lead && $quotation->lead->companyDetail) {
+                                            $companyName = $quotation->lead->companyDetail->company_name;
+                                        }
+                                        $options[$quotation->id] = $quotation->pi_reference_no . ' - ' . $companyName;
+                                    }
+                                    return $options;
                                 })
                                 ->multiple()
                                 ->searchable()
@@ -499,7 +509,7 @@ class SoftwareHandoverRelationManager extends RelationManager
                                         }
                                     }
 
-                                    return \App\Models\Quotation::where('lead_id', $leadId)
+                                    $availableQuotations = \App\Models\Quotation::where('lead_id', $leadId)
                                         ->where('quotation_type', 'product')
                                         ->where('status', \App\Enums\QuotationStatusEnum::accepted)
                                         ->whereNotIn('id', array_filter($usedPiIds))
@@ -508,8 +518,20 @@ class SoftwareHandoverRelationManager extends RelationManager
                                         ->whereDoesntHave('items', function ($query) {
                                             $query->where('product_id', 94);
                                         })
-                                        ->pluck('pi_reference_no', 'id')
-                                        ->toArray();
+                                        ->with(['subsidiary', 'lead.companyDetail'])
+                                        ->get();
+
+                                    $options = [];
+                                    foreach ($availableQuotations as $quotation) {
+                                        $companyName = 'N/A';
+                                        if ($quotation->subsidiary_id && $quotation->subsidiary) {
+                                            $companyName = $quotation->subsidiary->company_name;
+                                        } elseif ($quotation->lead && $quotation->lead->companyDetail) {
+                                            $companyName = $quotation->lead->companyDetail->company_name;
+                                        }
+                                        $options[$quotation->id] = $quotation->pi_reference_no . ' - ' . $companyName;
+                                    }
+                                    return $options;
                                 })
                                 ->multiple()
                                 ->searchable()
@@ -580,7 +602,7 @@ class SoftwareHandoverRelationManager extends RelationManager
                                         }
                                     }
 
-                                    return \App\Models\Quotation::where('lead_id', $leadId)
+                                    $availableQuotations = \App\Models\Quotation::where('lead_id', $leadId)
                                         ->where('quotation_type', 'product')
                                         ->where('status', \App\Enums\QuotationStatusEnum::accepted)
                                         ->whereNotIn('id', array_filter($usedPiIds))
@@ -593,8 +615,20 @@ class SoftwareHandoverRelationManager extends RelationManager
                                         ->whereDoesntHave('items', function ($query) {
                                             $query->where('product_id', '!=', 94);
                                         })
-                                        ->pluck('pi_reference_no', 'id')
-                                        ->toArray();
+                                        ->with(['subsidiary', 'lead.companyDetail'])
+                                        ->get();
+
+                                    $options = [];
+                                    foreach ($availableQuotations as $quotation) {
+                                        $companyName = 'N/A';
+                                        if ($quotation->subsidiary_id && $quotation->subsidiary) {
+                                            $companyName = $quotation->subsidiary->company_name;
+                                        } elseif ($quotation->lead && $quotation->lead->companyDetail) {
+                                            $companyName = $quotation->lead->companyDetail->company_name;
+                                        }
+                                        $options[$quotation->id] = $quotation->pi_reference_no . ' - ' . $companyName;
+                                    }
+                                    return $options;
                                 })
                                 ->multiple()
                                 ->searchable()
@@ -655,17 +689,33 @@ class SoftwareHandoverRelationManager extends RelationManager
                                     }
 
                                     // Get available HRDF PIs excluding already used ones
-                                    return \App\Models\Quotation::where('lead_id', $leadId)
+                                    $availableQuotations = \App\Models\Quotation::where('lead_id', $leadId)
                                         ->where('quotation_type', 'hrdf')
                                         ->where('status', \App\Enums\QuotationStatusEnum::accepted)
                                         ->whereNotIn('id', array_filter($usedPiIds)) // Filter out null/empty values
                                         ->where('quotation_date', '>=', now()->toDateString())
-                                        ->pluck('pi_reference_no', 'id')
-                                        ->toArray();
+                                        ->with(['subsidiary', 'lead.companyDetail'])
+                                        ->get();
+
+                                    $options = [];
+                                    foreach ($availableQuotations as $quotation) {
+                                        $companyName = 'N/A';
+                                        if ($quotation->subsidiary_id && $quotation->subsidiary) {
+                                            $companyName = $quotation->subsidiary->company_name;
+                                        } elseif ($quotation->lead && $quotation->lead->companyDetail) {
+                                            $companyName = $quotation->lead->companyDetail->company_name;
+                                        }
+                                        $options[$quotation->id] = $quotation->pi_reference_no . ' - ' . $companyName;
+                                    }
+                                    return $options;
                                 })
                                 ->multiple()
                                 ->searchable()
                                 ->preload()
+                                ->live()
+                                ->afterStateUpdated(function (callable $set, callable $get, ?array $state) {
+                                    $this->updateHrdfGrantIdRepeater($set, $get, $state);
+                                })
                                 ->default(function (?SoftwareHandover $record = null) {
                                     if (!$record || !$record->proforma_invoice_hrdf) {
                                         return [];
@@ -675,6 +725,50 @@ class SoftwareHandoverRelationManager extends RelationManager
                                     }
                                     return is_array($record->proforma_invoice_hrdf) ? $record->proforma_invoice_hrdf : [];
                                 }),
+
+                            // HRDF Grant IDs Repeater - dynamically shown based on selected HRDF invoices
+                                Repeater::make('hrdf_grant_ids')
+                                    ->label('HRDF Grant IDs')
+                                    ->schema([
+                                        Grid::make(2)
+                                            ->schema([
+                                                TextInput::make('proforma_invoice_name')
+                                                    ->label('Proforma Invoice')
+                                                    ->disabled()
+                                                    ->dehydrated(false),
+                                                TextInput::make('hrdf_grant_id')
+                                                    ->label('HRDF Grant ID')
+                                                    ->placeholder('Enter HRDF Grant ID')
+                                                    ->required()
+                                            ])
+                                    ])
+                                    ->addable(false)
+                                    ->deletable(false)
+                                    ->reorderable(false)
+                                    ->visible(fn (callable $get) => $get('training_type') === 'online_hrdf_training' && !empty($get('proforma_invoice_hrdf')))
+                                    ->live()
+                                    ->afterStateHydrated(function (callable $set, callable $get, ?array $state) {
+                                        $this->updateHrdfGrantIdRepeater($set, $get, $state);
+                                    })
+                                    ->columnSpanFull()
+                                    ->default(function (?SoftwareHandover $record = null) {
+                                        if (!$record) return [];
+
+                                        // If record has hrdf_grant_id (old single field), convert to array format
+                                        if (!empty($record->hrdf_grant_id) && empty($record->hrdf_grant_ids)) {
+                                            return [['hrdf_grant_id' => $record->hrdf_grant_id]];
+                                        }
+
+                                        // If record has the new hrdf_grant_ids field
+                                        if (!empty($record->hrdf_grant_ids)) {
+                                            if (is_string($record->hrdf_grant_ids)) {
+                                                return json_decode($record->hrdf_grant_ids, true) ?? [];
+                                            }
+                                            return is_array($record->hrdf_grant_ids) ? $record->hrdf_grant_ids : [];
+                                        }
+
+                                        return [];
+                                    }),
                         ])
                 ]),
 
@@ -1015,7 +1109,7 @@ class SoftwareHandoverRelationManager extends RelationManager
                     // Handle file array encodings
                     foreach (['confirmation_order_file', 'payment_slip_file', 'proforma_invoice_hrdf',
                             'proforma_invoice_product', 'invoice_file', 'implementation_pics',
-                            'hrdf_grant_file', 'software_hardware_pi', 'non_hrdf_pi'] as $field) {
+                            'hrdf_grant_file', 'software_hardware_pi', 'non_hrdf_pi', 'hrdf_grant_ids'] as $field) {
                         if (isset($data[$field]) && is_array($data[$field])) {
                             $data[$field] = json_encode($data[$field]);
                         }
@@ -1220,7 +1314,8 @@ class SoftwareHandoverRelationManager extends RelationManager
                             unset($data['renewal_note']);
                             // Process JSON encoding for array fields
                             foreach (['remarks', 'confirmation_order_file', 'payment_slip_file', 'implementation_pics',
-                                     'proforma_invoice_product', 'proforma_invoice_hrdf', 'invoice_file', 'hrdf_grant_file'] as $field) {
+                                     'proforma_invoice_product', 'proforma_invoice_hrdf', 'invoice_file', 'hrdf_grant_file',
+                                     'software_hardware_pi', 'non_hrdf_pi', 'hrdf_grant_ids'] as $field) {
                                 if (isset($data[$field]) && is_array($data[$field])) {
                                     // Special handling for remarks to process attachments
                                     if ($field === 'remarks') {
@@ -1393,5 +1488,51 @@ class SoftwareHandoverRelationManager extends RelationManager
 
         // No gaps found, return next ID after max
         return $maxId + 1;
+    }
+
+    private function updateHrdfGrantIdRepeater(callable $set, callable $get, ?array $state): void
+    {
+        $selectedHrdfInvoices = $get('proforma_invoice_hrdf') ?? [];
+
+        if (empty($selectedHrdfInvoices)) {
+            $set('hrdf_grant_ids', []);
+            return;
+        }
+
+        // Get existing hrdf_grant_ids to preserve user input
+        $existingGrantIds = $get('hrdf_grant_ids') ?? [];
+        $existingGrantIdsMap = [];
+
+        // Create a map of quotation_id to grant ID for preservation
+        foreach ($existingGrantIds as $entry) {
+            if (isset($entry['quotation_id']) && isset($entry['hrdf_grant_id'])) {
+                $existingGrantIdsMap[$entry['quotation_id']] = $entry['hrdf_grant_id'];
+            }
+        }
+
+        // Get the quotations for the selected HRDF invoices
+        $quotations = \App\Models\Quotation::whereIn('id', $selectedHrdfInvoices)
+            ->with(['subsidiary', 'lead.companyDetail'])
+            ->get();
+
+        $hrdfGrantEntries = [];
+        foreach ($quotations as $quotation) {
+            $companyName = 'N/A';
+            if ($quotation->subsidiary_id && $quotation->subsidiary) {
+                $companyName = $quotation->subsidiary->company_name;
+            } elseif ($quotation->lead && $quotation->lead->companyDetail) {
+                $companyName = $quotation->lead->companyDetail->company_name;
+            }
+
+            $piReference = $quotation->pi_reference_no . ' - ' . $companyName;
+
+            $hrdfGrantEntries[] = [
+                'quotation_id' => $quotation->id,
+                'proforma_invoice_name' => $piReference,
+                'hrdf_grant_id' => $existingGrantIdsMap[$quotation->id] ?? ''
+            ];
+        }
+
+        $set('hrdf_grant_ids', $hrdfGrantEntries);
     }
 }

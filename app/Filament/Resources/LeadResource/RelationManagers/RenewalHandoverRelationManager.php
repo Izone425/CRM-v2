@@ -15,8 +15,10 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Placeholder;
+use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Tables\Actions\Action;
 use Filament\Tables\Actions\HeaderAction;
@@ -154,8 +156,7 @@ class RenewalHandoverRelationManager extends RelationManager
                     ->form([
                         Grid::make(1)->schema([
                             Select::make('selected_proforma_invoices')
-                                ->label('Select Proforma Invoices (HRDF)')
-                                ->multiple()
+                                ->label('Select Proforma Invoice (HRDF)')
                                 ->required()
                                 ->options(function () {
                                     try {
@@ -164,7 +165,8 @@ class RenewalHandoverRelationManager extends RelationManager
                                         if (!$lead) return [];
 
                                         // ✅ Only show quotations that haven't generated AutoCount invoices yet
-                                        $quotations = \App\Models\Quotation::where('lead_id', $lead->id)
+                                        $quotations = \App\Models\Quotation::with('subsidiary', 'lead.companyDetail')
+                                            ->where('lead_id', $lead->id)
                                             ->where('status', 'accepted')
                                             ->where('sales_type', 'RENEWAL SALES')
                                             ->where('autocount_generated_pi', false) // ✅ Exclude already processed
@@ -174,6 +176,14 @@ class RenewalHandoverRelationManager extends RelationManager
                                         $options = [];
                                         foreach ($quotations as $quotation) {
                                             $label = $quotation->pi_reference_no ?? "Quotation ID: {$quotation->id}";
+
+                                            // Prioritize subsidiary company name if available
+                                            if ($quotation->subsidiary && !empty($quotation->subsidiary->company_name)) {
+                                                $label .= ' - ' . $quotation->subsidiary->company_name;
+                                            } elseif ($quotation->lead && $quotation->lead->companyDetail) {
+                                                $label .= ' - ' . $quotation->lead->companyDetail->company_name;
+                                            }
+
                                             $options[$quotation->id] = $label;
                                         }
 
@@ -186,92 +196,114 @@ class RenewalHandoverRelationManager extends RelationManager
                                 ->helperText('Only showing quotations that haven\'t generated AutoCount invoices yet')
                                 ->searchable()
                                 ->live()
-                                ->placeholder('Select one or more proforma invoices'),
+                                ->afterStateUpdated(function (callable $get, callable $set) {
+                                    $this->updateHrdfGrantIdRepeater($get, $set);
+                                })
+                                ->placeholder('Select one proforma invoice'),
 
-                            Section::make('Invoice Preview')
+                            Repeater::make('hrdf_grant_ids')
+                                ->label('HRDF Grant IDs')
                                 ->schema([
-                                    Placeholder::make('invoice_preview')
-                                        ->label('')
-                                        ->content(function (callable $get) {
-                                            $selectedPIs = $get('selected_proforma_invoices');
-
-                                            if (empty($selectedPIs)) {
-                                                return 'Please select proforma invoices to preview.';
-                                            }
-
-                                            try {
-                                                $lead = $this->getOwnerRecord();
-
-                                                if (!$lead) {
-                                                    return 'Lead not found.';
-                                                }
-
-                                                $preview = $this->generateRenewalInvoicePreview($lead, $selectedPIs);
-
-                                                if (empty($preview['invoices'])) {
-                                                    return $preview['message'] ?? 'No items to display';
-                                                }
-
-                                                // Get company name from first quotation's subsidiary if available
-                                                $displayCompanyName = $lead->companyDetail->company_name;
-                                                if (!empty($selectedPIs)) {
-                                                    $firstQuotation = \App\Models\Quotation::with('subsidiary', 'lead.companyDetail')->find($selectedPIs[0]);
-                                                    if ($firstQuotation && $firstQuotation->subsidiary && !empty($firstQuotation->subsidiary->company_name)) {
-                                                        $displayCompanyName = $firstQuotation->subsidiary->company_name;
-                                                    } elseif ($firstQuotation && $firstQuotation->lead && $firstQuotation->lead->companyDetail && !empty($firstQuotation->lead->companyDetail->company_name)) {
-                                                        $displayCompanyName = $firstQuotation->lead->companyDetail->company_name;
-                                                    }
-                                                }
-
-                                                $html = '<div class="space-y-4">';
-                                                $html .= '<div><strong>Debtor:</strong> ARM-P0062 - PEMBANGUNAN SUMBER MANUSIA BERHAD</div>';
-                                                $html .= '<div><strong>Company:</strong> ' . $displayCompanyName . '</div>';
-                                                $html .= '<div><strong>Support Person:</strong> FATIMAH</div>'; // ✅ Show support person
-                                                $html .= '<div><strong>Salesperson:</strong> None (Renewal)</div>'; // ✅ Show no salesperson
-                                                $html .= '<div><strong>Total Invoices:</strong> ' . $preview['total_invoices'] . '</div>';
-
-                                                // Show each invoice separately
-                                                foreach ($preview['invoices'] as $index => $invoice) {
-                                                    $html .= '<div class="p-3 mt-4 border rounded bg-gray-50">';
-                                                    $html .= '<div class="font-semibold text-blue-600">Invoice ' . ($index + 1) . ' (Renewal)</div>';
-                                                    $html .= '<div><strong>Document No:</strong> ' . $invoice['invoice_no'] . '</div>';
-                                                    $html .= '<div><strong>Support:</strong> FATIMAH</div>'; // ✅ Show support per invoice
-                                                    $html .= '<div class="mt-2">';
-                                                    $html .= '<div class="mb-2 text-sm font-semibold">Items:</div>';
-
-                                                    foreach ($invoice['items'] as $item) {
-                                                        $html .= '<div class="flex justify-between py-1 text-sm">';
-                                                        $html .= '<div class="flex items-center gap-2">';
-                                                        $html .= '<span class="px-2 py-1 font-mono text-xs bg-gray-100 rounded">' . $item['code'] . '</span>';
-                                                        $html .= '<span class="text-gray-600">× ' . number_format($item['quantity']) . '</span>';
-                                                        $html .= '</div>';
-                                                        $html .= '<span class="font-semibold">RM ' . number_format($item['amount'], 2) . '</span>';
-                                                        $html .= '</div>';
-                                                    }
-
-                                                    $html .= '</div>';
-                                                    $html .= '<div class="flex justify-between pt-2 mt-2 font-semibold border-t">';
-                                                    $html .= '<span>Invoice Total:</span><span>RM ' . number_format($invoice['total'], 2) . '</span>';
-                                                    $html .= '</div></div>';
-                                                }
-
-                                                // Show grand total if multiple invoices
-                                                if ($preview['total_invoices'] > 1) {
-                                                    $html .= '<div class="flex justify-between pt-2 mt-4 text-lg font-bold border-t-2 border-blue-500">';
-                                                    $html .= '<span>Grand Total:</span><span>RM ' . number_format($preview['grand_total'], 2) . '</span>';
-                                                    $html .= '</div>';
-                                                }
-
-                                                $html .= '</div>';
-
-                                                return new HtmlString($html);
-                                            } catch (\Exception $e) {
-                                                Log::error('Error generating preview: ' . $e->getMessage());
-                                                return 'Error generating preview.';
-                                            }
-                                        })
+                                    TextInput::make('proforma_invoice_name')
+                                        ->label('Proforma Invoice')
+                                        ->disabled()
+                                        ->dehydrated(false),
+                                    TextInput::make('hrdf_grant_id')
+                                        ->label('HRDF Grant ID')
+                                        ->required()
+                                        ->placeholder('Enter HRDF Grant ID'),
                                 ])
-                                ->visible(fn (callable $get) => !empty($get('selected_proforma_invoices'))),
+                                ->columns(2)
+                                ->addable(false)
+                                ->deletable(false)
+                                ->reorderable(false)
+                                ->visible(fn (callable $get) => !empty($get('selected_proforma_invoices')))
+                                ->helperText('Enter HRDF Grant ID for each selected proforma invoice'),
+
+                            // Section::make('Invoice Preview')
+                            //     ->schema([
+                            //         Placeholder::make('invoice_preview')
+                            //             ->label('')
+                            //             ->content(function (callable $get) {
+                            //                 $selectedPIs = $get('selected_proforma_invoices');
+
+                            //                 if (empty($selectedPIs)) {
+                            //                     return 'Please select proforma invoices to preview.';
+                            //                 }
+
+                            //                 try {
+                            //                     $lead = $this->getOwnerRecord();
+
+                            //                     if (!$lead) {
+                            //                         return 'Lead not found.';
+                            //                     }
+
+                            //                     $preview = $this->generateRenewalInvoicePreview($lead, $selectedPIs);
+
+                            //                     if (empty($preview['invoices'])) {
+                            //                         return $preview['message'] ?? 'No items to display';
+                            //                     }
+
+                            //                     // Get company name from first quotation's subsidiary if available
+                            //                     $displayCompanyName = $lead->companyDetail->company_name;
+                            //                     if (!empty($selectedPIs)) {
+                            //                         $firstQuotation = \App\Models\Quotation::with('subsidiary', 'lead.companyDetail')->find($selectedPIs[0]);
+                            //                         if ($firstQuotation && $firstQuotation->subsidiary && !empty($firstQuotation->subsidiary->company_name)) {
+                            //                             $displayCompanyName = $firstQuotation->subsidiary->company_name;
+                            //                         } elseif ($firstQuotation && $firstQuotation->lead && $firstQuotation->lead->companyDetail && !empty($firstQuotation->lead->companyDetail->company_name)) {
+                            //                             $displayCompanyName = $firstQuotation->lead->companyDetail->company_name;
+                            //                         }
+                            //                     }
+
+                            //                     $html = '<div class="space-y-4">';
+                            //                     $html .= '<div><strong>Debtor:</strong> ARM-P0062 - PEMBANGUNAN SUMBER MANUSIA BERHAD</div>';
+                            //                     $html .= '<div><strong>Company:</strong> ' . $displayCompanyName . '</div>';
+                            //                     $html .= '<div><strong>Support Person:</strong> FATIMAH</div>'; // ✅ Show support person
+                            //                     $html .= '<div><strong>Salesperson:</strong> None (Renewal)</div>'; // ✅ Show no salesperson
+                            //                     $html .= '<div><strong>Total Invoices:</strong> ' . $preview['total_invoices'] . '</div>';
+
+                            //                     // Show each invoice separately
+                            //                     foreach ($preview['invoices'] as $index => $invoice) {
+                            //                         $html .= '<div class="p-3 mt-4 border rounded bg-gray-50">';
+                            //                         $html .= '<div class="font-semibold text-blue-600">Invoice ' . ($index + 1) . ' (Renewal)</div>';
+                            //                         $html .= '<div><strong>Document No:</strong> ' . $invoice['invoice_no'] . '</div>';
+                            //                         $html .= '<div><strong>Support:</strong> FATIMAH</div>'; // ✅ Show support per invoice
+                            //                         $html .= '<div class="mt-2">';
+                            //                         $html .= '<div class="mb-2 text-sm font-semibold">Items:</div>';
+
+                            //                         foreach ($invoice['items'] as $item) {
+                            //                             $html .= '<div class="flex justify-between py-1 text-sm">';
+                            //                             $html .= '<div class="flex items-center gap-2">';
+                            //                             $html .= '<span class="px-2 py-1 font-mono text-xs bg-gray-100 rounded">' . $item['code'] . '</span>';
+                            //                             $html .= '<span class="text-gray-600">× ' . number_format($item['quantity']) . '</span>';
+                            //                             $html .= '</div>';
+                            //                             $html .= '<span class="font-semibold">RM ' . number_format($item['amount'], 2) . '</span>';
+                            //                             $html .= '</div>';
+                            //                         }
+
+                            //                         $html .= '</div>';
+                            //                         $html .= '<div class="flex justify-between pt-2 mt-2 font-semibold border-t">';
+                            //                         $html .= '<span>Invoice Total:</span><span>RM ' . number_format($invoice['total'], 2) . '</span>';
+                            //                         $html .= '</div></div>';
+                            //                     }
+
+                            //                     // Show grand total if multiple invoices
+                            //                     if ($preview['total_invoices'] > 1) {
+                            //                         $html .= '<div class="flex justify-between pt-2 mt-4 text-lg font-bold border-t-2 border-blue-500">';
+                            //                         $html .= '<span>Grand Total:</span><span>RM ' . number_format($preview['grand_total'], 2) . '</span>';
+                            //                         $html .= '</div>';
+                            //                     }
+
+                            //                     $html .= '</div>';
+
+                            //                     return new HtmlString($html);
+                            //                 } catch (\Exception $e) {
+                            //                     Log::error('Error generating preview: ' . $e->getMessage());
+                            //                     return 'Error generating preview.';
+                            //                 }
+                            //             })
+                            //     ])
+                            //     ->visible(fn (callable $get) => !empty($get('selected_proforma_invoices'))),
                         ]),
                     ])
                     ->action(function (array $data): void {
@@ -287,12 +319,12 @@ class RenewalHandoverRelationManager extends RelationManager
                                 return;
                             }
 
-                            $selectedPIs = $data['selected_proforma_invoices'];
+                            $selectedPI = $data['selected_proforma_invoices'];
 
-                            if (empty($selectedPIs)) {
+                            if (empty($selectedPI)) {
                                 Notification::make()
                                     ->title('Error')
-                                    ->body('Please select at least one proforma invoice')
+                                    ->body('Please select a proforma invoice')
                                     ->warning()
                                     ->send();
                                 return;
@@ -301,32 +333,28 @@ class RenewalHandoverRelationManager extends RelationManager
                             // ✅ Create RenewalHandover record first
                             $totalAmount = 0;
 
-                            // Get company name from first quotation's subsidiary if available
+                            // Get company name from selected quotation's subsidiary if available
                             $companyName = $lead->companyDetail->company_name;
-                            if (!empty($selectedPIs)) {
-                                $firstQuotation = \App\Models\Quotation::with('subsidiary', 'lead.companyDetail')->find($selectedPIs[0]);
-                                if ($firstQuotation && $firstQuotation->subsidiary && !empty($firstQuotation->subsidiary->company_name)) {
-                                    $companyName = $firstQuotation->subsidiary->company_name;
-                                } elseif ($firstQuotation && $firstQuotation->lead && $firstQuotation->lead->companyDetail && !empty($firstQuotation->lead->companyDetail->company_name)) {
-                                    $companyName = $firstQuotation->lead->companyDetail->company_name;
-                                }
+                            $selectedQuotation = \App\Models\Quotation::with('subsidiary', 'lead.companyDetail')->find($selectedPI);
+                            if ($selectedQuotation && $selectedQuotation->subsidiary && !empty($selectedQuotation->subsidiary->company_name)) {
+                                $companyName = $selectedQuotation->subsidiary->company_name;
+                            } elseif ($selectedQuotation && $selectedQuotation->lead && $selectedQuotation->lead->companyDetail && !empty($selectedQuotation->lead->companyDetail->company_name)) {
+                                $companyName = $selectedQuotation->lead->companyDetail->company_name;
                             }
 
-                            foreach ($selectedPIs as $quotationId) {
-                                // ✅ UPDATED: Sum up total_after_tax instead of total_before_tax
-                                $quotationTotal = \App\Models\QuotationDetail::where('quotation_id', $quotationId)
-                                    ->sum('total_after_tax'); // ✅ Changed from total_before_tax
-                                $totalAmount += $quotationTotal;
-                            }
+                            // ✅ UPDATED: Sum up total_after_tax for the selected quotation
+                            $totalAmount = \App\Models\QuotationDetail::where('quotation_id', $selectedPI)
+                                ->sum('total_after_tax'); // ✅ Changed from total_before_tax
 
                             $renewalHandover = RenewalHandover::create([
                                 'lead_id' => $lead->id,
                                 'company_name' => $companyName,
-                                'selected_quotation_ids' => $selectedPIs,
+                                'selected_quotation_ids' => [$selectedPI], // ✅ Wrap in array for consistency
                                 'total_amount' => $totalAmount, // ✅ Now includes tax
                                 'status' => 'new',
                                 'created_by' => auth()->id(),
                                 'tt_invoice_number' => '', // Empty since we removed license number field
+                                'hrdf_grant_ids' => $data['hrdf_grant_ids'] ?? [], // ✅ Save HRDF grant IDs
                             ]);
 
                             Notification::make()
@@ -754,5 +782,55 @@ class RenewalHandoverRelationManager extends RelationManager
         }
 
         return 'Unknown Salesperson';
+    }
+
+    protected function updateHrdfGrantIdRepeater(callable $get, callable $set): void
+    {
+        $selectedQuotation = $get('selected_proforma_invoices'); // Now single value
+        $currentGrantIds = $get('hrdf_grant_ids') ?? [];
+
+        if (empty($selectedQuotation)) {
+            $set('hrdf_grant_ids', []);
+            return;
+        }
+
+        // Create a lookup map for existing grant IDs to preserve user input
+        $existingGrantIds = [];
+        foreach ($currentGrantIds as $item) {
+            if (isset($item['quotation_id'])) {
+                $existingGrantIds[$item['quotation_id']] = $item['hrdf_grant_id'] ?? '';
+            }
+        }
+
+        // Generate new repeater item for the single selected quotation
+        $newGrantIds = [];
+        try {
+            $quotation = \App\Models\Quotation::with('subsidiary', 'lead.companyDetail')->find($selectedQuotation);
+            if ($quotation) {
+                $label = $quotation->pi_reference_no ?? "Quotation ID: {$quotation->id}";
+
+                // Prioritize subsidiary company name if available
+                if ($quotation->subsidiary && !empty($quotation->subsidiary->company_name)) {
+                    $label .= ' - ' . $quotation->subsidiary->company_name;
+                } elseif ($quotation->lead && $quotation->lead->companyDetail) {
+                    $label .= ' - ' . $quotation->lead->companyDetail->company_name;
+                }
+
+                $newGrantIds[] = [
+                    'quotation_id' => $selectedQuotation,
+                    'proforma_invoice_name' => $label,
+                    'hrdf_grant_id' => $existingGrantIds[$selectedQuotation] ?? '', // Preserve existing value
+                ];
+            }
+        } catch (\Exception $e) {
+            // Log error and continue with basic info
+            $newGrantIds[] = [
+                'quotation_id' => $selectedQuotation,
+                'proforma_invoice_name' => "Quotation ID: {$selectedQuotation}",
+                'hrdf_grant_id' => $existingGrantIds[$selectedQuotation] ?? '',
+            ];
+        }
+
+        $set('hrdf_grant_ids', $newGrantIds);
     }
 }
