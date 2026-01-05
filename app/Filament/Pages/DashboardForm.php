@@ -7,6 +7,8 @@ use App\Models\Lead;
 use App\Models\User;
 use Filament\Notifications\Notification;
 use Filament\Widgets\Concerns\InteractsWithPageTable;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 class DashboardForm extends Page
 {
@@ -27,6 +29,9 @@ class DashboardForm extends Page
 
     public function refreshTable()
     {
+        // Clear cache to get fresh data
+        Cache::forget('dashboard_counts_' . auth()->id());
+
         // Update timestamp
         $this->lastRefreshTime = now()->format('Y-m-d H:i:s');
 
@@ -171,6 +176,132 @@ class DashboardForm extends Page
         }
 
         $this->dispatch('updateTablesForUser', selectedUser: $userId);
+    }
+
+    // Cache dashboard counts for better performance
+    public function getCachedCounts()
+    {
+        return Cache::remember('dashboard_counts_' . auth()->id(), 300, function () {
+            return [
+                'manager_total' => $this->getManagerTotal(),
+                'admin_software_total' => $this->getAdminSoftwareTotal(),
+                'admin_hardware_total' => $this->getAdminHardwareTotal(),
+                'admin_renewal_counts' => $this->getAdminRenewalCounts(),
+            ];
+        });
+    }
+
+    private function getManagerTotal()
+    {
+        try {
+            $leadTransferCount = app(\App\Livewire\LeadOwnerChangeRequestTable::class)
+                ->getTableQuery()
+                ->count();
+            $bypassDuplicateCount = app(\App\Livewire\ManagerDashboard\BypassDuplicatedLead::class)
+                ->getTableQuery()
+                ->count();
+            return $leadTransferCount + $bypassDuplicateCount;
+        } catch (\Exception $e) {
+            return 0;
+        }
+    }
+
+    private function getAdminSoftwareTotal()
+    {
+        try {
+            $softwareNewCount = app(\App\Livewire\SalespersonDashboard\SoftwareHandoverNew::class)
+                ->getNewSoftwareHandovers()
+                ->count();
+            $softwarePendingLicenseCount = app(\App\Livewire\SoftwareHandoverPendingLicense::class)
+                ->getNewSoftwareHandovers()
+                ->count();
+            return $softwareNewCount + $softwarePendingLicenseCount;
+        } catch (\Exception $e) {
+            return 0;
+        }
+    }
+
+    private function getAdminHardwareTotal()
+    {
+        try {
+            $hardwareNewCount = app(\App\Livewire\SalespersonDashboard\HardwareHandoverNew::class)
+                ->getNewHardwareHandovers()
+                ->count();
+            $hardwarePendingStockCount = app(\App\Livewire\HardwareHandoverPendingStock::class)
+                ->getOverdueHardwareHandovers()
+                ->count();
+            return $hardwareNewCount + $hardwarePendingStockCount;
+        } catch (\Exception $e) {
+            return 0;
+        }
+    }
+
+    private function getAdminRenewalCounts()
+    {
+        $counts = [];
+        $components = [
+            'followUpTodayMYR' => \App\Livewire\AdminRenewalDashboard\ArFollowUpTodayMyr::class,
+            'followUpOverdueMYR' => \App\Livewire\AdminRenewalDashboard\ArFollowUpOverdueMyr::class,
+            'followUpTodayUSD' => \App\Livewire\AdminRenewalDashboard\ArFollowUpTodayUsd::class,
+            'followUpOverdueUSD' => \App\Livewire\AdminRenewalDashboard\ArFollowUpOverdueUsd::class,
+        ];
+
+        foreach ($components as $key => $componentClass) {
+            try {
+                $component = app($componentClass);
+                $counts[$key] = method_exists($component, 'getTodayRenewals')
+                    ? $component->getTodayRenewals()->count()
+                    : $component->getOverdueRenewals()->count();
+            } catch (\Exception $e) {
+                $counts[$key] = 0;
+            }
+        }
+
+        return $counts;
+    }
+
+    public function clearCache()
+    {
+        Cache::forget('dashboard_counts_' . auth()->id());
+        $this->refreshTable();
+    }
+
+    // Lazy load additional counts on demand
+    public function loadAdditionalCounts()
+    {
+        return Cache::remember('dashboard_additional_counts_' . auth()->id(), 300, function () {
+            $additionalCounts = [];
+
+            // Load remaining hardware V2 counts
+            try {
+                $additionalCounts['pendingCourier'] = app(\App\Livewire\AdminHardwareV2Dashboard\HardwareV2PendingCourierTable::class)
+                    ->getNewHardwareHandovers()->count();
+                $additionalCounts['pendingAdminPickUp'] = app(\App\Livewire\AdminHardwareV2Dashboard\HardwareV2PendingAdminSelfPickUpTable::class)
+                    ->getNewHardwareHandovers()->count();
+                $additionalCounts['pendingExternalInstallation'] = app(\App\Livewire\AdminHardwareV2Dashboard\HardwareV2PendingExternalInstallationTable::class)
+                    ->getNewHardwareHandovers()->count();
+                $additionalCounts['pendingInternalInstallation'] = app(\App\Livewire\AdminHardwareV2Dashboard\HardwareV2PendingInternalInstallationTable::class)
+                    ->getNewHardwareHandovers()->count();
+            } catch (\Exception $e) {
+                $additionalCounts['pendingCourier'] = 0;
+                $additionalCounts['pendingAdminPickUp'] = 0;
+                $additionalCounts['pendingExternalInstallation'] = 0;
+                $additionalCounts['pendingInternalInstallation'] = 0;
+            }
+
+            // Load additional software V2 counts
+            try {
+                $additionalCounts['softwareV2PendingKickOff'] = app(\App\Livewire\SoftwareHandoverV2KickOffReminder::class)
+                    ->getNewSoftwareHandovers()->count();
+                $additionalCounts['softwareV2PendingLicense'] = app(\App\Livewire\SoftwareHandoverV2PendingLicense::class)
+                    ->getNewSoftwareHandovers()->count();
+            } catch (\Exception $e) {
+                $additionalCounts['softwareV2PendingKickOff'] = 0;
+                $additionalCounts['softwareV2PendingLicense'] = 0;
+            }
+
+            return $additionalCounts;
+        });
     }
 
     public function updatedSelectedAdditionalRole($additionalRoleId)

@@ -17,428 +17,203 @@
         .tabs-container.initialized {
             opacity: 1;
         }
+
+        /* Progressive loading animations */
+        .dashboard-skeleton {
+            background: linear-gradient(90deg, #f0f0f0 25%, transparent 37%, #f0f0f0 63%);
+            background-size: 400% 100%;
+            animation: shimmer 1.5s ease-in-out infinite;
+        }
+
+        @keyframes shimmer {
+            0% { background-position: 100% 50%; }
+            100% { background-position: -100% 50%; }
+        }
+
+        .content-loading {
+            min-height: 200px;
+            border-radius: 8px;
+        }
+
+        /* Optimized badge styles */
+        .badge-container {
+            display: inline-flex;
+            align-items: center;
+            background: #ef4444;
+            color: white;
+            font-size: 0.75rem;
+            font-weight: 600;
+            border-radius: 9999px;
+            padding: 0.125rem 0.375rem;
+            min-width: 1.25rem;
+            height: 1.25rem;
+            justify-content: center;
+        }
     </style>
 
     @php
-        $leadTransferCount = app(\App\Livewire\LeadOwnerChangeRequestTable::class)
-            ->getTableQuery()
-            ->count();
+        // Get cached counts for better performance
+        $cachedCounts = $this->getCachedCounts();
+        $managerTotal = $cachedCounts['manager_total'] ?? 0;
+        $adminSoftwareTotal = $cachedCounts['admin_software_total'] ?? 0;
+        $adminHardwareTotal = $cachedCounts['admin_hardware_total'] ?? 0;
+        $renewalCounts = $cachedCounts['admin_renewal_counts'] ?? [];
 
-        // Bypass Duplicate Request Count
-        $bypassDuplicateCount = app(\App\Livewire\ManagerDashboard\BypassDuplicatedLead::class)
-            ->getTableQuery()
-            ->count();
+        // Get other counts more efficiently
+        $adminHrdfAttLogTotal = Cache::remember('admin_hrdf_att_log_' . auth()->id(), 300, function() {
+            try {
+                return app(\App\Livewire\AdminHRDFAttendanceLog\HrdfAttLogNewTable::class)
+                    ->getNewHrdfAttendanceLogs()
+                    ->count();
+            } catch (Exception $e) {
+                return 0;
+            }
+        });
 
-        // Calculate total manager tasks
-        $managerTotal = $leadTransferCount + $bypassDuplicateCount;
+        $adminGeneralTotal = Cache::remember('admin_general_' . auth()->id(), 300, function() {
+            return \App\Models\InternalTicket::where('status', 'new')->count();
+        });
 
-        // Calculate counts for admin dropdown badges
-        // use App\Models\SoftwareHandover;
-        // use App\Models\HardwareHandover;
+        $adminUSDInvoiceTotal = Cache::remember('admin_usd_invoice_' . auth()->id(), 300, function() {
+            return DB::connection('frontenddb')
+                ->table('crm_invoice_details')
+                ->where('f_currency', 'USD')
+                ->where('f_status', 0)
+                ->whereNull('f_auto_count_inv')
+                ->where('f_id', '>', '0000040131')
+                ->where('f_id', '!=', '0000042558')
+                ->distinct('f_invoice_no')
+                ->count('f_invoice_no');
+        });
 
-        // ADMIN SOFTWARE V1 counts (NEW TASK + PENDING LICENSE)
-        $softwareNewCount = app(\App\Livewire\SalespersonDashboard\SoftwareHandoverNew::class)
-            ->getNewSoftwareHandovers()
-            ->count();
-        $softwarePendingKickOffCount = app(\App\Livewire\SoftwareHandoverKickOffReminder::class)
-            ->getNewSoftwareHandovers()
-            ->count();
-        $softwarePendingLicenseCount = app(\App\Livewire\SoftwareHandoverPendingLicense::class)
-            ->getNewSoftwareHandovers()
-            ->count();
-        $adminSoftwareTotal = $softwareNewCount + $softwarePendingLicenseCount;
+        // Set default values for counts that will be loaded lazily
+        $followUpTodayMYR = $renewalCounts['followUpTodayMYR'] ?? 0;
+        $followUpOverdueMYR = $renewalCounts['followUpOverdueMYR'] ?? 0;
+        $followUpTodayUSD = $renewalCounts['followUpTodayUSD'] ?? 0;
+        $followUpOverdueUSD = $renewalCounts['followUpOverdueUSD'] ?? 0;
 
-        // ADMIN SOFTWARE V2 counts (NEW TASK + PENDING LICENSE + PENDING KICK OFF)
-        $softwareV2NewCount = app(\App\Livewire\SalespersonDashboard\SoftwareHandoverV2New::class)
-            ->getNewSoftwareHandovers()
-            ->count();
-        $softwareV2PendingKickOffCount = app(\App\Livewire\SoftwareHandoverV2KickOffReminder::class)
-            ->getNewSoftwareHandovers()
-            ->count();
-        $softwareV2PendingLicenseCount = app(\App\Livewire\SoftwareHandoverV2PendingLicense::class)
-            ->getNewSoftwareHandovers()
-            ->count();
-        $adminSoftwareV2Total = $softwareV2NewCount + $softwareV2PendingKickOffCount + $softwareV2PendingLicenseCount;
-
-        // ADMIN HARDWARE counts (NEW TASK + PENDING STOCK)
-        $hardwareNewCount = app(\App\Livewire\SalespersonDashboard\HardwareHandoverNew::class)
-            ->getNewHardwareHandovers()
-            ->count();
-        $hardwarePendingStockCount = app(\App\Livewire\HardwareHandoverPendingStock::class)
-            ->getOverdueHardwareHandovers()
-            ->count();
-        $adminHardwareTotal = $hardwareNewCount + $hardwarePendingStockCount;
-
-        // ADMIN HEADCOUNT counts (NEW TASK)
-        $adminHeadcountTotal = app(\App\Livewire\AdminHeadcountDashboard\HeadcountNewTable::class)
-            ->getNewHeadcountHandovers()
-            ->count();
-
-        // ADMIN HRDF counts (NEW TASK)
-        $adminHrdfTotal = app(\App\Livewire\AdminHRDFDashboard\HrdfNewTable::class)
-            ->getNewHrdfHandovers()
-            ->count();
-
-        $adminHrdfAttLogTotal = app(\App\Livewire\AdminHRDFAttendanceLog\HrdfAttLogNewTable::class)
-            ->getNewHrdfAttendanceLogs()
-            ->count();
-
-        // ADMIN HARDWARE V2 counts
-        $newTaskCount = app(\App\Livewire\AdminHardwareV2Dashboard\HardwareV2NewTable::class)
-            ->getNewHardwareHandovers()
-            ->count();
-
-        $pendingStockCount = app(\App\Livewire\AdminHardwareV2Dashboard\HardwareV2PendingStockTable::class)
-            ->getHardwareHandoverCount();
-
-        $pendingCourierCount = app(\App\Livewire\AdminHardwareV2Dashboard\HardwareV2PendingCourierTable::class)
-            ->getNewHardwareHandovers()
-            ->count();
-
-        $pendingAdminPickUpCount = app(\App\Livewire\AdminHardwareV2Dashboard\HardwareV2PendingAdminSelfPickUpTable::class)
-            ->getNewHardwareHandovers()
-            ->count();
-
-        $pendingExternalInstallationCount = app(\App\Livewire\AdminHardwareV2Dashboard\HardwareV2PendingExternalInstallationTable::class)
-            ->getNewHardwareHandovers()
-            ->count();
-
-        $pendingInternalInstallationCount = app(\App\Livewire\AdminHardwareV2Dashboard\HardwareV2PendingInternalInstallationTable::class)
-            ->getNewHardwareHandovers()
-            ->count();
-
-        $adminUSDInvoiceTotal = DB::connection('frontenddb')
-            ->table('crm_invoice_details')
-            ->where('f_currency', 'USD')
-            ->where('f_status', 0)
-            ->whereNull('f_auto_count_inv')
-            ->where('f_id', '>', '0000040131')
-            ->where('f_id', '!=', '0000042558')
-            ->distinct('f_invoice_no')
-            ->count('f_invoice_no');
-
-        $followUpTodayMYR = 0;
-        $followUpOverdueMYR = 0;
+        // Other counts set to 0 initially (will be loaded on demand)
         $followUpFutureMYR = 0;
         $followUpAllMYR = 0;
-
-        try {
-            $followUpTodayMYR = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpTodayMyr::class)
-                ->getTodayRenewals()
-                ->count();
-        } catch (Exception $e) {
-            $followUpTodayMYR = 0;
-        }
-
-        try {
-            $followUpOverdueMYR = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpOverdueMyr::class)
-                ->getOverdueRenewals()
-                ->count();
-        } catch (Exception $e) {
-            $followUpOverdueMYR = 0;
-        }
-
-        try {
-            $followUpFutureMYR = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpUpcomingMyr::class)
-                ->getIncomingRenewals()
-                ->count();
-        } catch (Exception $e) {
-            $followUpFutureMYR = 0;
-        }
-
-        try {
-            $followUpAllMYR = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpAllMyr::class)
-                ->getOverdueRenewals()
-                ->count();
-        } catch (Exception $e) {
-            $followUpAllMYR = 0;
-        }
-
-        // Admin Renewal Follow Up Counts MYR (Non-Reseller)
         $followUpTodayMYRNonReseller = 0;
         $followUpOverdueMYRNonReseller = 0;
         $followUpFutureMYRNonReseller = 0;
         $followUpAllMYRNonReseller = 0;
-
-        try {
-            $followUpTodayMYRNonReseller = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpTodayMyrNonReseller::class)
-                ->getTodayRenewals()
-                ->count();
-        } catch (Exception $e) {
-            $followUpTodayMYRNonReseller = 0;
-        }
-
-        try {
-            $followUpOverdueMYRNonReseller = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpOverdueMyrNonReseller::class)
-                ->getOverdueRenewals()
-                ->count();
-        } catch (Exception $e) {
-            $followUpOverdueMYRNonReseller = 0;
-        }
-
-        try {
-            $followUpFutureMYRNonReseller = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpUpcomingMyrNonReseller::class)
-                ->getIncomingRenewals()
-                ->count();
-        } catch (Exception $e) {
-            $followUpFutureMYRNonReseller = 0;
-        }
-
-        try {
-            $followUpAllMYRNonReseller = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpAllMyrNonReseller::class)
-                ->getOverdueRenewals()
-                ->count();
-        } catch (Exception $e) {
-            $followUpAllMYRNonReseller = 0;
-        }
-
-        // Admin Renewal Follow Up Counts USD
-        $followUpTodayUSD = 0;
-        $followUpOverdueUSD = 0;
         $followUpFutureUSD = 0;
         $followUpAllUSD = 0;
-
-        try {
-            $followUpTodayUSD = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpTodayUsd::class)
-                ->getTodayRenewals()
-                ->count();
-        } catch (Exception $e) {
-            $followUpTodayUSD = 0;
-        }
-
-        try {
-            $followUpOverdueUSD = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpOverdueUsd::class)
-                ->getOverdueRenewals()
-                ->count();
-        } catch (Exception $e) {
-            $followUpOverdueUSD = 0;
-        }
-
-        try {
-            $followUpFutureUSD = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpUpcomingUsd::class)
-                ->getIncomingRenewals()
-                ->count();
-        } catch (Exception $e) {
-            $followUpFutureUSD = 0;
-        }
-
-        try {
-            $followUpAllUSD = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpAllUsd::class)
-                ->getOverdueRenewals()
-                ->count();
-        } catch (Exception $e) {
-            $followUpAllUSD = 0;
-        }
-
-        // Admin Renewal Follow Up Counts USD (Non-Reseller)
         $followUpTodayUSDNonReseller = 0;
         $followUpOverdueUSDNonReseller = 0;
         $followUpFutureUSDNonReseller = 0;
         $followUpAllUSDNonReseller = 0;
-
-        try {
-            $followUpTodayUSDNonReseller = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpTodayUsdNonReseller::class)
-                ->getTodayRenewals()
-                ->count();
-        } catch (Exception $e) {
-            $followUpTodayUSDNonReseller = 0;
-        }
-
-        try {
-            $followUpOverdueUSDNonReseller = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpOverdueUsdNonReseller::class)
-                ->getOverdueRenewals()
-                ->count();
-        } catch (Exception $e) {
-            $followUpOverdueUSDNonReseller = 0;
-        }
-
-        try {
-            $followUpFutureUSDNonReseller = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpUpcomingUsdNonReseller::class)
-                ->getIncomingRenewals()
-                ->count();
-        } catch (Exception $e) {
-            $followUpFutureUSDNonReseller = 0;
-        }
-
-        try {
-            $followUpAllUSDNonReseller = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpAllUsdNonReseller::class)
-                ->getOverdueRenewals()
-                ->count();
-        } catch (Exception $e) {
-            $followUpAllUSDNonReseller = 0;
-        }
-
-        // Admin Renewal Follow Up Counts MYR V2 (Pending Payment)
         $followUpTodayMYRv2 = 0;
         $followUpOverdueMYRv2 = 0;
         $followUpFutureMYRv2 = 0;
         $followUpAllMYRv2 = 0;
-
-        try {
-            $followUpTodayMYRv2 = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpTodayMyrV2::class)
-                ->getTodayRenewals()
-                ->count();
-        } catch (Exception $e) {
-            $followUpTodayMYRv2 = 0;
-        }
-
-        try {
-            $followUpOverdueMYRv2 = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpOverdueMyrV2::class)
-                ->getOverdueRenewals()
-                ->count();
-        } catch (Exception $e) {
-            $followUpOverdueMYRv2 = 0;
-        }
-
-        try {
-            $followUpFutureMYRv2 = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpUpcomingMyrV2::class)
-                ->getIncomingRenewals()
-                ->count();
-        } catch (Exception $e) {
-            $followUpFutureMYRv2 = 0;
-        }
-
-        try {
-            $followUpAllMYRv2 = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpAllMyrV2::class)
-                ->getOverdueRenewals()
-                ->count();
-        } catch (Exception $e) {
-            $followUpAllMYRv2 = 0;
-        }
-
-        // Admin Renewal Follow Up Counts MYR V2 (Non-Reseller - Pending Payment)
         $followUpTodayMYRv2NonReseller = 0;
         $followUpOverdueMYRv2NonReseller = 0;
         $followUpFutureMYRv2NonReseller = 0;
         $followUpAllMYRv2NonReseller = 0;
-
-        try {
-            $followUpTodayMYRv2NonReseller = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpTodayMyrV2NonReseller::class)
-                ->getTodayRenewals()
-                ->count();
-        } catch (Exception $e) {
-            $followUpTodayMYRv2NonReseller = 0;
-        }
-
-        try {
-            $followUpOverdueMYRv2NonReseller = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpOverdueMyrV2NonReseller::class)
-                ->getOverdueRenewals()
-                ->count();
-        } catch (Exception $e) {
-            $followUpOverdueMYRv2NonReseller = 0;
-        }
-
-        try {
-            $followUpFutureMYRv2NonReseller = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpUpcomingMyrV2NonReseller::class)
-                ->getIncomingRenewals()
-                ->count();
-        } catch (Exception $e) {
-            $followUpFutureMYRv2NonReseller = 0;
-        }
-
-        try {
-            $followUpAllMYRv2NonReseller = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpAllMyrV2NonReseller::class)
-                ->getOverdueRenewals()
-                ->count();
-        } catch (Exception $e) {
-            $followUpAllMYRv2NonReseller = 0;
-        }
-
-        // Admin Renewal Follow Up Counts USD V2 (Pending Payment)
         $followUpTodayUSDv2 = 0;
         $followUpOverdueUSDv2 = 0;
         $followUpFutureUSDv2 = 0;
         $followUpAllUSDv2 = 0;
-
-        try {
-            $followUpTodayUSDv2 = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpTodayUsdV2::class)
-                ->getTodayRenewals()
-                ->count();
-        } catch (Exception $e) {
-            $followUpTodayUSDv2 = 0;
-        }
-
-        try {
-            $followUpOverdueUSDv2 = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpOverdueUsdV2::class)
-                ->getOverdueRenewals()
-                ->count();
-        } catch (Exception $e) {
-            $followUpOverdueUSDv2 = 0;
-        }
-
-        try {
-            $followUpFutureUSDv2 = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpUpcomingUsdV2::class)
-                ->getIncomingRenewals()
-                ->count();
-        } catch (Exception $e) {
-            $followUpFutureUSDv2 = 0;
-        }
-
-        try {
-            $followUpAllUSDv2 = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpAllUsdV2::class)
-                ->getOverdueRenewals()
-                ->count();
-        } catch (Exception $e) {
-            $followUpAllUSDv2 = 0;
-        }
-
-        // Admin Renewal Follow Up Counts USD V2 (Non-Reseller - Pending Payment)
         $followUpTodayUSDv2NonReseller = 0;
         $followUpOverdueUSDv2NonReseller = 0;
         $followUpFutureUSDv2NonReseller = 0;
         $followUpAllUSDv2NonReseller = 0;
 
-        try {
-            $followUpTodayUSDv2NonReseller = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpTodayUsdV2NonReseller::class)
-                ->getTodayRenewals()
-                ->count();
-        } catch (Exception $e) {
-            $followUpTodayUSDv2NonReseller = 0;
-        }
+        // Get minimal counts needed for initial display
+        $adminHeadcountTotal = Cache::remember('admin_headcount_' . auth()->id(), 300, function() {
+            try {
+                return app(\App\Livewire\AdminHeadcountDashboard\HeadcountNewTable::class)
+                    ->getNewHeadcountHandovers()
+                    ->count();
+            } catch (Exception $e) {
+                return 0;
+            }
+        });
 
-        try {
-            $followUpOverdueUSDv2NonReseller = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpOverdueUsdV2NonReseller::class)
-                ->getOverdueRenewals()
-                ->count();
-        } catch (Exception $e) {
-            $followUpOverdueUSDv2NonReseller = 0;
-        }
+        $adminHrdfTotal = Cache::remember('admin_hrdf_' . auth()->id(), 300, function() {
+            try {
+                return app(\App\Livewire\AdminHRDFDashboard\HrdfNewTable::class)
+                    ->getNewHrdfHandovers()
+                    ->count();
+            } catch (Exception $e) {
+                return 0;
+            }
+        });
 
-        try {
-            $followUpFutureUSDv2NonReseller = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpUpcomingUsdV2NonReseller::class)
-                ->getIncomingRenewals()
-                ->count();
-        } catch (Exception $e) {
-            $followUpFutureUSDv2NonReseller = 0;
-        }
+        // Hardware V2 counts - only get what's needed
+        $newTaskCount = Cache::remember('hardware_v2_new_' . auth()->id(), 300, function() {
+            try {
+                return app(\App\Livewire\AdminHardwareV2Dashboard\HardwareV2NewTable::class)
+                    ->getNewHardwareHandovers()
+                    ->count();
+            } catch (Exception $e) {
+                return 0;
+            }
+        });
 
-        try {
-            $followUpAllUSDv2NonReseller = app(\App\Livewire\AdminRenewalDashboard\ArFollowUpAllUsdV2NonReseller::class)
-                ->getOverdueRenewals()
-                ->count();
-        } catch (Exception $e) {
-            $followUpAllUSDv2NonReseller = 0;
-        }
+        $pendingStockCount = Cache::remember('hardware_v2_pending_stock_' . auth()->id(), 300, function() {
+            try {
+                return app(\App\Livewire\AdminHardwareV2Dashboard\HardwareV2PendingStockTable::class)
+                    ->getHardwareHandoverCount();
+            } catch (Exception $e) {
+                return 0;
+            }
+        });
 
-        $adminGeneralTotal = \App\Models\InternalTicket::where('status', 'new')->count();
+        // Set other pending counts to 0 initially (load on demand)
+        $pendingCourierCount = 0;
+        $pendingAdminPickUpCount = 0;
+        $pendingExternalInstallationCount = 0;
+        $pendingInternalInstallationCount = 0;
 
-        $initialStageTotal = $newTaskCount + $pendingStockCount + $pendingCourierCount + $pendingAdminPickUpCount + $pendingExternalInstallationCount + $pendingInternalInstallationCount;
+        $initialStageTotal = $newTaskCount + $pendingStockCount;
 
-        // Calculate total admin count including Software V2
-        $adminTotal = $adminSoftwareTotal + $adminSoftwareV2Total + $adminHeadcountTotal + $adminHrdfTotal + $initialStageTotal + $adminUSDInvoiceTotal + $adminHrdfAttLogTotal + $adminGeneralTotal;
+        // Software V2 counts - simplified
+        $softwareV2NewCount = Cache::remember('software_v2_new_' . auth()->id(), 300, function() {
+            try {
+                return app(\App\Livewire\SalespersonDashboard\SoftwareHandoverV2New::class)
+                    ->getNewSoftwareHandovers()
+                    ->count();
+            } catch (Exception $e) {
+                return 0;
+            }
+        });
+
+        $softwareV2PendingKickOffCount = 0;
+        $softwareV2PendingLicenseCount = 0;
+        $adminSoftwareV2Total = $softwareV2NewCount;
+
+        // Calculate minimal total for initial display
+        $adminTotal = $adminSoftwareTotal + $adminSoftwareV2Total + $adminHeadcountTotal +
+                     $adminHrdfTotal + $initialStageTotal + $adminUSDInvoiceTotal +
+                     $adminHrdfAttLogTotal + $adminGeneralTotal;
     @endphp
 
     <div
         x-data="{
             initialized: false,
             currentTab: '{{ $currentDashboard }}',
+            loadingStage: 'initial',
+            contentLoaded: false,
             init() {
                 document.querySelector('.tabs-container').classList.add('livewire-loading');
+
+                // Progressive loading
                 setTimeout(() => {
+                    this.loadingStage = 'layout';
                     this.initialized = true;
                     document.querySelector('.tabs-container').classList.remove('livewire-loading');
                     document.querySelector('.tabs-container').classList.add('initialized');
                 }, 50);
+
+                // Load content after layout is ready
+                setTimeout(() => {
+                    this.loadingStage = 'content';
+                    this.contentLoaded = true;
+                }, 200);
             }
         }"
         x-init="init()"
