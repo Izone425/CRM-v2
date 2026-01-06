@@ -27,7 +27,9 @@ class HeadcountHandover extends Model
         'completed_at',
         'rejected_by',
         'rejected_at',
-        'invoice_file', // Add this field
+        'invoice_file',
+        'product_pi_invoice_data', // Product PI tracking data
+        'hrdf_pi_invoice_data', // HRDF PI tracking data
     ];
 
     protected $casts = [
@@ -38,7 +40,9 @@ class HeadcountHandover extends Model
         'proforma_invoice_hrdf' => 'array',
         'payment_slip_file' => 'array',
         'confirmation_order_file' => 'array',
-        'invoice_file' => 'array', // Add this cast
+        'invoice_file' => 'array',
+        'product_pi_invoice_data' => 'array', // Product PI tracking data
+        'hrdf_pi_invoice_data' => 'array', // HRDF PI tracking data
     ];
 
     // Mutator to automatically convert remark to uppercase

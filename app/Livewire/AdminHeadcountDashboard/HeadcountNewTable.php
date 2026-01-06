@@ -9,6 +9,9 @@ use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Repeater;
+use Filament\Forms\Get;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Support\Enums\ActionSize;
@@ -163,16 +166,171 @@ class HeadcountNewTable extends Component implements HasForms, HasTable
                             return "Complete Headcount Handover {$formattedId}";
                         })
                         ->modalSubmitActionLabel('Mark as Completed')
-                        ->modalWidth(MaxWidth::ThreeExtraLarge)
-                        ->requiresConfirmation()
+                        ->modalWidth(MaxWidth::FourExtraLarge)
+                        ->form([
+                            // Add PI and Invoice tracking based on quotations
+                            Section::make('PI and Invoice Tracking')
+                                ->schema(function (Get $get, HeadcountHandover $record) {
+                                    $sections = [];
+
+                                    // Check for proforma_invoice_product (Type 1)
+                                    if (!empty($record->proforma_invoice_product)) {
+                                        $productPiIds = is_array($record->proforma_invoice_product)
+                                            ? $record->proforma_invoice_product
+                                            : json_decode($record->proforma_invoice_product, true);
+
+                                        if (is_array($productPiIds) && !empty($productPiIds)) {
+                                            $quotations = \App\Models\Quotation::whereIn('id', $productPiIds)
+                                                ->with(['lead.companyDetail', 'subsidiary'])
+                                                ->get();
+
+                                            if ($quotations->isNotEmpty()) {
+                                                $sections[] = Repeater::make('type_1_entries')
+                                                    ->label('TYPE 1: PI NUMBER / COMPANY NAME / INVOICE NUMBER')
+                                                    ->schema([
+                                                        Grid::make(3)->schema([
+                                                            TextInput::make('pi_number')
+                                                                ->label('PI Number')
+                                                                ->readOnly()
+                                                                ->default(fn($state, $get) => $quotations->get($get('../../quotation_id') ?? 0)?->pi_reference_no ?? 'N/A'),
+                                                            TextInput::make('company_name')
+                                                                ->label('Company Name')
+                                                                ->readOnly()
+                                                                ->default(function ($state, $get) use ($quotations) {
+                                                                    $quotation = $quotations->get($get('../../quotation_id') ?? 0);
+                                                                    if (!$quotation) return 'N/A';
+
+                                                                    if ($quotation->subsidiary_id && $quotation->subsidiary) {
+                                                                        return $quotation->subsidiary->company_name;
+                                                                    }
+                                                                    return $quotation->lead?->companyDetail?->company_name ?? 'N/A';
+                                                                }),
+                                                            TextInput::make('invoice_number')
+                                                                ->label('Invoice Number')
+                                                                ->required(),
+                                                        ])
+                                                    ])
+                                                    ->default(function () use ($quotations) {
+                                                        return $quotations->map(function ($quotation, $index) {
+                                                            $companyName = $quotation->subsidiary_id && $quotation->subsidiary
+                                                                ? $quotation->subsidiary->company_name
+                                                                : $quotation->lead?->companyDetail?->company_name ?? 'N/A';
+
+                                                            return [
+                                                                'quotation_id' => $quotation->id,
+                                                                'pi_number' => $quotation->pi_reference_no ?? 'N/A',
+                                                                'company_name' => $companyName,
+                                                                'invoice_number' => ''
+                                                            ];
+                                                        })->toArray();
+                                                    })
+                                                    ->addable(false)
+                                                    ->deletable(false)
+                                                    ->reorderable(false)
+                                                    ->collapsible(false);
+                                            }
+                                        }
+                                    }
+
+                                    // Check for proforma_invoice_hrdf (Type 2 for HRDF)
+                                    if (!empty($record->proforma_invoice_hrdf)) {
+                                        $hrdfPiIds = is_array($record->proforma_invoice_hrdf)
+                                            ? $record->proforma_invoice_hrdf
+                                            : json_decode($record->proforma_invoice_hrdf, true);
+
+                                        if (is_array($hrdfPiIds) && !empty($hrdfPiIds)) {
+                                            $quotations = \App\Models\Quotation::whereIn('id', $hrdfPiIds)
+                                                ->with(['lead.companyDetail', 'subsidiary'])
+                                                ->get();
+
+                                            if ($quotations->isNotEmpty()) {
+                                                $sections[] = Repeater::make('type_2_entries')
+                                                    ->label('TYPE 2: PI NUMBER / COMPANY NAME / INVOICE NUMBER')
+                                                    ->schema([
+                                                        Grid::make(3)->schema([
+                                                            TextInput::make('pi_number')
+                                                                ->label('PI Number')
+                                                                ->readOnly()
+                                                                ->default(fn($state, $get) => $quotations->get($get('../../quotation_id') ?? 0)?->pi_reference_no ?? 'N/A'),
+                                                            TextInput::make('company_name')
+                                                                ->label('Company Name')
+                                                                ->readOnly()
+                                                                ->default(function ($state, $get) use ($quotations) {
+                                                                    $quotation = $quotations->get($get('../../quotation_id') ?? 0);
+                                                                    if (!$quotation) return 'N/A';
+
+                                                                    if ($quotation->subsidiary_id && $quotation->subsidiary) {
+                                                                        return $quotation->subsidiary->company_name;
+                                                                    }
+                                                                    return $quotation->lead?->companyDetail?->company_name ?? 'N/A';
+                                                                }),
+                                                            TextInput::make('invoice_number')
+                                                                ->label('Invoice Number')
+                                                                ->required(),
+                                                        ])
+                                                    ])
+                                                    ->default(function () use ($quotations) {
+                                                        return $quotations->map(function ($quotation, $index) {
+                                                            $companyName = $quotation->subsidiary_id && $quotation->subsidiary
+                                                                ? $quotation->subsidiary->company_name
+                                                                : $quotation->lead?->companyDetail?->company_name ?? 'N/A';
+
+                                                            return [
+                                                                'quotation_id' => $quotation->id,
+                                                                'pi_number' => $quotation->pi_reference_no ?? 'N/A',
+                                                                'company_name' => $companyName,
+                                                                'invoice_number' => ''
+                                                            ];
+                                                        })->toArray();
+                                                    })
+                                                    ->addable(false)
+                                                    ->deletable(false)
+                                                    ->reorderable(false)
+                                                    ->collapsible(false);
+                                            }
+                                        }
+                                    }
+
+                                    // If no PI data found, show a message
+                                    if (empty($sections)) {
+                                        $sections[] = \Filament\Forms\Components\Placeholder::make('no_pi_data')
+                                            ->label(false)
+                                            ->content(new HtmlString(
+                                                '<div style="background-color: #FEF3C7; border-left: 4px solid #F59E0B; padding: 12px; margin-top: 8px; border-radius: 4px;">
+                                                    <div style="display: flex; align-items: start; gap: 8px;">
+                                                        <div>
+                                                            <p style="color: #92400E; font-weight: 600; margin: 0;">⚠️ No PI Data Available</p>
+                                                            <p style="color: #92400E; margin: 4px 0 0 0; font-size: 14px;">
+                                                                No Proforma Invoice data found for this headcount handover.
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                </div>'
+                                            ));
+                                    }
+
+                                    return $sections;
+                                }),
+                        ])
                         ->action(function (HeadcountHandover $record, array $data): void {
                             try {
-                                // Update the record
-                                $record->update([
+                                // Prepare update data
+                                $updateData = [
                                     'status' => 'Completed',
                                     'completed_by' => auth()->id(),
                                     'completed_at' => now(),
-                                ]);
+                                ];
+
+                                // Handle PI and Invoice tracking data
+                                if (isset($data['type_1_entries']) && !empty($data['type_1_entries'])) {
+                                    $updateData['product_pi_invoice_data'] = json_encode($data['type_1_entries']);
+                                }
+                                if (isset($data['type_2_entries']) && !empty($data['type_2_entries'])) {
+                                    $updateData['hrdf_pi_invoice_data'] = json_encode($data['type_2_entries']);
+                                }
+
+                                // Update the record
+                                $record->update($updateData);
 
                                 // Get necessary data for email
                                 $handoverId = $record->formatted_handover_id;

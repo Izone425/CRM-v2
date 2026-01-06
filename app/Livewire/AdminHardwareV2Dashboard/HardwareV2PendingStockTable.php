@@ -429,7 +429,7 @@ class HardwareV2PendingStockTable extends Component implements HasForms, HasTabl
 
                             return 'Create Invoice - ' . $companyName;
                         })
-                        ->modalWidth('3xl')
+                        ->modalWidth('xl')
                         ->form([
                             // ✅ Add AutoCount invoice checkbox at the top
                             // Section::make('Invoice Creation Options')
@@ -443,249 +443,240 @@ class HardwareV2PendingStockTable extends Component implements HasForms, HasTabl
                             //     ]),
 
                             // ✅ Show preview when AutoCount is selected
-                            Section::make('AutoCount Invoice Preview')
-                                ->schema([
-                                    \Filament\Forms\Components\Placeholder::make('autocount_preview')
-                                        ->label('')
-                                        ->content(function (callable $get, HardwareHandoverV2 $record) {
-                                            if (!$get('create_autocount_invoice')) {
-                                                return '';
-                                            }
+                            // Section::make('AutoCount Invoice Preview')
+                            //     ->schema([
+                            //         \Filament\Forms\Components\Placeholder::make('autocount_preview')
+                            //             ->label('')
+                            //             ->content(function (callable $get, HardwareHandoverV2 $record) {
+                            //                 if (!$get('create_autocount_invoice')) {
+                            //                     return '';
+                            //                 }
 
-                                            try {
-                                                // ✅ Get quotation IDs from proforma_invoice_hrdf (not proforma_invoice_product)
-                                                $quotationIds = [];
-                                                if ($record->proforma_invoice_hrdf) {
-                                                    $quotationIds = is_string($record->proforma_invoice_hrdf)
-                                                        ? json_decode($record->proforma_invoice_hrdf, true)
-                                                        : $record->proforma_invoice_hrdf;
-                                                }
+                            //                 try {
+                            //                     // ✅ Get quotation IDs from proforma_invoice_hrdf (not proforma_invoice_product)
+                            //                     $quotationIds = [];
+                            //                     if ($record->proforma_invoice_hrdf) {
+                            //                         $quotationIds = is_string($record->proforma_invoice_hrdf)
+                            //                             ? json_decode($record->proforma_invoice_hrdf, true)
+                            //                             : $record->proforma_invoice_hrdf;
+                            //                     }
 
-                                                if (empty($quotationIds)) {
-                                                    return 'No HRDF quotations found for AutoCount invoice generation.';
-                                                }
+                            //                     if (empty($quotationIds)) {
+                            //                         return 'No HRDF quotations found for AutoCount invoice generation.';
+                            //                     }
 
-                                                // Check if any quotations already have AutoCount invoices
-                                                $alreadyProcessed = \App\Models\Quotation::whereIn('id', $quotationIds)
-                                                    ->where('autocount_generated_pi', true)
-                                                    ->pluck('pi_reference_no')
-                                                    ->toArray();
+                            //                     // Check if any quotations already have AutoCount invoices
+                            //                     $alreadyProcessed = \App\Models\Quotation::whereIn('id', $quotationIds)
+                            //                         ->where('autocount_generated_pi', true)
+                            //                         ->pluck('pi_reference_no')
+                            //                         ->toArray();
 
-                                                if (!empty($alreadyProcessed)) {
-                                                    // ✅ Return as HtmlString for proper rendering
-                                                    return new \Illuminate\Support\HtmlString(
-                                                        '<div class="text-red-600">Warning: The following quotations already have AutoCount invoices: ' .
-                                                        implode(', ', $alreadyProcessed) . '</div>'
-                                                    );
-                                                }
+                            //                     if (!empty($alreadyProcessed)) {
+                            //                         // ✅ Return as HtmlString for proper rendering
+                            //                         return new \Illuminate\Support\HtmlString(
+                            //                             '<div class="text-red-600">Warning: The following quotations already have AutoCount invoices: ' .
+                            //                             implode(', ', $alreadyProcessed) . '</div>'
+                            //                         );
+                            //                     }
 
-                                                // Generate preview
-                                                $preview = $this->generateHardwareInvoicePreview($record, $quotationIds);
+                            //                     // Generate preview
+                            //                     $preview = $this->generateHardwareInvoicePreview($record, $quotationIds);
 
-                                                if (empty($preview['invoices'])) {
-                                                    return $preview['message'] ?? 'No items to display';
-                                                }
+                            //                     if (empty($preview['invoices'])) {
+                            //                         return $preview['message'] ?? 'No items to display';
+                            //                     }
 
-                                                $html = '<div class="space-y-4">';
-                                                $html .= '<div><strong>Debtor:</strong> ARM-P0062 - PEMBANGUNAN SUMBER MANUSIA BERHAD</div>';
-                                                $html .= '<div><strong>Company:</strong> ' . ($record->lead->companyDetail->company_name ?? 'N/A') . '</div>';
-                                                $html .= '<div><strong>Total Invoices:</strong> ' . $preview['total_invoices'] . '</div>';
+                            //                     $html = '<div class="space-y-4">';
+                            //                     $html .= '<div><strong>Debtor:</strong> ARM-P0062 - PEMBANGUNAN SUMBER MANUSIA BERHAD</div>';
+                            //                     $html .= '<div><strong>Company:</strong> ' . ($record->lead->companyDetail->company_name ?? 'N/A') . '</div>';
+                            //                     $html .= '<div><strong>Total Invoices:</strong> ' . $preview['total_invoices'] . '</div>';
 
-                                                // Show each invoice separately
-                                                foreach ($preview['invoices'] as $index => $invoice) {
-                                                    $html .= '<div class="p-3 mt-4 border rounded bg-gray-50">';
-                                                    $html .= '<div class="font-semibold text-blue-600">Invoice ' . ($index + 1) . '</div>';
-                                                    $html .= '<div><strong>Document No:</strong> ' . $invoice['invoice_no'] . '</div>';
-                                                    $html .= '<div class="mt-2">';
-                                                    $html .= '<div class="mb-2 text-sm font-semibold">Items:</div>';
+                            //                     // Show each invoice separately
+                            //                     foreach ($preview['invoices'] as $index => $invoice) {
+                            //                         $html .= '<div class="p-3 mt-4 border rounded bg-gray-50">';
+                            //                         $html .= '<div class="font-semibold text-blue-600">Invoice ' . ($index + 1) . '</div>';
+                            //                         $html .= '<div><strong>Document No:</strong> ' . $invoice['invoice_no'] . '</div>';
+                            //                         $html .= '<div class="mt-2">';
+                            //                         $html .= '<div class="mb-2 text-sm font-semibold">Items:</div>';
 
-                                                    foreach ($invoice['items'] as $item) {
-                                                        $html .= '<div class="flex justify-between py-1 text-sm">';
-                                                        $html .= '<div class="flex items-center gap-2">';
-                                                        $html .= '<span class="px-2 py-1 font-mono text-xs bg-gray-100 rounded">' . $item['code'] . '</span>';
-                                                        $html .= '<span class="text-gray-600">× ' . number_format($item['quantity']) . '</span>';
-                                                        $html .= '</div>';
-                                                        $html .= '<span class="font-semibold">RM ' . number_format($item['amount'], 2) . '</span>';
-                                                        $html .= '</div>';
-                                                    }
+                            //                         foreach ($invoice['items'] as $item) {
+                            //                             $html .= '<div class="flex justify-between py-1 text-sm">';
+                            //                             $html .= '<div class="flex items-center gap-2">';
+                            //                             $html .= '<span class="px-2 py-1 font-mono text-xs bg-gray-100 rounded">' . $item['code'] . '</span>';
+                            //                             $html .= '<span class="text-gray-600">× ' . number_format($item['quantity']) . '</span>';
+                            //                             $html .= '</div>';
+                            //                             $html .= '<span class="font-semibold">RM ' . number_format($item['amount'], 2) . '</span>';
+                            //                             $html .= '</div>';
+                            //                         }
 
-                                                    $html .= '</div>';
-                                                    $html .= '<div class="flex justify-between pt-2 mt-2 font-semibold border-t">';
-                                                    $html .= '<span>Invoice Total:</span><span>RM ' . number_format($invoice['total'], 2) . '</span>';
-                                                    $html .= '</div></div>';
-                                                }
+                            //                         $html .= '</div>';
+                            //                         $html .= '<div class="flex justify-between pt-2 mt-2 font-semibold border-t">';
+                            //                         $html .= '<span>Invoice Total:</span><span>RM ' . number_format($invoice['total'], 2) . '</span>';
+                            //                         $html .= '</div></div>';
+                            //                     }
 
-                                                // Show grand total if multiple invoices
-                                                if ($preview['total_invoices'] > 1) {
-                                                    $html .= '<div class="flex justify-between pt-2 mt-4 text-lg font-bold border-t-2 border-blue-500">';
-                                                    $html .= '<span>Grand Total:</span><span>RM ' . number_format($preview['grand_total'], 2) . '</span>';
-                                                    $html .= '</div>';
-                                                }
+                            //                     // Show grand total if multiple invoices
+                            //                     if ($preview['total_invoices'] > 1) {
+                            //                         $html .= '<div class="flex justify-between pt-2 mt-4 text-lg font-bold border-t-2 border-blue-500">';
+                            //                         $html .= '<span>Grand Total:</span><span>RM ' . number_format($preview['grand_total'], 2) . '</span>';
+                            //                         $html .= '</div>';
+                            //                     }
 
-                                                $html .= '</div>';
+                            //                     $html .= '</div>';
 
-                                                return new \Illuminate\Support\HtmlString($html);
-                                            } catch (\Exception $e) {
-                                                Log::error('Error generating Hardware AutoCount preview: ' . $e->getMessage());
-                                                return 'Error generating preview: ' . $e->getMessage();
-                                            }
-                                        })
-                                ])
-                                ->visible(fn (callable $get) => $get('create_autocount_invoice')),
+                            //                     return new \Illuminate\Support\HtmlString($html);
+                            //                 } catch (\Exception $e) {
+                            //                     Log::error('Error generating Hardware AutoCount preview: ' . $e->getMessage());
+                            //                     return 'Error generating preview: ' . $e->getMessage();
+                            //                 }
+                            //             })
+                            //     ])
+                            //     ->visible(fn (callable $get) => $get('create_autocount_invoice')),
 
                             Repeater::make('invoices')
                                 ->label('Invoice Details')
                                 ->schema([
-                                    Grid::make(2)
-                                        ->schema([
-                                            TextInput::make('invoice_no')
-                                                ->label('Invoice Number')
-                                                ->required()
-                                                ->placeholder('Enter invoice number (e.g., EPIN2509-0286)')
-                                                ->maxLength(255)
-                                                ->live(onBlur: true)
-                                                ->extraAlpineAttributes([
-                                                    'x-on:input' => '
-                                                        const start = $el.selectionStart;
-                                                        const end = $el.selectionEnd;
-                                                        const value = $el.value;
-                                                        $el.value = value.toUpperCase();
-                                                        $el.setSelectionRange(start, end);
-                                                    '
-                                                ])
-                                                ->dehydrateStateUsing(fn ($state) => strtoupper($state))
-                                                // ->rules([
-                                                //     'required',
-                                                //     function () {
-                                                //         return [
-                                                //             'invoice_exists' => function (string $attribute, $value, \Closure $fail) {
-                                                //                 if (!$value) return;
+                                    TextInput::make('invoice_no')
+                                        ->label('Invoice Number')
+                                        ->required()
+                                        ->placeholder('Enter invoice number (e.g., EPIN2509-0286)')
+                                        ->maxLength(255)
+                                        ->live(onBlur: true)
+                                        ->extraAlpineAttributes([
+                                            'x-on:input' => '
+                                                const start = $el.selectionStart;
+                                                const end = $el.selectionEnd;
+                                                const value = $el.value;
+                                                $el.value = value.toUpperCase();
+                                                $el.setSelectionRange(start, end);
+                                            '
+                                        ])
+                                        ->dehydrateStateUsing(fn ($state) => strtoupper($state))
+                                        // ->rules([
+                                        //     'required',
+                                        //     function () {
+                                        //         return [
+                                        //             'invoice_exists' => function (string $attribute, $value, \Closure $fail) {
+                                        //                 if (!$value) return;
 
-                                                //                 $upperValue = strtoupper($value);
-                                                //                 $invoiceRecord = \App\Models\Invoice::where('invoice_no', $upperValue)->first();
-                                                //                 if (!$invoiceRecord) {
-                                                //                     $fail('Invoice number not found in system.');
-                                                //                 }
-                                                //             },
-                                                //             'no_duplicates_in_form' => function (string $attribute, $value, \Closure $fail) {
-                                                //                 if (!$value) return;
+                                        //                 $upperValue = strtoupper($value);
+                                        //                 $invoiceRecord = \App\Models\Invoice::where('invoice_no', $upperValue)->first();
+                                        //                 if (!$invoiceRecord) {
+                                        //                     $fail('Invoice number not found in system.');
+                                        //                 }
+                                        //             },
+                                        //             'no_duplicates_in_form' => function (string $attribute, $value, \Closure $fail) {
+                                        //                 if (!$value) return;
 
-                                                //                 $upperValue = strtoupper($value);
-                                                //                 $allInvoices = request()->input('invoices', []);
-                                                //                 $duplicateCount = 0;
+                                        //                 $upperValue = strtoupper($value);
+                                        //                 $allInvoices = request()->input('invoices', []);
+                                        //                 $duplicateCount = 0;
 
-                                                //                 foreach ($allInvoices as $invoice) {
-                                                //                     if (isset($invoice['invoice_no']) &&
-                                                //                         strtoupper($invoice['invoice_no']) === $upperValue) {
-                                                //                         $duplicateCount++;
-                                                //                     }
-                                                //                 }
+                                        //                 foreach ($allInvoices as $invoice) {
+                                        //                     if (isset($invoice['invoice_no']) &&
+                                        //                         strtoupper($invoice['invoice_no']) === $upperValue) {
+                                        //                         $duplicateCount++;
+                                        //                     }
+                                        //                 }
 
-                                                //                 if ($duplicateCount > 1) {
-                                                //                     $fail('This invoice number is already used in another entry above.');
-                                                //                 }
-                                                //             },
-                                                //             'no_duplicates_in_system' => function (string $attribute, $value, \Closure $fail) {
-                                                //                 if (!$value) return;
+                                        //                 if ($duplicateCount > 1) {
+                                        //                     $fail('This invoice number is already used in another entry above.');
+                                        //                 }
+                                        //             },
+                                        //             'no_duplicates_in_system' => function (string $attribute, $value, \Closure $fail) {
+                                        //                 if (!$value) return;
 
-                                                //                 $upperValue = strtoupper($value);
+                                        //                 $upperValue = strtoupper($value);
 
-                                                //                 // Get current record ID
-                                                //                 $component = app('livewire')->current();
-                                                //                 $currentRecord = null;
+                                        //                 // Get current record ID
+                                        //                 $component = app('livewire')->current();
+                                        //                 $currentRecord = null;
 
-                                                //                 if (method_exists($component, 'getMountedTableActionRecord')) {
-                                                //                     $currentRecord = $component->getMountedTableActionRecord();
-                                                //                 }
+                                        //                 if (method_exists($component, 'getMountedTableActionRecord')) {
+                                        //                     $currentRecord = $component->getMountedTableActionRecord();
+                                        //                 }
 
-                                                //                 if (!$currentRecord) return;
+                                        //                 if (!$currentRecord) return;
 
-                                                //                 // Check if invoice exists in other hardware handovers
-                                                //                 $existingHandover = \App\Models\HardwareHandoverV2::where('id', '!=', $currentRecord->id)
-                                                //                     ->whereNotNull('invoice_data')
-                                                //                     ->get()
-                                                //                     ->filter(function ($handover) use ($upperValue) {
-                                                //                         $invoiceData = is_string($handover->invoice_data)
-                                                //                             ? json_decode($handover->invoice_data, true)
-                                                //                             : $handover->invoice_data;
+                                        //                 // Check if invoice exists in other hardware handovers
+                                        //                 $existingHandover = \App\Models\HardwareHandoverV2::where('id', '!=', $currentRecord->id)
+                                        //                     ->whereNotNull('invoice_data')
+                                        //                     ->get()
+                                        //                     ->filter(function ($handover) use ($upperValue) {
+                                        //                         $invoiceData = is_string($handover->invoice_data)
+                                        //                             ? json_decode($handover->invoice_data, true)
+                                        //                             : $handover->invoice_data;
 
-                                                //                         if (!is_array($invoiceData)) return false;
+                                        //                         if (!is_array($invoiceData)) return false;
 
-                                                //                         foreach ($invoiceData as $existingInvoice) {
-                                                //                             if (isset($existingInvoice['invoice_no']) &&
-                                                //                                 strtoupper($existingInvoice['invoice_no']) === $upperValue) {
-                                                //                                 return true;
-                                                //                             }
-                                                //                         }
-                                                //                         return false;
-                                                //                     })
-                                                //                     ->first();
+                                        //                         foreach ($invoiceData as $existingInvoice) {
+                                        //                             if (isset($existingInvoice['invoice_no']) &&
+                                        //                                 strtoupper($existingInvoice['invoice_no']) === $upperValue) {
+                                        //                                 return true;
+                                        //                             }
+                                        //                         }
+                                        //                         return false;
+                                        //                     })
+                                        //                     ->first();
 
-                                                //                 if ($existingHandover) {
-                                                //                     $existingHandoverId = $existingHandover->formatted_handover_id;
-                                                //                     $fail("Invoice number already used in Hardware Handover {$existingHandoverId}.");
-                                                //                 }
-                                                //             },
-                                                //             'salesperson_match' => function (string $attribute, $value, \Closure $fail) {
-                                                //                 if (!$value) return;
+                                        //                 if ($existingHandover) {
+                                        //                     $existingHandoverId = $existingHandover->formatted_handover_id;
+                                        //                     $fail("Invoice number already used in Hardware Handover {$existingHandoverId}.");
+                                        //                 }
+                                        //             },
+                                        //             'salesperson_match' => function (string $attribute, $value, \Closure $fail) {
+                                        //                 if (!$value) return;
 
-                                                //                 $upperValue = strtoupper($value);
-                                                //                 $invoiceRecord = \App\Models\Invoice::where('invoice_no', $upperValue)->first();
+                                        //                 $upperValue = strtoupper($value);
+                                        //                 $invoiceRecord = \App\Models\Invoice::where('invoice_no', $upperValue)->first();
 
-                                                //                 if (!$invoiceRecord) return; // This will be caught by invoice_exists rule
+                                        //                 if (!$invoiceRecord) return; // This will be caught by invoice_exists rule
 
-                                                //                 $component = app('livewire')->current();
-                                                //                 $currentRecord = null;
+                                        //                 $component = app('livewire')->current();
+                                        //                 $currentRecord = null;
 
-                                                //                 if (method_exists($component, 'getMountedTableActionRecord')) {
-                                                //                     $currentRecord = $component->getMountedTableActionRecord();
-                                                //                 }
+                                        //                 if (method_exists($component, 'getMountedTableActionRecord')) {
+                                        //                     $currentRecord = $component->getMountedTableActionRecord();
+                                        //                 }
 
-                                                //                 if (!$currentRecord) return;
+                                        //                 if (!$currentRecord) return;
 
-                                                //                 $invoiceSalesperson = $invoiceRecord->salesperson ?? null;
+                                        //                 $invoiceSalesperson = $invoiceRecord->salesperson ?? null;
 
-                                                //                 if ($invoiceSalesperson !== null) {
-                                                //                     $handoverSalespersonId = $currentRecord->lead->salesperson ?? null;
-                                                //                     $handoverSalesperson = \App\Models\User::find($handoverSalespersonId)?->name ?? null;
+                                        //                 if ($invoiceSalesperson !== null) {
+                                        //                     $handoverSalespersonId = $currentRecord->lead->salesperson ?? null;
+                                        //                     $handoverSalesperson = \App\Models\User::find($handoverSalespersonId)?->name ?? null;
 
-                                                //                     if ($handoverSalesperson &&
-                                                //                         stripos($handoverSalesperson, $invoiceSalesperson) === false &&
-                                                //                         stripos($invoiceSalesperson, $handoverSalesperson) === false) {
-                                                //                         $fail("Salesperson mismatch: Handover belongs to {$handoverSalesperson}, but invoice belongs to {$invoiceSalesperson}.");
-                                                //                     }
-                                                //                 }
-                                                //             }
-                                                //         ];
-                                                //     }
-                                                // ])
-                                                ->afterStateUpdated(function (Get $get, Set $set, $state) {
-                                                    if ($state) {
-                                                        $paymentStatus = $this->getPaymentStatusForInvoice($state);
-                                                        $set('payment_status_display', $paymentStatus);
-                                                    } else {
-                                                        $set('payment_status_display', null);
-                                                    }
-                                                }),
-                                                // ->helperText(function (Get $get) {
-                                                //     $status = $get('payment_status_display');
-                                                //     if ($status) {
-                                                //         return "Payment Status: {$status}";
-                                                //     }
-                                                //     return 'Invoice will be validated against system records';
-                                                // }),
+                                        //                     if ($handoverSalesperson &&
+                                        //                         stripos($handoverSalesperson, $invoiceSalesperson) === false &&
+                                        //                         stripos($invoiceSalesperson, $handoverSalesperson) === false) {
+                                        //                         $fail("Salesperson mismatch: Handover belongs to {$handoverSalesperson}, but invoice belongs to {$invoiceSalesperson}.");
+                                        //                     }
+                                        //                 }
+                                        //             }
+                                        //         ];
+                                        //     }
+                                        // ])
+                                        ->afterStateUpdated(function (Get $get, Set $set, $state) {
+                                            if ($state) {
+                                                $paymentStatus = $this->getPaymentStatusForInvoice($state);
+                                                $set('payment_status_display', $paymentStatus);
+                                            } else {
+                                                $set('payment_status_display', null);
+                                            }
+                                        }),
+                                        // ->helperText(function (Get $get) {
+                                        //     $status = $get('payment_status_display');
+                                        //     if ($status) {
+                                        //         return "Payment Status: {$status}";
+                                        //     }
+                                        //     return 'Invoice will be validated against system records';
+                                        // }),
 
-                                            // Keep only the payment status display hidden field
-                                            TextInput::make('payment_status_display')
-                                                ->hidden()
-                                                ->dehydrated(false),
-
-                                            // FileUpload::make('invoice_file')
-                                            //     ->label('Invoice PDF')
-                                            //     ->directory('hardware-handover-invoices')
-                                            //     ->acceptedFileTypes(['application/pdf'])
-                                            //     ->maxSize(10240)
-                                        ]),
+                                    // Keep only the payment status display hidden field
+                                    TextInput::make('payment_status_display')
+                                        ->hidden()
+                                        ->dehydrated(false),
 
                                     // Hidden fields to store validation data
                                     TextInput::make('invoice_validation_error')

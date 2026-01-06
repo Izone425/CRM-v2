@@ -15,14 +15,23 @@ class Subsidiary extends Model
         'company_name',
         'company_address1',
         'company_address2',
-        'register_number',
         'postcode',
+        'city',
         'state',
+        'country',
+        'currency',
+        'business_type',
+        'business_category',
+        'billing_category',
         'industry',
         'name',
         'contact_number',
         'email',
         'position',
+        'finance_person_name',
+        'finance_person_email',
+        'finance_person_contact',
+        'finance_person_position',
         'created_at',
         'updated_at',
     ];
@@ -32,10 +41,10 @@ class Subsidiary extends Model
         return $this->belongsTo(Lead::class);
     }
 
-    // Convert all attribute values to uppercase before saving, except email
+    // Convert all attribute values to uppercase before saving, except email and specific fields
     public function setAttribute($key, $value)
     {
-        if (is_string($value) && $key !== 'email') {
+        if (is_string($value) && !in_array($key, ['email', 'finance_person_email', 'business_type', 'business_category', 'billing_category'])) {
             $value = Str::upper($value);
         }
 
@@ -86,5 +95,30 @@ class Subsidiary extends Model
     public function getContactNumberAttribute($value)
     {
         return Str::upper($value);
+    }
+
+    public function getCityAttribute($value)
+    {
+        return $value ? Str::upper($value) : null;
+    }
+
+    public function getCountryAttribute($value)
+    {
+        return $value ? Str::upper($value) : null;
+    }
+
+    public function getCurrencyAttribute($value)
+    {
+        return $value ? Str::upper($value) : null;
+    }
+
+    public function getFinancePersonNameAttribute($value)
+    {
+        return $value ? Str::upper($value) : null;
+    }
+
+    public function getFinancePersonPositionAttribute($value)
+    {
+        return $value ? Str::upper($value) : null;
     }
 }

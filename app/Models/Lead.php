@@ -37,6 +37,7 @@ class Lead extends Model
         'closing_date',
         'pickup_date',
         'remark',
+        'einvoice_status',
         'demo_appointment',
         'customer_type',
         'region',
@@ -53,6 +54,7 @@ class Lead extends Model
         'contact_id',
         'reseller_id',
         'visible_in_repairs',
+        'einvoice_status',
         'created_at',
         'updated_at',
         'closed_by',
@@ -283,6 +285,11 @@ class Lead extends Model
     public function eInvoiceDetail()
     {
         return $this->hasOne(EInvoiceDetail::class);
+    }
+
+    public function eInvoiceHandover()
+    {
+        return $this->hasMany(EInvoiceHandover::class);
     }
 
     public function softwareHandover()

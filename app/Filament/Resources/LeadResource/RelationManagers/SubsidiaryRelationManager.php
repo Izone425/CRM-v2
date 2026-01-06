@@ -36,23 +36,32 @@ class SubsidiaryRelationManager extends RelationManager
     public function defaultForm()
     {
         $leadCompany = $this->ownerRecord->companyDetail;
+        $leadEInvoice = $this->ownerRecord->eInvoiceDetail;
 
         return [
-            Grid::make(3)
+            Grid::make(2)
                 ->schema([
-                    Section::make('Company Details')
+                    Section::make('Company Information')
                         ->schema([
-                            TextInput::make('company_name')
-                                ->label('COMPANY NAME')
-                                ->required()
-                                ->maxLength(255)
-                                ->default(fn() => $leadCompany ? $leadCompany->company_name : null)
-                                ->extraInputAttributes(['style' => 'text-transform: uppercase'])
-                                ->afterStateHydrated(fn($state) => $state ? Str::upper($state) : null)
-                                ->afterStateUpdated(fn($state) => $state ? Str::upper($state) : null),
+                            Grid::make(2)
+                                ->schema([
+                                    TextInput::make('company_name')
+                                        ->label('COMPANY NAME')
+                                        ->required()
+                                        ->maxLength(255)
+                                        ->default(fn() => $leadCompany ? $leadCompany->company_name : null)
+                                        ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                                        ->afterStateHydrated(fn($state) => $state ? Str::upper($state) : null)
+                                        ->afterStateUpdated(fn($state) => $state ? Str::upper($state) : null),
+                                ]),
+                        ])
+                        ->columnSpan(2),
 
+                    Section::make('Address Information')
+                        ->schema([
                             TextInput::make('company_address1')
-                                ->label('COMPANY ADDRESS 1')
+                                ->label('ADDRESS 1')
+                                ->required()
                                 ->default(fn() => $leadCompany ? $leadCompany->company_address1 : null)
                                 ->maxLength(255)
                                 ->extraInputAttributes(['style' => 'text-transform: uppercase'])
@@ -61,7 +70,7 @@ class SubsidiaryRelationManager extends RelationManager
                                 ->afterStateUpdated(fn($state) => $state ? Str::upper($state) : null),
 
                             TextInput::make('company_address2')
-                                ->label('COMPANY ADDRESS 2')
+                                ->label('ADDRESS 2')
                                 ->default(fn() => $leadCompany ? $leadCompany->company_address2 : null)
                                 ->maxLength(255)
                                 ->extraInputAttributes(['style' => 'text-transform: uppercase'])
@@ -71,71 +80,66 @@ class SubsidiaryRelationManager extends RelationManager
 
                             Grid::make(3)
                                 ->schema([
-                                    Select::make('industry')
-                                        ->label('INDUSTRY')
-                                        ->placeholder('Select an industry')
-                                        ->default(fn() => $leadCompany ? $leadCompany->industry : 'None')
-                                        ->options(fn () => collect(['None' => 'None'])->merge(Industry::pluck('name', 'name')))
-                                        ->searchable()
-                                        ->required(),
-
                                     TextInput::make('postcode')
                                         ->label('POSTCODE')
+                                        ->required()
                                         ->default(fn() => $leadCompany ? $leadCompany->postcode : null)
-                                        ->maxLength(20)
+                                        ->maxLength(5)
+                                        ->rules(['regex:/^[0-9]+$/'])
                                         ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                                        ->afterStateHydrated(fn($state) => $state ? Str::upper($state) : null)
+                                        ->afterStateUpdated(fn($state) => $state ? Str::upper($state) : null),
+
+                                    TextInput::make('city')
+                                        ->label('CITY')
+                                        ->required()
+                                        ->default(fn() => $leadCompany ? $leadCompany->city : $this->ownerRecord->city)
+                                        ->maxLength(255)
+                                        ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                                        ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()'])
                                         ->afterStateHydrated(fn($state) => $state ? Str::upper($state) : null)
                                         ->afterStateUpdated(fn($state) => $state ? Str::upper($state) : null),
 
                                     Select::make('state')
                                         ->label('STATE')
+                                        ->required()
                                         ->default(fn() => $leadCompany ? $leadCompany->state : null)
                                         ->options(function () {
                                             $filePath = storage_path('app/public/json/StateCodes.json');
-
                                             if (file_exists($filePath)) {
-                                                $countriesContent = file_get_contents($filePath);
-                                                $countries = json_decode($countriesContent, true);
-
-                                                return collect($countries)->mapWithKeys(function ($country) {
-                                                    return [$country['Code'] => ucfirst(strtolower($country['State']))];
+                                                $statesContent = file_get_contents($filePath);
+                                                $states = json_decode($statesContent, true);
+                                                return collect($states)->mapWithKeys(function ($state) {
+                                                    return [$state['Code'] => ucfirst(strtolower($state['State']))];
                                                 })->toArray();
                                             }
-
-                                            return [];
+                                            return ['10' => 'Selangor'];
                                         })
-                                        ->dehydrateStateUsing(function ($state) {
-                                            $filePath = storage_path('app/public/json/StateCodes.json');
-
-                                            if (file_exists($filePath)) {
-                                                $countriesContent = file_get_contents($filePath);
-                                                $countries = json_decode($countriesContent, true);
-
-                                                foreach ($countries as $country) {
-                                                    if ($country['Code'] === $state) {
-                                                        return ucfirst(strtolower($country['State']));
-                                                    }
-                                                }
-                                            }
-
-                                            return $state;
-                                        })
-                                        ->required()
                                         ->searchable()
                                         ->preload(),
                                 ]),
 
-                            TextInput::make('register_number')
-                                ->label('NEW REGISTER NUMBER')
-                                ->default(fn() => $leadCompany ? $leadCompany->reg_no_new : null)
-                                ->maxLength(50)
-                                ->extraInputAttributes(['style' => 'text-transform: uppercase'])
-                                ->afterStateHydrated(fn($state) => $state ? Str::upper($state) : null)
-                                ->afterStateUpdated(fn($state) => $state ? Str::upper($state) : null),
+                            Select::make('country')
+                                ->label('COUNTRY')
+                                ->required()
+                                ->default('MYS')
+                                ->options(function () {
+                                    $filePath = storage_path('app/public/json/CountryCodes.json');
+                                    if (file_exists($filePath)) {
+                                        $countriesContent = file_get_contents($filePath);
+                                        $countries = json_decode($countriesContent, true);
+                                        return collect($countries)->mapWithKeys(function ($country) {
+                                            return [$country['Code'] => ucfirst(strtolower($country['Country']))];
+                                        })->toArray();
+                                    }
+                                    return ['MYS' => 'Malaysia'];
+                                })
+                                ->searchable()
+                                ->preload(),
                         ])
-                        ->columnSpan(2),
+                        ->columnSpan(1),
 
-                    Section::make('Contact Person')
+                    Section::make('HR Contact Person')
                         ->schema([
                             TextInput::make('name')
                                 ->label('NAME')
@@ -174,6 +178,103 @@ class SubsidiaryRelationManager extends RelationManager
                         ])
                         ->columnSpan(1),
                 ])
+                ->columns(2),
+
+            Grid::make(2)
+                ->schema([
+                    Section::make('Business Information')
+                        ->schema([
+                            Grid::make(2)
+                                ->schema([
+                                    Select::make('currency')
+                                        ->label('CURRENCY')
+                                        ->required()
+                                        ->default('MYR')
+                                        ->options([
+                                            'MYR' => 'MYR',
+                                            'USD' => 'USD',
+                                        ])
+                                        ->searchable()
+                                        ->preload(),
+
+                                    Select::make('business_type')
+                                        ->label('BUSINESS TYPE')
+                                        ->required()
+                                        ->default('local_business')
+                                        ->options([
+                                            'local_business' => 'Local Business',
+                                            'foreign_business' => 'Foreign Business',
+                                        ])
+                                        ->searchable()
+                                        ->preload(),
+                                ]),
+
+                            Grid::make(2)
+                                ->schema([
+                                    Select::make('business_category')
+                                        ->label('BUSINESS CATEGORY')
+                                        ->required()
+                                        ->default('business')
+                                        ->options([
+                                            'business' => 'Business',
+                                            'government' => 'Government',
+                                        ])
+                                        ->searchable()
+                                        ->preload(),
+
+                                    Select::make('billing_category')
+                                        ->label('BILLING CATEGORY')
+                                        ->required()
+                                        ->default('billing_to_subscriber')
+                                        ->options([
+                                            'billing_to_subscriber' => 'Billing to Subscriber',
+                                            'billing_to_reseller' => 'Billing to Reseller',
+                                        ])
+                                        ->searchable()
+                                        ->preload(),
+                                ]),
+                        ])
+                        ->columnSpan(1),
+
+                    Section::make('Finance Contact Person')
+                        ->schema([
+                            TextInput::make('finance_person_name')
+                                ->label('FINANCE PERSON NAME')
+                                ->default(fn() => $leadEInvoice ? $leadEInvoice->finance_person_name : null)
+                                ->required()
+                                ->maxLength(255)
+                                ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                                ->afterStateHydrated(fn($state) => $state ? Str::upper($state) : null)
+                                ->afterStateUpdated(fn($state) => $state ? Str::upper($state) : null),
+
+                            TextInput::make('finance_person_email')
+                                ->label('FINANCE PERSON EMAIL')
+                                ->default(fn() => $leadEInvoice ? $leadEInvoice->finance_person_email : null)
+                                ->required()
+                                ->email()
+                                ->maxLength(255),
+
+                            TextInput::make('finance_person_contact')
+                                ->label('FINANCE PERSON CONTACT')
+                                ->default(fn() => $leadEInvoice ? $leadEInvoice->finance_person_contact : null)
+                                ->required()
+                                ->maxLength(20)
+                                ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                                ->afterStateHydrated(fn($state) => $state ? Str::upper($state) : null)
+                                ->afterStateUpdated(fn($state) => $state ? Str::upper($state) : null),
+
+                            TextInput::make('finance_person_position')
+                                ->label('FINANCE PERSON POSITION')
+                                ->default(fn() => $leadEInvoice ? $leadEInvoice->finance_person_position : null)
+                                ->required()
+                                ->maxLength(100)
+                                ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                                ->afterStateHydrated(fn($state) => $state ? Str::upper($state) : null)
+                                ->afterStateUpdated(fn($state) => $state ? Str::upper($state) : null),
+                        ])
+                        ->columnSpan(1),
+                ])
+                ->columns(2),
             ];
     }
 
@@ -186,23 +287,25 @@ class SubsidiaryRelationManager extends RelationManager
                     ->label('COMPANY NAME')
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('register_number')
-                    ->label('REG NO.'),
-
                 Tables\Columns\TextColumn::make('name')
-                    ->label('CONTACT NAME'),
+                    ->label('HR CONTACT NAME')
+                    ->limit(20),
 
                 Tables\Columns\TextColumn::make('contact_number')
-                    ->label('CONTACT NO.'),
+                    ->label('HR CONTACT NO.')
+                    ->limit(15),
 
-                Tables\Columns\TextColumn::make('email')
-                    ->label('EMAIL'),
+                Tables\Columns\TextColumn::make('finance_person_name')
+                    ->label('FINANCE CONTACT NAME')
+                    ->limit(20),
 
-                Tables\Columns\TextColumn::make('industry')
-                    ->label('INDUSTRY'),
+                Tables\Columns\TextColumn::make('finance_person_contact')
+                    ->label('FINANCE CONTACT NO.')
+                    ->limit(15),
 
                 Tables\Columns\TextColumn::make('state')
-                    ->label('STATE'),
+                    ->label('STATE')
+                    ->limit(10),
 
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('ADDED ON')
@@ -216,6 +319,7 @@ class SubsidiaryRelationManager extends RelationManager
                 Action::make('create')
                     ->label('Add Subsidiary')
                     ->icon('heroicon-o-plus')
+                    ->modalWidth('6xl')
                     ->form($this->defaultForm())
                     ->action(function (array $data) {
                         $this->ownerRecord->subsidiaries()->create($data);
@@ -234,26 +338,34 @@ class SubsidiaryRelationManager extends RelationManager
                         ->icon('heroicon-o-pencil-square')
                         ->label('Edit')
                         ->modalHeading(fn($record) => 'Edit Subsidiary: ' . $record->company_name)
-                        ->modalWidth('6xl')
+                        ->modalWidth('7xl')
                         ->form(function ($record) {
                             // ✅ Return form with pre-filled values from the record
                             return [
-                                Grid::make(3)
+                                Grid::make(2)
                                     ->schema([
-                                        Section::make('Company Details')
+                                        Section::make('Company Information')
                                             ->schema([
-                                                TextInput::make('company_name')
-                                                    ->label('COMPANY NAME')
-                                                    ->required()
-                                                    ->maxLength(255)
-                                                    ->default($record->company_name) // ✅ Pre-fill with existing value
-                                                    ->extraInputAttributes(['style' => 'text-transform: uppercase'])
-                                                    ->afterStateHydrated(fn($state) => $state ? Str::upper($state) : null)
-                                                    ->afterStateUpdated(fn($state) => $state ? Str::upper($state) : null),
+                                                Grid::make(2)
+                                                    ->schema([
+                                                        TextInput::make('company_name')
+                                                            ->label('COMPANY NAME')
+                                                            ->required()
+                                                            ->maxLength(255)
+                                                            ->default($record->company_name)
+                                                            ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                                                            ->afterStateHydrated(fn($state) => $state ? Str::upper($state) : null)
+                                                            ->afterStateUpdated(fn($state) => $state ? Str::upper($state) : null),
+                                                    ]),
+                                            ])
+                                            ->columnSpan(2),
 
+                                        Section::make('Address Information')
+                                            ->schema([
                                                 TextInput::make('company_address1')
-                                                    ->label('COMPANY ADDRESS 1')
-                                                    ->default($record->company_address1) // ✅ Pre-fill with existing value
+                                                    ->label('ADDRESS 1')
+                                                    ->required()
+                                                    ->default($record->company_address1)
                                                     ->maxLength(255)
                                                     ->extraInputAttributes(['style' => 'text-transform: uppercase'])
                                                     ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()'])
@@ -261,8 +373,8 @@ class SubsidiaryRelationManager extends RelationManager
                                                     ->afterStateUpdated(fn($state) => $state ? Str::upper($state) : null),
 
                                                 TextInput::make('company_address2')
-                                                    ->label('COMPANY ADDRESS 2')
-                                                    ->default($record->company_address2) // ✅ Pre-fill with existing value
+                                                    ->label('ADDRESS 2')
+                                                    ->default($record->company_address2)
                                                     ->maxLength(255)
                                                     ->extraInputAttributes(['style' => 'text-transform: uppercase'])
                                                     ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()'])
@@ -271,75 +383,70 @@ class SubsidiaryRelationManager extends RelationManager
 
                                                 Grid::make(3)
                                                     ->schema([
-                                                        Select::make('industry')
-                                                            ->label('INDUSTRY')
-                                                            ->placeholder('Select an industry')
-                                                            ->default($record->industry) // ✅ Pre-fill with existing value
-                                                            ->options(fn () => collect(['None' => 'None'])->merge(Industry::pluck('name', 'name')))
-                                                            ->searchable()
-                                                            ->required(),
-
                                                         TextInput::make('postcode')
                                                             ->label('POSTCODE')
-                                                            ->default($record->postcode) // ✅ Pre-fill with existing value
-                                                            ->maxLength(20)
+                                                            ->required()
+                                                            ->default($record->postcode)
+                                                            ->maxLength(5)
+                                                            ->rules(['regex:/^[0-9]+$/'])
                                                             ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                                                            ->afterStateHydrated(fn($state) => $state ? Str::upper($state) : null)
+                                                            ->afterStateUpdated(fn($state) => $state ? Str::upper($state) : null),
+
+                                                        TextInput::make('city')
+                                                            ->label('CITY')
+                                                            ->required()
+                                                            ->default($record->city)
+                                                            ->maxLength(255)
+                                                            ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                                                            ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()'])
                                                             ->afterStateHydrated(fn($state) => $state ? Str::upper($state) : null)
                                                             ->afterStateUpdated(fn($state) => $state ? Str::upper($state) : null),
 
                                                         Select::make('state')
                                                             ->label('STATE')
-                                                            ->default($record->state) // ✅ Pre-fill with existing value
+                                                            ->required()
+                                                            ->default($record->state)
                                                             ->options(function () {
                                                                 $filePath = storage_path('app/public/json/StateCodes.json');
-
                                                                 if (file_exists($filePath)) {
-                                                                    $countriesContent = file_get_contents($filePath);
-                                                                    $countries = json_decode($countriesContent, true);
-
-                                                                    return collect($countries)->mapWithKeys(function ($country) {
-                                                                        return [$country['Code'] => ucfirst(strtolower($country['State']))];
+                                                                    $statesContent = file_get_contents($filePath);
+                                                                    $states = json_decode($statesContent, true);
+                                                                    return collect($states)->mapWithKeys(function ($state) {
+                                                                        return [$state['Code'] => ucfirst(strtolower($state['State']))];
                                                                     })->toArray();
                                                                 }
-
-                                                                return [];
+                                                                return ['10' => 'Selangor'];
                                                             })
-                                                            ->dehydrateStateUsing(function ($state) {
-                                                                $filePath = storage_path('app/public/json/StateCodes.json');
-
-                                                                if (file_exists($filePath)) {
-                                                                    $countriesContent = file_get_contents($filePath);
-                                                                    $countries = json_decode($countriesContent, true);
-
-                                                                    foreach ($countries as $country) {
-                                                                        if ($country['Code'] === $state) {
-                                                                            return ucfirst(strtolower($country['State']));
-                                                                        }
-                                                                    }
-                                                                }
-
-                                                                return $state;
-                                                            })
-                                                            ->required()
                                                             ->searchable()
                                                             ->preload(),
                                                     ]),
 
-                                                TextInput::make('register_number')
-                                                    ->label('NEW REGISTER NUMBER')
-                                                    ->default($record->register_number) // ✅ Pre-fill with existing value
-                                                    ->maxLength(50)
-                                                    ->extraInputAttributes(['style' => 'text-transform: uppercase'])
-                                                    ->afterStateHydrated(fn($state) => $state ? Str::upper($state) : null)
-                                                    ->afterStateUpdated(fn($state) => $state ? Str::upper($state) : null),
+                                                Select::make('country')
+                                                    ->label('COUNTRY')
+                                                    ->required()
+                                                    ->default($record->country ?? 'MYS')
+                                                    ->options(function () {
+                                                        $filePath = storage_path('app/public/json/CountryCodes.json');
+                                                        if (file_exists($filePath)) {
+                                                            $countriesContent = file_get_contents($filePath);
+                                                            $countries = json_decode($countriesContent, true);
+                                                            return collect($countries)->mapWithKeys(function ($country) {
+                                                                return [$country['Code'] => ucfirst(strtolower($country['Country']))];
+                                                            })->toArray();
+                                                        }
+                                                        return ['MYS' => 'Malaysia'];
+                                                    })
+                                                    ->searchable()
+                                                    ->preload(),
                                             ])
-                                            ->columnSpan(2),
+                                            ->columnSpan(1),
 
-                                        Section::make('Contact Person')
+                                        Section::make('HR Contact Person')
                                             ->schema([
                                                 TextInput::make('name')
                                                     ->label('NAME')
-                                                    ->default($record->name) // ✅ Pre-fill with existing value
+                                                    ->default($record->name)
                                                     ->required()
                                                     ->maxLength(255)
                                                     ->extraInputAttributes(['style' => 'text-transform: uppercase'])
@@ -348,7 +455,7 @@ class SubsidiaryRelationManager extends RelationManager
 
                                                 TextInput::make('contact_number')
                                                     ->label('CONTACT NUMBER')
-                                                    ->default($record->contact_number) // ✅ Pre-fill with existing value
+                                                    ->default($record->contact_number)
                                                     ->required()
                                                     ->tel()
                                                     ->maxLength(20)
@@ -358,14 +465,14 @@ class SubsidiaryRelationManager extends RelationManager
 
                                                 TextInput::make('email')
                                                     ->label('EMAIL ADDRESS')
-                                                    ->default($record->email) // ✅ Pre-fill with existing value
+                                                    ->default($record->email)
                                                     ->required()
                                                     ->email()
                                                     ->maxLength(255),
 
                                                 TextInput::make('position')
                                                     ->label('POSITION')
-                                                    ->default($record->position) // ✅ Pre-fill with existing value
+                                                    ->default($record->position)
                                                     ->required()
                                                     ->maxLength(100)
                                                     ->extraInputAttributes(['style' => 'text-transform: uppercase'])
@@ -374,12 +481,109 @@ class SubsidiaryRelationManager extends RelationManager
                                             ])
                                             ->columnSpan(1),
                                     ])
+                                    ->columns(2),
+
+                                Grid::make(2)
+                                    ->schema([
+                                        Section::make('Business Information')
+                                            ->schema([
+                                                Grid::make(2)
+                                                    ->schema([
+                                                        Select::make('currency')
+                                                            ->label('CURRENCY')
+                                                            ->required()
+                                                            ->default($record->currency ?? 'MYR')
+                                                            ->options([
+                                                                'MYR' => 'MYR',
+                                                                'USD' => 'USD',
+                                                            ])
+                                                            ->searchable()
+                                                            ->preload(),
+
+                                                        Select::make('business_type')
+                                                            ->label('BUSINESS TYPE')
+                                                            ->required()
+                                                            ->default($record->business_type ?? 'local_business')
+                                                            ->options([
+                                                                'local_business' => 'Local Business',
+                                                                'foreign_business' => 'Foreign Business',
+                                                            ])
+                                                            ->searchable()
+                                                            ->preload(),
+                                                    ]),
+
+                                                Grid::make(2)
+                                                    ->schema([
+                                                        Select::make('business_category')
+                                                            ->label('BUSINESS CATEGORY')
+                                                            ->required()
+                                                            ->default($record->business_category ?? 'business')
+                                                            ->options([
+                                                                'business' => 'Business',
+                                                                'government' => 'Government',
+                                                            ])
+                                                            ->searchable()
+                                                            ->preload(),
+
+                                                        Select::make('billing_category')
+                                                            ->label('BILLING CATEGORY')
+                                                            ->required()
+                                                            ->default($record->billing_category ?? 'billing_to_subscriber')
+                                                            ->options([
+                                                                'billing_to_subscriber' => 'Billing to Subscriber',
+                                                                'billing_to_reseller' => 'Billing to Reseller',
+                                                            ])
+                                                            ->searchable()
+                                                            ->preload(),
+                                                    ]),
+                                            ])
+                                            ->columnSpan(1),
+
+                                        Section::make('Finance Contact Person')
+                                            ->schema([
+                                                TextInput::make('finance_person_name')
+                                                    ->label('FINANCE PERSON NAME')
+                                                    ->default($record->finance_person_name)
+                                                    ->required()
+                                                    ->maxLength(255)
+                                                    ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                                                    ->afterStateHydrated(fn($state) => $state ? Str::upper($state) : null)
+                                                    ->afterStateUpdated(fn($state) => $state ? Str::upper($state) : null),
+
+                                                TextInput::make('finance_person_email')
+                                                    ->label('FINANCE PERSON EMAIL')
+                                                    ->default($record->finance_person_email)
+                                                    ->required()
+                                                    ->email()
+                                                    ->maxLength(255),
+
+                                                TextInput::make('finance_person_contact')
+                                                    ->label('FINANCE PERSON CONTACT')
+                                                    ->default($record->finance_person_contact)
+                                                    ->required()
+                                                    ->maxLength(20)
+                                                    ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                                                    ->afterStateHydrated(fn($state) => $state ? Str::upper($state) : null)
+                                                    ->afterStateUpdated(fn($state) => $state ? Str::upper($state) : null),
+
+                                                TextInput::make('finance_person_position')
+                                                    ->label('FINANCE PERSON POSITION')
+                                                    ->default($record->finance_person_position)
+                                                    ->required()
+                                                    ->maxLength(100)
+                                                    ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                                                    ->afterStateHydrated(fn($state) => $state ? Str::upper($state) : null)
+                                                    ->afterStateUpdated(fn($state) => $state ? Str::upper($state) : null),
+                                            ])
+                                            ->columnSpan(1),
+                                    ])
+                                    ->columns(2),
                             ];
                         })
                         ->action(function ($record, array $data) {
-                            // Convert all data to uppercase except email
+                            // Convert all data to uppercase except email and specific fields
                             foreach ($data as $key => $value) {
-                                if (is_string($value) && $key !== 'email') {
+                                if (is_string($value) && !in_array($key, ['email', 'finance_person_email', 'business_type', 'business_category', 'billing_category'])) {
                                     $data[$key] = Str::upper($value);
                                 }
                             }
