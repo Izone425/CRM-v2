@@ -10,6 +10,7 @@ use App\Filament\Actions\LeadActions;
 use App\Filament\Resources\LeadResource\Pages;
 use App\Filament\Resources\LeadResource\RelationManagers\ActivityLogRelationManager;
 use App\Filament\Resources\LeadResource\RelationManagers\DemoAppointmentRelationManager;
+use App\Filament\Resources\LeadResource\RelationManagers\EInvoiceHandoverRelationManager;
 use App\Filament\Resources\LeadResource\RelationManagers\FinanceHandoverRelationManager;
 use App\Filament\Resources\LeadResource\RelationManagers\HardwareHandoverRelationManager;
 use App\Filament\Resources\LeadResource\RelationManagers\HardwareHandoverV2RelationManager;
@@ -1373,6 +1374,7 @@ class LeadResource extends Resource
             HardwareHandoverV2RelationManager::class,
             FinanceHandoverRelationManager::class,
             RenewalHandoverRelationManager::class,
+            EInvoiceHandoverRelationManager::class,
         ];
     }
 

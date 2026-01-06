@@ -725,129 +725,137 @@ class SubscriberDetailsTabs
                         // Display e-invoice details using the custom blade component
                         View::make('components.einvoice-details-card'),
                     ]),
-                Section::make('HR Details')
-                    ->headerActions([
-                        Action::make('edit_person_in_charge')
-                            ->label('Edit') // Button label
-                            ->icon('heroicon-o-pencil')
-                            ->visible(fn (Lead $lead) =>
-                                // First check if user role is not 4 or 5
-                                in_array(auth()->user()->role_id, [1, 2, 3]) &&
-
-                                // If user is role 2 (salesperson), they can only edit their own leads
-                                (auth()->user()->role_id != 2 || (auth()->user()->role_id == 2 && $lead->salesperson == auth()->user()->id)) &&
-
-                                // Then check if lead owner exists or salesperson exists
-                                (!is_null($lead->lead_owner) || (is_null($lead->lead_owner) && !is_null($lead->salesperson)))
-                            )
-                            ->modalHeading('Edit HR Details') // Modal heading
-                            ->modalSubmitActionLabel('Save Changes') // Modal button text
-                            ->form([ // Define the form fields to show in the modal
-                                TextInput::make('name')
-                                    ->label('Name')
-                                    ->required()
-                                    ->default(fn ($record) => $record->companyDetail->name ?? $record->name)
-                                    ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()'])
-                                    ->afterStateUpdated(fn ($state, callable $set) => $set('name', strtoupper($state))),
-                                TextInput::make('email')
-                                    ->label('Email')
-                                    ->required()
-                                    ->default(fn ($record) => $record->companyDetail->email ?? $record->email),
-                                TextInput::make('contact_no')
-                                    ->label('Contact No.')
-                                    ->required()
-                                    ->default(fn ($record) => $record->companyDetail->contact_no ?? $record->phone),
-                                TextInput::make('position')
-                                    ->label('Position')
-                                    ->extraInputAttributes(['style' => 'text-transform: uppercase'])
-                                    ->afterStateHydrated(fn($state) => Str::upper($state))
-                                    ->afterStateUpdated(fn($state) => Str::upper($state))
-                                    ->required()
-                                    ->default(fn ($record) => $record->companyDetail->position ?? '-'),
-                            ])
-                            ->action(function (Lead $lead, array $data) {
-                                $record = $lead->companyDetail;
-                                if ($record) {
-                                    // Update the existing record
-                                    $record->update($data);
-
-                                    Notification::make()
-                                        ->title('Updated Successfully')
-                                        ->success()
-                                        ->send();
-                                } else {
-                                    // Create a new record via the relation
-                                    $lead->companyDetail()->create($data);
-
-                                    Notification::make()
-                                        ->title('Created Successfully')
-                                        ->success()
-                                        ->send();
-                                }
-                            }),
-                    ])
-                    ->columnSpan(1)
+                Grid::make(2)
                     ->schema([
-                        View::make('components.hr-details'),
-                    ]),
-                Section::make('Finance Details')
-                    ->headerActions([
-                        Action::make('edit_finance_details')
-                            ->label('Edit') // Button label
-                            ->icon('heroicon-o-pencil')
-                            ->visible(fn (Lead $lead) =>
-                                // First check if user role is not 4 or 5
-                                in_array(auth()->user()->role_id, [1, 2, 3]) &&
+                        Section::make('HR Details')
+                            ->headerActions([
+                                Action::make('edit_person_in_charge')
+                                    ->label('Edit') // Button label
+                                    ->icon('heroicon-o-pencil')
+                                    ->visible(fn (Lead $lead) =>
+                                        // First check if user role is not 4 or 5
+                                        in_array(auth()->user()->role_id, [1, 2, 3]) &&
 
-                                // If user is role 2 (salesperson), they can only edit their own leads
-                                (auth()->user()->role_id != 2 || (auth()->user()->role_id == 2 && $lead->salesperson == auth()->user()->id)) &&
+                                        // If user is role 2 (salesperson), they can only edit their own leads
+                                        (auth()->user()->role_id != 2 || (auth()->user()->role_id == 2 && $lead->salesperson == auth()->user()->id)) &&
 
-                                // Then check if lead owner exists or salesperson exists
-                                (!is_null($lead->lead_owner) || (is_null($lead->lead_owner) && !is_null($lead->salesperson)))
-                            )
-                            ->modalHeading('Edit Finance Details') // Modal heading
-                            ->modalSubmitActionLabel('Save Changes') // Modal button text
-                            ->form([ // Define the form fields to show in the modal
-                                TextInput::make('finance_person_name')
-                                    ->label('Finance Person Name')
-                                    ->required()
-                                    ->default(fn ($record) => $record->eInvoiceDetail->finance_person_name ?? '-')
-                                    ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()'])
-                                    ->afterStateUpdated(fn ($state, callable $set) => $set('finance_person_name', strtoupper($state))),
-                                TextInput::make('finance_person_email')
-                                    ->label('Finance Person Email')
-                                    ->email()
-                                    ->required()
-                                    ->default(fn ($record) => $record->eInvoiceDetail->finance_person_email ?? ''),
-                                TextInput::make('finance_person_contact')
-                                    ->label('Finance Person Contact')
-                                    ->required()
-                                    ->default(fn ($record) => $record->eInvoiceDetail->finance_person_contact ?? ''),
-                                TextInput::make('finance_person_position')
-                                    ->label('Finance Person Position')
-                                    ->extraInputAttributes(['style' => 'text-transform: uppercase'])
-                                    ->afterStateHydrated(fn($state) => Str::upper($state))
-                                    ->afterStateUpdated(fn($state) => Str::upper($state))
-                                    ->required()
-                                    ->default(fn ($record) => $record->eInvoiceDetail->finance_person_position ?? '-'),
+                                        // Then check if lead owner exists or salesperson exists
+                                        (!is_null($lead->lead_owner) || (is_null($lead->lead_owner) && !is_null($lead->salesperson)))
+                                    )
+                                    ->modalHeading('Edit HR Details') // Modal heading
+                                    ->modalSubmitActionLabel('Save Changes') // Modal button text
+                                    ->form([ // Define the form fields to show in the modal
+                                        TextInput::make('name')
+                                            ->label('Name')
+                                            ->required()
+                                            ->default(fn ($record) => $record->companyDetail->name ?? $record->name)
+                                            ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()'])
+                                            ->afterStateUpdated(fn ($state, callable $set) => $set('name', strtoupper($state))),
+                                        TextInput::make('email')
+                                            ->label('Email')
+                                            ->required()
+                                            ->default(fn ($record) => $record->companyDetail->email ?? $record->email),
+                                        TextInput::make('contact_no')
+                                            ->label('Contact No.')
+                                            ->required()
+                                            ->default(fn ($record) => $record->companyDetail->contact_no ?? $record->phone),
+                                        TextInput::make('position')
+                                            ->label('Position')
+                                            ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                                            ->afterStateHydrated(fn($state) => Str::upper($state))
+                                            ->afterStateUpdated(fn($state) => Str::upper($state))
+                                            ->required()
+                                            ->default(fn ($record) => $record->companyDetail->position ?? '-'),
+                                    ])
+                                    ->action(function (Lead $lead, array $data) {
+                                        $record = $lead->companyDetail;
+                                        if ($record) {
+                                            // Update the existing record
+                                            $record->update($data);
+
+                                            Notification::make()
+                                                ->title('Updated Successfully')
+                                                ->success()
+                                                ->send();
+                                        } else {
+                                            // Create a new record via the relation
+                                            $lead->companyDetail()->create($data);
+
+                                            Notification::make()
+                                                ->title('Created Successfully')
+                                                ->success()
+                                                ->send();
+                                        }
+                                    }),
                             ])
-                            ->action(function (Lead $lead, array $data) {
-                                // Update or create e-invoice details with finance information
-                                $lead->eInvoiceDetail()->updateOrCreate(
-                                    ['lead_id' => $lead->id],
-                                    $data
-                                );
+                            ->columnSpan(1)
+                            ->schema([
+                                View::make('components.hr-details'),
+                            ]),
+                        Section::make('Finance Details')
+                            ->headerActions([
+                                Action::make('edit_finance_details')
+                                    ->label('Edit') // Button label
+                                    ->icon('heroicon-o-pencil')
+                                    ->visible(fn (Lead $lead) =>
+                                        // First check if user role is not 4 or 5
+                                        in_array(auth()->user()->role_id, [1, 2, 3]) &&
 
-                                Notification::make()
-                                    ->title('Finance Details Updated Successfully')
-                                    ->success()
-                                    ->send();
-                            }),
-                    ])
-                    ->columnSpan(1)
-                    ->schema([
-                        View::make('components.finance-details'),
-                    ]),
+                                        // If user is role 2 (salesperson), they can only edit their own leads
+                                        (auth()->user()->role_id != 2 || (auth()->user()->role_id == 2 && $lead->salesperson == auth()->user()->id)) &&
+
+                                        // Then check if lead owner exists or salesperson exists
+                                        (!is_null($lead->lead_owner) || (is_null($lead->lead_owner) && !is_null($lead->salesperson)))
+                                    )
+                                    ->modalHeading('Edit Finance Details') // Modal heading
+                                    ->modalSubmitActionLabel('Save Changes') // Modal button text
+                                    ->form([ // Define the form fields to show in the modal
+                                        TextInput::make('finance_person_name')
+                                            ->label('Finance Person Name')
+                                            ->required()
+                                            ->default(fn ($record) => $record->eInvoiceDetail->finance_person_name ?? '-')
+                                            ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()'])
+                                            ->afterStateUpdated(fn ($state, callable $set) => $set('finance_person_name', strtoupper($state))),
+                                        TextInput::make('finance_person_email')
+                                            ->label('Finance Person Email')
+                                            ->email()
+                                            ->required()
+                                            ->default(fn ($record) => $record->eInvoiceDetail->finance_person_email ?? ''),
+                                        TextInput::make('finance_person_contact')
+                                            ->label('Finance Person Contact')
+                                            ->required()
+                                            ->default(fn ($record) => $record->eInvoiceDetail->finance_person_contact ?? ''),
+                                        TextInput::make('finance_person_position')
+                                            ->label('Finance Person Position')
+                                            ->extraInputAttributes(['style' => 'text-transform: uppercase'])
+                                            ->afterStateHydrated(fn($state) => Str::upper($state))
+                                            ->afterStateUpdated(fn($state) => Str::upper($state))
+                                            ->required()
+                                            ->default(fn ($record) => $record->eInvoiceDetail->finance_person_position ?? '-'),
+                                    ])
+                                    ->action(function (Lead $lead, array $data) {
+                                        // Update or create e-invoice details with finance information
+                                        $lead->eInvoiceDetail()->updateOrCreate(
+                                            ['lead_id' => $lead->id],
+                                            $data
+                                        );
+
+                                        Notification::make()
+                                            ->title('Finance Details Updated Successfully')
+                                            ->success()
+                                            ->send();
+                                    }),
+                            ])
+                            ->columnSpan(1)
+                            ->schema([
+                                View::make('components.finance-details'),
+                            ]),
+                        Section::make('E-Invoice Status')
+                            ->columnSpan(2)
+                            ->schema([
+                                View::make('components.einvoice-status'),
+                            ]),
+                        ])->columnSpan(2),
             ])
             ->columns(4)
             ->columnSpanFull(),

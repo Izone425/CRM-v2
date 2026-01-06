@@ -33,6 +33,13 @@ class HandoverDetailTabs
         return [
             Tabs::make('Handover Details')
                 ->tabs([
+                    Tabs\Tab::make('E-Invoice')
+                        ->schema([
+                            \Njxqlus\Filament\Components\Forms\RelationManager::make()
+                                ->manager(\App\Filament\Resources\LeadResource\RelationManagers\EInvoiceHandoverRelationManager::class
+                            ),
+                        ]),
+
                     Tabs\Tab::make('Software')
                         ->schema([
                             \Njxqlus\Filament\Components\Forms\RelationManager::make()

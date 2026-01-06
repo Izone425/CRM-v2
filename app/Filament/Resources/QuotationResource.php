@@ -364,24 +364,12 @@ class QuotationResource extends Resource
 
                                     $mappedItems = collect();
 
-                                    foreach ($products as $product) {
-                                        $isSoftware = $product->solution === 'software';
+                                    // ✅ NEW LOGIC: Create items year by year, cycling through all products
+                                    // This will create pattern: TA, TL, TC, TP, TA, TL, TC, TP instead of TA, TA, TL, TL, TC, TC, TP, TP
+                                    for ($year = 1; $year <= $yearCount; $year++) {
+                                        foreach ($products as $product) {
+                                            $isSoftware = $product->solution === 'software';
 
-                                        if ($isSoftware && $yearCount > 1) {
-                                            // ✅ Create multiple entries, all with 12 months by default
-                                            for ($year = 1; $year <= $yearCount; $year++) {
-                                                $mappedItems->push([
-                                                    'product_id' => $product->id,
-                                                    'quantity' => in_array($product->solution, ['software', 'hardware'])
-                                                        ? ($product->quantity ?? 1)
-                                                        : ($get('num_of_participant') ?? 1),
-                                                    'unit_price' => $product->unit_price,
-                                                    'subscription_period' => 12, // ✅ Always default to 12 months
-                                                    'description' => $product->description,
-                                                    'year' => "Year {$year}",
-                                                ]);
-                                            }
-                                        } else {
                                             $mappedItems->push([
                                                 'product_id' => $product->id,
                                                 'quantity' => in_array($product->solution, ['software', 'hardware'])
@@ -390,6 +378,7 @@ class QuotationResource extends Resource
                                                 'unit_price' => $product->unit_price,
                                                 'subscription_period' => $isSoftware ? 12 : null, // ✅ 12 for software, null for others
                                                 'description' => $product->description,
+                                                'year' => $isSoftware && $yearCount > 1 ? "Year {$year}" : null,
                                             ]);
                                         }
                                     }

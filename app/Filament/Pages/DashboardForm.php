@@ -111,6 +111,7 @@ class DashboardForm extends Page
             'AdminHRDF',
             'AdminHeadcount',
             'AdminGeneral',
+            'Finance',
             // 'AdminUSDInvoice',
             'General',
             'Credit Controller',

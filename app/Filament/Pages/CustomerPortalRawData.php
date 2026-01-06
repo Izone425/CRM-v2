@@ -214,37 +214,46 @@ class CustomerPortalRawData extends Page implements HasTable
                         $swId = $record->sw_id;
 
                         if ($swId) {
-                            // Get the latest KICK OFF MEETING SESSION appointment directly by software_handover_id
-                            $latestKickoffAppointment = \App\Models\ImplementerAppointment::where('software_handover_id', $swId)
+                            // Get all KICK OFF MEETING SESSION appointments
+                            $kickoffAppointments = \App\Models\ImplementerAppointment::where('software_handover_id', $swId)
                                 ->where('type', 'KICK OFF MEETING SESSION')
                                 ->orderBy('date', 'desc')
                                 ->orderBy('start_time', 'desc')
-                                ->first();
+                                ->get();
 
-                            if ($latestKickoffAppointment) {
-                                $date = $latestKickoffAppointment->date;
-                                $time = $latestKickoffAppointment->start_time;
+                            if ($kickoffAppointments->isNotEmpty()) {
+                                // Check if any appointment is cancelled
+                                $hasCancelled = $kickoffAppointments->contains('status', 'Cancelled');
 
-                                // Handle different date/time formats properly
-                                if ($date && $time) {
-                                    try {
-                                        // Extract just the date part if it's a datetime
-                                        $dateOnly = \Carbon\Carbon::parse($date)->format('Y-m-d');
+                                if ($hasCancelled) {
+                                    return new \Illuminate\Support\HtmlString(
+                                        '<span style="color: #dc2626; font-weight: bold;">Cancelled</span>'
+                                    );
+                                }
 
-                                        // Combine date and time properly
-                                        $combined = $dateOnly . ' ' . $time;
-                                        $parsedDateTime = \Carbon\Carbon::parse($combined);
+                                // Get the first non-cancelled appointment
+                                $activeAppointment = $kickoffAppointments->where('status', '!=', 'Cancelled')->first();
 
-                                        return new \Illuminate\Support\HtmlString(
-                                            $parsedDateTime->format('d M Y') . '<br>' .
-                                            $parsedDateTime->format('H:i:s')
-                                        );
-                                    } catch (\Exception $e) {
-                                        // Fallback if parsing fails
+                                if ($activeAppointment) {
+                                    $date = $activeAppointment->date;
+                                    $time = $activeAppointment->start_time;
+
+                                    if ($date && $time) {
+                                        try {
+                                            $dateOnly = \Carbon\Carbon::parse($date)->format('Y-m-d');
+                                            $combined = $dateOnly . ' ' . $time;
+                                            $parsedDateTime = \Carbon\Carbon::parse($combined);
+
+                                            return new \Illuminate\Support\HtmlString(
+                                                $parsedDateTime->format('d M Y') . '<br>' .
+                                                $parsedDateTime->format('H:i:s')
+                                            );
+                                        } catch (\Exception $e) {
+                                            return \Carbon\Carbon::parse($date)->format('d M Y');
+                                        }
+                                    } elseif ($date) {
                                         return \Carbon\Carbon::parse($date)->format('d M Y');
                                     }
-                                } elseif ($date) {
-                                    return \Carbon\Carbon::parse($date)->format('d M Y');
                                 }
                             }
                         }
@@ -331,21 +340,25 @@ class CustomerPortalRawData extends Page implements HasTable
                             return $query;
                         }
 
-                        return $query->whereHas('lead', function ($leadQuery) use ($data) {
-                            $leadQuery->whereHas('softwareHandover', function ($handoverQuery) use ($data) {
-                                if ($data['value'] === 'COMPLETED') {
-                                    $handoverQuery->whereHas('implementerAppointments', function ($appointmentQuery) {
-                                        $appointmentQuery->where('type', 'KICK OFF MEETING SESSION')
-                                            ->where('status', 'Done');
-                                    });
-                                } else {
-                                    $handoverQuery->whereDoesntHave('implementerAppointments', function ($appointmentQuery) {
-                                        $appointmentQuery->where('type', 'KICK OFF MEETING SESSION')
-                                            ->where('status', 'Done');
-                                    });
-                                }
+                        if ($data['value'] === 'COMPLETED') {
+                            // Filter customers where their sw_id has completed kick-off appointments
+                            return $query->whereExists(function ($subQuery) {
+                                $subQuery->select(DB::raw(1))
+                                    ->from('implementer_appointments')
+                                    ->whereColumn('implementer_appointments.software_handover_id', 'customers.sw_id')
+                                    ->where('type', 'KICK OFF MEETING SESSION')
+                                    ->where('status', 'Done');
                             });
-                        });
+                        } else {
+                            // Filter customers where their sw_id doesn't have completed kick-off appointments
+                            return $query->whereNotExists(function ($subQuery) {
+                                $subQuery->select(DB::raw(1))
+                                    ->from('implementer_appointments')
+                                    ->whereColumn('implementer_appointments.software_handover_id', 'customers.sw_id')
+                                    ->where('type', 'KICK OFF MEETING SESSION')
+                                    ->where('status', 'Done');
+                            });
+                        }
                     }),
 
                 Filters\SelectFilter::make('salesperson')
@@ -410,13 +423,20 @@ class CustomerPortalRawData extends Page implements HasTable
                 );
             })
             ->paginated([50, 100])
-            ->poll('60s'); // Auto refresh every 60 seconds
+            ->poll('120s'); // Auto refresh every 2 minutes instead of 60s
     }
 
     protected function getTableQuery(): Builder
     {
         return Customer::query()
             ->whereNotNull('lead_id')
-            ->with(['lead.salespersonUser', 'lead.softwareHandover', 'lead.implementerAppointment']);
+            ->with([
+                'lead' => function($query) {
+                    $query->with(['salespersonUser', 'softwareHandover' => function($subQuery) {
+                        $subQuery->with('implementerAppointments');
+                    }]);
+                }
+            ])
+            ->select('customers.*'); // Only select necessary columns
     }
 }

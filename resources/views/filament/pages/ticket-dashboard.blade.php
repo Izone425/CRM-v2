@@ -539,18 +539,18 @@
                         </div>
                     </div>
                     <div class="status-grid three-items">
-                        <div class="status-box {{ $selectedEnhancementStatus === 'New' ? 'active' : '' }}"
-                             wire:click="selectEnhancement('New')">
+                        <div class="status-box {{ $selectedCategory === 'enhancement' && $selectedEnhancementStatus === 'New' ? 'active' : '' }}"
+                             wire:click="$set('selectedEnhancementStatus', '{{ $selectedEnhancementStatus === 'New' ? null : 'New' }}'); $set('selectedCategory', '{{ $selectedEnhancementStatus === 'New' ? null : 'enhancement' }}');">
                             <div class="status-number">{{ $enhancement['new'] }}</div>
                             <div class="status-text">New</div>
                         </div>
-                        <div class="status-box {{ $selectedEnhancementStatus === 'Pending Release' ? 'active' : '' }}"
-                             wire:click="selectEnhancement('Pending Release')">
+                        <div class="status-box {{ $selectedCategory === 'enhancement' && $selectedEnhancementStatus === 'Pending Release' ? 'active' : '' }}"
+                             wire:click="$set('selectedEnhancementStatus', '{{ $selectedEnhancementStatus === 'Pending Release' ? null : 'Pending Release' }}'); $set('selectedCategory', '{{ $selectedEnhancementStatus === 'Pending Release' ? null : 'enhancement' }}');">
                             <div class="status-number">{{ $enhancement['pending_release'] }}</div>
                             <div class="status-text">Pending Release</div>
                         </div>
-                        <div class="status-box {{ $selectedEnhancementStatus === 'System Go Live' ? 'active' : '' }}"
-                             wire:click="selectEnhancement('System Go Live')">
+                        <div class="status-box {{ $selectedCategory === 'enhancement' && $selectedEnhancementStatus === 'System Go Live' ? 'active' : '' }}"
+                             wire:click="$set('selectedEnhancementStatus', '{{ $selectedEnhancementStatus === 'System Go Live' ? null : 'System Go Live' }}'); $set('selectedCategory', '{{ $selectedEnhancementStatus === 'System Go Live' ? null : 'enhancement' }}');">
                             <div class="status-number">{{ $enhancement['system_go_live'] }}</div>
                             <div class="status-text">System Go Live</div>
                         </div>

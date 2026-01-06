@@ -64,6 +64,56 @@
         }
     }
 
+    // Parse PI tracking data to get invoice numbers
+    $type1InvoiceNumbers = [];
+    $type2InvoiceNumbers = [];
+    $type3InvoiceNumbers = [];
+
+    // Parse Type 1 PI Invoice Data
+    if ($record->type_1_pi_invoice_data) {
+        $type1Data = is_string($record->type_1_pi_invoice_data)
+            ? json_decode($record->type_1_pi_invoice_data, true)
+            : $record->type_1_pi_invoice_data;
+
+        if (is_array($type1Data)) {
+            foreach ($type1Data as $item) {
+                if (isset($item['invoice_number']) && !empty($item['invoice_number'])) {
+                    $type1InvoiceNumbers[] = $item['invoice_number'];
+                }
+            }
+        }
+    }
+
+    // Parse Type 2 PI Invoice Data
+    if ($record->type_2_pi_invoice_data) {
+        $type2Data = is_string($record->type_2_pi_invoice_data)
+            ? json_decode($record->type_2_pi_invoice_data, true)
+            : $record->type_2_pi_invoice_data;
+
+        if (is_array($type2Data)) {
+            foreach ($type2Data as $item) {
+                if (isset($item['invoice_number']) && !empty($item['invoice_number'])) {
+                    $type2InvoiceNumbers[] = $item['invoice_number'];
+                }
+            }
+        }
+    }
+
+    // Parse Type 3 PI Invoice Data
+    if ($record->type_3_pi_invoice_data) {
+        $type3Data = is_string($record->type_3_pi_invoice_data)
+            ? json_decode($record->type_3_pi_invoice_data, true)
+            : $record->type_3_pi_invoice_data;
+
+        if (is_array($type3Data)) {
+            foreach ($type3Data as $item) {
+                if (isset($item['invoice_number']) && !empty($item['invoice_number'])) {
+                    $type3InvoiceNumbers[] = $item['invoice_number'];
+                }
+            }
+        }
+    }
+
     // Get files
     $confirmationFiles = $record->confirmation_order_file ? (is_string($record->confirmation_order_file) ? json_decode($record->confirmation_order_file, true) : $record->confirmation_order_file) : [];
     $paymentFiles = $record->payment_slip_file ? (is_string($record->payment_slip_file) ? json_decode($record->payment_slip_file, true) : $record->payment_slip_file) : [];
@@ -585,7 +635,12 @@
                         <span class="sw-label">Type 1: SW+HW Proforma Invoice: </span>
                         @if(count($productPIs) > 0)
                             @foreach($productPIs as $index => $pi)
-                                <a href="{{ url('proforma-invoice-v2/' . $pi->id) }}" target="_blank" class="sw-view-link">File {{ $index + 1 }}</a>
+                                @php
+                                    $invoiceNumber = isset($type1InvoiceNumbers[$index]) ? $type1InvoiceNumbers[$index] : null;
+                                @endphp
+                                <a href="{{ url('proforma-invoice-v2/' . $pi->id) }}" target="_blank" class="sw-view-link">
+                                    File {{ $index + 1 }}@if($invoiceNumber) <small>({{ $invoiceNumber }})</small>@endif
+                                </a>
                                 @if(!$loop->last) / @endif
                             @endforeach
                         @else
@@ -598,7 +653,12 @@
                         <span class="sw-label">Type 1: SW+HW Proforma Invoice: </span>
                         @if(count($softwareHardwarePIs) > 0)
                             @foreach($softwareHardwarePIs as $index => $pi)
-                                <a href="{{ url('proforma-invoice-v2/' . $pi->id) }}" target="_blank" class="sw-view-link">File {{ $index + 1 }}</a>
+                                @php
+                                    $invoiceNumber = isset($type1InvoiceNumbers[$index]) ? $type1InvoiceNumbers[$index] : null;
+                                @endphp
+                                <a href="{{ url('proforma-invoice-v2/' . $pi->id) }}" target="_blank" class="sw-view-link">
+                                    File {{ $index + 1 }}@if($invoiceNumber) <small>({{ $invoiceNumber }})</small>@endif
+                                </a>
                                 @if(!$loop->last) / @endif
                             @endforeach
                         @else
@@ -611,7 +671,12 @@
                         <span class="sw-label">Type 2: NON-HRDF Invoice: </span>
                         @if(count($nonHrdfPIs) > 0)
                             @foreach($nonHrdfPIs as $index => $pi)
-                                <a href="{{ url('proforma-invoice-v2/' . $pi->id) }}" target="_blank" class="sw-view-link">File {{ $index + 1 }}</a>
+                                @php
+                                    $invoiceNumber = isset($type2InvoiceNumbers[$index]) ? $type2InvoiceNumbers[$index] : null;
+                                @endphp
+                                <a href="{{ url('proforma-invoice-v2/' . $pi->id) }}" target="_blank" class="sw-view-link">
+                                    File {{ $index + 1 }}@if($invoiceNumber) <small>({{ $invoiceNumber }})</small>@endif
+                                </a>
                                 @if(!$loop->last) / @endif
                             @endforeach
                         @else
@@ -624,7 +689,12 @@
                         <span class="sw-label">Type 3: HRDF Invoice: </span>
                         @if(count($hrdfPIs) > 0)
                             @foreach($hrdfPIs as $index => $pi)
-                                <a href="{{ url('proforma-invoice-v2/' . $pi->id) }}" target="_blank" class="sw-view-link">File {{ $index + 1 }}</a>
+                                @php
+                                    $invoiceNumber = isset($type3InvoiceNumbers[$index]) ? $type3InvoiceNumbers[$index] : null;
+                                @endphp
+                                <a href="{{ url('proforma-invoice-v2/' . $pi->id) }}" target="_blank" class="sw-view-link">
+                                    File {{ $index + 1 }}@if($invoiceNumber) <small>({{ $invoiceNumber }})</small>@endif
+                                </a>
                                 @if(!$loop->last) / @endif
                             @endforeach
                         @else

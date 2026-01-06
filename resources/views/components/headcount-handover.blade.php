@@ -33,6 +33,40 @@
         }
     }
 
+    // Parse PI tracking data to get invoice numbers
+    $productInvoiceNumbers = [];
+    $hrdfInvoiceNumbers = [];
+
+    // Parse Product PI Invoice Data
+    if ($record->product_pi_invoice_data) {
+        $productData = is_string($record->product_pi_invoice_data)
+            ? json_decode($record->product_pi_invoice_data, true)
+            : $record->product_pi_invoice_data;
+
+        if (is_array($productData)) {
+            foreach ($productData as $item) {
+                if (isset($item['invoice_number']) && !empty($item['invoice_number'])) {
+                    $productInvoiceNumbers[] = $item['invoice_number'];
+                }
+            }
+        }
+    }
+
+    // Parse HRDF PI Invoice Data
+    if ($record->hrdf_pi_invoice_data) {
+        $hrdfData = is_string($record->hrdf_pi_invoice_data)
+            ? json_decode($record->hrdf_pi_invoice_data, true)
+            : $record->hrdf_pi_invoice_data;
+
+        if (is_array($hrdfData)) {
+            foreach ($hrdfData as $item) {
+                if (isset($item['invoice_number']) && !empty($item['invoice_number'])) {
+                    $hrdfInvoiceNumbers[] = $item['invoice_number'];
+                }
+            }
+        }
+    }
+
     // Get files
     $paymentSlipFiles = [];
     $confirmationOrderFiles = [];
@@ -494,8 +528,11 @@
                                 @foreach($productPIs as $index => $pi)
                                     <span style="display: inline;">
                                         @if($index > 0), @endif
+                                        @php
+                                            $invoiceNumber = isset($productInvoiceNumbers[$index]) ? $productInvoiceNumbers[$index] : null;
+                                        @endphp
                                         <a href="{{ url('proforma-invoice-v2/' . $pi->id) }}" target="_blank" class="hc-pi-link">
-                                            {{ $pi->pi_reference_no }}
+                                            {{ $pi->pi_reference_no }}@if($invoiceNumber) <small>({{ $invoiceNumber }})</small>@endif
                                         </a>
                                     </span>
                                 @endforeach
@@ -513,10 +550,13 @@
                         @if(count($hrdfPIs) > 0)
                             <div class="hc-pi-list" style="display: inline; margin-left: 0.5rem;">
                                 @foreach($hrdfPIs as $index => $pi)
-                                    <span class="hc-pi-item" style="display: inline;">
+                                    <span style="display: inline;">
                                         @if($index > 0), @endif
+                                        @php
+                                            $invoiceNumber = isset($hrdfInvoiceNumbers[$index]) ? $hrdfInvoiceNumbers[$index] : null;
+                                        @endphp
                                         <a href="{{ url('proforma-invoice-v2/' . $pi->id) }}" target="_blank" class="hc-pi-link">
-                                            {{ $pi->pi_reference_no }}
+                                            {{ $pi->pi_reference_no }}@if($invoiceNumber) <small>({{ $invoiceNumber }})</small>@endif
                                         </a>
                                     </span>
                                 @endforeach
