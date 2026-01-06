@@ -328,6 +328,8 @@
     .hardware-handover-rejected .stat-count { color: #ef4444; }
     .hrdf-handover-rejected { border-left: 4px solid #f97316; }
     .hrdf-handover-rejected .stat-count { color: #f97316; }
+    .headcount-handover-rejected { border-left: 4px solid #faaa15; }
+    .headcount-handover-rejected .stat-count { color: #faaa15; }
 
     /* Selected state for hardware rejected */
     .stat-box.selected.hardware-handover-rejected {
@@ -338,6 +340,10 @@
     /* Selected state for rejected */
     .stat-box.selected.software-handover-rejected {
         background-color: rgba(239, 68, 68, 0.05);
+        border-left-width: 6px;
+    }
+    .stat-box.selected.headcount-handover-rejected {
+        background-color: rgba(139, 92, 246, 0.05);
         border-left-width: 6px;
     }
 
@@ -503,6 +509,9 @@
         ->getNewHrdfHandovers()
         ->count();
 
+    $headcountHandoverRejected = app(\App\Livewire\HeadcountHardwareRejected::class)
+        ->getHeadcountCount();
+
     // All Debtors - Getting real counts now
     $allDebtorsTable = app(\App\Livewire\SalespersonDashboard\AllDebtorsTable::class);
     $allDebtorCount = $allDebtorsTable->getDebtorCount();
@@ -533,7 +542,7 @@
     $partialDebtorInvoiceCount = $partialDebtorsTable->getInvoiceCount();
     $partialDebtorAmount = $partialDebtorsTable->getTotalAmount();
 
-    $rejectedHandoverTotal = $softwareHandoverRejected + $hardwareHandoverRejected + $softwareHandoverV2Rejected + $hrdfRejected;
+    $rejectedHandoverTotal = $softwareHandoverRejected + $hardwareHandoverRejected + $softwareHandoverV2Rejected + $hrdfRejected + $headcountHandoverRejected;
 
     // Total for badge display on group box
     $totalDebtorCount = $allDebtorCount;
@@ -560,6 +569,8 @@
                     this.selectedStat = 'software-handover-pending';
                 } else if (value === 'hardware-handover') {
                     this.selectedStat = 'hardware-handover-pending';
+                } else if (value === 'headcount-handover') {
+                    this.selectedStat = 'headcount-handover-rejected';
                 } else if (value === 'rejected-handover') {
                     this.selectedStat = 'software-handover-rejected';
                 } else if (value === 'others') {
@@ -813,6 +824,17 @@
                         <div class="stat-count">{{ $hrdfRejected }}</div>
                     </div>
                 </div>
+
+                <div class="stat-box headcount-handover-rejected"
+                        :class="{'selected': selectedStat === 'headcount-handover-rejected'}"
+                        @click="setSelectedStat('headcount-handover-rejected')">
+                    <div class="stat-info">
+                        <div class="stat-label">Headcount Rejected</div>
+                    </div>
+                    <div class="stat-count">
+                        {{ $headcountHandoverRejected }}
+                    </div>
+                </div>
             </div>
 
             <!-- OTHERS -->
@@ -931,6 +953,9 @@
                 </div>
                 <div x-show="selectedStat === 'hardware-handover-rejected'" x-transition>
                     <livewire:salesperson-dashboard.hardware-handover-rejected :currentDashboard="'Salesperson'" />
+                </div>
+                <div x-show="selectedStat === 'headcount-handover-rejected'" x-transition>
+                    <livewire:headcount-hardware-rejected />
                 </div>
 
                 <!-- Hardware Handover -->

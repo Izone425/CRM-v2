@@ -104,7 +104,7 @@ class SoftwareHandoverAddon extends Component implements HasForms, HasTable
             });
         } else {
             // Other users (admin, managers) can only see New, Approved, and Completed
-            $query->whereIn('status', ['Rejected', 'Draft']);
+            $query->whereIn('status', ['Rejected']);
             // But they can see ALL records
         }
 

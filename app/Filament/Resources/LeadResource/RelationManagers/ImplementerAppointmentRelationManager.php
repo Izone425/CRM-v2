@@ -519,10 +519,12 @@ class ImplementerAppointmentRelationManager extends RelationManager
                 SelectFilter::make('status')
                     ->label('Status Filter')
                     ->options([
+                        'all' => 'All Status',
                         'new_done' => 'New + Done',
                         'cancelled' => 'Cancelled Only',
                     ])
                     ->default('new_done') // ✅ Default to "New + Done"
+                    ->selectablePlaceholder(false)
                     ->query(function (Builder $query, array $data) {
                         $value = $data['value'] ?? 'new_done';
 
@@ -532,8 +534,12 @@ class ImplementerAppointmentRelationManager extends RelationManager
                         } elseif ($value === 'cancelled') {
                             // Show only Cancelled status
                             return $query->where('status', 'Cancelled');
+                        } elseif ($value === 'all') {
+                            // Show all statuses - no filter applied
+                            return $query;
                         }
-                        return $query;
+                        // Default fallback - show New and Done
+                        return $query->whereIn('status', ['New', 'Done']);
                     })
                     ->indicateUsing(function (array $data): ?string {
                         $value = $data['value'] ?? null;

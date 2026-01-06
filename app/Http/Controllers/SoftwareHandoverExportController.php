@@ -125,7 +125,7 @@ class SoftwareHandoverExportController extends Controller
             $formattedAddress2 = $address2;
             $formattedAddress3 = $city;
             $formattedAddress4 = strtoupper($state);
-            $salesAgent = strtoupper(User::find($lead->salesperson)?->name ?? '');
+            $salesAgent = strtoupper(User::find($lead->salesperson)?->autocount_name ?? '');
 
             // Create the parent company row
             $parentDataRow = [
@@ -134,10 +134,10 @@ class SoftwareHandoverExportController extends Controller
                 '',             // DebtorCode
                 $companyName,            // CompanyName
                 '',                      // Desc2
-                '',                      // AreaCode
+                $this->getAreaCodeFromState($state), // AreaCode
                 $salesAgent,             // SalesAgent
                 '',                      // DebtorType
-                'C.O.D',                 // DisplayTerm
+                'C.O.D.',                 // DisplayTerm
                 'I',                     // AgingOn (Invoice Date)
                 'O',                     // StatementType (Open Item)
                 'MYR',                   // CurrencyCode
@@ -176,10 +176,10 @@ class SoftwareHandoverExportController extends Controller
                         '',             // Parent company debtor code
                         $subsidiary->company_name,       // Subsidiary name
                         $subsidiary->description ?? '', // Desc2
-                        '',                      // AreaCode
+                        $this->getAreaCodeFromState($subsidiary->state ?? $state), // AreaCode
                         $salesAgent,             // SalesAgent
                         '',                      // DebtorType
-                        'C.O.D',                 // DisplayTerm
+                        'C.O.D.',                 // DisplayTerm
                         'I',                     // AgingOn (Invoice Date)
                         'O',                     // StatementType (Open Item)
                         'MYR',                   // CurrencyCode
@@ -486,5 +486,30 @@ class SoftwareHandoverExportController extends Controller
             return substr($phone, 1); // Remove 6, but not if it starts with 0
         }
         return $phone; // Return original if no match
+    }
+
+    private function getAreaCodeFromState($state)
+    {
+        $stateMapping = [
+            'JOHOR' => 'MYS-JHR',
+            'KEDAH' => 'MYS-KDH',
+            'KELANTAN' => 'MYS-KTN',
+            'KUALA LUMPUR' => 'MYS-KUL',
+            'MELAKA' => 'MYS-MLK',
+            'PAHANG' => 'MYS-PHG',
+            'PENANG' => 'MYS-PNG',
+            'PERLIS' => 'MYS-PLS',
+            'PERAK' => 'MYS-PRK',
+            'SABAH' => 'MYS-SBH',
+            'SELANGOR' => 'MYS-SEL',
+            'NEGERI SEMBILAN' => 'MYS-SEM',
+            'SARAWAK' => 'MYS-SWK',
+            'TERENGGANU' => 'MYS-TRG',
+            'PUTRAJAYA' => 'MYS-PJY',
+            'LABUAN' => 'MYS-LBN'
+        ];
+
+        $normalizedState = strtoupper(trim($state));
+        return $stateMapping[$normalizedState] ?? '';
     }
 }

@@ -253,10 +253,15 @@ class SoftwareHandoverNew extends Component implements HasForms, HasTable
                     })
                     ->html(),
 
-                TextColumn::make('hr_version')
-                    ->label('HR Version')
-                    ->formatStateUsing(function ($state) {
-                        return $state ? 'Version ' . $state : 'N/A';
+                TextColumn::make('training_type')
+                    ->label('Training Type')
+                    ->formatStateUsing(function ($state, $record) {
+                        // Check the actual training type from the record
+                        if ($record->training_type == 'online_hrdf_training') {
+                            return 'HRDF';
+                        } else {
+                            return 'Webinar';
+                        }
                     }),
 
                 TextColumn::make('license_type')
@@ -273,6 +278,9 @@ class SoftwareHandoverNew extends Component implements HasForms, HasTable
                         default => new HtmlString('<span>' . ucfirst($state) . '</span>'),
                     }),
             ])
+            ->recordClasses(fn (SoftwareHandover $record) =>
+                $record->reseller_id ? 'reseller-row' : null
+            )
             ->actions([
                 ActionGroup::make([
                     Action::make('submit_for_approval')
@@ -412,7 +420,7 @@ class SoftwareHandoverNew extends Component implements HasForms, HasTable
                         ->label('Mark as Completed')
                         ->icon('heroicon-o-check-badge')
                         ->color('success')
-                        ->modalWidth('3xl')
+                        ->modalWidth('xl')
                         ->form([
                             Grid::make(2)
                                 ->schema([
@@ -493,128 +501,195 @@ class SoftwareHandoverNew extends Component implements HasForms, HasTable
                                         }),
                                 ]),
 
-                            // Section::make('AutoCount Invoice Creation')
-                            //     ->schema([
-                            //         TextInput::make('tt_invoice_number')
-                            //             ->label('License Number')
-                            //             ->placeholder('Enter alphanumeric license number (one-time entry for all invoices)')
-                            //             ->maxLength(255),
+                            // Add PI and Invoice tracking based on training type
+                            Section::make('PI and Invoice Tracking')
+                                ->schema(function (Get $get, SoftwareHandover $record) {
+                                    if ($record->training_type === 'online_hrdf_training') {
+                                        // HRDF Training - Show Type 2 and Type 3
+                                        $sections = [];
 
-                            //         Grid::make(2)->schema([
-                            //             // ✅ Fixed debtor display (no selection needed)
-                            //             Placeholder::make('debtor_info')
-                            //                 ->label('Debtor Code')
-                            //                 ->content('ARM-P0062 - PEMBANGUNAN SUMBER MANUSIA BERHAD')
-                            //                 ->columnSpan(1),
+                                        // Type 2: non_hrdf_pi
+                                        if (!empty($record->non_hrdf_pi)) {
+                                            $nonHrdfPiIds = is_string($record->non_hrdf_pi)
+                                                ? json_decode($record->non_hrdf_pi, true)
+                                                : $record->non_hrdf_pi;
 
-                            //             Checkbox::make('create_autocount_invoice')
-                            //                 ->label('Create AutoCount Invoice')
-                            //                 ->default(true)
-                            //                 ->live()
-                            //                 ->columnSpan(1),
-                            //         ]),
+                                            if (is_array($nonHrdfPiIds) && !empty($nonHrdfPiIds)) {
+                                                $quotations = \App\Models\Quotation::whereIn('id', $nonHrdfPiIds)
+                                                    ->with(['lead.companyDetail', 'subsidiary'])
+                                                    ->get();
 
-                            //         // ✅ Hidden field to store the fixed debtor selection
-                            //         \Filament\Forms\Components\Hidden::make('debtor_selection')
-                            //             ->default('ARM-P0062'),
+                                                $sections[] = Repeater::make('type_2_entries')
+                                                    ->label('Type 2: Non-HRDF PI')
+                                                    ->schema([
+                                                        TextInput::make('company_name')
+                                                            ->label('Company Name')
+                                                            ->readOnly()
+                                                            ->default(function ($state, $get) use ($quotations) {
+                                                                $quotation = $quotations->get($get('../../quotation_id') ?? 0);
+                                                                if (!$quotation) return 'N/A';
 
-                            //         // Invoice preview
-                            //         Section::make('Invoice Preview')
-                            //             ->schema([
-                            //                 Placeholder::make('invoice_preview')
-                            //                     ->label('')
-                            //                     ->content(function (SoftwareHandover $record, callable $get) {
-                            //                         if (!$get('create_autocount_invoice')) {
-                            //                             return 'AutoCount invoice creation is disabled.';
-                            //                         }
+                                                                if ($quotation->subsidiary_id && $quotation->subsidiary) {
+                                                                    return $quotation->subsidiary->company_name;
+                                                                }
+                                                                return $quotation->lead?->companyDetail?->company_name ?? 'N/A';
+                                                            }),
+                                                        Grid::make(2)->schema([
+                                                            TextInput::make('pi_number')
+                                                                ->label('PI Number')
+                                                                ->readOnly()
+                                                                ->default(fn($state, $get) => $quotations->get($get('../../quotation_id') ?? 0)?->pi_reference_no ?? 'N/A'),
+                                                            TextInput::make('invoice_number')
+                                                                ->label('Invoice Number')
+                                                                ->required(),
+                                                        ])
+                                                    ])
+                                                    ->default(function () use ($quotations) {
+                                                        return $quotations->map(function ($quotation, $index) {
+                                                            $companyName = $quotation->subsidiary_id && $quotation->subsidiary
+                                                                ? $quotation->subsidiary->company_name
+                                                                : $quotation->lead?->companyDetail?->company_name ?? 'N/A';
 
-                            //                         $service = app(AutoCountIntegrationService::class);
-                            //                         $preview = $service->generateInvoicePreview($record);
+                                                            return [
+                                                                'quotation_id' => $quotation->id,
+                                                                'pi_number' => $quotation->pi_reference_no ?? 'N/A',
+                                                                'company_name' => $companyName,
+                                                                'invoice_number' => ''
+                                                            ];
+                                                        })->toArray();
+                                                    })
+                                                    ->addable(false)
+                                                    ->deletable(false)
+                                                    ->reorderable(false)
+                                                    ->collapsible(false);
+                                            }
+                                        }
 
-                            //                         if (empty($preview['invoices'])) {
-                            //                             return $preview['message'] ?? 'No items to display';
-                            //                         }
+                                        // Type 3: proforma_invoice_hrdf
+                                        if (!empty($record->proforma_invoice_hrdf)) {
+                                            $hrdfPiIds = is_string($record->proforma_invoice_hrdf)
+                                                ? json_decode($record->proforma_invoice_hrdf, true)
+                                                : $record->proforma_invoice_hrdf;
 
-                            //                         $html = '<div class="space-y-4">';
-                            //                         $html .= '<div><strong>Salesperson:</strong> ' . $preview['salesperson'] . '</div>';
-                            //                         $html .= '<div><strong>Company:</strong> ' . $preview['company'] . '</div>';
-                            //                         $html .= '<div><strong>Total Invoices:</strong> ' . $preview['total_invoices'] . '</div>';
+                                            if (is_array($hrdfPiIds) && !empty($hrdfPiIds)) {
+                                                $quotations = \App\Models\Quotation::whereIn('id', $hrdfPiIds)
+                                                    ->with(['lead.companyDetail', 'subsidiary'])
+                                                    ->get();
 
-                            //                         // ✅ Show each invoice separately
-                            //                         foreach ($preview['invoices'] as $index => $invoice) {
-                            //                             $html .= '<div class="p-3 mt-4 border rounded bg-gray-50">';
-                            //                             $html .= '<div class="font-semibold text-blue-600">Invoice ' . ($index + 1) . '</div>';
-                            //                             $html .= '<div><strong>Document No:</strong> ' . $invoice['invoice_no'] . '</div>';
-                            //                             $html .= '<div class="mt-2">';
-                            //                             $html .= '<div class="mb-2 text-sm font-semibold">Items:</div>';
+                                                $sections[] = Repeater::make('type_3_entries')
+                                                    ->label('Type 3: HRDF Invoice')
+                                                    ->schema([
+                                                        TextInput::make('company_name')
+                                                            ->label('Company Name')
+                                                            ->readOnly()
+                                                            ->default(function ($state, $get) use ($quotations) {
+                                                                $quotation = $quotations->get($get('../../quotation_id') ?? 0);
+                                                                if (!$quotation) return 'N/A';
 
-                            //                             foreach ($invoice['items'] as $item) {
-                            //                                 $html .= '<div class="flex justify-between py-1 text-sm">';
-                            //                                 $html .= '<div class="flex items-center gap-2">';
-                            //                                 $html .= '<span class="px-2 py-1 font-mono text-xs bg-gray-100 rounded">' . $item['code'] . '</span>';
-                            //                                 $html .= '<span class="text-gray-600">× ' . number_format($item['quantity']) . '</span>';
-                            //                                 $html .= '</div>';
-                            //                                 $html .= '<span class="font-semibold">RM ' . number_format($item['amount'], 2) . '</span>';
-                            //                                 $html .= '</div>';
-                            //                             }
+                                                                if ($quotation->subsidiary_id && $quotation->subsidiary) {
+                                                                    return $quotation->subsidiary->company_name;
+                                                                }
+                                                                return $quotation->lead?->companyDetail?->company_name ?? 'N/A';
+                                                            }),
 
-                            //                             $html .= '</div>';
-                            //                             $html .= '<div class="flex justify-between pt-2 mt-2 font-semibold border-t">';
-                            //                             $html .= '<span>Invoice Total:</span><span>RM ' . number_format($invoice['total'], 2) . '</span>';
-                            //                             $html .= '</div></div>';
-                            //                         }
+                                                        Grid::make(2)->schema([
+                                                            TextInput::make('pi_number')
+                                                                ->label('PI Number')
+                                                                ->readOnly()
+                                                                ->default(fn($state, $get) => $quotations->get($get('../../quotation_id') ?? 0)?->pi_reference_no ?? 'N/A'),
 
-                            //                         // ✅ Show grand total if multiple invoices
-                            //                         if ($preview['total_invoices'] > 1) {
-                            //                             $html .= '<div class="flex justify-between pt-2 mt-4 text-lg font-bold border-t-2 border-blue-500">';
-                            //                             $html .= '<span>Grand Total:</span><span>RM ' . number_format($preview['grand_total'], 2) . '</span>';
-                            //                             $html .= '</div>';
-                            //                         }
+                                                            TextInput::make('invoice_number')
+                                                                ->label('Invoice Number')
+                                                                ->required(),
+                                                        ])
+                                                    ])
+                                                    ->default(function () use ($quotations) {
+                                                        return $quotations->map(function ($quotation, $index) {
+                                                            $companyName = $quotation->subsidiary_id && $quotation->subsidiary
+                                                                ? $quotation->subsidiary->company_name
+                                                                : $quotation->lead?->companyDetail?->company_name ?? 'N/A';
 
-                            //                         $html .= '</div>';
+                                                            return [
+                                                                'quotation_id' => $quotation->id,
+                                                                'pi_number' => $quotation->pi_reference_no ?? 'N/A',
+                                                                'company_name' => $companyName,
+                                                                'invoice_number' => ''
+                                                            ];
+                                                        })->toArray();
+                                                    })
+                                                    ->addable(false)
+                                                    ->deletable(false)
+                                                    ->collapsible(false)
+                                                    ->reorderable(false);
+                                            }
+                                        }
 
-                            //                         return new \Illuminate\Support\HtmlString($html);
-                            //                     })
-                            //             ])
-                            //             ->visible(fn (callable $get) => $get('create_autocount_invoice')),
-                            //     ])
-                            //     // ✅ Hide the entire AutoCount section if no proforma_invoice_hrdf
-                            //     ->visible(function (SoftwareHandover $record) {
-                            //         // Check if proforma_invoice_hrdf exists and is not empty
-                            //         if (empty($record->proforma_invoice_hrdf)) {
-                            //             return false;
-                            //         }
+                                        return $sections;
+                                    } else {
+                                        // Webinar Training - Show Type 1 only
+                                        if (!empty($record->proforma_invoice_product)) {
+                                            $productPiIds = is_string($record->proforma_invoice_product)
+                                                ? json_decode($record->proforma_invoice_product, true)
+                                                : $record->proforma_invoice_product;
 
-                            //         // Parse the JSON and check if it contains any valid quotation IDs
-                            //         $hrdfPis = is_string($record->proforma_invoice_hrdf)
-                            //             ? json_decode($record->proforma_invoice_hrdf, true)
-                            //             : $record->proforma_invoice_hrdf;
+                                            if (is_array($productPiIds) && !empty($productPiIds)) {
+                                                $quotations = \App\Models\Quotation::whereIn('id', $productPiIds)
+                                                    ->with(['lead.companyDetail', 'subsidiary'])
+                                                    ->get();
 
-                            //         // Return true only if we have a valid array with content
-                            //         return is_array($hrdfPis) && !empty($hrdfPis);
-                            //     })
-                            //     ->collapsible()
-                            //     ->collapsed(false),
+                                                return [
+                                                    Repeater::make('type_1_entries')
+                                                        ->label('Type 1: SW+HW Proforma Invoice')
+                                                        ->schema([
+                                                            TextInput::make('company_name')
+                                                                ->label('Company Name')
+                                                                ->readOnly()
+                                                                ->default(function ($state, $get) use ($quotations) {
+                                                                    $quotation = $quotations->get($get('../../quotation_id') ?? 0);
+                                                                    if (!$quotation) return 'N/A';
 
-                            // FileUpload::make('invoice_file')
-                            //     ->label('Upload Invoice')
-                            //     ->disk('public')
-                            //     ->directory('handovers/invoices')
-                            //     ->visibility('public')
-                            //     ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
-                            //     ->multiple()
-                            //     ->maxFiles(10)
-                            //     ->openable()
-                            //     ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
-                            //         $companyName = Str::slug($get('company_name') ?? 'invoice');
-                            //         $date = now()->format('Y-m-d');
-                            //         $random = Str::random(5);
-                            //         $extension = $file->getClientOriginalExtension();
+                                                                    if ($quotation->subsidiary_id && $quotation->subsidiary) {
+                                                                        return $quotation->subsidiary->company_name;
+                                                                    }
+                                                                    return $quotation->lead?->companyDetail?->company_name ?? 'N/A';
+                                                                }),
+                                                            Grid::make(2)->schema([
+                                                                TextInput::make('pi_number')
+                                                                    ->label('PI Number')
+                                                                    ->readOnly()
+                                                                    ->default(fn($state, $get) => $quotations->get($get('../../quotation_id') ?? 0)?->pi_reference_no ?? 'N/A'),
+                                                                TextInput::make('invoice_number')
+                                                                    ->label('Invoice Number')
+                                                                    ->required(),
+                                                            ])
+                                                        ])
+                                                        ->default(function () use ($quotations) {
+                                                            return $quotations->map(function ($quotation, $index) {
+                                                                $companyName = $quotation->subsidiary_id && $quotation->subsidiary
+                                                                    ? $quotation->subsidiary->company_name
+                                                                    : $quotation->lead?->companyDetail?->company_name ?? 'N/A';
 
-                            //         return "{$companyName}-invoice-{$date}-{$random}.{$extension}";
-                            //     }),
+                                                                return [
+                                                                    'quotation_id' => $quotation->id,
+                                                                    'pi_number' => $quotation->pi_reference_no ?? 'N/A',
+                                                                    'company_name' => $companyName,
+                                                                    'invoice_number' => ''
+                                                                ];
+                                                            })->toArray();
+                                                        })
+                                                        ->addable(false)
+                                                        ->deletable(false)
+                                                        ->collapsible(false)
+                                                        ->reorderable(false),
+                                                ];
+                                            }
+                                        }
 
-                            Placeholder::make('module_check_info')
+                                        return [];
+                                    }
+                                }),
+
+                            \Filament\Forms\Components\Placeholder::make('modules_selected')
                                 ->label(false)
                                 ->content(function (SoftwareHandover $record) {
                                     // Check all modules
@@ -642,6 +717,8 @@ class SoftwareHandoverNew extends Component implements HasForms, HasTable
                                             </div>'
                                         );
                                     }
+
+                                    return new HtmlString(''); // Return empty if modules are found
                                 }),
                         ])
                         ->action(function (SoftwareHandover $record, array $data): void {
@@ -865,6 +942,17 @@ class SoftwareHandoverNew extends Component implements HasForms, HasTable
                             // Add license number if it exists
                             if (isset($data['tt_invoice_number'])) {
                                 $updateData['tt_invoice_number'] = $data['tt_invoice_number'];
+                            }
+
+                            // Handle PI and Invoice tracking data
+                            if (isset($data['type_1_entries']) && !empty($data['type_1_entries'])) {
+                                $updateData['type_1_pi_invoice_data'] = json_encode($data['type_1_entries']);
+                            }
+                            if (isset($data['type_2_entries']) && !empty($data['type_2_entries'])) {
+                                $updateData['type_2_pi_invoice_data'] = json_encode($data['type_2_entries']);
+                            }
+                            if (isset($data['type_3_entries']) && !empty($data['type_3_entries'])) {
+                                $updateData['type_3_pi_invoice_data'] = json_encode($data['type_3_entries']);
                             }
 
                             // Update the record

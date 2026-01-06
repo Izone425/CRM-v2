@@ -86,6 +86,10 @@ class SoftwareHandoverDraft extends Component implements HasForms, HasTable
                                     ->with('extraAttributes', ['record' => $record]);
                             })
                     ),
+                TextColumn::make('salesperson')
+                    ->label('Salesperson')
+                    ->searchable()
+                    ->sortable(),
                 TextColumn::make('company_name')
                     ->label('Company Name')
                     ->searchable()
@@ -113,27 +117,11 @@ class SoftwareHandoverDraft extends Component implements HasForms, HasTable
                         return "<span title='{$state}'>{$state}</span>";
                     })
                     ->html(),
-                TextColumn::make('lead.name')
-                    ->label('Lead Name')
-                    ->searchable()
-                    ->sortable(),
-                TextColumn::make('salesperson')
-                    ->label('Salesperson')
-                    ->searchable()
-                    ->sortable(),
-                TextColumn::make('training_type')
-                    ->label('Training Type')
-                    ->formatStateUsing(fn (string $state): string => ucwords(str_replace('_', ' ', $state))),
                 TextColumn::make('status')
-                    ->badge()
                     ->color(fn (string $state): string => match ($state) {
                         'Draft' => 'warning',
                         default => 'gray',
                     }),
-                TextColumn::make('created_at')
-                    ->label('Created Date')
-                    ->date('d M Y')
-                    ->sortable(),
             ])
             ->defaultSort('created_at', 'desc')
             ->poll('60s');

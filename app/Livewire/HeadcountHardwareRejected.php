@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Livewire\AdminHRDFDashboard;
+namespace App\Livewire;
 
 use Livewire\Component;
 use Filament\Forms\Concerns\InteractsWithForms;
@@ -13,7 +13,7 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Actions\Action;
 use Filament\Tables\Actions\ActionGroup;
 use Filament\Notifications\Notification;
-use App\Models\HRDFHandover;
+use App\Models\HeadcountHandover;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\HtmlString;
@@ -21,7 +21,7 @@ use Illuminate\View\View;
 use Livewire\Attributes\On;
 use Illuminate\Support\Str;
 
-class HrdfRejectedTable extends Component implements HasForms, HasTable
+class HeadcountHardwareRejected extends Component implements HasForms, HasTable
 {
     use InteractsWithForms;
     use InteractsWithTable;
@@ -44,31 +44,45 @@ class HrdfRejectedTable extends Component implements HasForms, HasTable
             ->send();
     }
 
-    #[On('refresh-hrdf-tables')]
+    #[On('refresh-headcount-tables')]
     public function refreshData()
     {
         $this->resetTable();
         $this->lastRefreshTime = now()->format('Y-m-d H:i:s');
     }
 
-    public function getNewHrdfHandovers()
+    public function getRejectedHeadcountHandovers()
     {
-        return HRDFHandover::query()
-            ->whereIn('status', ['Rejected','Draft'])
+        return HeadcountHandover::query()
+            ->whereIn('status', ['Rejected', 'Draft'])
             ->orderBy('submitted_at', 'desc')
             ->with(['lead', 'lead.companyDetail', 'creator']);
+    }
+
+    public function getHeadcountCount()
+    {
+        return $this->getRejectedHeadcountHandovers()->count();
     }
 
     public function table(Table $table): Table
     {
         return $table
             ->poll('300s')
-            ->query($this->getNewHrdfHandovers())
+            ->query($this->getRejectedHeadcountHandovers())
             ->defaultSort('submitted_at', 'desc')
             ->emptyState(fn() => view('components.empty-state-question'))
             ->defaultPaginationPageOption(5)
             ->paginated([5])
             ->filters([
+                SelectFilter::make('status')
+                    ->label('Filter by Status')
+                    ->options([
+                        'Rejected' => 'Rejected',
+                        'Draft' => 'Draft',
+                    ])
+                    ->placeholder('All Statuses')
+                    ->multiple(),
+
                 SelectFilter::make('salesperson')
                     ->label('Filter by Salesperson')
                     ->options(function () {
@@ -95,8 +109,8 @@ class HrdfRejectedTable extends Component implements HasForms, HasTable
             ])
             ->columns([
                 TextColumn::make('id')
-                    ->label('ID')
-                    ->formatStateUsing(function ($state, HRDFHandover $record) {
+                    ->label('Headcount ID')
+                    ->formatStateUsing(function ($state, HeadcountHandover $record) {
                         if (!$state) {
                             return 'Unknown';
                         }
@@ -105,13 +119,13 @@ class HrdfRejectedTable extends Component implements HasForms, HasTable
                     ->color('primary')
                     ->weight('bold')
                     ->action(
-                        Action::make('viewHandoverDetails')
+                        Action::make('viewHeadcountHandoverDetails')
                             ->modalHeading(false)
                             ->modalWidth('3xl')
                             ->modalSubmitAction(false)
                             ->modalCancelAction(false)
-                            ->modalContent(function (HRDFHandover $record): View {
-                                return view('components.hrdf-handover')
+                            ->modalContent(function (HeadcountHandover $record): View {
+                                return view('components.headcount-handover')
                                     ->with('extraAttributes', ['record' => $record]);
                             })
                     ),
@@ -124,27 +138,14 @@ class HrdfRejectedTable extends Component implements HasForms, HasTable
                 TextColumn::make('lead.companyDetail.company_name')
                     ->label('Company Name')
                     ->searchable()
-                    ->formatStateUsing(function ($state, HRDFHandover $record) {
-                        // Determine display name
-                        $displayName = $state ?? 'N/A';
-
-                        // If subsidiary_id exists and is not null/empty, get subsidiary company name for display
-                        if (!empty($record->subsidiary_id)) {
-                            $subsidiary = \App\Models\Subsidiary::find($record->subsidiary_id);
-                            if ($subsidiary && !empty($subsidiary->company_name)) {
-                                $displayName = $subsidiary->company_name . ' (Subsidiary)';
-                            }
-                        }
-
-                        // Shorten the display name
-                        $shortened = strtoupper(Str::limit($displayName, 25, '...'));
-
-                        // Always encrypt the main lead ID for the link
+                    ->formatStateUsing(function ($state, $record) {
+                        $fullName = $state ?? 'N/A';
+                        $shortened = strtoupper(Str::limit($fullName, 25, '...'));
                         $encryptedId = \App\Classes\Encryptor::encrypt($record->lead->id);
 
                         return '<a href="' . url('admin/leads/' . $encryptedId) . '"
                                     target="_blank"
-                                    title="' . e($displayName) . '"
+                                    title="' . e($fullName) . '"
                                     class="inline-block"
                                     style="color:#338cf0;">
                                     ' . $shortened . '
@@ -152,31 +153,36 @@ class HrdfRejectedTable extends Component implements HasForms, HasTable
                     })
                     ->html(),
 
-                TextColumn::make('hrdf_grant_id')
-                    ->label('HRDF Grant ID')
-                    ->searchable()
-                    ->weight('bold')
-                    ->color('success'),
-
-                TextColumn::make('lead.salesperson')
+                TextColumn::make('salesperson_name')
                     ->label('Salesperson')
-                    ->formatStateUsing(function ($state) {
-                        if (!$state) return 'No Salesperson';
-
-                        $user = User::find($state);
-                        return $user ? $user->name : 'Unknown';
+                    ->getStateUsing(function (HeadcountHandover $record) {
+                        if ($record->lead && $record->lead->salesperson) {
+                            $user = User::find($record->lead->salesperson);
+                            return $user ? $user->name : 'N/A';
+                        }
+                        return 'N/A';
                     })
                     ->searchable(),
 
                 TextColumn::make('status')
                     ->label('STATUS')
                     ->formatStateUsing(fn (string $state): HtmlString => match ($state) {
-                        'Draft' => new HtmlString('<span style="color: orange;">Draft</span>'),
-                        'New' => new HtmlString('<span style="color: blue;">New</span>'),
-                        'Completed' => new HtmlString('<span style="color: green;">Completed</span>'),
-                        'Rejected' => new HtmlString('<span style="color: red;">Rejected</span>'),
-                        default => new HtmlString('<span>' . ucfirst($state) . '</span>'),
+                        'Draft' => new HtmlString('<span style="color: orange; font-weight: bold;">Draft</span>'),
+                        'Rejected' => new HtmlString('<span style="color: red; font-weight: bold;">Rejected</span>'),
+                        default => new HtmlString('<span style="font-weight: bold;">' . ucfirst($state) . '</span>'),
                     }),
+
+                TextColumn::make('reject_reason')
+                    ->label('Reject Reason')
+                    ->limit(50)
+                    ->tooltip(function (TextColumn $column): ?string {
+                        $state = $column->getState();
+                        if (strlen($state) <= 50) {
+                            return null;
+                        }
+                        return $state;
+                    })
+                    ->visible(fn ($record) => $record instanceof HeadcountHandover && $record->status === 'Rejected'),
             ])
             ->actions([
                 ActionGroup::make([
@@ -188,8 +194,8 @@ class HrdfRejectedTable extends Component implements HasForms, HasTable
                         ->modalWidth('3xl')
                         ->modalSubmitAction(false)
                         ->modalCancelAction(false)
-                        ->modalContent(function (HRDFHandover $record): View {
-                            return view('components.hrdf-handover')
+                        ->modalContent(function (HeadcountHandover $record): View {
+                            return view('components.headcount-handover')
                                 ->with('extraAttributes', ['record' => $record]);
                         }),
                 ])->button()
@@ -200,6 +206,6 @@ class HrdfRejectedTable extends Component implements HasForms, HasTable
 
     public function render()
     {
-        return view('livewire.admin-hrdf-dashboard.hrdf-rejected-table');
+        return view('livewire.headcount-hardware-rejected');
     }
 }

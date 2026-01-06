@@ -76,7 +76,7 @@ class SoftwareHandoverRejected extends Component implements HasForms, HasTable
         $this->selectedUser = $this->selectedUser ?? session('selectedUser') ?? auth()->id();
 
         $query = SoftwareHandover::query();
-        $query->whereIn('status', ['Rejected']);
+        $query->whereIn('status', ['Rejected','Draft']);
 
         // Apply normal salesperson filtering for other roles
         if ($this->selectedUser === 'all-salespersons') {
@@ -103,7 +103,7 @@ class SoftwareHandoverRejected extends Component implements HasForms, HasTable
         } else {
             if (auth()->user()->role_id === 2) {
                 // Salespersons (role_id 2) can see Draft, New, Approved, and Completed
-                $query->whereIn('status', ['Rejected']);
+                $query->whereIn('status', ['Rejected','Draft']);
 
                 // But only THEIR OWN records
                 $userId = auth()->id();
@@ -112,7 +112,7 @@ class SoftwareHandoverRejected extends Component implements HasForms, HasTable
                 });
             } else {
                 // Other users (admin, managers) can only see New, Approved, and Completed
-                $query->whereIn('status', ['Rejected']);
+                $query->whereIn('status', ['Rejected','Draft']);
                 // But they can see ALL records
             }
         }
@@ -168,8 +168,6 @@ class SoftwareHandoverRejected extends Component implements HasForms, HasTable
                     })
                     ->placeholder('All Implementer')
                     ->multiple(),
-
-                SortFilter::make("sort_by")
             ])
             ->columns([
                 TextColumn::make('id')
@@ -203,36 +201,6 @@ class SoftwareHandoverRejected extends Component implements HasForms, HasTable
                                     ->with('extraAttributes', ['record' => $record]);
                             })
                     ),
-
-                // TextColumn::make('lead.salesperson')
-                //     ->label('SALESPERSON')
-                //     ->getStateUsing(function (SoftwareHandover $record) {
-                //         $lead = $record->lead;
-                //         if (!$lead) {
-                //             return '-';
-                //         }
-
-                //         $salespersonId = $lead->salesperson;
-                //         return User::find($salespersonId)?->name ?? '-';
-                //     })
-                //     ->visible(fn(): bool => auth()->user()->role_id !== 2),
-
-                // TextColumn::make('lead.companyDetail.company_name')
-                //     ->label('Company Name')
-                //     ->formatStateUsing(function ($state, $record) {
-                //         $fullName = $state ?? 'N/A';
-                //         $shortened = strtoupper(Str::limit($fullName, 20, '...'));
-                //         $encryptedId = \App\Classes\Encryptor::encrypt($record->lead->id);
-
-                //         return '<a href="' . url('admin/leads/' . $encryptedId) . '"
-                //                     target="_blank"
-                //                     title="' . e($fullName) . '"
-                //                     class="inline-block"
-                //                     style="color:#338cf0;">
-                //                     ' . $shortened . '
-                //                 </a>';
-                //     })
-                //     ->html(),
 
                 TextColumn::make('salesperson')
                     ->label('SalesPerson')
@@ -269,31 +237,6 @@ class SoftwareHandoverRejected extends Component implements HasForms, HasTable
                         return "<span title='{$state}'>{$state}</span>";
                     })
                     ->html(),
-
-                // TextColumn::make('submitted_at')
-                //     ->label('Date Submit')
-                //     ->date('d M Y'),
-
-                // TextColumn::make('kik_off_meeting_date')
-                //     ->label('Kick Off Meeting Date')
-                //     ->formatStateUsing(function ($state) {
-                //         return $state ? Carbon::parse($state)->format('d M Y') : 'N/A';
-                //     })
-                //     ->date('d M Y'),
-
-                // TextColumn::make('training_date')
-                //     ->label('Training Date')
-                //     ->formatStateUsing(function ($state) {
-                //         return $state ? Carbon::parse($state)->format('d M Y') : 'N/A';
-                //     })
-                //     ->date('d M Y'),
-
-                // TextColumn::make('training_date')
-                //     ->label('Implementer')
-                //     ->formatStateUsing(function ($state) {
-                //         return $state ? Carbon::parse($state)->format('d M Y') : 'N/A';
-                //     })
-                //     ->date('d M Y'),
             ])
             ->actions([
                 ActionGroup::make([
@@ -305,8 +248,6 @@ class SoftwareHandoverRejected extends Component implements HasForms, HasTable
                         ->modalWidth('4xl')
                         ->modalSubmitAction(false)
                         ->modalCancelAction(false)
-                        ->visible(fn(SoftwareHandover $record): bool => in_array($record->status, ['New', 'Completed', 'Approved']))
-                        // Use a callback function instead of arrow function for more control
                         ->modalContent(function (SoftwareHandover $record): View {
 
                             // Return the view with the record using $this->record pattern
@@ -314,7 +255,6 @@ class SoftwareHandoverRejected extends Component implements HasForms, HasTable
                                 ->with('extraAttributes', ['record' => $record]);
                         }),
                 ])->button()
-                    ->color('warning')
             ]);
     }
 
