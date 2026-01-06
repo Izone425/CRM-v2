@@ -132,6 +132,7 @@ class MarketingAnalysis extends Page
         $this->selectedLeadCode = session('selectedLeadCode', null);
 
         $this->excludeLeadCodes = [
+            'Fendi Leads',
             'Wirson leads',
             'TimeTec HR / SalesPerson / Leads',
             'Reseller Leads',
