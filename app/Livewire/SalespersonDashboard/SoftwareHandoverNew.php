@@ -595,23 +595,24 @@ class SoftwareHandoverNew extends Component implements HasForms, HasTable
                             //     })
                             //     ->collapsible()
                             //     ->collapsed(false),
-                            FileUpload::make('invoice_file')
-                                ->label('Upload Invoice')
-                                ->disk('public')
-                                ->directory('handovers/invoices')
-                                ->visibility('public')
-                                ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
-                                ->multiple()
-                                ->maxFiles(10)
-                                ->openable()
-                                ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
-                                    $companyName = Str::slug($get('company_name') ?? 'invoice');
-                                    $date = now()->format('Y-m-d');
-                                    $random = Str::random(5);
-                                    $extension = $file->getClientOriginalExtension();
 
-                                    return "{$companyName}-invoice-{$date}-{$random}.{$extension}";
-                                }),
+                            // FileUpload::make('invoice_file')
+                            //     ->label('Upload Invoice')
+                            //     ->disk('public')
+                            //     ->directory('handovers/invoices')
+                            //     ->visibility('public')
+                            //     ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
+                            //     ->multiple()
+                            //     ->maxFiles(10)
+                            //     ->openable()
+                            //     ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, callable $get): string {
+                            //         $companyName = Str::slug($get('company_name') ?? 'invoice');
+                            //         $date = now()->format('Y-m-d');
+                            //         $random = Str::random(5);
+                            //         $extension = $file->getClientOriginalExtension();
+
+                            //         return "{$companyName}-invoice-{$date}-{$random}.{$extension}";
+                            //     }),
 
                             Placeholder::make('module_check_info')
                                 ->label(false)

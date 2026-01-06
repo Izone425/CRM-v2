@@ -730,275 +730,211 @@
                     @endif
                 </div>
             @elseif (auth()->user()->role_id == 3)
-            <div class="space-y-4">
-                <div class="flex flex-col items-start justify-between w-full mb-6 md:flex-row md:items-center">
-                    <div class="flex items-center space-x-2" x-data="{ showRefresh: false }"
-                        @mouseenter="showRefresh = true"
-                        @mouseleave="showRefresh = false">
-                        <h1 class="text-2xl font-bold tracking-tight fi-header-heading text-gray-950 dark:text-white sm:text-3xl">
-                            Dashboard
-                        </h1>
-                        <div class="relative ml-2" x-cloak>
-                            <button
-                                x-show="showRefresh"
-                                x-transition:enter="transition ease-out duration-200"
-                                x-transition:enter-start="opacity-0 transform scale-95"
-                                x-transition:enter-end="opacity-100 transform scale-100"
-                                x-transition:leave="transition ease-in duration-150"
-                                x-transition:leave-start="opacity-100 transform scale-100"
-                                x-transition:leave-end="opacity-0 transform scale-95"
-                                wire:click="refreshTable"
-                                wire:loading.attr="disabled"
-                                class="flex items-center px-3 py-1 text-sm font-medium transition-colors bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                                title="Last refreshed: {{ $lastRefreshTime }}"
-                            >
-                                <span wire:loading.remove wire:target="refreshTable">
-                                    <svg class="w-4 h-4 mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                                    </svg>
-                                </span>
-                                <span wire:loading wire:target="refreshTable">
-                                    <svg class="w-4 h-4 mr-1 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                    </svg>
-                                </span>
-                            </button>
+                <div class="space-y-4">
+                    <div class="flex flex-col items-start justify-between w-full mb-6 md:flex-row md:items-center">
+                        <div class="flex items-center space-x-2" x-data="{ showRefresh: false }"
+                            @mouseenter="showRefresh = true"
+                            @mouseleave="showRefresh = false">
+                            <h1 class="text-2xl font-bold tracking-tight fi-header-heading text-gray-950 dark:text-white sm:text-3xl">
+                                Dashboard
+                            </h1>
+                            <div class="relative ml-2" x-cloak>
+                                <button
+                                    x-show="showRefresh"
+                                    x-transition:enter="transition ease-out duration-200"
+                                    x-transition:enter-start="opacity-0 transform scale-95"
+                                    x-transition:enter-end="opacity-100 transform scale-100"
+                                    x-transition:leave="transition ease-in duration-150"
+                                    x-transition:leave-start="opacity-100 transform scale-100"
+                                    x-transition:leave-end="opacity-0 transform scale-95"
+                                    wire:click="refreshTable"
+                                    wire:loading.attr="disabled"
+                                    class="flex items-center px-3 py-1 text-sm font-medium transition-colors bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                                    title="Last refreshed: {{ $lastRefreshTime }}"
+                                >
+                                    <span wire:loading.remove wire:target="refreshTable">
+                                        <svg class="w-4 h-4 mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                        </svg>
+                                    </span>
+                                    <span wire:loading wire:target="refreshTable">
+                                        <svg class="w-4 h-4 mr-1 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        </svg>
+                                    </span>
+                                </button>
+                            </div>
                         </div>
-                    </div>
 
-                    <div class="flex items-center mb-6">
-                        <div>
-                            <select
-                                wire:model.live="selectedUser"
-                                id="userFilter"
-                                class="border-gray-300 rounded-md shadow-sm"
-                            >
-                                <option value="{{ auth()->id() }}">Dashboard</option>
+                        <div class="flex items-center mb-6">
+                            <div>
+                                <select
+                                    wire:model.live="selectedUser"
+                                    id="userFilter"
+                                    class="border-gray-300 rounded-md shadow-sm"
+                                >
+                                    <option value="{{ auth()->id() }}">Dashboard</option>
 
-                                <optgroup label="All Groups">
-                                    <option value="all-lead-owners">All Lead Owners</option>
-                                    <option value="all-implementer">All Implementer</option>
-                                    <option value="all-salespersons">All Salespersons</option>
-                                </optgroup>
+                                    <optgroup label="All Groups">
+                                        <option value="all-lead-owners">All Lead Owners</option>
+                                        <option value="all-implementer">All Implementer</option>
+                                        <option value="all-salespersons">All Salespersons</option>
+                                    </optgroup>
 
-                                <optgroup label="Lead Owner">
-                                    @foreach ($users->where('role_id', 1) as $user)
-                                        <option value="{{ $user->id }}">
-                                            {{ $user->name }}
-                                        </option>
-                                    @endforeach
-                                </optgroup>
+                                    <optgroup label="Lead Owner">
+                                        @foreach ($users->where('role_id', 1) as $user)
+                                            <option value="{{ $user->id }}">
+                                                {{ $user->name }}
+                                            </option>
+                                        @endforeach
+                                    </optgroup>
 
-                                <optgroup label="Implementer">
-                                    @foreach ($users->whereIn('role_id', [4, 5]) as $user)
-                                        <option value="{{ $user->id }}">
-                                            {{ $user->name }}
-                                        </option>
-                                    @endforeach
-                                </optgroup>
+                                    <optgroup label="Implementer">
+                                        @foreach ($users->whereIn('role_id', [4, 5]) as $user)
+                                            <option value="{{ $user->id }}">
+                                                {{ $user->name }}
+                                            </option>
+                                        @endforeach
+                                    </optgroup>
 
-                                <optgroup label="Salesperson">
-                                    @foreach ($users->where('role_id', 2) as $user)
-                                        <option value="{{ $user->id }}">
-                                            {{ $user->name }}
-                                        </option>
-                                    @endforeach
-                                </optgroup>
+                                    <optgroup label="Salesperson">
+                                        @foreach ($users->where('role_id', 2) as $user)
+                                            <option value="{{ $user->id }}">
+                                                {{ $user->name }}
+                                            </option>
+                                        @endforeach
+                                    </optgroup>
 
-                                <optgroup label="Technician">
-                                    @foreach ($users->where('role_id', 9) as $user)
-                                        <option value="{{ $user->id }}">
-                                            {{ $user->name }}
-                                        </option>
-                                    @endforeach
-                                </optgroup>
-                            </select>
-                        </div>
-                        &nbsp;&nbsp;
-                        <!-- Toggle Buttons (conditionally shown) -->
-                        @if ($selectedUser == 1 || $selectedUser == 14 || $selectedUser == null)
-                            <div style="display: flex; align-items: center;">
-                                <div style="display: flex; background: #f0f0f0; border-radius: 25px; padding: 3px;">
-                                    <button
-                                        wire:click="toggleDashboard('Manager')"
-                                        wire:loading.attr="disabled"
-                                        wire:loading.class="opacity-50 cursor-not-allowed"
-                                        style="
-                                            padding: 10px 15px;
-                                            font-size: 14px;
-                                            font-weight: bold;
-                                            border: none;
-                                            border-radius: 20px;
-                                            background: {{ $currentDashboard === 'Manager' ? '#431fa1' : 'transparent' }};
-                                            color: {{ $currentDashboard === 'Manager' ? '#ffffff' : '#555' }};
-                                            cursor: pointer;
-                                            display: flex;
-                                            align-items: center;
-                                            gap: 4px;
-                                        "
-                                    >
-                                        <span wire:loading.remove wire:target="toggleDashboard('Manager')">
-                                            Manager
-                                            @if($managerTotal > 0)
-                                                <span style="
-                                                    background: #ef4444;
-                                                    color: white;
-                                                    border-radius: 12px;
-                                                    padding: 2px 8px;
-                                                    font-size: 12px;
-                                                    font-weight: bold;
-                                                    min-width: 20px;
-                                                    text-align: center;
-                                                    margin-left: 4px;
-                                                ">{{ $managerTotal }}</span>
-                                            @endif
-                                        </span>
-                                        <span wire:loading wire:target="toggleDashboard('Manager')">
-                                            <svg class="inline w-4 h-4 mr-1 animate-spin" fill="none" viewBox="0 0 24 24">
-                                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 714 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                            </svg>
-                                            Loading...
-                                        </span>
-                                    </button>
-
-                                    <!-- Lead Owner Button -->
-                                    <button
-                                        wire:click="toggleDashboard('LeadOwner')"
-                                        wire:loading.attr="disabled"
-                                        wire:loading.class="opacity-50 cursor-not-allowed"
-                                        style="
-                                            padding: 10px 15px;
-                                            font-size: 14px;
-                                            font-weight: bold;
-                                            border: none;
-                                            border-radius: 20px;
-                                            background: {{ $currentDashboard === 'LeadOwner' ? '#431fa1' : 'transparent' }};
-                                            color: {{ $currentDashboard === 'LeadOwner' ? '#ffffff' : '#555' }};
-                                            cursor: pointer;
-                                        "
-                                    >
-                                        <span wire:loading.remove wire:target="toggleDashboard('LeadOwner')">Lead Owner</span>
-                                        <span wire:loading wire:target="toggleDashboard('LeadOwner')">
-                                            <svg class="inline w-4 h-4 mr-1 animate-spin" fill="none" viewBox="0 0 24 24">
-                                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                            </svg>
-                                            Loading...
-                                        </span>
-                                    </button>
-
-                                    <!-- Salesperson Button -->
-                                    <button
-                                        wire:click="toggleDashboard('Salesperson')"
-                                        wire:loading.attr="disabled"
-                                        wire:loading.class="opacity-50 cursor-not-allowed"
-                                        style="
-                                            padding: 10px 15px;
-                                            font-size: 14px;
-                                            font-weight: bold;
-                                            border: none;
-                                            border-radius: 20px;
-                                            background: {{ $currentDashboard === 'Salesperson' ? '#431fa1' : 'transparent' }};
-                                            color: {{ $currentDashboard === 'Salesperson' ? '#ffffff' : '#555' }};
-                                            cursor: pointer;
-                                        "
-                                    >
-                                        <span wire:loading.remove wire:target="toggleDashboard('Salesperson')">Salesperson</span>
-                                        <span wire:loading wire:target="toggleDashboard('Salesperson')">
-                                            <svg class="inline w-4 h-4 mr-1 animate-spin" fill="none" viewBox="0 0 24 24">
-                                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                            </svg>
-                                            Loading...
-                                        </span>
-                                    </button>
-
-                                    <!-- Admin Dropdown -->
-                                    <div class="admin-dropdown admin-dropdown-1" id="adminDropdown1" style="position: relative; display: inline-block;">
+                                    <optgroup label="Technician">
+                                        @foreach ($users->where('role_id', 9) as $user)
+                                            <option value="{{ $user->id }}">
+                                                {{ $user->name }}
+                                            </option>
+                                        @endforeach
+                                    </optgroup>
+                                </select>
+                            </div>
+                            &nbsp;&nbsp;
+                            <!-- Toggle Buttons (conditionally shown) -->
+                            @if ($selectedUser == 1 || $selectedUser == 14 || $selectedUser == null)
+                                <div style="display: flex; align-items: center;">
+                                    <div style="display: flex; background: #f0f0f0; border-radius: 25px; padding: 3px;">
                                         <button
-                                            class="admin-dropdown-button"
+                                            wire:click="toggleDashboard('Manager')"
+                                            wire:loading.attr="disabled"
+                                            wire:loading.class="opacity-50 cursor-not-allowed"
                                             style="
                                                 padding: 10px 15px;
                                                 font-size: 14px;
                                                 font-weight: bold;
                                                 border: none;
                                                 border-radius: 20px;
-                                                background: {{ in_array($currentDashboard, ['MainAdminDashboard','SoftwareAdmin', 'SoftwareAdminV2', 'HardwareAdmin', 'HardwareAdminV2', 'AdminRepair', 'AdminRenewalv1', 'AdminRenewalEndUser', 'AdminRenewalv2', 'AdminHRDF', 'AdminHRDFAttLog', 'AdminHeadcount', 'AdminGeneral']) ? '#431fa1' : 'transparent' }};
-                                                color: {{ in_array($currentDashboard, ['MainAdminDashboard','SoftwareAdmin','SoftwareAdminV2', 'HardwareAdmin', 'HardwareAdminV2', 'AdminRepair', 'AdminRenewalv1', 'AdminRenewalEndUser', 'AdminRenewalv2', 'AdminHRDF', 'AdminHRDFAttLog', 'AdminHeadcount', 'AdminGeneral']) ? '#ffffff' : '#555' }};
+                                                background: {{ $currentDashboard === 'Manager' ? '#431fa1' : 'transparent' }};
+                                                color: {{ $currentDashboard === 'Manager' ? '#ffffff' : '#555' }};
                                                 cursor: pointer;
                                                 display: flex;
                                                 align-items: center;
                                                 gap: 4px;
                                             "
                                         >
-                                            Admin
-                                            @if($adminTotal > 0)
-                                                <span style="
-                                                    background: #ef4444;
-                                                    color: white;
-                                                    border-radius: 12px;
-                                                    padding: 2px 8px;
-                                                    font-size: 12px;
+                                            <span wire:loading.remove wire:target="toggleDashboard('Manager')">
+                                                Manager
+                                                @if($managerTotal > 0)
+                                                    <span style="
+                                                        background: #ef4444;
+                                                        color: white;
+                                                        border-radius: 12px;
+                                                        padding: 2px 8px;
+                                                        font-size: 12px;
+                                                        font-weight: bold;
+                                                        min-width: 20px;
+                                                        text-align: center;
+                                                        margin-left: 4px;
+                                                    ">{{ $managerTotal }}</span>
+                                                @endif
+                                            </span>
+                                            <span wire:loading wire:target="toggleDashboard('Manager')">
+                                                <svg class="inline w-4 h-4 mr-1 animate-spin" fill="none" viewBox="0 0 24 24">
+                                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 714 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                </svg>
+                                                Loading...
+                                            </span>
+                                        </button>
+
+                                        <!-- Lead Owner Button -->
+                                        <button
+                                            wire:click="toggleDashboard('LeadOwner')"
+                                            wire:loading.attr="disabled"
+                                            wire:loading.class="opacity-50 cursor-not-allowed"
+                                            style="
+                                                padding: 10px 15px;
+                                                font-size: 14px;
+                                                font-weight: bold;
+                                                border: none;
+                                                border-radius: 20px;
+                                                background: {{ $currentDashboard === 'LeadOwner' ? '#431fa1' : 'transparent' }};
+                                                color: {{ $currentDashboard === 'LeadOwner' ? '#ffffff' : '#555' }};
+                                                cursor: pointer;
+                                            "
+                                        >
+                                            <span wire:loading.remove wire:target="toggleDashboard('LeadOwner')">Lead Owner</span>
+                                            <span wire:loading wire:target="toggleDashboard('LeadOwner')">
+                                                <svg class="inline w-4 h-4 mr-1 animate-spin" fill="none" viewBox="0 0 24 24">
+                                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                </svg>
+                                                Loading...
+                                            </span>
+                                        </button>
+
+                                        <!-- Salesperson Button -->
+                                        <button
+                                            wire:click="toggleDashboard('Salesperson')"
+                                            wire:loading.attr="disabled"
+                                            wire:loading.class="opacity-50 cursor-not-allowed"
+                                            style="
+                                                padding: 10px 15px;
+                                                font-size: 14px;
+                                                font-weight: bold;
+                                                border: none;
+                                                border-radius: 20px;
+                                                background: {{ $currentDashboard === 'Salesperson' ? '#431fa1' : 'transparent' }};
+                                                color: {{ $currentDashboard === 'Salesperson' ? '#ffffff' : '#555' }};
+                                                cursor: pointer;
+                                            "
+                                        >
+                                            <span wire:loading.remove wire:target="toggleDashboard('Salesperson')">Salesperson</span>
+                                            <span wire:loading wire:target="toggleDashboard('Salesperson')">
+                                                <svg class="inline w-4 h-4 mr-1 animate-spin" fill="none" viewBox="0 0 24 24">
+                                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                </svg>
+                                                Loading...
+                                            </span>
+                                        </button>
+
+                                        <!-- Admin Dropdown -->
+                                        <div class="admin-dropdown admin-dropdown-1" id="adminDropdown1" style="position: relative; display: inline-block;">
+                                            <button
+                                                class="admin-dropdown-button"
+                                                style="
+                                                    padding: 10px 15px;
+                                                    font-size: 14px;
                                                     font-weight: bold;
-                                                    min-width: 20px;
-                                                    text-align: center;
-                                                ">{{ $adminTotal }}</span>
-                                            @endif
-                                            <i class="fas fa-caret-down" style="font-size: 12px;"></i>
-                                        </button>
-
-                                        <!-- This is the bridge element that covers the gap -->
-                                        <div class="dropdown-bridge" style="
-                                            position: absolute;
-                                            height: 20px;
-                                            left: 0;
-                                            right: 0;
-                                            bottom: -10px;
-                                            background: transparent;
-                                            z-index: 10;
-                                        "></div>
-
-                                        <div class="admin-dropdown-content" style="
-                                            display: none;
-                                            position: absolute;
-                                            background-color: white;
-                                            min-width: 250px;
-                                            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
-                                            z-index: 1000;
-                                            border-radius: 6px;
-                                            overflow: hidden;
-                                            top: 100%;
-                                            left: 0;
-                                            margin-top: 5px;
-                                        ">
-                                            <button
-                                                wire:click="toggleDashboard('AdminGeneral')"
-                                                wire:loading.attr="disabled"
-                                                wire:loading.class="opacity-50"
-                                                style="
-                                                    display: flex;
-                                                    justify-content: space-between;
-                                                    align-items: center;
-                                                    width: 100%;
-                                                    padding: 10px 16px;
-                                                    text-align: left;
                                                     border: none;
-                                                    background: {{ $currentDashboard === 'AdminGeneral' ? '#f3f3f3' : 'white' }};
+                                                    border-radius: 20px;
+                                                    background: {{ in_array($currentDashboard, ['MainAdminDashboard','SoftwareAdmin', 'SoftwareAdminV2', 'HardwareAdmin', 'HardwareAdminV2', 'AdminRepair', 'AdminRenewalv1', 'AdminRenewalEndUser', 'AdminRenewalv2', 'AdminHRDF', 'AdminHRDFAttLog', 'AdminHeadcount', 'AdminGeneral']) ? '#431fa1' : 'transparent' }};
+                                                    color: {{ in_array($currentDashboard, ['MainAdminDashboard','SoftwareAdmin','SoftwareAdminV2', 'HardwareAdmin', 'HardwareAdminV2', 'AdminRepair', 'AdminRenewalv1', 'AdminRenewalEndUser', 'AdminRenewalv2', 'AdminHRDF', 'AdminHRDFAttLog', 'AdminHeadcount', 'AdminGeneral']) ? '#ffffff' : '#555' }};
                                                     cursor: pointer;
-                                                    font-size: 14px;
+                                                    display: flex;
+                                                    align-items: center;
+                                                    gap: 4px;
                                                 "
                                             >
-                                                <span wire:loading.remove wire:target="toggleDashboard('AdminGeneral')">Admin - General</span>
-                                                <span wire:loading wire:target="toggleDashboard('AdminGeneral')" class="flex items-center">
-                                                    <svg class="w-4 h-4 mr-1 animate-spin" fill="none" viewBox="0 0 24 24">
-                                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 818-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 714 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                                    </svg>
-                                                    Loading...
-                                                </span>
-                                                @if($adminGeneralTotal > 0)
+                                                Admin
+                                                @if($adminTotal > 0)
                                                     <span style="
                                                         background: #ef4444;
                                                         color: white;
@@ -1008,729 +944,1001 @@
                                                         font-weight: bold;
                                                         min-width: 20px;
                                                         text-align: center;
-                                                    ">{{ $adminGeneralTotal }}</span>
+                                                    ">{{ $adminTotal }}</span>
                                                 @endif
+                                                <i class="fas fa-caret-down" style="font-size: 12px;"></i>
                                             </button>
 
-                                            <button
-                                                wire:click="toggleDashboard('SoftwareAdmin')"
-                                                wire:loading.attr="disabled"
-                                                wire:loading.class="opacity-50"
-                                                style="
-                                                    display: flex;
-                                                    justify-content: space-between;
-                                                    align-items: center;
-                                                    width: 100%;
-                                                    padding: 10px 16px;
-                                                    text-align: left;
-                                                    border: none;
-                                                    background: {{ $currentDashboard === 'SoftwareAdmin' ? '#f3f3f3' : 'white' }};
-                                                    cursor: pointer;
-                                                    font-size: 14px;
-                                                "
-                                            >
-                                                <span wire:loading.remove wire:target="toggleDashboard('SoftwareAdmin')">Admin - Software v1</span>
-                                                <span wire:loading wire:target="toggleDashboard('SoftwareAdmin')" class="flex items-center">
-                                                    <svg class="w-4 h-4 mr-1 animate-spin" fill="none" viewBox="0 0 24 24">
-                                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                                    </svg>
-                                                    Loading...
-                                                </span>
-                                                @if($adminSoftwareTotal > 0)
-                                                    <span style="
-                                                        background: #ef4444;
-                                                        color: white;
-                                                        border-radius: 12px;
-                                                        padding: 2px 8px;
-                                                        font-size: 12px;
-                                                        font-weight: bold;
-                                                        min-width: 20px;
-                                                        text-align: center;
-                                                    ">{{ $adminSoftwareTotal }}</span>
-                                                @endif
-                                            </button>
+                                            <!-- This is the bridge element that covers the gap -->
+                                            <div class="dropdown-bridge" style="
+                                                position: absolute;
+                                                height: 20px;
+                                                left: 0;
+                                                right: 0;
+                                                bottom: -10px;
+                                                background: transparent;
+                                                z-index: 10;
+                                            "></div>
 
-                                            {{-- <button
-                                                wire:click="toggleDashboard('SoftwareAdminV2')"
-                                                wire:loading.attr="disabled"
-                                                wire:loading.class="opacity-50"
-                                                style="
-                                                    display: flex;
-                                                    justify-content: space-between;
-                                                    align-items: center;
-                                                    width: 100%;
-                                                    padding: 10px 16px;
-                                                    text-align: left;
-                                                    border: none;
-                                                    background: {{ $currentDashboard === 'SoftwareAdminV2' ? '#f3f3f3' : 'white' }};
-                                                    cursor: pointer;
-                                                    font-size: 14px;
-                                                "
-                                            >
-                                                <span wire:loading.remove wire:target="toggleDashboard('SoftwareAdminV2')">Admin - Software v2</span>
-                                                <span wire:loading wire:target="toggleDashboard('SoftwareAdminV2')" class="flex items-center">
-                                                    <svg class="w-4 h-4 mr-1 animate-spin" fill="none" viewBox="0 0 24 24">
-                                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                                    </svg>
-                                                    Loading...
-                                                </span>
-                                                @if($adminSoftwareV2Total > 0)
-                                                    <span style="
-                                                        background: #ef4444;
-                                                        color: white;
-                                                        border-radius: 12px;
-                                                        padding: 2px 8px;
-                                                        font-size: 12px;
-                                                        font-weight: bold;
-                                                        min-width: 20px;
-                                                        text-align: center;
-                                                    ">{{ $adminSoftwareV2Total }}</span>
-                                                @endif
-                                            </button> --}}
+                                            <div class="admin-dropdown-content" style="
+                                                display: none;
+                                                position: absolute;
+                                                background-color: white;
+                                                min-width: 250px;
+                                                box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+                                                z-index: 1000;
+                                                border-radius: 6px;
+                                                overflow: hidden;
+                                                top: 100%;
+                                                left: 0;
+                                                margin-top: 5px;
+                                            ">
+                                                <button
+                                                    wire:click="toggleDashboard('AdminGeneral')"
+                                                    wire:loading.attr="disabled"
+                                                    wire:loading.class="opacity-50"
+                                                    style="
+                                                        display: flex;
+                                                        justify-content: space-between;
+                                                        align-items: center;
+                                                        width: 100%;
+                                                        padding: 10px 16px;
+                                                        text-align: left;
+                                                        border: none;
+                                                        background: {{ $currentDashboard === 'AdminGeneral' ? '#f3f3f3' : 'white' }};
+                                                        cursor: pointer;
+                                                        font-size: 14px;
+                                                    "
+                                                >
+                                                    <span wire:loading.remove wire:target="toggleDashboard('AdminGeneral')">Admin - General</span>
+                                                    <span wire:loading wire:target="toggleDashboard('AdminGeneral')" class="flex items-center">
+                                                        <svg class="w-4 h-4 mr-1 animate-spin" fill="none" viewBox="0 0 24 24">
+                                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 818-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 714 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                        </svg>
+                                                        Loading...
+                                                    </span>
+                                                    @if($adminGeneralTotal > 0)
+                                                        <span style="
+                                                            background: #ef4444;
+                                                            color: white;
+                                                            border-radius: 12px;
+                                                            padding: 2px 8px;
+                                                            font-size: 12px;
+                                                            font-weight: bold;
+                                                            min-width: 20px;
+                                                            text-align: center;
+                                                        ">{{ $adminGeneralTotal }}</span>
+                                                    @endif
+                                                </button>
 
-                                            <button
-                                                wire:click="toggleDashboard('HardwareAdminV2')"
-                                                wire:loading.attr="disabled"
-                                                wire:loading.class="opacity-50"
-                                                style="
-                                                    display: flex;
-                                                    justify-content: space-between;
-                                                    align-items: center;
-                                                    width: 100%;
-                                                    padding: 10px 16px;
-                                                    text-align: left;
-                                                    border: none;
-                                                    background: {{ $currentDashboard === 'HardwareAdminV2' ? '#f3f3f3' : 'white' }};
-                                                    cursor: pointer;
-                                                    font-size: 14px;
-                                                "
-                                            >
-                                                <span wire:loading.remove wire:target="toggleDashboard('HardwareAdminV2')">Admin - Hardware v2</span>
-                                                <span wire:loading wire:target="toggleDashboard('HardwareAdminV2')" class="flex items-center">
-                                                    <svg class="w-4 h-4 mr-1 animate-spin" fill="none" viewBox="0 0 24 24">
-                                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                                    </svg>
-                                                    Loading...
-                                                </span>
-                                                @if($initialStageTotal > 0)
-                                                    <span style="
-                                                        background: #ef4444;
-                                                        color: white;
-                                                        border-radius: 12px;
-                                                        padding: 2px 8px;
-                                                        font-size: 12px;
-                                                        font-weight: bold;
-                                                        min-width: 20px;
-                                                        text-align: center;
-                                                    ">{{ $initialStageTotal }}</span>
-                                                @endif
-                                            </button>
+                                                <button
+                                                    wire:click="toggleDashboard('SoftwareAdmin')"
+                                                    wire:loading.attr="disabled"
+                                                    wire:loading.class="opacity-50"
+                                                    style="
+                                                        display: flex;
+                                                        justify-content: space-between;
+                                                        align-items: center;
+                                                        width: 100%;
+                                                        padding: 10px 16px;
+                                                        text-align: left;
+                                                        border: none;
+                                                        background: {{ $currentDashboard === 'SoftwareAdmin' ? '#f3f3f3' : 'white' }};
+                                                        cursor: pointer;
+                                                        font-size: 14px;
+                                                    "
+                                                >
+                                                    <span wire:loading.remove wire:target="toggleDashboard('SoftwareAdmin')">Admin - Software v1</span>
+                                                    <span wire:loading wire:target="toggleDashboard('SoftwareAdmin')" class="flex items-center">
+                                                        <svg class="w-4 h-4 mr-1 animate-spin" fill="none" viewBox="0 0 24 24">
+                                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                        </svg>
+                                                        Loading...
+                                                    </span>
+                                                    @if($adminSoftwareTotal > 0)
+                                                        <span style="
+                                                            background: #ef4444;
+                                                            color: white;
+                                                            border-radius: 12px;
+                                                            padding: 2px 8px;
+                                                            font-size: 12px;
+                                                            font-weight: bold;
+                                                            min-width: 20px;
+                                                            text-align: center;
+                                                        ">{{ $adminSoftwareTotal }}</span>
+                                                    @endif
+                                                </button>
 
-                                            <button
-                                                wire:click="toggleDashboard('AdminHeadcount')"
-                                                wire:loading.attr="disabled"
-                                                wire:loading.class="opacity-50"
-                                                style="
-                                                    display: flex;
-                                                    justify-content: space-between;
-                                                    align-items: center;
-                                                    width: 100%;
-                                                    padding: 10px 16px;
-                                                    text-align: left;
-                                                    border: none;
-                                                    background: {{ $currentDashboard === 'AdminHeadcount' ? '#f3f3f3' : 'white' }};
-                                                    cursor: pointer;
-                                                    font-size: 14px;
-                                                "
-                                            >
-                                                <span wire:loading.remove wire:target="toggleDashboard('AdminHeadcount')">Admin - Headcount</span>
-                                                <span wire:loading wire:target="toggleDashboard('AdminHeadcount')" class="flex items-center">
-                                                    <svg class="w-4 h-4 mr-1 animate-spin" fill="none" viewBox="0 0 24 24">
-                                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                                    </svg>
-                                                    Loading...
-                                                </span>
-                                                @if($adminHeadcountTotal > 0)
-                                                    <span style="
-                                                        background: #ef4444;
-                                                        color: white;
-                                                        border-radius: 12px;
-                                                        padding: 2px 8px;
-                                                        font-size: 12px;
-                                                        font-weight: bold;
-                                                        min-width: 20px;
-                                                        text-align: center;
-                                                    ">{{ $adminHeadcountTotal }}</span>
-                                                @endif
-                                            </button>
+                                                <button
+                                                    wire:click="toggleDashboard('HardwareAdminV2')"
+                                                    wire:loading.attr="disabled"
+                                                    wire:loading.class="opacity-50"
+                                                    style="
+                                                        display: flex;
+                                                        justify-content: space-between;
+                                                        align-items: center;
+                                                        width: 100%;
+                                                        padding: 10px 16px;
+                                                        text-align: left;
+                                                        border: none;
+                                                        background: {{ $currentDashboard === 'HardwareAdminV2' ? '#f3f3f3' : 'white' }};
+                                                        cursor: pointer;
+                                                        font-size: 14px;
+                                                    "
+                                                >
+                                                    <span wire:loading.remove wire:target="toggleDashboard('HardwareAdminV2')">Admin - Hardware v2</span>
+                                                    <span wire:loading wire:target="toggleDashboard('HardwareAdminV2')" class="flex items-center">
+                                                        <svg class="w-4 h-4 mr-1 animate-spin" fill="none" viewBox="0 0 24 24">
+                                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                        </svg>
+                                                        Loading...
+                                                    </span>
+                                                    @if($initialStageTotal > 0)
+                                                        <span style="
+                                                            background: #ef4444;
+                                                            color: white;
+                                                            border-radius: 12px;
+                                                            padding: 2px 8px;
+                                                            font-size: 12px;
+                                                            font-weight: bold;
+                                                            min-width: 20px;
+                                                            text-align: center;
+                                                        ">{{ $initialStageTotal }}</span>
+                                                    @endif
+                                                </button>
 
-                                            <button
-                                                wire:click="toggleDashboard('AdminHRDFAttLog')"
-                                                wire:loading.attr="disabled"
-                                                wire:loading.class="opacity-50"
-                                                style="
-                                                    display: flex;
-                                                    justify-content: space-between;
-                                                    align-items: center;
-                                                    width: 100%;
-                                                    padding: 10px 16px;
-                                                    text-align: left;
-                                                    border: none;
-                                                    background: {{ $currentDashboard === 'AdminHRDFAttLog' ? '#f3f3f3' : 'white' }};
-                                                    cursor: pointer;
-                                                    font-size: 14px;
-                                                "
-                                            >
-                                                <span wire:loading.remove wire:target="toggleDashboard('AdminHRDFAttLog')">Admin - HRDF Att Log</span>
-                                                <span wire:loading wire:target="toggleDashboard('AdminHRDFAttLog')" class="flex items-center">
-                                                    <svg class="w-4 h-4 mr-1 animate-spin" fill="none" viewBox="0 0 24 24">
-                                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                                    </svg>
-                                                    Loading...
-                                                </span>
-                                                @if($adminHrdfAttLogTotal > 0)
-                                                    <span style="
-                                                        background: #ef4444;
-                                                        color: white;
-                                                        border-radius: 12px;
-                                                        padding: 2px 8px;
-                                                        font-size: 12px;
-                                                        font-weight: bold;
-                                                        min-width: 20px;
-                                                        text-align: center;
-                                                    ">{{ $adminHrdfAttLogTotal }}</span>
-                                                @endif
-                                            </button>
+                                                <button
+                                                    wire:click="toggleDashboard('AdminHeadcount')"
+                                                    wire:loading.attr="disabled"
+                                                    wire:loading.class="opacity-50"
+                                                    style="
+                                                        display: flex;
+                                                        justify-content: space-between;
+                                                        align-items: center;
+                                                        width: 100%;
+                                                        padding: 10px 16px;
+                                                        text-align: left;
+                                                        border: none;
+                                                        background: {{ $currentDashboard === 'AdminHeadcount' ? '#f3f3f3' : 'white' }};
+                                                        cursor: pointer;
+                                                        font-size: 14px;
+                                                    "
+                                                >
+                                                    <span wire:loading.remove wire:target="toggleDashboard('AdminHeadcount')">Admin - Headcount</span>
+                                                    <span wire:loading wire:target="toggleDashboard('AdminHeadcount')" class="flex items-center">
+                                                        <svg class="w-4 h-4 mr-1 animate-spin" fill="none" viewBox="0 0 24 24">
+                                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                        </svg>
+                                                        Loading...
+                                                    </span>
+                                                    @if($adminHeadcountTotal > 0)
+                                                        <span style="
+                                                            background: #ef4444;
+                                                            color: white;
+                                                            border-radius: 12px;
+                                                            padding: 2px 8px;
+                                                            font-size: 12px;
+                                                            font-weight: bold;
+                                                            min-width: 20px;
+                                                            text-align: center;
+                                                        ">{{ $adminHeadcountTotal }}</span>
+                                                    @endif
+                                                </button>
 
-                                            <button
-                                                wire:click="toggleDashboard('AdminHRDF')"
-                                                wire:loading.attr="disabled"
-                                                wire:loading.class="opacity-50"
-                                                style="
-                                                    display: flex;
-                                                    justify-content: space-between;
-                                                    align-items: center;
-                                                    width: 100%;
-                                                    padding: 10px 16px;
-                                                    text-align: left;
-                                                    border: none;
-                                                    background: {{ $currentDashboard === 'AdminHRDF' ? '#f3f3f3' : 'white' }};
-                                                    cursor: pointer;
-                                                    font-size: 14px;
-                                                "
-                                            >
-                                                <span wire:loading.remove wire:target="toggleDashboard('AdminHRDF')">Admin - HRDF Claim</span>
-                                                <span wire:loading wire:target="toggleDashboard('AdminHRDF')" class="flex items-center">
-                                                    <svg class="w-4 h-4 mr-1 animate-spin" fill="none" viewBox="0 0 24 24">
-                                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                                    </svg>
-                                                    Loading...
-                                                </span>
-                                                @if($adminHrdfTotal > 0)
-                                                    <span style="
-                                                        background: #ef4444;
-                                                        color: white;
-                                                        border-radius: 12px;
-                                                        padding: 2px 8px;
-                                                        font-size: 12px;
-                                                        font-weight: bold;
-                                                        min-width: 20px;
-                                                        text-align: center;
-                                                    ">{{ $adminHrdfTotal }}</span>
-                                                @endif
-                                            </button>
+                                                <button
+                                                    wire:click="toggleDashboard('AdminHRDFAttLog')"
+                                                    wire:loading.attr="disabled"
+                                                    wire:loading.class="opacity-50"
+                                                    style="
+                                                        display: flex;
+                                                        justify-content: space-between;
+                                                        align-items: center;
+                                                        width: 100%;
+                                                        padding: 10px 16px;
+                                                        text-align: left;
+                                                        border: none;
+                                                        background: {{ $currentDashboard === 'AdminHRDFAttLog' ? '#f3f3f3' : 'white' }};
+                                                        cursor: pointer;
+                                                        font-size: 14px;
+                                                    "
+                                                >
+                                                    <span wire:loading.remove wire:target="toggleDashboard('AdminHRDFAttLog')">Admin - HRDF Att Log</span>
+                                                    <span wire:loading wire:target="toggleDashboard('AdminHRDFAttLog')" class="flex items-center">
+                                                        <svg class="w-4 h-4 mr-1 animate-spin" fill="none" viewBox="0 0 24 24">
+                                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                        </svg>
+                                                        Loading...
+                                                    </span>
+                                                    @if($adminHrdfAttLogTotal > 0)
+                                                        <span style="
+                                                            background: #ef4444;
+                                                            color: white;
+                                                            border-radius: 12px;
+                                                            padding: 2px 8px;
+                                                            font-size: 12px;
+                                                            font-weight: bold;
+                                                            min-width: 20px;
+                                                            text-align: center;
+                                                        ">{{ $adminHrdfAttLogTotal }}</span>
+                                                    @endif
+                                                </button>
 
-                                            <button
-                                                wire:click="toggleDashboard('AdminUSDInvoice')"
-                                                wire:loading.attr="disabled"
-                                                wire:loading.class="opacity-50"
-                                                style="
-                                                    display: flex;
-                                                    justify-content: space-between;
-                                                    align-items: center;
-                                                    width: 100%;
-                                                    padding: 10px 16px;
-                                                    text-align: left;
-                                                    border: none;
-                                                    background: {{ $currentDashboard === 'AdminUSDInvoice' ? '#f3f3f3' : 'white' }};
-                                                    font-size: 14px;
-                                                "
-                                            >
-                                                <span wire:loading.remove wire:target="toggleDashboard('AdminUSDInvoice')">Admin - USD Invoice</span>
-                                                <span wire:loading wire:target="toggleDashboard('AdminUSDInvoice')" class="flex items-center">
-                                                    <svg class="w-4 h-4 mr-1 animate-spin" fill="none" viewBox="0 0 24 24">
-                                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                                    </svg>
-                                                    Loading...
-                                                </span>
-                                                @if($adminUSDInvoiceTotal > 0)
-                                                    <span style="
-                                                        background: #ef4444;
-                                                        color: white;
-                                                        border-radius: 12px;
-                                                        padding: 2px 8px;
-                                                        font-size: 12px;
-                                                        font-weight: bold;
-                                                        min-width: 20px;
-                                                        text-align: center;
-                                                    ">{{ $adminUSDInvoiceTotal }}</span>
-                                                @endif
-                                            </button>
+                                                <button
+                                                    wire:click="toggleDashboard('AdminHRDF')"
+                                                    wire:loading.attr="disabled"
+                                                    wire:loading.class="opacity-50"
+                                                    style="
+                                                        display: flex;
+                                                        justify-content: space-between;
+                                                        align-items: center;
+                                                        width: 100%;
+                                                        padding: 10px 16px;
+                                                        text-align: left;
+                                                        border: none;
+                                                        background: {{ $currentDashboard === 'AdminHRDF' ? '#f3f3f3' : 'white' }};
+                                                        cursor: pointer;
+                                                        font-size: 14px;
+                                                    "
+                                                >
+                                                    <span wire:loading.remove wire:target="toggleDashboard('AdminHRDF')">Admin - HRDF Claim</span>
+                                                    <span wire:loading wire:target="toggleDashboard('AdminHRDF')" class="flex items-center">
+                                                        <svg class="w-4 h-4 mr-1 animate-spin" fill="none" viewBox="0 0 24 24">
+                                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                        </svg>
+                                                        Loading...
+                                                    </span>
+                                                    @if($adminHrdfTotal > 0)
+                                                        <span style="
+                                                            background: #ef4444;
+                                                            color: white;
+                                                            border-radius: 12px;
+                                                            padding: 2px 8px;
+                                                            font-size: 12px;
+                                                            font-weight: bold;
+                                                            min-width: 20px;
+                                                            text-align: center;
+                                                        ">{{ $adminHrdfTotal }}</span>
+                                                    @endif
+                                                </button>
 
-                                            <button
-                                                wire:click="toggleDashboard('AdminRepair')"
-                                                wire:loading.attr="disabled"
-                                                wire:loading.class="opacity-50"
-                                                style="
-                                                    display: block;
-                                                    width: 100%;
-                                                    padding: 10px 16px;
-                                                    text-align: left;
-                                                    border: none;
-                                                    background: {{ $currentDashboard === 'AdminRepair' ? '#f3f3f3' : 'white' }};
-                                                    cursor: pointer;
-                                                    font-size: 14px;
-                                                "
-                                            >
-                                                <span wire:loading.remove wire:target="toggleDashboard('AdminRepair')">Admin - Onsite Repair</span>
-                                                <span wire:loading wire:target="toggleDashboard('AdminRepair')" class="flex items-center">
-                                                    <svg class="w-4 h-4 mr-1 animate-spin" fill="none" viewBox="0 0 24 24">
-                                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 714 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                                    </svg>
-                                                    Loading...
-                                                </span>
-                                            </button>
+                                                <button
+                                                    wire:click="toggleDashboard('AdminUSDInvoice')"
+                                                    wire:loading.attr="disabled"
+                                                    wire:loading.class="opacity-50"
+                                                    style="
+                                                        display: flex;
+                                                        justify-content: space-between;
+                                                        align-items: center;
+                                                        width: 100%;
+                                                        padding: 10px 16px;
+                                                        text-align: left;
+                                                        border: none;
+                                                        background: {{ $currentDashboard === 'AdminUSDInvoice' ? '#f3f3f3' : 'white' }};
+                                                        font-size: 14px;
+                                                    "
+                                                >
+                                                    <span wire:loading.remove wire:target="toggleDashboard('AdminUSDInvoice')">Admin - USD Invoice</span>
+                                                    <span wire:loading wire:target="toggleDashboard('AdminUSDInvoice')" class="flex items-center">
+                                                        <svg class="w-4 h-4 mr-1 animate-spin" fill="none" viewBox="0 0 24 24">
+                                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                        </svg>
+                                                        Loading...
+                                                    </span>
+                                                    @if($adminUSDInvoiceTotal > 0)
+                                                        <span style="
+                                                            background: #ef4444;
+                                                            color: white;
+                                                            border-radius: 12px;
+                                                            padding: 2px 8px;
+                                                            font-size: 12px;
+                                                            font-weight: bold;
+                                                            min-width: 20px;
+                                                            text-align: center;
+                                                        ">{{ $adminUSDInvoiceTotal }}</span>
+                                                    @endif
+                                                </button>
 
-                                            <button
-                                                wire:click="toggleDashboard('Debtor')"
-                                                wire:loading.attr="disabled"
-                                                wire:loading.class="opacity-50"
-                                                style="
-                                                    display: block;
-                                                    width: 100%;
-                                                    padding: 10px 16px;
-                                                    text-align: left;
-                                                    border: none;
-                                                    background: {{ $currentDashboard === 'Debtor' ? '#f3f3f3' : 'white' }};
-                                                    cursor: pointer;
-                                                    font-size: 14px;
-                                                "
-                                            >
-                                                <span wire:loading.remove wire:target="toggleDashboard('Debtor')">Admin - InHouse Repair</span>
-                                                <span wire:loading wire:target="toggleDashboard('Debtor')" class="flex items-center">
-                                                    <svg class="w-4 h-4 mr-1 animate-spin" fill="none" viewBox="0 0 24 24">
-                                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 818-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                                    </svg>
-                                                    Loading...
-                                                </span>
-                                            </button>
+                                                <button
+                                                    wire:click="toggleDashboard('AdminRepair')"
+                                                    wire:loading.attr="disabled"
+                                                    wire:loading.class="opacity-50"
+                                                    style="
+                                                        display: block;
+                                                        width: 100%;
+                                                        padding: 10px 16px;
+                                                        text-align: left;
+                                                        border: none;
+                                                        background: {{ $currentDashboard === 'AdminRepair' ? '#f3f3f3' : 'white' }};
+                                                        cursor: pointer;
+                                                        font-size: 14px;
+                                                    "
+                                                >
+                                                    <span wire:loading.remove wire:target="toggleDashboard('AdminRepair')">Admin - Onsite Repair</span>
+                                                    <span wire:loading wire:target="toggleDashboard('AdminRepair')" class="flex items-center">
+                                                        <svg class="w-4 h-4 mr-1 animate-spin" fill="none" viewBox="0 0 24 24">
+                                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 714 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                        </svg>
+                                                        Loading...
+                                                    </span>
+                                                </button>
+
+                                                <button
+                                                    wire:click="toggleDashboard('Debtor')"
+                                                    wire:loading.attr="disabled"
+                                                    wire:loading.class="opacity-50"
+                                                    style="
+                                                        display: block;
+                                                        width: 100%;
+                                                        padding: 10px 16px;
+                                                        text-align: left;
+                                                        border: none;
+                                                        background: {{ $currentDashboard === 'Debtor' ? '#f3f3f3' : 'white' }};
+                                                        cursor: pointer;
+                                                        font-size: 14px;
+                                                    "
+                                                >
+                                                    <span wire:loading.remove wire:target="toggleDashboard('Debtor')">Admin - InHouse Repair</span>
+                                                    <span wire:loading wire:target="toggleDashboard('Debtor')" class="flex items-center">
+                                                        <svg class="w-4 h-4 mr-1 animate-spin" fill="none" viewBox="0 0 24 24">
+                                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 818-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                        </svg>
+                                                        Loading...
+                                                    </span>
+                                                </button>
+                                            </div>
                                         </div>
-                                    </div>
 
-                                    <!-- Trainer Button -->
-                                    <button
-                                        wire:click="toggleDashboard('Trainer')"
-                                        wire:loading.attr="disabled"
-                                        wire:loading.class="opacity-50 cursor-not-allowed"
-                                        style="
-                                            padding: 10px 15px;
-                                            font-size: 14px;
-                                            font-weight: bold;
-                                            border: none;
-                                            border-radius: 20px;
-                                            background: {{ $currentDashboard === 'Trainer' ? '#431fa1' : 'transparent' }};
-                                            color: {{ $currentDashboard === 'Trainer' ? '#ffffff' : '#555' }};
-                                            cursor: pointer;
-                                        "
-                                    >
-                                        <span wire:loading.remove wire:target="toggleDashboard('Trainer')">Trainer</span>
-                                        <span wire:loading wire:target="toggleDashboard('Trainer')">
-                                            <svg class="inline w-4 h-4 mr-1 animate-spin" fill="none" viewBox="0 0 24 24">
-                                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 818-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 714 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                            </svg>
-                                            Loading...
-                                        </span>
-                                    </button>
-
-                                    <!-- Implementer Button -->
-                                    <button
-                                        wire:click="toggleDashboard('Implementer')"
-                                        wire:loading.attr="disabled"
-                                        wire:loading.class="opacity-50 cursor-not-allowed"
-                                        style="
-                                            padding: 10px 15px;
-                                            font-size: 14px;
-                                            font-weight: bold;
-                                            border: none;
-                                            border-radius: 20px;
-                                            background: {{ $currentDashboard === 'Implementer' ? '#431fa1' : 'transparent' }};
-                                            color: {{ $currentDashboard === 'Implementer' ? '#ffffff' : '#555' }};
-                                            cursor: pointer;
-                                        "
-                                    >
-                                        <span wire:loading.remove wire:target="toggleDashboard('Implementer')">Implementer</span>
-                                        <span wire:loading wire:target="toggleDashboard('Implementer')">
-                                            <svg class="inline w-4 h-4 mr-1 animate-spin" fill="none" viewBox="0 0 24 24">
-                                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 818-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 714 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                            </svg>
-                                            Loading...
-                                        </span>
-                                    </button>
-
-                                    <!-- Support Button -->
-                                    <button
-                                        wire:click="toggleDashboard('Support')"
-                                        wire:loading.attr="disabled"
-                                        wire:loading.class="opacity-50 cursor-not-allowed"
-                                        style="
-                                            padding: 10px 15px;
-                                            font-size: 14px;
-                                            font-weight: bold;
-                                            border: none;
-                                            border-radius: 20px;
-                                            background: {{ $currentDashboard === 'Support' ? '#431fa1' : 'transparent' }};
-                                            color: {{ $currentDashboard === 'Support' ? '#ffffff' : '#555' }};
-                                            cursor: pointer;
-                                        "
-                                    >
-                                        <span wire:loading.remove wire:target="toggleDashboard('Support')">Support</span>
-                                        <span wire:loading wire:target="toggleDashboard('Support')">
-                                            <svg class="inline w-4 h-4 mr-1 animate-spin" fill="none" viewBox="0 0 24 24">
-                                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 818-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 714 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                            </svg>
-                                            Loading...
-                                        </span>
-                                    </button>
-
-                                    <!-- Technician Button -->
-                                    <button
-                                        wire:click="toggleDashboard('Technician')"
-                                        wire:loading.attr="disabled"
-                                        wire:loading.class="opacity-50 cursor-not-allowed"
-                                        style="
-                                            padding: 10px 15px;
-                                            font-size: 14px;
-                                            font-weight: bold;
-                                            border: none;
-                                            border-radius: 20px;
-                                            background: {{ $currentDashboard === 'Technician' ? '#431fa1' : 'transparent' }};
-                                            color: {{ $currentDashboard === 'Technician' ? '#ffffff' : '#555' }};
-                                            cursor: pointer;
-                                        "
-                                    >
-                                        <span wire:loading.remove wire:target="toggleDashboard('Technician')">Technician</span>
-                                        <span wire:loading wire:target="toggleDashboard('Technician')">
-                                            <svg class="inline w-4 h-4 mr-1 animate-spin" fill="none" viewBox="0 0 24 24">
-                                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 818-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 714 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                            </svg>
-                                            Loading...
-                                        </span>
-                                    </button>
-                                </div>
-                            </div>
-                        @endif
-
-                        <!-- Additional toggle for users with role_id=1 and additional_role=1 -->
-                        @if ((auth()->user()->role_id == 1 && auth()->user()->additional_role == 1) ||
-                            (isset($selectedUserModel) && $selectedUserModel && $selectedUserModel->role_id == 1 && $selectedUserModel->additional_role == 1))
-                                <div class="admin-dropdown admin-dropdown-2" id="adminDropdown2" style="position: relative; display: inline-block;">
-                                    <button
-                                        class="admin-dropdown-button"
-                                        style="
-                                            padding: 10px 15px;
-                                            font-size: 14px;
-                                            font-weight: bold;
-                                            border: none;
-                                            border-radius: 20px;
-                                            background: {{ in_array($currentDashboard, ['MainAdminDashboard','SoftwareAdmin', 'HardwareAdmin', 'HardwareAdminV2', 'AdminRepair', 'AdminRenewalv1', 'AdminRenewalEndUser', 'AdminRenewalv2', 'AdminHRDF', 'AdminHRDFAttLog', 'AdminHeadcount']) ? '#431fa1' : 'transparent' }};
-                                            color: {{ in_array($currentDashboard, ['SoftwareAdmin', 'HardwareAdmin', 'HardwareAdminV2', 'AdminRepair', 'AdminRenewalv1', 'AdminRenewalEndUser', 'AdminRenewalv2', 'AdminHRDF', 'AdminHRDFAttLog', 'AdminHeadcount']) ? '#ffffff' : '#555' }};
-                                            cursor: pointer;
-                                            display: flex;
-                                            align-items: center;
-                                            gap: 4px;
-                                        "
-                                    >
-                                        Admin <i class="fas fa-caret-down" style="font-size: 12px;"></i>
-                                    </button>
-
-                                    <!-- This is the bridge element that covers the gap -->
-                                    <div class="dropdown-bridge" style="
-                                        position: absolute;
-                                        height: 20px;
-                                        left: 0;
-                                        right: 0;
-                                        bottom: -10px;
-                                        background: transparent;
-                                        z-index: 10;
-                                    "></div>
-
-                                    <div class="admin-dropdown-content" style="
-                                        display: none;
-                                        position: absolute;
-                                        background-color: white;
-                                        min-width: 250px;
-                                        box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
-                                        z-index: 10;
-                                        border-radius: 6px;
-                                        overflow: hidden;
-                                        top: 100%; /* Position at the bottom of the button */
-                                        left: 0;
-                                        margin-top: 5px; /* Add a small gap */
-                                    ">
+                                        <!-- Trainer Button -->
                                         <button
-                                            wire:click="toggleDashboard('MainAdminDashboard')"
+                                            wire:click="toggleDashboard('Trainer')"
+                                            wire:loading.attr="disabled"
+                                            wire:loading.class="opacity-50 cursor-not-allowed"
                                             style="
-                                                display: block;
-                                                width: 250px;
-                                                padding: 10px 16px;
-                                                text-align: left;
-                                                border: none;
-                                                background: {{ $currentDashboard === 'MainAdminDashboard' ? '#f3f3f3' : 'white' }};
-                                                cursor: pointer;
+                                                padding: 10px 15px;
                                                 font-size: 14px;
+                                                font-weight: bold;
+                                                border: none;
+                                                border-radius: 20px;
+                                                background: {{ $currentDashboard === 'Trainer' ? '#431fa1' : 'transparent' }};
+                                                color: {{ $currentDashboard === 'Trainer' ? '#ffffff' : '#555' }};
+                                                cursor: pointer;
                                             "
                                         >
-                                            Admin - Dashboard
+                                            <span wire:loading.remove wire:target="toggleDashboard('Trainer')">Trainer</span>
+                                            <span wire:loading wire:target="toggleDashboard('Trainer')">
+                                                <svg class="inline w-4 h-4 mr-1 animate-spin" fill="none" viewBox="0 0 24 24">
+                                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 818-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 714 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                </svg>
+                                                Loading...
+                                            </span>
                                         </button>
 
+                                        <!-- Implementer Button -->
                                         <button
-                                            wire:click="toggleDashboard('SoftwareAdmin')"
+                                            wire:click="toggleDashboard('Implementer')"
+                                            wire:loading.attr="disabled"
+                                            wire:loading.class="opacity-50 cursor-not-allowed"
                                             style="
-                                                display: block;
-                                                width: 100%;
-                                                padding: 10px 16px;
-                                                text-align: left;
-                                                border: none;
-                                                background: {{ $currentDashboard === 'SoftwareAdmin' ? '#f3f3f3' : 'white' }};
-                                                cursor: pointer;
+                                                padding: 10px 15px;
                                                 font-size: 14px;
+                                                font-weight: bold;
+                                                border: none;
+                                                border-radius: 20px;
+                                                background: {{ $currentDashboard === 'Implementer' ? '#431fa1' : 'transparent' }};
+                                                color: {{ $currentDashboard === 'Implementer' ? '#ffffff' : '#555' }};
+                                                cursor: pointer;
                                             "
                                         >
-                                            Admin - Software
+                                            <span wire:loading.remove wire:target="toggleDashboard('Implementer')">Implementer</span>
+                                            <span wire:loading wire:target="toggleDashboard('Implementer')">
+                                                <svg class="inline w-4 h-4 mr-1 animate-spin" fill="none" viewBox="0 0 24 24">
+                                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 818-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 714 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                </svg>
+                                                Loading...
+                                            </span>
                                         </button>
 
+                                        <!-- Support Button -->
                                         <button
-                                            wire:click="toggleDashboard('HardwareAdmin')"
+                                            wire:click="toggleDashboard('Support')"
+                                            wire:loading.attr="disabled"
+                                            wire:loading.class="opacity-50 cursor-not-allowed"
                                             style="
-                                                display: block;
-                                                width: 100%;
-                                                padding: 10px 16px;
-                                                text-align: left;
-                                                border: none;
-                                                background: {{ $currentDashboard === 'HardwareAdminV2' ? '#f3f3f3' : 'white' }};
-                                                cursor: pointer;
+                                                padding: 10px 15px;
                                                 font-size: 14px;
+                                                font-weight: bold;
+                                                border: none;
+                                                border-radius: 20px;
+                                                background: {{ $currentDashboard === 'Support' ? '#431fa1' : 'transparent' }};
+                                                color: {{ $currentDashboard === 'Support' ? '#ffffff' : '#555' }};
+                                                cursor: pointer;
                                             "
                                         >
-                                            Admin - Hardware v2
+                                            <span wire:loading.remove wire:target="toggleDashboard('Support')">Support</span>
+                                            <span wire:loading wire:target="toggleDashboard('Support')">
+                                                <svg class="inline w-4 h-4 mr-1 animate-spin" fill="none" viewBox="0 0 24 24">
+                                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 818-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 714 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                </svg>
+                                                Loading...
+                                            </span>
                                         </button>
 
+                                        <!-- Technician Button -->
                                         <button
-                                            wire:click="toggleDashboard('AdminHeadcount')"
+                                            wire:click="toggleDashboard('Technician')"
+                                            wire:loading.attr="disabled"
+                                            wire:loading.class="opacity-50 cursor-not-allowed"
                                             style="
-                                                display: block;
-                                                width: 100%;
-                                                padding: 10px 16px;
-                                                text-align: left;
-                                                border: none;
-                                                background: {{ $currentDashboard === 'AdminHeadcount' ? '#f3f3f3' : 'white' }};
-                                                cursor: pointer;
+                                                padding: 10px 15px;
                                                 font-size: 14px;
+                                                font-weight: bold;
+                                                border: none;
+                                                border-radius: 20px;
+                                                background: {{ $currentDashboard === 'Technician' ? '#431fa1' : 'transparent' }};
+                                                color: {{ $currentDashboard === 'Technician' ? '#ffffff' : '#555' }};
+                                                cursor: pointer;
                                             "
                                         >
-                                            Admin - Headcount
-                                        </button>
-
-                                        <button
-                                            wire:click="toggleDashboard('AdminHRDFAttLog')"
-                                            style="
-                                                display: flex;
-                                                justify-content: space-between;
-                                                align-items: center;
-                                                width: 100%;
-                                                padding: 10px 16px;
-                                                text-align: left;
-                                                border: none;
-                                                background: {{ $currentDashboard === 'AdminHRDFAttLog' ? '#f3f3f3' : 'white' }};
-                                                cursor: pointer;
-                                                font-size: 14px;
-                                            "
-                                        >
-                                            <span>Admin - HRDF Att Log</span>
-                                        </button>
-
-                                        <button
-                                            wire:click="toggleDashboard('AdminHRDF')"
-                                            style="
-                                                display: block;
-                                                width: 100%;
-                                                padding: 10px 16px;
-                                                text-align: left;
-                                                border: none;
-                                                background: {{ $currentDashboard === 'AdminHRDF' ? '#f3f3f3' : 'white' }};
-                                                cursor: pointer;
-                                                font-size: 14px;
-                                            "
-                                        >
-                                            Admin - HRDF Claim
-                                        </button>
-
-                                        <button
-                                            wire:click="toggleDashboard('AdminRepair')"
-                                            style="
-                                                display: block;
-                                                width: 100%;
-                                                padding: 10px 16px;
-                                                text-align: left;
-                                                border: none;
-                                                background: {{ $currentDashboard === 'AdminRepair' ? '#f3f3f3' : 'white' }};
-                                                cursor: pointer;
-                                                font-size: 14px;
-                                            "
-                                        >
-                                            Admin - Onsite Repair
-                                        </button>
-
-                                        <button
-                                            wire:click="toggleDashboard('Debtor')"
-                                            style="
-                                                display: block;
-                                                width: 100%;
-                                                padding: 10px 16px;
-                                                text-align: left;
-                                                border: none;
-                                                background: {{ $currentDashboard === 'Debtor' ? '#f3f3f3' : 'white' }};
-                                                cursor: pointer;
-                                                font-size: 14px;
-                                            "
-                                        >
-                                            Admin - InHouse Repair
-                                        </button>
-
-                                        <button
-                                            wire:click="toggleDashboard('AdminRenewalv1')"
-                                            style="
-                                                display: block;
-                                                width: 100%;
-                                                padding: 10px 16px;
-                                                text-align: left;
-                                                border: none;
-                                                background: {{ $currentDashboard === 'AdminRenewalv1' ? '#f3f3f3' : 'white' }};
-                                                cursor: pointer;
-                                                font-size: 14px;
-                                            "
-                                        >
-                                            Admin - Renewal (Reseller)
-                                        </button>
-
-                                        <button
-                                            wire:click="toggleDashboard('AdminRenewalv2')"
-                                            style="
-                                                display: block;
-                                                width: 100%;
-                                                padding: 10px 16px;
-                                                text-align: left;
-                                                border: none;
-                                                background: {{ $currentDashboard === 'AdminRenewalv2' ? '#f3f3f3' : 'white' }};
-                                                cursor: pointer;
-                                                font-size: 14px;
-                                            "
-                                        >
-                                            Admin - Renewal (Non-Reseller)
+                                            <span wire:loading.remove wire:target="toggleDashboard('Technician')">Technician</span>
+                                            <span wire:loading wire:target="toggleDashboard('Technician')">
+                                                <svg class="inline w-4 h-4 mr-1 animate-spin" fill="none" viewBox="0 0 24 24">
+                                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 818-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 714 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                </svg>
+                                                Loading...
+                                            </span>
                                         </button>
                                     </div>
                                 </div>
                             @endif
+
+                            <!-- Additional toggle for users with role_id=1 and additional_role=1 -->
+                            @if ((auth()->user()->role_id == 3 && auth()->user()->additional_role == 1) ||
+                                (isset($selectedUserModel) && $selectedUserModel && $selectedUserModel->role_id == 3 && $selectedUserModel->additional_role == 1))
+                                <div style="display: flex; align-items: center;">
+                                    <div style="display: flex; background: #f0f0f0; border-radius: 25px; padding: 3px;">
+                                        <button
+                                            wire:click="toggleDashboard('Manager')"
+                                            wire:loading.attr="disabled"
+                                            wire:loading.class="opacity-50 cursor-not-allowed"
+                                            style="
+                                                padding: 10px 15px;
+                                                font-size: 14px;
+                                                font-weight: bold;
+                                                border: none;
+                                                border-radius: 20px;
+                                                background: {{ $currentDashboard === 'Manager' ? '#431fa1' : 'transparent' }};
+                                                color: {{ $currentDashboard === 'Manager' ? '#ffffff' : '#555' }};
+                                                cursor: pointer;
+                                                display: flex;
+                                                align-items: center;
+                                                gap: 4px;
+                                            "
+                                        >
+                                            <span wire:loading.remove wire:target="toggleDashboard('Manager')">
+                                                Manager
+                                                @if($managerTotal > 0)
+                                                    <span style="
+                                                        background: #ef4444;
+                                                        color: white;
+                                                        border-radius: 12px;
+                                                        padding: 2px 8px;
+                                                        font-size: 12px;
+                                                        font-weight: bold;
+                                                        min-width: 20px;
+                                                        text-align: center;
+                                                        margin-left: 4px;
+                                                    ">{{ $managerTotal }}</span>
+                                                @endif
+                                            </span>
+                                            <span wire:loading wire:target="toggleDashboard('Manager')">
+                                                <svg class="inline w-4 h-4 mr-1 animate-spin" fill="none" viewBox="0 0 24 24">
+                                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 714 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                </svg>
+                                                Loading...
+                                            </span>
+                                        </button>
+
+                                        <!-- Admin Dropdown -->
+                                        <div class="admin-dropdown admin-dropdown-1" id="adminDropdown1" style="position: relative; display: inline-block;">
+                                            <button
+                                                class="admin-dropdown-button"
+                                                style="
+                                                    padding: 10px 15px;
+                                                    font-size: 14px;
+                                                    font-weight: bold;
+                                                    border: none;
+                                                    border-radius: 20px;
+                                                    background: {{ in_array($currentDashboard, ['MainAdminDashboard','SoftwareAdmin', 'SoftwareAdminV2', 'HardwareAdmin', 'HardwareAdminV2', 'AdminRepair', 'AdminRenewalv1', 'AdminRenewalEndUser', 'AdminRenewalv2', 'AdminHRDF', 'AdminHRDFAttLog', 'AdminHeadcount', 'AdminGeneral']) ? '#431fa1' : 'transparent' }};
+                                                    color: {{ in_array($currentDashboard, ['MainAdminDashboard','SoftwareAdmin','SoftwareAdminV2', 'HardwareAdmin', 'HardwareAdminV2', 'AdminRepair', 'AdminRenewalv1', 'AdminRenewalEndUser', 'AdminRenewalv2', 'AdminHRDF', 'AdminHRDFAttLog', 'AdminHeadcount', 'AdminGeneral']) ? '#ffffff' : '#555' }};
+                                                    cursor: pointer;
+                                                    display: flex;
+                                                    align-items: center;
+                                                    gap: 4px;
+                                                "
+                                            >
+                                                Admin
+                                                @if($adminTotal > 0)
+                                                    <span style="
+                                                        background: #ef4444;
+                                                        color: white;
+                                                        border-radius: 12px;
+                                                        padding: 2px 8px;
+                                                        font-size: 12px;
+                                                        font-weight: bold;
+                                                        min-width: 20px;
+                                                        text-align: center;
+                                                    ">{{ $adminTotal }}</span>
+                                                @endif
+                                                <i class="fas fa-caret-down" style="font-size: 12px;"></i>
+                                            </button>
+
+                                            <!-- This is the bridge element that covers the gap -->
+                                            <div class="dropdown-bridge" style="
+                                                position: absolute;
+                                                height: 20px;
+                                                left: 0;
+                                                right: 0;
+                                                bottom: -10px;
+                                                background: transparent;
+                                                z-index: 10;
+                                            "></div>
+
+                                            <div class="admin-dropdown-content" style="
+                                                display: none;
+                                                position: absolute;
+                                                background-color: white;
+                                                min-width: 250px;
+                                                box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+                                                z-index: 1000;
+                                                border-radius: 6px;
+                                                overflow: hidden;
+                                                top: 100%;
+                                                left: 0;
+                                                margin-top: 5px;
+                                            ">
+                                                <button
+                                                    wire:click="toggleDashboard('AdminGeneral')"
+                                                    wire:loading.attr="disabled"
+                                                    wire:loading.class="opacity-50"
+                                                    style="
+                                                        display: flex;
+                                                        justify-content: space-between;
+                                                        align-items: center;
+                                                        width: 100%;
+                                                        padding: 10px 16px;
+                                                        text-align: left;
+                                                        border: none;
+                                                        background: {{ $currentDashboard === 'AdminGeneral' ? '#f3f3f3' : 'white' }};
+                                                        cursor: pointer;
+                                                        font-size: 14px;
+                                                    "
+                                                >
+                                                    <span wire:loading.remove wire:target="toggleDashboard('AdminGeneral')">Admin - General</span>
+                                                    <span wire:loading wire:target="toggleDashboard('AdminGeneral')" class="flex items-center">
+                                                        <svg class="w-4 h-4 mr-1 animate-spin" fill="none" viewBox="0 0 24 24">
+                                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 818-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 714 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                        </svg>
+                                                        Loading...
+                                                    </span>
+                                                    @if($adminGeneralTotal > 0)
+                                                        <span style="
+                                                            background: #ef4444;
+                                                            color: white;
+                                                            border-radius: 12px;
+                                                            padding: 2px 8px;
+                                                            font-size: 12px;
+                                                            font-weight: bold;
+                                                            min-width: 20px;
+                                                            text-align: center;
+                                                        ">{{ $adminGeneralTotal }}</span>
+                                                    @endif
+                                                </button>
+
+                                                <button
+                                                    wire:click="toggleDashboard('SoftwareAdmin')"
+                                                    wire:loading.attr="disabled"
+                                                    wire:loading.class="opacity-50"
+                                                    style="
+                                                        display: flex;
+                                                        justify-content: space-between;
+                                                        align-items: center;
+                                                        width: 100%;
+                                                        padding: 10px 16px;
+                                                        text-align: left;
+                                                        border: none;
+                                                        background: {{ $currentDashboard === 'SoftwareAdmin' ? '#f3f3f3' : 'white' }};
+                                                        cursor: pointer;
+                                                        font-size: 14px;
+                                                    "
+                                                >
+                                                    <span wire:loading.remove wire:target="toggleDashboard('SoftwareAdmin')">Admin - Software v1</span>
+                                                    <span wire:loading wire:target="toggleDashboard('SoftwareAdmin')" class="flex items-center">
+                                                        <svg class="w-4 h-4 mr-1 animate-spin" fill="none" viewBox="0 0 24 24">
+                                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                        </svg>
+                                                        Loading...
+                                                    </span>
+                                                    @if($adminSoftwareTotal > 0)
+                                                        <span style="
+                                                            background: #ef4444;
+                                                            color: white;
+                                                            border-radius: 12px;
+                                                            padding: 2px 8px;
+                                                            font-size: 12px;
+                                                            font-weight: bold;
+                                                            min-width: 20px;
+                                                            text-align: center;
+                                                        ">{{ $adminSoftwareTotal }}</span>
+                                                    @endif
+                                                </button>
+
+                                                <button
+                                                    wire:click="toggleDashboard('HardwareAdminV2')"
+                                                    wire:loading.attr="disabled"
+                                                    wire:loading.class="opacity-50"
+                                                    style="
+                                                        display: flex;
+                                                        justify-content: space-between;
+                                                        align-items: center;
+                                                        width: 100%;
+                                                        padding: 10px 16px;
+                                                        text-align: left;
+                                                        border: none;
+                                                        background: {{ $currentDashboard === 'HardwareAdminV2' ? '#f3f3f3' : 'white' }};
+                                                        cursor: pointer;
+                                                        font-size: 14px;
+                                                    "
+                                                >
+                                                    <span wire:loading.remove wire:target="toggleDashboard('HardwareAdminV2')">Admin - Hardware v2</span>
+                                                    <span wire:loading wire:target="toggleDashboard('HardwareAdminV2')" class="flex items-center">
+                                                        <svg class="w-4 h-4 mr-1 animate-spin" fill="none" viewBox="0 0 24 24">
+                                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                        </svg>
+                                                        Loading...
+                                                    </span>
+                                                    @if($initialStageTotal > 0)
+                                                        <span style="
+                                                            background: #ef4444;
+                                                            color: white;
+                                                            border-radius: 12px;
+                                                            padding: 2px 8px;
+                                                            font-size: 12px;
+                                                            font-weight: bold;
+                                                            min-width: 20px;
+                                                            text-align: center;
+                                                        ">{{ $initialStageTotal }}</span>
+                                                    @endif
+                                                </button>
+
+                                                <button
+                                                    wire:click="toggleDashboard('AdminHeadcount')"
+                                                    wire:loading.attr="disabled"
+                                                    wire:loading.class="opacity-50"
+                                                    style="
+                                                        display: flex;
+                                                        justify-content: space-between;
+                                                        align-items: center;
+                                                        width: 100%;
+                                                        padding: 10px 16px;
+                                                        text-align: left;
+                                                        border: none;
+                                                        background: {{ $currentDashboard === 'AdminHeadcount' ? '#f3f3f3' : 'white' }};
+                                                        cursor: pointer;
+                                                        font-size: 14px;
+                                                    "
+                                                >
+                                                    <span wire:loading.remove wire:target="toggleDashboard('AdminHeadcount')">Admin - Headcount</span>
+                                                    <span wire:loading wire:target="toggleDashboard('AdminHeadcount')" class="flex items-center">
+                                                        <svg class="w-4 h-4 mr-1 animate-spin" fill="none" viewBox="0 0 24 24">
+                                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                        </svg>
+                                                        Loading...
+                                                    </span>
+                                                    @if($adminHeadcountTotal > 0)
+                                                        <span style="
+                                                            background: #ef4444;
+                                                            color: white;
+                                                            border-radius: 12px;
+                                                            padding: 2px 8px;
+                                                            font-size: 12px;
+                                                            font-weight: bold;
+                                                            min-width: 20px;
+                                                            text-align: center;
+                                                        ">{{ $adminHeadcountTotal }}</span>
+                                                    @endif
+                                                </button>
+
+                                                <button
+                                                    wire:click="toggleDashboard('AdminHRDFAttLog')"
+                                                    wire:loading.attr="disabled"
+                                                    wire:loading.class="opacity-50"
+                                                    style="
+                                                        display: flex;
+                                                        justify-content: space-between;
+                                                        align-items: center;
+                                                        width: 100%;
+                                                        padding: 10px 16px;
+                                                        text-align: left;
+                                                        border: none;
+                                                        background: {{ $currentDashboard === 'AdminHRDFAttLog' ? '#f3f3f3' : 'white' }};
+                                                        cursor: pointer;
+                                                        font-size: 14px;
+                                                    "
+                                                >
+                                                    <span wire:loading.remove wire:target="toggleDashboard('AdminHRDFAttLog')">Admin - HRDF Att Log</span>
+                                                    <span wire:loading wire:target="toggleDashboard('AdminHRDFAttLog')" class="flex items-center">
+                                                        <svg class="w-4 h-4 mr-1 animate-spin" fill="none" viewBox="0 0 24 24">
+                                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                        </svg>
+                                                        Loading...
+                                                    </span>
+                                                    @if($adminHrdfAttLogTotal > 0)
+                                                        <span style="
+                                                            background: #ef4444;
+                                                            color: white;
+                                                            border-radius: 12px;
+                                                            padding: 2px 8px;
+                                                            font-size: 12px;
+                                                            font-weight: bold;
+                                                            min-width: 20px;
+                                                            text-align: center;
+                                                        ">{{ $adminHrdfAttLogTotal }}</span>
+                                                    @endif
+                                                </button>
+
+                                                <button
+                                                    wire:click="toggleDashboard('AdminHRDF')"
+                                                    wire:loading.attr="disabled"
+                                                    wire:loading.class="opacity-50"
+                                                    style="
+                                                        display: flex;
+                                                        justify-content: space-between;
+                                                        align-items: center;
+                                                        width: 100%;
+                                                        padding: 10px 16px;
+                                                        text-align: left;
+                                                        border: none;
+                                                        background: {{ $currentDashboard === 'AdminHRDF' ? '#f3f3f3' : 'white' }};
+                                                        cursor: pointer;
+                                                        font-size: 14px;
+                                                    "
+                                                >
+                                                    <span wire:loading.remove wire:target="toggleDashboard('AdminHRDF')">Admin - HRDF Claim</span>
+                                                    <span wire:loading wire:target="toggleDashboard('AdminHRDF')" class="flex items-center">
+                                                        <svg class="w-4 h-4 mr-1 animate-spin" fill="none" viewBox="0 0 24 24">
+                                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                        </svg>
+                                                        Loading...
+                                                    </span>
+                                                    @if($adminHrdfTotal > 0)
+                                                        <span style="
+                                                            background: #ef4444;
+                                                            color: white;
+                                                            border-radius: 12px;
+                                                            padding: 2px 8px;
+                                                            font-size: 12px;
+                                                            font-weight: bold;
+                                                            min-width: 20px;
+                                                            text-align: center;
+                                                        ">{{ $adminHrdfTotal }}</span>
+                                                    @endif
+                                                </button>
+
+                                                <button
+                                                    wire:click="toggleDashboard('AdminUSDInvoice')"
+                                                    wire:loading.attr="disabled"
+                                                    wire:loading.class="opacity-50"
+                                                    style="
+                                                        display: flex;
+                                                        justify-content: space-between;
+                                                        align-items: center;
+                                                        width: 100%;
+                                                        padding: 10px 16px;
+                                                        text-align: left;
+                                                        border: none;
+                                                        background: {{ $currentDashboard === 'AdminUSDInvoice' ? '#f3f3f3' : 'white' }};
+                                                        font-size: 14px;
+                                                    "
+                                                >
+                                                    <span wire:loading.remove wire:target="toggleDashboard('AdminUSDInvoice')">Admin - USD Invoice</span>
+                                                    <span wire:loading wire:target="toggleDashboard('AdminUSDInvoice')" class="flex items-center">
+                                                        <svg class="w-4 h-4 mr-1 animate-spin" fill="none" viewBox="0 0 24 24">
+                                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                        </svg>
+                                                        Loading...
+                                                    </span>
+                                                    @if($adminUSDInvoiceTotal > 0)
+                                                        <span style="
+                                                            background: #ef4444;
+                                                            color: white;
+                                                            border-radius: 12px;
+                                                            padding: 2px 8px;
+                                                            font-size: 12px;
+                                                            font-weight: bold;
+                                                            min-width: 20px;
+                                                            text-align: center;
+                                                        ">{{ $adminUSDInvoiceTotal }}</span>
+                                                    @endif
+                                                </button>
+
+                                                <button
+                                                    wire:click="toggleDashboard('AdminRepair')"
+                                                    wire:loading.attr="disabled"
+                                                    wire:loading.class="opacity-50"
+                                                    style="
+                                                        display: block;
+                                                        width: 100%;
+                                                        padding: 10px 16px;
+                                                        text-align: left;
+                                                        border: none;
+                                                        background: {{ $currentDashboard === 'AdminRepair' ? '#f3f3f3' : 'white' }};
+                                                        cursor: pointer;
+                                                        font-size: 14px;
+                                                    "
+                                                >
+                                                    <span wire:loading.remove wire:target="toggleDashboard('AdminRepair')">Admin - Onsite Repair</span>
+                                                    <span wire:loading wire:target="toggleDashboard('AdminRepair')" class="flex items-center">
+                                                        <svg class="w-4 h-4 mr-1 animate-spin" fill="none" viewBox="0 0 24 24">
+                                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 714 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                        </svg>
+                                                        Loading...
+                                                    </span>
+                                                </button>
+
+                                                <button
+                                                    wire:click="toggleDashboard('Debtor')"
+                                                    wire:loading.attr="disabled"
+                                                    wire:loading.class="opacity-50"
+                                                    style="
+                                                        display: block;
+                                                        width: 100%;
+                                                        padding: 10px 16px;
+                                                        text-align: left;
+                                                        border: none;
+                                                        background: {{ $currentDashboard === 'Debtor' ? '#f3f3f3' : 'white' }};
+                                                        cursor: pointer;
+                                                        font-size: 14px;
+                                                    "
+                                                >
+                                                    <span wire:loading.remove wire:target="toggleDashboard('Debtor')">Admin - InHouse Repair</span>
+                                                    <span wire:loading wire:target="toggleDashboard('Debtor')" class="flex items-center">
+                                                        <svg class="w-4 h-4 mr-1 animate-spin" fill="none" viewBox="0 0 24 24">
+                                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 818-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                        </svg>
+                                                        Loading...
+                                                    </span>
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <!-- Technician Button -->
+                                        <button
+                                            wire:click="toggleDashboard('Technician')"
+                                            wire:loading.attr="disabled"
+                                            wire:loading.class="opacity-50 cursor-not-allowed"
+                                            style="
+                                                padding: 10px 15px;
+                                                font-size: 14px;
+                                                font-weight: bold;
+                                                border: none;
+                                                border-radius: 20px;
+                                                background: {{ $currentDashboard === 'Technician' ? '#431fa1' : 'transparent' }};
+                                                color: {{ $currentDashboard === 'Technician' ? '#ffffff' : '#555' }};
+                                                cursor: pointer;
+                                            "
+                                        >
+                                            <span wire:loading.remove wire:target="toggleDashboard('Technician')">Technician</span>
+                                            <span wire:loading wire:target="toggleDashboard('Technician')">
+                                                <svg class="inline w-4 h-4 mr-1 animate-spin" fill="none" viewBox="0 0 24 24">
+                                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 818-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 714 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                </svg>
+                                                Loading...
+                                            </span>
+                                        </button>
+                                    </div>
+                                </div>
+                            @endif
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <br>
-                <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
-                    @if ($selectedUserRole == 1)
-                        @if (isset($selectedUserModel) && $selectedUserModel && $selectedUserModel->role_id == 1 && $selectedUserModel->additional_role == 1)
+                <br>
+                    <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+                        @if ($selectedUserRole == 1)
+                            @if (isset($selectedUserModel) && $selectedUserModel && $selectedUserModel->role_id == 1 && $selectedUserModel->additional_role == 1)
+                                @if ($currentDashboard === 'LeadOwner')
+                                    @include('filament.pages.leadowner')
+                                @elseif ($currentDashboard === 'SoftwareHandover')
+                                    @include('filament.pages.softwarehandover')
+                                @elseif ($currentDashboard === 'HardwareHandover')
+                                    @include('filament.pages.hardwarehandover')
+                                @else
+                                    @include('filament.pages.leadowner')
+                                @endif
+                            @else
+                                @include('filament.pages.leadowner')
+                            @endif
+                        @elseif ($selectedUserRole == 2)
+                            @include('filament.pages.salesperson')
+                        @elseif ($selectedUserRole == 3)
+                            @include('filament.pages.manager')
+                        @elseif ($selectedUserRole == 4 || $selectedUserRole == 5)
+                            @include('filament.pages.implementer')
+                        @elseif ($selectedUserRole == 9)
+                            @include('filament.pages.technician')
+                        @else
                             @if ($currentDashboard === 'LeadOwner')
                                 @include('filament.pages.leadowner')
+                            @elseif ($currentDashboard === 'Salesperson')
+                                @include('filament.pages.salesperson')
+                            @elseif ($currentDashboard === 'Manager')
+                                @include('filament.pages.manager')
+                            @elseif ($currentDashboard === 'MainAdminDashboard')
+                                @include('filament.pages.admin-main-dashboard')
                             @elseif ($currentDashboard === 'SoftwareHandover')
                                 @include('filament.pages.softwarehandover')
                             @elseif ($currentDashboard === 'HardwareHandover')
                                 @include('filament.pages.hardwarehandover')
+                            @elseif ($currentDashboard === 'AdminGeneral')
+                                @include('filament.pages.admingeneral')
+                            @elseif ($currentDashboard === 'AdminRepair')
+                                @include('filament.pages.adminrepair')
+                            {{-- @elseif ($currentDashboard === 'AdminRenewalv1')
+                                @include('filament.pages.adminrenewal')
+                            @elseif ($currentDashboard === 'AdminRenewalEndUser')
+                                @include('filament.pages.adminrenewalnonreseller') --}}
+                            @elseif ($currentDashboard === 'AdminHRDF')
+                                @include('filament.pages.adminhrdf')
+                            @elseif ($currentDashboard === 'AdminHRDFAttLog')
+                                @include('filament.pages.adminhrdfattlog')
+                            @elseif ($currentDashboard === 'AdminHeadcount')
+                                @include('filament.pages.adminheadcount')
+                            @elseif ($currentDashboard === 'SoftwareAdmin')
+                                @include('filament.pages.softwarehandover')
+                            @elseif ($currentDashboard === 'SoftwareAdminV2')
+                                @include('filament.pages.softwarehandoverv2')
+                            @elseif ($currentDashboard === 'Debtor')
+                                {{-- @include('filament.pages.admindebtor') --}}
+                            @elseif ($currentDashboard === 'HardwareAdminV2')
+                                @include('filament.pages.hardwarehandoverv2')
+                            @elseif ($currentDashboard === 'Trainer')
+                                {{-- @include('filament.pages.trainer') --}}
+                            @elseif ($currentDashboard === 'Implementer')
+                                @include('filament.pages.implementer')
+                            @elseif ($currentDashboard === 'Support')
+                                {{-- @include('filament.pages.support') --}}
+                            @elseif ($currentDashboard === 'Technician')
+                                @include('filament.pages.technician')
                             @else
-                                @include('filament.pages.leadowner')
+                                @include('filament.pages.manager')
                             @endif
-                        @else
-                            @include('filament.pages.leadowner')
                         @endif
-                    @elseif ($selectedUserRole == 2)
-                        @include('filament.pages.salesperson')
-                    @elseif ($selectedUserRole == 3)
-                        @include('filament.pages.manager')
-                    @elseif ($selectedUserRole == 4 || $selectedUserRole == 5)
-                        @include('filament.pages.implementer')
-                    @elseif ($selectedUserRole == 9)
-                        @include('filament.pages.technician')
-                    @else
-                        @if ($currentDashboard === 'LeadOwner')
-                            @include('filament.pages.leadowner')
-                        @elseif ($currentDashboard === 'Salesperson')
-                            @include('filament.pages.salesperson')
-                        @elseif ($currentDashboard === 'Manager')
-                            @include('filament.pages.manager')
-                        @elseif ($currentDashboard === 'MainAdminDashboard')
-                            @include('filament.pages.admin-main-dashboard')
-                        @elseif ($currentDashboard === 'SoftwareHandover')
-                            @include('filament.pages.softwarehandover')
-                        @elseif ($currentDashboard === 'HardwareHandover')
-                            @include('filament.pages.hardwarehandover')
-                        @elseif ($currentDashboard === 'AdminGeneral')
-                            @include('filament.pages.admingeneral')
-                        @elseif ($currentDashboard === 'AdminRepair')
-                            @include('filament.pages.adminrepair')
-                        {{-- @elseif ($currentDashboard === 'AdminRenewalv1')
-                            @include('filament.pages.adminrenewal')
-                        @elseif ($currentDashboard === 'AdminRenewalEndUser')
-                            @include('filament.pages.adminrenewalnonreseller') --}}
-                        @elseif ($currentDashboard === 'AdminHRDF')
-                            @include('filament.pages.adminhrdf')
-                        @elseif ($currentDashboard === 'AdminHRDFAttLog')
-                            @include('filament.pages.adminhrdfattlog')
-                        @elseif ($currentDashboard === 'AdminHeadcount')
-                            @include('filament.pages.adminheadcount')
-                        @elseif ($currentDashboard === 'SoftwareAdmin')
-                            @include('filament.pages.softwarehandover')
-                        @elseif ($currentDashboard === 'SoftwareAdminV2')
-                            @include('filament.pages.softwarehandoverv2')
-                        @elseif ($currentDashboard === 'Debtor')
-                            {{-- @include('filament.pages.admindebtor') --}}
-                        @elseif ($currentDashboard === 'HardwareAdminV2')
-                            @include('filament.pages.hardwarehandoverv2')
-                        @elseif ($currentDashboard === 'Trainer')
-                            {{-- @include('filament.pages.trainer') --}}
-                        @elseif ($currentDashboard === 'Implementer')
-                            @include('filament.pages.implementer')
-                        @elseif ($currentDashboard === 'Support')
-                            {{-- @include('filament.pages.support') --}}
-                        @elseif ($currentDashboard === 'Technician')
-                            @include('filament.pages.technician')
-                        @else
-                            @include('filament.pages.manager')
-                        @endif
-                    @endif
-                </div>
-            @endif
+                    </div>
+                @endif
             <!-- JavaScript for dropdown behavior -->
             <script>
                 // Function to initialize all dropdowns

@@ -680,11 +680,11 @@ class HardwareV2PendingStockTable extends Component implements HasForms, HasTabl
                                                 ->hidden()
                                                 ->dehydrated(false),
 
-                                            FileUpload::make('invoice_file')
-                                                ->label('Invoice PDF')
-                                                ->directory('hardware-handover-invoices')
-                                                ->acceptedFileTypes(['application/pdf'])
-                                                ->maxSize(10240)
+                                            // FileUpload::make('invoice_file')
+                                            //     ->label('Invoice PDF')
+                                            //     ->directory('hardware-handover-invoices')
+                                            //     ->acceptedFileTypes(['application/pdf'])
+                                            //     ->maxSize(10240)
                                         ]),
 
                                     // Hidden fields to store validation data

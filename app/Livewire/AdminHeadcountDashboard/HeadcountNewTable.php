@@ -164,45 +164,7 @@ class HeadcountNewTable extends Component implements HasForms, HasTable
                         })
                         ->modalSubmitActionLabel('Mark as Completed')
                         ->modalWidth(MaxWidth::ThreeExtraLarge)
-                        ->form([
-                            Section::make('Upload Invoice')
-                                ->description('Upload the invoice file for this completed headcount handover')
-                                ->schema([
-                                    FileUpload::make('invoice_file')
-                                        ->label('Invoice File')
-                                        ->disk('public')
-                                        ->directory('handovers/headcount/invoices')
-                                        ->visibility('public')
-                                        ->maxFiles(1)
-                                        ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'])
-                                        ->helperText('Upload the invoice file (PDF, JPG, PNG)')
-                                        ->openable()
-                                        ->downloadable()
-                                        ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file): string {
-                                            // Get the current record from the action context
-                                            $record = $this->mountedTableActionRecord;
-
-                                            // Ensure we have a proper record object
-                                            if (is_numeric($record)) {
-                                                $record = HeadcountHandover::find($record);
-                                            }
-
-                                            if (!$record instanceof HeadcountHandover) {
-                                                throw new \Exception('Unable to determine headcount handover record');
-                                            }
-
-                                            $leadId = $record->lead_id;
-                                            $handoverId = $record->id;
-                                            $lead = \App\Models\Lead::find($leadId);
-                                            $formattedLeadId = $lead ? $lead->formatted_handover_id : '250' . str_pad($leadId, 3, '0', STR_PAD_LEFT);
-                                            $formattedHandoverId = str_pad($handoverId, 3, '0', STR_PAD_LEFT);
-                                            $extension = $file->getClientOriginalExtension();
-                                            $timestamp = now()->format('YmdHis');
-
-                                            return "{$formattedLeadId}-HC{$formattedHandoverId}-INVOICE-{$timestamp}.{$extension}";
-                                        }),
-                                ]),
-                        ])
+                        ->requiresConfirmation()
                         ->action(function (HeadcountHandover $record, array $data): void {
                             try {
                                 // Update the record
@@ -210,7 +172,6 @@ class HeadcountNewTable extends Component implements HasForms, HasTable
                                     'status' => 'Completed',
                                     'completed_by' => auth()->id(),
                                     'completed_at' => now(),
-                                    'invoice_file' => $data['invoice_file'] ?? null,
                                 ]);
 
                                 // Get necessary data for email
@@ -235,23 +196,10 @@ class HeadcountNewTable extends Component implements HasForms, HasTable
                                             'salesperson' => $salesperson,
                                             'completedBy' => $completedBy,
                                             'completedAt' => now(),
-                                            'invoiceFile' => $data['invoice_file'] ?? null,
                                             'record' => $record
-                                        ], function ($mail) use ($salesperson, $completedBy, $handoverId, $data) {
+                                        ], function ($mail) use ($salesperson, $completedBy, $handoverId) {
                                             $mail->to($salesperson->email, $salesperson->name)
                                                 ->subject("HEADCOUNT HANDOVER | {$handoverId} | COMPLETED");
-
-                                            // Attach invoice if uploaded
-                                            if (!empty($data['invoice_file'])) {
-                                                $invoiceFile = $data['invoice_file'];
-                                                if (is_array($invoiceFile)) {
-                                                    $invoiceFile = $invoiceFile[0];
-                                                }
-                                                $filePath = storage_path('app/public/' . $invoiceFile);
-                                                if (file_exists($filePath)) {
-                                                    $mail->attach($filePath);
-                                                }
-                                            }
                                         });
 
                                         \Illuminate\Support\Facades\Log::info("Headcount handover completion email sent", [

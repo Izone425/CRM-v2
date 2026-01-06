@@ -781,7 +781,7 @@
                     </div>
                 </div>
 
-                <div class="stat-box software-handover-rejected"
+                {{-- <div class="stat-box software-handover-rejected"
                         :class="{'selected': selectedStat === 'software-handover-v2-rejected'}"
                         @click="setSelectedStat('software-handover-v2-rejected')">
                     <div class="stat-info">
@@ -790,7 +790,7 @@
                     <div class="stat-count">
                         <div class="stat-count">{{ $softwareHandoverV2Rejected }}</div>
                     </div>
-                </div>
+                </div> --}}
 
                 <div class="stat-box hardware-handover-rejected"
                         :class="{'selected': selectedStat === 'hardware-handover-rejected'}"
