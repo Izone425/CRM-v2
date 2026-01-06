@@ -270,8 +270,8 @@ class ImplementerLicense extends Component implements HasForms, HasTable
                                     ->required()
                                     ->native(false)
                                     ->displayFormat('d M Y')
-                                    ->default(function (SoftwareHandover $record) {
-                                        return $record->kick_off_meeting ?? now();
+                                    ->default(function (SoftwareHandover $record = null) {
+                                        return $record ? ($record->kick_off_meeting ?? now()) : now();
                                     })
                                     ->columnSpan(1),
 
@@ -338,7 +338,11 @@ class ImplementerLicense extends Component implements HasForms, HasTable
                             ->schema([
                                 \Filament\Forms\Components\Placeholder::make('subscription_periods_table')
                                     ->hiddenLabel()
-                                    ->content(function (SoftwareHandover $record) {
+                                    ->content(function (SoftwareHandover $record = null) {
+                                        if (!$record) {
+                                            return 'No record available.';
+                                        }
+
                                         $subscriptionPeriods = $this->getSubscriptionPeriodsForHandover($record);
 
                                         if (empty($subscriptionPeriods)) {
@@ -386,7 +390,7 @@ class ImplementerLicense extends Component implements HasForms, HasTable
                                     ->columnSpanFull()
                                     ->default(function (SoftwareHandover $record = null) {
                                         if (!$record) {
-                                            return [];
+                                            return [['email' => '']];
                                         }
 
                                         $recipients = [];
@@ -465,7 +469,7 @@ class ImplementerLicense extends Component implements HasForms, HasTable
                                                                 }
                                                             }
 
-                                                            // Only add if not a duplicate
+                                                            // Only add if not a duplicat e
                                                             if (!$emailExists) {
                                                                 $recipients[] = ['email' => $pic['email']];
                                                             }
@@ -675,8 +679,8 @@ class ImplementerLicense extends Component implements HasForms, HasTable
                                                 ->helperText(function (SoftwareHandover $record) {
                                                     return $this->getModulePeriodInfo($record, ['TCL_TA USER-NEW', 'TCL_TA USER-ADDON', 'TCL_TA USER-ADDON(R)', 'TCL_TA USER-RENEWAL', 'TCL_FULL USER-NEW']);
                                                 })
-                                                ->default(function (SoftwareHandover $record) {
-                                                    return $this->shouldModuleBeChecked($record, ['TCL_TA USER-NEW', 'TCL_TA USER-ADDON', 'TCL_TA USER-ADDON(R)', 'TCL_TA USER-RENEWAL', 'TCL_FULL USER-NEW']);
+                                                ->default(function (SoftwareHandover $record = null) {
+                                                    return $record ? $this->shouldModuleBeChecked($record, ['TCL_TA USER-NEW', 'TCL_TA USER-ADDON', 'TCL_TA USER-ADDON(R)', 'TCL_TA USER-RENEWAL', 'TCL_FULL USER-NEW']) : false;
                                                 }),
 
                                             \Filament\Forms\Components\Checkbox::make('tapp')
@@ -687,8 +691,8 @@ class ImplementerLicense extends Component implements HasForms, HasTable
                                                 ->helperText(function (SoftwareHandover $record) {
                                                     return $this->getModulePeriodInfo($record, ['TCL_APPRAISAL USER-NEW']);
                                                 })
-                                                ->default(function (SoftwareHandover $record) {
-                                                    return $this->shouldModuleBeChecked($record, ['TCL_APPRAISAL USER-NEW']);
+                                                ->default(function (SoftwareHandover $record = null) {
+                                                    return $record ? $this->shouldModuleBeChecked($record, ['TCL_APPRAISAL USER-NEW']) : false;
                                                 }),
 
                                             \Filament\Forms\Components\Checkbox::make('tl')
@@ -699,8 +703,8 @@ class ImplementerLicense extends Component implements HasForms, HasTable
                                                 ->helperText(function (SoftwareHandover $record) {
                                                     return $this->getModulePeriodInfo($record, ['TCL_LEAVE USER-NEW', 'TCL_LEAVE USER-ADDON', 'TCL_LEAVE USER-ADDON(R)', 'TCL_LEAVE USER-RENEWAL', 'TCL_FULL USER-NEW']);
                                                 })
-                                                ->default(function (SoftwareHandover $record) {
-                                                    return $this->shouldModuleBeChecked($record, ['TCL_LEAVE USER-NEW', 'TCL_LEAVE USER-ADDON', 'TCL_LEAVE USER-ADDON(R)', 'TCL_LEAVE USER-RENEWAL', 'TCL_FULL USER-NEW']);
+                                                ->default(function (SoftwareHandover $record = null) {
+                                                    return $record ? $this->shouldModuleBeChecked($record, ['TCL_LEAVE USER-NEW', 'TCL_LEAVE USER-ADDON', 'TCL_LEAVE USER-ADDON(R)', 'TCL_LEAVE USER-RENEWAL', 'TCL_FULL USER-NEW']) : false;
                                                 }),
 
                                             \Filament\Forms\Components\Checkbox::make('thire')
@@ -711,8 +715,8 @@ class ImplementerLicense extends Component implements HasForms, HasTable
                                                 ->helperText(function (SoftwareHandover $record) {
                                                     return $this->getModulePeriodInfo($record, ['TCL_HIRE-NEW', 'TCL_HIRE-RENEWAL']);
                                                 })
-                                                ->default(function (SoftwareHandover $record) {
-                                                    return $this->shouldModuleBeChecked($record, ['TCL_HIRE-NEW', 'TCL_HIRE-RENEWAL']);
+                                                ->default(function (SoftwareHandover $record = null) {
+                                                    return $record ? $this->shouldModuleBeChecked($record, ['TCL_HIRE-NEW', 'TCL_HIRE-RENEWAL']) : false;
                                                 }),
 
                                             \Filament\Forms\Components\Checkbox::make('tc')
@@ -723,8 +727,8 @@ class ImplementerLicense extends Component implements HasForms, HasTable
                                                 ->helperText(function (SoftwareHandover $record) {
                                                     return $this->getModulePeriodInfo($record, ['TCL_CLAIM USER-NEW', 'TCL_CLAIM USER-ADDON', 'TCL_CLAIM USER-ADDON(R)', 'TCL_CLAIM USER-RENEWAL', 'TCL_FULL USER-NEW']);
                                                 })
-                                                ->default(function (SoftwareHandover $record) {
-                                                    return $this->shouldModuleBeChecked($record, ['TCL_CLAIM USER-NEW', 'TCL_CLAIM USER-ADDON', 'TCL_CLAIM USER-ADDON(R)', 'TCL_CLAIM USER-RENEWAL', 'TCL_FULL USER-NEW']);
+                                                ->default(function (SoftwareHandover $record = null) {
+                                                    return $record ? $this->shouldModuleBeChecked($record, ['TCL_CLAIM USER-NEW', 'TCL_CLAIM USER-ADDON', 'TCL_CLAIM USER-ADDON(R)', 'TCL_CLAIM USER-RENEWAL', 'TCL_FULL USER-NEW']) : false;
                                                 }),
 
                                             \Filament\Forms\Components\Checkbox::make('tacc')
@@ -735,8 +739,8 @@ class ImplementerLicense extends Component implements HasForms, HasTable
                                                 ->helperText(function (SoftwareHandover $record) {
                                                     return $this->getModulePeriodInfo($record, ['TCL_ACCESS-NEW', 'TCL_ACCESS-RENEWAL']);
                                                 })
-                                                ->default(function (SoftwareHandover $record) {
-                                                    return $this->shouldModuleBeChecked($record, ['TCL_ACCESS-NEW', 'TCL_ACCESS-RENEWAL']);
+                                                ->default(function (SoftwareHandover $record = null) {
+                                                    return $record ? $this->shouldModuleBeChecked($record, ['TCL_ACCESS-NEW', 'TCL_ACCESS-RENEWAL']) : false;
                                                 }),
 
                                             \Filament\Forms\Components\Checkbox::make('tp')
@@ -747,8 +751,8 @@ class ImplementerLicense extends Component implements HasForms, HasTable
                                                 ->helperText(function (SoftwareHandover $record) {
                                                     return $this->getModulePeriodInfo($record, ['TCL_PAYROLL USER-NEW', 'TCL_PAYROLL USER-ADDON', 'TCL_PAYROLL USER-ADDON(R)', 'TCL_PAYROLL USER-RENEWAL', 'TCL_FULL USER-NEW']);
                                                 })
-                                                ->default(function (SoftwareHandover $record) {
-                                                    return $this->shouldModuleBeChecked($record, ['TCL_PAYROLL USER-NEW', 'TCL_PAYROLL USER-ADDON', 'TCL_PAYROLL USER-ADDON(R)', 'TCL_PAYROLL USER-RENEWAL', 'TCL_FULL USER-NEW']);
+                                                ->default(function (SoftwareHandover $record = null) {
+                                                    return $record ? $this->shouldModuleBeChecked($record, ['TCL_PAYROLL USER-NEW', 'TCL_PAYROLL USER-ADDON', 'TCL_PAYROLL USER-ADDON(R)', 'TCL_PAYROLL USER-RENEWAL', 'TCL_FULL USER-NEW']) : false;
                                                 }),
 
                                             \Filament\Forms\Components\Checkbox::make('tpbi')
@@ -759,8 +763,8 @@ class ImplementerLicense extends Component implements HasForms, HasTable
                                                 ->helperText(function (SoftwareHandover $record) {
                                                     return $this->getModulePeriodInfo($record, ['TCL_POWER BI']);
                                                 })
-                                                ->default(function (SoftwareHandover $record) {
-                                                    return $this->shouldModuleBeChecked($record, ['TCL_POWER BI']);
+                                                ->default(function (SoftwareHandover $record = null) {
+                                                    return $record ? $this->shouldModuleBeChecked($record, ['TCL_POWER BI']) : false;
                                                 }),
                                         ])
                                 ]),
@@ -777,7 +781,11 @@ class ImplementerLicense extends Component implements HasForms, HasTable
 
                                     \Filament\Forms\Components\Placeholder::make('paid_period')
                                         ->label('Paid License Period')
-                                        ->content(function (SoftwareHandover $record) {
+                                        ->content(function (SoftwareHandover $record = null) {
+                                            if (!$record) {
+                                                return 'No record available.';
+                                            }
+
                                             $start = now()->addMonth()->format('d M Y');
 
                                             // Get total paid months
