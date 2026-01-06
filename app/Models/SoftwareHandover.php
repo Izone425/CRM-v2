@@ -105,6 +105,9 @@ class SoftwareHandover extends Model
         'tt_invoice_number',
         'hrdf_grant_id',
         'hrdf_grant_ids',
+        'type_1_pi_invoice_data',
+        'type_2_pi_invoice_data',
+        'type_3_pi_invoice_data',
     ];
 
     protected $casts = [
@@ -146,6 +149,9 @@ class SoftwareHandover extends Model
         'hr_user_id' => 'integer',
         'crm_buffer_license_id' => 'integer',
         'crm_paid_license_ids' => 'array',
+        'type_1_pi_invoice_data' => 'array',
+        'type_2_pi_invoice_data' => 'array',
+        'type_3_pi_invoice_data' => 'array',
     ];
 
     /**

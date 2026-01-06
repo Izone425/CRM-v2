@@ -120,16 +120,17 @@ class SubscriberDetailsTabs
                                                     ->label('New Business Register Number')
                                                     ->extraAlpineAttributes([
                                                         'x-on:input' => '
-                                                            const start = $el.selectionStart;
-                                                            const end = $el.selectionEnd;
-                                                            const value = $el.value;
-                                                            $el.value = value.toUpperCase();
-                                                            $el.setSelectionRange(start, end);
+                                                            let value = $el.value.replace(/[^0-9]/g, "");
+                                                            if (value.length > 12) {
+                                                                value = value.substring(0, 12);
+                                                            }
+                                                            $el.value = value;
                                                         '
                                                     ])
-                                                    ->dehydrateStateUsing(fn ($state) => strtoupper($state))
                                                     ->required()
-                                                    ->maxLength(255)
+                                                    ->minLength(12)
+                                                    ->maxLength(12)
+                                                    ->rules(['regex:/^[0-9]{12}$/'])
                                                     ->suffixAction(
                                                         Action::make('searchTin')
                                                             ->icon('heroicon-o-magnifying-glass')
@@ -201,6 +202,7 @@ class SubscriberDetailsTabs
                                                     ])
                                                     ->dehydrateStateUsing(fn ($state) => strtoupper($state))
                                                     ->readOnly()
+                                                    ->required()
                                                     ->dehydrated(true)
                                                     ->maxLength(255),
 
@@ -221,6 +223,7 @@ class SubscriberDetailsTabs
                                                             return [];
                                                         }
                                                     })
+                                                    ->required()
                                                     ->default(function ($record) {
                                                         // First try eInvoiceDetail, then companyDetail
                                                         return $record->eInvoiceDetail->msic_code ??

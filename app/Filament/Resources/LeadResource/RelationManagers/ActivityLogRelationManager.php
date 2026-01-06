@@ -1551,7 +1551,7 @@ class ActivityLogRelationManager extends RelationManager
                             // Set template SID based on lead type
                             $contentTemplateSid = $isChinese
                                 ? 'HXf040c1812afbe8b0de069b4301bd31f8'  // Chinese template
-                                : 'HX7f5ccf2114ed839e0291c70aa25c9df8'; // Default template
+                                : 'HX0f1c532f20097a65ed6de80c7d03294c'; // Default template
 
                             // Set up variables for the template
                             $variables = [$recipientName];

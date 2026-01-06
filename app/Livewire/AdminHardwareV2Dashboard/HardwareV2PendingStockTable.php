@@ -740,89 +740,87 @@ class HardwareV2PendingStockTable extends Component implements HasForms, HasTabl
                                 }
                             }
 
-                            // First check for duplicates within the form data
-                            $invoiceNumbers = array_map(fn($invoice) => strtoupper($invoice['invoice_no']), $data['invoices']);
-                            if (count($invoiceNumbers) !== count(array_unique($invoiceNumbers))) {
-                                Notification::make()
-                                    ->title('Duplicate Invoice Numbers')
-                                    ->body('You cannot enter the same invoice number multiple times.')
-                                    ->danger()
-                                    ->send();
-                                return;
-                            }
+                            // // First check for duplicates within the form data
+                            // $invoiceNumbers = array_map(fn($invoice) => strtoupper($invoice['invoice_no']), $data['invoices']);
+                            // if (count($invoiceNumbers) !== count(array_unique($invoiceNumbers))) {
+                            //     Notification::make()
+                            //         ->title('Duplicate Invoice Numbers')
+                            //         ->body('You cannot enter the same invoice number multiple times.')
+                            //         ->danger()
+                            //         ->send();
+                            //     return;
+                            // }
 
-                            // Check for duplicates in existing hardware handovers
-                            foreach ($data['invoices'] as $invoice) {
-                                $invoiceNo = strtoupper($invoice['invoice_no']);
+                            // // Check for duplicates in existing hardware handovers
+                            // foreach ($data['invoices'] as $invoice) {
+                            //     $invoiceNo = strtoupper($invoice['invoice_no']);
 
-                                // Check if this invoice number exists in other hardware handovers
-                                $existingHandover = HardwareHandoverV2::where('id', '!=', $record->id)
-                                    ->whereNotNull('invoice_data')
-                                    ->get()
-                                    ->filter(function ($handover) use ($invoiceNo) {
-                                        $invoiceData = is_string($handover->invoice_data)
-                                            ? json_decode($handover->invoice_data, true)
-                                            : $handover->invoice_data;
+                            //     // Check if this invoice number exists in other hardware handovers
+                            //     $existingHandover = HardwareHandoverV2::where('id', '!=', $record->id)
+                            //         ->whereNotNull('invoice_data')
+                            //         ->get()
+                            //         ->filter(function ($handover) use ($invoiceNo) {
+                            //             $invoiceData = is_string($handover->invoice_data)
+                            //                 ? json_decode($handover->invoice_data, true)
+                            //                 : $handover->invoice_data;
 
-                                        if (!is_array($invoiceData)) return false;
+                            //             if (!is_array($invoiceData)) return false;
 
-                                        foreach ($invoiceData as $existingInvoice) {
-                                            if (isset($existingInvoice['invoice_no']) &&
-                                                strtoupper($existingInvoice['invoice_no']) === $invoiceNo) {
-                                                return true;
-                                            }
-                                        }
-                                        return false;
-                                    })
-                                    ->first();
+                            //             foreach ($invoiceData as $existingInvoice) {
+                            //                 if (isset($existingInvoice['invoice_no']) &&
+                            //                     strtoupper($existingInvoice['invoice_no']) === $invoiceNo) {
+                            //                     return true;
+                            //                 }
+                            //             }
+                            //             return false;
+                            //         })
+                            //         ->first();
 
-                                if ($existingHandover) {
-                                    $existingHandoverId = $existingHandover->formatted_handover_id;
-                                    Notification::make()
-                                        ->title('Duplicate Invoice Number')
-                                        ->body("Invoice {$invoiceNo} is already used in Hardware Handover {$existingHandoverId}")
-                                        ->danger()
-                                        ->send();
-                                    return;
-                                }
+                            //     if ($existingHandover) {
+                            //         $existingHandoverId = $existingHandover->formatted_handover_id;
+                            //         Notification::make()
+                            //             ->title('Duplicate Invoice Number')
+                            //             ->body("Invoice {$invoiceNo} is already used in Hardware Handover {$existingHandoverId}")
+                            //             ->danger()
+                            //             ->send();
+                            //         return;
+                            //     }
 
-                                // Check if invoice exists in system
-                                $invoiceRecord = \App\Models\Invoice::where('invoice_no', $invoiceNo)->first();
+                            //     // Check if invoice exists in system
+                            //     $invoiceRecord = \App\Models\Invoice::where('invoice_no', $invoiceNo)->first();
 
-                                if (!$invoiceRecord) {
-                                    Notification::make()
-                                        ->title('Validation Error')
-                                        ->body("Invoice {$invoiceNo} not found in system")
-                                        ->danger()
-                                        ->send();
-                                    return;
-                                }
+                            //     if (!$invoiceRecord) {
+                            //         Notification::make()
+                            //             ->title('Validation Error')
+                            //             ->body("Invoice {$invoiceNo} not found in system")
+                            //             ->danger()
+                            //             ->send();
+                            //         return;
+                            //     }
 
-                                // Check salesperson match - compare names (skip if invoice salesperson is null)
-                                $invoiceSalesperson = $invoiceRecord->salesperson ?? null;
+                            //     // Check salesperson match - compare names (skip if invoice salesperson is null)
+                            //     $invoiceSalesperson = $invoiceRecord->salesperson ?? null;
 
-                                if ($invoiceSalesperson !== null) {
-                                    $handoverSalespersonId = $record->lead->salesperson ?? null;
-                                    $handoverSalesperson = User::find($handoverSalespersonId)?->name ?? null;
+                            //     if ($invoiceSalesperson !== null) {
+                            //         $handoverSalespersonId = $record->lead->salesperson ?? null;
+                            //         $handoverSalesperson = User::find($handoverSalespersonId)?->name ?? null;
 
-                                    if (stripos($handoverSalesperson, $invoiceSalesperson) === false &&
-                                        stripos($invoiceSalesperson, $handoverSalesperson) === false) {
-                                        Notification::make()
-                                            ->title('Salesperson Mismatch')
-                                            ->body("Invoice {$invoiceNo} belongs to {$invoiceSalesperson}, but this handover belongs to {$handoverSalesperson}")
-                                            ->danger()
-                                            ->send();
-                                        return;
-                                    }
-                                }
-                            }
+                            //         if (stripos($handoverSalesperson, $invoiceSalesperson) === false &&
+                            //             stripos($invoiceSalesperson, $handoverSalesperson) === false) {
+                            //             Notification::make()
+                            //                 ->title('Salesperson Mismatch')
+                            //                 ->body("Invoice {$invoiceNo} belongs to {$invoiceSalesperson}, but this handover belongs to {$handoverSalesperson}")
+                            //                 ->danger()
+                            //                 ->send();
+                            //             return;
+                            //         }
+                            //     }
+                            // }
 
-                            // Rest of your existing code...
                             $invoiceData = [];
                             foreach ($data['invoices'] as $invoice) {
                                 $invoiceData[] = [
                                     'invoice_no' => strtoupper($invoice['invoice_no']),
-                                    'invoice_file' => $invoice['invoice_file'],
                                     'payment_status' => $this->getPaymentStatusForInvoice($invoice['invoice_no'])
                                 ];
                             }

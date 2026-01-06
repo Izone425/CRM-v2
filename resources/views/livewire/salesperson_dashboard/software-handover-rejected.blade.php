@@ -1,7 +1,7 @@
 <div class="p-4 bg-white rounded-lg shadow-lg" style="height: auto;">
     <div class="flex items-center justify-between">
         <div class="flex items-center space-x-2">
-            <h3 class="text-lg font-bold">Rejected</h3>
+            <h3 class="text-lg font-bold">Software Rejected</h3>
             <div x-data="{ lastRefresh: '{{ now()->format('Y-m-d H:i:s') }}' }" class="relative">
                 <button
                     wire:click="refreshTable"

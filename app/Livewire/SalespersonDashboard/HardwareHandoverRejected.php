@@ -70,7 +70,7 @@ class HardwareHandoverRejected extends Component implements HasForms, HasTable
         $this->selectedUser = $this->selectedUser ?? session('selectedUser') ?? auth()->id();
 
         $query = HardwareHandoverV2::query()
-            ->whereIn('status', ['Rejected']);
+            ->whereIn('status', ['Rejected','Draft']);
 
         if ($this->selectedUser === 'all-salespersons') {
             $salespersonIds = User::where('role_id', 2)->pluck('id');
@@ -110,7 +110,7 @@ class HardwareHandoverRejected extends Component implements HasForms, HasTable
         $this->selectedUser = $this->selectedUser ?? session('selectedUser') ?? auth()->id();
 
         $query = HardwareHandoverV2::query()
-            ->whereIn('status', ['Rejected']);
+            ->whereIn('status', ['Rejected','Draft']);
 
         if ($this->selectedUser === 'all-salespersons') {
             $salespersonIds = User::where('role_id', 2)->pluck('id');

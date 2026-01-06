@@ -150,9 +150,9 @@ class WhatsAppController extends Controller
                 "如果您之后有兴趣重新了解，我随时愿意与您接洽！😊",
 
             //Request quotation
-            'HX7f5ccf2114ed839e0291c70aa25c9df8' =>
+            'HX0f1c532f20097a65ed6de80c7d03294c' =>
                 "Hi {{1}}, as per our phone conversation, please provide your details below so we can provide quotation to you:
-                (Minimum headcount is 5 user/staff)
+                (Minimum headcount is 5 user/staff) to 20 user
 
                 Department:
                 Company Name (As registered in SSM):
@@ -247,9 +247,9 @@ class WhatsAppController extends Controller
                 *请留意，此次系统演示将会有其他公司一同参与，敬请理解。*",
 
             //Request company info template
-            'HX04b20de70eaa3c6754846d1d5d94658e' =>
+            'HX3b6314a77080104cdddd48d9d48292ff' =>
                 "If you're interested, please provide your details below so we can check slot availability for you:
-                (Minimum headcount is 5 user/staff)
+                (Minimum headcount is 5 user/staff) to 20 user
 
                 Department:
                 Company Name (As registered in SSM):
