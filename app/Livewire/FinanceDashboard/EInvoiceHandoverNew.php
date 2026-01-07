@@ -192,7 +192,7 @@ class EInvoiceHandoverNew extends Component implements HasForms, HasTable
                                 $leadUrl = url('admin/leads/' . $leadEncrypted);
 
                                 $emailData = [
-                                    'salesperson_name' => $salespersonName,
+                                    'salesperson_name' => strtoupper($salespersonName),
                                     'company_name' => $companyName,
                                     'project_code' => $projectCode,
                                     'lead_url' => $leadUrl

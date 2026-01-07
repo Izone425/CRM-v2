@@ -53,6 +53,12 @@ class SubsidiaryRelationManager extends RelationManager
                                             TextInput::make('company_name')
                                                 ->label('COMPANY NAME')
                                                 ->required()
+                                                ->rules([
+                                                    'regex:/^[A-Z0-9\s]+$/i',
+                                                ])
+                                                ->validationMessages([
+                                                    'regex' => 'Company name can only contain letters, numbers, and spaces. Special characters are not allowed.',
+                                                ])
                                                 ->maxLength(255)
                                                 ->default(fn() => $leadCompany ? $leadCompany->company_name : null)
                                                 ->extraInputAttributes(['style' => 'text-transform: uppercase'])
@@ -128,7 +134,6 @@ class SubsidiaryRelationManager extends RelationManager
 
                                             TextInput::make('tax_identification_number')
                                                 ->label('TAX IDENTIFICATION NUMBER')
-                                                ->required()
                                                 ->extraInputAttributes(['style' => 'text-transform: uppercase'])
                                                 ->afterStateHydrated(fn($state) => $state ? Str::upper($state) : null)
                                                 ->afterStateUpdated(fn($state) => $state ? Str::upper($state) : null),
@@ -489,6 +494,12 @@ class SubsidiaryRelationManager extends RelationManager
                                                                 TextInput::make('company_name')
                                                                     ->label('COMPANY NAME')
                                                                     ->required()
+                                                                    ->rules([
+                                                                        'regex:/^[A-Z0-9\s]+$/i',
+                                                                    ])
+                                                                    ->validationMessages([
+                                                                        'regex' => 'Company name can only contain letters, numbers, and spaces. Special characters are not allowed.',
+                                                                    ])
                                                                     ->maxLength(255)
                                                                     ->default($record->company_name)
                                                                     ->extraInputAttributes(['style' => 'text-transform: uppercase'])
