@@ -133,6 +133,22 @@ class SubscriberDetailsTabs
                                                     //         $el.value = value;
                                                     //     '
                                                     // ])
+                                                    ->extraAlpineAttributes([
+                                                        'x-on:input' => '
+                                                            const start = $el.selectionStart;
+                                                            const end = $el.selectionEnd;
+                                                            const value = $el.value;
+                                                            $el.value = value.toUpperCase();
+                                                            $el.setSelectionRange(start, end);
+                                                        '
+                                                    ])
+                                                    ->dehydrateStateUsing(fn ($state) => strtoupper($state))
+                                                    ->rules([
+                                                        'regex:/^[A-Z0-9\s]+$/i',
+                                                    ])
+                                                    ->validationMessages([
+                                                        'regex' => 'Company name can only contain letters, numbers, and spaces. Special characters are not allowed.',
+                                                    ])
                                                     ->required()
                                                     // ->minLength(12)
                                                     ->maxLength(12)

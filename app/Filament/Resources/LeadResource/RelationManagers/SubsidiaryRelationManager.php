@@ -71,9 +71,22 @@ class SubsidiaryRelationManager extends RelationManager
                                                 // ->minLength(12)
                                                 ->maxLength(12)
                                                 // ->rules(['regex:/^[0-9]{12}$/'])
-                                                ->extraInputAttributes(['style' => 'text-transform: uppercase'])
-                                                ->afterStateHydrated(fn($state) => $state ? Str::upper($state) : null)
-                                                ->afterStateUpdated(fn($state) => $state ? Str::upper($state) : null)
+                                                ->extraAlpineAttributes([
+                                                    'x-on:input' => '
+                                                        const start = $el.selectionStart;
+                                                        const end = $el.selectionEnd;
+                                                        const value = $el.value;
+                                                        $el.value = value.toUpperCase();
+                                                        $el.setSelectionRange(start, end);
+                                                    '
+                                                ])
+                                                ->dehydrateStateUsing(fn ($state) => strtoupper($state))
+                                                ->rules([
+                                                    'regex:/^[A-Z0-9\s]+$/i',
+                                                ])
+                                                ->validationMessages([
+                                                    'regex' => 'Company name can only contain letters, numbers, and spaces. Special characters are not allowed.',
+                                                ])
                                                 ->suffixAction(
                                                     Actio::make('searchTin')
                                                         ->icon('heroicon-o-magnifying-glass')
@@ -512,6 +525,22 @@ class SubsidiaryRelationManager extends RelationManager
                                                                     // ->minLength(12)
                                                                     ->maxLength(12)
                                                                     // ->rules(['regex:/^[0-9]{12}$/'])
+                                                                    ->extraAlpineAttributes([
+                                                                        'x-on:input' => '
+                                                                            const start = $el.selectionStart;
+                                                                            const end = $el.selectionEnd;
+                                                                            const value = $el.value;
+                                                                            $el.value = value.toUpperCase();
+                                                                            $el.setSelectionRange(start, end);
+                                                                        '
+                                                                    ])
+                                                                    ->dehydrateStateUsing(fn ($state) => strtoupper($state))
+                                                                    ->rules([
+                                                                        'regex:/^[A-Z0-9\s]+$/i',
+                                                                    ])
+                                                                    ->validationMessages([
+                                                                        'regex' => 'Company name can only contain letters, numbers, and spaces. Special characters are not allowed.',
+                                                                    ])
                                                                     ->default($record->business_register_number)
                                                                     ->extraInputAttributes(['style' => 'text-transform: uppercase'])
                                                                     ->afterStateHydrated(fn($state) => $state ? Str::upper($state) : null)
