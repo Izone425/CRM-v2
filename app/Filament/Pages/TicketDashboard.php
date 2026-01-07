@@ -52,6 +52,13 @@ class TicketDashboard extends Page implements HasActions, HasForms
     // Track individual combined statuses
     public $selectedCombinedStatuses = [];
 
+    // New filter properties
+    public $selectedFrontEnd = null;
+    public $selectedTicketStatus = null;
+    public $etaStartDate = null;
+    public $etaEndDate = null;
+    public $etaSortDirection = null; // 'asc' or 'desc'
+
     public function mount()
     {
         // Set default date to today
@@ -69,6 +76,9 @@ class TicketDashboard extends Page implements HasActions, HasForms
     public $showReopenModal = false;
     public $reopenComment = '';
     public $reopenAttachments = [];
+
+    // Filter modal property
+    public $showFilterModal = false;
 
     // ✅ Add header actions for Create Ticket button
     protected function getHeaderActions(): array
@@ -728,6 +738,14 @@ class TicketDashboard extends Page implements HasActions, HasForms
             ->pluck('name', 'name')
             ->toArray();
 
+        // Get unique front end names
+        $frontEndNames = $tickets->map(function ($ticket) {
+            return $ticket->requestor->name ?? $ticket->requestor ?? null;
+        })->filter()->unique()->sort()->values()->toArray();
+
+        // Get unique statuses
+        $statuses = $tickets->pluck('status')->unique()->sort()->values()->toArray();
+
         return [
             'softwareBugs' => $softwareBugsMetrics,
             'backendAssistance' => $backendAssistanceMetrics,
@@ -738,6 +756,8 @@ class TicketDashboard extends Page implements HasActions, HasForms
             'currentYear' => $this->currentYear,
             'products' => $products,
             'modules' => $modules,
+            'frontEndNames' => $frontEndNames,
+            'statuses' => $statuses,
         ];
     }
 
@@ -887,7 +907,38 @@ class TicketDashboard extends Page implements HasActions, HasForms
             ->when($this->selectedEnhancementStatus, function ($collection) {
                 return $collection->where('status', $this->selectedEnhancementStatus);
             })
-            ->sortByDesc('created_at')
+            ->when($this->selectedFrontEnd, function ($collection) {
+                return $collection->filter(function ($ticket) {
+                    $frontEndName = $ticket->requestor->name ?? $ticket->requestor ?? '';
+                    return $frontEndName === $this->selectedFrontEnd;
+                });
+            })
+            ->when($this->selectedTicketStatus, function ($collection) {
+                return $collection->where('status', $this->selectedTicketStatus);
+            })
+            ->when($this->etaStartDate, function ($collection) {
+                return $collection->filter(function ($ticket) {
+                    return $ticket->eta_release && $ticket->eta_release >= \Carbon\Carbon::parse($this->etaStartDate);
+                });
+            })
+            ->when($this->etaEndDate, function ($collection) {
+                return $collection->filter(function ($ticket) {
+                    return $ticket->eta_release && $ticket->eta_release <= \Carbon\Carbon::parse($this->etaEndDate);
+                });
+            })
+            ->when($this->etaSortDirection, function ($collection) {
+                if ($this->etaSortDirection === 'asc') {
+                    return $collection->sortBy(function ($ticket) {
+                        return $ticket->eta_release ?? \Carbon\Carbon::maxValue();
+                    });
+                } else {
+                    return $collection->sortByDesc(function ($ticket) {
+                        return $ticket->eta_release ?? \Carbon\Carbon::minValue();
+                    });
+                }
+            }, function ($collection) {
+                return $collection->sortByDesc('created_at');
+            })
             ->values();
     }
 
@@ -959,6 +1010,36 @@ class TicketDashboard extends Page implements HasActions, HasForms
         $date = Carbon::create($this->currentYear, $this->currentMonth, 1)->addMonth();
         $this->currentMonth = $date->month;
         $this->currentYear = $date->year;
+    }
+
+    public function toggleEtaSort(): void
+    {
+        if ($this->etaSortDirection === null) {
+            $this->etaSortDirection = 'asc';
+        } elseif ($this->etaSortDirection === 'asc') {
+            $this->etaSortDirection = 'desc';
+        } else {
+            $this->etaSortDirection = null;
+        }
+    }
+
+    public function openFilterModal(): void
+    {
+        $this->showFilterModal = true;
+    }
+
+    public function closeFilterModal(): void
+    {
+        $this->showFilterModal = false;
+    }
+
+    public function clearAllFilters(): void
+    {
+        $this->selectedFrontEnd = null;
+        $this->selectedTicketStatus = null;
+        $this->etaStartDate = null;
+        $this->etaEndDate = null;
+        $this->etaSortDirection = null;
     }
 
     public function markAsPassed(int $ticketId): void

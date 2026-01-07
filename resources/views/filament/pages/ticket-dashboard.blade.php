@@ -11,6 +11,8 @@
         $currentYear = $data['currentYear'];
         $products = $data['products'];
         $modules = $data['modules'];
+        $frontEndNames = $data['frontEndNames'];
+        $statuses = $data['statuses'];
     @endphp
 
     <style>
@@ -661,9 +663,22 @@
                         </div>
                     </div>
                     <div class="ticket-filters">
-                        <select class="ticket-filter-select">
-                            <option>All</option>
-                        </select>
+                        {{-- Filter Icon Button --}}
+                        <button type="button" wire:click="openFilterModal"
+                                style="padding: 8px 12px; border: 1px solid #E5E7EB; border-radius: 6px; background: white; cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 13px; color: #6B7280; transition: all 0.2s;"
+                                onmouseover="this.style.background='#F9FAFB'; this.style.borderColor='#D1D5DB'"
+                                onmouseout="this.style.background='white'; this.style.borderColor='#E5E7EB'">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" style="width: 16px; height: 16px;">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 01-.659 1.591l-5.432 5.432a2.25 2.25 0 00-.659 1.591v2.927a2.25 2.25 0 01-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 00-.659-1.591L3.659 7.409A2.25 2.25 0 013 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0112 3z" />
+                            </svg>
+                            Filters
+                            @if($selectedFrontEnd || $selectedTicketStatus || $etaStartDate || $etaEndDate)
+                                <span style="background: #6366F1; color: white; border-radius: 10px; padding: 2px 6px; font-size: 11px; font-weight: 600;">
+                                    {{ collect([$selectedFrontEnd, $selectedTicketStatus, $etaStartDate, $etaEndDate])->filter()->count() }}
+                                </span>
+                            @endif
+                        </button>
+
                         {{-- Show individual status badges when In Progress or Closed is selected --}}
                         @if(($selectedStatus === 'In Progress' || $selectedStatus === 'Closed') && !empty($selectedCombinedStatuses))
                             @foreach($selectedCombinedStatuses as $individualStatus)
@@ -686,6 +701,26 @@
                                 {{ \Carbon\Carbon::parse($selectedDate)->format('d M Y') }} ✕
                             </span>
                         @endif
+                        @if($selectedFrontEnd)
+                            <span class="close-badge" wire:click="$set('selectedFrontEnd', null)">
+                                Front End: {{ $selectedFrontEnd }} ✕
+                            </span>
+                        @endif
+                        @if($selectedTicketStatus)
+                            <span class="close-badge" wire:click="$set('selectedTicketStatus', null)">
+                                Status: {{ $selectedTicketStatus }} ✕
+                            </span>
+                        @endif
+                        @if($etaStartDate)
+                            <span class="close-badge" wire:click="$set('etaStartDate', null)">
+                                From: {{ \Carbon\Carbon::parse($etaStartDate)->format('d M Y') }} ✕
+                            </span>
+                        @endif
+                        @if($etaEndDate)
+                            <span class="close-badge" wire:click="$set('etaEndDate', null)">
+                                To: {{ \Carbon\Carbon::parse($etaEndDate)->format('d M Y') }} ✕
+                            </span>
+                        @endif
                     </div>
                 </div>
 
@@ -696,7 +731,14 @@
                                 <tr>
                                     <th style="padding: 12px; text-align: left; font-size: 12px; color: #6B7280; font-weight: 600;">ID</th>
                                     <th style="padding: 12px; text-align: left; font-size: 12px; color: #6B7280; font-weight: 600;">MODULE</th>
-                                    <th style="padding: 12px; text-align: left; font-size: 12px; color: #6B7280; font-weight: 600;">ETA</th>
+                                    <th style="padding: 12px; text-align: left; font-size: 12px; color: #6B7280; font-weight: 600; cursor: pointer;" wire:click="toggleEtaSort">
+                                        ETA
+                                        @if($etaSortDirection === 'asc')
+                                            <span style="margin-left: 4px;">↑</span>
+                                        @elseif($etaSortDirection === 'desc')
+                                            <span style="margin-left: 4px;">↓</span>
+                                        @endif
+                                    </th>
                                     <th style="padding: 12px; text-align: left; font-size: 12px; color: #6B7280; font-weight: 600;">STATUS</th>
                                     <th style="padding: 12px; text-align: left; font-size: 12px; color: #6B7280; font-weight: 600;">FRONT END</th>
                                     <th style="padding: 12px; text-align: center; font-size: 12px; color: #6B7280; font-weight: 600;">PASS/FAIL</th>
@@ -784,6 +826,98 @@
     {{-- Reopen Modal --}}
     @if($showReopenModal && $selectedTicket)
         @include('filament.pages.partials.reopen-modal')
+    @endif
+
+    {{-- Filter Modal --}}
+    @if($showFilterModal)
+        <div style="position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.5);"
+             wire:click="closeFilterModal">
+            <div style="background: white; border-radius: 12px; padding: 24px; width: 500px; max-width: 90vw; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);"
+                 wire:click.stop>
+
+                {{-- Modal Header --}}
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 2px solid #F3F4F6;">
+                    <div>
+                        <h3 style="font-size: 18px; font-weight: 700; color: #111827; margin: 0;">Filter Tickets</h3>
+                        <p style="font-size: 13px; color: #6B7280; margin: 4px 0 0 0;">Apply filters to refine your ticket list</p>
+                    </div>
+                    <button wire:click="closeFilterModal"
+                            style="background: transparent; border: none; color: #9CA3AF; cursor: pointer; padding: 4px; font-size: 20px; line-height: 1;"
+                            onmouseover="this.style.color='#6B7280'"
+                            onmouseout="this.style.color='#9CA3AF'">
+                        ×
+                    </button>
+                </div>
+
+                {{-- Filter Form --}}
+                <div style="display: flex; flex-direction: column; gap: 20px;">
+
+                    {{-- Front End Filter --}}
+                    <div>
+                        <label style="display: block; font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 8px;">
+                            Front End
+                        </label>
+                        <select class="ticket-filter-select" wire:model.live="selectedFrontEnd"
+                                style="width: 100%; padding: 10px 12px; border: 1px solid #D1D5DB; border-radius: 8px; font-size: 14px; background: white;">
+                            <option value="">All Front End</option>
+                            @foreach($frontEndNames as $frontEnd)
+                                <option value="{{ $frontEnd }}">{{ $frontEnd }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    {{-- Status Filter --}}
+                    <div>
+                        <label style="display: block; font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 8px;">
+                            Status
+                        </label>
+                        <select class="ticket-filter-select" wire:model.live="selectedTicketStatus"
+                                style="width: 100%; padding: 10px 12px; border: 1px solid #D1D5DB; border-radius: 8px; font-size: 14px; background: white;">
+                            <option value="">All Status</option>
+                            @foreach($statuses as $status)
+                                <option value="{{ $status }}">{{ $status }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    {{-- ETA Date Range --}}
+                    <div>
+                        <label style="display: block; font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 8px;">
+                            ETA Date Range
+                        </label>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                            <div>
+                                <label style="display: block; font-size: 12px; color: #6B7280; margin-bottom: 4px;">From</label>
+                                <input type="date" wire:model.live="etaStartDate"
+                                       style="width: 100%; padding: 10px 12px; border: 1px solid #D1D5DB; border-radius: 8px; font-size: 14px;">
+                            </div>
+                            <div>
+                                <label style="display: block; font-size: 12px; color: #6B7280; margin-bottom: 4px;">To</label>
+                                <input type="date" wire:model.live="etaEndDate"
+                                       style="width: 100%; padding: 10px 12px; border: 1px solid #D1D5DB; border-radius: 8px; font-size: 14px;">
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                {{-- Modal Footer --}}
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 24px; padding-top: 16px; border-top: 1px solid #F3F4F6;">
+                    <button type="button" wire:click="clearAllFilters"
+                            style="padding: 8px 16px; background: transparent; border: 1px solid #E5E7EB; border-radius: 8px; font-size: 13px; color: #6B7280; font-weight: 500; cursor: pointer; transition: all 0.2s;"
+                            onmouseover="this.style.background='#F9FAFB'; this.style.borderColor='#D1D5DB'"
+                            onmouseout="this.style.background='transparent'; this.style.borderColor='#E5E7EB'">
+                        Clear All
+                    </button>
+                    <button type="button" wire:click="closeFilterModal"
+                            style="padding: 8px 24px; background: #6366F1; border: none; border-radius: 8px; font-size: 13px; color: white; font-weight: 600; cursor: pointer; transition: all 0.2s;"
+                            onmouseover="this.style.background='#4F46E5'"
+                            onmouseout="this.style.background='#6366F1'">
+                        Apply Filters
+                    </button>
+                </div>
+            </div>
+        </div>
     @endif
 
     <x-filament-actions::modals />

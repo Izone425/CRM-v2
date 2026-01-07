@@ -10,8 +10,15 @@
                 <div style="background: #FEF3C7; padding: 8px 12px; border-radius: 6px;">
                     <span style="color: #F59E0B; font-size: 14px; font-weight: 600;">📋 TICKET</span>
                 </div>
-                <h2 style="font-size: 18px; font-weight: 700; color: #111827; margin: 0;">
+                <h2 onclick="navigator.clipboard.writeText('https://dt.timeteccloud.com/ticket/{{ $selectedTicket->ticket_id }}').then(function() { window.dispatchEvent(new CustomEvent('ticket-link-copied')); });"
+                    style="font-size: 18px; font-weight: 700; color: #111827; margin: 0; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: all 0.2s;"
+                    onmouseover="this.style.color='#6366F1'"
+                    onmouseout="this.style.color='#111827'"
+                    title="Click to copy ticket link">
                     {{ $selectedTicket->ticket_id }}
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" style="width: 16px; height: 16px; opacity: 0.5;">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
+                    </svg>
                 </h2>
             </div>
             <button wire:click="closeTicketModal" style="background: transparent; border: none; color: #9CA3AF; cursor: pointer; font-size: 24px;">
@@ -633,6 +640,21 @@
     </div>
 </div>
 
+<div x-data="{ show: false }"
+     @ticket-link-copied.window="show = true; setTimeout(() => show = false, 2000)"
+     x-show="show"
+     x-transition:enter="transition ease-out duration-300"
+     x-transition:enter-start="translate-x-full opacity-0"
+     x-transition:enter-end="translate-x-0 opacity-100"
+     x-transition:leave="transition ease-in duration-200"
+     x-transition:leave-start="translate-x-0 opacity-100"
+     x-transition:leave-end="translate-x-full opacity-0"
+     style="position: fixed; top: 24px; right: 24px; background: #10B981; color: white; padding: 12px 20px; border-radius: 12px; font-weight: 600; font-size: 14px; z-index: 9999; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2); display: flex; align-items: center; gap: 8px;"
+     x-cloak>
+    <span style="font-size: 18px;">✓</span>
+    Link copied to clipboard!
+</div>
+
 <style>
     @keyframes spin {
         from { transform: rotate(0deg); }
@@ -641,5 +663,30 @@
 
     .status-badge-wrapper:hover .status-tooltip {
         opacity: 1 !important;
+    }
+
+    @keyframes chatBubbleIn {
+        0% {
+            transform: translateX(400px) scale(0.8);
+            opacity: 0;
+        }
+        50% {
+            transform: translateX(-10px) scale(1.05);
+        }
+        100% {
+            transform: translateX(0) scale(1);
+            opacity: 1;
+        }
+    }
+
+    @keyframes chatBubbleOut {
+        0% {
+            transform: translateY(0) scale(1);
+            opacity: 1;
+        }
+        100% {
+            transform: translateY(-20px) scale(0.9);
+            opacity: 0;
+        }
     }
 </style>
