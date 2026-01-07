@@ -289,11 +289,18 @@ class EInvoiceHandoverRelationManager extends RelationManager
                     // Determine company type based on selected company
                     $selectedCompanyName = $data['company_name'];
                     $companyType = 'subsidiary'; // Default to subsidiary
+                    $subsidiaryId = null; // Initialize subsidiary ID
 
                     // Check if selected company is the main company
                     $companyDetail = $lead->companyDetail;
                     if ($companyDetail && $companyDetail->company_name === $selectedCompanyName) {
                         $companyType = 'main';
+                    } else {
+                        // Find the subsidiary ID if this is a subsidiary
+                        $subsidiary = $lead->subsidiaries()->where('company_name', $selectedCompanyName)->first();
+                        if ($subsidiary) {
+                            $subsidiaryId = $subsidiary->id;
+                        }
                     }
 
                     // Get salesperson name
@@ -304,7 +311,7 @@ class EInvoiceHandoverRelationManager extends RelationManager
                     }
 
                     // Create E-Invoice Handover record
-                    $eInvoiceHandover = EInvoiceHandover::create([
+                    $eInvoiceHandoverData = [
                         'lead_id' => $lead->id,
                         'salesperson' => $salespersonName,
                         'company_name' => $selectedCompanyName,
@@ -312,7 +319,14 @@ class EInvoiceHandoverRelationManager extends RelationManager
                         'status' => 'New',
                         'created_by' => auth()->id(),
                         'submitted_at' => now(),
-                    ]);
+                    ];
+
+                    // Add subsidiary_id if this is a subsidiary
+                    if ($subsidiaryId) {
+                        $eInvoiceHandoverData['subsidiary_id'] = $subsidiaryId;
+                    }
+
+                    $eInvoiceHandover = EInvoiceHandover::create($eInvoiceHandoverData);
 
                     // Update lead einvoice_status to "Pending Finance" only if this is the first handover cycle
                     if (in_array($lead->einvoice_status, [null, 'Pending SalesPerson'])) {

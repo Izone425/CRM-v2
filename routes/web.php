@@ -70,7 +70,7 @@ Route::get('/software-handover/export-customer/{lead}', [App\Http\Controllers\So
     ->name('software-handover.export-customer')
     ->middleware(['auth']);
 
-Route::get('/einvoice/export/{lead}', [App\Http\Controllers\EInvoiceExportController::class, 'exportEInvoiceDetails'])
+Route::get('/einvoice/export/{lead}/{subsidiaryId?}', [App\Http\Controllers\EInvoiceExportController::class, 'exportEInvoiceDetails'])
     ->name('einvoice.export')
     ->middleware(['auth']);
 

@@ -967,17 +967,62 @@ class TicketDashboard extends Page implements HasActions, HasForms
             $ticket = Ticket::find($ticketId);
 
             if ($ticket) {
+                $authUser = auth()->user();
+
+                $ticketSystemUser = null;
+                if ($authUser) {
+                    $ticketSystemUser = \Illuminate\Support\Facades\DB::connection('ticketingsystem_live')
+                        ->table('users')
+                        ->where('email', $authUser->email)
+                        ->first();
+                }
+
+                $userId = $ticketSystemUser?->id ?? 22;
+                $userName = $ticketSystemUser?->name ?? 'HRcrm User';
+                $userRole = $ticketSystemUser?->role ?? 'Internal Staff';
+
+                $oldStatus = $ticket->status;
+
                 $ticket->update([
+                    'status' => 'Closed',
                     'isPassed' => 1,
                     'passed_at' => now(),
+                ]);
+
+                // ✅ Create a log entry for marking ticket as passed
+                TicketLog::create([
+                    'ticket_id' => $ticket->id,
+                    'old_value' => $oldStatus,
+                    'new_value' => 'Closed',
+                    'action' => "Marked ticket {$ticket->ticket_id} as passed - changed status from '{$oldStatus}' to 'Closed'.",
+                    'field_name' => 'status',
+                    'change_reason' => 'Ticket marked as passed',
+                    'updated_by' => $userId,
+                    'user_name' => $userName,
+                    'user_role' => $userRole,
+                    'change_type' => 'status_change',
+                    'source' => 'dashboard_pass_action',
                 ]);
 
                 if ($this->selectedTicket && $this->selectedTicket->id === $ticketId) {
                     $this->selectedTicket->refresh();
                 }
+
+                // ✅ Show success notification
+                Notification::make()
+                    ->title('Ticket Marked as Passed')
+                    ->body("Ticket {$ticket->ticket_id} has been marked as passed and closed")
+                    ->success()
+                    ->send();
             }
         } catch (\Exception $e) {
             Log::error('Error marking ticket as passed: ' . $e->getMessage());
+
+            Notification::make()
+                ->title('Error')
+                ->body('Failed to mark ticket as passed')
+                ->danger()
+                ->send();
         }
     }
 
