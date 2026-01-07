@@ -2,7 +2,9 @@
 
 namespace App\Livewire\FinanceDashboard;
 
+use App\Models\CompanyDetail;
 use App\Models\EInvoiceHandover;
+use App\Models\Subsidiary;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Notifications\Notification;
@@ -74,9 +76,7 @@ class EInvoiceHandoverCompleted extends Component implements HasForms, HasTable
                     ->weight('bold')
                     ->action(
                         Action::make('viewEInvoiceDetails')
-                            ->modalHeading(function (EInvoiceHandover $record) {
-                                return 'E-Invoice Details - ' . $record->project_code;
-                            })
+                            ->modalHeading(false)
                             ->modalWidth('3xl')
                             ->modalSubmitAction(false)
                             ->modalCancelAction(false)
@@ -94,7 +94,42 @@ class EInvoiceHandoverCompleted extends Component implements HasForms, HasTable
                 TextColumn::make('company_name')
                     ->label('Company Name')
                     ->sortable()
-                    ->wrap(),
+                    ->wrap()
+                    ->formatStateUsing(function ($state, $record) {
+                        $displayName = $state;
+                        $company = null;
+
+                        // Check if there's a subsidiary_id and get subsidiary company name
+                        if (!empty($record->subsidiary_id)) {
+                            $subsidiary = Subsidiary::find($record->subsidiary_id);
+                            if ($subsidiary) {
+                                $displayName = $subsidiary->company_name;
+                                $company = CompanyDetail::where('lead_id', $record->lead_id)->first();
+                            }
+                        } else {
+                            // Fall back to regular company lookup
+                            $company = CompanyDetail::where('company_name', $state)->first();
+
+                            if (!empty($record->lead_id)) {
+                                $company = CompanyDetail::where('lead_id', $record->lead_id)->first();
+                            }
+                        }
+
+                        if ($company) {
+                            $encryptedId = \App\Classes\Encryptor::encrypt($company->lead_id);
+
+                            return new HtmlString('<a href="' . url('admin/leads/' . $encryptedId) . '"
+                                    target="_blank"
+                                    title="' . e($displayName) . '"
+                                    class="inline-block"
+                                    style="color:#338cf0;">
+                                    ' . $displayName . '
+                                </a>');
+                        }
+
+                        return "<span title='{$displayName}'>{$displayName}</span>";
+                    })
+                    ->html(),
 
                 TextColumn::make('status')
                     ->label('Status')

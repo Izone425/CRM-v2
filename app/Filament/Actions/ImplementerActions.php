@@ -1056,21 +1056,21 @@ class ImplementerActions
                                     }
                                 }
 
-                                // 3. Get salesperson email
-                                if ($record->lead_id) {
-                                    $lead = \App\Models\Lead::find($record->lead_id);
-                                    if ($lead && !empty($lead->salesperson)) {
-                                        // Find the user with this salesperson ID
-                                        $salesperson = \App\Models\User::where('id', $lead->salesperson)->first();
+                                // // 3. Get salesperson email
+                                // if ($record->lead_id) {
+                                //     $lead = \App\Models\Lead::find($record->lead_id);
+                                //     if ($lead && !empty($lead->salesperson)) {
+                                //         // Find the user with this salesperson ID
+                                //         $salesperson = \App\Models\User::where('id', $lead->salesperson)->first();
 
-                                        if ($salesperson && !empty($salesperson->email)) {
-                                            $email = trim($salesperson->email);
-                                            if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
-                                                $emails[] = $email;
-                                            }
-                                        }
-                                    }
-                                }
+                                //         if ($salesperson && !empty($salesperson->email)) {
+                                //             $email = trim($salesperson->email);
+                                //             if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                                //                 $emails[] = $email;
+                                //             }
+                                //         }
+                                //     }
+                                // }
 
                                 // Remove duplicates and return as semicolon-separated string
                                 $uniqueEmails = array_unique($emails);

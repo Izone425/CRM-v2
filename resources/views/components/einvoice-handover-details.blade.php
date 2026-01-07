@@ -21,7 +21,7 @@
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: 1.5rem;
-        margin-bottom: 2rem;
+        margin-bottom: 1rem;
     }
 
     @media (max-width: 768px) {
@@ -53,7 +53,7 @@
         flex-wrap: wrap;
     }
 
-    .einvoice-export-btn {
+    .einvoice-export-btn, .sw-export-btn {
         display: inline-flex;
         align-items: center;
         color: #16a34a;
@@ -66,19 +66,22 @@
         transition: all 0.2s;
         min-width: 200px;
         justify-content: center;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     }
 
-    .einvoice-export-btn:hover {
+    .einvoice-export-btn:hover, .sw-export-btn:hover {
         background-color: #16a34a;
         color: white;
         transform: translateY(-1px);
-        box-shadow: 0 4px 8px rgba(22, 163, 74, 0.2);
+        box-shadow: 0 4px 12px rgba(22, 163, 74, 0.3);
+        text-decoration: none;
     }
 
-    .einvoice-export-icon {
+    .einvoice-export-icon, .sw-export-icon {
         width: 1.25rem;
         height: 1.25rem;
         margin-right: 0.5rem;
+        flex-shrink: 0;
     }
 
     .einvoice-section-title {
@@ -115,60 +118,100 @@
 </style>
 
 <div class="einvoice-container">
-    <div class="einvoice-section-title">E-Invoice Information</div>
+    <hr class="my-4 border-gray-300">
 
     <div class="einvoice-grid">
-        <!-- Left Column -->
-        <div>
-            <div class="einvoice-info-item">
-                <span class="einvoice-label">E-Invoice ID:</span>
-                <span class="einvoice-value">{{ $record->project_code }}</span>
-            </div>
-
-            <div class="einvoice-info-item">
-                <span class="einvoice-label">Salesperson:</span>
-                <span class="einvoice-value">{{ $record->salesperson }}</span>
-            </div>
-
-            <div class="einvoice-info-item">
-                <span class="einvoice-label">Company Name:</span>
-                <span class="einvoice-value">{{ $record->company_name }}</span>
-            </div>
-
-            <div class="einvoice-info-item">
-                <span class="einvoice-label">Company Type:</span>
-                <span class="einvoice-value">{{ ucfirst($record->company_type) }}</span>
-            </div>
+        <!-- Column 1 -->
+        <div class="einvoice-info-item">
+            <span class="einvoice-label">E-Invoice ID:</span>
+            <span class="einvoice-value">{{ $record->project_code }}</span>
         </div>
 
-        <!-- Right Column -->
-        <div>
-            <div class="einvoice-info-item">
-                <span class="einvoice-label">Status:</span>
-                <span class="einvoice-status
-                    @if($record->status === 'New') einvoice-status-new
-                    @elseif($record->status === 'Completed') einvoice-status-completed
-                    @elseif($record->status === 'Rejected') einvoice-status-rejected
-                    @endif">
-                    {{ $record->status }}
-                </span>
-            </div>
-
-            <div class="einvoice-info-item">
-                <span class="einvoice-label">Submitted At:</span>
-                <span class="einvoice-value">{{ $record->submitted_at ? $record->submitted_at->format('d F Y, H:i') : 'Not submitted' }}</span>
-            </div>
-
-            <div class="einvoice-info-item">
-                <span class="einvoice-label">Created By:</span>
-                <span class="einvoice-value">{{ $record->creator->name ?? 'Unknown' }}</span>
-            </div>
-
-            <div class="einvoice-info-item">
-                <span class="einvoice-label">Created At:</span>
-                <span class="einvoice-value">{{ $record->created_at ? $record->created_at->format('d F Y, H:i') : 'Unknown' }}</span>
-            </div>
+        <!-- Column 2 -->
+        <div class="einvoice-info-item">
+            <span class="einvoice-label">Status:</span>
+            <span class="einvoice-status
+                @if($record->status === 'New') einvoice-status-new
+                @elseif($record->status === 'Completed') einvoice-status-completed
+                @elseif($record->status === 'Rejected') einvoice-status-rejected
+                @endif">
+                {{ $record->status }}
+            </span>
         </div>
+    </div>
+
+    <div class="einvoice-grid">
+        <!-- Column 1 -->
+        <div class="einvoice-info-item">
+            <span class="einvoice-label">SalesPerson:</span>
+            <span class="einvoice-value">{{ $record->salesperson }}</span>
+        </div>
+
+        <!-- Column 2 -->
+        <div class="einvoice-info-item">
+            <span class="einvoice-label">Duration:</span>
+            <span class="einvoice-value">
+                @if($record->created_at && $record->completed_at && $record->status === 'Completed')
+                    {{ $record->created_at->diffForHumans($record->completed_at, true) }}
+                @else
+                    {{ $record->created_at ? $record->created_at->diffForHumans() : 'N/A' }}
+                @endif
+            </span>
+        </div>
+    </div>
+
+    <hr class="my-2 border-gray-300">
+
+    <div class="einvoice-grid">
+        <!-- Column 1 -->
+        <div class="einvoice-info-item">
+            <span class="einvoice-label">Created By:</span>
+            <span class="einvoice-value">{{ $record->createdBy?->name ?? 'N/A' }}</span>
+        </div>
+
+        <!-- Column 2 -->
+        <div class="einvoice-info-item">
+            <span class="einvoice-label">Completed By:</span>
+            <span class="einvoice-value">
+                @if($record->status === 'Completed')
+                    {{ $record->completedBy?->name ?? 'N/A' }}
+                @else
+                    -
+                @endif
+            </span>
+        </div>
+    </div>
+
+    <div class="einvoice-grid">
+        <!-- Column 1 -->
+        <div class="einvoice-info-item">
+            <span class="einvoice-label">Created At:</span>
+            <span class="einvoice-value">{{ $record->created_at ? $record->created_at->format('d F Y, H:i') : 'N/A' }}</span>
+        </div>
+
+        <!-- Column 2 -->
+        <div class="einvoice-info-item">
+            <span class="einvoice-label">Completed At:</span>
+            <span class="einvoice-value">
+                @if($record->status === 'Completed')
+                    {{ $record->completed_at ? $record->completed_at->format('d F Y, H:i') : 'N/A' }}
+                @else
+                    -
+                @endif
+            </span>
+        </div>
+    </div>
+
+    <hr class="my-2 border-gray-300">
+
+    <div class="einvoice-info-item">
+        <span class="einvoice-label">Company Name:</span>
+        <span class="einvoice-value">{{ $record->company_name }}</span>
+    </div>
+
+    <div class="einvoice-info-item">
+        <span class="einvoice-label">Company Type:</span>
+        <span class="einvoice-value">{{ ucfirst($record->company_type) }}</span>
     </div>
 
     <hr class="my-4 border-gray-300">

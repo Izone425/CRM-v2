@@ -22,10 +22,13 @@ class EInvoiceHandover extends Model
         'status',
         'created_by',
         'submitted_at',
+        'completed_by',
+        'completed_at',
     ];
 
     protected $casts = [
         'submitted_at' => 'datetime',
+        'completed_at' => 'datetime',
     ];
 
     /**
@@ -78,5 +81,21 @@ class EInvoiceHandover extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /**
+     * Get the user who created the E-Invoice handover.
+     */
+    public function createdBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /**
+     * Get the user who completed the E-Invoice handover.
+     */
+    public function completedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'completed_by');
     }
 }
