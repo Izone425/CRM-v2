@@ -893,7 +893,7 @@
                                             </span>
                                         </button>
 
-                                        @if (!(auth()->user()->role_id == 3 && auth()->user()->additional_role == 1))
+                                        @if (auth()->user()->role_id == 3 && auth()->user()->additional_role == 1)
                                         <!-- Lead Owner Button -->
                                         <button
                                             wire:click="toggleDashboard('LeadOwner')"
@@ -1329,7 +1329,7 @@
                                             </div>
                                         </div>
 
-                                        @if (!(auth()->user()->role_id == 3 && auth()->user()->additional_role == 1))
+                                        @if (auth()->user()->role_id == 3 && auth()->user()->additional_role == 1)
                                         <!-- Finance Button -->
                                         <button
                                             wire:click="toggleDashboard('Finance')"

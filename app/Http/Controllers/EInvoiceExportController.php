@@ -87,9 +87,14 @@ class EInvoiceExportController extends Controller
             $sheet->fromArray([$headerRow], null, 'B2');
 
             // Build data row - get data from models
-            // TIN and Business Register Number always from main company (E-Invoice Detail/Company Detail)
-            $tin = $eInvoiceDetail->tax_identification_number ?? '';
-            $identityNo = $eInvoiceDetail->business_register_number ?? $companyDetail->reg_no_new ?? '';
+            // TIN and Business Register Number: use subsidiary if exists, otherwise main company
+            if ($isSubsidiary) {
+                $tin = $subsidiary->tax_identification_number ?? '';
+                $identityNo = $subsidiary->business_register_number ?? '';
+            } else {
+                $tin = $eInvoiceDetail->tax_identification_number ?? '';
+                $identityNo = $eInvoiceDetail->business_register_number ?? $companyDetail->reg_no_new ?? '';
+            }
 
             // Company name: use subsidiary if exists, otherwise main company
             if ($isSubsidiary) {
@@ -107,8 +112,12 @@ class EInvoiceExportController extends Controller
             // Generate SST Register No in format similar to sample: STN-YYYY-XXXXXXXX
             $sstRegisterNo = ''; // Made empty as requested
 
-            // MSIC Code always from main company
-            $msicCode = $eInvoiceDetail->msic_code ?? '01111'; // Default sample code
+            // MSIC Code: use subsidiary if exists, otherwise main company
+            if ($isSubsidiary) {
+                $msicCode = $subsidiary->msic_code ?? '01111'; // Default sample code
+            } else {
+                $msicCode = $eInvoiceDetail->msic_code ?? '01111'; // Default sample code
+            }
             $businessActivityDesc = ''; // Made empty as requested
 
             // Generate debtor code based on lead ID like the example: 300-0001
@@ -202,7 +211,7 @@ class EInvoiceExportController extends Controller
             $sheet->getStyle('B3:' . $lastColLetter . '3')->applyFromArray([
                 'fill' => [
                     'fillType' => Fill::FILL_SOLID,
-                    'startColor' => ['rgb' => '66ff33'], // Light green background for data row
+                    'startColor' => ['rgb' => 'ffffff'], // Light green background for data row
                 ],
                 'borders' => [
                     'allBorders' => [

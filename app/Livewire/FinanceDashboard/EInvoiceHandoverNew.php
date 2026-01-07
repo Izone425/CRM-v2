@@ -16,7 +16,6 @@ use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Table;
 use Livewire\Component;
 use Illuminate\Support\HtmlString;
-use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Mail;
 use Livewire\Attributes\On;
 
@@ -201,7 +200,7 @@ class EInvoiceHandoverNew extends Component implements HasForms, HasTable
 
                                 Mail::send('emails.einvoice_completion_notification', $emailData, function ($message) use ($salespersonEmail, $subject) {
                                     $message->to($salespersonEmail)
-                                        ->cc('zilih.ng@timeteccloud.com')
+                                        ->cc(['auni@timeteccloud.com', 'faiz@timeteccloud.com'])
                                         ->subject($subject);
                                 });
 

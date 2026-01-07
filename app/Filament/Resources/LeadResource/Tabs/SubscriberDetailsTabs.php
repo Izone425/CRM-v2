@@ -118,19 +118,19 @@ class SubscriberDetailsTabs
 
                                                 TextInput::make('business_register_number')
                                                     ->label('New Business Register Number')
-                                                    ->extraAlpineAttributes([
-                                                        'x-on:input' => '
-                                                            let value = $el.value.replace(/[^0-9]/g, "");
-                                                            if (value.length > 12) {
-                                                                value = value.substring(0, 12);
-                                                            }
-                                                            $el.value = value;
-                                                        '
-                                                    ])
+                                                    // ->extraAlpineAttributes([
+                                                    //     'x-on:input' => '
+                                                    //         let value = $el.value.replace(/[^0-9]/g, "");
+                                                    //         if (value.length > 12) {
+                                                    //             value = value.substring(0, 12);
+                                                    //         }
+                                                    //         $el.value = value;
+                                                    //     '
+                                                    // ])
                                                     ->required()
-                                                    ->minLength(12)
+                                                    // ->minLength(12)
                                                     ->maxLength(12)
-                                                    ->rules(['regex:/^[0-9]{12}$/'])
+                                                    // ->rules(['regex:/^[0-9]{12}$/'])
                                                     ->suffixAction(
                                                         Action::make('searchTin')
                                                             ->icon('heroicon-o-magnifying-glass')
@@ -202,7 +202,6 @@ class SubscriberDetailsTabs
                                                     ])
                                                     ->dehydrateStateUsing(fn ($state) => strtoupper($state))
                                                     ->readOnly()
-                                                    ->required()
                                                     ->dehydrated(true)
                                                     ->maxLength(255),
 
