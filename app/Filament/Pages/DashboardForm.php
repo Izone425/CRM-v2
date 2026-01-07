@@ -66,6 +66,7 @@ class DashboardForm extends Page
             3 => 'Manager',
             4 => 'Implementer',
             5 => 'Implementer',
+            10 => 'Finance',
             default => 'LeadOwner',
         };
 
