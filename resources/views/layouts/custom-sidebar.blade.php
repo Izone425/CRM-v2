@@ -631,19 +631,21 @@
                     </div>
                 @endif
 
-                <div class="icon-link" data-section="ticketing">
-                    <div class="icon-wrapper">
-                        <i class="bi bi-ticket-perforated icon"></i>
+                @if(auth()->user()->role_id != 10)
+                    <div class="icon-link" data-section="ticketing">
+                        <div class="icon-wrapper">
+                            <i class="bi bi-ticket-perforated icon"></i>
+                        </div>
+                        <span class="icon-tooltip">Ticketing</span>
                     </div>
-                    <span class="icon-tooltip">Ticketing</span>
-                </div>
 
-                <div class="icon-link" data-section="system-portal">
-                    <div class="icon-wrapper">
-                        <i class="bi bi-grid-3x3-gap icon"></i>
+                    <div class="icon-link" data-section="system-portal">
+                        <div class="icon-wrapper">
+                            <i class="bi bi-grid-3x3-gap icon"></i>
+                        </div>
+                        <span class="icon-tooltip">System Portal</span>
                     </div>
-                    <span class="icon-tooltip">System Portal</span>
-                </div>
+                @endif
 
                 @if(auth()->user()->additional_role == 1 || auth()->user()->role_id == 3)
                     <div class="icon-link" data-section="admin">
@@ -699,19 +701,21 @@
                     </div>
                 @endif
 
-                <div class="icon-link" data-section="internal">
-                    <div class="icon-wrapper">
-                        <i class="bi bi-box-arrow-in-down-right icon"></i>
+                @if(auth()->user()->role_id != 10)
+                    <div class="icon-link" data-section="internal">
+                        <div class="icon-wrapper">
+                            <i class="bi bi-box-arrow-in-down-right icon"></i>
+                        </div>
+                        <span class="icon-tooltip">TimeTec HR - Internal</span>
                     </div>
-                    <span class="icon-tooltip">TimeTec HR - Internal</span>
-                </div>
 
-                <div class="icon-link" data-section="external">
-                    <div class="icon-wrapper">
-                        <i class="bi bi-box-arrow-up-right icon"></i>
+                    <div class="icon-link" data-section="external">
+                        <div class="icon-wrapper">
+                            <i class="bi bi-box-arrow-up-right icon"></i>
+                        </div>
+                        <span class="icon-tooltip">TimeTec HR - External</span>
                     </div>
-                    <span class="icon-tooltip">TimeTec HR - External</span>
-                </div>
+                @endif
 
                 <!-- Settings Icon -->
                 @if(auth()->user()->hasAccessToAny([
