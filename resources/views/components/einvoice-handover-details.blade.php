@@ -175,17 +175,21 @@
 
     <!-- Export Buttons -->
     <div class="einvoice-export-container">
-        <a href="#"
-           onclick="alert('Export AutoCount Debtor functionality will be implemented soon')"
-           class="einvoice-export-btn">
-            <svg class="einvoice-export-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+        <a href="{{ route('software-handover.export-customer', ['lead' => \App\Classes\Encryptor::encrypt($record->lead_id)]) }}"
+            target="_blank"
+            class="sw-export-btn">
+            <!-- Download Icon -->
+            <svg xmlns="http://www.w3.org/2000/svg" class="sw-export-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
             Export AutoCount Debtor
         </a>
 
-        <a href="#"
-           onclick="alert('Export AutoCount E-Invoice functionality will be implemented soon')"
+        <a href="{{ route('einvoice.export', [
+                'lead' => \App\Classes\Encryptor::encrypt($record->lead_id),
+                'subsidiaryId' => $record->subsidiary_id
+            ]) }}"
+           target="_blank"
            class="einvoice-export-btn">
             <svg class="einvoice-export-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>

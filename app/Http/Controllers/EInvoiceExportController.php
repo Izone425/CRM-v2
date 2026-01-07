@@ -13,155 +13,224 @@ use Illuminate\Support\Facades\Log;
 
 class EInvoiceExportController extends Controller
 {
-    public function exportEInvoiceDetails($leadId)
+    public function exportEInvoiceDetails($leadId, $subsidiaryId = null)
     {
         try {
-            Log::info('Starting E-Invoice export for lead ID: ' . $leadId);
+            Log::info('Starting E-Invoice export for lead ID: ' . $leadId . ', subsidiary ID: ' . $subsidiaryId);
 
             // Decrypt the lead ID
             $decryptedLeadId = Encryptor::decrypt($leadId);
             Log::info('Decrypted lead ID: ' . $decryptedLeadId);
 
-            // Get the lead with e-invoice details
-            $lead = Lead::with(['eInvoiceDetail', 'companyDetail'])->findOrFail($decryptedLeadId);
+            // Get the lead with e-invoice details, company details, and subsidiaries
+            $lead = Lead::with(['eInvoiceDetail', 'companyDetail', 'subsidiaries'])->findOrFail($decryptedLeadId);
             Log::info('Lead found: ' . $lead->id);
 
             $eInvoiceDetail = $lead->eInvoiceDetail;
             $companyDetail = $lead->companyDetail;
 
+            // Check if this is for a specific subsidiary based on subsidiary_id
+            $subsidiary = null;
+            $isSubsidiary = false;
+
+            if ($subsidiaryId) {
+                $subsidiary = $lead->subsidiaries->where('id', $subsidiaryId)->first();
+                $isSubsidiary = $subsidiary !== null;
+                Log::info('Using specific subsidiary ID: ' . $subsidiaryId . ', found: ' . ($subsidiary ? 'Yes' : 'No'));
+            }
+
             // Create Excel spreadsheet
             $spreadsheet = new Spreadsheet();
             $sheet = $spreadsheet->getActiveSheet();
 
-            // Set headers row
-            $headers = [
-                'TIN',                      // 20 chars
-                'IdentityNo',               // 30 chars
-                'Name',                     // 100 chars
-                'IdentityType',             // Refer to Identity Type & State Code Sheet
-                'TaxClassification',        // 0: Individual, 1: Business, 2: Government (Integer) - 10 chars
-                'GSTRegisterNo',            // 20 chars
-                'SSTRegisterNo',            // 20 chars
-                'TourismTaxRegisterNo',     // 20 chars
-                'MSICCode',                 // Refer to MSIC CODE Sheet - 5 chars
-                'BusinessActivityDesc',     // 100 chars
-                'DebtorCode',               // 12 chars
-                'CreditorCode',             // 12 chars
-                'TradeName',                // 100 chars
-                'Address',                  // 200 chars
-                'PostCode',                 // 10 chars
-                'Phone',                    // 25 chars
-                'EmailAddress',             // 200 chars
-                'City',                     // 50 chars
-                'CountryCode',              // Refer To COUNTRY CODE Sheet - 3 chars
-                'StateCode',                // Refer to STATE CODE Sheet - 2 chars
+            // Build the data for our spreadsheet
+            // Row 1: Format descriptions
+            $descriptionRow = [
+                "(20 chars)",
+                "Identity No/Business Reg.\nNo.\n(30 chars)",
+                "(100 chars)",
+                "0: Individual\n1: Business\n2: Government\n(Integer)",
+                "(20 chars)",
+                "MSIC CODE Sheet\n(5 chars)",
+                "(100 chars)",
+                "(12 chars)",
+                "(200 chars)",
+                "(10 chars)",
+                "(25 chars)",
+                "(200 chars)",
+                "(50 chars)",
+                "COUNTRY CODE Sheet\n(3 chars)",
+                "STATE CODE Sheet\n(2 chars)"
             ];
 
-            // Add headers to row 1
-            $sheet->fromArray([$headers], null, 'A1');
+            // Row 2: Actual headers
+            $headerRow = [
+                'TIN',
+                'IdentityNo',
+                'Name',
+                'TaxClassification',
+                'SSTRegisterNo',
+                'MSICCode',
+                'BusinessActivityDesc',
+                'DebtorCode',
+                'Address',
+                'PostCode',
+                'Phone',
+                'EmailAddress',
+                'City',
+                'CountryCode',
+                'StateCode'
+            ];
 
-            // Build data row
+            // Add data to the spreadsheet
+            $sheet->fromArray([$descriptionRow], null, 'B1');
+            $sheet->fromArray([$headerRow], null, 'B2');
+
+            // Build data row - get data from models
+            // TIN and Business Register Number always from main company (E-Invoice Detail/Company Detail)
+            $tin = $eInvoiceDetail->tax_identification_number ?? '';
+            $identityNo = $eInvoiceDetail->business_register_number ?? $companyDetail->reg_no_new ?? '';
+
+            // Company name: use subsidiary if exists, otherwise main company
+            if ($isSubsidiary) {
+                $name = $subsidiary->company_name;
+            } else {
+                $name = $eInvoiceDetail->company_name ?? $companyDetail->company_name ?? '';
+            }
+
+            // Tax Classification: 1 for Business (default)
+            $taxClassification = 1;
+            if ($eInvoiceDetail && $eInvoiceDetail->business_category === 'government') {
+                $taxClassification = 2;
+            }
+
+            // Generate SST Register No in format similar to sample: STN-YYYY-XXXXXXXX
+            $sstRegisterNo = ''; // Made empty as requested
+
+            // MSIC Code always from main company
+            $msicCode = $eInvoiceDetail->msic_code ?? '01111'; // Default sample code
+            $businessActivityDesc = ''; // Made empty as requested
+
+            // Generate debtor code based on lead ID like the example: 300-0001
+            $debtorCode = ''; // Made empty as requested
+
+            // Build address - only combine address1 and address2
+            if ($isSubsidiary) {
+                $address1 = $subsidiary->company_address1 ?? '';
+                $address2 = $subsidiary->company_address2 ?? '';
+                $city = $subsidiary->city ?? '';
+                $postcode = $subsidiary->postcode ?? '';
+                $state = $subsidiary->state ?? '';
+            } else {
+                $address1 = $eInvoiceDetail->address_1 ?? $companyDetail->company_address1 ?? '';
+                $address2 = $eInvoiceDetail->address_2 ?? $companyDetail->company_address2 ?? '';
+                $city = $eInvoiceDetail->city ?? $companyDetail->city ?? '';
+                $postcode = $eInvoiceDetail->postcode ?? $companyDetail->postcode ?? '';
+                $state = $eInvoiceDetail->state ?? $companyDetail->state ?? '';
+            }
+
+            $addressParts = array_filter([$address1, $address2]);
+            $fullAddress = implode(', ', $addressParts); // Only address1 and address2
+
+            // Contact information: use subsidiary if exists, otherwise main company
+            if ($isSubsidiary) {
+                $phone = $this->cleanPhoneNumber($subsidiary->contact_number ?? '');
+                $email = $subsidiary->finance_person_email ?? $subsidiary->email ?? '';
+                $cityOnly = $subsidiary->city ?? '';
+                $countryCode = $subsidiary->country ?? 'MYS';
+                $stateCode = $this->getSimpleStateCode($subsidiary->state ?? '');
+            } else {
+                $phone = $this->cleanPhoneNumber($companyDetail->contact_no ?? $lead->phone ?? '');
+                $email = $eInvoiceDetail->finance_person_email ?? $companyDetail->email ?? $lead->email ?? '';
+                $cityOnly = $eInvoiceDetail->city ?? $companyDetail->city ?? '';
+                $countryCode = $eInvoiceDetail->country ?? 'MYS';
+                $stateCode = $this->getSimpleStateCode($eInvoiceDetail->state ?? $companyDetail->state ?? '');
+            }
+
+            // Create the data row
             $dataRow = [
-                // TIN (20 chars) - Tax Identification Number
-                $this->limitChars($eInvoiceDetail->tax_identification_number ?? '', 20),
-
-                // IdentityNo (30 chars) - Business Register Number
-                $this->limitChars($eInvoiceDetail->business_register_number ?? '', 30),
-
-                // Name (100 chars) - Company Name
-                $this->limitChars($eInvoiceDetail->company_name ?? $lead->company_name ?? '', 100),
-
-                // IdentityType - Based on business category
-                $this->getIdentityType($eInvoiceDetail->business_category ?? ''),
-
-                // TaxClassification (Integer, 10 chars) - Based on business category
-                $this->getTaxClassification($eInvoiceDetail->business_category ?? ''),
-
-                // GSTRegisterNo (20 chars) - Empty for now
-                $this->limitChars('', 20),
-
-                // SSTRegisterNo (20 chars) - Empty for now
-                $this->limitChars('', 20),
-
-                // TourismTaxRegisterNo (20 chars) - Empty for now
-                $this->limitChars('', 20),
-
-                // MSICCode (5 chars)
-                $this->limitChars($eInvoiceDetail->msic_code ?? '', 5),
-
-                // BusinessActivityDesc (100 chars) - Use industry or default
-                $this->limitChars('Sales', 100),
-
-                // DebtorCode (12 chars) - Generate based on lead ID
-                $this->limitChars('300-' . str_pad($lead->id, 4, '0', STR_PAD_LEFT), 12),
-
-                // CreditorCode (12 chars) - Empty for now
-                $this->limitChars('', 12),
-
-                // TradeName (100 chars) - Same as company name
-                $this->limitChars($eInvoiceDetail->company_name ?? $lead->company_name ?? '', 100),
-
-                // Address (200 chars) - Combined address
-                $this->limitChars($this->getCombinedAddress($eInvoiceDetail), 200),
-
-                // PostCode (10 chars)
-                $this->limitChars($eInvoiceDetail->postcode ?? '', 10),
-
-                // Phone (25 chars) - From company detail or lead
-                $this->limitChars($companyDetail->contact_no ?? $lead->phone ?? '', 25),
-
-                // EmailAddress (200 chars) - From company detail or lead
-                $this->limitChars($companyDetail->email ?? $lead->email ?? '', 200),
-
-                // City (50 chars)
-                $this->limitChars($eInvoiceDetail->city ?? '', 50),
-
-                // CountryCode (3 chars)
-                $this->getCountryCode($eInvoiceDetail->country ?? ''),
-
-                // StateCode (2 chars)
-                $this->getStateCode($eInvoiceDetail->state ?? ''),
+                $tin,                    // TIN
+                $identityNo,            // IdentityNo
+                $name,                  // Name
+                $taxClassification,     // TaxClassification
+                $sstRegisterNo,         // SSTRegisterNo
+                $msicCode,              // MSICCode
+                $businessActivityDesc,  // BusinessActivityDesc
+                $debtorCode,            // DebtorCode
+                $fullAddress,           // Address
+                $postcode,              // PostCode
+                $phone,                 // Phone
+                $email,                 // EmailAddress
+                $cityOnly,              // City
+                $countryCode,           // CountryCode
+                $stateCode              // StateCode
             ];
 
-            // Add data to row 2
-            $sheet->fromArray([$dataRow], null, 'A2');
+            // Add data to row 3
+            $sheet->fromArray([$dataRow], null, 'B3');
 
-            // Style the header row
-            $lastCol = count($headers);
-            $lastColLetter = $this->getColumnLetter($lastCol);
+            // Apply text wrapping to the description row
+            $lastCol = count($descriptionRow);
+            $lastColLetter = $this->getColumnLetter($lastCol + 1); // +1 because we start from B
 
-            $sheet->getStyle('A1:' . $lastColLetter . '1')->applyFromArray([
+            $sheet->getStyle('B1:' . $lastColLetter . '1')->getAlignment()
+                ->setWrapText(true)
+                ->setVertical(Alignment::VERTICAL_CENTER)
+                ->setHorizontal(Alignment::HORIZONTAL_CENTER);
+
+            // Set row height to accommodate wrapped text
+            $sheet->getRowDimension(1)->setRowHeight(60);
+
+            // Apply header styling to row 2
+            $sheet->getStyle('B2:' . $lastColLetter . '2')->applyFromArray([
                 'fill' => [
                     'fillType' => Fill::FILL_SOLID,
-                    'startColor' => ['rgb' => 'c0c0c0'],
+                    'startColor' => ['rgb' => 'd4d0c9'],
                 ],
                 'font' => [
-                    'color' => ['rgb' => '000000'],
+                    'bold' => true,
                 ],
                 'borders' => [
                     'allBorders' => [
                         'borderStyle' => Border::BORDER_THIN,
-                        'color' => ['rgb' => 'FFFFFF'],
+                        'color' => ['rgb' => '000000'],
                     ],
-                ],
-                'alignment' => [
-                    'horizontal' => Alignment::HORIZONTAL_CENTER,
-                    'vertical' => Alignment::VERTICAL_CENTER,
                 ],
             ]);
 
-            // Style the data row
-            $sheet->getStyle('A2:' . $lastColLetter . '2')->applyFromArray([
+            // Apply data row styling to row 3
+            $sheet->getStyle('B3:' . $lastColLetter . '3')->applyFromArray([
+                'fill' => [
+                    'fillType' => Fill::FILL_SOLID,
+                    'startColor' => ['rgb' => '66ff33'], // Light green background for data row
+                ],
                 'borders' => [
                     'allBorders' => [
                         'borderStyle' => Border::BORDER_THIN,
-                        'color' => ['rgb' => 'D9D9D9'],
+                        'color' => ['rgb' => '000000'],
                     ],
                 ],
             ]);
 
-            // Auto-size columns
-            for ($i = 1; $i <= $lastCol; $i++) {
+            // Apply special styling to SST Register No, Business Activity Desc, and Debtor Code columns
+            $specialColumns = ['F3', 'H3', 'I3']; // SST Register No, Business Activity Desc, Debtor Code
+            foreach ($specialColumns as $cell) {
+                $sheet->getStyle($cell)->applyFromArray([
+                    'fill' => [
+                        'fillType' => Fill::FILL_SOLID,
+                        'startColor' => ['rgb' => 'fffe3b'], // Light yellow background
+                    ],
+                    'borders' => [
+                        'allBorders' => [
+                            'borderStyle' => Border::BORDER_THIN,
+                            'color' => ['rgb' => '000000'],
+                        ],
+                    ],
+                ]);
+            }
+
+            // Auto-size columns (starting from B)
+            for ($i = 2; $i <= $lastCol + 1; $i++) { // Start from 2 (column B) and go to lastCol + 1
                 $colLetter = $this->getColumnLetter($i);
                 $sheet->getColumnDimension($colLetter)->setAutoSize(true);
             }
@@ -172,8 +241,12 @@ class EInvoiceExportController extends Controller
             $writer->save($tempFile);
 
             // Create filename
-            $companyName = $eInvoiceDetail->company_name ?? $lead->company_name ?? 'Company';
-            $filename = 'E_Invoice_Details_' . str_replace(' ', '_', $companyName) . '_' . date('Y-m-d_H-i-s') . '.xlsx';
+            if ($isSubsidiary) {
+                $companyName = $subsidiary->company_name ?? 'Company';
+            } else {
+                $companyName = $eInvoiceDetail->company_name ?? $companyDetail->company_name ?? 'Company';
+            }
+            $filename = 'AutoCount_EInvoice_' . str_replace(' ', '_', $companyName) . '_' . date('Y-m-d') . '.xlsx';
 
             Log::info('About to send Excel file: ' . $filename);
 
@@ -192,111 +265,57 @@ class EInvoiceExportController extends Controller
     }
 
     /**
-     * Limit string to specified character count
+     * Clean phone number format
      */
-    private function limitChars($string, $limit)
+    private function cleanPhoneNumber($phone)
     {
-        return substr($string, 0, $limit);
+        // Clean the phone number - only remove + and - characters
+        $phone = str_replace(['+', '-'], '', $phone);
+
+        return $phone;
     }
 
     /**
-     * Get identity type based on business category
+     * Get simple state code mapping
      */
-    private function getIdentityType($businessCategory)
+    private function getSimpleStateCode($stateName)
     {
-        switch (strtolower($businessCategory)) {
-            case 'business':
-                return 'MyKAD'; // For business registration
-            case 'government':
-                return 'MyKAD'; // Government entities
-            default:
-                return 'MyKAD';
-        }
-    }
-
-    /**
-     * Get tax classification based on business category
-     */
-    private function getTaxClassification($businessCategory)
-    {
-        switch (strtolower($businessCategory)) {
-            case 'business':
-                return 1; // Business
-            case 'government':
-                return 2; // Government
-            default:
-                return 1; // Default to business
-        }
-    }
-
-    /**
-     * Get combined address
-     */
-    private function getCombinedAddress($eInvoiceDetail)
-    {
-        if (!$eInvoiceDetail) {
-            return '';
-        }
-
-        $addressParts = array_filter([
-            $eInvoiceDetail->address_1,
-            $eInvoiceDetail->address_2,
-            $eInvoiceDetail->postcode . ' ' . $eInvoiceDetail->city,
-            $eInvoiceDetail->state,
-            $eInvoiceDetail->country
-        ]);
-
-        return implode(', ', $addressParts);
-    }
-
-    /**
-     * Get country code from country name
-     */
-    private function getCountryCode($countryName)
-    {
-        if (empty($countryName)) {
-            return 'MYS'; // Default to Malaysia
-        }
-
-        $filePath = storage_path('app/public/json/CountryCodes.json');
-
-        if (file_exists($filePath)) {
-            $countriesContent = file_get_contents($filePath);
-            $countries = json_decode($countriesContent, true);
-
-            foreach ($countries as $country) {
-                if (strtolower($country['Country']) === strtolower($countryName)) {
-                    return $country['Code'];
-                }
-            }
-        }
-
-        return 'MYS'; // Default fallback
-    }
-
-    /**
-     * Get state code from state name
-     */
-    private function getStateCode($stateName)
-    {
-        if (empty($stateName)) {
-            return '01'; // Default to Selangor
-        }
-
         $filePath = storage_path('app/public/json/StateCodes.json');
 
         if (file_exists($filePath)) {
             $statesContent = file_get_contents($filePath);
             $states = json_decode($statesContent, true);
 
+            $normalizedInput = strtolower(trim($stateName));
+
             foreach ($states as $state) {
-                if (strtolower($state['State']) === strtolower($stateName)) {
-                    return str_pad($state['Code'], 2, '0', STR_PAD_LEFT); // Ensure 2 digits
+                $normalizedState = strtolower($state['State']);
+
+                // Exact match
+                if ($normalizedState === $normalizedInput) {
+                    return $state['Code'];
+                }
+
+                // Handle common variations
+                if ($normalizedInput === 'kuala lumpur' && str_contains($normalizedState, 'kuala lumpur')) {
+                    return $state['Code'];
+                }
+                if ($normalizedInput === 'labuan' && str_contains($normalizedState, 'labuan')) {
+                    return $state['Code'];
+                }
+                if ($normalizedInput === 'putrajaya' && str_contains($normalizedState, 'putrajaya')) {
+                    return $state['Code'];
+                }
+                if ($normalizedInput === 'penang' && str_contains($normalizedState, 'pinang')) {
+                    return $state['Code'];
+                }
+                if ($normalizedInput === 'pulau pinang' && str_contains($normalizedState, 'pinang')) {
+                    return $state['Code'];
                 }
             }
         }
 
-        return '01'; // Default fallback (Selangor)
+        return '10'; // Default to Selangor code
     }
 
     /**

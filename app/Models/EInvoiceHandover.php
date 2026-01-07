@@ -15,6 +15,7 @@ class EInvoiceHandover extends Model
 
     protected $fillable = [
         'lead_id',
+        'subsidiary_id',
         'salesperson',
         'company_name',
         'company_type',
