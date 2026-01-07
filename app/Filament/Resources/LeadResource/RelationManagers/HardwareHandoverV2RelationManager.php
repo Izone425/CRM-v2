@@ -801,6 +801,7 @@ class HardwareHandoverV2RelationManager extends RelationManager
     {
         $isCompanyDetailsIncomplete = $this->isCompanyDetailsIncomplete();
         $leadStatus = $this->getOwnerRecord()->lead_status ?? '';
+        $einvoiceStatus = $this->getOwnerRecord()->einvoice_status ?? '';
         $hasIncompleteHardwareHandover = $this->hasIncompleteHardwareHandover();
 
         return [
@@ -810,14 +811,18 @@ class HardwareHandoverV2RelationManager extends RelationManager
                 ->icon('heroicon-o-plus')
                 ->color('gray')
                 // ->visible(false)
-                ->visible(function () use ($leadStatus, $isCompanyDetailsIncomplete, $hasIncompleteHardwareHandover) {
-                    return $leadStatus !== 'Closed' || $isCompanyDetailsIncomplete || $hasIncompleteHardwareHandover;
+                ->visible(function () use ($leadStatus, $einvoiceStatus, $isCompanyDetailsIncomplete, $hasIncompleteHardwareHandover) {
+                    return $leadStatus !== 'Closed' || $einvoiceStatus !== 'Complete Registration' || $isCompanyDetailsIncomplete || $hasIncompleteHardwareHandover;
                 })
-                ->action(function () use ($leadStatus, $isCompanyDetailsIncomplete, $hasIncompleteHardwareHandover) {
+                ->action(function () use ($leadStatus, $einvoiceStatus, $isCompanyDetailsIncomplete, $hasIncompleteHardwareHandover) {
                     $message = '';
 
                     if ($leadStatus !== 'Closed') {
                         $message .= 'Please close the lead first. ';
+                    }
+
+                    if ($einvoiceStatus !== 'Complete Registration') {
+                        $message .= 'Please complete the E-Invoice registration (current status: ' . ($einvoiceStatus ?: 'Not Set') . '). ';
                     }
 
                     if ($isCompanyDetailsIncomplete) {
@@ -842,8 +847,8 @@ class HardwareHandoverV2RelationManager extends RelationManager
                 ->icon('heroicon-o-plus')
                 ->color('primary')
                 // ->visible(false)
-                ->visible(function () use ($leadStatus, $isCompanyDetailsIncomplete, $hasIncompleteHardwareHandover) {
-                    return $leadStatus === 'Closed' && !$isCompanyDetailsIncomplete && !$hasIncompleteHardwareHandover;
+                ->visible(function () use ($leadStatus, $einvoiceStatus, $isCompanyDetailsIncomplete, $hasIncompleteHardwareHandover) {
+                    return $leadStatus === 'Closed' && $einvoiceStatus === 'Complete Registration' && !$isCompanyDetailsIncomplete && !$hasIncompleteHardwareHandover;
                 })
                 ->slideOver()
                 ->modalSubmitActionLabel('Submit')

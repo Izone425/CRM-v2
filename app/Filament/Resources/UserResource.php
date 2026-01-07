@@ -90,6 +90,9 @@ class UserResource extends Resource
         'marketing_analysis' => 'filament.admin.pages.marketing-analysis',
         'demo_analysis_table_form' => 'filament.admin.pages.demo-analysis-table-form',
 
+        // Finance
+        'finance' => 'filament.admin.pages.finance',
+
         // Settings
         'device_models' => 'filament.admin.resources.device-models.index',
         'products' => 'filament.admin.resources.products.index',
@@ -163,17 +166,10 @@ class UserResource extends Resource
                                             7 => 'Team Lead Trainer',
                                             8 => 'Support',
                                             9 => 'Technician',
-                                            // 10 => 'Admin Handover',
+                                            10 => 'Finance',
                                         ])
                                         ->afterStateUpdated(function ($state, callable $set) {
                                             if (!$state) return;
-
-                                            if ((int)$state === 10) {
-                                                $set('role_id', 1);
-                                                $set('additional_role', 1);
-                                            } else {
-                                                $set('additional_role', 0);
-                                            }
 
                                             // Define default permissions for each role
                                             $rolePermissions = match ((int) $state) {
@@ -1169,9 +1165,9 @@ class UserResource extends Resource
                             5 => 'Team Lead Implementer',
                             6 => 'Trainer',
                             7 => 'Team Lead Trainer',
-                            // 10 => 'Admin Handover',
                             8 => 'Support',
                             9 => 'Technician',
+                            10 => 'Finance',
                             default => 'Unknown',
                         };
                     }),
@@ -1179,8 +1175,24 @@ class UserResource extends Resource
                     ->searchable(),
                 Tables\Columns\TextColumn::make('email')
                     ->searchable(),
+                Tables\Columns\TextColumn::make('is_active')
+                    ->label('Status')
+                    ->formatStateUsing(function ($state) {
+                        return match ((int) $state) {
+                            1 => 'Active',
+                            0 => 'Deactivated',
+                            default => 'Active',
+                        };
+                    })
+                    ->color(function ($state) {
+                        return match ((int) $state) {
+                            1 => 'success',
+                            0 => 'danger',
+                            default => 'success',
+                        };
+                    }),
                 Tables\Columns\TextColumn::make('created_at')
-                    ->dateTime()
+                    ->dateTime('d M Y, H:i')
                     ->sortable()
                     ->toggleable(),
                 Tables\Columns\TextColumn::make('updated_at')
@@ -1192,7 +1204,32 @@ class UserResource extends Resource
                 //
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
+                Tables\Actions\ActionGroup::make([
+                    Tables\Actions\EditAction::make(),
+                    Tables\Actions\Action::make('deactivate')
+                        ->label('Deactivate')
+                        ->icon('heroicon-o-x-circle')
+                        ->color('danger')
+                        ->requiresConfirmation()
+                        ->modalHeading('Deactivate User')
+                        ->modalDescription('Are you sure you want to deactivate this user? This will disable their access and reset their password.')
+                        ->modalSubmitActionLabel('Yes, deactivate')
+                        ->action(function (User $record) {
+                            $record->update([
+                                'is_active' => 0,
+                                'password' => Hash::make('3DMWMvfc%RRU'),
+                            ]);
+
+                            \Filament\Notifications\Notification::make()
+                                ->title('User deactivated successfully')
+                                ->success()
+                                ->send();
+                        })
+                        ->visible(fn (User $record) => $record->is_active == 1),
+                ])->icon('heroicon-o-ellipsis-vertical')
+                    ->size(\Filament\Support\Enums\ActionSize::Small)
+                    ->label(false)
+                    ->color('primary'),
             ])
             // ->groupingColumn('division_role')
             // ->defaultGroup('division_role')
@@ -1210,6 +1247,7 @@ class UserResource extends Resource
                             7 => 'Team Lead Trainer',
                             8 => 'Support',
                             9 => 'Technician',
+                            10 => 'Finance',
                             default => 'Unknown Role',
                         };
                     })
@@ -1237,6 +1275,7 @@ class UserResource extends Resource
                             WHEN role_id = 7 THEN 'Team Lead Trainer'
                             WHEN role_id = 8 THEN 'Support'
                             WHEN role_id = 9 THEN 'Technician'
+                            WHEN role_id = 10 THEN 'Finance'
                             ELSE 'Unknown'
                         END
                     ) as division_role")

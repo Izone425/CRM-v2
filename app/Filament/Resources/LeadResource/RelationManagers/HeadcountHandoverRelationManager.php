@@ -302,6 +302,7 @@ class HeadcountHandoverRelationManager extends RelationManager
     public function headerActions(): array
     {
         $leadStatus = $this->getOwnerRecord()->lead_status ?? '';
+        $einvoiceStatus = $this->getOwnerRecord()->einvoice_status ?? '';
         $isCompanyDetailsIncomplete = $this->isCompanyDetailsIncomplete();
         $hasRequiredProducts = $this->hasRequiredProductsInFinalQuotation();
 
@@ -311,15 +312,19 @@ class HeadcountHandoverRelationManager extends RelationManager
                 ->label('Add Headcount Handover')
                 ->icon('heroicon-o-plus')
                 ->color('gray')
-                ->visible(function () use ($leadStatus, $isCompanyDetailsIncomplete, $hasRequiredProducts) {
-                    return $leadStatus !== 'Closed' || $isCompanyDetailsIncomplete || !$hasRequiredProducts;
+                ->visible(function () use ($leadStatus, $einvoiceStatus, $isCompanyDetailsIncomplete, $hasRequiredProducts) {
+                    return $leadStatus !== 'Closed' || $einvoiceStatus !== 'Complete Registration' || $isCompanyDetailsIncomplete || !$hasRequiredProducts;
                 })
-                ->action(function () use ($hasRequiredProducts) {
+                ->action(function () use ($hasRequiredProducts, $einvoiceStatus) {
                     $body = 'Please ';
                     $reasons = [];
 
                     if ($this->getOwnerRecord()->lead_status !== 'Closed') {
                         $reasons[] = 'close the lead';
+                    }
+
+                    if ($einvoiceStatus !== 'Complete Registration') {
+                        $reasons[] = 'complete the E-Invoice registration (current status: ' . ($einvoiceStatus ?: 'Not Set') . ')';
                     }
 
                     if ($this->isCompanyDetailsIncomplete()) {
@@ -345,8 +350,8 @@ class HeadcountHandoverRelationManager extends RelationManager
                 ->label('Add Headcount Handover')
                 ->icon('heroicon-o-plus')
                 ->color('primary')
-                ->visible(function () use ($leadStatus, $isCompanyDetailsIncomplete, $hasRequiredProducts) {
-                    return $leadStatus === 'Closed' && !$isCompanyDetailsIncomplete && $hasRequiredProducts;
+                ->visible(function () use ($leadStatus, $einvoiceStatus, $isCompanyDetailsIncomplete, $hasRequiredProducts) {
+                    return $leadStatus === 'Closed' && $einvoiceStatus === 'Complete Registration' && !$isCompanyDetailsIncomplete && $hasRequiredProducts;
                 })
                 ->slideOver()
                 ->modalHeading('Headcount Handover Submission')
