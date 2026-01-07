@@ -695,9 +695,10 @@
                             <thead style="background: #FAFAFA; border-bottom: 2px solid #E5E7EB;">
                                 <tr>
                                     <th style="padding: 12px; text-align: left; font-size: 12px; color: #6B7280; font-weight: 600;">ID</th>
-                                    <th style="padding: 12px; text-align: left; font-size: 12px; color: #6B7280; font-weight: 600;">SUBJECT</th>
+                                    <th style="padding: 12px; text-align: left; font-size: 12px; color: #6B7280; font-weight: 600;">MODULE</th>
                                     <th style="padding: 12px; text-align: left; font-size: 12px; color: #6B7280; font-weight: 600;">ETA</th>
                                     <th style="padding: 12px; text-align: left; font-size: 12px; color: #6B7280; font-weight: 600;">STATUS</th>
+                                    <th style="padding: 12px; text-align: left; font-size: 12px; color: #6B7280; font-weight: 600;">FRONT END</th>
                                     <th style="padding: 12px; text-align: center; font-size: 12px; color: #6B7280; font-weight: 600;">PASS/FAIL</th>
                                 </tr>
                             </thead>
@@ -708,7 +709,7 @@
                                             {{ $ticket->ticket_id }}
                                         </td>
                                         <td style="padding: 12px; font-size: 13px; cursor: pointer;" wire:click="viewTicket({{ $ticket->id }})">
-                                            {{ \Str::limit($ticket->title, 50) }}
+                                            {{ $ticket->module->name ?? '-' }}
                                         </td>
                                         <td style="padding: 12px; font-size: 13px; color: #6B7280; cursor: pointer;" wire:click="viewTicket({{ $ticket->id }})">
                                             {{ $ticket->eta_release ? $ticket->eta_release->format('d M Y') : '-' }}
@@ -717,6 +718,9 @@
                                             <span style="padding: 4px 8px; border-radius: 4px; font-size: 11px; background: #F3F4F6; color: #6B7280;">
                                                 {{ $ticket->status }}
                                             </span>
+                                        </td>
+                                        <td style="padding: 12px; font-size: 13px; cursor: pointer;" wire:click="viewTicket({{ $ticket->id }})">
+                                            {{ $ticket->requestor->name ?? $ticket->requestor ?? '-' }}
                                         </td>
                                         <td style="padding: 12px; text-align: center;" onclick="event.stopPropagation();">
                                             @if(in_array($ticket->status, ['Completed', 'Tickets: Live']))

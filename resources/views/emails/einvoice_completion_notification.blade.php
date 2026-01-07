@@ -4,7 +4,7 @@
     <title>E-Invoice Registration Completed</title>
 </head>
 <body>
-    <p><strong>Dear</strong> {{ strtoupper($salesperson_name) }},<br>
+    <p>Dear {{ strtoupper($salesperson_name) }},</p>
 
     <p><a href="{{ $lead_url }}" target="_blank" style="color: #2563eb; text-decoration: none;"><strong>{{ $company_name }}</strong></a> has been successfully registered with E-Invoice.</p>
 

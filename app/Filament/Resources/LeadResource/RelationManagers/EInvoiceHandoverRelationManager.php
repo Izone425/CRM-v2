@@ -61,12 +61,7 @@ class EInvoiceHandoverRelationManager extends RelationManager
             }
         }
 
-        // Check business_register_number format if provided
-        if (!empty($subsidiary->business_register_number)) {
-            if (!preg_match('/^[0-9]{12}$/', $subsidiary->business_register_number)) {
-                return false;
-            }
-        }
+
 
         return true;
     }
@@ -86,15 +81,12 @@ class EInvoiceHandoverRelationManager extends RelationManager
         // Check all required Company Information fields
         if (empty($eInvoiceDetail->company_name) ||
             empty($eInvoiceDetail->business_register_number) ||
-            empty($eInvoiceDetail->tax_identification_number) ||
+            // empty($eInvoiceDetail->tax_identification_number) ||
             empty($eInvoiceDetail->msic_code)) {
             return false;
         }
 
-        // Check business_register_number format (12 digits)
-        if (!preg_match('/^[0-9]{12}$/', $eInvoiceDetail->business_register_number)) {
-            return false;
-        }
+
 
         // Check all required Address Information fields
         if (empty($eInvoiceDetail->address_1) ||
@@ -158,10 +150,8 @@ class EInvoiceHandoverRelationManager extends RelationManager
         if (empty($eInvoiceDetail->company_name)) $companyMissing[] = 'Company Name';
         if (empty($eInvoiceDetail->business_register_number)) {
             $companyMissing[] = 'Business Register Number';
-        } elseif (!preg_match('/^[0-9]{12}$/', $eInvoiceDetail->business_register_number)) {
-            $companyMissing[] = 'Business Register Number (must be exactly 12 digits)';
         }
-        if (empty($eInvoiceDetail->tax_identification_number)) $companyMissing[] = 'Tax Identification Number';
+        // if (empty($eInvoiceDetail->tax_identification_number)) $companyMissing[] = 'Tax Identification Number';
         if (empty($eInvoiceDetail->msic_code)) $companyMissing[] = 'MSIC Code';
 
         if (!empty($companyMissing)) {
@@ -355,7 +345,8 @@ class EInvoiceHandoverRelationManager extends RelationManager
                             $projectCode = $eInvoiceHandover->project_code;
                             $subject = "{$projectCode} / {$salespersonName} / {$data['company_name']} / NEW";
 
-                            $message->to('zilih.ng@timeteccloud.com')
+                            $message->to('auni@timeteccloud.com')
+                                ->cc('faiz@timeteccloud.com')
                                 ->subject($subject);
 
                             if ($salespersonEmail) {

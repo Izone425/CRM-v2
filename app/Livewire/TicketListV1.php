@@ -71,7 +71,7 @@ class TicketListV1 extends Component implements HasTable, HasForms, HasActions
                     ->color('primary'),
 
                 Tables\Columns\TextColumn::make('requestor.name')
-                    ->label('Requestor')
+                    ->label('Front End')
                     ->searchable()
                     ->sortable()
                     ->default('Unknown User')

@@ -13,6 +13,9 @@ class Subsidiary extends Model
     protected $fillable = [
         'lead_id',
         'company_name',
+        'business_register_number',
+        'tax_identification_number',
+        'msic_code',
         'company_address1',
         'company_address2',
         'postcode',
@@ -44,7 +47,7 @@ class Subsidiary extends Model
     // Convert all attribute values to uppercase before saving, except email and specific fields
     public function setAttribute($key, $value)
     {
-        if (is_string($value) && !in_array($key, ['email', 'finance_person_email', 'business_type', 'business_category', 'billing_category'])) {
+        if (is_string($value) && !in_array($key, ['email', 'finance_person_email', 'business_type', 'business_category', 'billing_category', 'tax_identification_number', 'msic_code'])) {
             $value = Str::upper($value);
         }
 
@@ -52,6 +55,21 @@ class Subsidiary extends Model
     }
 
     // Accessors to ensure uppercase retrieval
+    public function getBusinessRegisterNumberAttribute($value)
+    {
+        return $value ? Str::upper($value) : null;
+    }
+
+    public function getTaxIdentificationNumberAttribute($value)
+    {
+        return $value ? Str::upper($value) : null;
+    }
+
+    public function getMsicCodeAttribute($value)
+    {
+        return $value;
+    }
+
     public function getCompanyNameAttribute($value)
     {
         return Str::upper($value);
