@@ -77,6 +77,12 @@ class SubscriberDetailsTabs
                                                         '
                                                     ])
                                                     ->dehydrateStateUsing(fn ($state) => strtoupper($state))
+                                                    ->rules([
+                                                        'regex:/^[A-Z0-9\s]+$/i',
+                                                    ])
+                                                    ->validationMessages([
+                                                        'regex' => 'Company name can only contain letters, numbers, and spaces. Special characters are not allowed.',
+                                                    ])
                                                     ->disabled(function ($record) {
                                                         // Define variables here
                                                         $isOlderThan30Days = $record->created_at->diffInDays(now()) > 30;

@@ -336,7 +336,7 @@ class EInvoiceHandoverRelationManager extends RelationManager
                         }
 
                         $emailData = [
-                            'salesperson' => $salespersonName,
+                            'salesperson' => strtoupper($salespersonName),
                             'company_name' => $data['company_name'],
                             'lead_url' => $leadUrl,
                         ];
