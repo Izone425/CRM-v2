@@ -372,8 +372,8 @@
                             {{ $selectedTicket->status ?? '-' }}
                         </span>
 
-                        <!-- Edit Icon & Dropdown - Show for Completed and Closed status -->
-                        @if(in_array($selectedTicket->status, ['Completed']))
+                        <!-- Edit Icon & Dropdown - Show for Completed, Live and Closed status -->
+                        @if(in_array($selectedTicket->status, ['Completed', 'Live', 'Closed System Configuration']))
                             <div style="position: relative;" x-data="{ open: false }">
                                 <button @click="open = !open"
                                         style="display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; background: white; border: 1px solid #D1D5DB; border-radius: 6px; cursor: pointer; transition: all 0.2s;"

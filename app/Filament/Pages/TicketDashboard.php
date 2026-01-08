@@ -65,6 +65,9 @@ class TicketDashboard extends Page implements HasActions, HasForms
         $this->selectedDate = now()->subHours(8)->format('Y-m-d');
         $this->currentMonth = now()->subHours(8)->month;
         $this->currentYear = now()->subHours(8)->year;
+
+        // Set default filter to Completed status
+        $this->selectedStatus = 'Completed';
     }
 
     public $selectedTicket = null;

@@ -113,7 +113,7 @@ class TicketListV1 extends Component implements HasTable, HasForms, HasActions
                     ->colors([
                         'gray' => 'New',
                         'warning' => 'In Progress',
-                        'success' => 'Resolved',
+                        'success' => 'Completed',
                         'danger' => 'Closed',
                     ]),
 
@@ -130,6 +130,24 @@ class TicketListV1 extends Component implements HasTable, HasForms, HasActions
                     ->dateTime('d M Y, H:i'),
             ])
             ->filters([
+                Tables\Filters\SelectFilter::make('requestor_id')
+                    ->label('Front End')
+                    ->options(function () {
+                        return \Illuminate\Support\Facades\DB::connection('ticketingsystem_live')
+                            ->table('users')
+                            ->whereIn('id', function ($query) {
+                                $query->select('requestor_id')
+                                    ->from('tickets')
+                                    ->where('product_id', 1)
+                                    ->whereNotNull('requestor_id')
+                                    ->distinct();
+                            })
+                            ->orderBy('name')
+                            ->pluck('name', 'id')
+                            ->toArray();
+                    })
+                    ->searchable(),
+
                 Tables\Filters\SelectFilter::make('module_id')
                     ->label('Module')
                     ->options(function () {
@@ -147,7 +165,7 @@ class TicketListV1 extends Component implements HasTable, HasForms, HasActions
                     ->options([
                         'New' => 'New',
                         'In Progress' => 'In Progress',
-                        'Resolved' => 'Resolved',
+                        'Completed' => 'Completed',
                         'Closed' => 'Closed',
                     ]),
 

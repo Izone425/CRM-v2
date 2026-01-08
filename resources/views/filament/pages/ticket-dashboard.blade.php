@@ -761,7 +761,7 @@
                                                 {{ $ticket->status }}
                                             </span>
                                         </td>
-                                        <td style="padding: 12px; font-size: 13px; cursor: pointer;" wire:click="viewTicket({{ $ticket->id }})">
+                                        <td style="padding: 12px; font-size: 13px; cursor: pointer; max-width: 120px; word-break: break-word; line-height: 1.4;" wire:click="viewTicket({{ $ticket->id }})">
                                             {{ $ticket->requestor->name ?? $ticket->requestor ?? '-' }}
                                         </td>
                                         <td style="padding: 12px; text-align: center;" onclick="event.stopPropagation();">

@@ -163,13 +163,14 @@ class HeadcountNewTable extends Component implements HasForms, HasTable
                         ->color('success')
                         ->modalHeading(function (HeadcountHandover $record): string {
                             $formattedId = $record->formatted_handover_id;
-                            return "Complete Headcount Handover {$formattedId}";
+                            $companyName = $record->lead->companyDetail->company_name ?? 'Unknown Company';
+                            return "Headcount Handover | {$formattedId} | {$companyName}";
                         })
                         ->modalSubmitActionLabel('Mark as Completed')
                         ->modalWidth(MaxWidth::FourExtraLarge)
                         ->form([
                             // Add PI and Invoice tracking based on quotations
-                            Section::make('PI and Invoice Tracking')
+                            Grid::make(1)
                                 ->schema(function (Get $get, HeadcountHandover $record) {
                                     $sections = [];
 
@@ -186,7 +187,7 @@ class HeadcountNewTable extends Component implements HasForms, HasTable
 
                                             if ($quotations->isNotEmpty()) {
                                                 $sections[] = Repeater::make('type_1_entries')
-                                                    ->label('TYPE 1: PI NUMBER / COMPANY NAME / INVOICE NUMBER')
+                                                    ->label(false)
                                                     ->schema([
                                                         Grid::make(3)->schema([
                                                             TextInput::make('pi_number')
@@ -207,7 +208,22 @@ class HeadcountNewTable extends Component implements HasForms, HasTable
                                                                 }),
                                                             TextInput::make('invoice_number')
                                                                 ->label('Invoice Number')
-                                                                ->required(),
+                                                                ->required()
+                                                                ->maxLength(13)
+                                                                ->regex('/^[A-Z0-9-]+$/')
+                                                                ->validationMessages([
+                                                                    'regex' => 'Invoice number can only contain letters, numbers, and dashes.',
+                                                                ])
+                                                                ->live(onBlur: true)
+                                                                ->extraAlpineAttributes([
+                                                                    'x-on:input' => '
+                                                                        const start = $el.selectionStart;
+                                                                        const end = $el.selectionEnd;
+                                                                        $el.value = $el.value.toUpperCase();
+                                                                        $el.setSelectionRange(start, end);
+                                                                    '
+                                                                ])
+                                                                ->dehydrateStateUsing(fn ($state) => strtoupper($state)),
                                                         ])
                                                     ])
                                                     ->default(function () use ($quotations) {
@@ -245,7 +261,7 @@ class HeadcountNewTable extends Component implements HasForms, HasTable
 
                                             if ($quotations->isNotEmpty()) {
                                                 $sections[] = Repeater::make('type_2_entries')
-                                                    ->label('TYPE 2: PI NUMBER / COMPANY NAME / INVOICE NUMBER')
+                                                    ->label(false)
                                                     ->schema([
                                                         Grid::make(3)->schema([
                                                             TextInput::make('pi_number')
@@ -266,7 +282,22 @@ class HeadcountNewTable extends Component implements HasForms, HasTable
                                                                 }),
                                                             TextInput::make('invoice_number')
                                                                 ->label('Invoice Number')
-                                                                ->required(),
+                                                                ->required()
+                                                                ->maxLength(13)
+                                                                ->regex('/^[A-Z0-9-]+$/')
+                                                                ->validationMessages([
+                                                                    'regex' => 'Invoice number can only contain letters, numbers, and dashes.',
+                                                                ])
+                                                                ->live(onBlur: true)
+                                                                ->extraAlpineAttributes([
+                                                                    'x-on:input' => '
+                                                                        const start = $el.selectionStart;
+                                                                        const end = $el.selectionEnd;
+                                                                        $el.value = $el.value.toUpperCase();
+                                                                        $el.setSelectionRange(start, end);
+                                                                    '
+                                                                ])
+                                                                ->dehydrateStateUsing(fn ($state) => strtoupper($state)),
                                                         ])
                                                     ])
                                                     ->default(function () use ($quotations) {

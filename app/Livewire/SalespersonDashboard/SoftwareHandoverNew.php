@@ -502,7 +502,7 @@ class SoftwareHandoverNew extends Component implements HasForms, HasTable
                                 ]),
 
                             // Add PI and Invoice tracking based on training type
-                            Section::make('PI and Invoice Tracking')
+                            Grid::make(1)
                                 ->schema(function (Get $get, SoftwareHandover $record) {
                                     if ($record->training_type === 'online_hrdf_training') {
                                         // HRDF Training - Show Type 2 and Type 3
@@ -522,19 +522,19 @@ class SoftwareHandoverNew extends Component implements HasForms, HasTable
                                                 $sections[] = Repeater::make('type_2_entries')
                                                     ->label('Type 2: Non-HRDF PI')
                                                     ->schema([
-                                                        TextInput::make('company_name')
-                                                            ->label('Company Name')
-                                                            ->readOnly()
-                                                            ->default(function ($state, $get) use ($quotations) {
-                                                                $quotation = $quotations->get($get('../../quotation_id') ?? 0);
-                                                                if (!$quotation) return 'N/A';
+                                                        Grid::make(3)->schema([
+                                                            TextInput::make('company_name')
+                                                                ->label('Company Name')
+                                                                ->readOnly()
+                                                                ->default(function ($state, $get) use ($quotations) {
+                                                                    $quotation = $quotations->get($get('../../quotation_id') ?? 0);
+                                                                    if (!$quotation) return 'N/A';
 
-                                                                if ($quotation->subsidiary_id && $quotation->subsidiary) {
-                                                                    return $quotation->subsidiary->company_name;
-                                                                }
-                                                                return $quotation->lead?->companyDetail?->company_name ?? 'N/A';
-                                                            }),
-                                                        Grid::make(2)->schema([
+                                                                    if ($quotation->subsidiary_id && $quotation->subsidiary) {
+                                                                        return $quotation->subsidiary->company_name;
+                                                                    }
+                                                                    return $quotation->lead?->companyDetail?->company_name ?? 'N/A';
+                                                                }),
                                                             TextInput::make('pi_number')
                                                                 ->label('PI Number')
                                                                 ->readOnly()
@@ -579,20 +579,20 @@ class SoftwareHandoverNew extends Component implements HasForms, HasTable
                                                 $sections[] = Repeater::make('type_3_entries')
                                                     ->label('Type 3: HRDF Invoice')
                                                     ->schema([
-                                                        TextInput::make('company_name')
-                                                            ->label('Company Name')
-                                                            ->readOnly()
-                                                            ->default(function ($state, $get) use ($quotations) {
-                                                                $quotation = $quotations->get($get('../../quotation_id') ?? 0);
-                                                                if (!$quotation) return 'N/A';
+                                                        Grid::make(3)->schema([
+                                                            TextInput::make('company_name')
+                                                                ->label('Company Name')
+                                                                ->readOnly()
+                                                                ->default(function ($state, $get) use ($quotations) {
+                                                                    $quotation = $quotations->get($get('../../quotation_id') ?? 0);
+                                                                    if (!$quotation) return 'N/A';
 
-                                                                if ($quotation->subsidiary_id && $quotation->subsidiary) {
-                                                                    return $quotation->subsidiary->company_name;
-                                                                }
-                                                                return $quotation->lead?->companyDetail?->company_name ?? 'N/A';
-                                                            }),
+                                                                    if ($quotation->subsidiary_id && $quotation->subsidiary) {
+                                                                        return $quotation->subsidiary->company_name;
+                                                                    }
+                                                                    return $quotation->lead?->companyDetail?->company_name ?? 'N/A';
+                                                                }),
 
-                                                        Grid::make(2)->schema([
                                                             TextInput::make('pi_number')
                                                                 ->label('PI Number')
                                                                 ->readOnly()
@@ -641,19 +641,19 @@ class SoftwareHandoverNew extends Component implements HasForms, HasTable
                                                     Repeater::make('type_1_entries')
                                                         ->label('Type 1: SW+HW Proforma Invoice')
                                                         ->schema([
-                                                            TextInput::make('company_name')
-                                                                ->label('Company Name')
-                                                                ->readOnly()
-                                                                ->default(function ($state, $get) use ($quotations) {
-                                                                    $quotation = $quotations->get($get('../../quotation_id') ?? 0);
-                                                                    if (!$quotation) return 'N/A';
+                                                            Grid::make(3)->schema([
+                                                                TextInput::make('company_name')
+                                                                    ->label('Company Name')
+                                                                    ->readOnly()
+                                                                    ->default(function ($state, $get) use ($quotations) {
+                                                                        $quotation = $quotations->get($get('../../quotation_id') ?? 0);
+                                                                        if (!$quotation) return 'N/A';
 
-                                                                    if ($quotation->subsidiary_id && $quotation->subsidiary) {
-                                                                        return $quotation->subsidiary->company_name;
-                                                                    }
-                                                                    return $quotation->lead?->companyDetail?->company_name ?? 'N/A';
-                                                                }),
-                                                            Grid::make(2)->schema([
+                                                                        if ($quotation->subsidiary_id && $quotation->subsidiary) {
+                                                                            return $quotation->subsidiary->company_name;
+                                                                        }
+                                                                        return $quotation->lead?->companyDetail?->company_name ?? 'N/A';
+                                                                    }),
                                                                 TextInput::make('pi_number')
                                                                     ->label('PI Number')
                                                                     ->readOnly()
