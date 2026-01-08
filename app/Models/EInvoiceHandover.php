@@ -19,6 +19,7 @@ class EInvoiceHandover extends Model
         'salesperson',
         'company_name',
         'company_type',
+        'customer_type',
         'status',
         'created_by',
         'submitted_at',
