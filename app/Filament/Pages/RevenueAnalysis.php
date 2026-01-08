@@ -115,6 +115,7 @@ class RevenueAnalysis extends Page
     {
         $currentYear = (int) date('Y');
         return [
+            $currentYear - 1 => (string) ($currentYear - 1),
             $currentYear => (string) $currentYear,
             $currentYear + 1 => (string) ($currentYear + 1),
             $currentYear + 2 => (string) ($currentYear + 2),
@@ -283,22 +284,22 @@ class RevenueAnalysis extends Page
             }
 
             // Hard-coded values for "Others" column (January-August of current year)
-            if ($this->selectedYear == date('Y')) {
-                $othersValues = [
-                    1 => 581675.55,  // January
-                    2 => 369221.61,  // February
-                    3 => 432626.93,  // March
-                    4 => 262396.86,  // April
-                    5 => 469012.35,  // May
-                    6 => 412398.51,  // June
-                    7 => 347908.97,  // July
-                    8 => 493526.84,  // August
-                ];
+            // if ($this->selectedYear == date('Y')) {
+            //     $othersValues = [
+            //         1 => 581675.55,  // January
+            //         2 => 369221.61,  // February
+            //         3 => 432626.93,  // March
+            //         4 => 262396.86,  // April
+            //         5 => 469012.35,  // May
+            //         6 => 412398.51,  // June
+            //         7 => 347908.97,  // July
+            //         8 => 493526.84,  // August
+            //     ];
 
-                foreach ($othersValues as $month => $value) {
-                    $data[$month]['Others'] = $value;
-                }
-            }
+            //     foreach ($othersValues as $month => $value) {
+            //         $data[$month]['Others'] = $value;
+            //     }
+            // }
 
             // Calculate monthly totals
             for ($month = 1; $month <= 12; $month++) {

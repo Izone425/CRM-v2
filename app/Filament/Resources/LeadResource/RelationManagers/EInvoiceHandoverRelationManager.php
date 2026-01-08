@@ -386,8 +386,6 @@ class EInvoiceHandoverRelationManager extends RelationManager
                             $body .= "\n";
                         }
 
-                        $body .= "All fields must be completed before you can create an E-Invoice handover.";
-
                         Notification::make()
                             ->title('Missing Required Information')
                             ->body($body)

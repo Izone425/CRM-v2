@@ -540,7 +540,7 @@ class HardwareV2PendingStockTable extends Component implements HasForms, HasTabl
                                         ->label('Invoice Number')
                                         ->required()
                                         ->placeholder('Enter invoice number (e.g., EPIN2509-0286)')
-                                        ->maxLength(255)
+                                        ->maxLength(13)
                                         ->live(onBlur: true)
                                         ->extraAlpineAttributes([
                                             'x-on:input' => '
@@ -692,6 +692,14 @@ class HardwareV2PendingStockTable extends Component implements HasForms, HasTabl
                                 ->defaultItems(1)
                                 ->minItems(1)
                                 ->maxItems(5),
+
+                            Checkbox::make('tac_confirmed')
+                                ->label('Have you confirmed that the device has been added to the TimeTec Attendance? ')
+                                ->default(false)
+                                ->accepted()
+                                ->validationMessages([
+                                    'accepted' => 'You must confirm that the device has been added to TimeTec Attendance before submitting.',
+                                ]),
                         ])
                         ->action(function (HardwareHandoverV2 $record, array $data): void {
                             // ✅ Handle AutoCount invoice creation first

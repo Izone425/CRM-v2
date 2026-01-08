@@ -10,6 +10,7 @@ use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Style\Border;
 use Illuminate\Support\Facades\Log;
+use Klsheng\Myinvois\Ubl\Constant\MSICCodes;
 
 class EInvoiceExportController extends Controller
 {
@@ -114,11 +115,11 @@ class EInvoiceExportController extends Controller
 
             // MSIC Code: use subsidiary if exists, otherwise main company
             if ($isSubsidiary) {
-                $msicCode = $subsidiary->msic_code ?? '01111'; // Default sample code
+                $msicCode = $subsidiary->msic_code ?? '00000'; // Default sample code
             } else {
-                $msicCode = $eInvoiceDetail->msic_code ?? '01111'; // Default sample code
+                $msicCode = $eInvoiceDetail->msic_code ?? '00000'; // Default sample code
             }
-            $businessActivityDesc = ''; // Made empty as requested
+            $businessActivityDesc = $this->getMSICDescription($msicCode);
 
             // Generate debtor code based on lead ID like the example: 300-0001
             $debtorCode = ''; // Made empty as requested
@@ -146,13 +147,13 @@ class EInvoiceExportController extends Controller
                 $phone = $this->cleanPhoneNumber($subsidiary->contact_number ?? '');
                 $email = $subsidiary->finance_person_email ?? $subsidiary->email ?? '';
                 $cityOnly = $subsidiary->city ?? '';
-                $countryCode = $subsidiary->country ?? 'MYS';
+                $countryCode = $this->getCountryCode($subsidiary->country ?? 'Malaysia');
                 $stateCode = $this->getSimpleStateCode($subsidiary->state ?? '');
             } else {
                 $phone = $this->cleanPhoneNumber($companyDetail->contact_no ?? $lead->phone ?? '');
                 $email = $eInvoiceDetail->finance_person_email ?? $companyDetail->email ?? $lead->email ?? '';
                 $cityOnly = $eInvoiceDetail->city ?? $companyDetail->city ?? '';
-                $countryCode = $eInvoiceDetail->country ?? 'MYS';
+                $countryCode = $this->getCountryCode($eInvoiceDetail->country ?? 'Malaysia');
                 $stateCode = $this->getSimpleStateCode($eInvoiceDetail->state ?? $companyDetail->state ?? '');
             }
 
@@ -222,7 +223,7 @@ class EInvoiceExportController extends Controller
             ]);
 
             // Apply special styling to SST Register No, Business Activity Desc, and Debtor Code columns
-            $specialColumns = ['F3', 'H3', 'I3']; // SST Register No, Business Activity Desc, Debtor Code
+            $specialColumns = ['F3', 'I3']; // SST Register No, Business Activity Desc, Debtor Code
             foreach ($specialColumns as $cell) {
                 $sheet->getStyle($cell)->applyFromArray([
                     'fill' => [
@@ -325,6 +326,38 @@ class EInvoiceExportController extends Controller
         }
 
         return '10'; // Default to Selangor code
+    }
+
+    /**
+     * Get country code from country name
+     */
+    private function getCountryCode($countryName)
+    {
+        $filePath = storage_path('app/public/json/CountryCodes.json');
+
+        if (file_exists($filePath)) {
+            $countriesContent = file_get_contents($filePath);
+            $countries = json_decode($countriesContent, true);
+
+            foreach ($countries as $country) {
+                if (strtolower($country['Country']) === strtolower($countryName)) {
+                    return $country['Code'];
+                }
+            }
+        }
+
+        return 'MYS'; // Default fallback
+    }
+
+    /**
+     * Get MSIC description from MSIC code
+     */
+    private function getMSICDescription($msicCode)
+    {
+        // Use the MSICCodes class directly
+        $description = MSICCodes::getDescription($msicCode);
+
+        return $description ?? '';
     }
 
     /**

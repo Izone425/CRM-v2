@@ -32,7 +32,7 @@ class UserLeave extends Model
     }
 
     public static function getUserLeavesByDate($userID,$date){
-        return UserLeave::where("user_ID",$userID)->where("date",$date)->get()->toArray();
+        return UserLeave::where("user_ID",$userID)->where("date",$date)->where('status', 'Approved')->get()->toArray();
     }
 
     public static function getUserLeavesByDateRange($userId, $startDate, $endDate)
@@ -92,6 +92,7 @@ class UserLeave extends Model
     public static function getWeeklyLeavesByDateRange($startDate,$endDate, array $selectedSalesPeople = null){
         $temp = UserLeave::with('user')
             ->whereBetween('date', [$startDate, $endDate])
+            ->where('status', 'Approved')
             ->whereHas('user', function ($query) {
                 $query->where('role_id', 2); // Filter only users with role_id = 9
             })

@@ -214,46 +214,38 @@ class CustomerPortalRawData extends Page implements HasTable
                         $swId = $record->sw_id;
 
                         if ($swId) {
-                            // Get all KICK OFF MEETING SESSION appointments
-                            $kickoffAppointments = \App\Models\ImplementerAppointment::where('software_handover_id', $swId)
+                            // Get KICK OFF MEETING SESSION appointment (Done or New status)
+                            $kickoffAppointment = \App\Models\ImplementerAppointment::where('software_handover_id', $swId)
                                 ->where('type', 'KICK OFF MEETING SESSION')
-                                ->orderBy('date', 'desc')
-                                ->orderBy('start_time', 'desc')
-                                ->get();
+                                ->whereIn('status', ['Done', 'New'])
+                                ->orderByRaw("FIELD(status, 'Done', 'New')")
+                                ->first();
 
-                            if ($kickoffAppointments->isNotEmpty()) {
-                                // Check if any appointment is cancelled
-                                $hasCancelled = $kickoffAppointments->contains('status', 'Cancelled');
+                            if ($kickoffAppointment) {
+                                $date = $kickoffAppointment->date;
+                                $time = $kickoffAppointment->start_time;
 
-                                if ($hasCancelled) {
-                                    return new \Illuminate\Support\HtmlString(
-                                        '<span style="color: #dc2626; font-weight: bold;">Cancelled</span>'
-                                    );
-                                }
+                                if ($date && $time) {
+                                    try {
+                                        $dateOnly = \Carbon\Carbon::parse($date)->format('Y-m-d');
+                                        $combined = $dateOnly . ' ' . $time;
+                                        $parsedDateTime = \Carbon\Carbon::parse($combined);
 
-                                // Get the first non-cancelled appointment
-                                $activeAppointment = $kickoffAppointments->where('status', '!=', 'Cancelled')->first();
+                                        // Check if the date is today
+                                        $isToday = $parsedDateTime->isToday();
+                                        $color = $isToday ? '#10B981' : 'inherit'; // Green if today
 
-                                if ($activeAppointment) {
-                                    $date = $activeAppointment->date;
-                                    $time = $activeAppointment->start_time;
-
-                                    if ($date && $time) {
-                                        try {
-                                            $dateOnly = \Carbon\Carbon::parse($date)->format('Y-m-d');
-                                            $combined = $dateOnly . ' ' . $time;
-                                            $parsedDateTime = \Carbon\Carbon::parse($combined);
-
-                                            return new \Illuminate\Support\HtmlString(
-                                                $parsedDateTime->format('d M Y') . '<br>' .
-                                                $parsedDateTime->format('H:i:s')
-                                            );
-                                        } catch (\Exception $e) {
-                                            return \Carbon\Carbon::parse($date)->format('d M Y');
-                                        }
-                                    } elseif ($date) {
+                                        return new \Illuminate\Support\HtmlString(
+                                            '<span style="color: ' . $color . '; font-weight: ' . ($isToday ? 'bold' : 'normal') . ';">' .
+                                            $parsedDateTime->format('d M Y') . '<br>' .
+                                            $parsedDateTime->format('H:i:s') .
+                                            '</span>'
+                                        );
+                                    } catch (\Exception $e) {
                                         return \Carbon\Carbon::parse($date)->format('d M Y');
                                     }
+                                } elseif ($date) {
+                                    return \Carbon\Carbon::parse($date)->format('d M Y');
                                 }
                             }
                         }

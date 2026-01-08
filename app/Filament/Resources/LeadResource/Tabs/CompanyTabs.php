@@ -62,12 +62,6 @@ class CompanyTabs
                                             $schema[] = TextInput::make('company_name')
                                                 ->label('Company Name')
                                                 ->default(strtoupper($record->companyDetail->company_name ?? '-'))
-                                                ->rules([
-                                                    'regex:/^[A-Z0-9\s]+$/i',
-                                                ])
-                                                ->validationMessages([
-                                                    'regex' => 'Company name can only contain letters, numbers, and spaces. Special characters are not allowed.',
-                                                ])
                                                 ->disabled(function () use ($isOlderThan30Days, $isAdmin, $record) {
                                                     // Rule 1: If user has role_id 3, never disable the field regardless of lead age
                                                     if (auth()->user()->role_id === 3) {

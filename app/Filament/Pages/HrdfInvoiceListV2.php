@@ -250,7 +250,8 @@ class HrdfInvoiceListV2 extends Page implements HasTable
                         }
 
                         return $quotation->items()->sum('total_before_tax');
-                    }),
+                    })
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('total_amount')
                     ->label('Total')
@@ -267,12 +268,14 @@ class HrdfInvoiceListV2 extends Page implements HasTable
                         }
 
                         return $quotation->items()->sum('total_after_tax');
-                    }),
+                    })
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('created_at')
                     ->label('Created At ')
                     ->dateTime('H:i')
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->actions([
                 TableAction::make('exportHrdfInvoice')
@@ -303,7 +306,7 @@ class HrdfInvoiceListV2 extends Page implements HasTable
     {
         return [
             \Filament\Actions\Action::make('createHrdfInvoice')
-                ->label('CREATE')
+                ->label('Create Invoice')
                 ->color('primary')
                 ->icon('heroicon-o-plus')
                 ->size(ActionSize::Large)
@@ -314,7 +317,7 @@ class HrdfInvoiceListV2 extends Page implements HasTable
                         ->label('Select Type')
                         ->options([
                             'SW' => 'SOFTWARE HANDOVER',
-                            'HW' => 'HARDWARE HANDOVER',
+                            // 'HW' => 'HARDWARE HANDOVER',
                             'RW' => 'RENEWAL HANDOVER'
                         ])
                         ->required()
