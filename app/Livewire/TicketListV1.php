@@ -95,7 +95,8 @@ class TicketListV1 extends Component implements HasTable, HasForms, HasActions
                     ->label('Module')
                     ->sortable()
                     ->badge()
-                    ->default('N/A'),
+                    ->default('N/A')
+                    ->tooltip(fn (Ticket $record): string => $record->title ?? ''),
 
                 Tables\Columns\BadgeColumn::make('priority.name')
                     ->label('Priority')

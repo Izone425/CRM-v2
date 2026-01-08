@@ -419,7 +419,75 @@
         .status-badge-wrapper:hover .status-tooltip {
             opacity: 1 !important;
         }
+
+        /* Fast-response module tooltip */
+        .module-cell {
+            position: relative;
+            overflow: visible;
+        }
+
+        .module-cell:hover {
+            background: #F9FAFB;
+            font-weight: 600;
+        }
+
+        .module-tooltip {
+            position: fixed;
+            padding: 10px 14px;
+            background: #1F2937;
+            color: white;
+            font-size: 13px;
+            font-weight: 500;
+            border-radius: 6px;
+            z-index: 9999;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            max-width: 600px;
+            min-width: 300px;
+            white-space: normal;
+            line-height: 1.5;
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+            transition: opacity 0.15s ease-in-out, visibility 0.15s ease-in-out;
+        }
+
+        .module-cell:hover .module-tooltip {
+            opacity: 1;
+            visibility: visible;
+        }
     </style>
+
+    <script>
+        let tooltipEl = null;
+
+        function showTooltip(event, title) {
+            if (!title) return;
+
+            // Create tooltip if it doesn't exist
+            if (!tooltipEl) {
+                tooltipEl = document.createElement('div');
+                tooltipEl.className = 'module-tooltip';
+                document.body.appendChild(tooltipEl);
+            }
+
+            // Set content and position
+            tooltipEl.textContent = title;
+            tooltipEl.style.opacity = '1';
+            tooltipEl.style.visibility = 'visible';
+
+            // Position below the cell
+            const rect = event.currentTarget.getBoundingClientRect();
+            tooltipEl.style.left = rect.left + 'px';
+            tooltipEl.style.top = (rect.bottom + 8) + 'px';
+        }
+
+        function hideTooltip(event) {
+            if (tooltipEl) {
+                tooltipEl.style.opacity = '0';
+                tooltipEl.style.visibility = 'hidden';
+            }
+        }
+    </script>
 
     <div class="dashboard-wrapper">
         <!-- ✅ Header with Title and Filters on same line -->
@@ -750,7 +818,7 @@
                                         <td style="padding: 12px; font-size: 13px; font-weight: 600; cursor: pointer;" wire:click="viewTicket({{ $ticket->id }})">
                                             {{ $ticket->ticket_id }}
                                         </td>
-                                        <td style="padding: 12px; font-size: 13px; cursor: pointer;" wire:click="viewTicket({{ $ticket->id }})">
+                                        <td class="module-cell" style="padding: 12px; font-size: 13px; cursor: pointer;" wire:click="viewTicket({{ $ticket->id }})" onmouseenter="showTooltip(event, '{{ addslashes($ticket->title ?? '') }}')" onmouseleave="hideTooltip(event)">
                                             {{ $ticket->module->name ?? '-' }}
                                         </td>
                                         <td style="padding: 12px; font-size: 13px; color: #6B7280; cursor: pointer;" wire:click="viewTicket({{ $ticket->id }})">
