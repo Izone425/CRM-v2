@@ -62,9 +62,9 @@ class TicketDashboard extends Page implements HasActions, HasForms
     public function mount()
     {
         // Set default date to today
-        $this->selectedDate = now()->format('Y-m-d');
-        $this->currentMonth = now()->month;
-        $this->currentYear = now()->year;
+        $this->selectedDate = now()->subHours(8)->format('Y-m-d');
+        $this->currentMonth = now()->subHours(8)->month;
+        $this->currentYear = now()->subHours(8)->year;
     }
 
     public $selectedTicket = null;
@@ -426,7 +426,7 @@ class TicketDashboard extends Page implements HasActions, HasForms
 
                         $data['status'] = 'New';
                         $data['requestor_id'] = $requestorId;
-                        $data['created_date'] = now()->toDateString();
+                        $data['created_date'] = now()->subHours(8)->toDateString();
                         $data['isPassed'] = 0;
                         $data['is_internal'] = $data['is_internal'] ?? false;
 
@@ -448,15 +448,33 @@ class TicketDashboard extends Page implements HasActions, HasForms
 
                         $ticket = Ticket::create($data);
 
+                        // Get priority name for the log
+                        $priority = TicketPriority::find($data['priority_id']);
+                        $priorityName = $priority ? $priority->name : 'Unknown';
+
+                        // Build detailed new_value string
+                        $newValueDetails = "Ticket {$data['ticket_id']}\n";
+                        $newValueDetails .= "Title: {$data['title']}\n";
+                        $newValueDetails .= "Priority: {$priorityName}\n";
+                        $newValueDetails .= "Category: {$priorityName}\n";
+                        $newValueDetails .= "Requester: " . ($ticketSystemUser?->name ?? 'HRcrm User');
+
                         TicketLog::create([
                             'ticket_id' => $ticket->id,
-                            'old_value' => null,
-                            'new_value' => 'New',
+                            'old_value' => 'No existing ticket',
+                            'new_value' => $newValueDetails,
+                            'action' => "Created new ticket {$data['ticket_id']}",
+                            'field_name' => null,
+                            'change_reason' => null,
+                            'old_eta' => null,
+                            'new_eta' => null,
                             'updated_by' => $requestorId,
                             'user_name' => $ticketSystemUser?->name ?? 'HRcrm User',
                             'user_role' => $ticketSystemUser?->role ?? 'Internal Staff',
                             'change_type' => 'ticket_creation',
                             'source' => 'manual',
+                            'created_at' => now()->subHours(8),
+                            'updated_at' => now()->subHours(8),
                         ]);
 
                         Notification::make()
@@ -529,6 +547,8 @@ class TicketDashboard extends Page implements HasActions, HasForms
                     'mime_type' => $file->getMimeType(),
                     'file_hash' => $fileHash,
                     'uploaded_by' => $userId,
+                    'created_at' => now()->subHours(8),
+                    'updated_at' => now()->subHours(8),
                 ]);
             }
 
@@ -653,6 +673,8 @@ class TicketDashboard extends Page implements HasActions, HasForms
                 'ticket_id' => $this->selectedTicket->id,
                 'user_id' => $userId,
                 'comment' => $this->newComment,
+                'created_at' => now()->subHours(8),
+                'updated_at' => now()->subHours(8),
             ]);
 
             $this->newComment = '';
@@ -843,7 +865,7 @@ class TicketDashboard extends Page implements HasActions, HasForms
             'month' => $date->format('F Y'),
             'days_in_month' => $date->daysInMonth,
             'first_day_of_week' => $date->dayOfWeek,
-            'current_date' => Carbon::now(),
+            'current_date' => Carbon::now()->addHours(8),
         ];
     }
 
@@ -1067,7 +1089,7 @@ class TicketDashboard extends Page implements HasActions, HasForms
                 $ticket->update([
                     'status' => 'Closed',
                     'isPassed' => 1,
-                    'passed_at' => now(),
+                    'passed_at' => now()->subHours(8),
                 ]);
 
                 // ✅ Create a log entry for marking ticket as passed
@@ -1083,6 +1105,8 @@ class TicketDashboard extends Page implements HasActions, HasForms
                     'user_role' => $userRole,
                     'change_type' => 'status_change',
                     'source' => 'dashboard_pass_action',
+                    'created_at' => now()->subHours(8),
+                    'updated_at' => now()->subHours(8),
                 ]);
 
                 if ($this->selectedTicket && $this->selectedTicket->id === $ticketId) {
@@ -1132,7 +1156,7 @@ class TicketDashboard extends Page implements HasActions, HasForms
                 // ✅ Update ticket to Failed and Reopen status
                 $ticket->update([
                     'isPassed' => 0,
-                    'passed_at' => now(),
+                    'passed_at' => now()->subHours(8),
                     'status' => 'Reopen', // ✅ Change status to Reopen
                 ]);
 
@@ -1147,6 +1171,8 @@ class TicketDashboard extends Page implements HasActions, HasForms
                     'change_type' => 'status_change',
                     'source' => 'manual',
                     'remarks' => 'Ticket marked as failed and reopened',
+                    'created_at' => now()->subHours(8),
+                    'updated_at' => now()->subHours(8),
                 ]);
 
                 if ($this->selectedTicket && $this->selectedTicket->id === $ticketId) {
@@ -1206,6 +1232,8 @@ class TicketDashboard extends Page implements HasActions, HasForms
                 'user_role' => $ticketSystemUser?->role ?? 'Internal Staff',
                 'change_type' => 'status_change',
                 'source' => 'dashboard_modal',
+                'created_at' => now()->subHours(8),
+                'updated_at' => now()->subHours(8),
             ]);
 
             // ✅ Refresh the selected ticket with fresh data including logs
@@ -1286,6 +1314,8 @@ class TicketDashboard extends Page implements HasActions, HasForms
                                 'mime_type' => $file->getMimeType(),
                                 'file_hash' => $fileHash,
                                 'uploaded_by' => $userId,
+                                'created_at' => now()->subHours(8),
+                                'updated_at' => now()->subHours(8),
                             ]);
 
                             // If it's an image, collect the URL for HTML comment
@@ -1330,12 +1360,16 @@ class TicketDashboard extends Page implements HasActions, HasForms
                     'ticket_id' => $ticket->id,
                     'user_id' => $userId,
                     'comment' => $htmlComment,
+                    'created_at' => now()->subHours(8),
+                    'updated_at' => now()->subHours(8),
                 ]);
             } elseif (!empty(trim($this->reopenComment))) {
                 TicketComment::create([
                     'ticket_id' => $ticket->id,
                     'user_id' => $userId,
                     'comment' => trim($this->reopenComment),
+                    'created_at' => now()->subHours(8),
+                    'updated_at' => now()->subHours(8),
                 ]);
             }
 
@@ -1354,6 +1388,8 @@ class TicketDashboard extends Page implements HasActions, HasForms
                 'user_role' => $ticketSystemUser?->role ?? 'Support Staff',
                 'change_type' => 'status_change',
                 'source' => 'dashboard_reopen_modal',
+                'created_at' => now()->subHours(8),
+                'updated_at' => now()->subHours(8),
             ]);
 
             // Close modal and reset form

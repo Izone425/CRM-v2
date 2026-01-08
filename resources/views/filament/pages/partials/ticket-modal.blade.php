@@ -102,7 +102,7 @@
                                                     </span>
                                                 </div>
                                                 <div style="font-size: 12px; color: #9CA3AF;">
-                                                    {{ $comment->created_at->diffForHumans() }}
+                                                    {{ $comment->created_at->addHours(8)->diffForHumans() }}
                                                 </div>
                                             </div>
                                         </div>
@@ -154,7 +154,7 @@
                                     <div style="flex: 1;">
                                         <div style="font-weight: 600; font-size: 14px; color: #111827;">{{ $attachment->original_filename }}</div>
                                         <div style="font-size: 12px; color: #6B7280; margin-top: 4px;">
-                                            {{ number_format($attachment->file_size / 1024, 2) }} KB • {{ $attachment->created_at->format('d M Y, H:i A') }}
+                                            {{ number_format($attachment->file_size / 1024, 2) }} KB • {{ $attachment->created_at->addHours(8)->format('d M Y, H:i A') }}
                                             <br>
                                             <span style="font-style: italic;">by {{ $attachment->uploader->name ?? 'Unknown' }}</span>
                                         </div>
@@ -287,7 +287,7 @@
                                                         {{ $log->new_value }}
                                                     </span>
                                                     <div class="status-tooltip" style="position: absolute; bottom: 100%; left: 0; margin-bottom: 8px; padding: 6px 10px; background: #1F2937; color: white; font-size: 11px; border-radius: 6px; white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity 0.2s; z-index: 10;">
-                                                        {{ $log->created_at->format('M d') }} • {{ $log->created_at->format('Y, g:i A') }}
+                                                        {{ $log->created_at->addHours(8)->format('M d') }} • {{ $log->created_at->addHours(8)->format('Y, g:i A') }}
                                                     </div>
                                                 </div>
 
@@ -498,7 +498,7 @@
                                     $earliestEtaDate = min($relatedTaskEtaDates);
                                 }
                             @endphp
-                            {{ $earliestEtaDate ? \Carbon\Carbon::parse($earliestEtaDate)->format('M d, Y') : '-' }}
+                            {{ $earliestEtaDate ? \Carbon\Carbon::parse($earliestEtaDate)->addHours(8)->format('M d, Y') : '-' }}
                         </div>
                     </div>
                     <div>
@@ -520,7 +520,7 @@
                                     $earliestLiveDate = min($relatedTaskLiveDates);
                                 }
                             @endphp
-                            {{ $earliestLiveDate ? \Carbon\Carbon::parse($earliestLiveDate)->format('M d, Y') : '-' }}
+                            {{ $earliestLiveDate ? \Carbon\Carbon::parse($earliestLiveDate)->addHours(8)->format('M d, Y') : '-' }}
                         </div>
                     </div>
                 </div>
@@ -632,7 +632,7 @@
                     </div>
                     <div>
                         <div style="font-size: 11px; color: #9CA3AF; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 500;">Created Date</div>
-                        <div style="font-weight: 500; color: #111827; font-size: 14px;">{{ $selectedTicket->created_at ? $selectedTicket->created_at->format('M d, Y') : '-' }}</div>
+                        <div style="font-weight: 500; color: #111827; font-size: 14px;">{{ $selectedTicket->created_at ? $selectedTicket->created_at->addHours(8)->format('M d, Y') : '-' }}</div>
                     </div>
                 </div>
             </div>

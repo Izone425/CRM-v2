@@ -754,7 +754,7 @@
                                             {{ $ticket->module->name ?? '-' }}
                                         </td>
                                         <td style="padding: 12px; font-size: 13px; color: #6B7280; cursor: pointer;" wire:click="viewTicket({{ $ticket->id }})">
-                                            {{ $ticket->eta_release ? $ticket->eta_release->format('d M Y') : '-' }}
+                                            {{ $ticket->eta_release ? $ticket->eta_release->addHours(8)->format('d M Y') : '-' }}
                                         </td>
                                         <td style="padding: 12px; cursor: pointer;" wire:click="viewTicket({{ $ticket->id }})">
                                             <span style="padding: 4px 8px; border-radius: 4px; font-size: 11px; background: #F3F4F6; color: #6B7280;">
@@ -788,7 +788,7 @@
                                                         </span>
                                                         @if($ticket->passed_at)
                                                             <span style="font-size: 11px; color: #9CA3AF;">
-                                                                {{ $ticket->passed_at->format('d M Y H:i') }}
+                                                                {{ $ticket->passed_at->addHours(8)->format('d M Y H:i') }}
                                                             </span>
                                                         @endif
                                                     </div>
