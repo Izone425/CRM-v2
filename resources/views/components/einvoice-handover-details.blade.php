@@ -213,6 +213,13 @@
         <span class="einvoice-value">{{ ucfirst($record->company_type) }}</span>
     </div>
 
+    <div class="einvoice-info-item">
+        <span class="einvoice-label">Customer Type:</span>
+        <span class="einvoice-value" style="{{ $record->customer_type === 'Existing Customer' ? 'color: #dc2626; font-weight: 700;' : '' }}">
+            {{ $record->customer_type ?? 'N/A' }}
+        </span>
+    </div>
+
     <hr class="my-4 border-gray-300">
 
     <!-- Export Buttons -->

@@ -239,12 +239,15 @@ class EInvoiceHandoverRelationManager extends RelationManager
                                             $companyDetail = $lead->companyDetail;
                                             if ($companyDetail) {
                                                 $existingHandover = $lead->eInvoiceHandover()
-                                                    ->where('company_type', 'main')
-                                                    ->where('company_name', $companyDetail->company_name)
+                                                    ->where('lead_id', $lead->id)
+                                                    ->where(function($query) {
+                                                        $query->whereNull('subsidiary_id')
+                                                              ->orWhere('subsidiary_id', 0);
+                                                    })
                                                     ->exists();
 
                                                 if (!$existingHandover) {
-                                                    $options[$companyDetail->company_name] = $companyDetail->company_name . ' (Main Company)';
+                                                    $options["main_{$lead->id}"] = $companyDetail->company_name . ' (Main Company)';
                                                 }
                                             }
 
@@ -252,15 +255,15 @@ class EInvoiceHandoverRelationManager extends RelationManager
                                             $subsidiaries = $lead->subsidiaries;
                                             foreach ($subsidiaries as $subsidiary) {
                                                 $existingHandover = $lead->eInvoiceHandover()
-                                                    ->where('company_type', 'subsidiary')
-                                                    ->where('company_name', $subsidiary->company_name)
+                                                    ->where('lead_id', $lead->id)
+                                                    ->where('subsidiary_id', $subsidiary->id)
                                                     ->exists();
 
                                                 if (!$existingHandover) {
                                                     $isComplete = $this->isSubsidiaryComplete($subsidiary);
                                                     // Only include complete subsidiaries
                                                     if ($isComplete) {
-                                                        $options[$subsidiary->company_name] = $subsidiary->company_name . ' (Subsidiary)';
+                                                        $options["subsidiary_{$subsidiary->id}"] = $subsidiary->company_name . ' (Subsidiary)';
                                                     }
                                                 }
                                             }
@@ -270,26 +273,38 @@ class EInvoiceHandoverRelationManager extends RelationManager
                                         ->required()
                                         ->preload()
                                         ->searchable(),
+
+                                    Select::make('customer_type')
+                                        ->label('Customer Type')
+                                        ->options([
+                                            'New Customer' => 'New Customer',
+                                            'Existing Customer' => 'Existing Customer',
+                                        ])
+                                        ->required()
+                                        ->default('New Customer'),
                                 ])
                         ])
                 ])
                 ->action(function (array $data): void {
                     $lead = $this->getOwnerRecord();
 
-                    // Determine company type based on selected company
-                    $selectedCompanyName = $data['company_name'];
-                    $companyType = 'subsidiary'; // Default to subsidiary
-                    $subsidiaryId = null; // Initialize subsidiary ID
+                    // Parse the selected company identifier (format: "type_id")
+                    $selectedIdentifier = $data['company_name'];
+                    [$companyType, $companyId] = explode('_', $selectedIdentifier, 2);
 
-                    // Check if selected company is the main company
-                    $companyDetail = $lead->companyDetail;
-                    if ($companyDetail && $companyDetail->company_name === $selectedCompanyName) {
-                        $companyType = 'main';
+                    $subsidiaryId = null;
+                    $selectedCompanyName = '';
+
+                    // Get company name based on type
+                    if ($companyType === 'main') {
+                        $companyDetail = $lead->companyDetail;
+                        $selectedCompanyName = $companyDetail->company_name;
                     } else {
-                        // Find the subsidiary ID if this is a subsidiary
-                        $subsidiary = $lead->subsidiaries()->where('company_name', $selectedCompanyName)->first();
+                        // Find the subsidiary by ID
+                        $subsidiary = $lead->subsidiaries()->find($companyId);
                         if ($subsidiary) {
                             $subsidiaryId = $subsidiary->id;
+                            $selectedCompanyName = $subsidiary->company_name;
                         }
                     }
 
@@ -306,6 +321,7 @@ class EInvoiceHandoverRelationManager extends RelationManager
                         'salesperson' => $salespersonName,
                         'company_name' => $selectedCompanyName,
                         'company_type' => $companyType,
+                        'customer_type' => $data['customer_type'],
                         'status' => 'New',
                         'created_by' => auth()->id(),
                         'submitted_at' => now(),
