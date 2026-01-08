@@ -3124,17 +3124,6 @@ class ImplementerAppointmentRelationManager extends RelationManager
                 }
             }
 
-            // Add salesperson to CC if available and different from sender and implementer
-            if ($softwareHandover->salesperson) {
-                $salesperson = \App\Models\User::where('name', $softwareHandover->salesperson)->first();
-                if ($salesperson && $salesperson->email &&
-                    $salesperson->email !== $emailData['sender_email'] &&
-                    !in_array($salesperson->email, $ccRecipients)) {
-                    $ccRecipients[] = $salesperson->email;
-                    Log::info("Added salesperson to CC: {$salesperson->name} <{$salesperson->email}>");
-                }
-            }
-
             // Replace placeholders in email content with customer credentials
             $customerPlaceholders = [
                 '{customer_email}' => $customerEmail ?? 'Not Available',

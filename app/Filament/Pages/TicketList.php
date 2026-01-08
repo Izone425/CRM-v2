@@ -273,9 +273,9 @@ class TicketList extends Page implements HasTable, HasActions, HasForms
                                 $set('mobile_type', null);
                                 $set('browser_type', null);
                                 $set('version_screenshot', null);
-                                $set('device_id', null);
-                                $set('os_version', null);
-                                $set('app_version', null);
+                                // $set('device_id', null);
+                                // $set('os_version', null);
+                                // $set('app_version', null);
                                 $set('windows_version', null);
                             }
                         }),
@@ -348,33 +348,95 @@ class TicketList extends Page implements HasTable, HasActions, HasForms
                                 ->maxSize(5120)
                                 ->directory('version_screenshots')
                                 ->visibility('public')
-                                ->visible(fn (Get $get): bool => $get('device_type') === 'Mobile')
-                                ->required(fn (Get $get): bool => $get('device_type') === 'Mobile'),
+                                ->hidden(function (Get $get): bool {
+                                    $priorityId = $get('priority_id');
+                                    if (!$priorityId) return true;
 
-                            TextInput::make('device_id')
-                                ->label('Device ID')
-                                ->placeholder('Enter device ID')
-                                ->visible(fn (Get $get): bool => $get('device_type') === 'Mobile')
-                                ->required(fn (Get $get): bool => $get('device_type') === 'Mobile'),
+                                    $priority = TicketPriority::find($priorityId);
+                                    $isSoftwareBugs = $priority && str_contains(strtolower($priority->name), 'software bugs');
+
+                                    return !($isSoftwareBugs && $get('device_type') === 'Mobile');
+                                })
+                                ->required(function (Get $get): bool {
+                                    $priorityId = $get('priority_id');
+                                    if (!$priorityId) return false;
+
+                                    $priority = TicketPriority::find($priorityId);
+                                    $isSoftwareBugs = $priority && str_contains(strtolower($priority->name), 'software bugs');
+
+                                    return $isSoftwareBugs && $get('device_type') === 'Mobile';
+                                }),
+
+                            // TextInput::make('device_id')
+                            //     ->label('Device ID')
+                            //     ->placeholder('Enter device ID')
+                            //     ->hidden(function (Get $get): bool {
+                            //         $priorityId = $get('priority_id');
+                            //         if (!$priorityId) return true;
+
+                            //         $priority = TicketPriority::find($priorityId);
+                            //         $isSoftwareBugs = $priority && str_contains(strtolower($priority->name), 'software bugs');
+
+                            //         return !($isSoftwareBugs && $get('device_type') === 'Mobile');
+                            //     })
+                            //     ->required(function (Get $get): bool {
+                            //         $priorityId = $get('priority_id');
+                            //         if (!$priorityId) return false;
+
+                            //         $priority = TicketPriority::find($priorityId);
+                            //         $isSoftwareBugs = $priority && str_contains(strtolower($priority->name), 'software bugs');
+
+                            //         return $isSoftwareBugs && $get('device_type') === 'Mobile';
+                            //     }),
                         ]),
 
-                    Grid::make(4)
-                        ->schema([
-                            TextInput::make('os_version')
-                                ->label('OS Version')
-                                ->placeholder('e.g., Android 14')
-                                ->visible(fn (Get $get): bool => $get('device_type') === 'Mobile')
-                                ->required(fn (Get $get): bool => $get('device_type') === 'Mobile')
-                                ->columnSpan(1),
+                    // ✅ Mobile version details (OS & App version)
+                    // Grid::make(2)
+                    //     ->schema([
+                    //         TextInput::make('os_version')
+                    //             ->label('OS Version')
+                    //             ->placeholder('e.g., Android 14')
+                    //             ->hidden(function (Get $get): bool {
+                    //                 $priorityId = $get('priority_id');
+                    //                 if (!$priorityId) return true;
 
-                            TextInput::make('app_version')
-                                ->label('App Version')
-                                ->placeholder('e.g., 1.2.3')
-                                ->visible(fn (Get $get): bool => $get('device_type') === 'Mobile')
-                                ->required(fn (Get $get): bool => $get('device_type') === 'Mobile')
-                                ->columnSpan(1),
-                        ])
-                        ->visible(fn (Get $get): bool => $get('device_type') === 'Mobile'),
+                    //                 $priority = TicketPriority::find($priorityId);
+                    //                 $isSoftwareBugs = $priority && str_contains(strtolower($priority->name), 'software bugs');
+
+                    //                 return !($isSoftwareBugs && $get('device_type') === 'Mobile');
+                    //             })
+                    //             ->required(function (Get $get): bool {
+                    //                 $priorityId = $get('priority_id');
+                    //                 if (!$priorityId) return false;
+
+                    //                 $priority = TicketPriority::find($priorityId);
+                    //                 $isSoftwareBugs = $priority && str_contains(strtolower($priority->name), 'software bugs');
+
+                    //                 return $isSoftwareBugs && $get('device_type') === 'Mobile';
+                    //             }),
+
+                    //         TextInput::make('app_version')
+                    //             ->label('App Version')
+                    //             ->placeholder('e.g., 1.2.3')
+                    //             ->hidden(function (Get $get): bool {
+                    //                 $priorityId = $get('priority_id');
+                    //                 if (!$priorityId) return true;
+
+                    //                 $priority = TicketPriority::find($priorityId);
+                    //                 $isSoftwareBugs = $priority && str_contains(strtolower($priority->name), 'software bugs');
+
+                    //                 return !($isSoftwareBugs && $get('device_type') === 'Mobile');
+                    //             })
+                    //             ->required(function (Get $get): bool {
+                    //                 $priorityId = $get('priority_id');
+                    //                 if (!$priorityId) return false;
+
+                    //                 $priority = TicketPriority::find($priorityId);
+                    //                 $isSoftwareBugs = $priority && str_contains(strtolower($priority->name), 'software bugs');
+
+                    //                 return $isSoftwareBugs && $get('device_type') === 'Mobile';
+                    //             }),
+                    //     ]),
 
                     Grid::make(2)
                         ->schema([

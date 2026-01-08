@@ -21,7 +21,6 @@
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: 1.5rem;
-        margin-bottom: 1rem;
     }
 
     @media (max-width: 768px) {
@@ -31,7 +30,7 @@
     }
 
     .einvoice-info-item {
-        margin-bottom: 0.75rem;
+        margin-bottom: 0.5rem;
     }
 
     .einvoice-label {
