@@ -28,6 +28,7 @@ use App\Models\Lead;
 use App\Models\CompanyDetail;
 use App\Models\UtmDetail;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 
@@ -183,9 +184,9 @@ Route::prefix('customer')->name('customer.')->group(function () {
     Route::post('/login', [CustomerAuthController::class, 'login'])->name('login.submit')->middleware('guest:customer');
     Route::post('/logout', [CustomerAuthController::class, 'logout'])->name('logout');
 
-    // Password Reset Routes
-    Route::get('/forgot-password', \App\Livewire\Customer\ForgotPassword::class)->name('password.request');
-    Route::get('/reset-password/{token}', \App\Livewire\Customer\ResetPassword::class)->name('password.reset');
+    // // Password Reset Routes
+    // Route::get('/forgot-password', \App\Livewire\Customer\ForgotPassword::class)->name('password.request');
+    // Route::get('/reset-password/{token}', \App\Livewire\Customer\ResetPassword::class)->name('password.reset');
 
     // Account Activation
     Route::get('/activate/{token}', [CustomerActivationController::class, 'activateAccount'])->name('activate');
@@ -197,6 +198,28 @@ Route::prefix('customer')->name('customer.')->group(function () {
             return redirect()->route('customer.login');
         }
         return view('customer.dashboard');
+    })->name('dashboard');
+});
+
+//RESELLER
+Route::prefix('reseller')->name('reseller.')->group(function () {
+    // Public routes
+    Route::get('/login', \App\Livewire\Reseller\Login::class)->name('login')->middleware('guest:reseller');
+    Route::post('/login', [App\Http\Controllers\ResellerAuthController::class, 'login'])->name('login.submit')->middleware('guest:reseller');
+    Route::post('/logout', [App\Http\Controllers\ResellerAuthController::class, 'logout'])->name('logout');
+
+    // Protected routes
+    Route::get('/dashboard', function () {
+        if (!auth('reseller')->check()) {
+            return redirect()->route('reseller.login');
+        }
+
+        $reseller = Auth::guard('reseller')->user();
+
+        return view('reseller.dashboard', [
+            'resellerName' => $reseller->name ?? 'Reseller',
+            'companyName' => $reseller->company_name ?? 'Company',
+        ]);
     })->name('dashboard');
 });
 

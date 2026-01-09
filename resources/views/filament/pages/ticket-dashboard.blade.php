@@ -833,7 +833,7 @@
                                             {{ $ticket->requestor->name ?? $ticket->requestor ?? '-' }}
                                         </td>
                                         <td style="padding: 12px; text-align: center;" onclick="event.stopPropagation();">
-                                            @if(in_array($ticket->status, ['Completed', 'Tickets: Live']))
+                                            @if(in_array($ticket->status, ['Completed', 'Tickets: Live', 'Closed']))
                                                 @if($ticket->isPassed == 0)
                                                     <div style="display: inline-flex; gap: 8px;">
                                                         <button wire:click="markAsPassed({{ $ticket->id }})"

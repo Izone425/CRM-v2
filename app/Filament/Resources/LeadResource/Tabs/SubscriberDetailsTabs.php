@@ -101,6 +101,7 @@ class SubscriberDetailsTabs
                                                         // Rule 3: Original condition - disable if older than 30 days and not admin
                                                         return $isOlderThan30Days && !$isAdmin;
                                                     })
+                                                    ->dehydrated(true)
                                                     ->helperText(function ($record) {
                                                         // Define variables here as well
                                                         $isOlderThan30Days = $record->created_at->diffInDays(now()) > 30;

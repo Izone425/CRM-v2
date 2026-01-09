@@ -64,6 +64,7 @@ use App\Filament\Pages\ProjectPriority;
 use App\Filament\Pages\RankingForm;
 use App\Filament\Pages\RankingFormPage;
 use App\Filament\Pages\RenewalDataAnalysis;
+use App\Filament\Pages\ResellerAccount;
 use App\Filament\Pages\RevenueAnalysis;
 use App\Filament\Pages\RevenueTable;
 use App\Filament\Pages\SalesAdminAnalysisV1;
@@ -385,6 +386,7 @@ class AdminPanelProvider extends PanelProvider
                 AdminRenewalDashboard::class,
                 AdminRenewalDashboardNonReseller::class,
                 InternalTicketsPage::class,
+                ResellerAccount::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([

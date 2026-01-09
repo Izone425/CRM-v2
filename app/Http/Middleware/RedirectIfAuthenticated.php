@@ -21,6 +21,13 @@ class RedirectIfAuthenticated
 
         foreach ($guards as $guard) {
             if (Auth::guard($guard)->check()) {
+                // Redirect based on guard type
+                if ($guard === 'customer') {
+                    return redirect()->route('customer.dashboard');
+                } elseif ($guard === 'reseller') {
+                    return redirect()->route('reseller.dashboard');
+                }
+
                 return redirect(RouteServiceProvider::HOME);
             }
         }

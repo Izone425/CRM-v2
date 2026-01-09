@@ -895,11 +895,11 @@ class TicketDashboard extends Page implements HasActions, HasForms
                         if ($isEnhancement && $this->selectedEnhancementType) {
                             switch ($this->selectedEnhancementType) {
                                 case 'critical':
-                                    return str_contains($priorityName, 'critical enhancement');
+                                    return $priorityName == 'critical enhancement';
                                 case 'paid':
-                                    return str_contains($priorityName, 'paid customization');
+                                    return $priorityName == 'paid customization';
                                 case 'non-critical':
-                                    return str_contains($priorityName, 'non-critical enhancement');
+                                    return $priorityName == 'non-critical enhancement';
                             }
                         }
 
