@@ -185,7 +185,7 @@ class EInvoiceHandoverNew extends Component implements HasForms, HasTable
                                 $companyName = $record->company_name;
                                 $status = 'COMPLETED';
 
-                                $subject = "{$projectCode} / {$salespersonName} / {$companyName} / {$status}";
+                                $subject = "{$projectCode} / " . strtoupper($salespersonName) . " / {$companyName} / {$status}";
 
                                 // Generate lead URL
                                 $leadEncrypted = \App\Classes\Encryptor::encrypt($record->lead_id);
@@ -200,7 +200,7 @@ class EInvoiceHandoverNew extends Component implements HasForms, HasTable
 
                                 Mail::send('emails.einvoice_completion_notification', $emailData, function ($message) use ($salespersonEmail, $subject) {
                                     $message->to($salespersonEmail)
-                                        ->cc(['auni@timeteccloud.com', 'faiz@timeteccloud.com'])
+                                        ->cc(['faiz@timeteccloud.com'])
                                         ->subject($subject);
                                 });
 

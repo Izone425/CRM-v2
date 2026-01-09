@@ -179,6 +179,11 @@ class EInvoiceExportController extends Controller
             // Add data to row 3
             $sheet->fromArray([$dataRow], null, 'B3');
 
+            // Format IdentityNo column (C3) as text to prevent scientific notation
+            $sheet->getStyle('C3')->getNumberFormat()->setFormatCode(\PhpOffice\PhpSpreadsheet\Style\NumberFormat::FORMAT_TEXT);
+            // Re-set the value to ensure it's treated as text
+            $sheet->setCellValueExplicit('C3', $identityNo, \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+
             // Apply text wrapping to the description row
             $lastCol = count($descriptionRow);
             $lastColLetter = $this->getColumnLetter($lastCol + 1); // +1 because we start from B

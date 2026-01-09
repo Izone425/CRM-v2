@@ -280,8 +280,7 @@ class EInvoiceHandoverRelationManager extends RelationManager
                                             'New Customer' => 'New Customer',
                                             'Existing Customer' => 'Existing Customer',
                                         ])
-                                        ->required()
-                                        ->default('New Customer'),
+                                        ->required(),
                                 ])
                         ])
                 ])
@@ -353,13 +352,13 @@ class EInvoiceHandoverRelationManager extends RelationManager
 
                         $emailData = [
                             'salesperson' => strtoupper($salespersonName),
-                            'company_name' => $data['company_name'],
+                            'company_name' => $selectedCompanyName,
                             'lead_url' => $leadUrl,
                         ];
 
-                        Mail::send('emails.einvoice_handover_notification', $emailData, function ($message) use ($salespersonEmail, $eInvoiceHandover, $salespersonName, $data) {
+                        Mail::send('emails.einvoice_handover_notification', $emailData, function ($message) use ($salespersonEmail, $eInvoiceHandover, $salespersonName, $selectedCompanyName) {
                             $projectCode = $eInvoiceHandover->project_code;
-                            $subject = "{$projectCode} / {$salespersonName} / {$data['company_name']} / NEW";
+                            $subject = "{$projectCode} / " . strtoupper($salespersonName) . " / {$selectedCompanyName} / NEW";
 
                             $message->to('auni@timeteccloud.com')
                                 ->cc('faiz@timeteccloud.com')

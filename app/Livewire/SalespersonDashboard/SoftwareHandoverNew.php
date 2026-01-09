@@ -541,6 +541,17 @@ class SoftwareHandoverNew extends Component implements HasForms, HasTable
                                                                 ->default(fn($state, $get) => $quotations->get($get('../../quotation_id') ?? 0)?->pi_reference_no ?? 'N/A'),
                                                             TextInput::make('invoice_number')
                                                                 ->label('Invoice Number')
+                                                                ->maxLength(13)
+                                                                ->extraAlpineAttributes([
+                                                                    'x-on:input' => '
+                                                                        const start = $el.selectionStart;
+                                                                        const end = $el.selectionEnd;
+                                                                        const value = $el.value;
+                                                                        $el.value = value.toUpperCase();
+                                                                        $el.setSelectionRange(start, end);
+                                                                    '
+                                                                ])
+                                                                ->dehydrateStateUsing(fn ($state) => strtoupper($state))
                                                                 ->required(),
                                                         ])
                                                     ])

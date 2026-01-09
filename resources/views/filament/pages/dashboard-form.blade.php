@@ -163,13 +163,43 @@
             }
         });
 
-        // Set other pending counts to 0 initially (load on demand)
-        $pendingCourierCount = 0;
-        $pendingAdminPickUpCount = 0;
-        $pendingExternalInstallationCount = 0;
-        $pendingInternalInstallationCount = 0;
+        $pendingCourierCount = Cache::remember('hardware_v2_pending_courier_' . auth()->id(), 300, function() {
+            try {
+                return app(\App\Livewire\AdminHardwareV2Dashboard\HardwareV2PendingCourierTable::class)
+                    ->getHardwareHandoverCount();
+            } catch (Exception $e) {
+                return 0;
+            }
+        });
 
-        $initialStageTotal = $newTaskCount + $pendingStockCount;
+        $pendingAdminPickUpCount = Cache::remember('hardware_v2_pending_admin_pickup_' . auth()->id(), 300, function() {
+            try {
+                return app(\App\Livewire\AdminHardwareV2Dashboard\HardwareV2PendingAdminSelfPickUpTable::class)
+                    ->getHardwareHandoverCount();
+            } catch (Exception $e) {
+                return 0;
+            }
+        });
+
+        $pendingExternalInstallationCount = Cache::remember('hardware_v2_pending_external_installation_' . auth()->id(), 300, function() {
+            try {
+                return app(\App\Livewire\AdminHardwareV2Dashboard\HardwareV2PendingExternalInstallationTable::class)
+                    ->getHardwareHandoverCount();
+            } catch (Exception $e) {
+                return 0;
+            }
+        });
+
+        $pendingInternalInstallationCount = Cache::remember('hardware_v2_pending_internal_installation_' . auth()->id(), 300, function() {
+            try {
+                return app(\App\Livewire\AdminHardwareV2Dashboard\HardwareV2PendingInternalInstallationTable::class)
+                    ->getHardwareHandoverCount();
+            } catch (Exception $e) {
+                return 0;
+            }
+        });
+
+        $initialStageTotal = $newTaskCount + $pendingStockCount + $pendingCourierCount + $pendingAdminPickUpCount + $pendingExternalInstallationCount + $pendingInternalInstallationCount;
 
         // Software V2 counts - simplified
         $softwareV2NewCount = Cache::remember('software_v2_new_' . auth()->id(), 300, function() {

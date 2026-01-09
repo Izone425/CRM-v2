@@ -1870,7 +1870,7 @@
                         </div>
 
                         <div class="submenu" id="reseller-portal-submenu">
-                            <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
+                            <a href="{{ route('filament.admin.pages.reseller-account') }}" class="submenu-item">
                                 <span class="module-font">Raw Data</span>
                             </a>
                             <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">

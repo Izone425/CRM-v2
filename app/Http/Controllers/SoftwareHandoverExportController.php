@@ -183,7 +183,7 @@ class SoftwareHandoverExportController extends Controller
                         'I',                     // AgingOn (Invoice Date)
                         'O',                     // StatementType (Open Item)
                         'MYR',                   // CurrencyCode
-                        $subsidiary->register_number ?? '',  // RegisterNo
+                        $subsidiary->business_register_number ?? '',  // RegisterNo
                         $subsidiary->company_address1 ?? $formattedAddress1,  // Address1
                         $subsidiary->company_address2 ?? $formattedAddress2,  // Address2
                         $subsidiary->city ?? $formattedAddress3,      // Address3 (City)
@@ -494,7 +494,7 @@ class SoftwareHandoverExportController extends Controller
             'JOHOR' => 'MYS-JHR',
             'KEDAH' => 'MYS-KDH',
             'KELANTAN' => 'MYS-KTN',
-            'KUALA LUMPUR' => 'MYS-KUL',
+            'WILAYAH PERSEKUTUAN KUALA LUMPUR' => 'MYS-KUL',
             'MELAKA' => 'MYS-MLK',
             'PAHANG' => 'MYS-PHG',
             'PENANG' => 'MYS-PNG',
@@ -505,8 +505,8 @@ class SoftwareHandoverExportController extends Controller
             'NEGERI SEMBILAN' => 'MYS-SEM',
             'SARAWAK' => 'MYS-SWK',
             'TERENGGANU' => 'MYS-TRG',
-            'PUTRAJAYA' => 'MYS-PJY',
-            'LABUAN' => 'MYS-LBN'
+            'WILAYAH PERSEKUTUAN PUTRAJAYA' => 'MYS-PJY',
+            'WILAYAH PERSEKUTUAN LABUAN' => 'MYS-LBN'
         ];
 
         $normalizedState = strtoupper(trim($state));

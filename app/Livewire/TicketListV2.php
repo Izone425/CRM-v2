@@ -119,7 +119,8 @@ class TicketListV2 extends Component implements HasTable, HasForms, HasActions
                     ->color(fn ($state) => $state === 'Mobile' ? 'info' : 'gray'),
 
                 Tables\Columns\TextColumn::make('zoho_id')
-                    ->label('Zoho Ticket'),
+                    ->label('Zoho Ticket')
+                    ->searchable(),
 
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Created At')
