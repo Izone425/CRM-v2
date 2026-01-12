@@ -123,7 +123,7 @@ class HeadcountInvoiceDataExportController extends Controller
             $debtorCode = '';
 
             // ✅ DocNo - For headcount, use 'HCIN' (Headcount Invoice)
-            $docNo = 'HCIN';
+            $docNo = 'EPIN2600-0000';
             Log::info('DocNo determined: ' . $docNo . ' (headcount handover)');
 
             // ✅ DocDate is today's date in j/n/Y format
@@ -173,7 +173,7 @@ class HeadcountInvoiceDataExportController extends Controller
                 'SalesAgent',
                 'CurrencyCode',
                 'CurrencyRate',
-                'RefDocNo',
+                'UDF_IV_LicenseNumber',
                 'UDF_IV_SalesAdmin',
                 'UDF_IV_Support',
                 'UDF_IV_BillingType',

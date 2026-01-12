@@ -31,7 +31,7 @@ class ResetCompletedRenewals extends Command
     {
         $this->info('Starting to check completed renewals...');
 
-        $today = Carbon::now()->format('Y-m-d');
+        $today = Carbon::now()->subDay()->format('Y-m-d');
 
         try {
             // Get all renewals with completed_renewal status
@@ -44,7 +44,7 @@ class ResetCompletedRenewals extends Command
                 $hasNewLicenses = DB::connection('frontenddb')
                     ->table('crm_expiring_license')
                     ->where('f_company_id', $renewal->f_company_id)
-                    ->where('f_start_date', '>=', $today)
+                    ->where('f_start_date', '=', $today)
                     ->where('f_currency', 'MYR')
                     ->exists();
 
