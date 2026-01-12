@@ -495,7 +495,7 @@
             <h1 class="page-title">Ticket Dashboard</h1>
 
             <div class="filter-dropdowns">
-                <button type="button"
+                {{-- <button type="button"
                         wire:click="mountAction('createTicket')"
                         style="padding: 8px 16px; background: #6366F1; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: all 0.2s;"
                         onmouseover="this.style.background='#4F46E5'"
@@ -504,7 +504,7 @@
                         <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                     </svg>
                     Create Ticket
-                </button>
+                </button> --}}
                 <select class="filter-select" wire:model.live="selectedProduct">
                     <option>All Products</option>
                     @foreach($products as $product)
@@ -937,7 +937,7 @@
                     {{-- Status Filter --}}
                     <div>
                         <label style="display: block; font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 8px;">
-                            Status
+                            Ticket Status
                         </label>
                         <select class="ticket-filter-select" wire:model.live="selectedTicketStatus"
                                 style="width: 100%; padding: 10px 12px; border: 1px solid #D1D5DB; border-radius: 8px; font-size: 14px; background: white;">

@@ -93,10 +93,10 @@ class CompanyTabs
                                                 })
                                                 ->extraAlpineAttributes(['@input' => '$el.value = $el.value.toUpperCase()'])
                                                 ->rules([
-                                                    'regex:/^[^.]*$/',
+                                                    'regex:/^[A-Z0-9\s()]+$/i',
                                                 ])
                                                 ->validationMessages([
-                                                    'regex' => 'Company name cannot contain periods (.)',
+                                                    'regex' => 'Company name can only contain letters, numbers, spaces, and brackets ().',
                                                 ]);
 
                                             $schema[] = Grid::make(2)

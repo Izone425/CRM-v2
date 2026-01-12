@@ -78,10 +78,10 @@ class SubscriberDetailsTabs
                                                     ])
                                                     ->dehydrateStateUsing(fn ($state) => strtoupper($state))
                                                     ->rules([
-                                                        'regex:/^[A-Z0-9\s]+$/i',
+                                                        'regex:/^[A-Z0-9\s()]+$/i',
                                                     ])
                                                     ->validationMessages([
-                                                        'regex' => 'Company name can only contain letters, numbers, and spaces. Special characters are not allowed.',
+                                                        'regex' => 'Company name can only contain letters, numbers, spaces, and brackets ().',
                                                     ])
                                                     ->disabled(function ($record) {
                                                         // Define variables here

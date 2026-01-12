@@ -152,6 +152,17 @@ class TicketList extends Page implements HasTable, HasActions, HasForms
                     ->label('Module')
                     ->options(
                         TicketModule::where('is_active', true)
+                            ->whereIn('name', [
+                                'PROFILE',
+                                'ATTENDANCE',
+                                'LEAVE',
+                                'CLAIM',
+                                'PAYROLL',
+                                'APPRAISAL',
+                                'HIRE',
+                                'IOT'
+                            ])
+                            ->orderByRaw("FIELD(name, 'PROFILE', 'ATTENDANCE', 'LEAVE', 'CLAIM', 'PAYROLL', 'APPRAISAL', 'HIRE', 'IOT')")
                             ->pluck('name', 'id')
                             ->toArray()
                     ),
@@ -200,11 +211,36 @@ class TicketList extends Page implements HasTable, HasActions, HasForms
                     Select::make('priority_id')
                         ->label('Priority')
                         ->required()
-                        ->options(
-                            TicketPriority::where('is_active', true)
-                                ->pluck('name', 'id')
-                                ->toArray()
-                        )
+                        ->options(function () {
+                            $authUser = auth()->user();
+                            $priorities = TicketPriority::where('is_active', true)
+                                ->orderBy('sort_order')
+                                ->orderBy('sort_order_suffix')
+                                ->get();
+
+                            // If user role_id is 2, exclude restricted priorities
+                            if ($authUser && $authUser->role_id == 2) {
+                                $restrictedPriorities = ['SOFTWARE BUGS', 'BACK END ASSISTANCE', 'PAID CUSTOMIZATION'];
+
+                                $priorities = $priorities->filter(function ($priority) use ($restrictedPriorities) {
+                                    foreach ($restrictedPriorities as $restricted) {
+                                        if (str_contains(strtoupper($priority->name), $restricted)) {
+                                            return false;
+                                        }
+                                    }
+                                    return true;
+                                });
+                            }
+
+                            return $priorities->mapWithKeys(function ($priority) {
+                                $label = 'P' . $priority->sort_order;
+                                if ($priority->sort_order_suffix) {
+                                    $label .= $priority->sort_order_suffix;
+                                }
+                                $label .= ' - ' . $priority->name;
+                                return [$priority->id => $label];
+                            })->toArray();
+                        })
                         ->live() // ✅ Make it reactive
                         ->columnSpanFull(),
 
@@ -234,7 +270,17 @@ class TicketList extends Page implements HasTable, HasActions, HasForms
                                         ->join('modules', 'product_has_modules.module_id', '=', 'modules.id')
                                         ->where('product_has_modules.product_id', $productId)
                                         ->where('modules.is_active', true)
-                                        ->orderBy('modules.name')
+                                        ->whereIn('modules.name', [
+                                            'PROFILE',
+                                            'ATTENDANCE',
+                                            'LEAVE',
+                                            'CLAIM',
+                                            'PAYROLL',
+                                            'APPRAISAL',
+                                            'HIRE',
+                                            'IOT'
+                                        ])
+                                        ->orderByRaw("FIELD(modules.name, 'PROFILE', 'ATTENDANCE', 'LEAVE', 'CLAIM', 'PAYROLL', 'APPRAISAL', 'HIRE', 'IOT')")
                                         ->pluck('modules.name', 'modules.id')
                                         ->toArray();
                                 })
@@ -252,20 +298,20 @@ class TicketList extends Page implements HasTable, HasActions, HasForms
                         ])
                         ->live()
                         ->required(function (Get $get): bool {
-                            // Required when priority is Software Bugs
+                            // Required when priority is Back End Assistance
                             $priorityId = $get('priority_id');
                             if (!$priorityId) return false;
 
                             $priority = TicketPriority::find($priorityId);
-                            return $priority && str_contains(strtolower($priority->name), 'software bugs');
+                            return $priority && str_contains(strtolower($priority->name), 'back end assistance');
                         })
                         ->hidden(function (Get $get): bool {
-                            // Hide when NOT Software Bugs priority
+                            // Hide when NOT Back End Assistance priority
                             $priorityId = $get('priority_id');
                             if (!$priorityId) return true; // Hide when no priority selected
 
                             $priority = TicketPriority::find($priorityId);
-                            return !($priority && str_contains(strtolower($priority->name), 'software bugs'));
+                            return $priority && str_contains(strtolower($priority->name), 'back end assistance');
                         })
                         ->afterStateUpdated(function (callable $set, $state) {
                             // Clear related fields when device type changes or is cleared
@@ -276,7 +322,7 @@ class TicketList extends Page implements HasTable, HasActions, HasForms
                                 // $set('device_id', null);
                                 // $set('os_version', null);
                                 // $set('app_version', null);
-                                $set('windows_version', null);
+                                // $set('windows_version', null);
                             }
                         }),
 
@@ -438,15 +484,15 @@ class TicketList extends Page implements HasTable, HasActions, HasForms
                     //             }),
                     //     ]),
 
-                    Grid::make(2)
-                        ->schema([
-                            TextInput::make('windows_version')
-                                ->label('Windows/OS Version')
-                                ->placeholder('e.g., Windows 11, macOS 13.1 (optional)')
-                                ->visible(fn (Get $get): bool => $get('device_type') === 'Browser')
-                                ->columnSpan(1),
-                        ])
-                        ->visible(fn (Get $get): bool => $get('device_type') === 'Browser'),
+                    // Grid::make(2)
+                    //     ->schema([
+                    //         TextInput::make('windows_version')
+                    //             ->label('Windows/OS Version')
+                    //             ->placeholder('e.g., Windows 11, macOS 13.1 (optional)')
+                    //             ->visible(fn (Get $get): bool => $get('device_type') === 'Browser')
+                    //             ->columnSpan(1),
+                    //     ])
+                    //     ->visible(fn (Get $get): bool => $get('device_type') === 'Browser'),
 
                     Select::make('company_name')
                         ->label('Company Name')
@@ -491,12 +537,33 @@ class TicketList extends Page implements HasTable, HasActions, HasForms
 
                     TextInput::make('zoho_id')
                         ->label('Zoho Ticket Number')
+                        ->required()
+                        ->extraAlpineAttributes([
+                            'x-on:input' => '
+                                const start = $el.selectionStart;
+                                const end = $el.selectionEnd;
+                                const value = $el.value;
+                                $el.value = value.toUpperCase();
+                                $el.setSelectionRange(start, end);
+                            '
+                        ])
+                        ->dehydrateStateUsing(fn ($state) => strtoupper($state))
                         ->columnSpanFull(),
 
                     TextInput::make('title')
                         ->label('Title')
                         ->required()
                         ->maxLength(255)
+                        ->extraAlpineAttributes([
+                            'x-on:input' => '
+                                const start = $el.selectionStart;
+                                const end = $el.selectionEnd;
+                                const value = $el.value;
+                                $el.value = value.toUpperCase();
+                                $el.setSelectionRange(start, end);
+                            '
+                        ])
+                        ->dehydrateStateUsing(fn ($state) => strtoupper($state))
                         ->columnSpanFull(),
 
                     RichEditor::make('description')

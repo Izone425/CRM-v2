@@ -77,7 +77,7 @@
         $adminUSDInvoiceTotal = Cache::remember('admin_usd_invoice_' . auth()->id(), 300, function() {
             return DB::connection('frontenddb')
                 ->table('crm_invoice_details')
-                ->where('f_currency', 'USD')
+                ->whereIn('f_currency', ['MYR', 'USD'])
                 ->where('f_status', 0)
                 ->whereNull('f_auto_count_inv')
                 ->where('f_id', '>', '0000040131')
@@ -1285,7 +1285,7 @@
                                                         font-size: 14px;
                                                     "
                                                 >
-                                                    <span wire:loading.remove wire:target="toggleDashboard('AdminUSDInvoice')">Admin - USD Invoice</span>
+                                                    <span wire:loading.remove wire:target="toggleDashboard('AdminUSDInvoice')">Admin - MYR/USD Invoice</span>
                                                     <span wire:loading wire:target="toggleDashboard('AdminUSDInvoice')" class="flex items-center">
                                                         <svg class="w-4 h-4 mr-1 animate-spin" fill="none" viewBox="0 0 24 24">
                                                             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
