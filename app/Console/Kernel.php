@@ -18,6 +18,7 @@ class Kernel extends ConsoleKernel
         \App\Console\Commands\AutoFollowUp::class,
         \App\Console\Commands\UpdateLeadStatus::class,
         \App\Console\Commands\UpdateSalesOrderStatus::class,
+        \App\Console\Commands\ResetCompletedRenewals::class,
     ];
 
     protected function schedule(Schedule $schedule)
@@ -41,6 +42,8 @@ class Kernel extends ConsoleKernel
         // $schedule->command('handovers:check-pending-confirmation')->dailyAt('00:01');
 
         $schedule->command('handovers:sync')->everyThirtyMinutes();
+
+        $schedule->command('renewals:reset-completed')->dailyAt('00:07'); // Reset completed renewals to new if new licenses start today
 
         // $schedule->command('handovers:process-full-payment-hardware-handover')->everyThirtyMinutes();
 
