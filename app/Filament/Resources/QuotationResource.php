@@ -170,14 +170,8 @@ class QuotationResource extends Resource
                             ->preload()
                             ->live()
                             ->visible(fn (Forms\Get $get) => !empty($get('lead_id'))),
-                        Flatpickr::make('quotation_date')
-                            ->label('Date')
-                            ->dateFormat('j M Y')
-                            ->default(now()->format('j M Y'))
-                            ->required()
-                            ->clickOpens()
-                            ->disabled()
-                            ->hidden()
+                        Hidden::make('quotation_date')
+                            ->default(now())
                             ->dehydrated(true),
                         Select::make('sales_type')
                             ->label('Sales Type')

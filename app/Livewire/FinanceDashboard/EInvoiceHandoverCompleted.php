@@ -89,12 +89,14 @@ class EInvoiceHandoverCompleted extends Component implements HasForms, HasTable
 
                 TextColumn::make('salesperson')
                     ->label('SalesPerson')
+                    ->searchable()
                     ->sortable(),
 
                 TextColumn::make('company_name')
                     ->label('Company Name')
                     ->sortable()
                     ->wrap()
+                    ->searchable()
                     ->formatStateUsing(function ($state, $record) {
                         $displayName = $state;
                         $company = null;
@@ -140,7 +142,7 @@ class EInvoiceHandoverCompleted extends Component implements HasForms, HasTable
             ])
             ->emptyState(fn() => view('components.empty-state-question'))
             ->defaultPaginationPageOption(5)
-            ->paginated([5])
+            ->paginated([5,'all'])
             ->poll('300s');
     }
 }

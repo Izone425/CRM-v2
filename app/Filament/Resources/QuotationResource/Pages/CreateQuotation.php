@@ -48,7 +48,13 @@ class CreateQuotation extends CreateRecord
     protected function mutateFormDataBeforeCreate(array $data): array
     {
         $data['sales_person_id'] = auth()->user()->id;
-        $data['quotation_date'] = Carbon::createFromFormat('j M Y',$data['quotation_date'])->format('Y-m-d');
+
+        // quotation_date is already a Carbon instance from the Hidden field default
+        if ($data['quotation_date'] instanceof \Carbon\Carbon) {
+            $data['quotation_date'] = $data['quotation_date']->format('Y-m-d');
+        } elseif (is_string($data['quotation_date'])) {
+            $data['quotation_date'] = Carbon::parse($data['quotation_date'])->format('Y-m-d');
+        }
 
         return $data;
     }

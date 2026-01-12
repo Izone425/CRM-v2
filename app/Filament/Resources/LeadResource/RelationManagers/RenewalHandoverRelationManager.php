@@ -230,7 +230,7 @@ class RenewalHandoverRelationManager extends RelationManager
                                                     // Check if required fields have values
                                                     $requiredFields = [
                                                         'invoice_amount' => 'Invoice Amount',
-                                                        'upfront_payment' => 'Upfront Payment',
+                                                        // 'upfront_payment' => 'Upfront Payment',
                                                         'pax' => 'Pax'
                                                     ];
 
