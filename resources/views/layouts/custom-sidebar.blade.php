@@ -588,6 +588,7 @@
         .icon-link[data-section="marketing"] .icon { color: #C026D3; /* Updated */ }
         .icon-link[data-section="internal"] .icon { color: #A855F7; /* Updated */ }
         .icon-link[data-section="external"] .icon { color: #8B5CF6; /* Updated */ }
+        .icon-link[data-section="finance"] .icon { color: #059669; /* Finance */ }
         .icon-link[data-section="settings"] .icon { color: #7C3AED; /* Updated */ }
     </style>
 
@@ -644,6 +645,13 @@
                             <i class="bi bi-grid-3x3-gap icon"></i>
                         </div>
                         <span class="icon-tooltip">System Portal</span>
+                    </div>
+
+                    <div class="icon-link" data-section="finance">
+                        <div class="icon-wrapper">
+                            <i class="bi bi-currency-dollar icon"></i>
+                        </div>
+                        <span class="icon-tooltip">Finance</span>
                     </div>
                 @endif
 
@@ -1870,11 +1878,31 @@
                         </div>
 
                         <div class="submenu" id="reseller-portal-submenu">
-                            <a href="{{ route('filament.admin.pages.reseller-account') }}" class="submenu-item">
+                            <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
                                 <span class="module-font">Raw Data</span>
                             </a>
                             <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
                                 <span class="module-font">Analysis</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Finance Section -->
+                <div id="finance-section" class="section-content">
+                    <!-- Finance -->
+                    <div class="menu-block">
+                        <div class="menu-item nested-dropdown-trigger" data-submenu="finance-submenu">
+                            <div class="menu-icon-wrapper">
+                                <i class="bi bi-tags"></i>
+                            </div>
+                            <span class="menu-text">Reseller</span>
+                            <i class="bi bi-chevron-down menu-arrow"></i>
+                        </div>
+
+                        <div class="submenu" id="finance-submenu">
+                            <a href="{{ route('filament.admin.pages.reseller-account') }}" class="submenu-item">
+                                <span class="module-font">Reseller Account</span>
                             </a>
                         </div>
                     </div>

@@ -371,7 +371,7 @@
                      :class="{'selected': selectedGroup === 'einvoice'}"
                      @click="setSelectedGroup('einvoice')">
                     <div class="group-title">E-Invoice</div>
-                    <div class="group-count">{{ $totalEInvoiceCount }}</div>
+                    <div class="group-count">{{ $newCount }}</div>
                 </div>
             </div>
         </div>

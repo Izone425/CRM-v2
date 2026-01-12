@@ -371,14 +371,14 @@ class CustomerCalendar extends Component
                 $ccRecipients[] = $implementerEmail;
             }
 
-            // Add the salesperson to CC
-            $lead = \App\Models\Lead::find($customer->lead_id);
-            if ($lead && $lead->salesperson) {
-                $salespersonEmail = $lead->getSalespersonEmail();
-                if ($salespersonEmail && !in_array($salespersonEmail, $ccRecipients)) {
-                    $ccRecipients[] = $salespersonEmail;
-                }
-            }
+            // // Add the salesperson to CC
+            // $lead = \App\Models\Lead::find($customer->lead_id);
+            // if ($lead && $lead->salesperson) {
+            //     $salespersonEmail = $lead->getSalespersonEmail();
+            //     if ($salespersonEmail && !in_array($salespersonEmail, $ccRecipients)) {
+            //         $ccRecipients[] = $salespersonEmail;
+            //     }
+            // }
 
             // Remove duplicates and filter valid emails
             $recipients = array_unique(array_filter($recipients, function($email) {
@@ -417,7 +417,6 @@ class CustomerCalendar extends Component
                 'template' => 'implementer_appointment_cancel',
                 'total_to_recipients' => count($recipients),
                 'total_cc_recipients' => count($ccRecipients),
-                'salesperson_included' => $lead && $lead->getSalespersonEmail() ? 'yes' : 'no'
             ]);
 
         } catch (\Exception $e) {
@@ -1338,13 +1337,13 @@ class CustomerCalendar extends Component
             }
 
             // Add the salesperson to CC
-            $lead = \App\Models\Lead::find($customer->lead_id);
-            if ($lead && $lead->salesperson) {
-                $salespersonEmail = $lead->getSalespersonEmail();
-                if ($salespersonEmail && !in_array($salespersonEmail, $ccRecipients)) {
-                    $ccRecipients[] = $salespersonEmail;
-                }
-            }
+            // $lead = \App\Models\Lead::find($customer->lead_id);
+            // if ($lead && $lead->salesperson) {
+            //     $salespersonEmail = $lead->getSalespersonEmail();
+            //     if ($salespersonEmail && !in_array($salespersonEmail, $ccRecipients)) {
+            //         $ccRecipients[] = $salespersonEmail;
+            //     }
+            // }
 
             // Remove duplicates and filter valid emails
             $recipients = array_unique(array_filter($recipients, function($email) {
@@ -1385,7 +1384,6 @@ class CustomerCalendar extends Component
                 'appointment_type' => $appointment->type,
                 'total_to_recipients' => count($recipients),
                 'total_cc_recipients' => count($ccRecipients),
-                'salesperson_included' => $lead && $lead->getSalespersonEmail() ? 'yes' : 'no'
             ]);
 
         } catch (\Exception $e) {

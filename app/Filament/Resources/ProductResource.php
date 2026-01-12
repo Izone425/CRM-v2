@@ -210,6 +210,11 @@ class ProductResource extends Resource
                                         'Package 4' => 'Package 4 - 3 Year Subscription',
                                         'Package 5' => 'Package 5 - 4 Year Subscription',
                                         'Package 6' => 'Package 6 - 5 Year Subscription',
+                                        'Package 7' => 'Package 7 - ADD ON HC 1 YEARS',
+                                        'Package 8' => 'Package 8 - ADD ON HC 2 YEAR',
+                                        'Package 9' => 'Package 9 - ADD ON HC 3 YEAR',
+                                        'Package 10' => 'Package 10 - ADD ON HC 4 YEAR',
+                                        'Package 11' => 'Package 11 - ADD ON HC 5 YEAR',
                                         'Other' => 'Other',
                                     ])
                                     ->searchable()

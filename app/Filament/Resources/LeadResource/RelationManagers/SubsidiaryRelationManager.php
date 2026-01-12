@@ -399,13 +399,6 @@ class SubsidiaryRelationManager extends RelationManager
                                         ->afterStateHydrated(fn($state) => $state ? Str::upper($state) : null)
                                         ->afterStateUpdated(fn($state) => $state ? Str::upper($state) : null),
 
-                                    TextInput::make('finance_person_email')
-                                        ->label('FINANCE PERSON EMAIL')
-                                        ->default(fn() => $leadEInvoice ? $leadEInvoice->finance_person_email : null)
-                                        ->required()
-                                        ->email()
-                                        ->maxLength(255),
-
                                     TextInput::make('finance_person_contact')
                                         ->label('FINANCE PERSON CONTACT')
                                         ->default(fn() => $leadEInvoice ? $leadEInvoice->finance_person_contact : null)
@@ -414,6 +407,13 @@ class SubsidiaryRelationManager extends RelationManager
                                         ->extraInputAttributes(['style' => 'text-transform: uppercase'])
                                         ->afterStateHydrated(fn($state) => $state ? Str::upper($state) : null)
                                         ->afterStateUpdated(fn($state) => $state ? Str::upper($state) : null),
+
+                                    TextInput::make('finance_person_email')
+                                        ->label('FINANCE PERSON EMAIL')
+                                        ->default(fn() => $leadEInvoice ? $leadEInvoice->finance_person_email : null)
+                                        ->required()
+                                        ->email()
+                                        ->maxLength(255),
 
                                     TextInput::make('finance_person_position')
                                         ->label('FINANCE PERSON POSITION')

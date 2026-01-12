@@ -177,6 +177,7 @@ class QuotationResource extends Resource
                             ->required()
                             ->clickOpens()
                             ->disabled()
+                            ->hidden()
                             ->dehydrated(true),
                         Select::make('sales_type')
                             ->label('Sales Type')
@@ -328,12 +329,23 @@ class QuotationResource extends Resource
                                             'Package 4' => 'Package 4 - 3 Year Subscription',
                                             'Package 5' => 'Package 5 - 4 Year Subscription',
                                             'Package 6' => 'Package 6 - 5 Year Subscription',
+                                            'Package 7' => 'Package 7 - Add On HC 1 Years',
+                                            'Package 8' => 'Package 8 - Add On HC 2 Years',
+                                            'Package 9' => 'Package 9 - Add On HC 3 Years',
+                                            'Package 10' => 'Package 10 - Add On HC 4 Years',
+                                            'Package 11' => 'Package 11 - Add On HC 5 Years',
                                             'Other' => 'Other',
                                         ];
 
                                         return [$package => $packageLabels[$package] ?? $package];
                                     })
-                                    ->sort()
+                                    ->sortBy(function ($value, $key) {
+                                        // Extract number from package key for proper numeric sorting
+                                        if (preg_match('/Package (\d+)/', $key, $matches)) {
+                                            return (int)$matches[1];
+                                        }
+                                        return PHP_INT_MAX; // Put non-numeric packages at the end
+                                    })
                                     ->toArray();
                             })
                             ->searchable()
@@ -348,6 +360,11 @@ class QuotationResource extends Resource
                                         'Package 4' => 3,
                                         'Package 5' => 4,
                                         'Package 6' => 5,
+                                        'Package 7' => 0,
+                                        'Package 8' => 1,
+                                        'Package 9' => 2,
+                                        'Package 10' => 3,
+                                        'Package 11' => 4,
                                         default => 1,
                                     };
 
@@ -359,28 +376,80 @@ class QuotationResource extends Resource
                                         })
                                         ->orWhere('package_group', $state);
                                     })
-                                    ->orderBy('package_sort_order')
+                                    ->orderBy('sort_order')
                                     ->get();
 
                                     $mappedItems = collect();
 
-                                    // ✅ NEW LOGIC: Create items year by year, cycling through all products
-                                    // This will create pattern: TA, TL, TC, TP, TA, TL, TC, TP instead of TA, TA, TL, TL, TC, TC, TP, TP
-                                    for ($year = 1; $year <= $yearCount; $year++) {
-                                        foreach ($products as $product) {
-                                            $isSoftware = $product->solution === 'software';
+                                    // ✅ Define which products should be duplicated for each package type
+                                    $duplicatableCodes = [];
+                                    $topPriorityCodes = []; // Products that appear once at the top
 
+                                    if (in_array($state, ['Package 2', 'Package 3', 'Package 4', 'Package 5', 'Package 6'])) {
+                                        // For Package 2-6: Only duplicate these NEW SALES products
+                                        $duplicatableCodes = ['TCL_TA USER-NEW', 'TCL_PAYROLL USER-NEW', 'TCL_CLAIM USER-NEW', 'TCL_LEAVE USER-NEW'];
+                                    } elseif (in_array($state, ['Package 7', 'Package 8', 'Package 9', 'Package 10', 'Package 11'])) {
+                                        // For Package 7-11: Show non-R versions once at top, then duplicate R versions
+                                        $topPriorityCodes = ['TCL_TA USER-ADDON', 'TCL_LEAVE USER-ADDON', 'TCL_CLAIM USER-ADDON', 'TCL_PAYROLL USER-ADDON'];
+                                        $duplicatableCodes = ['TCL_TA USER-ADDON(R)', 'TCL_LEAVE USER-ADDON(R)', 'TCL_CLAIM USER-ADDON(R)', 'TCL_PAYROLL USER-ADDON(R)'];
+                                    }
+
+                                    // Separate products into three categories
+                                    $topPriorityProducts = $products->filter(fn($p) => in_array($p->code, $topPriorityCodes));
+                                    $duplicatableProducts = $products->filter(fn($p) => in_array($p->code, $duplicatableCodes));
+                                    $nonDuplicatableProducts = $products->reject(fn($p) => in_array($p->code, $duplicatableCodes) || in_array($p->code, $topPriorityCodes));
+
+                                    // First, add top priority products once (non-R versions for Package 7-11)
+                                    foreach ($topPriorityProducts as $product) {
+                                        $isSoftware = $product->solution === 'software';
+                                        $mappedItems->push([
+                                            'product_id' => $product->id,
+                                            'quantity' => in_array($product->solution, ['software', 'hardware'])
+                                                ? ($product->quantity ?? 1)
+                                                : ($get('num_of_participant') ?? 1),
+                                            'unit_price' => $product->unit_price,
+                                            'subscription_period' => $isSoftware ? 12 : null,
+                                            'subscription_manually_edited' => false,
+                                            'description' => $product->description,
+                                            'year' => null,
+                                            'sort_order' => $product->sort_order,
+                                        ]);
+                                    }
+
+                                    // Second, add duplicatable products year by year
+                                    for ($year = 1; $year <= $yearCount; $year++) {
+                                        foreach ($duplicatableProducts as $product) {
+                                            $isSoftware = $product->solution === 'software';
                                             $mappedItems->push([
                                                 'product_id' => $product->id,
                                                 'quantity' => in_array($product->solution, ['software', 'hardware'])
                                                     ? ($product->quantity ?? 1)
                                                     : ($get('num_of_participant') ?? 1),
                                                 'unit_price' => $product->unit_price,
-                                                'subscription_period' => $isSoftware ? 12 : null, // ✅ 12 for software, null for others
+                                                'subscription_period' => $isSoftware ? 12 : null,
+                                                'subscription_manually_edited' => false,
                                                 'description' => $product->description,
-                                                'year' => $isSoftware && $yearCount > 1 ? "Year {$year}" : null,
+                                                'year' => ($isSoftware && $yearCount > 1) ? "Year {$year}" : null,
+                                                'sort_order' => $product->sort_order,
                                             ]);
                                         }
+                                    }
+
+                                    // Finally, add all other non-duplicatable products once at the bottom
+                                    foreach ($nonDuplicatableProducts as $product) {
+                                        $isSoftware = $product->solution === 'software';
+                                        $mappedItems->push([
+                                            'product_id' => $product->id,
+                                            'quantity' => in_array($product->solution, ['software', 'hardware'])
+                                                ? ($product->quantity ?? 1)
+                                                : ($get('num_of_participant') ?? 1),
+                                            'unit_price' => $product->unit_price,
+                                            'subscription_period' => $isSoftware ? 12 : null,
+                                            'subscription_manually_edited' => false,
+                                            'description' => $product->description,
+                                            'year' => null,
+                                            'sort_order' => $product->sort_order,
+                                        ]);
                                     }
 
                                     $finalItems = $mappedItems->mapWithKeys(fn($item) => [
@@ -391,6 +460,7 @@ class QuotationResource extends Resource
                                     QuotationResource::recalculateAllRowsFromParent($get, $set);
                                 }
                             }),
+
                         Select::make('taxation_category')
                             ->label('Taxation Category')
                             ->options([
@@ -430,9 +500,11 @@ class QuotationResource extends Resource
                                 self::recalculateAllRowsFromParent($get, $set);
                             }),
 
-                        // For 'hrdf' type
+                        // For 'hrdf' and 'product' types
                         TextInput::make('num_of_participant')
-                            ->label('Number Of Participant(s)')
+                            ->label(function (Forms\Get $get) {
+                                return $get('quotation_type') === 'product' ? 'Quantity' : 'Number Of Participant(s)';
+                            })
                             ->numeric()
                             ->live(debounce: 1000)
                             ->afterStateUpdated(function (Forms\Get $get, Forms\Set $set, $state) {
@@ -440,14 +512,28 @@ class QuotationResource extends Resource
 
                                 $set('num_of_participant', $state);
 
+                                // Bulk fetch product IDs to check solution types
                                 $items = $get('items') ?? [];
+                                $productIds = collect($items)->pluck('product_id')->filter()->unique()->toArray();
+                                $products = \App\Models\Product::whereIn('id', $productIds)->get()->keyBy('id');
+
+                                // Update quantity only for HRDF and software products
                                 foreach ($items as $index => $item) {
-                                    $set("items.{$index}.quantity", $state);
+                                    if (!empty($item['product_id']) && isset($products[$item['product_id']])) {
+                                        $product = $products[$item['product_id']];
+                                        // Only update if product is HRDF or software
+                                        if ($product->solution === 'hrdf' || $product->solution === 'software') {
+                                            $set("items.{$index}.quantity", $state);
+                                        }
+                                    }
                                 }
+
+                                // Small delay to ensure state is updated
+                                usleep(50000); // 0.05 seconds
 
                                 QuotationResource::recalculateAllRowsFromParent($get, $set);
                             })
-                            ->hidden(fn(Forms\Get $get) => $get('quotation_type') !== 'hrdf'),
+                            ->visible(fn(Forms\Get $get) => in_array($get('quotation_type'), ['hrdf', 'product'])),
 
                         TextInput::make('unit_price')
                             ->label('Unit Price')
@@ -456,15 +542,31 @@ class QuotationResource extends Resource
                             ->afterStateUpdated(function(?string $state, Forms\Get $get, Forms\Set $set) {
                                 if (!$state) return;
 
-                                $items = $get('items');
+                                $set('unit_price', $state);
+
+                                // Bulk fetch product IDs to reduce queries
+                                $items = $get('items') ?? [];
+                                $productIds = collect($items)->pluck('product_id')->filter()->unique()->toArray();
+                                $products = \App\Models\Product::whereIn('id', $productIds)->get()->keyBy('id');
+
                                 foreach ($items as $index => $item) {
-                                    $set("items.{$index}.unit_price", $state);
+                                    // Only update unit price for software products
+                                    if (!empty($item['product_id']) && isset($products[$item['product_id']])) {
+                                        $product = $products[$item['product_id']];
+                                        if ($product->solution === 'software') {
+                                            // Force update unit price
+                                            $set("items.{$index}.unit_price", $state);
+                                        }
+                                    }
                                 }
+
+                                // Small delay to ensure state is updated
+                                usleep(50000); // 0.05 seconds
 
                                 // Recalculate everything
                                 QuotationResource::recalculateAllRowsFromParent($get, $set);
                             })
-                            ->hidden(fn(Forms\Get $get) => $get('quotation_type') !== 'hrdf'),
+                            ->visible(fn(Forms\Get $get) => in_array($get('quotation_type'), ['hrdf', 'product'])),
                     ])
                     ->columnSpan(3)
                     ->columns(2),
@@ -1821,19 +1923,7 @@ class QuotationResource extends Resource
                     } else {
                         $productCounters[$productId]++;
                     }
-
-                    $isManuallyEdited = $get("../../items.{$index}.subscription_manually_edited");
-
-                    // ✅ ONLY modify subscription period in very specific cases
-                    if ($field === 'product_id' && !$isManuallyEdited) {
-                        // Only when a new product is selected
-                        $set("../../items.{$index}.subscription_period", 12);
-                        $set("../../items.{$index}.subscription_manually_edited", false);
-                    } elseif ($field === 'subscription_period') {
-                        // ✅ If this is a subscription period change, DON'T override it
-                        // The user is manually editing, so preserve their input
-                    }
-                    // ✅ For all other field changes, don't touch subscription period
+                    // No longer automatically set subscription period - user has full control
                 }
             }
 
@@ -2074,42 +2164,56 @@ class QuotationResource extends Resource
                     $set("items.{$index}.convert_pi", $product->convert_pi);
                     $set("items.{$index}.tariff_code", $product->tariff_code);
 
-                    // ✅ ONLY set subscription period if it's empty AND not manually edited
-                    if ($product->solution === 'software') {
-                        $currentSubscriptionPeriod = $get("items.{$index}.subscription_period");
-                        $isManuallyEdited = $get("items.{$index}.subscription_manually_edited");
-
-                        // Only set if empty and not manually edited
-                        if (!$currentSubscriptionPeriod && !$isManuallyEdited) {
-                            $set("items.{$index}.subscription_period", 12);
-                        }
-                    }
+                    // No automatic subscription period changes - user has full control
                 }
             }
 
-            // ✅ Fix quantity handling - preserve existing quantity, don't force reset
+            // Handle quantity - use parent form value if available, otherwise use item's current quantity
             $currentQuantity = $get("items.{$index}.quantity");
+            $parentNumParticipants = $get("num_of_participant");
 
-            // Only set quantity if it's empty/null/zero AND we have context for what it should be
-            if (!$currentQuantity || $currentQuantity == 0) {
+            // If parent has num_of_participant set, use it ONLY for software and hrdf products
+            if ($parentNumParticipants && ($product?->solution == 'hrdf' || $product?->solution == 'software')) {
+                $currentQuantity = $parentNumParticipants;
+                $set("items.{$index}.quantity", $parentNumParticipants);
+            } elseif (!$currentQuantity || $currentQuantity == 0) {
+                // Only set default quantity if empty
                 if ($product?->solution == 'hrdf') {
-                    // For HRDF, use num_of_participant if available
                     $numParticipants = $get("num_of_participant");
                     if ($numParticipants) {
                         $set("items.{$index}.quantity", $numParticipants);
+                        $currentQuantity = $numParticipants;
                     }
-                } elseif ($product?->solution == 'software' || $product?->solution == 'hardware') {
-                    // For software/hardware, use product's default quantity
+                } elseif ($product?->solution == 'software') {
+                    // For software, use num_of_participant if available, otherwise default quantity
+                    $numParticipants = $get("num_of_participant");
+                    if ($numParticipants) {
+                        $set("items.{$index}.quantity", $numParticipants);
+                        $currentQuantity = $numParticipants;
+                    } else {
+                        $defaultQuantity = $product?->quantity ?? 1;
+                        $set("items.{$index}.quantity", $defaultQuantity);
+                        $currentQuantity = $defaultQuantity;
+                    }
+                } elseif ($product?->solution == 'hardware') {
+                    // Hardware products use their default quantity, not affected by num_of_participant
                     $defaultQuantity = $product?->quantity ?? 1;
                     $set("items.{$index}.quantity", $defaultQuantity);
+                    $currentQuantity = $defaultQuantity;
                 }
             }
 
-            $quantity = $get("items.{$index}.quantity") ?: 1;
-            $subscription_period = $get("items.{$index}.subscription_period") ?: 12; // ✅ Default to 12
-            $unit_price = 0;
+            $quantity = $currentQuantity ?: 1;
+            $subscription_period = $get("items.{$index}.subscription_period") ?: 12;
 
-            if (array_key_exists('unit_price', $item)) {
+            // Handle unit price - check parent form first for software products
+            $unit_price = 0;
+            $parentUnitPrice = $get("unit_price");
+
+            if ($parentUnitPrice && $product && $product->solution === 'software') {
+                // Use parent unit price for software products
+                $unit_price = $parentUnitPrice;
+            } elseif (array_key_exists('unit_price', $item)) {
                 $unit_price = $item['unit_price'];
                 if ($unit_price == 0.00) {
                     $unit_price = $product?->unit_price;
@@ -2331,18 +2435,7 @@ class QuotationResource extends Resource
                 $productYearCounters[$productId]++;
             }
 
-            // ✅ Only set subscription period if not manually edited
-            $isManuallyEdited = $get("../../items.{$index}.subscription_manually_edited");
-
-            if (!$isManuallyEdited && $productOccurrences[$productId] > 1) {
-                if ($productYearCounters[$productId] < $productOccurrences[$productId]) {
-                    // This is NOT the last occurrence, set to 12 months
-                    $set("../../items.{$index}.subscription_period", 12);
-                } else {
-                    // This IS the last occurrence, use product's default
-                    $set("../../items.{$index}.subscription_period", $product->subscription_period ?? 1);
-                }
-            }
+            // User has full control over subscription period - no automatic changes
 
             // Set the year for this item
             $year = $productYearCounters[$productId];
@@ -2385,18 +2478,7 @@ class QuotationResource extends Resource
                 $productYearCounters[$productId]++;
             }
 
-            // ✅ Only set subscription period if not manually edited
-            $isManuallyEdited = $get("items.{$index}.subscription_manually_edited");
-
-            if (!$isManuallyEdited && $productOccurrences[$productId] > 1) {
-                if ($productYearCounters[$productId] < $productOccurrences[$productId]) {
-                    // This is NOT the last occurrence, set to 12 months
-                    $set("items.{$index}.subscription_period", 12);
-                } else {
-                    // This IS the last occurrence, use product's default
-                    $set("items.{$index}.subscription_period", $product->subscription_period ?? 1);
-                }
-            }
+            // User has full control over subscription period - no automatic changes
 
             // Set the year for this item
             $year = $productYearCounters[$productId];
