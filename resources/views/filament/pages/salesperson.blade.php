@@ -609,12 +609,12 @@
                     <div class="group-count">{{ $prospectTodayCount + $prospectOverdueCount }}</div>
                 </div>
 
-                <div class="group-box group-others"
+                {{-- <div class="group-box group-others"
                         :class="{'selected': selectedGroup === 'others'}"
                         @click="setSelectedGroup('others')">
                     <div class="group-title">Sales Debtor Reminder</div>
                     <div class="group-count">{{ $totalDebtorCount }}</div>
-                </div>
+                </div> --}}
 
                 <!-- Group: Software Handover -->
                 <div class="group-box group-software"

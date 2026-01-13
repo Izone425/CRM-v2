@@ -153,7 +153,7 @@ class HeadcountInvoiceDataExportController extends Controller
             $salesAdmin = $this->mapSalesAdmin($lead);
             Log::info('Sales Admin determined: ' . $salesAdmin);
 
-            $billingType = 'New';
+            $billingType = 'New Addon';
             $cancelled = '';
 
             if (auth()->id() === 5) {
@@ -292,6 +292,18 @@ class HeadcountInvoiceDataExportController extends Controller
             }
 
             Log::info('Processed all ' . $quotations->count() . ' PIs, final row: ' . ($row - 1));
+
+            // Apply yellow background to columns A, D, and H for row 2 only
+            $yellowStyle = [
+                'fill' => [
+                    'fillType' => Fill::FILL_SOLID,
+                    'startColor' => ['rgb' => 'FFFF00']
+                ]
+            ];
+            $sheet->getStyle('A2')->applyFromArray($yellowStyle);
+            $sheet->getStyle('D2')->applyFromArray($yellowStyle);
+            $sheet->getStyle('H2')->applyFromArray($yellowStyle);
+            Log::info('Applied yellow background to columns A, D, and H for row 2 only');
 
             // Auto-size columns
             foreach (range('A', 'Q') as $col) {

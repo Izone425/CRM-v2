@@ -206,6 +206,7 @@ class TicketList extends Page implements HasTable, HasActions, HasForms
                 ->color('primary')
                 ->slideOver()
                 ->modalWidth('3xl')
+                ->closeModalByClickingAway(false)
                 ->form([
                     // ✅ Priority field first - controls device type visibility
                     Select::make('priority_id')

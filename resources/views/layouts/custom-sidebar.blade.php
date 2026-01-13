@@ -978,7 +978,7 @@
                             <a href="{{ route('filament.admin.pages.proforma-invoices') }}" class="submenu-item">
                                 <span class="module-font">Proforma Invoice</span>
                             </a>
-                            <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
+                            {{-- <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
                                 <span class="module-font">Purchase Order</span>
                             </a>
                             @if(auth()->user()->hasRouteAccess('filament.admin.pages.future-enhancement') || in_array(auth()->user()->role_id, [2]))
@@ -998,7 +998,7 @@
                             @endif
                             <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
                                 <span class="module-font">Sales Commission</span>
-                            </a>
+                            </a> --}}
                         </div>
                     </div>
 
