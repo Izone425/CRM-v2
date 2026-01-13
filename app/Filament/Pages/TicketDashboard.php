@@ -53,6 +53,7 @@ class TicketDashboard extends Page implements HasActions, HasForms
     public $selectedCombinedStatuses = [];
 
     // New filter properties
+    public $selectedPriority = null;
     public $selectedFrontEnd = null;
     public $selectedTicketStatus = null;
     public $etaStartDate = null;
@@ -80,6 +81,9 @@ class TicketDashboard extends Page implements HasActions, HasForms
 
     // Filter modal property
     public $showFilterModal = false;
+
+    // Loading state
+    public $isLoading = false;
 
     // ✅ Add header actions for Create Ticket button
     // protected function getHeaderActions(): array
@@ -728,22 +732,31 @@ class TicketDashboard extends Page implements HasActions, HasForms
 
     public function getViewData(): array
     {
-        $tickets = Ticket::with(['product', 'module', 'priority'])
-            ->whereIn('product_id', [1, 2])
-            ->when($this->selectedProduct !== 'All Products', function ($query) {
-                return $query->whereHas('product', function ($q) {
-                    $q->where('name', $this->selectedProduct);
-                });
-            })
-            ->when($this->selectedModule !== 'All Modules', function ($query) {
-                return $query->whereHas('module', function ($q) {
-                    $q->where('name', $this->selectedModule);
-                });
-            })
-            ->when($this->selectedDate, function ($query) {
-                return $query->whereDate('created_date', $this->selectedDate);
-            })
-            ->get();
+        // Base query with optimized eager loading
+        $baseQuery = Ticket::with(['product', 'module', 'priority', 'requestor'])
+            ->whereIn('product_id', [1, 2]);
+
+        // Apply product filter at database level
+        if ($this->selectedProduct !== 'All Products') {
+            $baseQuery->whereHas('product', function ($q) {
+                $q->where('name', $this->selectedProduct);
+            });
+        }
+
+        // Apply module filter at database level
+        if ($this->selectedModule !== 'All Modules') {
+            $baseQuery->whereHas('module', function ($q) {
+                $q->where('name', $this->selectedModule);
+            });
+        }
+
+        // Apply date filter at database level
+        if ($this->selectedDate) {
+            $baseQuery->whereDate('created_date', $this->selectedDate);
+        }
+
+        // Get all tickets for metrics (cached query)
+        $tickets = $baseQuery->get();
 
         $softwareBugsMetrics = $this->calculateBugsMetrics($tickets);
         $backendAssistanceMetrics = $this->calculateBackendMetrics($tickets);
@@ -780,6 +793,11 @@ class TicketDashboard extends Page implements HasActions, HasForms
         // Get unique statuses
         $statuses = $tickets->pluck('status')->unique()->sort()->values()->toArray();
 
+        // Get unique priorities
+        $priorities = $tickets->map(function ($ticket) {
+            return $ticket->priority->name ?? null;
+        })->filter()->unique()->sort()->values()->toArray();
+
         return [
             'softwareBugs' => $softwareBugsMetrics,
             'backendAssistance' => $backendAssistanceMetrics,
@@ -792,6 +810,7 @@ class TicketDashboard extends Page implements HasActions, HasForms
             'modules' => $modules,
             'frontEndNames' => $frontEndNames,
             'statuses' => $statuses,
+            'priorities' => $priorities,
         ];
     }
 
@@ -884,6 +903,12 @@ class TicketDashboard extends Page implements HasActions, HasForms
     private function getFilteredTickets(Collection $tickets): Collection
     {
         return $tickets
+            ->when($this->selectedPriority, function ($collection) {
+                return $collection->filter(function ($ticket) {
+                    $priorityName = $ticket->priority->name ?? '';
+                    return $priorityName === $this->selectedPriority;
+                });
+            })
             ->when($this->selectedCategory, function ($collection) {
                 return $collection->filter(function ($ticket) {
                     $priorityName = strtolower($ticket->priority?->name ?? '');
@@ -1069,11 +1094,18 @@ class TicketDashboard extends Page implements HasActions, HasForms
 
     public function clearAllFilters(): void
     {
-        $this->selectedFrontEnd = null;
-        $this->selectedTicketStatus = null;
-        $this->etaStartDate = null;
-        $this->etaEndDate = null;
-        $this->etaSortDirection = null;
+        // Batch update to prevent multiple renders
+        $this->reset([
+            'selectedPriority',
+            'selectedFrontEnd',
+            'selectedTicketStatus',
+            'etaStartDate',
+            'etaEndDate',
+            'etaSortDirection'
+        ]);
+
+        $this->selectedProduct = 'All Products';
+        $this->selectedModule = 'All Modules';
     }
 
     public function markAsPassed(int $ticketId): void

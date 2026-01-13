@@ -308,10 +308,10 @@ class EInvoiceHandoverRelationManager extends RelationManager
                     }
 
                     // Get salesperson name
-                    $salespersonName = 'Unknown';
+                    $salespersonName = auth()->user()->name;
                     if ($lead->salesperson) {
                         $salesperson = User::find($lead->salesperson);
-                        $salespersonName = $salesperson ? $salesperson->name : 'Unknown';
+                        $salespersonName = $salesperson ? $salesperson->name : auth()->user()->name;
                     }
 
                     // Create E-Invoice Handover record

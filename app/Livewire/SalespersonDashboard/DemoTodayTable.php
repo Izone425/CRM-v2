@@ -149,7 +149,14 @@ class DemoTodayTable extends Component implements HasForms, HasTable
                                 ELSE 5
                             END $direction
                         ");
-                    }),
+                    })
+                    ->formatStateUsing(function ($state) {
+                        if (strtolower($state) === 'onsite') {
+                            return '<span style="color: red; font-weight: bold;">' . e($state) . '</span>';
+                        }
+                        return $state ?? 'N/A';
+                    })
+                    ->html(),
                 TextColumn::make('type')
                     ->label('Demo Type')
                     ->sortable(query: function ($query, $direction) {

@@ -490,36 +490,17 @@
     </script>
 
     <div class="dashboard-wrapper">
-        <!-- ✅ Header with Title and Filters on same line -->
+        <!-- ✅ Header with Title -->
         <div class="dashboard-header">
             <h1 class="page-title">Ticket Dashboard</h1>
-
-            <div class="filter-dropdowns">
-                {{-- <button type="button"
-                        wire:click="mountAction('createTicket')"
-                        style="padding: 8px 16px; background: #6366F1; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: all 0.2s;"
-                        onmouseover="this.style.background='#4F46E5'"
-                        onmouseout="this.style.background='#6366F1'">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" style="width: 16px; height: 16px;">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                    </svg>
-                    Create Ticket
-                </button> --}}
-                <select class="filter-select" wire:model.live="selectedProduct">
-                    <option>All Products</option>
-                    @foreach($products as $product)
-                        <option value="{{ $product }}">{{ $product }}</option>
-                    @endforeach
-                </select>
-
-                <select class="filter-select" wire:model.live="selectedModule">
-                    <option>All Modules</option>
-                    @foreach($modules as $module)
-                        <option value="{{ $module }}">{{ $module }}</option>
-                    @endforeach
-                </select>
-            </div>
         </div>
+
+        <style>
+            @keyframes spin {
+                from { transform: rotate(0deg); }
+                to { transform: rotate(360deg); }
+            }
+        </style>
 
         <!-- Main Grid -->
         <div class="dashboard-grid">
@@ -769,6 +750,21 @@
                                 {{ \Carbon\Carbon::parse($selectedDate)->format('d M Y') }} ✕
                             </span>
                         @endif
+                        @if($selectedPriority)
+                            <span class="close-badge" wire:click="$set('selectedPriority', null)">
+                                Priority: {{ $selectedPriority }} ✕
+                            </span>
+                        @endif
+                        @if($selectedProduct && $selectedProduct !== 'All Products')
+                            <span class="close-badge" wire:click="$set('selectedProduct', 'All Products')">
+                                Product: {{ $selectedProduct }} ✕
+                            </span>
+                        @endif
+                        @if($selectedModule && $selectedModule !== 'All Modules')
+                            <span class="close-badge" wire:click="$set('selectedModule', 'All Modules')">
+                                Module: {{ $selectedModule }} ✕
+                            </span>
+                        @endif
                         @if($selectedFrontEnd)
                             <span class="close-badge" wire:click="$set('selectedFrontEnd', null)">
                                 Front End: {{ $selectedFrontEnd }} ✕
@@ -900,87 +896,153 @@
     @if($showFilterModal)
         <div style="position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.5);"
              wire:click="closeFilterModal">
-            <div style="background: white; border-radius: 12px; padding: 24px; width: 500px; max-width: 90vw; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);"
+            <div style="background: white; border-radius: 16px; padding: 0; width: 700px; max-width: 90vw; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); max-height: 90vh; overflow: hidden; display: flex; flex-direction: column;"
                  wire:click.stop>
 
                 {{-- Modal Header --}}
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 2px solid #F3F4F6;">
-                    <div>
-                        <h3 style="font-size: 18px; font-weight: 700; color: #111827; margin: 0;">Filter Tickets</h3>
-                        <p style="font-size: 13px; color: #6B7280; margin: 4px 0 0 0;">Apply filters to refine your ticket list</p>
+                <div style="padding: 24px 28px; border-bottom: 2px solid #F3F4F6; background: linear-gradient(to bottom, #ffffff, #fafbfc);">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <h3 style="font-size: 20px; font-weight: 700; color: #111827; margin: 0; line-height: 1.3;">Filter Tickets</h3>
+                        </div>
+                        <button wire:click="closeFilterModal"
+                                style="background: #F3F4F6; border: none; color: #6B7280; cursor: pointer; padding: 8px; border-radius: 8px; font-size: 20px; line-height: 1; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; transition: all 0.2s;"
+                                onmouseover="this.style.background='#E5E7EB'; this.style.color='#374151'"
+                                onmouseout="this.style.background='#F3F4F6'; this.style.color='#6B7280'">
+                            ×
+                        </button>
                     </div>
-                    <button wire:click="closeFilterModal"
-                            style="background: transparent; border: none; color: #9CA3AF; cursor: pointer; padding: 4px; font-size: 20px; line-height: 1;"
-                            onmouseover="this.style.color='#6B7280'"
-                            onmouseout="this.style.color='#9CA3AF'">
-                        ×
-                    </button>
                 </div>
 
-                {{-- Filter Form --}}
-                <div style="display: flex; flex-direction: column; gap: 20px;">
+                {{-- Filter Form - Scrollable --}}
+                <div style="padding: 28px; overflow-y: auto; flex: 1;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
 
-                    {{-- Front End Filter --}}
-                    <div>
-                        <label style="display: block; font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 8px;">
-                            Front End
-                        </label>
-                        <select class="ticket-filter-select" wire:model.live="selectedFrontEnd"
-                                style="width: 100%; padding: 10px 12px; border: 1px solid #D1D5DB; border-radius: 8px; font-size: 14px; background: white;">
-                            <option value="">All Front End</option>
-                            @foreach($frontEndNames as $frontEnd)
-                                <option value="{{ $frontEnd }}">{{ $frontEnd }}</option>
-                            @endforeach
-                        </select>
-                    </div>
+                        {{-- Priority Filter --}}
+                        <div>
+                            <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 8px;">
+                                Priority
+                            </label>
+                            <select class="ticket-filter-select" wire:model="selectedPriority"
+                                    style="width: 100%; padding: 11px 14px; border: 1.5px solid #D1D5DB; border-radius: 10px; font-size: 14px; background: white; transition: all 0.2s; color: #374151; font-weight: 500;"
+                                    onfocus="this.style.borderColor='#6366F1'; this.style.boxShadow='0 0 0 3px rgba(99, 102, 241, 0.1)'"
+                                    onblur="this.style.borderColor='#D1D5DB'; this.style.boxShadow='none'">
+                                <option value="">All Priorities</option>
+                                @foreach($priorities as $priority)
+                                    <option value="{{ $priority }}">{{ $priority }}</option>
+                                @endforeach
+                            </select>
+                        </div>
 
-                    {{-- Status Filter --}}
-                    <div>
-                        <label style="display: block; font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 8px;">
-                            Ticket Status
-                        </label>
-                        <select class="ticket-filter-select" wire:model.live="selectedTicketStatus"
-                                style="width: 100%; padding: 10px 12px; border: 1px solid #D1D5DB; border-radius: 8px; font-size: 14px; background: white;">
-                            <option value="">All Status</option>
-                            @foreach($statuses as $status)
-                                <option value="{{ $status }}">{{ $status }}</option>
-                            @endforeach
-                        </select>
-                    </div>
+                        {{-- Product Filter --}}
+                        <div>
+                            <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 8px;">
+                                Product
+                            </label>
+                            <select class="ticket-filter-select" wire:model="selectedProduct"
+                                    style="width: 100%; padding: 11px 14px; border: 1.5px solid #D1D5DB; border-radius: 10px; font-size: 14px; background: white; transition: all 0.2s; color: #374151; font-weight: 500;"
+                                    onfocus="this.style.borderColor='#10B981'; this.style.boxShadow='0 0 0 3px rgba(16, 185, 129, 0.1)'"
+                                    onblur="this.style.borderColor='#D1D5DB'; this.style.boxShadow='none'">
+                                <option>All Products</option>
+                                @foreach($products as $product)
+                                    <option value="{{ $product }}">{{ $product }}</option>
+                                @endforeach
+                            </select>
+                        </div>
 
-                    {{-- ETA Date Range --}}
-                    <div>
-                        <label style="display: block; font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 8px;">
-                            ETA Date Range
-                        </label>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-                            <div>
-                                <label style="display: block; font-size: 12px; color: #6B7280; margin-bottom: 4px;">From</label>
-                                <input type="date" wire:model.live="etaStartDate"
-                                       style="width: 100%; padding: 10px 12px; border: 1px solid #D1D5DB; border-radius: 8px; font-size: 14px;">
-                            </div>
-                            <div>
-                                <label style="display: block; font-size: 12px; color: #6B7280; margin-bottom: 4px;">To</label>
-                                <input type="date" wire:model.live="etaEndDate"
-                                       style="width: 100%; padding: 10px 12px; border: 1px solid #D1D5DB; border-radius: 8px; font-size: 14px;">
+                        {{-- Module Filter --}}
+                        <div>
+                            <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 8px;">
+                                Module
+                            </label>
+                            <select class="ticket-filter-select" wire:model="selectedModule"
+                                    style="width: 100%; padding: 11px 14px; border: 1.5px solid #D1D5DB; border-radius: 10px; font-size: 14px; background: white; transition: all 0.2s; color: #374151; font-weight: 500;"
+                                    onfocus="this.style.borderColor='#F59E0B'; this.style.boxShadow='0 0 0 3px rgba(245, 158, 11, 0.1)'"
+                                    onblur="this.style.borderColor='#D1D5DB'; this.style.boxShadow='none'">
+                                <option>All Modules</option>
+                                @foreach($modules as $module)
+                                    <option value="{{ $module }}">{{ $module }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        {{-- Front End Filter --}}
+                        <div>
+                            <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 8px;">
+                                Front End
+                            </label>
+                            <select class="ticket-filter-select" wire:model="selectedFrontEnd"
+                                    style="width: 100%; padding: 11px 14px; border: 1.5px solid #D1D5DB; border-radius: 10px; font-size: 14px; background: white; transition: all 0.2s; color: #374151; font-weight: 500;"
+                                    onfocus="this.style.borderColor='#EC4899'; this.style.boxShadow='0 0 0 3px rgba(236, 72, 153, 0.1)'"
+                                    onblur="this.style.borderColor='#D1D5DB'; this.style.boxShadow='none'">
+                                <option value="">All Front End</option>
+                                @foreach($frontEndNames as $frontEnd)
+                                    <option value="{{ $frontEnd }}">{{ $frontEnd }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        {{-- Status Filter - Full Width --}}
+                        <div style="grid-column: 1 / -1;">
+                            <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 8px;">
+                                Ticket Status
+                            </label>
+                            <select class="ticket-filter-select" wire:model="selectedTicketStatus"
+                                    style="width: 100%; padding: 11px 14px; border: 1.5px solid #D1D5DB; border-radius: 10px; font-size: 14px; background: white; transition: all 0.2s; color: #374151; font-weight: 500;"
+                                    onfocus="this.style.borderColor='#8B5CF6'; this.style.boxShadow='0 0 0 3px rgba(139, 92, 246, 0.1)'"
+                                    onblur="this.style.borderColor='#D1D5DB'; this.style.boxShadow='none'">
+                                <option value="">All Status</option>
+                                @foreach($statuses as $status)
+                                    <option value="{{ $status }}">{{ $status }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        {{-- ETA Date Range - Full Width with Better Design --}}
+                        <div style="grid-column: 1 / -1;">
+                            <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 12px;">
+                                ETA Date Range
+                            </label>
+                            <div style="display: grid; grid-template-columns: 1fr auto 1fr; gap: 12px; align-items: center;">
+                                <div style="position: relative;">
+                                    <label style="display: block; font-size: 11px; color: #6B7280; margin-bottom: 6px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Start Date</label>
+                                    <input type="date" wire:model="etaStartDate"
+                                           style="width: 100%; padding: 11px 14px; border: 1.5px solid #D1D5DB; border-radius: 10px; font-size: 14px; background: white; transition: all 0.2s; color: #374151; font-weight: 500;"
+                                           onfocus="this.style.borderColor='#EF4444'; this.style.boxShadow='0 0 0 3px rgba(239, 68, 68, 0.1)'"
+                                           onblur="this.style.borderColor='#D1D5DB'; this.style.boxShadow='none'">
+                                </div>
+                                <div style="padding-top: 20px; color: #9CA3AF; font-weight: 600;">→</div>
+                                <div style="position: relative;">
+                                    <label style="display: block; font-size: 11px; color: #6B7280; margin-bottom: 6px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">End Date</label>
+                                    <input type="date" wire:model="etaEndDate"
+                                           style="width: 100%; padding: 11px 14px; border: 1.5px solid #D1D5DB; border-radius: 10px; font-size: 14px; background: white; transition: all 0.2s; color: #374151; font-weight: 500;"
+                                           onfocus="this.style.borderColor='#EF4444'; this.style.boxShadow='0 0 0 3px rgba(239, 68, 68, 0.1)'"
+                                           onblur="this.style.borderColor='#D1D5DB'; this.style.boxShadow='none'">
+                                </div>
                             </div>
                         </div>
-                    </div>
 
+                    </div>
                 </div>
 
                 {{-- Modal Footer --}}
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 24px; padding-top: 16px; border-top: 1px solid #F3F4F6;">
+                <div style="padding: 20px 28px; border-top: 2px solid #F3F4F6; background: #FAFBFC; display: flex; justify-content: space-between; align-items: center;">
                     <button type="button" wire:click="clearAllFilters"
-                            style="padding: 8px 16px; background: transparent; border: 1px solid #E5E7EB; border-radius: 8px; font-size: 13px; color: #6B7280; font-weight: 500; cursor: pointer; transition: all 0.2s;"
-                            onmouseover="this.style.background='#F9FAFB'; this.style.borderColor='#D1D5DB'"
-                            onmouseout="this.style.background='transparent'; this.style.borderColor='#E5E7EB'">
-                        Clear All
+                            style="padding: 10px 20px; background: white; border: 1.5px solid #E5E7EB; border-radius: 10px; font-size: 14px; color: #6B7280; font-weight: 600; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 8px;"
+                            onmouseover="this.style.background='#FEF2F2'; this.style.borderColor='#FCA5A5'; this.style.color='#DC2626'"
+                            onmouseout="this.style.background='white'; this.style.borderColor='#E5E7EB'; this.style.color='#6B7280'">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" style="width: 16px; height: 16px;">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                        Clear All Filters
                     </button>
                     <button type="button" wire:click="closeFilterModal"
-                            style="padding: 8px 24px; background: #6366F1; border: none; border-radius: 8px; font-size: 13px; color: white; font-weight: 600; cursor: pointer; transition: all 0.2s;"
-                            onmouseover="this.style.background='#4F46E5'"
-                            onmouseout="this.style.background='#6366F1'">
+                            style="padding: 10px 28px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; border-radius: 10px; font-size: 14px; color: white; font-weight: 600; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 6px -1px rgba(102, 126, 234, 0.3); display: flex; align-items: center; gap: 8px;"
+                            onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 6px 12px -2px rgba(102, 126, 234, 0.4)'"
+                            onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 6px -1px rgba(102, 126, 234, 0.3)'">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" style="width: 16px; height: 16px;">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                        </svg>
                         Apply Filters
                     </button>
                 </div>
