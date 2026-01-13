@@ -281,6 +281,22 @@ class EInvoiceHandoverRelationManager extends RelationManager
                                             'Existing Customer' => 'Existing Customer',
                                         ])
                                         ->required(),
+
+                                    Forms\Components\TextInput::make('tin_number')
+                                        ->label('TIN Number')
+                                        ->alphaNum()
+                                        ->maxLength(50)
+                                        ->placeholder('Enter TIN number')
+                                        ->extraAlpineAttributes([
+                                            'x-on:input' => '
+                                                const start = $el.selectionStart;
+                                                const end = $el.selectionEnd;
+                                                const value = $el.value;
+                                                $el.value = value.toUpperCase();
+                                                $el.setSelectionRange(start, end);
+                                            '
+                                        ])
+                                        ->dehydrateStateUsing(fn ($state) => strtoupper($state)),
                                 ])
                         ])
                 ])
@@ -321,6 +337,7 @@ class EInvoiceHandoverRelationManager extends RelationManager
                         'company_name' => $selectedCompanyName,
                         'company_type' => $companyType,
                         'customer_type' => $data['customer_type'],
+                        'tin_number' => strtoupper($data['tin_number']),
                         'status' => 'New',
                         'created_by' => auth()->id(),
                         'submitted_at' => now(),
@@ -356,18 +373,18 @@ class EInvoiceHandoverRelationManager extends RelationManager
                             'lead_url' => $leadUrl,
                         ];
 
-                        Mail::send('emails.einvoice_handover_notification', $emailData, function ($message) use ($salespersonEmail, $eInvoiceHandover, $salespersonName, $selectedCompanyName) {
-                            $projectCode = $eInvoiceHandover->project_code;
-                            $subject = "{$projectCode} / " . strtoupper($salespersonName) . " / {$selectedCompanyName} / NEW";
+                        // Mail::send('emails.einvoice_handover_notification', $emailData, function ($message) use ($salespersonEmail, $eInvoiceHandover, $salespersonName, $selectedCompanyName) {
+                        //     $projectCode = $eInvoiceHandover->project_code;
+                        //     $subject = "{$projectCode} / " . strtoupper($salespersonName) . " / {$selectedCompanyName} / NEW";
 
-                            $message->to('auni@timeteccloud.com')
-                                ->cc('faiz@timeteccloud.com')
-                                ->subject($subject);
+                        //     $message->to('auni@timeteccloud.com')
+                        //         ->cc('faiz@timeteccloud.com')
+                        //         ->subject($subject);
 
-                            if ($salespersonEmail) {
-                                $message->cc($salespersonEmail);
-                            }
-                        });
+                        //     if ($salespersonEmail) {
+                        //         $message->cc($salespersonEmail);
+                        //     }
+                        // });
 
                     } catch (\Exception $e) {
                         \Illuminate\Support\Facades\Log::error("Failed to send E-Invoice handover notification email", [
