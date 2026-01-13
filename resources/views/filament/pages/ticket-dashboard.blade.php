@@ -929,7 +929,7 @@
                                     onblur="this.style.borderColor='#D1D5DB'; this.style.boxShadow='none'">
                                 <option value="">All Priorities</option>
                                 @foreach($priorities as $priority)
-                                    <option value="{{ $priority }}">{{ $priority }}</option>
+                                    <option value="{{ $priority['name'] }}">{{ $priority['label'] }}</option>
                                 @endforeach
                             </select>
                         </div>

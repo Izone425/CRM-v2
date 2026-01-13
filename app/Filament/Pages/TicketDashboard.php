@@ -793,10 +793,26 @@ class TicketDashboard extends Page implements HasActions, HasForms
         // Get unique statuses
         $statuses = $tickets->pluck('status')->unique()->sort()->values()->toArray();
 
-        // Get unique priorities
-        $priorities = $tickets->map(function ($ticket) {
-            return $ticket->priority->name ?? null;
-        })->filter()->unique()->sort()->values()->toArray();
+        // Get unique priorities with proper sorting
+        $priorities = TicketPriority::where('is_active', true)
+            ->orderBy('sort_order')
+            ->orderBy('sort_order_suffix')
+            ->get()
+            ->map(function ($priority) {
+                $label = 'P' . $priority->sort_order;
+                if ($priority->sort_order_suffix) {
+                    $label .= $priority->sort_order_suffix;
+                }
+                $label .= ' - ' . $priority->name;
+                return [
+                    'id' => $priority->id,
+                    'name' => $priority->name,
+                    'label' => $label,
+                    'sort_order' => $priority->sort_order,
+                    'sort_order_suffix' => $priority->sort_order_suffix,
+                ];
+            })
+            ->toArray();
 
         return [
             'softwareBugs' => $softwareBugsMetrics,
