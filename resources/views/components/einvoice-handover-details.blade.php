@@ -220,6 +220,15 @@
         </span>
     </div>
 
+    @if($record->tin_number)
+    <div class="einvoice-info-item">
+        <span class="einvoice-label">TIN Number:</span>
+        <span class="einvoice-value" style="color: #dc2626; font-weight: 700;">
+            {{ $record->tin_number }}
+        </span>
+    </div>
+    @endif
+
     <hr class="my-4 border-gray-300">
 
     <!-- Export Buttons -->
