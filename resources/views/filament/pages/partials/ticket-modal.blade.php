@@ -226,9 +226,14 @@
 
                     <!-- Status Log Tab (copy from ticket-dashboard.blade.php) -->
                     <div x-show="activeTab === 'status'" style="padding: 24px 0;">
-                        @if($selectedTicket->logs->count() > 0)
+                        @php
+                            $filteredLogs = $selectedTicket->logs->filter(function($log) {
+                                return !is_null($log->new_value);
+                            })->sortByDesc('created_at');
+                        @endphp
+                        @if($filteredLogs->count() > 0)
                             <div style="position: relative;">
-                                @foreach($selectedTicket->logs->sortByDesc('created_at') as $index => $log)
+                                @foreach($filteredLogs as $index => $log)
                                     <div style="display: flex; gap: 16px; margin-bottom: {{ $index < $selectedTicket->logs->count() - 1 ? '24px' : '0' }};">
                                         {{-- Timeline Connector --}}
                                         <div style="display: flex; flex-direction: column; align-items: center; position: relative;">
@@ -251,7 +256,7 @@
                                                 @endif;"></div>
 
                                             {{-- Timeline Line --}}
-                                            @if($index < $selectedTicket->logs->count() - 1)
+                                            @if($index < $filteredLogs->count() - 1)
                                                 <div style="width: 2px; background: #E5E7EB; flex: 1; margin-top: 4px; min-height: 40px;"></div>
                                             @endif
                                         </div>
@@ -283,8 +288,12 @@
                                                         @elseif($log->new_value === 'In Progress') #FDE047
                                                         @elseif($log->new_value === 'New') #E5E7EB
                                                         @else #E5E7EB
-                                                        @endif;">
-                                                        {{ $log->new_value }}
+                                                        @endif; @if($log->change_type === 'ticket_creation') display: inline-block; text-align: left; @endif">
+                                                        @if($log->change_type === 'ticket_creation')
+                                                            {!! nl2br(e($log->new_value)) !!}
+                                                        @else
+                                                            {{ $log->new_value }}
+                                                        @endif
                                                     </span>
                                                     <div class="status-tooltip" style="position: absolute; bottom: 100%; left: 0; margin-bottom: 8px; padding: 6px 10px; background: #1F2937; color: white; font-size: 11px; border-radius: 6px; white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity 0.2s; z-index: 10;">
                                                         {{ $log->created_at->addHours(8)->format('M d') }} • {{ $log->created_at->addHours(8)->format('Y, g:i A') }}

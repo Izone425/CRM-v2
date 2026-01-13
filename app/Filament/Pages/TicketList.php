@@ -592,7 +592,7 @@ class TicketList extends Page implements HasTable, HasActions, HasForms
 
                         $data['status'] = 'New';
                         $data['requestor_id'] = $requestorId;
-                        $data['created_date'] = now()->toDateString();
+                        $data['created_date'] = now()->subHours(8)->toDateString();
                         $data['isPassed'] = 0;
                         $data['is_internal'] = $data['is_internal'] ?? false;
 
@@ -611,18 +611,38 @@ class TicketList extends Page implements HasTable, HasActions, HasForms
                         }
 
                         $data['ticket_id'] = sprintf('TC-%s-%04d', $productCode, $nextNumber);
+                        $data['created_at'] = now()->subHours(8);
+                        $data['updated_at'] = now()->subHours(8);
 
                         $ticket = Ticket::create($data);
 
+                        // Get priority name for the log
+                        $priority = TicketPriority::find($data['priority_id']);
+                        $priorityName = $priority ? $priority->name : 'Unknown';
+
+                        // Build detailed new_value string
+                        $newValueDetails = "Ticket {$data['ticket_id']}\n";
+                        $newValueDetails .= "Title: {$data['title']}\n";
+                        $newValueDetails .= "Priority: {$priorityName}\n";
+                        $newValueDetails .= "Category: {$priorityName}\n";
+                        $newValueDetails .= "Requester: " . ($ticketSystemUser?->name ?? 'HRcrm User');
+
                         TicketLog::create([
                             'ticket_id' => $ticket->id,
-                            'old_value' => null,
-                            'new_value' => 'New',
+                            'old_value' => 'No existing ticket',
+                            'new_value' => $newValueDetails,
+                            'action' => "Created new ticket {$data['ticket_id']}",
+                            'field_name' => null,
+                            'change_reason' => null,
+                            'old_eta' => null,
+                            'new_eta' => null,
                             'updated_by' => $requestorId,
                             'user_name' => $ticketSystemUser?->name ?? 'HRcrm User',
-                            'user_role' => $ticketSystemUser?->role ?? 'test role',
+                            'user_role' => $ticketSystemUser?->role ?? 'Internal Staff',
                             'change_type' => 'ticket_creation',
                             'source' => 'manual',
+                            'created_at' => now()->subHours(8),
+                            'updated_at' => now()->subHours(8),
                         ]);
 
                         Notification::make()
@@ -888,6 +908,8 @@ class TicketList extends Page implements HasTable, HasActions, HasForms
                 'user_role' => $ticketSystemUser?->role ?? 'Support Staff',
                 'change_type' => 'status_change',
                 'source' => 'modal',
+                'created_at' => now()->subHours(8),
+                'updated_at' => now()->subHours(8),
             ]);
 
             // ✅ Refresh the selected ticket with fresh data including logs
@@ -959,6 +981,8 @@ class TicketList extends Page implements HasTable, HasActions, HasForms
                 'user_role' => $ticketSystemUser?->role ?? 'Support Staff',
                 'change_type' => 'status_change',
                 'source' => 'reopen_modal',
+                'created_at' => now()->subHours(8),
+                'updated_at' => now()->subHours(8),
             ]);
 
             // Refresh the selected ticket with fresh data
