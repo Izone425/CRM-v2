@@ -263,10 +263,10 @@ class SubsidiaryRelationManager extends RelationManager
                                                         $statesContent = file_get_contents($filePath);
                                                         $states = json_decode($statesContent, true);
                                                         return collect($states)->mapWithKeys(function ($state) {
-                                                            return [$state['Code'] => ucfirst(strtolower($state['State']))];
+                                                            return [ucfirst(strtolower($state['State'])) => ucfirst(strtolower($state['State']))];
                                                         })->toArray();
                                                     }
-                                                    return ['10' => 'Selangor'];
+                                                    return ['Selangor' => 'Selangor'];
                                                 })
                                                 ->searchable()
                                                 ->preload(),
@@ -721,10 +721,10 @@ class SubsidiaryRelationManager extends RelationManager
                                                                             $statesContent = file_get_contents($filePath);
                                                                             $states = json_decode($statesContent, true);
                                                                             return collect($states)->mapWithKeys(function ($state) {
-                                                                                return [$state['Code'] => ucfirst(strtolower($state['State']))];
+                                                                                return [ucfirst(strtolower($state['State'])) => ucfirst(strtolower($state['State']))];
                                                                             })->toArray();
                                                                         }
-                                                                        return ['10' => 'Selangor'];
+                                                                        return ['Selangor' => 'Selangor'];
                                                                     })
                                                                     ->searchable()
                                                                     ->preload(),

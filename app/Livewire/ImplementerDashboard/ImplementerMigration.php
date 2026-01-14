@@ -448,10 +448,10 @@ class ImplementerMigration extends Component implements HasForms, HasTable
                                     $recipients[] = $implementerEmail;
                                 }
 
-                                // Add salesperson email if valid
-                                if ($salespersonEmail && filter_var($salespersonEmail, FILTER_VALIDATE_EMAIL)) {
-                                    $recipients[] = $salespersonEmail;
-                                }
+                                // // Add salesperson email if valid
+                                // if ($salespersonEmail && filter_var($salespersonEmail, FILTER_VALIDATE_EMAIL)) {
+                                //     $recipients[] = $salespersonEmail;
+                                // }
 
                                 // Get authenticated user's email for sender
                                 $authUser = auth()->user();

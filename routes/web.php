@@ -221,6 +221,14 @@ Route::prefix('reseller')->name('reseller.')->group(function () {
             'companyName' => $reseller->company_name ?? 'Company',
         ]);
     })->name('dashboard');
+
+    // API route for handover counts
+    Route::get('/handover/counts', [App\Http\Controllers\ResellerHandoverController::class, 'getCounts'])->name('handover.counts');
+});
+
+// Admin Reseller Handover API
+Route::middleware(['auth'])->group(function () {
+    Route::get('/admin/reseller-handover/counts', [App\Http\Controllers\ResellerHandoverController::class, 'getAdminCounts'])->name('admin.reseller-handover.counts');
 });
 
 // Admin routes for sending activation emails

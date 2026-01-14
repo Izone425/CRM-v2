@@ -12,6 +12,7 @@ use App\Filament\Pages\AdminRenewalDashboard;
 use App\Filament\Pages\AdminRenewalDashboardNonReseller;
 use App\Filament\Pages\AdminRenewalRawData;
 use App\Filament\Pages\AdminRepairDashboard;
+use App\Filament\Pages\AdminResellerDashboard;
 use App\Filament\Pages\ApolloLeadTracker;
 use App\Filament\Pages\Auth\EditProfile;
 use App\Filament\Pages\Calendar;
@@ -48,6 +49,7 @@ use App\Filament\Pages\InvoicesTable;
 use App\Filament\Pages\InvoiceSummary;
 use App\Filament\Pages\KickOffMeetingSession;
 use App\Filament\Pages\LeadAnalysis;
+use App\Filament\Pages\LicenseTerminatedList;
 use App\Filament\Pages\MarketingAnalysis;
 use App\Filament\Pages\MonthlyCalendar;
 use App\Filament\Pages\OnsiteRepairList;
@@ -387,6 +389,8 @@ class AdminPanelProvider extends PanelProvider
                 AdminRenewalDashboardNonReseller::class,
                 InternalTicketsPage::class,
                 ResellerAccount::class,
+                AdminResellerDashboard::class,
+                // LicenseTerminatedList::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([

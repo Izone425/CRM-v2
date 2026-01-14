@@ -240,12 +240,96 @@
             width: 1rem;
             height: 1rem;
         }
+
+        .tabs-container {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            border-bottom: 2px solid #e5e7eb;
+        }
+
+        .tab-button {
+            padding: 0.75rem 1.5rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #6b7280;
+            background: none;
+            border: none;
+            border-bottom: 3px solid transparent;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            bottom: -2px;
+        }
+
+        .tab-button:hover {
+            color: #667eea;
+            background: #f9fafb;
+        }
+
+        .tab-button.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+            background: #f0f4ff;
+        }
+
+        .pagination-wrapper {
+            padding: 1.5rem;
+            background: white;
+            border-top: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: center;
+        }
+
+        .pagination-wrapper nav {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .pagination-wrapper a,
+        .pagination-wrapper span {
+            padding: 0.5rem 0.75rem;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+        }
+
+        .pagination-wrapper a {
+            color: #667eea;
+            cursor: pointer;
+        }
+
+        .pagination-wrapper a:hover {
+            background: #f0f4ff;
+            border-color: #667eea;
+        }
+
+        .pagination-wrapper span.current {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
     </style>
 
     <!-- Title -->
     <div class="title-section">
         <h2>Expired Licenses</h2>
         <p>View customers with expired licenses</p>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs-container">
+        <button
+            wire:click="switchTab('90days')"
+            class="tab-button {{ $activeTab === '90days' ? 'active' : '' }}">
+            Expired within 90 Days
+        </button>
+        <button
+            wire:click="switchTab('all')"
+            class="tab-button {{ $activeTab === 'all' ? 'active' : '' }}">
+            All Expired Licenses
+        </button>
     </div>
 
     <!-- Search Input -->

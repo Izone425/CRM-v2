@@ -743,6 +743,8 @@ class TicketList extends Page implements HasTable, HasActions, HasForms
                 'ticket_id' => $this->selectedTicket->id,
                 'user_id' => $userId,
                 'comment' => $this->newComment,
+                'created_at' => now()->subHours(8),
+                'updated_at' => now()->subHours(8),
             ]);
 
             $this->newComment = '';
@@ -963,6 +965,8 @@ class TicketList extends Page implements HasTable, HasActions, HasForms
                     'ticket_id' => $this->selectedTicket->id,
                     'user_id' => $userId,
                     'comment' => $formData['reopenComment'],
+                    'created_at' => now()->subHours(8),
+                    'updated_at' => now()->subHours(8),
                 ]);
             }
 
