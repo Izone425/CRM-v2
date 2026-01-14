@@ -9,21 +9,23 @@ use Carbon\Carbon;
 
 class ResellerExpiredLicense extends Component
 {
-    public $companies = [];
     public $expandedCompany = null;
     public $invoiceDetails = [];
     public $search = '';
     public $sortField = 'f_expiry_date';
     public $sortDirection = 'asc';
-
-    public function mount()
-    {
-        $this->loadCompanies();
-    }
+    public $activeTab = '90days'; // '90days' or 'all'
 
     public function updatedSearch()
     {
-        $this->loadCompanies();
+        // Search updated
+    }
+
+    public function switchTab($tab)
+    {
+        $this->activeTab = $tab;
+        $this->expandedCompany = null;
+        $this->invoiceDetails = [];
     }
 
     public function sortBy($field)
@@ -34,7 +36,6 @@ class ResellerExpiredLicense extends Component
             $this->sortField = $field;
             $this->sortDirection = 'asc';
         }
-        $this->loadCompanies();
     }
 
     public function toggleExpand($fId)
@@ -51,11 +52,13 @@ class ResellerExpiredLicense extends Component
         }
     }
 
-    public function loadCompanies()
+    public function getCompaniesProperty()
     {
         $reseller = Auth::guard('reseller')->user();
 
-        if ($reseller && $reseller->reseller_id) {
+        if (!$reseller || !$reseller->reseller_id) {
+            return collect([]);
+        }
             $today = Carbon::now();
             $ninetyDaysFromNow = Carbon::now()->addDays(90);
 
@@ -75,12 +78,18 @@ class ResellerExpiredLicense extends Component
 
                 // Step 2: Use f_id to get licenses from crm_expiring_license
                 // Link crm_reseller_link.f_id with crm_expiring_license.f_company_id
-                $expiringLicense = DB::connection('frontenddb')
+                $query = DB::connection('frontenddb')
                     ->table('crm_expiring_license')
                     ->where('f_company_id', $link->f_id)
-                    ->whereDate('f_expiry_date', '>=', $today->format('Y-m-d'))
-                    ->whereDate('f_expiry_date', '<=', $ninetyDaysFromNow->format('Y-m-d'))
-                    ->orderBy('f_expiry_date', 'asc')
+                    ->where('f_type', 'Paid')
+                    ->whereDate('f_expiry_date', '>=', $today->format('Y-m-d'));
+
+                // Apply date range filter based on active tab
+                if ($this->activeTab === '90days') {
+                    $query->whereDate('f_expiry_date', '<=', $ninetyDaysFromNow->format('Y-m-d'));
+                }
+
+                $expiringLicense = $query->orderBy('f_expiry_date', 'asc')
                     ->first(['f_expiry_date']);
 
                 if ($expiringLicense) {
@@ -96,19 +105,19 @@ class ResellerExpiredLicense extends Component
                 }
             }
 
-            // Sort companies
-            usort($companies, function($a, $b) {
-                if ($this->sortField === 'f_expiry_date') {
-                    $comparison = strtotime($a->f_expiry_date) - strtotime($b->f_expiry_date);
-                } else {
-                    $comparison = $a->days_until_expiry - $b->days_until_expiry;
-                }
+        // Sort companies
+        usort($companies, function($a, $b) {
+            if ($this->sortField === 'f_expiry_date') {
+                $comparison = strtotime($a->f_expiry_date) - strtotime($b->f_expiry_date);
+            } else {
+                $comparison = $a->days_until_expiry - $b->days_until_expiry;
+            }
 
-                return $this->sortDirection === 'asc' ? $comparison : -$comparison;
-            });
+            return $this->sortDirection === 'asc' ? $comparison : -$comparison;
+        });
 
-            $this->companies = $companies;
-        }
+        // Return the collection
+        return collect($companies);
     }
 
     public function loadInvoiceDetails($fId)
@@ -123,13 +132,25 @@ class ResellerExpiredLicense extends Component
             ->first();
 
         // Get all licenses for this f_id (company)
-        $licenses = DB::connection('frontenddb')
+        $query = DB::connection('frontenddb')
             ->table('crm_expiring_license')
             ->where('f_company_id', (int) $fId)
+            ->where('f_type', 'Paid')
             ->whereDate('f_expiry_date', '>=', $today)
-            ->whereDate('f_expiry_date', '<=', $ninetyDaysFromNow)
-            ->get([
-                'f_id', 'f_name', 'f_unit', 'f_total_amount', 'f_start_date',
+            ->where(function($q) {
+                $q->where('f_name', 'like', '%TA%')
+                  ->orWhere('f_name', 'like', '%leave%')
+                  ->orWhere('f_name', 'like', '%claim%')
+                  ->orWhere('f_name', 'like', '%payroll%');
+            });
+
+        // Apply date range filter based on active tab
+        if ($this->activeTab === '90days') {
+            $query->whereDate('f_expiry_date', '<=', $ninetyDaysFromNow);
+        }
+
+        $licenses = $query->get([
+                'f_id', 'f_name', 'f_total_user', 'f_total_amount', 'f_start_date',
                 'f_expiry_date', 'f_invoice_no'
             ]);
 
@@ -145,7 +166,7 @@ class ResellerExpiredLicense extends Component
                 ->first(['f_quantity', 'f_unit_price', 'f_billing_cycle']);
 
             // Use invoice details if found, otherwise fallback to license data
-            $quantity = $invoiceDetail ? $invoiceDetail->f_quantity : $license->f_unit;
+            $quantity = $invoiceDetail ? $invoiceDetail->f_quantity : $license->f_total_user;
             $unitPrice = $invoiceDetail ? $invoiceDetail->f_unit_price : 0;
             $billingCycle = $invoiceDetail ? $invoiceDetail->f_billing_cycle : 0;
 
@@ -194,6 +215,8 @@ class ResellerExpiredLicense extends Component
 
     public function render()
     {
-        return view('livewire.reseller-expired-license');
+        return view('livewire.reseller-expired-license', [
+            'companies' => $this->companies
+        ]);
     }
 }

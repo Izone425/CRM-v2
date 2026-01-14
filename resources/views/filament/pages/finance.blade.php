@@ -370,7 +370,7 @@
                 <div class="group-box group-einvoice"
                      :class="{'selected': selectedGroup === 'einvoice'}"
                      @click="setSelectedGroup('einvoice')">
-                    <div class="group-title">E-Invoice</div>
+                    <div class="group-title">E-Invoice Registration</div>
                     <div class="group-count">{{ $newCount }}</div>
                 </div>
             </div>

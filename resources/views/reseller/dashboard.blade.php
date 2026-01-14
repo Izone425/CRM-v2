@@ -133,6 +133,57 @@
             animation: fadeIn 0.3s ease-in-out;
         }
 
+        .handover-subtab {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #64748b;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .handover-subtab:hover {
+            color: #667eea;
+        }
+
+        .handover-subtab.active {
+            background: white;
+            color: #667eea;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .handover-subtab.pending-timetec-active {
+            background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
+            color: #f97316;
+            box-shadow: 0 2px 4px rgba(249, 115, 22, 0.2);
+        }
+
+        .tab-separator {
+            width: 3px;
+            height: 3rem;
+            background: linear-gradient(to bottom, transparent, #d1d5db, transparent);
+            margin: 0 2rem;
+        }
+
+        .handover-subtab i {
+            font-size: 14px;
+        }
+
+        .handover-subtab-content {
+            display: none;
+        }
+
+        .handover-subtab-content.active {
+            display: block;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
         @keyframes fadeIn {
             from {
                 opacity: 0;
@@ -147,9 +198,9 @@
 </head>
 <body class="min-h-screen bg-gray-50">
     <!-- Fixed Header with Gradient -->
-    <header class="relative overflow-hidden shadow-xl main-header gradient-bg">
+    <div class="relative overflow-hidden shadow-xl main-header gradient-bg">
         <div class="absolute inset-0 bg-black opacity-10"></div>
-        <div class="relative px-4 py-8 mx-auto max-w-7xl sm:px-6 lg:px-8">
+        <div class="relative px-4 py-6 mx-auto max-w-7xl sm:px-6 lg:px-8">
             <div class="flex items-center justify-between">
                 <div class="flex items-center space-x-4">
                     <div class="flex items-center justify-center w-12 h-12 bg-white rounded-full shadow-lg">
@@ -178,10 +229,15 @@
                 </div>
             </div>
         </div>
-    </header>
+    </div>
 
     <div class="sidebar">
         <div class="sidebar-menu">
+            <!-- Renewal Request Button -->
+            <div class="mb-8">
+                @livewire('reseller-renewal-request')
+            </div>
+
             <button onclick="switchTab('customers')"
                     id="customers-tab"
                     class="menu-item active">
@@ -196,14 +252,12 @@
                 <span>Expired Licenses</span>
             </button>
 
-            {{-- @if($hasProjectPlan)
-                <button onclick="switchTab('project')"
-                        id="project-tab"
-                        class="menu-item">
-                    <i class="fas fa-tasks"></i>
-                    <span>Project Plan</span>
-                </button>
-            @endif --}}
+            <button onclick="switchTab('handover')"
+                    id="handover-tab"
+                    class="menu-item">
+                <i class="fas fa-exchange-alt"></i>
+                <span>Renewal Handover</span>
+            </button>
         </div>
     </div>
 
@@ -220,6 +274,115 @@
                 <!-- Expired Licenses Tab Content -->
                 <div id="expired-content" class="p-8 tab-content">
                     @livewire('reseller-expired-license')
+                </div>
+
+                <!-- Renewal Handover Tab Content -->
+                @php
+                    $reseller = Auth::guard('reseller')->user();
+                    $resellerId = $reseller ? $reseller->reseller_id : null;
+
+                    $pendingConfirmationCount = $resellerId ? \App\Models\ResellerHandover::where('reseller_id', $resellerId)->where('status', 'pending_confirmation')->count() : 0;
+                    $pendingResellerCount = $resellerId ? \App\Models\ResellerHandover::where('reseller_id', $resellerId)->where('status', 'pending_reseller_invoice')->count() : 0;
+                    $pendingPaymentCount = $resellerId ? \App\Models\ResellerHandover::where('reseller_id', $resellerId)->where('status', 'pending_reseller_payment')->count() : 0;
+                    $pendingTimetecActionCount = $resellerId ? \App\Models\ResellerHandover::where('reseller_id', $resellerId)->whereIn('status', ['pending_timetec_license', 'new', 'pending_timetec_invoice'])->count() : 0;
+                    $completedCount = $resellerId ? \App\Models\ResellerHandover::where('reseller_id', $resellerId)->where('status', 'completed')->count() : 0;
+                @endphp
+
+                <div id="handover-content" class="pt-8 pb-32 pl-8 pr-8 tab-content"
+                     x-data="{
+                         pendingConfirmationCount: {{ $pendingConfirmationCount }},
+                         pendingResellerCount: {{ $pendingResellerCount }},
+                         pendingPaymentCount: {{ $pendingPaymentCount }},
+                         pendingTimetecActionCount: {{ $pendingTimetecActionCount }},
+                         completedCount: {{ $completedCount }}
+                     }"
+                     @handover-completed-notification.window="
+                         setTimeout(() => {
+                             window.dispatchEvent(new CustomEvent('handover-updated'));
+                         }, 2500);
+                     "
+                     @handover-updated.window="
+                         fetch('{{ route('reseller.handover.counts') }}')
+                             .then(response => response.json())
+                             .then(data => {
+                                 pendingConfirmationCount = data.pending_confirmation;
+                                 pendingResellerCount = data.pending_reseller_invoice;
+                                 pendingPaymentCount = data.pending_payment;
+                                 pendingTimetecActionCount = data.pending_timetec_license;
+                                 completedCount = data.completed;
+                             })
+                     ">
+
+                    <div class="mb-6">
+                        <div class="inline-flex p-1 space-x-1 bg-gray-100 rounded-lg" role="tablist">
+                            <button
+                                onclick="switchHandoverSubTab('pending-confirmation')"
+                                id="pending-confirmation-subtab"
+                                class="handover-subtab active"
+                                role="tab">
+                                <i class="fas fa-clipboard-check"></i>
+                                Pending Confirmation
+                                <span x-show="pendingConfirmationCount > 0" class="px-2 py-1 ml-1 text-xs font-bold text-white bg-red-500 rounded-full" x-text="pendingConfirmationCount"></span>
+                            </button>
+                            <button
+                                onclick="switchHandoverSubTab('pending-reseller')"
+                                id="pending-reseller-subtab"
+                                class="handover-subtab"
+                                role="tab">
+                                <i class="fas fa-clock"></i>
+                                Pending Reseller
+                                <span x-show="pendingResellerCount > 0" class="px-2 py-1 ml-1 text-xs font-bold text-white bg-red-500 rounded-full" x-text="pendingResellerCount"></span>
+                            </button>
+                            <button
+                                onclick="switchHandoverSubTab('pending-payment')"
+                                id="pending-payment-subtab"
+                                class="handover-subtab"
+                                role="tab">
+                                <i class="fas fa-money-bill-wave"></i>
+                                Pending Payment
+                                <span x-show="pendingPaymentCount > 0" class="px-2 py-1 ml-1 text-xs font-bold text-white bg-red-500 rounded-full" x-text="pendingPaymentCount"></span>
+                            </button>
+                            <button
+                                onclick="switchHandoverSubTab('completed')"
+                                id="completed-subtab"
+                                class="handover-subtab"
+                                role="tab">
+                                <i class="fas fa-check-circle"></i>
+                                Completed
+                                <span x-show="completedCount > 0" class="px-2 py-1 ml-1 text-xs font-bold text-white bg-red-500 rounded-full" x-text="completedCount"></span>
+                            </button>
+                            <div class="tab-separator"></div>
+                            <button
+                                onclick="switchHandoverSubTab('pending-timetec-action')"
+                                id="pending-timetec-action-subtab"
+                                class="handover-subtab"
+                                role="tab">
+                                <i class="fas fa-hourglass-half"></i>
+                                Pending Timetec Action
+                                <span x-show="pendingTimetecActionCount > 0" class="px-2 py-1 ml-1 text-xs font-bold text-white bg-red-500 rounded-full" x-text="pendingTimetecActionCount"></span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="pending-confirmation-subtab-content" class="handover-subtab-content active">
+                        @livewire('reseller-handover-pending-confirmation')
+                    </div>
+
+                    <div id="pending-reseller-subtab-content" class="handover-subtab-content">
+                        @livewire('reseller-handover-pending-reseller')
+                    </div>
+
+                    <div id="pending-payment-subtab-content" class="handover-subtab-content">
+                        @livewire('reseller-handover-pending-payment')
+                    </div>
+
+                    <div id="completed-subtab-content" class="handover-subtab-content">
+                        @livewire('reseller-handover-completed')
+                    </div>
+
+                    <div id="pending-timetec-action-subtab-content" class="handover-subtab-content">
+                        @livewire('reseller-handover-pending-timetec-action')
+                    </div>
                 </div>
 
                 {{-- <!-- Project Plan Tab Content -->
@@ -272,11 +435,48 @@
             }
         }
 
+        function switchHandoverSubTab(subtab) {
+            // Hide all subtab contents
+            document.querySelectorAll('.handover-subtab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+
+            // Remove active class from all subtab buttons
+            document.querySelectorAll('.handover-subtab').forEach(button => {
+                button.classList.remove('active');
+                button.classList.remove('pending-timetec-active');
+            });
+
+            // Show selected subtab content
+            const subtabContent = document.getElementById(subtab + '-subtab-content');
+            const subtabButton = document.getElementById(subtab + '-subtab');
+
+            if (subtabContent && subtabButton) {
+                subtabContent.classList.add('active');
+
+                // Add special class for pending-timetec-action
+                if (subtab === 'pending-timetec-action') {
+                    subtabButton.classList.add('pending-timetec-active');
+                } else {
+                    subtabButton.classList.add('active');
+                }
+
+                // Store active subtab in localStorage
+                localStorage.setItem('resellerActiveHandoverSubTab', subtab);
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
             let activeTab = localStorage.getItem('resellerActiveTab') || 'customers';
+            let activeHandoverSubTab = localStorage.getItem('resellerActiveHandoverSubTab') || 'pending-confirmation';
 
             if (activeTab !== 'customers') {
                 switchTab(activeTab);
+            }
+
+            // Restore handover subtab state
+            if (activeTab === 'handover' && activeHandoverSubTab !== 'pending-confirmation') {
+                switchHandoverSubTab(activeHandoverSubTab);
             }
 
             // Smooth scroll to customers

@@ -285,7 +285,7 @@ class FetchZohoLeads extends Command
 
                     if (!empty($lead['Company'])) {
                         $companyDetail = CompanyDetail::create([
-                            'company_name' => $lead['Company'],
+                            'company_name' => str_replace('.', '', $lead['Company']),
                             'linkedin_url' => $lead['Linkedin_Profile_URL'] ?? null,
                             'lead_id'      => $newLead->id,
                         ]);
@@ -326,7 +326,7 @@ class FetchZohoLeads extends Command
 
                     if (!empty($lead['Company'])) {
                         $companyDetail = CompanyDetail::create([
-                            'company_name' => $lead['Company'],
+                            'company_name' => str_replace('.', '', $lead['Company']),
                             'linkedin_url' => $lead['Linkedin_Profile_URL'] ?? null,
                             'lead_id'      => $newLead->id,
                         ]);
@@ -380,7 +380,7 @@ class FetchZohoLeads extends Command
 
                     if (!empty($lead['Company'])) {
                         $companyDetail = CompanyDetail::create([
-                            'company_name' => $lead['Company'],
+                            'company_name' => str_replace('.', '', $lead['Company']),
                             'linkedin_url' => $lead['Linkedin_Profile_URL'] ?? null,
                             'lead_id'      => $newLead->id,
                         ]);
@@ -455,7 +455,7 @@ class FetchZohoLeads extends Command
 
                     if (!empty($lead['Company'])) {
                         $companyDetail = CompanyDetail::create([
-                            'company_name' => $lead['Company'],
+                            'company_name' => str_replace('.', '', $lead['Company']),
                             'linkedin_url' => $lead['Linkedin_Profile_URL'] ?? null,
                             'lead_id'      => $newLead->id,
                         ]);

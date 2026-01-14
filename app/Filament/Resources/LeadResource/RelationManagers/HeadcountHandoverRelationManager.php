@@ -121,10 +121,11 @@ class HeadcountHandoverRelationManager extends RelationManager
                                 }
                             }
 
-                            // Get available product PIs excluding already used ones
+                            // Get available product PIs excluding already used ones (created today only)
                             return \App\Models\Quotation::where('lead_id', $leadId)
                                 ->where('quotation_type', 'product')
                                 ->where('status', \App\Enums\QuotationStatusEnum::accepted)
+                                ->whereDate('created_at', today())
                                 ->whereNotIn('id', array_filter($usedPiIds)) // Filter out null/empty values
                                 ->pluck('pi_reference_no', 'id')
                                 ->toArray();
@@ -633,9 +634,9 @@ class HeadcountHandoverRelationManager extends RelationManager
         $regNoValue = preg_replace('/[^0-9]/', '', $companyDetail->reg_no_new);
 
         // Check if the resulting string has exactly 12 digits
-        if (strlen($regNoValue) !== 12) {
-            return true;
-        }
+        // if (strlen($regNoValue) !== 12) {
+        //     return true;
+        // }
 
         return false;
     }

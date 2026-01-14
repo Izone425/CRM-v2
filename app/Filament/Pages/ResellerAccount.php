@@ -37,28 +37,35 @@ class ResellerAccount extends Page implements HasTable
             Action::make('createReseller')
                 ->label('Create Reseller')
                 ->icon('heroicon-o-plus')
+                ->modalWidth('2xl')
                 ->slideOver()
                 ->form([
-                    TextInput::make('company_name')
+                    Select::make('company_name')
                         ->label('Company Name')
-                        ->extraAlpineAttributes([
-                            'x-on:input' => '
-                                const start = $el.selectionStart;
-                                const end = $el.selectionEnd;
-                                const value = $el.value;
-                                $el.value = value.toUpperCase();
-                                $el.setSelectionRange(start, end);
-                            '
-                        ])
-                        ->dehydrateStateUsing(fn ($state) => strtoupper($state))
-                        ->rules([
-                            'regex:/^[A-Z0-9\s]+$/i',
-                        ])
-                        ->validationMessages([
-                            'regex' => 'Company name can only contain letters, numbers, and spaces. Special characters are not allowed.',
-                        ])
+                        ->searchable()
                         ->required()
-                        ->maxLength(255),
+                        ->options(function () {
+                            return \Illuminate\Support\Facades\DB::connection('frontenddb')
+                                ->table('crm_reseller_link')
+                                ->whereNotNull('reseller_name')
+                                ->where('reseller_name', '!=', '')
+                                ->orderBy('reseller_name')
+                                ->pluck('reseller_name', 'reseller_name')
+                                ->toArray();
+                        })
+                        ->live()
+                        ->afterStateUpdated(function ($state, $set) {
+                            if ($state) {
+                                $reseller = \Illuminate\Support\Facades\DB::connection('frontenddb')
+                                    ->table('crm_reseller_link')
+                                    ->where('reseller_name', $state)
+                                    ->first();
+
+                                if ($reseller) {
+                                    $set('reseller_id', $reseller->reseller_id);
+                                }
+                            }
+                        }),
 
                     Grid::make(3)
                         ->schema([
@@ -86,8 +93,7 @@ class ResellerAccount extends Page implements HasTable
                                     ->label('PIC Email Address')
                                     ->email()
                                     ->required()
-                                    ->maxLength(255)
-                                    ->helperText('Email and password will be sent to this address'),
+                                    ->maxLength(255),
                         ]),
 
                     Grid::make(2)
@@ -203,18 +209,20 @@ class ResellerAccount extends Page implements HasTable
                     TextInput::make('reseller_id')
                         ->label('Bind Reseller ID (Admin Portal)')
                         ->numeric()
-                        ->nullable(),
+                        ->disabled()
+                        ->dehydrated()
+                        ->helperText('Auto-filled when company is selected'),
                 ])
                 ->action(function (array $data) {
                     // Auto-generate password
                     $password = Str::random(12);
 
-                    // Create reseller first to get ID
+                    // Create reseller with PIC email
                     $reseller = ResellerV2::create([
                         'company_name' => $data['company_name'],
                         'name' => $data['name'],
                         'phone' => $data['phone'],
-                        'email' => 'temp@temp.com', // Temporary email
+                        'email' => $data['pic_email'],
                         'password' => Hash::make($password),
                         'plain_password' => $password,
                         'ssm_number' => $data['business_register_number'],
@@ -226,41 +234,12 @@ class ResellerAccount extends Page implements HasTable
                         'email_verified_at' => now(),
                     ]);
 
-                    // Generate email based on ID: rs_YYXXXX@timeteccloud.com
-                    $year = now()->format('y'); // Get 2-digit year
-                    $paddedId = str_pad($reseller->id, 4, '0', STR_PAD_LEFT); // Pad ID to 4 digits
-                    $generatedEmail = "rs_{$year}{$paddedId}@timeteccloud.com";
-
-                    // Update reseller with generated email
-                    $reseller->update(['email' => $generatedEmail]);
-
-                    // Send email to PIC
-                    try {
-                        Mail::send('emails.reseller-credentials', [
-                            'company_name' => $data['company_name'],
-                            'name' => $data['name'],
-                            'email' => $generatedEmail,
-                            'password' => $password,
-                            'login_url' => route('reseller.login'),
-                        ], function ($message) use ($data, $generatedEmail) {
-                            $message->to($data['pic_email'])
-                                ->subject('TimeTec CRM - Reseller Account Created');
-                        });
-
-                        Notification::make()
-                            ->title('Reseller Created')
-                            ->body("Reseller created successfully. Login email: {$generatedEmail}. Credentials sent to {$data['pic_email']}")
-                            ->success()
-                            ->persistent()
-                            ->send();
-                    } catch (\Exception $e) {
-                        Notification::make()
-                            ->title('Reseller Created')
-                            ->body("Reseller created. Email: {$generatedEmail}, Password: {$password}. Failed to send email: " . $e->getMessage())
-                            ->warning()
-                            ->persistent()
-                            ->send();
-                    }
+                    Notification::make()
+                        ->title('Reseller Created')
+                        ->body("Reseller created successfully. Login email: {$data['pic_email']}, Password: {$password}")
+                        ->success()
+                        ->persistent()
+                        ->send();
                 }),
         ];
     }

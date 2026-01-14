@@ -1203,9 +1203,9 @@ class HardwareHandoverV2RelationManager extends RelationManager
         $regNoValue = preg_replace('/[^0-9]/', '', $companyDetail->reg_no_new);
 
         // Check if the resulting string has exactly 12 digits
-        if (strlen($regNoValue) !== 12) {
-            return true;
-        }
+        // if (strlen($regNoValue) !== 12) {
+        //     return true;
+        // }
 
         return false;
     }

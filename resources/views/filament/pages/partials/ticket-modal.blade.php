@@ -86,7 +86,7 @@
                                 <h4 style="font-size: 14px; font-weight: 600; color: #111827; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid #E5E7EB;">
                                     Previous Comments
                                 </h4>
-                                @foreach($selectedTicket->comments as $comment)
+                                @foreach($selectedTicket->comments->sortByDesc('created_at') as $comment)
                                     <div style="margin-bottom: 20px; padding: 16px; background: #F9FAFB; border-radius: 8px; border-left: 3px solid #6366F1;">
                                         <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
                                             <div style="width: 36px; height: 36px; border-radius: 50%; background: #6366F1; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 14px;">
@@ -549,11 +549,15 @@
                     </div>
                 </div>
 
-                <!-- Company Name & Requester -->
+                <!-- Company Name & Zoho ID -->
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
                     <div>
                         <div style="font-size: 11px; color: #9CA3AF; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 500;">Company Name</div>
                         <div style="font-weight: 500; color: #111827; font-size: 14px;">{{ $selectedTicket->company_name ?? '-' }}</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 11px; color: #9CA3AF; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 500;">Zoho ID</div>
+                        <div style="font-weight: 500; color: #111827; font-size: 14px;">{{ $selectedTicket->zoho_id ?? 'N/A' }}</div>
                     </div>
                 </div>
 

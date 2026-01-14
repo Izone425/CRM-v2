@@ -373,18 +373,18 @@ class EInvoiceHandoverRelationManager extends RelationManager
                             'lead_url' => $leadUrl,
                         ];
 
-                        // Mail::send('emails.einvoice_handover_notification', $emailData, function ($message) use ($salespersonEmail, $eInvoiceHandover, $salespersonName, $selectedCompanyName) {
-                        //     $projectCode = $eInvoiceHandover->project_code;
-                        //     $subject = "{$projectCode} / " . strtoupper($salespersonName) . " / {$selectedCompanyName} / NEW";
+                        Mail::send('emails.einvoice_handover_notification', $emailData, function ($message) use ($salespersonEmail, $eInvoiceHandover, $salespersonName, $selectedCompanyName) {
+                            $projectCode = $eInvoiceHandover->project_code;
+                            $subject = "{$projectCode} / " . strtoupper($salespersonName) . " / {$selectedCompanyName} / NEW";
 
-                        //     $message->to('auni@timeteccloud.com')
-                        //         ->cc('faiz@timeteccloud.com')
-                        //         ->subject($subject);
+                            $message->to('auni@timeteccloud.com')
+                                ->cc('faiz@timeteccloud.com')
+                                ->subject($subject);
 
-                        //     if ($salespersonEmail) {
-                        //         $message->cc($salespersonEmail);
-                        //     }
-                        // });
+                            if ($salespersonEmail) {
+                                $message->cc($salespersonEmail);
+                            }
+                        });
 
                     } catch (\Exception $e) {
                         \Illuminate\Support\Facades\Log::error("Failed to send E-Invoice handover notification email", [

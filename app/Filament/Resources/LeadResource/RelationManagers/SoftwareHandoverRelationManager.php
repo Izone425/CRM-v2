@@ -1494,9 +1494,9 @@ class SoftwareHandoverRelationManager extends RelationManager
         $regNoValue = (string) $regNoValue;
 
         // Check if the resulting string has exactly 12 digits
-        if (strlen($regNoValue) !== 12) {
-            return true;
-        }
+        // if (strlen($regNoValue) !== 12) {
+        //     return true;
+        // }
 
         return false;
     }
