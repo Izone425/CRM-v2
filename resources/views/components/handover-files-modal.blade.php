@@ -33,6 +33,41 @@
                         <div class="handover-modal-column">
                             <div class="handover-info-box">
                                 <h4 class="handover-info-title">
+                                    <i class="fas fa-comment"></i>
+                                    Reseller Remark
+                                </h4>
+                                <p class="handover-remark-text">
+                                    {{ trim($selectedHandover->reseller_remark ?? 'No remarks') }}
+                                </p>
+                            </div>
+
+                            <div class="handover-info-box">
+                                <h4 class="handover-info-title">
+                                    <i class="fas fa-list-ol"></i>
+                                    Quantities
+                                </h4>
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-top: 0.5rem;">
+                                    <div>
+                                        <p style="font-size: 0.75rem; color: #6b7280; margin-bottom: 0.25rem;">Attendance</p>
+                                        <p style="font-size: 1rem; font-weight: bold; color: #2563eb;">{{ $selectedHandover->attendance_qty ?? 0 }}</p>
+                                    </div>
+                                    <div>
+                                        <p style="font-size: 0.75rem; color: #6b7280; margin-bottom: 0.25rem;">Leave</p>
+                                        <p style="font-size: 1rem; font-weight: bold; color: #7c3aed;">{{ $selectedHandover->leave_qty ?? 0 }}</p>
+                                    </div>
+                                    <div>
+                                        <p style="font-size: 0.75rem; color: #6b7280; margin-bottom: 0.25rem;">Claim</p>
+                                        <p style="font-size: 1rem; font-weight: bold; color: #f59e0b;">{{ $selectedHandover->claim_qty ?? 0 }}</p>
+                                    </div>
+                                    <div>
+                                        <p style="font-size: 0.75rem; color: #6b7280; margin-bottom: 0.25rem;">Payroll</p>
+                                        <p style="font-size: 1rem; font-weight: bold; color: #10b981;">{{ $selectedHandover->payroll_qty ?? 0 }}</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="handover-info-box">
+                                <h4 class="handover-info-title">
                                     <i class="fas fa-file-invoice"></i>
                                     TimeTec Proforma Invoice
                                 </h4>

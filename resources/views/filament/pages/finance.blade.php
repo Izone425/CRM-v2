@@ -74,6 +74,9 @@
     .group-einvoice { border-top-color: #7c3aed; }
     .group-einvoice .group-count { color: #7c3aed; }
 
+    .group-reseller { border-top-color: #f59e0b; }
+    .group-reseller .group-count { color: #f59e0b; }
+
     /* Group container layout */
     .group-container {
         display: flex;
@@ -319,6 +322,7 @@
 @php
     // Calculate E-Invoice counts
     use App\Models\EInvoiceHandover;
+    use App\Models\ResellerHandover;
 
     // Get counts for different statuses
     $newCount = EInvoiceHandover::where('status', 'New')->count();
@@ -327,6 +331,9 @@
 
     // Total count
     $totalEInvoiceCount = EInvoiceHandover::count();
+
+    // Reseller Handover counts
+    $resellerCompletedCount = ResellerHandover::where('status', 'completed')->count();
 @endphp
 
 <div id="finance-container" class="finance-container"
@@ -343,6 +350,10 @@
                 // Set default stat for E-Invoice group
                 if (value === 'einvoice') {
                     this.selectedStat = 'new-task';
+                }
+                // Set default stat for Reseller Handover group
+                if (value === 'reseller') {
+                    this.selectedStat = 'reseller-completed';
                 }
             }
         },
@@ -372,6 +383,14 @@
                      @click="setSelectedGroup('einvoice')">
                     <div class="group-title">E-Invoice Registration</div>
                     <div class="group-count">{{ $newCount }}</div>
+                </div>
+
+                <!-- Group: Reseller Handover -->
+                <div class="group-box group-reseller"
+                     :class="{'selected': selectedGroup === 'reseller'}"
+                     @click="setSelectedGroup('reseller')">
+                    <div class="group-title">Reseller Handover</div>
+                    <div class="group-count">{{ $resellerCompletedCount }}</div>
                 </div>
             </div>
         </div>
@@ -408,15 +427,28 @@
                 </div>
             </div>
 
+            <!-- Reseller Handover Categories -->
+            <div class="category-container" x-show="selectedGroup === 'reseller'">
+                <div class="stat-box completed"
+                     :class="{'selected': selectedStat === 'reseller-completed'}"
+                     @click="setSelectedStat('reseller-completed')">
+                    <div class="stat-info">
+                        <div class="stat-label">Completed</div>
+                    </div>
+                    <div class="stat-count">{{ $resellerCompletedCount }}</div>
+                </div>
+            </div>
+
             <br>
             <!-- Content Area for Tables -->
             <div class="content-area">
                 <!-- Display hint message when nothing is selected -->
                 <div class="hint-message" x-show="selectedGroup === null || selectedStat === null" x-transition>
-                    <h3 x-text="selectedGroup === null ? 'Select E-Invoice to continue' : 'Select a category to view data'"></h3>
-                    <p x-text="selectedGroup === null ? 'Click on the E-Invoice box to see categories' : 'Click on any category box to display the corresponding information'"></p>
+                    <h3 x-text="selectedGroup === null ? 'Select a group to continue' : 'Select a category to view data'"></h3>
+                    <p x-text="selectedGroup === null ? 'Click on E-Invoice or Reseller Handover to see categories' : 'Click on any category box to display the corresponding information'"></p>
                 </div>
 
+                <!-- E-Invoice Tables -->
                 <!-- New Task Table -->
                 <div x-show="selectedStat === 'new-task'" x-transition>
                     <livewire:finance-dashboard.e-invoice-handover-new />
@@ -430,6 +462,12 @@
                 <!-- Completed Table -->
                 <div x-show="selectedStat === 'completed'" x-transition>
                     <livewire:finance-dashboard.e-invoice-handover-completed />
+                </div>
+
+                <!-- Reseller Handover Tables -->
+                <!-- Reseller Completed Table -->
+                <div x-show="selectedStat === 'reseller-completed'" x-transition>
+                    <livewire:admin-reseller-handover-completed />
                 </div>
             </div>
         </div>
