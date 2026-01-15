@@ -91,13 +91,16 @@
 
             <div class="field-inline">
                 <span class="field-label">Sample Reseller Invoice: </span>
-                @php
-                    $resellerInvoice = \App\Models\FinanceInvoice::where('reseller_handover_id', $record->reseller_handover_id)
-                        ->where('portal_type', 'reseller')
-                        ->first();
-                @endphp
-                @if($resellerInvoice)
-                    <a href="{{ route('pdf.print-finance-invoice', $resellerInvoice) }}" target="_blank">{{ $resellerInvoice->fc_number }}</a>
+                @if($record->resellerHandover)
+                    @php
+                        $resellerInvoice = \App\Models\FinanceInvoice::where('reseller_handover_id', $record->reseller_handover_id)
+                            ->first();
+                    @endphp
+                    @if($resellerInvoice)
+                        <a href="{{ route('pdf.print-finance-invoice', $resellerInvoice) }}" target="_blank">{{ $resellerInvoice->fc_number }}</a>
+                    @else
+                        <span class="field-value">N/A</span>
+                    @endif
                 @else
                     <span class="field-value">N/A</span>
                 @endif

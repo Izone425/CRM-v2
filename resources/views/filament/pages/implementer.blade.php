@@ -536,7 +536,7 @@
         ->getAppointments()
         ->count();
 
-    $sessionReminderTotal = $sessionReminderPending + $sessionReminderFuture + $sessionReminderCompleted;
+    $sessionReminderTotal = $sessionReminderPending;
 @endphp
 
 <div id="implementer-container" class="implementer-container"
