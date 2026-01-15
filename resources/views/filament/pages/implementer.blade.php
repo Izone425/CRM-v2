@@ -528,11 +528,15 @@
         ->getAppointments()
         ->count();
 
+    $sessionReminderFuture = app(\App\Livewire\ImplementerDashboard\ImplementerSessionFuture::class)
+        ->getAppointments()
+        ->count();
+
     $sessionReminderCompleted = app(\App\Livewire\ImplementerDashboard\ImplementerSessionCompleted::class)
         ->getAppointments()
         ->count();
 
-    $sessionReminderTotal = $sessionReminderPending + $sessionReminderCompleted;
+    $sessionReminderTotal = $sessionReminderPending + $sessionReminderFuture + $sessionReminderCompleted;
 @endphp
 
 <div id="implementer-container" class="implementer-container"
@@ -588,6 +592,16 @@
                 <div class="group-count">{{ $sessionsTotal }}</div>
             </div>
 
+            <!-- NO2 - LICENSE CERTIFICATION -->
+            <div class="group-box group-license"
+                :class="{'selected': selectedGroup === 'license'}"
+                @click="setSelectedGroup('license')">
+                <div class="group-info">
+                    <div class="group-title">Project Task</div>
+                </div>
+                <div class="group-count">{{ $licenseTotal }}</div>
+            </div>
+
             <!-- NO3 - SESSION REMINDER -->
             <div class="group-box group-migration"
                 :class="{'selected': selectedGroup === 'session-reminder'}"
@@ -606,16 +620,6 @@
                     <div class="group-title">Follow Up Reminder</div>
                 </div>
                 <div class="group-count">{{ $followUpTotal }}</div>
-            </div>
-
-            <!-- NO2 - LICENSE CERTIFICATION -->
-            <div class="group-box group-license"
-                :class="{'selected': selectedGroup === 'license'}"
-                @click="setSelectedGroup('license')">
-                <div class="group-info">
-                    <div class="group-title">Project Task</div>
-                </div>
-                <div class="group-count">{{ $licenseTotal }}</div>
             </div>
 
             <!-- NO3 - IMPLEMENTER REQUEST -->
@@ -739,6 +743,15 @@
                         <div class="stat-label">Pending</div>
                     </div>
                     <div class="stat-count">{{ $sessionReminderPending }}</div>
+                </div>
+
+                <div class="stat-box license-pending"
+                    :class="{'selected': selectedStat === 'session-reminder-future'}"
+                    @click="setSelectedStat('session-reminder-future')">
+                    <div class="stat-info">
+                        <div class="stat-label">Future</div>
+                    </div>
+                    <div class="stat-count">{{ $sessionReminderFuture }}</div>
                 </div>
 
                 <div class="stat-box migration-completed"
@@ -1187,6 +1200,12 @@
                 <div x-show="selectedStat === 'session-reminder-pending'" x-transition>
                     <div class="p-4">
                         <livewire:implementer-dashboard.implementer-session-pending />
+                    </div>
+                </div>
+
+                <div x-show="selectedStat === 'session-reminder-future'" x-transition>
+                    <div class="p-4">
+                        <livewire:implementer-dashboard.implementer-session-future />
                     </div>
                 </div>
 

@@ -143,6 +143,11 @@
             }
         });
 
+        $adminResellerTotal = Cache::remember('admin_reseller_' . auth()->id(), 300, function() {
+            return \App\Models\ResellerHandover::whereIn('status', ['new', 'pending_timetec_invoice', 'pending_timetec_license'])
+                ->count();
+        });
+
         // Hardware V2 counts - only get what's needed
         $newTaskCount = Cache::remember('hardware_v2_new_' . auth()->id(), 300, function() {
             try {
@@ -1270,6 +1275,45 @@
                                                 </button>
 
                                                 <button
+                                                    wire:click="toggleDashboard('AdminReseller')"
+                                                    wire:loading.attr="disabled"
+                                                    wire:loading.class="opacity-50"
+                                                    style="
+                                                        display: flex;
+                                                        justify-content: space-between;
+                                                        align-items: center;
+                                                        width: 100%;
+                                                        padding: 10px 16px;
+                                                        text-align: left;
+                                                        border: none;
+                                                        background: {{ $currentDashboard === 'AdminReseller' ? '#f3f3f3' : 'white' }};
+                                                        cursor: pointer;
+                                                        font-size: 14px;
+                                                    "
+                                                >
+                                                    <span wire:loading.remove wire:target="toggleDashboard('AdminReseller')">Admin - Reseller</span>
+                                                    <span wire:loading wire:target="toggleDashboard('AdminReseller')" class="flex items-center">
+                                                        <svg class="w-4 h-4 mr-1 animate-spin" fill="none" viewBox="0 0 24 24">
+                                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                        </svg>
+                                                        Loading...
+                                                    </span>
+                                                    @if($adminResellerTotal > 0)
+                                                        <span style="
+                                                            background: #ef4444;
+                                                            color: white;
+                                                            border-radius: 12px;
+                                                            padding: 2px 8px;
+                                                            font-size: 12px;
+                                                            font-weight: bold;
+                                                            min-width: 20px;
+                                                            text-align: center;
+                                                        ">{{ $adminResellerTotal }}</span>
+                                                    @endif
+                                                </button>
+
+                                                <button
                                                     wire:click="toggleDashboard('AdminUSDInvoice')"
                                                     wire:loading.attr="disabled"
                                                     wire:loading.class="opacity-50"
@@ -1498,7 +1542,7 @@
                 </div>
 
                 <br>
-                <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+                <div class="grid grid-cols-1 gap-6">
                     @if ($selectedUserRole == 1)
                         @if (isset($selectedUserModel) && $selectedUserModel && $selectedUserModel->role_id == 1 && $selectedUserModel->additional_role == 1)
                             @if ($currentDashboard === 'LeadOwner')
@@ -1544,6 +1588,8 @@
                             @include('filament.pages.adminrenewalnonreseller') --}}
                         @elseif ($currentDashboard === 'AdminHRDF')
                             @include('filament.pages.adminhrdf')
+                        @elseif ($currentDashboard === 'AdminReseller')
+                            @include('filament.pages.admin-reseller')
                         @elseif ($currentDashboard === 'AdminHRDFAttLog')
                             @include('filament.pages.adminhrdfattlog')
                         @elseif ($currentDashboard === 'AdminHeadcount')

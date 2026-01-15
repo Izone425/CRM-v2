@@ -1393,23 +1393,6 @@
                         </div>
                     </div>
 
-                    <!-- Admin Reseller Section -->
-                    <div class="menu-block">
-                        <div class="menu-item nested-dropdown-trigger" data-submenu="admin-reseller-submenu">
-                            <div class="menu-icon-wrapper">
-                                <i class="bi bi-tags"></i>
-                            </div>
-                            <span class="menu-text">Admin - Reseller</span>
-                            <i class="bi bi-chevron-down menu-arrow"></i>
-                        </div>
-
-                        <div class="submenu" id="admin-reseller-submenu">
-                            <a href="{{ route('filament.admin.pages.admin-reseller-dashboard') }}" class="submenu-item">
-                                <span class="module-font">Admin Reseller Dashboard</span>
-                            </a>
-                        </div>
-                    </div>
-
                     <!-- Admin Debtor Section -->
                     <div class="menu-block">
                         <div class="menu-item nested-dropdown-trigger" data-submenu="admin-debtor-submenu">

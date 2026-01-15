@@ -119,6 +119,28 @@ class ResellerHandoverPendingTimetecInvoice extends Component implements HasForm
                     ->label('Complete Task')
                     ->icon('heroicon-o-check-circle')
                     ->color('success')
+                    ->fillForm(function (ResellerHandover $record) {
+                        // Check if there's a finance invoice for this handover
+                        $financeInvoice = \App\Models\FinanceInvoice::where('reseller_handover_id', $record->id)
+                            ->latest()
+                            ->first();
+
+                        $formData = [];
+
+                        // If finance invoice exists, pre-fill the reseller_invoice field with the PDF path
+                        if ($financeInvoice) {
+                            $invoiceFilename = 'FI_' . $financeInvoice->fc_number . '_' .
+                                \Illuminate\Support\Str::upper(\Illuminate\Support\Str::replace('-', '_', \Illuminate\Support\Str::slug($financeInvoice->reseller_name))) . '.pdf';
+
+                            // Check if the file exists in finance-invoices directory
+                            $filePath = 'finance-invoices/' . $invoiceFilename;
+                            if (\Illuminate\Support\Facades\Storage::disk('public')->exists($filePath)) {
+                                $formData['reseller_invoice'] = [$filePath];
+                            }
+                        }
+
+                        return $formData;
+                    })
                     ->form([
                         FileUpload::make('autocount_invoice')
                             ->label('Autocount Invoice')
@@ -182,9 +204,12 @@ class ResellerHandoverPendingTimetecInvoice extends Component implements HasForm
                         FileUpload::make('reseller_invoice')
                             ->label('Sample Reseller Invoice')
                             ->required()
+                            ->disabled()
+                            ->dehydrated(true)
                             ->multiple()
                             ->acceptedFileTypes(['application/pdf', 'image/*'])
                             ->disk('public')
+                            ->openable()
                             ->directory('reseller-handover/reseller-invoices')
                             ->maxSize(10240),
                         TextInput::make('autocount_invoice_number')
