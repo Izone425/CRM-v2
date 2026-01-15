@@ -66,7 +66,7 @@ class ResellerHandover extends Model
 
         // Get the f_id from crm_expiring_license table using invoice number and company id
         $license = DB::connection('frontenddb')
-            ->table('crm_expiring_license')
+            ->table('crm_invoice_details')
             ->where('f_invoice_no', $this->timetec_proforma_invoice)
             ->first(['f_id']);
 

@@ -283,8 +283,6 @@ class TicketListV1 extends Component implements HasTable, HasForms, HasActions
                 'ticket_id' => $this->selectedTicket->id,
                 'user_id' => $userId,
                 'comment' => $this->newComment, // Store comment as-is since it's from rich editor
-                'created_at' => now()->subHours(8),
-                'updated_at' => now()->subHours(8),
             ]);
 
             $this->newComment = '';
@@ -356,8 +354,6 @@ class TicketListV1 extends Component implements HasTable, HasForms, HasActions
                     'mime_type' => $file->getMimeType(),
                     'file_hash' => $fileHash,
                     'uploaded_by' => $userId,
-                    'created_at' => now()->subHours(8),
-                    'updated_at' => now()->subHours(8),
                 ]);
             }
 
@@ -425,8 +421,6 @@ class TicketListV1 extends Component implements HasTable, HasForms, HasActions
                 'user_role' => $ticketSystemUser?->role ?? 'Support Staff',
                 'change_type' => 'status_change',
                 'source' => 'modal',
-                'created_at' => now()->subHours(8),
-                'updated_at' => now()->subHours(8),
             ]);
 
             // ✅ Refresh the selected ticket with fresh data including logs
@@ -507,8 +501,7 @@ class TicketListV1 extends Component implements HasTable, HasForms, HasActions
                                 'mime_type' => $file->getMimeType(),
                                 'file_hash' => $fileHash,
                                 'uploaded_by' => $userId,
-                                'created_at' => now()->subHours(8),
-                                'updated_at' => now()->subHours(8),
+
                             ]);
 
                             // If it's an image, collect the URL for HTML comment
@@ -552,16 +545,12 @@ class TicketListV1 extends Component implements HasTable, HasForms, HasActions
                     'ticket_id' => $this->selectedTicket->id,
                     'user_id' => $userId,
                     'comment' => $htmlComment,
-                    'created_at' => now()->subHours(8),
-                    'updated_at' => now()->subHours(8),
                 ]);
             } elseif (!empty(trim($this->reopenComment))) {
                 TicketComment::create([
                     'ticket_id' => $this->selectedTicket->id,
                     'user_id' => $userId,
                     'comment' => trim($this->reopenComment),
-                    'created_at' => now()->subHours(8),
-                    'updated_at' => now()->subHours(8),
                 ]);
             }
 
@@ -580,8 +569,6 @@ class TicketListV1 extends Component implements HasTable, HasForms, HasActions
                 'user_role' => $ticketSystemUser?->role ?? 'Support Staff',
                 'change_type' => 'status_change',
                 'source' => 'reopen_modal',
-                'created_at' => now()->subHours(8),
-                'updated_at' => now()->subHours(8),
             ]);
 
             // Close modal and reset form

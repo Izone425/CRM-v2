@@ -546,12 +546,6 @@
         }
     </style>
 
-    <!-- Title -->
-    <div class="title-section">
-        <h2>Pending Reseller Handover</h2>
-        <p>View handovers that are pending from reseller side</p>
-    </div>
-
     <!-- Search Input -->
     <div class="search-wrapper">
         <div class="search-icon">
@@ -562,7 +556,6 @@
         <input
             type="text"
             wire:model.live="search"
-            placeholder="Search by FB ID or subscriber name..."
             class="search-input"
         >
     </div>

@@ -176,12 +176,6 @@
         }
     </style>
 
-    <!-- Title -->
-    <div class="title-section">
-        <h2>Completed Handovers</h2>
-        <p>View all completed renewal handovers</p>
-    </div>
-
     <!-- Search Input -->
     <div class="search-wrapper">
         <div class="search-icon">
@@ -192,7 +186,6 @@
         <input
             type="text"
             wire:model.live="search"
-            placeholder="Search by FB ID or subscriber name..."
             class="search-input"
         >
     </div>

@@ -37,4 +37,13 @@ class TicketComment extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    /**
+     * Get a fresh timestamp for the model.
+     * Automatically adjusts timestamps to UTC-8 (Malaysia time)
+     */
+    public function freshTimestamp(): \Illuminate\Support\Carbon
+    {
+        return now()->subHours(8);
+    }
 }
