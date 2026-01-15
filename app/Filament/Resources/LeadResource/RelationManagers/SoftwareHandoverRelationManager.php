@@ -116,7 +116,7 @@ class SoftwareHandoverRelationManager extends RelationManager
                                     $record?->pic_name ?? $this->getOwnerRecord()->companyDetail->name ?? $this->getOwnerRecord()->name),
                             TextInput::make('pic_phone')
                                 ->label('HP Number')
-                                ->tel()
+                                // ->tel()
                                 ->default(fn (?SoftwareHandover $record = null) =>
                                     $record?->pic_phone ?? $this->getOwnerRecord()->companyDetail->contact_no ?? $this->getOwnerRecord()->phone),
                         ]),
@@ -205,7 +205,7 @@ class SoftwareHandoverRelationManager extends RelationManager
                                     ->label('Position'),
                                 TextInput::make('pic_phone_impl')
                                     ->required()
-                                    ->tel()
+                                    // ->tel()
                                     ->label('HP Number'),
                                 TextInput::make('pic_email_impl')
                                     ->label('Email Address')

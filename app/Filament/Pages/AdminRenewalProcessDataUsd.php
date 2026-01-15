@@ -1267,6 +1267,22 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                             ->weight('bold')
                             ->alignLeft()
                             ->grow()
+                            ->url(function ($record) {
+                                if (!$record) return null;
+                                $companyId = $record->f_company_id ?? null;
+                                if (!$companyId) return null;
+
+                                $renewal = Renewal::where('f_company_id', $companyId)->first();
+
+                                if ($renewal && $renewal->lead_id) {
+                                    return route('filament.admin.resources.leads.view', [
+                                        'record' => \App\Classes\Encryptor::encrypt($renewal->lead_id),
+                                    ]);
+                                }
+
+                                return null;
+                            })
+                            ->openUrlInNewTab()
                     ]),
 
                     Stack::make([
@@ -1275,6 +1291,7 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                             ->label('Expiry Date')
                             ->date('d M Y')
                             ->color(function ($state) {
+                                if (!$state) return 'gray';
                                 if (!$state) return 'gray';
 
                                 $today = Carbon::now();
@@ -1290,13 +1307,19 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                     ]),
 
                     Stack::make([
-                        TextColumn::make('f_company_id')
+                        TextColumn::make('renewal_progress_display')
                             ->label('Renewal Progress')
+                            ->state(function ($record) {
+                                if (!$record) return null;
+                                return $record->f_company_id ?? null;
+                            })
                             ->formatStateUsing(function ($state, $record) {
-                                if (!$state || !$record) return '';
+                                if (!$record) return '';
+                                $companyId = $record->f_company_id ?? null;
+                                if (!$companyId) return '';
 
                                 // ✅ Use cached renewal data
-                                $renewal = $this->getCachedRenewal($state);
+                                $renewal = $this->getCachedRenewal($companyId);
                                 if (!$renewal || !$renewal->renewal_progress) return '';
 
                                 return match ($renewal->renewal_progress) {
@@ -1310,7 +1333,9 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                             ->badge()
                             ->alignLeft()
                             ->color(function ($state, $record) {
-                                if (!$state || !$record) return 'gray';
+                                if (!$record) return 'gray';
+                                $companyId = $record->f_company_id ?? null;
+                                if (!$companyId) return 'gray';
 
                                 $renewal = $this->getCachedRenewal($record->f_company_id);
                                 if (!$renewal || !$renewal->renewal_progress) return 'gray';
@@ -1324,8 +1349,10 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                                 };
                             })
                             ->visible(function ($state, $record) {
-                                if (!$state || !$record) return false;
-                                $renewal = $this->getCachedRenewal($record->f_company_id);
+                                if (!$record) return false;
+                                $companyId = $record->f_company_id ?? null;
+                                if (!$companyId) return false;
+                                $renewal = $this->getCachedRenewal($companyId);
                                 return $renewal !== null;
                             }),
                     ]),
@@ -1335,7 +1362,9 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                             ->label('Amount')
                             ->alignRight()
                             ->formatStateUsing(function ($state, $record) {
-                                if (!$state || !$record) return '0.00';
+                                if (!$record) return '0.00';
+                                $companyId = $record->f_company_id ?? null;
+                                if (!$companyId) return '0.00';
 
                                 // ✅ Use cached renewal data
                                 $renewal = $this->getCachedRenewal($record->f_company_id);
@@ -1362,20 +1391,28 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                     ]),
 
                     Stack::make([
-                        TextColumn::make('f_company_id')
+                        TextColumn::make('reseller_display')
                             ->label('Reseller')
+                            ->state(function ($record) {
+                                if (!$record) return null;
+                                return $record->f_company_id ?? null;
+                            })
                             ->formatStateUsing(function ($state, $record) {
-                                if (!$state || !$record) return '';
+                                if (!$record) return '';
+                                $companyId = $record->f_company_id ?? null;
+                                if (!$companyId) return '';
 
                                 // ✅ Use cached reseller data
-                                $reseller = $this->getCachedReseller($state);
+                                $reseller = $this->getCachedReseller($companyId);
                                 return $reseller ? 'Reseller' : '';
                             })
                             ->badge()
                             ->alignRight()
                             ->color('danger')
                             ->tooltip(function ($state, $record) {
-                                if (!$state || !$record) return null;
+                                if (!$record) return null;
+                                $companyId = $record->f_company_id ?? null;
+                                if (!$companyId) return null;
 
                                 $reseller = $this->getCachedReseller($record->f_company_id);
                                 if (!$reseller) return null;
@@ -1383,8 +1420,10 @@ class AdminRenewalProcessDataUsd extends Page implements HasTable
                                 return new HtmlString(strtoupper($reseller->reseller_name));
                             })
                             ->visible(function ($state, $record) {
-                                if (!$state || !$record) return false;
-                                $reseller = $this->getCachedReseller($record->f_company_id);
+                                if (!$record) return false;
+                                $companyId = $record->f_company_id ?? null;
+                                if (!$companyId) return false;
+                                $reseller = $this->getCachedReseller($companyId);
                                 return $reseller !== null;
                             }),
                     ]),

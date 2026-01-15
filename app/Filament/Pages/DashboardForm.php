@@ -110,6 +110,7 @@ class DashboardForm extends Page
             'HRDF',
             'AdminHRDFAttLog',
             'AdminHRDF',
+            'AdminReseller',
             'AdminHeadcount',
             'AdminGeneral',
             'Finance',

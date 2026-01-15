@@ -120,6 +120,9 @@ Route::get('/quotation-v2/{quotation}', [GenerateQuotationPdfController::class, 
     ->name('pdf.print-quotation-v2');
 Route::get('/proforma-invoice/{quotation?}', ProformaInvoiceController::class)->name('pdf.print-proforma-invoice');
 Route::get('/proforma-invoice-v2/{quotation?}', GenerateProformaInvoicePdfController::class)->name('pdf.print-proforma-invoice-v2');
+Route::get('/finance-invoice/{financeInvoice}', [App\Http\Controllers\GenerateFinanceInvoicePdfController::class, '__invoke'])
+    ->name('pdf.print-finance-invoice')
+    ->middleware(['auth']);
 
 Route::post('/webhook/whatsapp', function (Request $request) {
     $data = $request->all();

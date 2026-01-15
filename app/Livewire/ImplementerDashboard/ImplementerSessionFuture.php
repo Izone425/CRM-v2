@@ -19,7 +19,7 @@ use Illuminate\Support\Str;
 use Livewire\Component;
 use Livewire\Attributes\On;
 
-class ImplementerSessionPending extends Component implements HasForms, HasTable
+class ImplementerSessionFuture extends Component implements HasForms, HasTable
 {
     use InteractsWithTable;
     use InteractsWithForms;
@@ -50,19 +50,18 @@ class ImplementerSessionPending extends Component implements HasForms, HasTable
         $this->lastRefreshTime = now()->format('Y-m-d H:i:s');
     }
 
-    #[On('updateTablesForUser')] // Listen for updates
+    #[On('updateTablesForUser')]
     public function updateTablesForUser($selectedUser)
     {
         if ($selectedUser) {
             $this->selectedUser = $selectedUser;
-            session(['selectedUser' => $selectedUser]); // Store selected user
+            session(['selectedUser' => $selectedUser]);
         } else {
-            // Reset to "Your Own Dashboard" (value = 7)
             $this->selectedUser = 7;
             session(['selectedUser' => 7]);
         }
 
-        $this->resetTable(); // Refresh the table
+        $this->resetTable();
     }
 
     public function getAppointments()
@@ -70,12 +69,12 @@ class ImplementerSessionPending extends Component implements HasForms, HasTable
         $this->selectedUser = $this->selectedUser ?? session('selectedUser') ?? auth()->id();
 
         $query = ImplementerAppointment::query()
-            ->where('status', 'New') // Only pending/new appointments
-            ->whereNotNull('lead_id') // Only appointments with lead_id
-            ->where('date', '<=', now()->toDateString()); // Today and past dates only
+            ->where('status', 'New')
+            ->whereNotNull('lead_id')
+            ->where('date', '>', now()->toDateString()); // Future dates only
 
         if ($this->selectedUser === 'all-implementer') {
-            // Show all implementer appointments - no additional filtering
+            // Show all implementer appointments
         }
         elseif (is_numeric($this->selectedUser)) {
             $user = \App\Models\User::find($this->selectedUser);
@@ -173,6 +172,6 @@ class ImplementerSessionPending extends Component implements HasForms, HasTable
 
     public function render()
     {
-        return view('livewire.implementer_dashboard.implementer-session-pending');
+        return view('livewire.implementer_dashboard.implementer-session-future');
     }
 }
