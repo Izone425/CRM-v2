@@ -631,7 +631,7 @@ class HardwareV2NewTable extends Component implements HasForms, HasTable
                                     '
                                 ])
                                 ->dehydrateStateUsing(fn ($state) => strtoupper($state))
-                                ->maxLength(100)
+                                ->maxLength(12)
                                 ->rules([
                                     'required',
                                     function () {

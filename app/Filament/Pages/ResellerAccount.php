@@ -39,6 +39,7 @@ class ResellerAccount extends Page implements HasTable
                 ->icon('heroicon-o-plus')
                 ->modalWidth('2xl')
                 ->slideOver()
+                ->modalHeading('Create Reseller Account')
                 ->form([
                     Select::make('company_name')
                         ->label('Company Name')
@@ -51,6 +52,7 @@ class ResellerAccount extends Page implements HasTable
                                 ->where('reseller_name', '!=', '')
                                 ->orderBy('reseller_name')
                                 ->pluck('reseller_name', 'reseller_name')
+                                ->mapWithKeys(fn($value, $key) => [strtoupper($key) => strtoupper($value)])
                                 ->toArray();
                         })
                         ->live()
@@ -58,7 +60,7 @@ class ResellerAccount extends Page implements HasTable
                             if ($state) {
                                 $reseller = \Illuminate\Support\Facades\DB::connection('frontenddb')
                                     ->table('crm_reseller_link')
-                                    ->where('reseller_name', $state)
+                                    ->whereRaw('UPPER(reseller_name) = ?', [strtoupper($state)])
                                     ->first();
 
                                 if ($reseller) {
@@ -67,7 +69,7 @@ class ResellerAccount extends Page implements HasTable
                             }
                         }),
 
-                    Grid::make(3)
+                    Grid::make(2)
                         ->schema([
                                 TextInput::make('name')
                                     ->label('PIC Name')
@@ -94,6 +96,12 @@ class ResellerAccount extends Page implements HasTable
                                     ->email()
                                     ->required()
                                     ->maxLength(255),
+
+                                TextInput::make('reseller_id')
+                                    ->label('Bind Reseller ID (Admin Portal)')
+                                    ->numeric()
+                                    ->disabled()
+                                    ->dehydrated(),
                         ]),
 
                     Grid::make(2)
@@ -186,32 +194,25 @@ class ResellerAccount extends Page implements HasTable
                                 ])
                                 ->dehydrateStateUsing(fn ($state) => strtoupper($state))
                                 ->maxLength(255),
+
+                            Select::make('sst_category')
+                                ->label('SST Category')
+                                ->options([
+                                    'EXEMPTED' => 'Exempted',
+                                    'NON-EXEMPTED' => 'Non-Exempted',
+                                ])
+                                ->required()
+                                ->default('NON-EXEMPTED'),
+
+                            TextInput::make('commission_rate')
+                                ->label('Commission Scheme (%)')
+                                ->numeric()
+                                ->required()
+                                ->minValue(0)
+                                ->maxValue(99.99)
+                                ->step(0.01)
+                                ->suffix('%'),
                         ]),
-
-                    Select::make('sst_category')
-                        ->label('SST Category')
-                        ->options([
-                            'EXEMPTED' => 'Exempted',
-                            'NON-EXEMPTED' => 'Non-Exempted',
-                        ])
-                        ->required()
-                        ->default('NON-EXEMPTED'),
-
-                    TextInput::make('commission_rate')
-                        ->label('Commission Scheme (%)')
-                        ->numeric()
-                        ->required()
-                        ->minValue(0)
-                        ->maxValue(99.99)
-                        ->step(0.01)
-                        ->suffix('%'),
-
-                    TextInput::make('reseller_id')
-                        ->label('Bind Reseller ID (Admin Portal)')
-                        ->numeric()
-                        ->disabled()
-                        ->dehydrated()
-                        ->helperText('Auto-filled when company is selected'),
                 ])
                 ->action(function (array $data) {
                     // Auto-generate password
@@ -249,38 +250,23 @@ class ResellerAccount extends Page implements HasTable
         return $table
             ->query(ResellerV2::query())
             ->columns([
+                TextColumn::make('no')
+                    ->label('NO')
+                    ->rowIndex(),
+
                 TextColumn::make('company_name')
                     ->label('Company Name')
                     ->searchable()
                     ->sortable(),
 
-                TextColumn::make('name')
-                    ->label('PIC Name')
-                    ->searchable()
-                    ->sortable(),
-
-                TextColumn::make('phone')
-                    ->label('PIC No HP')
-                    ->searchable(),
-
                 TextColumn::make('email')
-                    ->label('PIC Email')
+                    ->label('Login Email')
                     ->searchable()
                     ->copyable(),
 
                 TextColumn::make('plain_password')
-                    ->label('Password')
-                    ->toggleable(isToggledHiddenByDefault: true)
+                    ->label('Login Password')
                     ->copyable(),
-
-                TextColumn::make('ssm_number')
-                    ->label('SSM Number')
-                    ->searchable(),
-
-                TextColumn::make('tax_identification_number')
-                    ->label('Tax ID Number')
-                    ->searchable()
-                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('sst_category')
                     ->label('SST Category')
@@ -296,6 +282,32 @@ class ResellerAccount extends Page implements HasTable
                     ->sortable()
                     ->formatStateUsing(fn ($state) => number_format($state, 2) . '%'),
 
+                TextColumn::make('created_at')
+                    ->label('Created')
+                    ->dateTime()
+                    ->sortable(),
+
+                TextColumn::make('name')
+                    ->label('PIC Name')
+                    ->searchable()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+
+                TextColumn::make('phone')
+                    ->label('PIC No HP')
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+
+                TextColumn::make('ssm_number')
+                    ->label('SSM Number')
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+
+                TextColumn::make('tax_identification_number')
+                    ->label('Tax ID Number')
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+
                 TextColumn::make('reseller.company_name')
                     ->label('Bound Reseller')
                     ->searchable()
@@ -307,12 +319,7 @@ class ResellerAccount extends Page implements HasTable
                         'active' => 'success',
                         'inactive' => 'danger',
                         default => 'gray',
-                    }),
-
-                TextColumn::make('created_at')
-                    ->label('Created')
-                    ->dateTime()
-                    ->sortable()
+                    })
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
@@ -324,7 +331,9 @@ class ResellerAccount extends Page implements HasTable
             ->bulkActions([
                 //
             ])
-            ->defaultSort('created_at', 'desc');
+            ->defaultSort('created_at', 'desc')
+            ->paginated([50, 'all'])
+            ->defaultPaginationPageOption(50);
     }
 }
 

@@ -13,7 +13,6 @@
     <button
         wire:click="openModal"
         class="w-full px-4 py-2 text-sm font-semibold text-white transition-all duration-300 bg-green-500 rounded-lg shadow-lg hover:bg-green-600 hover:shadow-xl">
-        <i class="mr-2 fas fa-plus-circle"></i>
         Request Quotation
     </button>
 
@@ -33,7 +32,6 @@
                     <div class="px-6 py-4 bg-gradient-to-r from-indigo-600 to-purple-600">
                         <div class="flex items-center justify-between">
                             <h3 class="text-xl font-bold text-white">
-                                <i class="mr-2 fas fa-file-invoice"></i>
                                 Request Quotation
                             </h3>
                             <button
@@ -56,14 +54,13 @@
                             <button
                                 wire:click="$set('subscriberStatus', 'inactive')"
                                 class="flex-1 px-4 py-2 text-sm font-semibold rounded-lg transition-all {{ $subscriberStatus === 'inactive' ? 'bg-red-500 text-white shadow-lg' : 'bg-gray-200 text-gray-700 hover:bg-gray-300' }}">
-                                <i class="mr-2 fas fa-times-circle"></i>Inactive
+                                <i class="mr-2 fas fa-times-circle"></i>InActive
                             </button>
                         </div>
 
                         <!-- Subscriber Search -->
                         <div class="relative">
                             <label class="block mb-1 text-sm font-semibold text-gray-700">
-                                <i class="mr-2 text-indigo-600 fas fa-building"></i>
                                 Select Subscriber <span class="text-red-500">*</span>
                             </label>
 
@@ -72,7 +69,7 @@
                                     <input
                                         type="text"
                                         wire:model.live="search"
-                                        placeholder="Search subscriber name..."
+                                        placeholder="Search subscriber name"
                                         value="{{ $selectedSubscriber ? $selectedSubscriber['company_name'] : '' }}"
                                         class="w-full px-4 py-2 pr-10 transition-all border-2 border-gray-300 rounded-lg focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200">
                                     <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
@@ -80,7 +77,7 @@
                                     </div>
                                 </div>
 
-                                @if(!$selectedSubscriber && strlen($search) >= 2 && $subscribers->count() > 0)
+                                @if(!$selectedSubscriber && $subscribers->count() > 0)
                                     <div class="absolute z-10 w-full mt-1 overflow-y-auto bg-white border border-gray-300 rounded-lg shadow-lg max-h-60">
                                         @foreach($subscribers as $subscriber)
                                             <button
@@ -94,13 +91,9 @@
                                             </button>
                                         @endforeach
                                     </div>
-                                @elseif(!$selectedSubscriber && strlen($search) >= 2 && $subscribers->count() == 0)
+                                @elseif(!$selectedSubscriber && strlen($search) > 0 && $subscribers->count() == 0)
                                     <div class="absolute z-10 w-full p-3 mt-1 text-center text-gray-500 bg-white border border-gray-300 rounded-lg shadow-lg">
                                         <i class="mr-2 fas fa-search"></i>No subscribers found
-                                    </div>
-                                @elseif(!$selectedSubscriber && strlen($search) < 2 && strlen($search) > 0)
-                                    <div class="absolute z-10 w-full p-3 mt-1 text-xs text-center text-gray-500 bg-white border border-gray-300 rounded-lg shadow-lg">
-                                        Type at least 2 characters to search
                                     </div>
                                 @endif
                             </div>
@@ -115,7 +108,7 @@
                                 <!-- Attendance -->
                                 <div>
                                     <label class="block mb-1 text-sm font-medium text-gray-600">
-                                        <i class="mr-2 text-blue-500 fas fa-user-clock"></i>Attendance (TA)
+                                        Attendance
                                     </label>
                                     <input
                                         type="number"
@@ -131,7 +124,7 @@
                                 <!-- Leave -->
                                 <div>
                                     <label class="block mb-1 text-sm font-medium text-gray-600">
-                                        <i class="mr-2 text-green-500 fas fa-calendar-times"></i>Leave
+                                        Leave
                                     </label>
                                     <input
                                         type="number"
@@ -147,7 +140,7 @@
                                 <!-- Claim -->
                                 <div>
                                     <label class="block mb-1 text-sm font-medium text-gray-600">
-                                        <i class="mr-2 text-yellow-500 fas fa-receipt"></i>Claim
+                                        Claim
                                     </label>
                                     <input
                                         type="number"
@@ -163,7 +156,7 @@
                                 <!-- Payroll -->
                                 <div>
                                     <label class="block mb-1 text-sm font-medium text-gray-600">
-                                        <i class="mr-2 text-purple-500 fas fa-money-bill-wave"></i>Payroll
+                                        Payroll
                                     </label>
                                     <input
                                         type="number"
@@ -181,18 +174,15 @@
                         <!-- Reseller Remark -->
                         <div>
                             <label class="block mb-1 text-sm font-semibold text-gray-700">
-                                <i class="mr-2 text-indigo-600 fas fa-comment-dots"></i>
                                 Reseller Remark
                             </label>
                             <textarea
                                 wire:model="resellerRemark"
                                 rows="4"
                                 maxlength="1000"
+                                style="text-transform: uppercase;"
                                 class="w-full px-4 py-2 transition-all border-2 border-gray-300 rounded-lg resize-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
-                                placeholder="Enter any additional notes or remarks..."></textarea>
-                            <div class="mt-1 text-xs text-right text-gray-500">
-                                {{ strlen($resellerRemark) }}/1000 characters
-                            </div>
+                                ></textarea>
                             @error('resellerRemark')
                                 <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                             @enderror

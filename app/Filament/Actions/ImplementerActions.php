@@ -2261,6 +2261,9 @@ class ImplementerActions
                     // Ensure email will be sent
                     $data['send_email'] = true;
 
+                    // ✅ ADD: Pass lead_id explicitly for session summary to ensure CC works
+                    $data['lead_id'] = $record->lead_id;
+
                     // Process the email through the existing follow-up system (without creating a follow-up entry)
                     self::processFollowUpWithEmail($softwareHandover, $data, false);
 

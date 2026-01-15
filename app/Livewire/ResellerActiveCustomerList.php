@@ -63,10 +63,44 @@ class ResellerActiveCustomerList extends Component
             ->get();
     }
 
+    public function getActiveCountProperty()
+    {
+        $reseller = Auth::guard('reseller')->user();
+
+        if (!$reseller || !$reseller->reseller_id) {
+            return 0;
+        }
+
+        return DB::connection('frontenddb')
+            ->table('crm_reseller_link')
+            ->join('crm_customer', 'crm_reseller_link.f_backend_companyid', '=', 'crm_customer.f_backend_companyid')
+            ->where('crm_reseller_link.reseller_id', $reseller->reseller_id)
+            ->where('crm_customer.f_status', 'A')
+            ->count();
+    }
+
+    public function getInactiveCountProperty()
+    {
+        $reseller = Auth::guard('reseller')->user();
+
+        if (!$reseller || !$reseller->reseller_id) {
+            return 0;
+        }
+
+        return DB::connection('frontenddb')
+            ->table('crm_reseller_link')
+            ->join('crm_customer', 'crm_reseller_link.f_backend_companyid', '=', 'crm_customer.f_backend_companyid')
+            ->where('crm_reseller_link.reseller_id', $reseller->reseller_id)
+            ->whereIn('crm_customer.f_status', ['D', 'I', 'T'])
+            ->count();
+    }
+
     public function render()
     {
         return view('livewire.reseller-active-customer-list', [
-            'customers' => $this->customers
+            'customers' => $this->customers,
+            'activeCount' => $this->activeCount,
+            'inactiveCount' => $this->inactiveCount
         ]);
     }
 }

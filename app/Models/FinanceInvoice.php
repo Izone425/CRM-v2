@@ -46,6 +46,11 @@ class FinanceInvoice extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
+    public function adminPortalInvoices()
+    {
+        return $this->hasMany(AdminPortalInvoice::class, 'finance_invoice_id');
+    }
+
     // Generate FC/FD Number
     public static function generateFcNumber(string $portalType = 'reseller'): string
     {
