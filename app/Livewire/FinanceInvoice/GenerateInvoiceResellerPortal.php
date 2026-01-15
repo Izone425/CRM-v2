@@ -72,7 +72,7 @@ class GenerateInvoiceResellerPortal extends Component implements HasTable, HasFo
             )
             ->columns([
                 TextColumn::make('fc_number')
-                    ->label('FC Number')
+                    ->label('ID')
                     ->searchable()
                     ->sortable()
                     ->weight('bold')
@@ -97,13 +97,8 @@ class GenerateInvoiceResellerPortal extends Component implements HasTable, HasFo
                     ->label('Amount')
                     ->money('MYR')
                     ->sortable(),
-            ])            ->actions([
-                Action::make('view_pdf')
-                    ->label('View PDF')
-                    ->icon('heroicon-o-document-text')
-                    ->url(fn (FinanceInvoice $record): string => route('pdf.print-finance-invoice', $record))
-                    ->openUrlInNewTab(),
-            ])            ->actions([
+            ])
+            ->actions([
                 Action::make('view_pdf')
                     ->label('View PDF')
                     ->icon('heroicon-o-document-text')
