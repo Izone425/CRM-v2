@@ -147,7 +147,7 @@ class HRDFHandoverRelationManager extends RelationManager
                     TextInput::make('autocount_invoice_number')
                         ->label('AutoCount Invoice Number')
                         ->required()
-                        ->maxLength(50)
+                        ->maxLength(13)
                         ->extraAlpineAttributes([
                             'x-on:input' => '
                                 const start = $el.selectionStart;

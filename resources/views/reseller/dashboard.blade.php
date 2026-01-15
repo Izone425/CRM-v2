@@ -203,9 +203,9 @@
         <div class="relative px-4 py-6 mx-auto max-w-7xl sm:px-6 lg:px-8">
             <div class="flex items-center justify-between">
                 <div class="flex items-center space-x-4">
-                    <div class="flex items-center justify-center w-12 h-12 bg-white rounded-full shadow-lg">
+                    {{-- <div class="flex items-center justify-center w-12 h-12 bg-white rounded-full shadow-lg">
                         <i class="text-2xl text-indigo-600 fas fa-handshake"></i>
-                    </div>
+                    </div> --}}
                     <div>
                         <h1 class="text-3xl font-bold text-white drop-shadow-lg">Reseller Portal</h1>
                     </div>
@@ -242,7 +242,7 @@
                     id="customers-tab"
                     class="menu-item active">
                 <i class="fas fa-users"></i>
-                <span>Active Customers</span>
+                <span>Customers</span>
             </button>
 
             <button onclick="switchTab('expired')"

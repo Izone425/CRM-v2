@@ -66,7 +66,7 @@ class AdminResellerHandoverAll extends Component implements HasForms, HasTable
                     ->color('primary')
                     ->weight('bold')
                     ,
-                TextColumn::make('reseller_name')
+                TextColumn::make('reseller_company_name')
                     ->label('Reseller Name')
                     ->searchable()
                     ->sortable(),

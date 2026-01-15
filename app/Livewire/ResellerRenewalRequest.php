@@ -19,6 +19,11 @@ class ResellerRenewalRequest extends Component
     public $payroll = 0;
     public $resellerRemark = '';
 
+    public function updatedResellerRemark($value)
+    {
+        $this->resellerRemark = strtoupper($value);
+    }
+
     public function openModal()
     {
         $this->showModal = true;
@@ -54,10 +59,6 @@ class ResellerRenewalRequest extends Component
 
     public function getSubscribersProperty()
     {
-        if (strlen($this->search) < 2) {
-            return collect([]);
-        }
-
         $reseller = Auth::guard('reseller')->user();
 
         if (!$reseller || !$reseller->reseller_id) {
@@ -72,8 +73,12 @@ class ResellerRenewalRequest extends Component
                 'crm_reseller_link.f_company_name',
                 'crm_customer.f_status'
             )
-            ->where('crm_reseller_link.reseller_id', $reseller->reseller_id)
-            ->where('crm_reseller_link.f_company_name', 'like', '%' . $this->search . '%');
+            ->where('crm_reseller_link.reseller_id', $reseller->reseller_id);
+
+        // Apply search filter if search term exists
+        if (strlen($this->search) > 0) {
+            $query->where('crm_reseller_link.f_company_name', 'like', '%' . $this->search . '%');
+        }
 
         if ($this->subscriberStatus === 'active') {
             $query->where('crm_customer.f_status', 'A');
@@ -81,7 +86,7 @@ class ResellerRenewalRequest extends Component
             $query->whereIn('crm_customer.f_status', ['D', 'I', 'T']);
         }
 
-        return $query->limit(10)->get();
+        return $query->orderBy('crm_reseller_link.f_company_name', 'asc')->limit(50)->get();
     }
 
     public function submitRequest()
@@ -97,9 +102,9 @@ class ResellerRenewalRequest extends Component
 
         $reseller = Auth::guard('reseller')->user();
 
-        // Mark existing handover requests for this subscriber as inactive if not completed
+        // Mark existing handover requests for this subscriber as inactive if status is new or pending_confirmation
         ResellerHandover::where('subscriber_id', $this->selectedSubscriber['f_id'])
-            ->where('status', '!=', 'completed')
+            ->whereIn('status', ['new', 'pending_confirmation'])
             ->update(['status' => 'inactive']);
 
         // Store the renewal request in the database

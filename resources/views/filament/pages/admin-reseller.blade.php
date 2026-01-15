@@ -456,15 +456,6 @@
 
                 <!-- Admin Portal Categories -->
                 <div class="category-container" x-show="selectedGroup === 'admin-portal'">
-                    <div class="stat-box reseller-all"
-                            :class="{'selected': selectedStat === 'admin-portal-all'}"
-                            @click="setSelectedStat('admin-portal-all')">
-                        <div class="stat-info">
-                            <div class="stat-label">All</div>
-                        </div>
-                        <div class="stat-count" x-text="adminPortalAllCount"></div>
-                    </div>
-
                     <div class="stat-box reseller-new"
                             :class="{'selected': selectedStat === 'admin-portal-new'}"
                             @click="setSelectedStat('admin-portal-new')">
@@ -525,11 +516,6 @@
                     <!-- Generate Invoice - Admin Portal -->
                     <div x-show="selectedStat === 'invoice-admin-portal'" x-transition>
                         <livewire:finance-invoice.generate-invoice-admin-portal />
-                    </div>
-
-                    <!-- Admin Portal - All -->
-                    <div x-show="selectedStat === 'admin-portal-all'" x-transition>
-                        <livewire:admin-portal-finance-invoice-all />
                     </div>
 
                     <!-- Admin Portal - New -->

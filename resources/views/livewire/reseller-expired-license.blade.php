@@ -159,7 +159,7 @@
             display: inline-block;
             transition: all 0.3s ease;
             opacity: 0;
-            color: #667eea;
+            color: #ea6666;
             font-size: 0.875rem;
         }
 
@@ -168,8 +168,8 @@
         }
 
         .expand-arrow.rotated {
-            transform: rotate(90deg);
-            opacity: 1;
+            opacity: 0;
+            visibility: hidden;
         }
 
         .details-section {
@@ -273,6 +273,26 @@
             background: #f0f4ff;
         }
 
+        .tab-count {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 1.5rem;
+            height: 1.5rem;
+            padding: 0 0.5rem;
+            margin-left: 0.5rem;
+            font-size: 0.75rem;
+            font-weight: 700;
+            border-radius: 12px;
+            background: #e5e7eb;
+            color: #6b7280;
+        }
+
+        .tab-button.active .tab-count {
+            background: #667eea;
+            color: white;
+        }
+
         .pagination-wrapper {
             padding: 1.5rem;
             background: white;
@@ -310,13 +330,95 @@
             color: white;
             border-color: #667eea;
         }
-    </style>
 
-    <!-- Title -->
-    <div class="title-section">
-        <h2>Expired Licenses</h2>
-        <p>View customers with expired licenses</p>
-    </div>
+        /* License Summary Styles */
+        .license-summary-table {
+            margin-bottom: 1.5rem;
+        }
+
+        .license-summary-table table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .license-summary-table th {
+            padding: 12px 8px;
+            text-align: center;
+            border: 1px solid #e5e7eb;
+            vertical-align: middle;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        /* Module column widths - 3/4 of each pair */
+        .module-col {
+            width: 18.75% !important;
+            text-align: center !important;
+            padding-left: 12px !important;
+        }
+
+        /* Headcount column widths - 1/4 of each pair */
+        .headcount-col {
+            width: 6.25% !important;
+            text-align: center !important;
+            font-weight: bold !important;
+        }
+
+        /* Color themes for each module */
+        .attendance-module {
+            background-color: rgba(34, 197, 94, 0.1) !important;
+            color: rgba(34, 197, 94, 1) !important;
+        }
+        .attendance-count {
+            background-color: rgba(34, 197, 94, 1) !important;
+            color: white !important;
+        }
+
+        .leave-module {
+            background-color: rgba(37, 99, 235, 0.1) !important;
+            color: rgba(37, 99, 235, 1) !important;
+        }
+        .leave-count {
+            background-color: rgba(37, 99, 235, 1) !important;
+            color: white !important;
+        }
+
+        .claim-module {
+            background-color: rgba(124, 58, 237, 0.1) !important;
+            color: rgba(124, 58, 237, 1) !important;
+        }
+        .claim-count {
+            background-color: rgba(124, 58, 237, 1) !important;
+            color: white !important;
+        }
+
+        .payroll-module {
+            background-color: rgba(249, 115, 22, 0.1) !important;
+            color: rgba(249, 115, 22, 1) !important;
+        }
+        .payroll-count {
+            background-color: rgba(249, 115, 22, 1) !important;
+            color: white !important;
+        }
+
+        /* Product row background colors */
+        .product-row-ta {
+            background-color: rgba(34, 197, 94, 0.1) !important;
+        }
+        .product-row-leave {
+            background-color: rgba(37, 99, 235, 0.1) !important;
+        }
+        .product-row-claim {
+            background-color: rgba(124, 58, 237, 0.1) !important;
+        }
+        .product-row-payroll {
+            background-color: rgba(249, 115, 22, 0.1) !important;
+        }
+    </style>
 
     <!-- Tabs -->
     <div class="tabs-container">
@@ -324,11 +426,13 @@
             wire:click="switchTab('90days')"
             class="tab-button {{ $activeTab === '90days' ? 'active' : '' }}">
             Expired within 90 Days
+            <span class="tab-count">{{ $expiredWithin90DaysCount ?? 0 }}</span>
         </button>
         <button
             wire:click="switchTab('all')"
             class="tab-button {{ $activeTab === 'all' ? 'active' : '' }}">
             All Expired Licenses
+            <span class="tab-count">{{ $allExpiredCount ?? 0 }}</span>
         </button>
     </div>
 
@@ -352,6 +456,7 @@
         <table class="custom-table">
             <thead>
                 <tr>
+                    <th>No</th>
                     <th>Company Name</th>
                     <th>
                         <button wire:click="sortBy('f_expiry_date')">
@@ -385,7 +490,7 @@
                             </svg>
                         </button>
                     </th>
-                    <th style="width: 60px;"></th>
+                    <th style="width: 100px;"></th>
                 </tr>
             </thead>
             <tbody>
@@ -394,8 +499,9 @@
                         wire:key="company-{{ $company->f_id }}"
                         class="{{ $expandedCompany == $company->f_id ? 'row-expanded' : '' }}"
                         style="cursor: pointer;">
+                        <td>{{ $loop->iteration }}</td>
                         <td class="company-name">
-                            {{ $company->f_company_name }}
+                            {{ strtoupper($company->f_company_name) }}
                         </td>
                         <td class="date-cell">
                             {{ date('Y-m-d', strtotime($company->f_expiry_date)) }}
@@ -412,17 +518,38 @@
                         </td>
                         <td style="text-align: center;">
                             <span class="expand-arrow {{ $expandedCompany == $company->f_id ? 'rotated' : '' }}">
-                                ▶
+                                + More Details
                             </span>
                         </td>
                     </tr>
 
                     @if($expandedCompany == $company->f_id)
                         <tr wire:key="details-{{ $company->f_id }}">
-                            <td colspan="4" style="padding: 0;">
+                            <td colspan="5" style="padding: 0;">
                                 <div class="details-section">
                                     @if(!empty($invoiceDetails))
+                                        <!-- License Summary Table -->
+                                        @if(isset($invoiceDetails['_summary']))
+                                            <div class="license-summary-table">
+                                                <table>
+                                                    <thead>
+                                                        <tr>
+                                                            <th class="module-col attendance-module">ATTENDANCE</th>
+                                                            <th class="headcount-col attendance-count">{{ $invoiceDetails['_summary']['attendance'] }}</th>
+                                                            <th class="module-col leave-module">LEAVE</th>
+                                                            <th class="headcount-col leave-count">{{ $invoiceDetails['_summary']['leave'] }}</th>
+                                                            <th class="module-col claim-module">CLAIM</th>
+                                                            <th class="headcount-col claim-count">{{ $invoiceDetails['_summary']['claim'] }}</th>
+                                                            <th class="module-col payroll-module">PAYROLL</th>
+                                                            <th class="headcount-col payroll-count">{{ $invoiceDetails['_summary']['payroll'] }}</th>
+                                                        </tr>
+                                                    </thead>
+                                                </table>
+                                            </div>
+                                        @endif
+
                                         @foreach($invoiceDetails as $invoiceNo => $invoice)
+                                            @if($invoiceNo === '_summary') @continue @endif
                                             <div class="invoice-card">
                                                 <div class="invoice-header">
                                                     Invoice: {{ $invoiceNo }}
@@ -432,7 +559,7 @@
                                                     <thead>
                                                         <tr>
                                                             <th>Product Name</th>
-                                                            <th style="width: 10%;">Qty</th>
+                                                            <th style="width: 20%;">Total User</th>
                                                             <th style="width: 12%;">Cycle</th>
                                                             <th style="width: 20%;">Start Date</th>
                                                             <th style="width: 20%;">Expiry Date</th>
@@ -440,9 +567,21 @@
                                                     </thead>
                                                     <tbody>
                                                         @foreach($invoice['products'] as $product)
-                                                            <tr>
+                                                            @php
+                                                                $productClass = '';
+                                                                if (strpos($product['f_name'], 'TimeTec TA') !== false) {
+                                                                    $productClass = 'product-row-ta';
+                                                                } elseif (strpos($product['f_name'], 'TimeTec Leave') !== false) {
+                                                                    $productClass = 'product-row-leave';
+                                                                } elseif (strpos($product['f_name'], 'TimeTec Claim') !== false) {
+                                                                    $productClass = 'product-row-claim';
+                                                                } elseif (strpos($product['f_name'], 'TimeTec Payroll') !== false) {
+                                                                    $productClass = 'product-row-payroll';
+                                                                }
+                                                            @endphp
+                                                            <tr class="{{ $productClass }}">
                                                                 <td>{{ $product['f_name'] }}</td>
-                                                                <td>{{ $product['f_unit'] }}</td>
+                                                                <td>{{ $product['f_total_user'] }}</td>
                                                                 <td>{{ $product['billing_cycle'] }}</td>
                                                                 <td>{{ date('Y-m-d', strtotime($product['f_start_date'])) }}</td>
                                                                 <td>{{ date('Y-m-d', strtotime($product['f_expiry_date'])) }}</td>
@@ -461,7 +600,7 @@
                     @endif
                 @empty
                     <tr>
-                        <td colspan="4" class="empty-state">
+                        <td colspan="5" class="empty-state">
                             No licenses found.
                         </td>
                     </tr>

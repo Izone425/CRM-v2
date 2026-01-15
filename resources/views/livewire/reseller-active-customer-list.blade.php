@@ -173,6 +173,26 @@
             border-bottom-color: #667eea;
         }
 
+        .tab-count {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 1.5rem;
+            height: 1.5rem;
+            padding: 0 0.5rem;
+            margin-left: 0.5rem;
+            font-size: 0.75rem;
+            font-weight: 700;
+            border-radius: 12px;
+            background: #e5e7eb;
+            color: #6b7280;
+        }
+
+        .tab-button.active .tab-count {
+            background: #667eea;
+            color: white;
+        }
+
         .pagination-wrapper {
             padding: 1.5rem;
             background: white;
@@ -211,24 +231,19 @@
             border-color: #667eea;
         }
     </style>
-
-    <!-- Title -->
-    <div class="title-section">
-        <h2>Customer List</h2>
-        <p>View all customers</p>
-    </div>
-
     <!-- Tabs -->
     <div class="tabs-container">
         <button
             wire:click="switchTab('active')"
             class="tab-button {{ $activeTab === 'active' ? 'active' : '' }}">
             Active Customers
+            <span class="tab-count">{{ $activeCount ?? 0 }}</span>
         </button>
         <button
             wire:click="switchTab('inactive')"
             class="tab-button {{ $activeTab === 'inactive' ? 'active' : '' }}">
-            Inactive Customers
+            InActive Customers
+            <span class="tab-count">{{ $inactiveCount ?? 0 }}</span>
         </button>
     </div>
 
@@ -252,6 +267,7 @@
         <table class="custom-table">
             <thead>
                 <tr>
+                    <th>No</th>
                     <th>Company Name</th>
                     <th>
                         <button wire:click="sortByDate">
@@ -271,21 +287,22 @@
             <tbody>
                 @forelse($customers as $customer)
                     <tr>
+                        <td>{{ $loop->iteration }}</td>
                         <td class="company-name">
-                            {{ $customer->f_company_name }}
+                            {{ strtoupper($customer->f_company_name) }}
                         </td>
                         <td class="date-cell">
                             {{ date('Y-m-d', strtotime($customer->f_reg_date)) }}
                         </td>
                         <td>
                             <span class="status-badge {{ $activeTab === 'active' ? 'status-green' : 'status-red' }}">
-                                {{ $activeTab === 'active' ? 'Active' : 'Inactive' }}
+                                {{ $activeTab === 'active' ? 'Active' : 'InActive' }}
                             </span>
                         </td>
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="3" class="empty-state">
+                        <td colspan="4" class="empty-state">
                             No {{ $activeTab }} customers found.
                         </td>
                     </tr>

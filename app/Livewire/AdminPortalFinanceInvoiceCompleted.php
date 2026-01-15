@@ -5,6 +5,8 @@ namespace App\Livewire;
 use Livewire\Component;
 use App\Models\FinanceInvoice;
 use App\Models\ResellerHandover;
+use App\Models\AdminPortalInvoice;
+use App\Models\CrmInvoiceDetail;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Concerns\InteractsWithTable;
@@ -58,16 +60,16 @@ class AdminPortalFinanceInvoiceCompleted extends Component implements HasForms, 
     public function table(Table $table): Table
     {
         return $table
-            ->query(FinanceInvoice::query()->where('portal_type', 'admin')->where('status', 'completed')->orderBy('created_at', 'desc'))
+            ->query(AdminPortalInvoice::query()->orderBy('created_at', 'desc'))
             ->columns([
-                TextColumn::make('fc_number')
+                TextColumn::make('financeInvoice.fc_number')
                     ->label('ID')
                     ->searchable()
                     ->sortable()
                     ->action(
                         Action::make('view_details')
-                            ->modalHeading(fn (FinanceInvoice $record) => $record->fc_number)
-                            ->modalContent(fn (FinanceInvoice $record) => view('filament.modals.finance-invoice-details', ['record' => $record]))
+                            ->modalHeading(fn (AdminPortalInvoice $record) => $record->financeInvoice?->fc_number ?? $record->tt_invoice)
+                            ->modalContent(fn (AdminPortalInvoice $record) => view('filament.modals.admin-portal-invoice-details', ['record' => $record]))
                             ->modalSubmitAction(false)
                             ->modalCancelActionLabel('Close')
                             ->modalWidth('2xl')
@@ -78,13 +80,38 @@ class AdminPortalFinanceInvoiceCompleted extends Component implements HasForms, 
                     ->label('Invoice Date')
                     ->dateTime('d M Y, H:i')
                     ->sortable(),
-                TextColumn::make('resellerHandover.timetec_proforma_invoice')
+                TextColumn::make('reseller_name')
+                    ->label('Reseller')
+                    ->searchable()
+                    ->sortable(),
+                TextColumn::make('subscriber_name')
+                    ->label('Subscriber')
+                    ->searchable()
+                    ->sortable(),
+                TextColumn::make('tt_invoice')
                     ->label('TT Invoice')
                     ->searchable()
-                    ->url(fn (FinanceInvoice $record) => $record->resellerHandover?->invoice_url)
+                    ->sortable()
+                    ->url(function ($record) {
+                        $aesKey = 'Epicamera@99';
+                        try {
+                            // Get f_id from crm_invoice_details
+                            $invoiceDetail = CrmInvoiceDetail::where('f_invoice_no', $record->tt_invoice)->first();
+                            if (!$invoiceDetail) {
+                                return null;
+                            }
+
+                            $encrypted = openssl_encrypt($invoiceDetail->f_id, "AES-128-ECB", $aesKey);
+                            $encryptedBase64 = base64_encode($encrypted);
+                            return 'https://www.timeteccloud.com/paypal_reseller_invoice?iIn=' . $encryptedBase64;
+                        } catch (\Exception $e) {
+                            return null;
+                        }
+                    })
                     ->openUrlInNewTab()
-                    ->color('primary'),
-                TextColumn::make('autocount_invoice_number')
+                    ->color('primary')
+                    ->weight('bold'),
+                TextColumn::make('autocount_invoice')
                     ->label('Autocount Invoice')
                     ->searchable()
                     ->sortable(),

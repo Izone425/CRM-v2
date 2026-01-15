@@ -155,23 +155,36 @@ class ResellerExpiredLicense extends Component
             ]);
 
         $invoiceGroups = [];
+        $licenseSummary = [
+            'attendance' => 0,
+            'leave' => 0,
+            'claim' => 0,
+            'payroll' => 0
+        ];
 
         foreach ($licenses as $license) {
             $invoiceNo = $license->f_invoice_no ?? 'No Invoice';
+            $licenseName = $license->f_name;
 
-            // Get invoice details from crm_invoice_details table
-            $invoiceDetail = DB::connection('frontenddb')->table('crm_invoice_details')
-                ->where('f_invoice_no', $invoiceNo)
-                ->where('f_name', $license->f_name)
-                ->first(['f_quantity', 'f_unit_price', 'f_billing_cycle']);
+            // Use data directly from crm_expiring_license table
+            $quantity = $license->f_total_user;
 
-            // Use invoice details if found, otherwise fallback to license data
-            $quantity = $invoiceDetail ? $invoiceDetail->f_quantity : $license->f_total_user;
-            $unitPrice = $invoiceDetail ? $invoiceDetail->f_unit_price : 0;
-            $billingCycle = $invoiceDetail ? $invoiceDetail->f_billing_cycle : 0;
+            // Calculate module totals
+            if (strpos($licenseName, 'TimeTec TA') !== false) {
+                $licenseSummary['attendance'] += $quantity;
+            }
+            if (strpos($licenseName, 'TimeTec Leave') !== false) {
+                $licenseSummary['leave'] += $quantity;
+            }
+            if (strpos($licenseName, 'TimeTec Claim') !== false) {
+                $licenseSummary['claim'] += $quantity;
+            }
+            if (strpos($licenseName, 'TimeTec Payroll') !== false) {
+                $licenseSummary['payroll'] += $quantity;
+            }
 
-            // Calculate amount using: f_quantity * f_unit_price * f_billing_cycle
-            $calculatedAmount = $quantity * $unitPrice * $billingCycle;
+            // Use f_total_amount from crm_expiring_license
+            $calculatedAmount = $license->f_total_amount ?? 0;
 
             // Get discount rate for display
             $discountRate = ($reseller && $reseller->f_rate) ? $reseller->f_rate : '0.00';
@@ -186,13 +199,11 @@ class ResellerExpiredLicense extends Component
 
             $invoiceGroups[$invoiceNo]['products'][] = [
                 'f_name' => $license->f_name,
-                'f_unit' => $quantity,
-                'unit_price' => $unitPrice,
-                'original_unit_price' => $unitPrice,
+                'f_total_user' => $quantity,
                 'f_total_amount' => $calculatedAmount,
                 'f_start_date' => $license->f_start_date,
                 'f_expiry_date' => $license->f_expiry_date,
-                'billing_cycle' => $billingCycle,
+                'billing_cycle' => 0,
                 'discount' => $discountRate
             ];
 
@@ -200,6 +211,7 @@ class ResellerExpiredLicense extends Component
         }
 
         $this->invoiceDetails = $invoiceGroups;
+        $this->invoiceDetails['_summary'] = $licenseSummary;
     }
 
     private function encryptCompanyId($companyId): string
@@ -213,10 +225,62 @@ class ResellerExpiredLicense extends Component
         }
     }
 
+    public function getExpiredWithin90DaysCountProperty()
+    {
+        $reseller = Auth::guard('reseller')->user();
+
+        if (!$reseller || !$reseller->reseller_id) {
+            return 0;
+        }
+
+        $today = Carbon::now();
+        $ninetyDaysFromNow = Carbon::now()->addDays(90);
+
+        $resellerLinks = DB::connection('frontenddb')
+            ->table('crm_reseller_link')
+            ->where('reseller_id', $reseller->reseller_id)
+            ->pluck('f_id');
+
+        return DB::connection('frontenddb')
+            ->table('crm_expiring_license')
+            ->whereIn('f_company_id', $resellerLinks)
+            ->where('f_type', 'Paid')
+            ->whereDate('f_expiry_date', '>=', $today->format('Y-m-d'))
+            ->whereDate('f_expiry_date', '<=', $ninetyDaysFromNow->format('Y-m-d'))
+            ->distinct('f_company_id')
+            ->count('f_company_id');
+    }
+
+    public function getAllExpiredCountProperty()
+    {
+        $reseller = Auth::guard('reseller')->user();
+
+        if (!$reseller || !$reseller->reseller_id) {
+            return 0;
+        }
+
+        $today = Carbon::now();
+
+        $resellerLinks = DB::connection('frontenddb')
+            ->table('crm_reseller_link')
+            ->where('reseller_id', $reseller->reseller_id)
+            ->pluck('f_id');
+
+        return DB::connection('frontenddb')
+            ->table('crm_expiring_license')
+            ->whereIn('f_company_id', $resellerLinks)
+            ->where('f_type', 'Paid')
+            ->whereDate('f_expiry_date', '>=', $today->format('Y-m-d'))
+            ->distinct('f_company_id')
+            ->count('f_company_id');
+    }
+
     public function render()
     {
         return view('livewire.reseller-expired-license', [
-            'companies' => $this->companies
+            'companies' => $this->companies,
+            'expiredWithin90DaysCount' => $this->expiredWithin90DaysCount,
+            'allExpiredCount' => $this->allExpiredCount
         ]);
     }
 }

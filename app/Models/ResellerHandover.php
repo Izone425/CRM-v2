@@ -47,6 +47,22 @@ class ResellerHandover extends Model
     ];
 
     /**
+     * Set the reseller company name to uppercase
+     */
+    public function setResellerCompanyNameAttribute($value)
+    {
+        $this->attributes['reseller_company_name'] = strtoupper($value);
+    }
+
+    /**
+     * Set the subscriber name to uppercase
+     */
+    public function setSubscriberNameAttribute($value)
+    {
+        $this->attributes['subscriber_name'] = strtoupper($value);
+    }
+
+    /**
      * Get the formatted FB ID
      */
     public function getFbIdAttribute()

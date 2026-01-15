@@ -5,6 +5,8 @@ namespace App\Livewire;
 use Livewire\Component;
 use App\Models\FinanceInvoice;
 use App\Models\ResellerHandover;
+use App\Models\CrmInvoiceDetail;
+use App\Models\AdminPortalInvoice;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Concerns\InteractsWithTable;
@@ -14,7 +16,10 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Actions\Action;
 use Filament\Notifications\Notification;
 use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Select;
 use Livewire\Attributes\On;
+use Illuminate\Support\Facades\DB;
 
 class AdminPortalFinanceInvoiceNew extends Component implements HasForms, HasTable
 {
@@ -59,89 +64,97 @@ class AdminPortalFinanceInvoiceNew extends Component implements HasForms, HasTab
     public function table(Table $table): Table
     {
         return $table
-            ->query(FinanceInvoice::query()->where('portal_type', 'admin')->where('status', 'new')->orderBy('created_at', 'desc'))
+            ->query(CrmInvoiceDetail::query()->pendingInvoices())
             ->columns([
-                TextColumn::make('fc_number')
-                    ->label('ID')
-                    ->searchable()
-                    ->sortable()
-                    ->action(
-                        Action::make('view_details')
-                            ->modalHeading(fn (FinanceInvoice $record) => $record->fc_number)
-                            ->modalContent(fn (FinanceInvoice $record) => view('filament.modals.finance-invoice-details', ['record' => $record]))
-                            ->modalSubmitAction(false)
-                            ->modalCancelActionLabel('Close')
-                            ->modalWidth('2xl')
-                    )
-                    ->color('primary')
-                    ->weight('bold'),
-                TextColumn::make('created_at')
-                    ->label('Invoice Date')
-                    ->dateTime('d M Y, H:i')
-                    ->sortable(),
-                TextColumn::make('resellerHandover.timetec_proforma_invoice')
+                TextColumn::make('row_number')
+                    ->label('No')
+                    ->rowIndex(),
+                TextColumn::make('f_invoice_no')
                     ->label('TT Invoice')
                     ->searchable()
-                    ->url(fn (FinanceInvoice $record) => $record->resellerHandover?->invoice_url)
+                    ->sortable()
+                    ->url(function ($record) {
+                        $aesKey = 'Epicamera@99';
+                        try {
+                            $encrypted = openssl_encrypt($record->f_id, "AES-128-ECB", $aesKey);
+                            $encryptedBase64 = base64_encode($encrypted);
+                            return 'https://www.timeteccloud.com/paypal_reseller_invoice?iIn=' . $encryptedBase64;
+                        } catch (\Exception $e) {
+                            return null;
+                        }
+                    })
                     ->openUrlInNewTab()
-                    ->color('primary'),
-                TextColumn::make('autocount_invoice_number')
+                    ->color('primary')
+                    ->weight('bold'),
+                TextColumn::make('f_created_time')
+                    ->label('Invoice Date')
+                    ->formatStateUsing(fn ($state) => $state ? date('d M Y', strtotime($state)) : '-'),
+                TextColumn::make('f_auto_count_inv')
                     ->label('Autocount Invoice')
                     ->searchable()
-                    ->sortable(),
+                    ->sortable()
+                    ->default('-')
+                    ->placeholder('-'),
             ])
             ->actions([
-                Action::make('complete_task')
-                    ->label('Complete Task')
-                    ->icon('heroicon-o-check-circle')
-                    ->color('success')
-                    ->requiresConfirmation()
-                    ->modalHeading('Complete Task')
-                    ->modalDescription('Are you sure you want to complete this task? This will update the autocount invoice number in the system.')
-                    ->modalSubmitActionLabel('Yes, Complete')
-                    ->action(function (FinanceInvoice $record) {
-                        // Get the reseller handover and timetec proforma invoice
-                        $resellerHandover = $record->resellerHandover;
+                Action::make('update_autocount')
+                    ->label('Update')
+                    ->icon('heroicon-o-pencil-square')
+                    ->color('primary')
+                    ->form([
+                        Select::make('finance_invoice')
+                            ->label('Select Finance Invoice')
+                            ->options(function () {
+                                return FinanceInvoice::where('portal_type', 'admin')
+                                    ->where('status', 'new')
+                                    ->pluck('fc_number', 'id');
+                            })
+                            ->searchable()
+                            ->required(),
+                        TextInput::make('autocount_invoice')
+                            ->label('Autocount Invoice Number')
+                            ->required(),
+                    ])
+                    ->action(function (array $data, $record) {
+                        try {
+                            // Update ac_invoice
+                            DB::connection('frontenddb')
+                                ->table('ac_invoice')
+                                ->where('f_id', $record->f_id)
+                                ->limit(1)
+                                ->update(['f_auto_count_inv' => $data['autocount_invoice']]);
 
-                        if ($resellerHandover && $resellerHandover->timetec_proforma_invoice && $record->autocount_invoice_number) {
-                            try {
-                                // Find the f_id from ac_invoice table
-                                $acInvoice = \Illuminate\Support\Facades\DB::connection('frontenddb')
-                                    ->table('ac_invoice')
-                                    ->where('f_invoice_no', $resellerHandover->timetec_proforma_invoice)
-                                    ->first(['f_id']);
+                            // Get finance invoice details
+                            $financeInvoice = FinanceInvoice::with('resellerHandover')->find($data['finance_invoice']);
 
-                                if ($acInvoice && $acInvoice->f_id) {
-                                    // Update the autocount invoice number
-                                    \Illuminate\Support\Facades\DB::connection('frontenddb')
-                                        ->table('ac_invoice')
-                                        ->where('f_id', $acInvoice->f_id)
-                                        ->limit(1)
-                                        ->update(['f_auto_count_inv' => $record->autocount_invoice_number]);
-                                }
-                            } catch (\Exception $e) {
-                                \Illuminate\Support\Facades\Log::error('Failed to update autocount invoice', [
-                                    'error' => $e->getMessage(),
-                                    'finance_invoice_id' => $record->id
-                                ]);
-                            }
+                            // Get reseller and subscriber names
+                            $resellerName = $financeInvoice?->resellerHandover?->reseller_name ?? '-';
+                            $subscriberName = $financeInvoice?->resellerHandover?->subscriber_name ?? '-';
+
+                            // Create AdminPortalInvoice record
+                            AdminPortalInvoice::create([
+                                'finance_invoice_id' => $data['finance_invoice'],
+                                'reseller_name' => $resellerName,
+                                'subscriber_name' => $subscriberName,
+                                'tt_invoice' => $record->f_invoice_no,
+                                'autocount_invoice' => $data['autocount_invoice'],
+                            ]);
+
+                            Notification::make()
+                                ->title('Autocount invoice updated successfully')
+                                ->success()
+                                ->send();
+
+                            $this->dispatch('refresh-finance-invoice-counts');
+                        } catch (\Exception $e) {
+                            Notification::make()
+                                ->title('Failed to update autocount invoice')
+                                ->body($e->getMessage())
+                                ->danger()
+                                ->send();
                         }
-
-                        // Update finance invoice status
-                        $record->update([
-                            'status' => 'completed',
-                        ]);
-
-                        Notification::make()
-                            ->title('Task completed successfully')
-                            ->body('Autocount invoice number has been updated in the system.')
-                            ->success()
-                            ->send();
-
-                        $this->dispatch('refresh-finance-invoice-counts');
                     }),
-            ])
-            ->defaultSort('created_at', 'desc');
+            ]);
     }
 
     public function render()

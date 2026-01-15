@@ -121,10 +121,6 @@ class HrdfClaimTracker extends Page implements HasTable
                                 // Get the handover from the claim record
                                 $handoverRecord = $record->hrdfHandover;
 
-                                if (!$handoverRecord) {
-                                    return view('components.no-handover-found');
-                                }
-
                                 return view('components.hrdf-handover')
                                     ->with('extraAttributes', ['record' => $handoverRecord]);
                             })

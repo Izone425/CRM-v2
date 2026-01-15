@@ -118,32 +118,22 @@ class ArFollowUpAllMyrNonReseller extends Component implements HasForms, HasTabl
             })
             ->toArray();
 
+        // Get reseller company IDs from frontenddb to avoid cross-database subquery
+        $resellerCompanyIds = DB::connection('frontenddb')
+            ->table('crm_reseller_link')
+            ->whereIn('f_id', $myrCompanyIds)
+            ->pluck('f_id')
+            ->toArray();
+
+        // Get non-reseller company IDs by excluding resellers
+        $nonResellerCompanyIds = array_diff($myrCompanyIds, $resellerCompanyIds);
+
         $query = Renewal::query()
-            ->whereIn('f_company_id', $myrCompanyIds)
+            ->whereIn('f_company_id', $nonResellerCompanyIds)
             ->where('follow_up_counter', true)
             ->where('mapping_status', 'completed_mapping')
             ->whereIn('renewal_progress', ['pending_confirmation'])
-            // Only show records that DON'T have a reseller
-            ->whereNotExists(function ($query) {
-                $query->select(DB::raw(1))
-                    ->from('frontenddb.crm_reseller_link')
-                    ->whereRaw('crm_reseller_link.f_id = renewals.f_company_id');
-            })
-            ->selectRaw('*,
-                DATEDIFF(NOW(), follow_up_date) as pending_days,
-                (SELECT MIN(f_expiry_date) FROM frontenddb.crm_expiring_license
-                WHERE f_company_id = renewals.f_company_id
-                AND f_currency = "MYR"
-                AND f_expiry_date >= CURDATE()
-                AND f_name NOT IN (
-                    "TimeTec VMS Corporate (1 Floor License)",
-                    "TimeTec VMS SME (1 Location License)",
-                    "TimeTec Patrol (1 Checkpoint License)",
-                    "TimeTec Patrol (10 Checkpoint License)",
-                    "Other",
-                    "TimeTec Profile (10 User License)"
-                )
-                ) as earliest_expiry_date');
+            ->selectRaw('*, DATEDIFF(NOW(), follow_up_date) as pending_days');
 
         return $query;
     }
@@ -156,7 +146,6 @@ class ArFollowUpAllMyrNonReseller extends Component implements HasForms, HasTabl
             ->emptyState(fn () => view('components.empty-state-question'))
             ->defaultPaginationPageOption(5)
             ->paginated([5])
-            ->defaultSort('earliest_expiry_date', 'asc') // Added default sort here instead
             ->filters([
                 SelectFilter::make('admin_renewal')
                     ->label('Filter by Admin Renewal')
