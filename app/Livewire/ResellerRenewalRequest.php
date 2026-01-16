@@ -57,6 +57,12 @@ class ResellerRenewalRequest extends Component
         $this->search = $companyName;
     }
 
+    public function clearSubscriber()
+    {
+        $this->selectedSubscriber = null;
+        $this->search = '';
+    }
+
     public function getSubscribersProperty()
     {
         $reseller = Auth::guard('reseller')->user();
