@@ -117,6 +117,7 @@ class ResellerHandoverPendingTimetecInvoice extends Component implements HasForm
             ->actions([
                 Action::make('complete_task')
                     ->label('Complete Task')
+                    ->modalHeading(false)
                     ->icon('heroicon-o-check-circle')
                     ->color('success')
                     ->fillForm(function (ResellerHandover $record) {
@@ -143,7 +144,7 @@ class ResellerHandoverPendingTimetecInvoice extends Component implements HasForm
                     })
                     ->form([
                         FileUpload::make('autocount_invoice')
-                            ->label('Autocount Invoice')
+                            ->label('AutoCount Invoice')
                             ->required()
                             ->multiple()
                             ->acceptedFileTypes(['application/pdf', 'image/*'])
@@ -213,9 +214,19 @@ class ResellerHandoverPendingTimetecInvoice extends Component implements HasForm
                             ->directory('reseller-handover/reseller-invoices')
                             ->maxSize(10240),
                         TextInput::make('autocount_invoice_number')
-                            ->label('Autocount Invoice Number')
+                            ->label('AutoCount Invoice Number')
                             ->required()
-                            ->maxLength(255)
+                            ->extraAlpineAttributes([
+                                'x-on:input' => '
+                                    const start = $el.selectionStart;
+                                    const end = $el.selectionEnd;
+                                    const value = $el.value;
+                                    $el.value = value.toUpperCase();
+                                    $el.setSelectionRange(start, end);
+                                '
+                            ])
+                            ->dehydrateStateUsing(fn ($state) => strtoupper($state))
+                            ->maxLength(13)
                             ->helperText('Auto-detected from invoice upload or enter manually'),
                         Radio::make('reseller_option')
                             ->label('Reseller Option')
@@ -243,7 +254,6 @@ class ResellerHandoverPendingTimetecInvoice extends Component implements HasForm
 
                         $this->dispatch('refresh-leadowner-tables');
                     })
-                    ->modalHeading('Complete Task')
                     ->modalButton('Complete')
                     ->modalWidth('2xl'),
             ])

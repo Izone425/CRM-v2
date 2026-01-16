@@ -121,6 +121,19 @@
                                 </div>
                             @endif
 
+                            @if(
+                                (!isset($handoverFiles['pending_confirmation']) || count($handoverFiles['pending_confirmation']) == 0) &&
+                                (!isset($handoverFiles['pending_timetec_invoice']) || count($handoverFiles['pending_timetec_invoice']) == 0)
+                            )
+                                <div class="handover-empty-state">
+                                    <i class="fas fa-folder-open"></i>
+                                    <p>No files available</p>
+                                </div>
+                            @endif
+                        </div>
+
+                        <!-- Right Column: Pending Reseller Invoice & TimeTec License -->
+                        <div class="handover-modal-column">
                             <!-- Pending TimeTec Invoice Files -->
                             @if(isset($handoverFiles['pending_timetec_invoice']) && count($handoverFiles['pending_timetec_invoice']) > 0)
                                 <div class="handover-stage-section pending-timetec-invoice">
@@ -148,19 +161,6 @@
                                 </div>
                             @endif
 
-                            @if(
-                                (!isset($handoverFiles['pending_confirmation']) || count($handoverFiles['pending_confirmation']) == 0) &&
-                                (!isset($handoverFiles['pending_timetec_invoice']) || count($handoverFiles['pending_timetec_invoice']) == 0)
-                            )
-                                <div class="handover-empty-state">
-                                    <i class="fas fa-folder-open"></i>
-                                    <p>No files available</p>
-                                </div>
-                            @endif
-                        </div>
-
-                        <!-- Right Column: Pending Reseller Invoice & TimeTec License -->
-                        <div class="handover-modal-column">
                             <!-- Pending Reseller Invoice Files -->
                             @if(isset($handoverFiles['pending_reseller_invoice']) && count($handoverFiles['pending_reseller_invoice']) > 0)
                                 <div class="handover-stage-section pending-reseller-invoice">

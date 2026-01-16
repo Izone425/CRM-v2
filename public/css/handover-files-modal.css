@@ -9,6 +9,7 @@
     bottom: 0;
     z-index: 9999;
     overflow-y: auto;
+    border-radius: 200px;
 }
 
 .handover-modal-container {

@@ -391,6 +391,7 @@
                         </button>
                     </th>
                     <th>Status</th>
+                    <th>Last Modified</th>
                     <th>Actions</th>
                 </tr>
             </thead>
@@ -412,6 +413,9 @@
                                 Pending Confirmation
                             </span>
                         </td>
+                        <td class="date-cell">
+                            {{ $handover->updated_at->format('d/m/Y h:i A') }}
+                        </td>
                         <td>
                             <div style="display: flex; gap: 0.5rem; align-items: center;">
                                 <button
@@ -427,8 +431,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="4" class="empty-state">
-                            No pending confirmation handovers found.
+                        <td colspan="5" class="empty-state">
                         </td>
                     </tr>
                 @endforelse
@@ -440,8 +443,8 @@
 
     <!-- Confirmation Modal -->
     @if($showConfirmModal)
-        <div class="modal-overlay" wire:click="closeConfirmModal">
-            <div class="modal-content" wire:click.stop>
+        <div class="modal-overlay">
+            <div class="modal-content">
                 <div class="modal-header">
                     <div class="modal-icon">
                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">

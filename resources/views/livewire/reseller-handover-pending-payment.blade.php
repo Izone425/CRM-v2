@@ -605,7 +605,6 @@
                 @empty
                     <tr>
                         <td colspan="5" class="empty-state">
-                            No pending payment handovers found.
                         </td>
                     </tr>
                 @endforelse
@@ -615,8 +614,8 @@
 
     <!-- Complete Task Modal -->
     @if($showCompleteModal && $selectedHandover)
-        <div class="modal-overlay" wire:click="closeCompleteModal">
-            <div class="modal-content" wire:click.stop>
+        <div class="modal-overlay">
+            <div class="modal-content">
                 <div class="modal-header">
                     <div class="modal-icon">
                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">

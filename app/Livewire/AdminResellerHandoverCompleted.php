@@ -83,6 +83,10 @@ class AdminResellerHandoverCompleted extends Component implements HasForms, HasT
                     )
                     ->color('primary')
                     ->weight('bold'),
+                TextColumn::make('autocount_invoice_number')
+                    ->label('Invoice Number')
+                    ->searchable()
+                    ->sortable(),
                 TextColumn::make('reseller_name')
                     ->label('Reseller Name')
                     ->searchable()
@@ -106,15 +110,6 @@ class AdminResellerHandoverCompleted extends Component implements HasForms, HasT
                         'secondary' => 'inactive',
                     ])
                     ->formatStateUsing(fn (string $state): string => ucwords(str_replace('_', ' ', $state))),
-            ])
-            ->actions([
-                Action::make('view_files')
-                    ->label('View Files')
-                    ->icon('heroicon-o-document-text')
-                    ->color('info')
-                    ->action(function (ResellerHandover $record) {
-                        $this->openFilesModal($record->id);
-                    }),
             ])
             ->defaultSort('completed_at', 'desc');
     }

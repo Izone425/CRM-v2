@@ -6,9 +6,9 @@
         return;
     }
 
-    // Get lead and reseller details
+    // Get lead and company details
     $lead = $record->lead ?? null;
-    $reseller = $lead?->resellerV2 ?? null;
+    $companyDetail = $lead->companyDetail ?? null;
 @endphp
 
 <style>
@@ -117,81 +117,117 @@
 </style>
 
 <div class="einvoice-container">
-    <!-- Company Name - Full Width -->
-    <div class="einvoice-info-item" style="margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid #e5e7eb;">
-        <span class="einvoice-label">Company Name</span><br>
-        <span class="einvoice-value" style="font-size: 1.1rem;">{{ $reseller?->company_name ?? 'N/A' }}</span>
-    </div>
-
-    <!-- Two Column Layout -->
-    <div class="einvoice-grid">
-        <!-- Left Column -->
-        <div>
-            <div class="einvoice-info-item">
-                <span class="einvoice-label">Created</span><br>
-                <span class="einvoice-value">{{ $reseller?->created_at ? $reseller->created_at->format('d M Y') : 'N/A' }}</span>
-            </div>
-
-            <div class="einvoice-info-item">
-                <span class="einvoice-label">PIC Name</span><br>
-                <span class="einvoice-value">{{ $reseller?->contact_person ?? 'N/A' }}</span>
-            </div>
-
-            <div class="einvoice-info-item">
-                <span class="einvoice-label">PIC No Hp</span><br>
-                <span class="einvoice-value">{{ $reseller?->phone ?? 'N/A' }}</span>
-            </div>
-        </div>
-
-        <!-- Right Column -->
-        <div>
-            <div class="einvoice-info-item">
-                <span class="einvoice-label">Bind Reseller ID</span><br>
-                <span class="einvoice-value">{{ $reseller?->reseller_id ?? 'N/A' }}</span>
-            </div>
-
-            <div class="einvoice-info-item">
-                <span class="einvoice-label">Login Email</span><br>
-                <span class="einvoice-value">{{ $reseller?->email ?? 'N/A' }}</span>
-            </div>
-
-            <div class="einvoice-info-item">
-                <span class="einvoice-label">Login Password</span><br>
-                <span class="einvoice-value">{{ $reseller?->plain_password ?? 'N/A' }}</span>
-            </div>
-        </div>
-    </div>
-
     <hr class="my-4 border-gray-300">
 
-    <!-- Bottom Two Column Layout -->
     <div class="einvoice-grid">
-        <!-- Left Column -->
-        <div>
-            <div class="einvoice-info-item">
-                <span class="einvoice-label">Business Registration Number</span><br>
-                <span class="einvoice-value">{{ $reseller?->ssm_number ?? 'N/A' }}</span>
-            </div>
-
-            <div class="einvoice-info-item">
-                <span class="einvoice-label">Tax Identification Number</span><br>
-                <span class="einvoice-value">{{ $reseller?->tax_identification_number ?? 'N/A' }}</span>
-            </div>
+        <!-- Column 1 -->
+        <div class="einvoice-info-item">
+            <span class="einvoice-label">E-Invoice ID:</span>
+            <span class="einvoice-value">{{ $record->project_code }}</span>
         </div>
 
-        <!-- Right Column -->
-        <div>
-            <div class="einvoice-info-item">
-                <span class="einvoice-label">SST Category</span><br>
-                <span class="einvoice-value">{{ $reseller?->sst_category ?? 'N/A' }}</span>
-            </div>
-
-            <div class="einvoice-info-item">
-                <span class="einvoice-label">Commission Scheme (%)</span><br>
-                <span class="einvoice-value">{{ $reseller?->commission_rate ? $reseller->commission_rate . '%' : 'N/A' }}</span>
-            </div>
+        <!-- Column 2 -->
+        <div class="einvoice-info-item">
+            <span class="einvoice-label">Status:</span>
+            <span class="einvoice-status
+                @if($record->status === 'New') einvoice-status-new
+                @elseif($record->status === 'Completed') einvoice-status-completed
+                @elseif($record->status === 'Rejected') einvoice-status-rejected
+                @endif">
+                {{ $record->status }}
+            </span>
         </div>
     </div>
+
+    <div class="einvoice-grid">
+        <!-- Column 1 -->
+        <div class="einvoice-info-item">
+            <span class="einvoice-label">SalesPerson:</span>
+            <span class="einvoice-value">{{ $record->salesperson }}</span>
+        </div>
+
+        <!-- Column 2 -->
+        <div class="einvoice-info-item">
+            <span class="einvoice-label">Duration:</span>
+            <span class="einvoice-value">
+                @if($record->created_at && $record->completed_at && $record->status === 'Completed')
+                    {{ $record->created_at->diffForHumans($record->completed_at, true) }}
+                @else
+                    {{ $record->created_at ? $record->created_at->diffForHumans() : 'N/A' }}
+                @endif
+            </span>
+        </div>
+    </div>
+
+    <hr class="my-2 border-gray-300">
+
+    <div class="einvoice-grid">
+        <!-- Column 1 -->
+        <div class="einvoice-info-item">
+            <span class="einvoice-label">Created By:</span>
+            <span class="einvoice-value">{{ $record->createdBy?->name ?? 'N/A' }}</span>
+        </div>
+
+        <!-- Column 2 -->
+        <div class="einvoice-info-item">
+            <span class="einvoice-label">Completed By:</span>
+            <span class="einvoice-value">
+                @if($record->status === 'Completed')
+                    {{ $record->completedBy?->name ?? 'N/A' }}
+                @else
+                    -
+                @endif
+            </span>
+        </div>
+    </div>
+
+    <div class="einvoice-grid">
+        <!-- Column 1 -->
+        <div class="einvoice-info-item">
+            <span class="einvoice-label">Created At:</span>
+            <span class="einvoice-value">{{ $record->created_at ? $record->created_at->format('d F Y, H:i') : 'N/A' }}</span>
+        </div>
+
+        <!-- Column 2 -->
+        <div class="einvoice-info-item">
+            <span class="einvoice-label">Completed At:</span>
+            <span class="einvoice-value">
+                @if($record->status === 'Completed')
+                    {{ $record->completed_at ? $record->completed_at->format('d F Y, H:i') : 'N/A' }}
+                @else
+                    -
+                @endif
+            </span>
+        </div>
+    </div>
+
+    <hr class="my-2 border-gray-300">
+
+    <div class="einvoice-info-item">
+        <span class="einvoice-label">Company Name:</span>
+        <span class="einvoice-value">{{ $record->company_name }}</span>
+    </div>
+
+    <div class="einvoice-info-item">
+        <span class="einvoice-label">Company Type:</span>
+        <span class="einvoice-value">{{ ucfirst($record->company_type) }}</span>
+    </div>
+
+    <div class="einvoice-info-item">
+        <span class="einvoice-label">Customer Type:</span>
+        <span class="einvoice-value" style="{{ $record->customer_type === 'Existing Customer' ? 'color: #dc2626; font-weight: 700;' : '' }}">
+            {{ $record->customer_type ?? 'N/A' }}
+        </span>
+    </div>
+
+    @if($record->tin_number)
+    <div class="einvoice-info-item">
+        <span class="einvoice-label">TIN Number:</span>
+        <span class="einvoice-value" style="color: #dc2626; font-weight: 700;">
+            {{ $record->tin_number }}
+        </span>
+    </div>
+    @endif
 
     <hr class="my-4 border-gray-300">
 
