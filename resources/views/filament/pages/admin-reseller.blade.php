@@ -325,7 +325,7 @@
                     } else if (value === 'generate-invoice') {
                         this.selectedStat = 'invoice-reseller-portal';
                     } else if (value === 'admin-portal') {
-                        this.selectedStat = 'admin-portal-all';
+                        this.selectedStat = 'admin-portal-new';
                     }
                 }
             },

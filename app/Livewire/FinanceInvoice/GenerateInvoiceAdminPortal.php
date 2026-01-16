@@ -71,20 +71,12 @@ class GenerateInvoiceAdminPortal extends Component implements HasTable, HasForms
                     ->orderBy('created_at', 'desc')
             )
             ->columns([
-                TextColumn::make('fc_number')
+                TextColumn::make('formatted_id')
                     ->label('ID')
                     ->searchable()
                     ->sortable()
-                    ->action(
-                        Action::make('view_details')
-                            ->modalHeading(fn (FinanceInvoice $record) => $record->fc_number)
-                            ->modalContent(fn (FinanceInvoice $record) => view('filament.modals.finance-invoice-details', ['record' => $record]))
-                            ->modalSubmitAction(false)
-                            ->modalCancelActionLabel('Close')
-                            ->modalWidth('2xl')
-                    )
-                    ->color('primary')
-                    ->weight('bold'),
+                    ->weight('bold')
+                    ->color('primary'),
 
                 TextColumn::make('autocount_invoice_number')
                     ->label('Invoice Number')

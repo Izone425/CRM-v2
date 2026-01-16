@@ -1491,15 +1491,15 @@ class ImplementerActions
                 }
 
                 // Add salesperson to CC if available and different from sender and implementer
-                if ($softwareHandover->salesperson) {
-                    $salesperson = User::where('name', $softwareHandover->salesperson)->first();
-                    if ($salesperson && $salesperson->email &&
-                        $salesperson->email !== $emailData['sender_email'] &&
-                        !in_array($salesperson->email, $ccRecipients)) {
-                        $ccRecipients[] = $salesperson->email;
-                        Log::info("Added salesperson to CC: {$salesperson->name} <{$salesperson->email}>");
-                    }
-                }
+                // if ($softwareHandover->salesperson) {
+                //     $salesperson = User::where('name', $softwareHandover->salesperson)->first();
+                //     if ($salesperson && $salesperson->email &&
+                //         $salesperson->email !== $emailData['sender_email'] &&
+                //         !in_array($salesperson->email, $ccRecipients)) {
+                //         $ccRecipients[] = $salesperson->email;
+                //         Log::info("Added salesperson to CC: {$salesperson->name} <{$salesperson->email}>");
+                //     }
+                // }
             }
 
             // ✅ FIXED: Enhanced attachment processing with detailed logging

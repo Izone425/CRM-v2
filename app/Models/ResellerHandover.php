@@ -63,6 +63,14 @@ class ResellerHandover extends Model
     }
 
     /**
+     * Set the reseller remark to uppercase
+     */
+    public function setResellerRemarkAttribute($value)
+    {
+        $this->attributes['reseller_remark'] = strtoupper($value);
+    }
+
+    /**
      * Get the formatted FB ID
      */
     public function getFbIdAttribute()

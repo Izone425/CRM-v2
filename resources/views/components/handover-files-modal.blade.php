@@ -15,10 +15,9 @@
                     <div class="handover-modal-header-content">
                         <div>
                             <h3 class="handover-modal-title">
-                                <i class="fas fa-file-alt"></i>
-                                Files for {{ $selectedHandover->fb_id ?? '' }}
+                                {{ $selectedHandover->fb_id ?? '' }}
                             </h3>
-                            <p class="handover-modal-subtitle">{{ $selectedHandover->subscriber_name ?? '' }}</p>
+                            <h3 class="handover-modal-title">{{ $selectedHandover->subscriber_name ?? '' }}</h3>
                         </div>
                         <button wire:click="closeFilesModal" class="handover-modal-close-btn">
                             <i class="fas fa-times"></i>

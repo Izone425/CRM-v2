@@ -71,7 +71,7 @@ class GenerateInvoiceResellerPortal extends Component implements HasTable, HasFo
                     ->orderBy('created_at', 'desc')
             )
             ->columns([
-                TextColumn::make('fc_number')
+                TextColumn::make('formatted_id')
                     ->label('ID')
                     ->searchable()
                     ->sortable()
