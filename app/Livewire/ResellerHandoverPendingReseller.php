@@ -21,6 +21,8 @@ class ResellerHandoverPendingReseller extends Component
     public $paymentSlip;
     public $showFilesModal = false;
     public $handoverFiles = [];
+    public $showRemarkModal = false;
+    public $showAdminRemarkModal = false;
 
     protected $listeners = ['handover-updated' => '$refresh'];
 
@@ -164,10 +166,11 @@ class ResellerHandoverPendingReseller extends Component
         // Determine next status based on reseller option
         $nextStatus = $this->selectedHandover->reseller_option === 'reseller_normal_invoice_with_payment_slip'
             ? 'completed'
-            : 'pending_payment';
+            : 'pending_reseller_payment';
 
         $updateData = [
             'reseller_normal_invoice' => json_encode($resellerInvoicePaths),
+            'rni_submitted_at' => now(),
             'status' => $nextStatus,
             'completed_at' => now(),
         ];

@@ -109,6 +109,7 @@ class ResellerHandoverNew extends Component implements HasForms, HasTable
                     ->label('Complete the Task')
                     ->icon('heroicon-o-check-circle')
                     ->color('success')
+                    ->modalwidth('xl')
                     ->form([
                         TextInput::make('timetec_proforma_invoice')
                             ->label('TimeTec Proforma Invoice Number')
@@ -144,6 +145,7 @@ class ResellerHandoverNew extends Component implements HasForms, HasTable
                         $record->update([
                             'status' => 'pending_confirmation',
                             'timetec_proforma_invoice' => $data['timetec_proforma_invoice'] ?? null,
+                            'ttpi_submitted_at' => now(),
                             'admin_reseller_remark' => $data['admin_reseller_remark'] ?? null,
                         ]);
 

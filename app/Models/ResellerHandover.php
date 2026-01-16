@@ -25,15 +25,18 @@ class ResellerHandover extends Model
         'reseller_remark',
         'admin_reseller_remark',
         'timetec_proforma_invoice',
+        'ttpi_submitted_at',
         'status',
         'confirmed_proceed_at',
         'autocount_invoice',
         'reseller_invoice',
         'autocount_invoice_number',
+        'aci_submitted_at',
         'reseller_option',
         'completed_at',
         'reseller_normal_invoice',
         'reseller_payment_slip',
+        'rni_submitted_at',
         'official_receipt_number'
     ];
 
@@ -44,6 +47,9 @@ class ResellerHandover extends Model
         'payroll_qty' => 'integer',
         'confirmed_proceed_at' => 'datetime',
         'completed_at' => 'datetime',
+        'ttpi_submitted_at' => 'datetime',
+        'aci_submitted_at' => 'datetime',
+        'rni_submitted_at' => 'datetime',
     ];
 
     /**
@@ -140,8 +146,9 @@ class ResellerHandover extends Model
         // Autocount Invoice
         foreach ($decodeFiles($this->autocount_invoice) as $index => $file) {
             $count = count($decodeFiles($this->autocount_invoice));
+            $invoiceNumber = $this->autocount_invoice_number ? ' | ' . $this->autocount_invoice_number : '';
             $files[] = [
-                'name' => 'Autocount Invoice' . ($count > 1 ? ' #' . ($index + 1) : ''),
+                'name' => 'AutoCount Invoice' . ($count > 1 ? ' #' . ($index + 1) : '') . $invoiceNumber,
                 'path' => $file,
                 'url' => asset('storage/' . $file),
             ];
@@ -214,8 +221,9 @@ class ResellerHandover extends Model
         // Pending TimeTec Invoice Stage - Autocount Invoice & Reseller Invoice
         foreach ($decodeFiles($this->autocount_invoice) as $index => $file) {
             $count = count($decodeFiles($this->autocount_invoice));
+            $invoiceNumber = $this->autocount_invoice_number ? ' | ' . $this->autocount_invoice_number : '';
             $categorized['pending_timetec_invoice'][] = [
-                'name' => 'Autocount Invoice' . ($count > 1 ? ' #' . ($index + 1) : ''),
+                'name' => 'AutoCount Invoice' . ($count > 1 ? ' #' . ($index + 1) : '') . $invoiceNumber,
                 'path' => $file,
                 'url' => asset('storage/' . $file),
             ];
