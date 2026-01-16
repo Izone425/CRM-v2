@@ -4,6 +4,7 @@ namespace App\Livewire\FinanceInvoice;
 
 use App\Models\FinanceInvoice;
 use App\Models\ResellerHandover;
+use App\Models\CrmInvoiceDetail;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Concerns\InteractsWithForms;
@@ -73,7 +74,6 @@ class GenerateInvoiceAdminPortal extends Component implements HasTable, HasForms
             ->columns([
                 TextColumn::make('formatted_id')
                     ->label('ID')
-                    ->searchable()
                     ->sortable()
                     ->weight('bold')
                     ->color('primary'),
@@ -110,15 +110,18 @@ class GenerateInvoiceAdminPortal extends Component implements HasTable, HasForms
                     ->label('Generate Invoice')
                     ->icon('heroicon-o-plus')
                     ->form([
-                        Select::make('reseller_handover_id')
-                            ->label('Reseller Handover')
+                        Select::make('crm_invoice_detail_id')
+                            ->label('TT Invoice')
                             ->options(function () {
-                                return ResellerHandover::query()
+                                return CrmInvoiceDetail::query()
+                                    ->with(['company', 'subscriber'])
+                                    ->pendingInvoices()
                                     ->get()
-                                    ->mapWithKeys(function ($handover) {
-                                        $resellerName = $handover->reseller_company_name ?? $handover->reseller_name ?? 'Unknown Reseller';
-                                        $subscriberName = $handover->subscriber_name ?? 'Unknown Subscriber';
-                                        return [$handover->id => "{$handover->fb_id} - {$resellerName} - {$subscriberName}"];
+                                    ->mapWithKeys(function ($invoice) {
+                                        $companyName = $invoice->subscriber?->f_company_name ?? 'Unknown Company';
+                                        $subscriberName = $invoice->company?->f_company_name ?? 'Available';
+                                        $amount = number_format($invoice->f_sales_amount, 2);
+                                        return [$invoice->f_id => "{$invoice->f_invoice_no} - {$companyName} - {$subscriberName} - {$invoice->f_currency} {$amount}"];
                                     });
                             })
                             ->searchable()
@@ -126,10 +129,11 @@ class GenerateInvoiceAdminPortal extends Component implements HasTable, HasForms
                             ->live()
                             ->afterStateUpdated(function ($state, callable $set) {
                                 if ($state) {
-                                    $handover = ResellerHandover::find($state);
-                                    if ($handover) {
-                                        $set('reseller_name', $handover->reseller_company_name ?? $handover->reseller_name ?? '');
-                                        $set('subscriber_name', $handover->subscriber_name ?? '');
+                                    $invoice = CrmInvoiceDetail::with(['company', 'subscriber'])->where('f_id', $state)->first();
+                                    if ($invoice) {
+                                        $set('reseller_name', strtoupper($invoice->subscriber?->f_company_name ?? ''));
+                                        $set('subscriber_name', strtoupper($invoice->company?->f_company_name ?? ''));
+                                        $set('reseller_commission_amount', $invoice->f_sales_amount ?? 0);
                                     }
                                 }
                             }),
@@ -159,8 +163,7 @@ class GenerateInvoiceAdminPortal extends Component implements HasTable, HasForms
                     ->action(function (array $data): void {
                         try {
                             $invoice = FinanceInvoice::create([
-                                'fc_number' => FinanceInvoice::generateFcNumber('admin'),
-                                'reseller_handover_id' => $data['reseller_handover_id'],
+                                'reseller_handover_id' => null,
                                 'autocount_invoice_number' => $data['autocount_invoice_number'],
                                 'reseller_name' => $data['reseller_name'],
                                 'subscriber_name' => $data['subscriber_name'],

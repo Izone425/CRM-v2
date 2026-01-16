@@ -73,7 +73,6 @@ class GenerateInvoiceResellerPortal extends Component implements HasTable, HasFo
             ->columns([
                 TextColumn::make('formatted_id')
                     ->label('ID')
-                    ->searchable()
                     ->sortable()
                     ->weight('bold')
                     ->color('primary'),
@@ -114,6 +113,7 @@ class GenerateInvoiceResellerPortal extends Component implements HasTable, HasFo
                             ->label('Reseller Handover')
                             ->options(function () {
                                 return ResellerHandover::query()
+                                    ->where('status', 'pending_timetec_invoice')
                                     ->get()
                                     ->mapWithKeys(function ($handover) {
                                         $resellerName = $handover->reseller_company_name ?? $handover->reseller_name ?? 'Unknown Reseller';
@@ -159,7 +159,6 @@ class GenerateInvoiceResellerPortal extends Component implements HasTable, HasFo
                     ->action(function (array $data): void {
                         try {
                             $invoice = FinanceInvoice::create([
-                                'fc_number' => FinanceInvoice::generateFcNumber('reseller'),
                                 'reseller_handover_id' => $data['reseller_handover_id'],
                                 'autocount_invoice_number' => $data['autocount_invoice_number'],
                                 'reseller_name' => $data['reseller_name'],

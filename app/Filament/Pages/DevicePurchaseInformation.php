@@ -166,7 +166,7 @@ class DevicePurchaseInformation extends Page
 
     protected function getHeaderActions(): array
     {
-        $years = range(Carbon::now()->year, Carbon::now()->year + 2);
+        $years = range(2025, 2027);
 
         $actions = [];
         foreach ($years as $year) {

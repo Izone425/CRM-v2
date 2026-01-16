@@ -654,7 +654,6 @@
                 @empty
                     <tr>
                         <td colspan="5" class="empty-state">
-                            No pending reseller handovers found.
                         </td>
                     </tr>
                 @endforelse
@@ -664,17 +663,8 @@
 
     <!-- Complete Task Modal -->
     @if($showCompleteModal && $selectedHandover)
-        <div class="modal-overlay" wire:click="closeCompleteModal">
-            <div class="modal-content" wire:click.stop>
-                <div class="modal-header">
-                    <div class="modal-icon">
-                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                        </svg>
-                    </div>
-                    <h3 class="modal-title">Complete Task</h3>
-                </div>
-
+        <div class="modal-overlay">
+            <div class="modal-content">
                 <div class="modal-body">
                     <form wire:submit.prevent="completeTask">
                         <div class="form-group">
@@ -687,17 +677,6 @@
                                     accept=".pdf,.jpg,.jpeg,.png"
                                     multiple>
                                 <div class="file-upload-content">
-                                    <div class="file-upload-icon">
-                                        @if($resellerNormalInvoice)
-                                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                                            </svg>
-                                        @else
-                                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
-                                            </svg>
-                                        @endif
-                                    </div>
                                     <p class="file-upload-text">
                                         @if($resellerNormalInvoice)
                                             File uploaded successfully!
@@ -748,17 +727,6 @@
                                         accept=".pdf,.jpg,.jpeg,.png"
                                         multiple>
                                     <div class="file-upload-content">
-                                        <div class="file-upload-icon">
-                                            @if($paymentSlip)
-                                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                                                </svg>
-                                            @else
-                                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
-                                                </svg>
-                                            @endif
-                                        </div>
                                         <p class="file-upload-text">
                                             @if($paymentSlip)
                                                 File uploaded successfully!

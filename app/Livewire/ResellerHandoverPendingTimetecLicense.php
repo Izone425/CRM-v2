@@ -117,7 +117,7 @@ class ResellerHandoverPendingTimetecLicense extends Component implements HasForm
                         TextInput::make('official_receipt_number')
                             ->label('Official Receipt Number')
                             ->required()
-                            ->maxLength(255)
+                            ->maxLength(12)
                             ->alphanum()
                             ->extraAlpineAttributes([
                                 'x-on:input' => '
@@ -128,8 +128,7 @@ class ResellerHandoverPendingTimetecLicense extends Component implements HasForm
                                     $el.setSelectionRange(start, end);
                                 '
                             ])
-                            ->dehydrateStateUsing(fn ($state) => strtoupper($state))
-                            ->helperText('Enter the official receipt number'),
+                            ->dehydrateStateUsing(fn ($state) => strtoupper($state)),
                     ])
                     ->action(function (ResellerHandover $record, array $data) {
                         // Determine status based on reseller_option
@@ -173,7 +172,7 @@ class ResellerHandoverPendingTimetecLicense extends Component implements HasForm
 
                         $this->dispatch('refresh-leadowner-tables');
                     })
-                    ->modalHeading('Complete Task')
+                    ->modalHeading(false)
                     ->modalButton('Complete')
                     ->modalWidth('md'),
             ])

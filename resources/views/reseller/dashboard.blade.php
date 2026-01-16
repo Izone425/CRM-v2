@@ -320,7 +320,6 @@
                                 id="pending-confirmation-subtab"
                                 class="handover-subtab active"
                                 role="tab">
-                                <i class="fas fa-clipboard-check"></i>
                                 Pending Confirmation
                                 <span x-show="pendingConfirmationCount > 0" class="px-2 py-1 ml-1 text-xs font-bold text-white bg-red-500 rounded-full" x-text="pendingConfirmationCount"></span>
                             </button>
@@ -329,7 +328,6 @@
                                 id="pending-reseller-subtab"
                                 class="handover-subtab"
                                 role="tab">
-                                <i class="fas fa-clock"></i>
                                 Pending Reseller
                                 <span x-show="pendingResellerCount > 0" class="px-2 py-1 ml-1 text-xs font-bold text-white bg-red-500 rounded-full" x-text="pendingResellerCount"></span>
                             </button>
@@ -338,7 +336,6 @@
                                 id="pending-payment-subtab"
                                 class="handover-subtab"
                                 role="tab">
-                                <i class="fas fa-money-bill-wave"></i>
                                 Pending Payment
                                 <span x-show="pendingPaymentCount > 0" class="px-2 py-1 ml-1 text-xs font-bold text-white bg-red-500 rounded-full" x-text="pendingPaymentCount"></span>
                             </button>
@@ -347,7 +344,6 @@
                                 id="completed-subtab"
                                 class="handover-subtab"
                                 role="tab">
-                                <i class="fas fa-check-circle"></i>
                                 Completed
                                 <span x-show="completedCount > 0" class="px-2 py-1 ml-1 text-xs font-bold text-white bg-red-500 rounded-full" x-text="completedCount"></span>
                             </button>
@@ -357,8 +353,7 @@
                                 id="pending-timetec-action-subtab"
                                 class="handover-subtab"
                                 role="tab">
-                                <i class="fas fa-hourglass-half"></i>
-                                Pending Timetec Action
+                                Pending TimeTec Action
                                 <span x-show="pendingTimetecActionCount > 0" class="px-2 py-1 ml-1 text-xs font-bold text-white bg-red-500 rounded-full" x-text="pendingTimetecActionCount"></span>
                             </button>
                         </div>

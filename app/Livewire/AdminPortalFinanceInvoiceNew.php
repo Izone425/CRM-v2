@@ -64,11 +64,14 @@ class AdminPortalFinanceInvoiceNew extends Component implements HasForms, HasTab
     public function table(Table $table): Table
     {
         return $table
-            ->query(CrmInvoiceDetail::query()->pendingInvoices())
+            ->query(CrmInvoiceDetail::query()->with(['company', 'subscriber'])->pendingInvoices())
             ->columns([
                 TextColumn::make('row_number')
                     ->label('No')
                     ->rowIndex(),
+                TextColumn::make('f_created_time')
+                    ->label('Date')
+                    ->formatStateUsing(fn ($state) => $state ? date('d M Y', strtotime($state)) : '-'),
                 TextColumn::make('f_invoice_no')
                     ->label('TT Invoice')
                     ->searchable()
@@ -86,15 +89,42 @@ class AdminPortalFinanceInvoiceNew extends Component implements HasForms, HasTab
                     ->openUrlInNewTab()
                     ->color('primary')
                     ->weight('bold'),
-                TextColumn::make('f_created_time')
-                    ->label('Invoice Date')
-                    ->formatStateUsing(fn ($state) => $state ? date('d M Y', strtotime($state)) : '-'),
-                TextColumn::make('f_auto_count_inv')
-                    ->label('Autocount Invoice')
+                TextColumn::make('subscriber.f_company_name')
+                    ->label('Company Name')
+                    ->searchable()
+                    ->formatStateUsing(fn ($state) => strtoupper($state ?? 'Available'))
+                    ->tooltip(fn ($record) => strtoupper($record->subscriber?->f_company_name ?? 'Available'))
+                    ->default('Available')
+                    ->placeholder('Available'),
+                TextColumn::make('company.f_company_name')
+                    ->label('Subscriber Name')
+                    ->searchable()
+                    ->sortable()
+                    ->badge()
+                    ->formatStateUsing(fn ($state) => 'Available')
+                    ->tooltip(fn ($record) => strtoupper($record->company?->f_company_name ?? 'No subscriber information'))
+                    ->default('Available')
+                    ->placeholder('Available'),
+                TextColumn::make('f_name')
+                    ->label('Method')
+                    ->searchable()
+                    ->limit(30)
+                    ->tooltip(fn ($state) => $state)
+                    ->default('-')
+                    ->placeholder('-'),
+                TextColumn::make('f_currency')
+                    ->label('Currency')
                     ->searchable()
                     ->sortable()
                     ->default('-')
                     ->placeholder('-'),
+                TextColumn::make('f_sales_amount')
+                    ->label('Amount')
+                    ->searchable()
+                    ->sortable()
+                    ->formatStateUsing(fn ($state) => number_format($state, 2))
+                    ->default('0.00')
+                    ->placeholder('0.00'),
             ])
             ->actions([
                 Action::make('update_autocount')

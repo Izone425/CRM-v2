@@ -230,7 +230,7 @@ class ResellerHandover extends Model
             ];
         }
 
-        // Pending Reseller Invoice Stage - Reseller Normal Invoice
+        // Pending Reseller Invoice Stage - Reseller Normal Invoice & Payment Slip
         foreach ($decodeFiles($this->reseller_normal_invoice) as $index => $file) {
             $count = count($decodeFiles($this->reseller_normal_invoice));
             $categorized['pending_reseller_invoice'][] = [
@@ -240,27 +240,13 @@ class ResellerHandover extends Model
             ];
         }
 
-        // Payment Slip categorization based on reseller_option
-        if ($this->reseller_option === 'reseller_normal_invoice_with_payment_slip') {
-            // If with payment slip option, put in pending_reseller_invoice stage
-            foreach ($decodeFiles($this->reseller_payment_slip) as $index => $file) {
-                $count = count($decodeFiles($this->reseller_payment_slip));
-                $categorized['pending_reseller_invoice'][] = [
-                    'name' => 'Reseller Payment Slip' . ($count > 1 ? ' #' . ($index + 1) : ''),
-                    'path' => $file,
-                    'url' => asset('storage/' . $file),
-                ];
-            }
-        } else {
-            // If normal invoice only, put in completed stage
-            foreach ($decodeFiles($this->reseller_payment_slip) as $index => $file) {
-                $count = count($decodeFiles($this->reseller_payment_slip));
-                $categorized['completed'][] = [
-                    'name' => 'Reseller Payment Slip' . ($count > 1 ? ' #' . ($index + 1) : ''),
-                    'path' => $file,
-                    'url' => asset('storage/' . $file),
-                ];
-            }
+        foreach ($decodeFiles($this->reseller_payment_slip) as $index => $file) {
+            $count = count($decodeFiles($this->reseller_payment_slip));
+            $categorized['pending_reseller_invoice'][] = [
+                'name' => 'Reseller Payment Slip' . ($count > 1 ? ' #' . ($index + 1) : ''),
+                'path' => $file,
+                'url' => asset('storage/' . $file),
+            ];
         }
 
         // Pending TimeTec License Stage - No files, only official receipt number shown in modal

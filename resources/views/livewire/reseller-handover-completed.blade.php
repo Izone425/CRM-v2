@@ -271,7 +271,6 @@
                 @empty
                     <tr>
                         <td colspan="5" class="empty-state">
-                            No completed handovers found.
                         </td>
                     </tr>
                 @endforelse
