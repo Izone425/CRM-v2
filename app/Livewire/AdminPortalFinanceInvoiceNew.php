@@ -64,14 +64,18 @@ class AdminPortalFinanceInvoiceNew extends Component implements HasForms, HasTab
     public function table(Table $table): Table
     {
         return $table
-            ->query(CrmInvoiceDetail::query()->with(['company', 'subscriber'])->pendingInvoices())
+            ->query(CrmInvoiceDetail::query()->pendingInvoices())
+            ->defaultSort('f_created_time', 'desc')
             ->columns([
                 TextColumn::make('row_number')
                     ->label('No')
                     ->rowIndex(),
                 TextColumn::make('f_created_time')
                     ->label('Date')
-                    ->formatStateUsing(fn ($state) => $state ? date('d M Y', strtotime($state)) : '-'),
+                    ->formatStateUsing(fn ($state) => $state ? date('d M Y', strtotime($state)) : '-')
+                    ->sortable()
+                    ->default('-')
+                    ->placeholder('-'),
                 TextColumn::make('f_invoice_no')
                     ->label('TT Invoice')
                     ->searchable()
@@ -89,27 +93,50 @@ class AdminPortalFinanceInvoiceNew extends Component implements HasForms, HasTab
                     ->openUrlInNewTab()
                     ->color('primary')
                     ->weight('bold'),
-                TextColumn::make('subscriber.f_company_name')
+                TextColumn::make('subscriber_name')
                     ->label('Company Name')
                     ->searchable()
-                    ->formatStateUsing(fn ($state) => strtoupper($state ?? 'Available'))
-                    ->tooltip(fn ($record) => strtoupper($record->subscriber?->f_company_name ?? 'Available'))
-                    ->default('Available')
-                    ->placeholder('Available'),
-                TextColumn::make('company.f_company_name')
+                    ->formatStateUsing(fn ($state) => strtoupper($state ?? '-'))
+                    ->tooltip(fn ($state) => strtoupper($state ?? '-'))
+                    ->default('-')
+                    ->placeholder('-'),
+                TextColumn::make('company_name')
                     ->label('Subscriber Name')
                     ->searchable()
                     ->sortable()
                     ->badge()
-                    ->formatStateUsing(fn ($state) => 'Available')
-                    ->tooltip(fn ($record) => strtoupper($record->company?->f_company_name ?? 'No subscriber information'))
-                    ->default('Available')
-                    ->placeholder('Available'),
-                TextColumn::make('f_name')
+                    ->formatStateUsing(fn ($state) => $state ? 'Available' : 'Not Available')
+                    ->tooltip(fn ($state) => $state ? strtoupper($state) : 'NOT AVAILABLE')
+                    ->default('Not Available')
+                    ->placeholder('Not Available'),
+                TextColumn::make('f_payment_method')
                     ->label('Method')
                     ->searchable()
+                    ->formatStateUsing(function ($state) {
+                        $methods = [
+                            'pp' => 'PayPal',
+                            'bt' => 'Bank Transfer',
+                            'cs' => 'Cash',
+                            'cq' => 'Cheque',
+                            'pt' => 'Point',
+                            'cc' => 'Credit Card',
+                            'rz' => 'RazerPay',
+                        ];
+                        return $methods[strtolower($state ?? '')] ?? ($state ?? '-');
+                    })
                     ->limit(30)
-                    ->tooltip(fn ($state) => $state)
+                    ->tooltip(function ($state) {
+                        $methods = [
+                            'pp' => 'PayPal',
+                            'bt' => 'Bank Transfer',
+                            'cs' => 'Cash',
+                            'cq' => 'Cheque',
+                            'pt' => 'Point',
+                            'cc' => 'Credit Card',
+                            'rz' => 'RazerPay',
+                        ];
+                        return $methods[strtolower($state ?? '')] ?? ($state ?? '-');
+                    })
                     ->default('-')
                     ->placeholder('-'),
                 TextColumn::make('f_currency')
