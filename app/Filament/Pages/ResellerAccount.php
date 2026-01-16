@@ -20,6 +20,7 @@ use Illuminate\Support\Facades\Mail;
 use App\Services\IrbmService;
 use Filament\Forms\Components\Actions\Action as ActionsAction;
 use Illuminate\Support\Facades\Log;
+use Filament\Tables\Actions\Action as TableAction;
 
 class ResellerAccount extends Page implements HasTable
 {
@@ -326,8 +327,16 @@ class ResellerAccount extends Page implements HasTable
                 //
             ])
             ->actions([
-                //
+                TableAction::make('view_details')
+                    ->label(false)
+                    ->modalHeading(false)
+                    ->modalContent(fn (ResellerV2 $record) => view('components.reseller-account-details', ['record' => $record]))
+                    ->modalSubmitAction(false)
+                    ->modalCancelActionLabel('Close')
+                    ->modalWidth('2xl'),
             ])
+            ->recordAction('view_details')
+            ->recordUrl(null)
             ->bulkActions([
                 //
             ])

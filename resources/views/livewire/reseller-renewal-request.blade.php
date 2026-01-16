@@ -71,7 +71,18 @@
                                         wire:model.live="search"
                                         placeholder="Search subscriber name"
                                         value="{{ $selectedSubscriber ? $selectedSubscriber['company_name'] : '' }}"
-                                        class="w-full px-4 py-2 pr-10 transition-all border-2 border-gray-300 rounded-lg focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200">
+                                        class="w-full px-4 py-2 pr-20 transition-all border-2 border-gray-300 rounded-lg focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+                                        {{ $selectedSubscriber ? 'readonly' : '' }}>
+
+                                    @if($selectedSubscriber)
+                                        <button
+                                            type="button"
+                                            wire:click="clearSubscriber"
+                                            class="absolute inset-y-0 flex items-center pr-3 text-gray-400 transition-colors right-10 hover:text-red-500">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    @endif
+
                                     <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
                                         <i class="text-gray-400 fas fa-chevron-down"></i>
                                     </div>
