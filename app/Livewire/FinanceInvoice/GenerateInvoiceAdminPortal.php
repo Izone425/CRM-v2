@@ -115,6 +115,7 @@ class GenerateInvoiceAdminPortal extends Component implements HasTable, HasForms
                             ->options(function () {
                                 return CrmInvoiceDetail::query()
                                     ->with(['company', 'subscriber'])
+                                    ->whereHas('company')
                                     ->pendingInvoices()
                                     ->get()
                                     ->mapWithKeys(function ($invoice) {

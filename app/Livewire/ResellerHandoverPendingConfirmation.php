@@ -17,6 +17,8 @@ class ResellerHandoverPendingConfirmation extends Component
     public $showFilesModal = false;
     public $selectedHandover = null;
     public $handoverFiles = [];
+    public $showRemarkModal = false;
+    public $remarkContent = '';
 
     protected $listeners = ['handover-updated' => '$refresh'];
 
@@ -85,6 +87,18 @@ class ResellerHandoverPendingConfirmation extends Component
         $this->showFilesModal = false;
         $this->selectedHandover = null;
         $this->handoverFiles = [];
+    }
+
+    public function openRemarkModal($remark)
+    {
+        $this->remarkContent = $remark;
+        $this->showRemarkModal = true;
+    }
+
+    public function closeRemarkModal()
+    {
+        $this->showRemarkModal = false;
+        $this->remarkContent = '';
     }
 
     public function proceedConfirmation()
