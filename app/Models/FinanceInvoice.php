@@ -26,6 +26,27 @@ class FinanceInvoice extends Model
         'reseller_commission_amount' => 'decimal:2',
     ];
 
+    protected $appends = ['formatted_id'];
+
+    public function getFormattedIdAttribute()
+    {
+        if (!$this->id || !$this->created_at) {
+            return null;
+        }
+
+        $year = $this->created_at->format('y'); // Get last 2 digits of year
+
+        // Get the sequential number for this year
+        $yearStart = $this->created_at->copy()->startOfYear();
+        $yearEnd = $this->created_at->copy()->endOfYear();
+
+        $sequentialNumber = self::whereBetween('created_at', [$yearStart, $yearEnd])
+            ->where('id', '<=', $this->id)
+            ->count();
+
+        return 'FC_' . $year . str_pad($sequentialNumber, 4, '0', STR_PAD_LEFT);
+    }
+
     /**
      * Get a fresh timestamp for the model.
      * Automatically adjusts timestamps to UTC-8 (Malaysia time)
@@ -51,11 +72,11 @@ class FinanceInvoice extends Model
         return $this->hasMany(AdminPortalInvoice::class, 'finance_invoice_id');
     }
 
-    // Generate FC/FD Number
+    // Generate FC Number
     public static function generateFcNumber(string $portalType = 'reseller'): string
     {
         $year = now()->format('y'); // Get last 2 digits of year
-        $prefix = $portalType === 'admin' ? 'FD' : 'FC';
+        $prefix = 'FC';
 
         $latestInvoice = self::whereYear('created_at', now()->year)
             ->where('portal_type', $portalType)

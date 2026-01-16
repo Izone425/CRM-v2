@@ -57,6 +57,14 @@
     }
 </style>
 
+@php
+    // Fetch invoice details from crm_invoice_details table
+    $invoiceDetail = null;
+    if ($record->tt_invoice) {
+        $invoiceDetail = \App\Models\CrmInvoiceDetail::where('f_invoice_no', $record->tt_invoice)->first();
+    }
+@endphp
+
 <div class="finance-invoice-modal">
     <!-- Top Section - Company and Subscriber Names -->
     <div class="top-section">
@@ -76,9 +84,23 @@
         <!-- Left Column -->
         <div class="column-content">
             <div class="field-inline">
-                <span class="field-label">Invoice: </span>
-                @if($record->resellerHandover && $record->resellerHandover->timetec_proforma_invoice)
-                    <a href="{{ $record->resellerHandover->invoice_url }}" target="_blank">CLICKABLE</a>
+                <span class="field-label">TT Invoice: </span>
+                @if($invoiceDetail)
+                    @php
+                        $aesKey = 'Epicamera@99';
+                        try {
+                            $encrypted = openssl_encrypt($invoiceDetail->f_id, "AES-128-ECB", $aesKey);
+                            $encryptedBase64 = base64_encode($encrypted);
+                            $invoiceUrl = 'https://www.timeteccloud.com/paypal_reseller_invoice?iIn=' . $encryptedBase64;
+                        } catch (\Exception $e) {
+                            $invoiceUrl = null;
+                        }
+                    @endphp
+                    @if($invoiceUrl)
+                        <a href="{{ $invoiceUrl }}" target="_blank">{{ $invoiceDetail->f_invoice_no }}</a>
+                    @else
+                        <span class="field-value">{{ $invoiceDetail->f_invoice_no }}</span>
+                    @endif
                 @else
                     <span class="field-value">N/A</span>
                 @endif
@@ -86,21 +108,13 @@
 
             <div class="field-inline">
                 <span class="field-label">AutoCount Invoice: </span>
-                <span class="field-value">{{ $record->autocount_invoice_number ?? 'N/A' }}</span>
+                <span class="field-value">{{ $invoiceDetail->f_auto_count_inv ?? $record->autocount_invoice ?? 'N/A' }}</span>
             </div>
 
             <div class="field-inline">
                 <span class="field-label">Sample Reseller Invoice: </span>
-                @if($record->resellerHandover)
-                    @php
-                        $resellerInvoice = \App\Models\FinanceInvoice::where('reseller_handover_id', $record->reseller_handover_id)
-                            ->first();
-                    @endphp
-                    @if($resellerInvoice)
-                        <a href="{{ route('pdf.print-finance-invoice', $resellerInvoice) }}" target="_blank">{{ $resellerInvoice->fc_number }}</a>
-                    @else
-                        <span class="field-value">N/A</span>
-                    @endif
+                @if($record->financeInvoice)
+                    <a href="{{ route('pdf.print-finance-invoice', $record->financeInvoice) }}" target="_blank">{{ $record->financeInvoice->fc_number }}</a>
                 @else
                     <span class="field-value">N/A</span>
                 @endif
@@ -111,17 +125,17 @@
         <div class="column-content">
             <div class="field-inline">
                 <span class="field-label">Invoice Date: </span>
-                <span class="field-value">{{ $record->created_at ? $record->created_at->format('d M Y, H:i') : 'N/A' }}</span>
+                <span class="field-value">{{ $invoiceDetail && $invoiceDetail->f_created_time ? \Carbon\Carbon::parse($invoiceDetail->f_created_time)->format('d M Y, H:i') : ($record->created_at ? $record->created_at->format('d M Y, H:i') : 'N/A') }}</span>
             </div>
 
             <div class="field-inline">
                 <span class="field-label">Currency: </span>
-                <span class="field-value">MYR</span>
+                <span class="field-value">{{ $invoiceDetail->f_currency ?? 'MYR' }}</span>
             </div>
 
             <div class="field-inline">
-                <span class="field-label">Amount: </span>
-                <span class="field-value" style="font-weight: 600;">RM {{ number_format($record->reseller_commission_amount ?? 0, 2) }}</span>
+                <span class="field-label">Total Amount: </span>
+                <span class="field-value" style="font-weight: 600;">{{ $invoiceDetail && $invoiceDetail->f_currency ? $invoiceDetail->f_currency : '' }} {{ $invoiceDetail ? number_format($invoiceDetail->f_total_amount ?? 0, 2) : '0.00' }}</span>
             </div>
         </div>
     </div>

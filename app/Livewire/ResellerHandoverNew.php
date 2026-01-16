@@ -113,7 +113,7 @@ class ResellerHandoverNew extends Component implements HasForms, HasTable
                         TextInput::make('timetec_proforma_invoice')
                             ->label('TimeTec Proforma Invoice Number')
                             ->required()
-                            ->maxLength(100)
+                            ->maxLength(12)
                             ->alphanum()
                             ->extraAlpineAttributes([
                                 'x-on:input' => '
@@ -156,7 +156,6 @@ class ResellerHandoverNew extends Component implements HasForms, HasTable
                         $this->resetTable();
                     })
                     ->modalHeading('Complete Handover Task')
-                    ->modalDescription('Enter TimeTec proforma invoice number and provide remarks to complete this task.')
                     ->modalSubmitActionLabel('Complete'),
             ])
             ->defaultSort('created_at', 'desc');

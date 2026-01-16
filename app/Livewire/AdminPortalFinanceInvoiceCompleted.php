@@ -62,14 +62,14 @@ class AdminPortalFinanceInvoiceCompleted extends Component implements HasForms, 
         return $table
             ->query(AdminPortalInvoice::query()->orderBy('created_at', 'desc'))
             ->columns([
-                TextColumn::make('financeInvoice.fc_number')
+                TextColumn::make('formatted_id')
                     ->label('ID')
                     ->searchable()
                     ->sortable()
                     ->action(
                         Action::make('view_details')
-                            ->modalHeading(fn (AdminPortalInvoice $record) => $record->financeInvoice?->fc_number ?? $record->tt_invoice)
-                            ->modalContent(fn (AdminPortalInvoice $record) => view('filament.modals.admin-portal-invoice-details', ['record' => $record]))
+                            ->modalHeading(fn (AdminPortalInvoice $record) => $record->formatted_id ?? $record->tt_invoice)
+                            ->modalContent(fn (AdminPortalInvoice $record) => view('filament.modals.finance-invoice-details', ['record' => $record]))
                             ->modalSubmitAction(false)
                             ->modalCancelActionLabel('Close')
                             ->modalWidth('2xl')
