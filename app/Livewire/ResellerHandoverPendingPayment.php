@@ -20,6 +20,8 @@ class ResellerHandoverPendingPayment extends Component
     public $showCompleteModal = false;
     public $selectedHandoverId = null;
     public $paymentSlip;
+    public $showRemarkModal = false;
+    public $showAdminRemarkModal = false;
 
     protected $listeners = ['handover-updated' => '$refresh'];
 

@@ -577,7 +577,7 @@
                         </td>
                         <td>
                             <span class="status-badge status-pending-payment">
-                                Pending Payment
+                                Pending Reseller Payment
                             </span>
                         </td>
                         <td>

@@ -12,7 +12,7 @@
     <!-- Trigger Button -->
     <button
         wire:click="openModal"
-        class="w-full px-4 py-2 text-sm font-semibold text-white transition-all duration-300 bg-green-500 rounded-lg shadow-lg hover:bg-green-600 hover:shadow-xl">
+        class="w-full px-4 py-3.5 text-sm font-medium text-white transition-all duration-300 bg-green-500 rounded-[10px] shadow-lg hover:bg-green-600 hover:shadow-xl">
         Request Quotation
     </button>
 

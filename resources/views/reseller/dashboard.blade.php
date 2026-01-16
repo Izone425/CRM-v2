@@ -286,6 +286,7 @@
                     $pendingPaymentCount = $resellerId ? \App\Models\ResellerHandover::where('reseller_id', $resellerId)->where('status', 'pending_reseller_payment')->count() : 0;
                     $pendingTimetecActionCount = $resellerId ? \App\Models\ResellerHandover::where('reseller_id', $resellerId)->whereIn('status', ['pending_timetec_license', 'new', 'pending_timetec_invoice'])->count() : 0;
                     $completedCount = $resellerId ? \App\Models\ResellerHandover::where('reseller_id', $resellerId)->where('status', 'completed')->count() : 0;
+                    $allItemsCount = $resellerId ? \App\Models\ResellerHandover::where('reseller_id', $resellerId)->count() : 0;
                 @endphp
 
                 <div id="handover-content" class="pt-8 pb-32 pl-8 pr-8 tab-content"
@@ -294,7 +295,8 @@
                          pendingResellerCount: {{ $pendingResellerCount }},
                          pendingPaymentCount: {{ $pendingPaymentCount }},
                          pendingTimetecActionCount: {{ $pendingTimetecActionCount }},
-                         completedCount: {{ $completedCount }}
+                         completedCount: {{ $completedCount }},
+                         allItemsCount: {{ $allItemsCount }}
                      }"
                      @handover-completed-notification.window="
                          setTimeout(() => {
@@ -310,6 +312,7 @@
                                  pendingPaymentCount = data.pending_payment;
                                  pendingTimetecActionCount = data.pending_timetec_license;
                                  completedCount = data.completed;
+                                 allItemsCount = data.all_items || (data.pending_confirmation + data.pending_reseller_invoice + data.pending_payment + data.pending_timetec_license + data.completed);
                              })
                      ">
 
@@ -328,7 +331,7 @@
                                 id="pending-reseller-subtab"
                                 class="handover-subtab"
                                 role="tab">
-                                Pending Reseller
+                                Pending Invoice
                                 <span x-show="pendingResellerCount > 0" class="px-2 py-1 ml-1 text-xs font-bold text-white bg-red-500 rounded-full" x-text="pendingResellerCount"></span>
                             </button>
                             <button
@@ -356,6 +359,14 @@
                                 Pending TimeTec Action
                                 <span x-show="pendingTimetecActionCount > 0" class="px-2 py-1 ml-1 text-xs font-bold text-white bg-red-500 rounded-full" x-text="pendingTimetecActionCount"></span>
                             </button>
+                            <button
+                                onclick="switchHandoverSubTab('all-items')"
+                                id="all-items-subtab"
+                                class="handover-subtab"
+                                role="tab">
+                                All Items
+                                <span x-show="allItemsCount > 0" class="px-2 py-1 ml-1 text-xs font-bold text-white bg-red-500 rounded-full" x-text="allItemsCount"></span>
+                            </button>
                         </div>
                     </div>
 
@@ -377,6 +388,10 @@
 
                     <div id="pending-timetec-action-subtab-content" class="handover-subtab-content">
                         @livewire('reseller-handover-pending-timetec-action')
+                    </div>
+
+                    <div id="all-items-subtab-content" class="handover-subtab-content">
+                        @livewire('reseller-handover-all-items')
                     </div>
                 </div>
 

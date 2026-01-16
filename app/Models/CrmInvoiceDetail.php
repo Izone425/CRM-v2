@@ -61,8 +61,8 @@ class CrmInvoiceDetail extends Model
                 MIN(crm_invoice_details.f_payer_id) as f_payer_id,
                 MIN(crm_invoice_details.f_name) as f_name,
                 MIN(crm_invoice_details.f_payment_method) as f_payment_method,
-                SUM(crm_invoice_details.f_sales_amount) as f_sales_amount,
-                MAX(company.f_company_name) as company_name,
+                MIN(crm_invoice_details.f_total_amount) as f_total_amount,
+                NULLIF(TRIM(MAX(company.f_company_name)), "") as company_name,
                 MAX(subscriber.f_company_name) as subscriber_name
             ')
             ->leftJoin('crm_customer as company', 'crm_invoice_details.f_company_id', '=', 'company.company_id')

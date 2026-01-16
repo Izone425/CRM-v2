@@ -81,9 +81,9 @@ class AdminResellerHandoverAll extends Component implements HasForms, HasTable
                         'info' => 'pending_timetec_invoice',
                         'success' => 'pending_timetec_license',
                         'warning' => 'completed',
-                        'secondary' => 'inactive',
+                        'gray' => 'inactive',
                     ])
-                    ->formatStateUsing(fn (string $state): string => ucwords(str_replace('_', ' ', $state))),
+                    ->formatStateUsing(fn (string $state): string => $state === 'inactive' ? 'InActive' : ucwords(str_replace('_', ' ', $state))),
                 TextColumn::make('created_at')
                     ->label('Created At')
                     ->dateTime('d M Y, H:i')
@@ -100,7 +100,7 @@ class AdminResellerHandoverAll extends Component implements HasForms, HasTable
                         'pending_timetec_invoice' => 'Pending TimeTec Invoice',
                         'pending_timetec_license' => 'Pending TimeTec License',
                         'completed' => 'Completed',
-                        'inactive' => 'Inactive',
+                        'inactive' => 'InActive',
                     ])
                     ->default(null),
             ])

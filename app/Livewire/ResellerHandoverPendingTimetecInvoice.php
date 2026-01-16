@@ -31,6 +31,8 @@ class ResellerHandoverPendingTimetecInvoice extends Component implements HasForm
     public $showFilesModal = false;
     public $selectedHandover = null;
     public $handoverFiles = [];
+    public $showRemarkModal = false;
+    public $showAdminRemarkModal = false;
 
     public function mount()
     {
@@ -242,6 +244,7 @@ class ResellerHandoverPendingTimetecInvoice extends Component implements HasForm
                             'autocount_invoice' => $data['autocount_invoice'],
                             'reseller_invoice' => $data['reseller_invoice'],
                             'autocount_invoice_number' => $data['autocount_invoice_number'],
+                            'aci_submitted_at' => now(),
                             'reseller_option' => $data['reseller_option'],
                             'status' => 'pending_reseller_invoice',
                             'completed_at' => now(),

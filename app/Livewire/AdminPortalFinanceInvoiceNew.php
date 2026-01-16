@@ -105,10 +105,30 @@ class AdminPortalFinanceInvoiceNew extends Component implements HasForms, HasTab
                     ->searchable()
                     ->sortable()
                     ->badge()
-                    ->formatStateUsing(fn ($state) => $state ? 'Available' : 'Not Available')
-                    ->tooltip(fn ($state) => $state ? strtoupper($state) : 'NOT AVAILABLE')
-                    ->default('Not Available')
-                    ->placeholder('Not Available'),
+                    ->getStateUsing(function ($record) {
+                        // Get the raw value directly
+                        $value = $record->company_name;
+
+                        // Check if value exists and is not empty
+                        if (!is_null($value) && trim($value) !== '') {
+                            return 'Available';
+                        }
+                        return 'Not Available';
+                    })
+                    ->color(function ($record) {
+                        $value = $record->company_name;
+                        if (!is_null($value) && trim($value) !== '') {
+                            return 'success';
+                        }
+                        return 'gray';
+                    })
+                    ->tooltip(function ($record) {
+                        $value = $record->company_name;
+                        if (!is_null($value) && trim($value) !== '') {
+                            return strtoupper($value);
+                        }
+                        return 'NOT AVAILABLE';
+                    }),
                 TextColumn::make('f_payment_method')
                     ->label('Method')
                     ->searchable()
@@ -145,7 +165,7 @@ class AdminPortalFinanceInvoiceNew extends Component implements HasForms, HasTab
                     ->sortable()
                     ->default('-')
                     ->placeholder('-'),
-                TextColumn::make('f_sales_amount')
+                TextColumn::make('f_total_amount')
                     ->label('Amount')
                     ->searchable()
                     ->sortable()

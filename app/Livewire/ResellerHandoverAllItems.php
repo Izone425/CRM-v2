@@ -6,7 +6,7 @@ use Livewire\Component;
 use App\Models\ResellerHandover;
 use Illuminate\Support\Facades\Auth;
 
-class ResellerHandoverPendingTimetecAction extends Component
+class ResellerHandoverAllItems extends Component
 {
     public $search = '';
     public $sortField = 'created_at';
@@ -43,7 +43,6 @@ class ResellerHandoverPendingTimetecAction extends Component
         }
 
         $query = ResellerHandover::query()
-            ->whereIn('status', ['pending_timetec_license', 'new', 'pending_timetec_invoice'])
             ->where('reseller_id', $reseller->reseller_id);
 
         if ($this->search) {
@@ -76,7 +75,7 @@ class ResellerHandoverPendingTimetecAction extends Component
 
     public function render()
     {
-        return view('livewire.reseller-handover-pending-timetec-action', [
+        return view('livewire.reseller-handover-all-items', [
             'handovers' => $this->handovers
         ]);
     }

@@ -19,6 +19,7 @@ class ResellerHandoverPendingConfirmation extends Component
     public $handoverFiles = [];
     public $showRemarkModal = false;
     public $remarkContent = '';
+    public $showAdminRemarkModal = false;
 
     protected $listeners = ['handover-updated' => '$refresh'];
 

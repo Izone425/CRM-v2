@@ -281,10 +281,10 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
 
     @php
-        $allCount = \App\Models\ResellerHandover::count();
         $newCount = \App\Models\ResellerHandover::where('status', 'new')->count();
         $pendingInvoiceCount = \App\Models\ResellerHandover::where('status', 'pending_timetec_invoice')->count();
         $pendingLicenseCount = \App\Models\ResellerHandover::where('status', 'pending_timetec_license')->count();
+        $allCount = $newCount + $pendingInvoiceCount + $pendingLicenseCount;
         $completedCount = \App\Models\ResellerHandover::where('status', 'completed')->count();
 
         // Finance Invoice counts
@@ -347,7 +347,7 @@
             fetch('{{ route('admin.reseller-handover.counts') }}')
                 .then(response => response.json())
                 .then(data => {
-                    allCount = data.new + data.pending_timetec_invoice + data.pending_timetec_license + data.completed;
+                    allCount = data.new + data.pending_timetec_invoice + data.pending_timetec_license;
                     newCount = data.new;
                     pendingInvoiceCount = data.pending_timetec_invoice;
                     pendingLicenseCount = data.pending_timetec_license;
