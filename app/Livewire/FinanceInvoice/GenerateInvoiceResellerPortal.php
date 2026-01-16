@@ -67,6 +67,7 @@ class GenerateInvoiceResellerPortal extends Component implements HasTable, HasFo
         return $table
             ->query(
                 FinanceInvoice::where('portal_type', 'reseller')
+                    ->where('status', 'pending_timetec_invoice')
                     ->with(['resellerHandover', 'creator'])
                     ->orderBy('created_at', 'desc')
             )
