@@ -82,6 +82,12 @@
             padding: 20px;
         }
 
+        .sidebar-menu hr {
+            margin: 0 0 10px 0;
+            border: 0;
+            border-top: 2px solid #d1d5db;
+        }
+
         .menu-item {
             display: flex;
             align-items: center;
@@ -135,9 +141,10 @@
 
         .handover-subtab {
             display: inline-flex;
+            flex-direction: row;
             align-items: center;
-            gap: 8px;
-            padding: 10px 20px;
+            justify-content: space-between;
+            padding: 8px 12px;
             border-radius: 8px;
             font-size: 0.875rem;
             font-weight: 600;
@@ -146,6 +153,17 @@
             border: none;
             cursor: pointer;
             transition: all 0.2s ease;
+            min-width: 120px;
+            min-height: 40px;
+            text-align: left;
+            gap: 6px;
+        }
+
+        .handover-subtab-text {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 2px;
         }
 
         .handover-subtab:hover {
@@ -233,11 +251,6 @@
 
     <div class="sidebar">
         <div class="sidebar-menu">
-            <!-- Renewal Request Button -->
-            <div class="mb-8">
-                @livewire('reseller-renewal-request')
-            </div>
-
             <button onclick="switchTab('customers')"
                     id="customers-tab"
                     class="menu-item active">
@@ -257,6 +270,25 @@
                     class="menu-item">
                 <i class="fas fa-exchange-alt"></i>
                 <span>Renewal Handover</span>
+            </button>
+            <hr>
+            <!-- Renewal Request Button -->
+            <div class="mb-4">
+                @livewire('reseller-renewal-request')
+            </div>
+
+            <!-- Submit Inquiry Button -->
+            <button onclick="switchTab('submit-inquiry')"
+                    id="submit-inquiry-tab"
+                    class="w-full px-4 py-3.5 text-sm font-medium text-white transition-all duration-300 bg-gradient-to-r from-blue-500 to-blue-600 rounded-[10px] shadow-lg hover:from-blue-600 hover:to-blue-700 hover:shadow-xl mb-4">
+                Submit Inquiry
+            </button>
+
+            <!-- Database Creation Button -->
+            <button onclick="switchTab('database-creation')"
+                    id="database-creation-tab"
+                    class="w-full px-4 py-3.5 text-sm font-medium text-white transition-all duration-300 bg-gradient-to-r from-purple-500 to-purple-600 rounded-[10px] shadow-lg hover:from-purple-600 hover:to-purple-700 hover:shadow-xl mb-4">
+                Database Creation
             </button>
         </div>
     </div>
@@ -317,55 +349,79 @@
                      ">
 
                     <div class="mb-6">
-                        <div class="inline-flex p-1 space-x-1 bg-gray-100 rounded-lg" role="tablist">
+                        <div class="flex w-full p-1 space-x-1 bg-gray-100 rounded-lg" role="tablist">
                             <button
                                 onclick="switchHandoverSubTab('pending-confirmation')"
                                 id="pending-confirmation-subtab"
                                 class="handover-subtab active"
-                                role="tab">
-                                Pending Confirmation
-                                <span x-show="pendingConfirmationCount > 0" class="px-2 py-1 ml-1 text-xs font-bold text-white bg-red-500 rounded-full" x-text="pendingConfirmationCount"></span>
+                                role="tab"
+                                style="flex: 1;">
+                                <div class="handover-subtab-text">
+                                    <span>Pending</span>
+                                    <span>Confirmation</span>
+                                </div>
+                                <span x-show="pendingConfirmationCount > 0" class="px-2 py-1 text-xs font-bold text-white bg-red-500 rounded-full" x-text="pendingConfirmationCount"></span>
                             </button>
                             <button
                                 onclick="switchHandoverSubTab('pending-reseller')"
                                 id="pending-reseller-subtab"
                                 class="handover-subtab"
-                                role="tab">
-                                Pending Invoice
-                                <span x-show="pendingResellerCount > 0" class="px-2 py-1 ml-1 text-xs font-bold text-white bg-red-500 rounded-full" x-text="pendingResellerCount"></span>
+                                role="tab"
+                                style="flex: 1;">
+                                <div class="handover-subtab-text">
+                                    <span>Pending</span>
+                                    <span>Invoice</span>
+                                </div>
+                                <span x-show="pendingResellerCount > 0" class="px-2 py-1 text-xs font-bold text-white bg-red-500 rounded-full" x-text="pendingResellerCount"></span>
                             </button>
                             <button
                                 onclick="switchHandoverSubTab('pending-payment')"
                                 id="pending-payment-subtab"
                                 class="handover-subtab"
-                                role="tab">
-                                Pending Payment
-                                <span x-show="pendingPaymentCount > 0" class="px-2 py-1 ml-1 text-xs font-bold text-white bg-red-500 rounded-full" x-text="pendingPaymentCount"></span>
+                                role="tab"
+                                style="flex: 1;">
+                                <div class="handover-subtab-text">
+                                    <span>Pending</span>
+                                    <span>Payment</span>
+                                </div>
+                                <span x-show="pendingPaymentCount > 0" class="px-2 py-1 text-xs font-bold text-white bg-red-500 rounded-full" x-text="pendingPaymentCount"></span>
                             </button>
                             <button
                                 onclick="switchHandoverSubTab('completed')"
                                 id="completed-subtab"
                                 class="handover-subtab"
-                                role="tab">
-                                Completed
-                                <span x-show="completedCount > 0" class="px-2 py-1 ml-1 text-xs font-bold text-white bg-red-500 rounded-full" x-text="completedCount"></span>
+                                role="tab"
+                                style="flex: 1;">
+                                <div class="handover-subtab-text">
+                                    <span>Status</span>
+                                    <span>Completed</span>
+                                </div>
+                                <span x-show="completedCount > 0" class="px-2 py-1 text-xs font-bold text-white bg-red-500 rounded-full" x-text="completedCount"></span>
                             </button>
                             <div class="tab-separator"></div>
                             <button
                                 onclick="switchHandoverSubTab('pending-timetec-action')"
                                 id="pending-timetec-action-subtab"
                                 class="handover-subtab"
-                                role="tab">
-                                Pending TimeTec Action
-                                <span x-show="pendingTimetecActionCount > 0" class="px-2 py-1 ml-1 text-xs font-bold text-white bg-red-500 rounded-full" x-text="pendingTimetecActionCount"></span>
+                                role="tab"
+                                style="flex: 1;">
+                                <div class="handover-subtab-text">
+                                    <span>Pending</span>
+                                    <span>TimeTec</span>
+                                </div>
+                                <span x-show="pendingTimetecActionCount > 0" class="px-2 py-1 text-xs font-bold text-white bg-red-500 rounded-full" x-text="pendingTimetecActionCount"></span>
                             </button>
                             <button
                                 onclick="switchHandoverSubTab('all-items')"
                                 id="all-items-subtab"
                                 class="handover-subtab"
-                                role="tab">
-                                All Items
-                                <span x-show="allItemsCount > 0" class="px-2 py-1 ml-1 text-xs font-bold text-white bg-red-500 rounded-full" x-text="allItemsCount"></span>
+                                role="tab"
+                                style="flex: 1;">
+                                <div class="handover-subtab-text">
+                                    <span>All</span>
+                                    <span>Status</span>
+                                </div>
+                                <span x-show="allItemsCount > 0" class="px-2 py-1 text-xs font-bold text-white bg-red-500 rounded-full" x-text="allItemsCount"></span>
                             </button>
                         </div>
                     </div>
@@ -395,6 +451,26 @@
                     </div>
                 </div>
 
+                <!-- Submit Inquiry Tab Content -->
+                <div id="submit-inquiry-content" class="p-8 tab-content">
+                    <div class="flex items-center justify-center" style="min-height: 400px;">
+                        <div class="text-center">
+                            <h3 class="text-2xl font-semibold text-gray-700 mb-2">Coming Soon</h3>
+                            <p class="text-gray-500">This feature is currently under development.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Database Creation Tab Content -->
+                <div id="database-creation-content" class="p-8 tab-content">
+                    <div class="flex items-center justify-center" style="min-height: 400px;">
+                        <div class="text-center">
+                            <h3 class="text-2xl font-semibold text-gray-700 mb-2">Coming Soon</h3>
+                            <p class="text-gray-500">This feature is currently under development.</p>
+                        </div>
+                    </div>
+                </div>
+
                 {{-- <!-- Project Plan Tab Content -->
                 @if($hasProjectPlan)
                     <div id="project-content" class="p-8 tab-content">
@@ -404,18 +480,6 @@
             </div>
         </main>
     </div>
-
-    <!-- Footer -->
-    <footer class="relative overflow-hidden text-white bg-gray-900">
-        <div class="absolute inset-0 opacity-50 bg-gradient-to-r from-indigo-900 to-purple-900"></div>
-        <div class="relative px-4 py-12 mx-auto max-w-7xl sm:px-6 lg:px-8">
-            <div class="text-center">
-                <p class="text-sm text-gray-400">
-                    © {{ date('Y') }} TimeTec CRM. All rights reserved.
-                </p>
-            </div>
-        </div>
-    </footer>
 
     @livewireScripts
 

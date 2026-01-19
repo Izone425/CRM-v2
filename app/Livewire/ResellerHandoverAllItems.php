@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Auth;
 class ResellerHandoverAllItems extends Component
 {
     public $search = '';
-    public $sortField = 'created_at';
+    public $sortField = 'updated_at';
     public $sortDirection = 'desc';
     public $showFilesModal = false;
     public $selectedHandover = null;

@@ -126,10 +126,10 @@ class RenewalHandover extends Model
 
     /**
      * Relationship to HRDF invoices
-     */
+     */ 
     public function hrdfInvoices()
     {
-        return $this->hasMany(CrmHrdfInvoice::class, 'handover_id', 'id')
+        return $this->hasMany(CrmHrdfInvoiceV2::class, 'handover_id', 'id')
                    ->where('handover_type', 'RW');
     }
 

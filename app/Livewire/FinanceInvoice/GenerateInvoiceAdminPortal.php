@@ -20,6 +20,7 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Livewire\Component;
 use Livewire\Attributes\On;
+use Filament\Forms\Components\Grid;
 
 class GenerateInvoiceAdminPortal extends Component implements HasTable, HasForms
 {
@@ -66,6 +67,7 @@ class GenerateInvoiceAdminPortal extends Component implements HasTable, HasForms
     public function table(Table $table): Table
     {
         return $table
+            ->emptyState(fn () => view('components.empty-state-question'))
             ->query(
                 FinanceInvoice::where('portal_type', 'admin')
                     ->with(['resellerHandover', 'creator'])
@@ -79,7 +81,12 @@ class GenerateInvoiceAdminPortal extends Component implements HasTable, HasForms
                     ->color('primary'),
 
                 TextColumn::make('autocount_invoice_number')
-                    ->label('Invoice Number')
+                    ->label('AutoCount Invoice Number')
+                    ->searchable()
+                    ->sortable(),
+
+                TextColumn::make('timetec_invoice_number')
+                    ->label('TimeTec Invoice Number')
                     ->searchable()
                     ->sortable(),
 
@@ -100,7 +107,7 @@ class GenerateInvoiceAdminPortal extends Component implements HasTable, HasForms
             ])
             ->actions([
                 Action::make('view_pdf')
-                    ->label('View PDF')
+                    ->label('PDF')
                     ->icon('heroicon-o-document-text')
                     ->url(fn (FinanceInvoice $record): string => route('pdf.print-finance-invoice', $record))
                     ->openUrlInNewTab(),
@@ -111,61 +118,86 @@ class GenerateInvoiceAdminPortal extends Component implements HasTable, HasForms
                     ->icon('heroicon-o-plus')
                     ->form([
                         Select::make('crm_invoice_detail_id')
-                            ->label('TT Invoice')
+                            ->label('Admin Portal')
                             ->options(function () {
                                 return CrmInvoiceDetail::query()
-                                    ->with(['company', 'subscriber'])
-                                    ->whereHas('company')
                                     ->pendingInvoices()
                                     ->get()
                                     ->mapWithKeys(function ($invoice) {
-                                        $companyName = $invoice->subscriber?->f_company_name ?? 'Unknown Company';
-                                        $subscriberName = $invoice->company?->f_company_name ?? 'Available';
-                                        $amount = number_format($invoice->f_sales_amount, 2);
+                                        $companyName = strtoupper($invoice->subscriber_name ?? 'Unknown Company');
+                                        $subscriberName = strtoupper($invoice->company_name ?? 'Not Available');
+                                        $amount = number_format($invoice->f_total_amount, 2);
                                         return [$invoice->f_id => "{$invoice->f_invoice_no} - {$companyName} - {$subscriberName} - {$invoice->f_currency} {$amount}"];
                                     });
                             })
                             ->searchable()
                             ->required()
                             ->live()
-                            ->afterStateUpdated(function ($state, callable $set) {
+                            ->afterStateUpdated(function ($state, callable $set, $get) {
                                 if ($state) {
-                                    $invoice = CrmInvoiceDetail::with(['company', 'subscriber'])->where('f_id', $state)->first();
+                                    $invoice = CrmInvoiceDetail::query()
+                                        ->pendingInvoices()
+                                        ->havingRaw('MIN(crm_invoice_details.f_id) = ?', [$state])
+                                        ->first();
+                                    
                                     if ($invoice) {
-                                        $set('reseller_name', strtoupper($invoice->subscriber?->f_company_name ?? ''));
-                                        $set('subscriber_name', strtoupper($invoice->company?->f_company_name ?? ''));
-                                        $set('reseller_commission_amount', $invoice->f_sales_amount ?? 0);
+                                        $set('reseller_name', strtoupper($invoice->subscriber_name ?? ''));
+                                        $set('subscriber_name', strtoupper($invoice->company_name ?? ''));
+                                        $set('timetec_invoice_number', strtoupper($invoice->f_invoice_no ?? ''));
                                     }
                                 }
                             }),
 
-                        TextInput::make('autocount_invoice_number')
-                            ->label('AutoCount Invoice Number')
-                            ->required()
-                            ->maxLength(255),
-
-                        TextInput::make('reseller_commission_amount')
-                            ->label('Reseller Commission Amount')
-                            ->required()
-                            ->numeric()
-                            ->prefix('RM')
-                            ->step('0.01'),
-
-                        TextInput::make('reseller_name')
-                            ->label('Reseller Company Name')
+                        TextInput::make('timetec_invoice_number')
+                            ->label('TimeTec Invoice Number')
                             ->disabled()
                             ->dehydrated(true),
 
-                        TextInput::make('subscriber_name')
-                            ->label('Subscriber Name')
-                            ->disabled()
-                            ->dehydrated(true),
+                        Grid::make(2)
+                            ->schema([
+                                TextInput::make('reseller_name')
+                                    ->label('Reseller Name')
+                                    ->disabled()
+                                    ->dehydrated(true),
+
+                                TextInput::make('autocount_invoice_number')
+                                    ->label('AutoCount Invoice Number')
+                                    ->required()
+                                    ->extraAlpineAttributes([
+                                        'x-on:input' => '
+                                            const start = $el.selectionStart;
+                                            const end = $el.selectionEnd;
+                                            const value = $el.value;
+                                            $el.value = value.toUpperCase();
+                                            $el.setSelectionRange(start, end);
+                                        '
+                                    ])
+                                    ->dehydrateStateUsing(fn ($state) => strtoupper($state))
+                                    ->minLength(13)
+                                    ->maxLength(13),
+                            ]),
+                    
+                        Grid::make(2)
+                            ->schema([
+                                TextInput::make('subscriber_name')
+                                    ->label('Subscriber Name')
+                                    ->disabled()
+                                    ->dehydrated(true),
+
+                                TextInput::make('reseller_commission_amount')
+                                    ->label('Reseller Commission Amount')
+                                    ->required()
+                                    ->numeric()
+                                    ->prefix('RM')
+                                    ->step('0.01'),
+                            ]),
                     ])
                     ->action(function (array $data): void {
                         try {
                             $invoice = FinanceInvoice::create([
                                 'reseller_handover_id' => null,
                                 'autocount_invoice_number' => $data['autocount_invoice_number'],
+                                'timetec_invoice_number' => $data['timetec_invoice_number'] ?? null,
                                 'reseller_name' => $data['reseller_name'],
                                 'subscriber_name' => $data['subscriber_name'],
                                 'reseller_commission_amount' => $data['reseller_commission_amount'],
@@ -182,7 +214,7 @@ class GenerateInvoiceAdminPortal extends Component implements HasTable, HasForms
                             $this->dispatch('refresh-finance-invoice-tables');
 
                             // Open PDF in new tab
-                            $this->dispatch('open-url', url: route('pdf.print-finance-invoice', $invoice));
+                            $this->js('window.open("' . route('pdf.print-finance-invoice', $invoice) . '", "_blank")');
                         } catch (\Exception $e) {
                             Notification::make()
                                 ->title('Error')

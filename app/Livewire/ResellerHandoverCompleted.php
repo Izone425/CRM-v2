@@ -14,6 +14,8 @@ class ResellerHandoverCompleted extends Component
     public $showFilesModal = false;
     public $selectedHandover = null;
     public $handoverFiles = [];
+    public $showRemarkModal = false;
+    public $showAdminRemarkModal = false;
     protected $listeners = ['handover-updated' => '$refresh'];
     public function updatedSearch()
     {

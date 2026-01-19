@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reseller Handover Completed</title>
+    <title>Admin Portal Finance Invoice Completed</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -38,16 +38,17 @@
 <body>
     <div class="container">
         <div class="content">
+            
             <p>Dear Auni,</p>
             
-            <p>Reseller Portal handover has been completed with the following details.</p>
+            <p>Admin Portal handover has been completed with the following details.</p>
             
             <div class="info-section">
-                <p><strong>Handover ID:</strong> {{ $record->fb_id }}</p>
-                <p><strong>Reseller Name:</strong> {{ $record->reseller_company_name }}</p>
-                <p><strong>Subscriber Name:</strong> {{ $record->subscriber_name }}</p>
-                <p><strong>AutoCount Invoice Number:</strong> {{ $officialReceiptNumber }}</p>
-                <p><strong>Completed At:</strong> {{ $record->completed_at ? $record->completed_at->format('d M Y, H:i') : now()->format('d M Y, H:i') }}</p>
+                <p><strong>Handover ID:</strong> {{ $financeInvoice->formatted_id }}</p>
+                <p><strong>Reseller Name:</strong> {{ $resellerName }}</p>
+                <p><strong>Subscriber Name:</strong> {{ $subscriberName }}</p>
+                <p><strong>AutoCount Invoice Number:</strong> {{ $autocountInvoice }}</p>
+                <p><strong>Completed At:</strong> {{ now()->format('d M Y, H:i') }}</p>
             </div>
             
             <div class="footer">

@@ -74,18 +74,6 @@
             return \App\Models\InternalTicket::where('status', 'new')->count();
         });
 
-        $adminUSDInvoiceTotal = Cache::remember('admin_usd_invoice_' . auth()->id(), 300, function() {
-            return DB::connection('frontenddb')
-                ->table('crm_invoice_details')
-                ->whereIn('f_currency', ['MYR', 'USD'])
-                ->where('f_status', 0)
-                ->whereNull('f_auto_count_inv')
-                ->where('f_id', '>', '0000040131')
-                ->where('f_id', '!=', '0000042558')
-                ->distinct('f_invoice_no')
-                ->count('f_invoice_no');
-        });
-
         // Set default values for counts that will be loaded lazily
         $followUpTodayMYR = $renewalCounts['followUpTodayMYR'] ?? 0;
         $followUpOverdueMYR = $renewalCounts['followUpOverdueMYR'] ?? 0;
@@ -144,8 +132,10 @@
         });
 
         $adminResellerTotal = Cache::remember('admin_reseller_' . auth()->id(), 300, function() {
-            return \App\Models\ResellerHandover::whereIn('status', ['new', 'pending_timetec_invoice', 'pending_timetec_license'])
+            $resellerPortalHandoverCount = \App\Models\ResellerHandover::whereIn('status', ['new', 'pending_timetec_invoice', 'pending_timetec_license'])
                 ->count();
+            $adminPortalAllCount = \App\Models\CrmInvoiceDetail::pendingInvoices()->get()->count();
+            return $resellerPortalHandoverCount + $adminPortalAllCount;
         });
 
         // Hardware V2 counts - only get what's needed
@@ -223,8 +213,8 @@
 
         // Calculate minimal total for initial display
         $adminTotal = $adminSoftwareTotal + $adminSoftwareV2Total + $adminHeadcountTotal +
-                     $adminHrdfTotal + $initialStageTotal + $adminUSDInvoiceTotal +
-                     $adminHrdfAttLogTotal + $adminGeneralTotal;
+                     $adminHrdfTotal + $initialStageTotal +
+                     $adminHrdfAttLogTotal + $adminGeneralTotal + $adminResellerTotal;
     @endphp
 
     <div
@@ -310,8 +300,8 @@
                                         font-weight: bold;
                                         border: none;
                                         border-radius: 20px;
-                                        background: {{ in_array($currentDashboard, ['MainAdminDashboard', 'SoftwareAdmin', 'HardwareAdmin', 'HardwareAdminV2', 'AdminRepair', 'AdminRenewalv1', 'AdminRenewalEndUser', 'AdminRenewalv2', 'AdminHRDF', 'AdminHRDFAttLog', 'AdminHeadcount']) ? '#431fa1' : 'transparent' }};
-                                        color: {{ in_array($currentDashboard, ['MainAdminDashboard', 'SoftwareAdmin', 'HardwareAdmin', 'HardwareAdminV2', 'AdminRepair', 'AdminRenewalv1', 'AdminRenewalEndUser', 'AdminRenewalv2', 'AdminHRDF', 'AdminHRDFAttLog', 'AdminHeadcount']) ? '#ffffff' : '#555' }};
+                                        background: {{ in_array($currentDashboard, ['MainAdminDashboard', 'SoftwareAdmin', 'HardwareAdmin', 'HardwareAdminV2', 'AdminRepair', 'AdminRenewalv1', 'AdminRenewalEndUser', 'AdminRenewalv2', 'AdminHRDF', 'AdminHRDFAttLog', 'AdminHeadcount', 'AdminReseller']) ? '#431fa1' : 'transparent' }};
+                                        color: {{ in_array($currentDashboard, ['MainAdminDashboard', 'SoftwareAdmin', 'HardwareAdmin', 'HardwareAdminV2', 'AdminRepair', 'AdminRenewalv1', 'AdminRenewalEndUser', 'AdminRenewalv2', 'AdminHRDF', 'AdminHRDFAttLog', 'AdminHeadcount', 'AdminReseller']) ? '#ffffff' : '#555' }};
                                         cursor: pointer;
                                         display: flex;
                                         align-items: center;
@@ -992,8 +982,8 @@
                                                     font-weight: bold;
                                                     border: none;
                                                     border-radius: 20px;
-                                                    background: {{ in_array($currentDashboard, ['MainAdminDashboard','SoftwareAdmin', 'SoftwareAdminV2', 'HardwareAdmin', 'HardwareAdminV2', 'AdminRepair', 'AdminRenewalv1', 'AdminRenewalEndUser', 'AdminRenewalv2', 'AdminHRDF', 'AdminHRDFAttLog', 'AdminHeadcount', 'AdminGeneral']) ? '#431fa1' : 'transparent' }};
-                                                    color: {{ in_array($currentDashboard, ['MainAdminDashboard','SoftwareAdmin','SoftwareAdminV2', 'HardwareAdmin', 'HardwareAdminV2', 'AdminRepair', 'AdminRenewalv1', 'AdminRenewalEndUser', 'AdminRenewalv2', 'AdminHRDF', 'AdminHRDFAttLog', 'AdminHeadcount', 'AdminGeneral']) ? '#ffffff' : '#555' }};
+                                                    background: {{ in_array($currentDashboard, ['MainAdminDashboard','SoftwareAdmin', 'SoftwareAdminV2', 'HardwareAdmin', 'HardwareAdminV2', 'AdminRepair', 'AdminRenewalv1', 'AdminRenewalEndUser', 'AdminRenewalv2', 'AdminHRDF', 'AdminHRDFAttLog', 'AdminHeadcount', 'AdminGeneral', 'AdminReseller']) ? '#431fa1' : 'transparent' }};
+                                                    color: {{ in_array($currentDashboard, ['MainAdminDashboard','SoftwareAdmin','SoftwareAdminV2', 'HardwareAdmin', 'HardwareAdminV2', 'AdminRepair', 'AdminRenewalv1', 'AdminRenewalEndUser', 'AdminRenewalv2', 'AdminHRDF', 'AdminHRDFAttLog', 'AdminHeadcount', 'AdminGeneral', 'AdminReseller']) ? '#ffffff' : '#555' }};
                                                     cursor: pointer;
                                                     display: flex;
                                                     align-items: center;
@@ -1310,44 +1300,6 @@
                                                             min-width: 20px;
                                                             text-align: center;
                                                         ">{{ $adminResellerTotal }}</span>
-                                                    @endif
-                                                </button>
-
-                                                <button
-                                                    wire:click="toggleDashboard('AdminUSDInvoice')"
-                                                    wire:loading.attr="disabled"
-                                                    wire:loading.class="opacity-50"
-                                                    style="
-                                                        display: flex;
-                                                        justify-content: space-between;
-                                                        align-items: center;
-                                                        width: 100%;
-                                                        padding: 10px 16px;
-                                                        text-align: left;
-                                                        border: none;
-                                                        background: {{ $currentDashboard === 'AdminUSDInvoice' ? '#f3f3f3' : 'white' }};
-                                                        font-size: 14px;
-                                                    "
-                                                >
-                                                    <span wire:loading.remove wire:target="toggleDashboard('AdminUSDInvoice')">Admin - MYR/USD Invoice</span>
-                                                    <span wire:loading wire:target="toggleDashboard('AdminUSDInvoice')" class="flex items-center">
-                                                        <svg class="w-4 h-4 mr-1 animate-spin" fill="none" viewBox="0 0 24 24">
-                                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                                        </svg>
-                                                        Loading...
-                                                    </span>
-                                                    @if($adminUSDInvoiceTotal > 0)
-                                                        <span style="
-                                                            background: #ef4444;
-                                                            color: white;
-                                                            border-radius: 12px;
-                                                            padding: 2px 8px;
-                                                            font-size: 12px;
-                                                            font-weight: bold;
-                                                            min-width: 20px;
-                                                            text-align: center;
-                                                        ">{{ $adminUSDInvoiceTotal }}</span>
                                                     @endif
                                                 </button>
 

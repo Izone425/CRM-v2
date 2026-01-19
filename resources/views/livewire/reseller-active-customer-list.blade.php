@@ -257,7 +257,7 @@
         <input
             type="text"
             wire:model.live="search"
-            placeholder="Search by company name..."
+            placeholder="Search by company name"
             class="search-input"
         >
     </div>

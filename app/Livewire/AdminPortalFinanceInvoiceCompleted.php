@@ -61,6 +61,20 @@ class AdminPortalFinanceInvoiceCompleted extends Component implements HasForms, 
     {
         return $table
             ->query(AdminPortalInvoice::query()->orderBy('created_at', 'desc'))
+            ->filters([
+                \Filament\Tables\Filters\Filter::make('created_at')
+                    ->form([
+                        \Filament\Forms\Components\DatePicker::make('created_from')
+                            ->label('From Date'),
+                        \Filament\Forms\Components\DatePicker::make('created_until')
+                            ->label('Until Date'),
+                    ])
+                    ->query(function ($query, array $data) {
+                        return $query
+                            ->when($data['created_from'], fn ($query, $date) => $query->whereDate('created_at', '>=', $date))
+                            ->when($data['created_until'], fn ($query, $date) => $query->whereDate('created_at', '<=', $date));
+                    }),
+            ])
             ->columns([
                 TextColumn::make('formatted_id')
                     ->label('ID')

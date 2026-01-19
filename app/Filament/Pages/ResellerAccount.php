@@ -13,6 +13,7 @@ use Filament\Actions\Action;
 use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Hidden;
 use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -98,11 +99,24 @@ class ResellerAccount extends Page implements HasTable
                                     ->required()
                                     ->maxLength(255),
 
-                                TextInput::make('reseller_id')
+                                Hidden::make('reseller_id')
                                     ->label('Bind Reseller ID (Admin Portal)')
-                                    ->numeric()
-                                    ->disabled()
                                     ->dehydrated(),
+
+                                TextInput::make('debtor_code')
+                                    ->label('Debtor Code')
+                                    ->placeholder('e.g., ARM-A0008')
+                                    ->extraAlpineAttributes([
+                                        'x-on:input' => '
+                                            const start = $el.selectionStart;
+                                            const end = $el.selectionEnd;
+                                            const value = $el.value;
+                                            $el.value = value.toUpperCase();
+                                            $el.setSelectionRange(start, end);
+                                        '
+                                    ])
+                                    ->dehydrateStateUsing(fn ($state) => strtoupper($state))
+                                    ->maxLength(50),
                         ]),
 
                     Grid::make(2)
@@ -232,6 +246,7 @@ class ResellerAccount extends Page implements HasTable
                         'sst_category' => $data['sst_category'],
                         'commission_rate' => $data['commission_rate'],
                         'reseller_id' => $data['reseller_id'] ?? null,
+                        'debtor_code' => $data['debtor_code'] ?? null,
                         'status' => 'active',
                         'email_verified_at' => now(),
                     ]);
@@ -306,6 +321,11 @@ class ResellerAccount extends Page implements HasTable
 
                 TextColumn::make('tax_identification_number')
                     ->label('Tax ID Number')
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+
+                TextColumn::make('debtor_code')
+                    ->label('Debtor Code')
                     ->searchable()
                     ->toggleable(isToggledHiddenByDefault: true),
 

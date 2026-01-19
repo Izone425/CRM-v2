@@ -21,6 +21,7 @@ use Filament\Forms\Components\Radio;
 use App\Services\InvoiceOcrService;
 use Filament\Forms\Set;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
+use Filament\Forms\Components\Grid;
 
 class ResellerHandoverPendingTimetecInvoice extends Component implements HasForms, HasTable
 {
@@ -83,7 +84,6 @@ class ResellerHandoverPendingTimetecInvoice extends Component implements HasForm
             ->columns([
                 TextColumn::make('fb_id')
                     ->label('FB ID')
-                    ->searchable()
                     ->sortable()
                     ->action(
                         Action::make('view_files')
@@ -92,7 +92,7 @@ class ResellerHandoverPendingTimetecInvoice extends Component implements HasForm
                     )
                     ->color('primary')
                     ->weight('bold'),
-                TextColumn::make('reseller_name')
+                TextColumn::make('reseller_company_name')
                     ->label('Reseller Name')
                     ->searchable()
                     ->sortable(),
@@ -100,21 +100,20 @@ class ResellerHandoverPendingTimetecInvoice extends Component implements HasForm
                     ->label('Subscriber Name')
                     ->searchable()
                     ->sortable(),
-                TextColumn::make('confirmed_proceed_at')
-                    ->label('Confirmed At')
+                TextColumn::make('updated_at')
+                    ->label('Last Modified')
                     ->dateTime('d M Y, H:i')
                     ->sortable(),
                 BadgeColumn::make('status')
                     ->label('Status')
                     ->colors([
                         'primary' => 'new',
-                        'warning' => 'pending_confirmation',
                         'info' => 'pending_timetec_invoice',
-                        'success' => 'completed',
-                        'danger' => 'rejected',
-                        'secondary' => 'inactive',
+                        'success' => 'pending_timetec_license',
+                        'warning' => 'completed',
+                        'gray' => 'inactive',
                     ])
-                    ->formatStateUsing(fn (string $state): string => ucwords(str_replace('_', ' ', $state))),
+                    ->formatStateUsing(fn (string $state): string => $state === 'inactive' ? 'InActive' : str_replace('Timetec', 'TimeTec', ucwords(str_replace('_', ' ', $state)))),
             ])
             ->actions([
                 Action::make('complete_task')
@@ -145,76 +144,80 @@ class ResellerHandoverPendingTimetecInvoice extends Component implements HasForm
                         return $formData;
                     })
                     ->form([
-                        FileUpload::make('autocount_invoice')
-                            ->label('AutoCount Invoice')
-                            ->required()
-                            ->multiple()
-                            ->acceptedFileTypes(['application/pdf', 'image/*'])
-                            ->disk('public')
-                            ->directory('reseller-handover/autocount-invoices')
-                            ->maxSize(10240)
-                            ->afterStateUpdated(function ($state, Set $set) {
-                                if (!$state) {
-                                    return;
-                                }
-
-                                try {
-                                    $ocrService = app(InvoiceOcrService::class);
-                                    $filePaths = [];
-
-                                    if (is_array($state)) {
-                                        foreach ($state as $file) {
-                                            if ($file instanceof TemporaryUploadedFile) {
-                                                $filePaths[] = $file->getRealPath();
-                                            }
+                        Grid::make(2)
+                            ->schema([
+                                FileUpload::make('autocount_invoice')
+                                    ->label('AutoCount Invoice')
+                                    ->required()
+                                    ->multiple()
+                                    ->acceptedFileTypes(['application/pdf', 'image/*'])
+                                    ->disk('public')
+                                    ->directory('reseller-handover/autocount-invoices')
+                                    ->maxSize(10240)
+                                    ->afterStateUpdated(function ($state, Set $set) {
+                                        if (!$state) {
+                                            return;
                                         }
-                                    } elseif ($state instanceof TemporaryUploadedFile) {
-                                        $filePaths[] = $state->getRealPath();
-                                    }
 
-                                    if (!empty($filePaths)) {
-                                        $invoiceNumber = $ocrService->extractInvoiceNumberFromMultipleFiles($filePaths);
+                                        try {
+                                            $ocrService = app(InvoiceOcrService::class);
+                                            $filePaths = [];
 
-                                        if ($invoiceNumber) {
-                                            $set('autocount_invoice_number', $invoiceNumber);
+                                            if (is_array($state)) {
+                                                foreach ($state as $file) {
+                                                    if ($file instanceof TemporaryUploadedFile) {
+                                                        $filePaths[] = $file->getRealPath();
+                                                    }
+                                                }
+                                            } elseif ($state instanceof TemporaryUploadedFile) {
+                                                $filePaths[] = $state->getRealPath();
+                                            }
+
+                                            if (!empty($filePaths)) {
+                                                $invoiceNumber = $ocrService->extractInvoiceNumberFromMultipleFiles($filePaths);
+
+                                                if ($invoiceNumber) {
+                                                    $set('autocount_invoice_number', $invoiceNumber);
+
+                                                    Notification::make()
+                                                        ->title('Invoice number detected')
+                                                        ->body("Found: {$invoiceNumber}")
+                                                        ->success()
+                                                        ->send();
+                                                } else {
+                                                    Notification::make()
+                                                        ->title('No invoice number detected')
+                                                        ->body('Please enter manually')
+                                                        ->warning()
+                                                        ->send();
+                                                }
+                                            }
+                                        } catch (\Exception $e) {
+                                            \Illuminate\Support\Facades\Log::error('OCR failed in ResellerHandover', [
+                                                'error' => $e->getMessage()
+                                            ]);
 
                                             Notification::make()
-                                                ->title('Invoice number detected')
-                                                ->body("Found: {$invoiceNumber}")
-                                                ->success()
-                                                ->send();
-                                        } else {
-                                            Notification::make()
-                                                ->title('No invoice number detected')
-                                                ->body('Please enter manually')
+                                                ->title('OCR scan failed')
+                                                ->body('Please enter invoice number manually')
                                                 ->warning()
                                                 ->send();
                                         }
-                                    }
-                                } catch (\Exception $e) {
-                                    \Illuminate\Support\Facades\Log::error('OCR failed in ResellerHandover', [
-                                        'error' => $e->getMessage()
-                                    ]);
+                                    })
+                                    ->live(),
+                                FileUpload::make('reseller_invoice')
+                                    ->label('Sample Reseller Invoice')
+                                    ->required()
+                                    ->disabled()
+                                    ->dehydrated(true)
+                                    ->multiple()
+                                    ->acceptedFileTypes(['application/pdf', 'image/*'])
+                                    ->disk('public')
+                                    ->openable()
+                                    ->directory('reseller-handover/reseller-invoices')
+                                    ->maxSize(10240),
+                            ]),
 
-                                    Notification::make()
-                                        ->title('OCR scan failed')
-                                        ->body('Please enter invoice number manually')
-                                        ->warning()
-                                        ->send();
-                                }
-                            })
-                            ->live(),
-                        FileUpload::make('reseller_invoice')
-                            ->label('Sample Reseller Invoice')
-                            ->required()
-                            ->disabled()
-                            ->dehydrated(true)
-                            ->multiple()
-                            ->acceptedFileTypes(['application/pdf', 'image/*'])
-                            ->disk('public')
-                            ->openable()
-                            ->directory('reseller-handover/reseller-invoices')
-                            ->maxSize(10240),
                         TextInput::make('autocount_invoice_number')
                             ->label('AutoCount Invoice Number')
                             ->required()
@@ -229,13 +232,27 @@ class ResellerHandoverPendingTimetecInvoice extends Component implements HasForm
                             ])
                             ->dehydrateStateUsing(fn ($state) => strtoupper($state))
                             ->maxLength(13)
-                            ->helperText('Auto-detected from invoice upload or enter manually'),
+                            ->rules([
+                                function ($record) {
+                                    return function (string $attribute, $value, \Closure $fail) use ($record) {
+                                        $financeInvoice = \App\Models\FinanceInvoice::where('reseller_handover_id', $record->id)
+                                            ->latest()
+                                            ->first();
+
+                                        if ($financeInvoice && $financeInvoice->autocount_invoice_number) {
+                                            if (strtoupper($value) !== strtoupper($financeInvoice->autocount_invoice_number)) {
+                                                $fail("AutoCount Invoice Number must match the Finance Invoice: {$financeInvoice->autocount_invoice_number}");
+                                            }
+                                        }
+                                    };
+                                },
+                            ]),
                         Radio::make('reseller_option')
                             ->label('Reseller Option')
                             ->required()
                             ->options([
-                                'reseller_normal_invoice_with_payment_slip' => 'RESELLER NORMAL INVOICE + PAYMENT SLIP',
-                                'reseller_normal_invoice' => 'RESELLER NORMAL INVOICE',
+                                'reseller_normal_invoice_with_payment_slip' => 'Reseller Invoice + Payment Slip',
+                                'reseller_normal_invoice' => 'Reseller Invoice',
                             ])
                             ->default('reseller_normal_invoice_with_payment_slip'),
                     ])

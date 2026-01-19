@@ -346,6 +346,8 @@ class HrdfInvoiceListV2 extends Page implements HasTable
                                     ->get(),
                                 'RW' => RenewalHandover::with(['lead'])
                                     ->where('status', 'New')
+                                    ->whereNotNull('hrdf_grant_ids')
+                                    ->whereDoesntHave('hrdfInvoices')
                                     ->limit(50)
                                     ->get(),
                                 default => collect([])

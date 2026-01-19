@@ -132,10 +132,46 @@
             letter-spacing: 0.025em;
         }
 
-        .status-pending-reseller {
+        .status-new {
+            background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+            color: #065f46;
+            border: 1px solid #6ee7b7;
+        }
+
+        .status-pending-confirmation {
             background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
             color: #92400e;
-            border: 1px solid #fbbf24;
+            border: 1px solid #fcd34d;
+        }
+
+        .status-pending-invoice {
+            background: linear-gradient(135deg, #fed7aa 0%, #fdba74 100%);
+            color: #9a3412;
+            border: 1px solid #fb923c;
+        }
+
+        .status-pending-reseller-payment {
+            background: linear-gradient(135deg, #fecaca 0%, #fca5a5 100%);
+            color: #991b1b;
+            border: 1px solid #f87171;
+        }
+
+        .status-pending-timetec-license {
+            background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
+            color: #3730a3;
+            border: 1px solid #a5b4fc;
+        }
+
+        .status-pending-timetec-invoice {
+            background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
+            color: #3730a3;
+            border: 1px solid #a5b4fc;
+        }
+
+        .status-completed {
+            background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+            color: #065f46;
+            border: 1px solid #6ee7b7;
         }
 
         .pdf-button {
@@ -567,7 +603,7 @@
                 <tr>
                     <th>
                         <button wire:click="sortBy('id')">
-                            FB ID
+                            ID
                             <svg class="sort-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 @if($sortField === 'id')
                                     @if($sortDirection === 'desc')
@@ -598,10 +634,10 @@
                         </button>
                     </th>
                     <th>
-                        <button wire:click="sortBy('created_at')">
-                            Created At
+                        <button wire:click="sortBy('updated_at')">
+                            Last Modified
                             <svg class="sort-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                @if($sortField === 'created_at')
+                                @if($sortField === 'updated_at')
                                     @if($sortDirection === 'desc')
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                                     @else
@@ -631,11 +667,15 @@
                             {{ $handover->subscriber_name }}
                         </td>
                         <td class="date-cell">
-                            {{ $handover->created_at->format('d M Y, H:i') }}
+                            {{ $handover->updated_at->format('d M Y, H:i') }}
                         </td>
                         <td>
-                            <span class="status-badge status-pending-reseller">
-                                Pending Reseller
+                            @php
+                                $statusClass = 'status-' . str_replace('_', '-', $handover->status);
+                                $statusLabel = str_replace('Timetec', 'TimeTec', ucwords(str_replace('_', ' ', $handover->status)));
+                            @endphp
+                            <span class="status-badge {{ $statusClass }}">
+                                {{ $statusLabel }}
                             </span>
                         </td>
                         <td>
@@ -669,13 +709,14 @@
                     <form wire:submit.prevent="completeTask">
                         <div class="form-group">
                             <label class="form-label required">Reseller Normal Invoice</label>
-                            <div class="file-upload-wrapper {{ $resellerNormalInvoice ? 'has-file' : '' }}">
-                                <input
-                                    type="file"
-                                    wire:model="resellerNormalInvoice"
-                                    class="file-upload-input"
-                                    accept=".pdf,.jpg,.jpeg,.png"
-                                    multiple>
+                            <div class="file-upload-wrapper {{ $resellerNormalInvoice ? 'has-file' : '' }}" style="{{ $resellerNormalInvoice ? 'pointer-events: none; opacity: 0.6;' : '' }}">
+                                @if(!$resellerNormalInvoice)
+                                    <input
+                                        type="file"
+                                        wire:model="resellerNormalInvoice"
+                                        class="file-upload-input"
+                                        accept=".pdf,.jpg,.jpeg,.png">
+                                @endif
                                 <div class="file-upload-content">
                                     <p class="file-upload-text">
                                         @if($resellerNormalInvoice)
@@ -684,32 +725,36 @@
                                             Click to upload or drag and drop
                                         @endif
                                     </p>
-                                    <p class="file-upload-hint">PDF, JPG, JPEG or PNG (Max: 10MB)</p>
+                                    <p class="file-upload-hint">
+                                        @if($resellerNormalInvoice)
+                                            Remove files below to upload new ones
+                                        @else
+                                            PDF, JPG, JPEG or PNG (Max: 10MB)
+                                        @endif
+                                    </p>
                                 </div>
                             </div>
                             @if($resellerNormalInvoice)
-                                @foreach($resellerNormalInvoice as $index => $file)
-                                    <div class="file-selected-info">
-                                        <div class="file-selected-icon">
-                                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                                            </svg>
-                                        </div>
-                                        <div class="file-selected-details">
-                                            <p class="file-selected-name">{{ $file->getClientOriginalName() }}</p>
-                                            <p class="file-selected-size">{{ number_format($file->getSize() / 1024, 2) }} KB</p>
-                                        </div>
-                                        <button
-                                            type="button"
-                                            wire:click="removeInvoiceFile({{ $index }})"
-                                            class="file-delete-button"
-                                            title="Remove file">
-                                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                                            </svg>
-                                        </button>
+                                <div class="file-selected-info">
+                                    <div class="file-selected-icon">
+                                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                        </svg>
                                     </div>
-                                @endforeach
+                                    <div class="file-selected-details">
+                                        <p class="file-selected-name">{{ $resellerNormalInvoice->getClientOriginalName() }}</p>
+                                        <p class="file-selected-size">{{ number_format($resellerNormalInvoice->getSize() / 1024, 2) }} KB</p>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        wire:click="removeInvoiceFile"
+                                        class="file-delete-button"
+                                        title="Remove file">
+                                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                        </svg>
+                                    </button>
+                                </div>
                             @endif
                             @error('resellerNormalInvoice')
                                 <p class="error-text">{{ $message }}</p>
@@ -719,13 +764,14 @@
                         @if($selectedHandover->reseller_option === 'reseller_normal_invoice_with_payment_slip')
                             <div class="form-group">
                                 <label class="form-label required">Payment Slip</label>
-                                <div class="file-upload-wrapper {{ $paymentSlip ? 'has-file' : '' }}">
-                                    <input
-                                        type="file"
-                                        wire:model="paymentSlip"
-                                        class="file-upload-input"
-                                        accept=".pdf,.jpg,.jpeg,.png"
-                                        multiple>
+                                <div class="file-upload-wrapper {{ $paymentSlip ? 'has-file' : '' }}" style="{{ $paymentSlip ? 'pointer-events: none; opacity: 0.6;' : '' }}">
+                                    @if(!$paymentSlip)
+                                        <input
+                                            type="file"
+                                            wire:model="paymentSlip"
+                                            class="file-upload-input"
+                                            accept=".pdf,.jpg,.jpeg,.png">
+                                    @endif
                                     <div class="file-upload-content">
                                         <p class="file-upload-text">
                                             @if($paymentSlip)
@@ -734,32 +780,36 @@
                                                 Click to upload or drag and drop
                                             @endif
                                         </p>
-                                        <p class="file-upload-hint">PDF, JPG, JPEG or PNG (Max: 10MB)</p>
+                                        <p class="file-upload-hint">
+                                            @if($paymentSlip)
+                                                Remove files below to upload new ones
+                                            @else
+                                                PDF, JPG, JPEG or PNG (Max: 10MB)
+                                            @endif
+                                        </p>
                                     </div>
                                 </div>
                                 @if($paymentSlip)
-                                    @foreach($paymentSlip as $index => $file)
-                                        <div class="file-selected-info">
-                                            <div class="file-selected-icon">
-                                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                                                </svg>
-                                            </div>
-                                            <div class="file-selected-details">
-                                                <p class="file-selected-name">{{ $file->getClientOriginalName() }}</p>
-                                                <p class="file-selected-size">{{ number_format($file->getSize() / 1024, 2) }} KB</p>
-                                            </div>
-                                            <button
-                                                type="button"
-                                                wire:click="removePaymentSlipFile({{ $index }})"
-                                                class="file-delete-button"
-                                                title="Remove file">
-                                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                                                </svg>
-                                            </button>
+                                    <div class="file-selected-info">
+                                        <div class="file-selected-icon">
+                                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                            </svg>
                                         </div>
-                                    @endforeach
+                                        <div class="file-selected-details">
+                                            <p class="file-selected-name">{{ $paymentSlip->getClientOriginalName() }}</p>
+                                            <p class="file-selected-size">{{ number_format($paymentSlip->getSize() / 1024, 2) }} KB</p>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            wire:click="removePaymentSlipFile"
+                                            class="file-delete-button"
+                                            title="Remove file">
+                                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                            </svg>
+                                        </button>
+                                    </div>
                                 @endif
                                 @error('paymentSlip')
                                     <p class="error-text">{{ $message }}</p>

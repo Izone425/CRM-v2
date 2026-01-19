@@ -24,6 +24,8 @@ class AdminResellerHandoverCompleted extends Component implements HasForms, HasT
     public $showFilesModal = false;
     public $selectedHandover = null;
     public $handoverFiles = [];
+    public $showRemarkModal = false;
+    public $showAdminRemarkModal = false;
 
     public function mount()
     {
@@ -74,7 +76,6 @@ class AdminResellerHandoverCompleted extends Component implements HasForms, HasT
             ->columns([
                 TextColumn::make('fb_id')
                     ->label('FB ID')
-                    ->searchable()
                     ->sortable()
                     ->action(
                         Action::make('view_files')
@@ -87,7 +88,7 @@ class AdminResellerHandoverCompleted extends Component implements HasForms, HasT
                     ->label('Invoice Number')
                     ->searchable()
                     ->sortable(),
-                TextColumn::make('reseller_name')
+                TextColumn::make('reseller_company_name')
                     ->label('Reseller Name')
                     ->searchable()
                     ->sortable(),

@@ -23,7 +23,6 @@
                 <!-- Background overlay -->
                 <div
                     class="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75"
-                    wire:click="closeModal"
                     aria-hidden="true"></div>
 
                 <!-- Modal panel -->
@@ -96,7 +95,7 @@
                                                 wire:click="selectSubscriber('{{ $subscriber->f_id }}', '{{ $subscriber->f_company_name }}')"
                                                 class="flex items-center justify-between w-full px-4 py-2 text-left transition-colors border-b border-gray-100 hover:bg-indigo-50 last:border-b-0">
                                                 <div class="flex-1">
-                                                    <div class="font-semibold text-gray-800">{{ $subscriber->f_company_name }}</div>
+                                                    <div class="font-semibold text-gray-800" style="text-transform: uppercase;">{{ $subscriber->f_company_name }}</div>
                                                     <div class="text-xs text-gray-500">ID: {{ $subscriber->f_id }}</div>
                                                 </div>
                                             </button>
@@ -180,6 +179,14 @@
                                     @enderror
                                 </div>
                             </div>
+                            @if($headcountError)
+                                <div class="mb-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+                                    <p class="text-sm text-red-600 flex items-center">
+                                        <i class="fas fa-exclamation-circle mr-2"></i>
+                                        {{ $headcountError }}
+                                    </p>
+                                </div>
+                            @endif
                         </div>
 
                         <!-- Reseller Remark -->

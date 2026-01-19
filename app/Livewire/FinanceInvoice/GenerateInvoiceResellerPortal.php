@@ -6,6 +6,7 @@ use App\Models\FinanceInvoice;
 use App\Models\ResellerHandover;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Grid;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Notifications\Notification;
@@ -65,6 +66,7 @@ class GenerateInvoiceResellerPortal extends Component implements HasTable, HasFo
     public function table(Table $table): Table
     {
         return $table
+            ->emptyState(fn () => view('components.empty-state-question'))
             ->query(
                 FinanceInvoice::where('portal_type', 'reseller')
                     ->with(['resellerHandover', 'creator'])
@@ -99,7 +101,7 @@ class GenerateInvoiceResellerPortal extends Component implements HasTable, HasFo
             ])
             ->actions([
                 Action::make('view_pdf')
-                    ->label('View PDF')
+                    ->label('PDF')
                     ->icon('heroicon-o-document-text')
                     ->url(fn (FinanceInvoice $record): string => route('pdf.print-finance-invoice', $record))
                     ->openUrlInNewTab(),
@@ -110,14 +112,14 @@ class GenerateInvoiceResellerPortal extends Component implements HasTable, HasFo
                     ->icon('heroicon-o-plus')
                     ->form([
                         Select::make('reseller_handover_id')
-                            ->label('Reseller Handover')
+                            ->label('Reseller Portal')
                             ->options(function () {
                                 return ResellerHandover::query()
                                     ->where('status', 'pending_timetec_invoice')
                                     ->get()
                                     ->mapWithKeys(function ($handover) {
-                                        $resellerName = $handover->reseller_company_name ?? $handover->reseller_name ?? 'Unknown Reseller';
-                                        $subscriberName = $handover->subscriber_name ?? 'Unknown Subscriber';
+                                        $resellerName = strtoupper($handover->reseller_company_name ?? $handover->reseller_name ?? 'Unknown Reseller');
+                                        $subscriberName = strtoupper($handover->subscriber_name ?? 'Unknown Subscriber');
                                         return [$handover->id => "{$handover->fb_id} - {$resellerName} - {$subscriberName}"];
                                     });
                             })
@@ -128,33 +130,50 @@ class GenerateInvoiceResellerPortal extends Component implements HasTable, HasFo
                                 if ($state) {
                                     $handover = ResellerHandover::find($state);
                                     if ($handover) {
-                                        $set('reseller_name', $handover->reseller_company_name ?? $handover->reseller_name ?? '');
-                                        $set('subscriber_name', $handover->subscriber_name ?? '');
+                                        $set('reseller_name', strtoupper($handover->reseller_company_name ?? $handover->reseller_name ?? ''));
+                                        $set('subscriber_name', strtoupper($handover->subscriber_name ?? ''));
                                     }
                                 }
                             }),
 
-                        TextInput::make('autocount_invoice_number')
-                            ->label('AutoCount Invoice Number')
-                            ->required()
-                            ->maxLength(255),
+                        Grid::make(2)
+                            ->schema([
+                                TextInput::make('reseller_name')
+                                    ->label('Reseller Name')
+                                    ->disabled()
+                                    ->dehydrated(true),
 
-                        TextInput::make('reseller_commission_amount')
-                            ->label('Reseller Commission Amount')
-                            ->required()
-                            ->numeric()
-                            ->prefix('RM')
-                            ->step('0.01'),
+                                TextInput::make('autocount_invoice_number')
+                                    ->label('AutoCount Invoice Number')
+                                    ->required()
+                                    ->extraAlpineAttributes([
+                                        'x-on:input' => '
+                                            const start = $el.selectionStart;
+                                            const end = $el.selectionEnd;
+                                            const value = $el.value;
+                                            $el.value = value.toUpperCase();
+                                            $el.setSelectionRange(start, end);
+                                        '
+                                    ])
+                                    ->dehydrateStateUsing(fn ($state) => strtoupper($state))
+                                    ->minLength(13)
+                                    ->maxLength(13),
+                            ]),
+                    
+                        Grid::make(2)
+                            ->schema([
+                                TextInput::make('subscriber_name')
+                                    ->label('Subscriber Name')
+                                    ->disabled()
+                                    ->dehydrated(true),
 
-                        TextInput::make('reseller_name')
-                            ->label('Reseller Company Name')
-                            ->disabled()
-                            ->dehydrated(true),
-
-                        TextInput::make('subscriber_name')
-                            ->label('Subscriber Name')
-                            ->disabled()
-                            ->dehydrated(true),
+                                TextInput::make('reseller_commission_amount')
+                                    ->label('Reseller Commission Amount')
+                                    ->required()
+                                    ->numeric()
+                                    ->prefix('RM')
+                                    ->step('0.01'),
+                            ]),
                     ])
                     ->action(function (array $data): void {
                         try {
@@ -177,8 +196,8 @@ class GenerateInvoiceResellerPortal extends Component implements HasTable, HasFo
 
                             $this->dispatch('refresh-finance-invoice-tables');
 
-                            // Open PDF in new tab
-                            $this->dispatch('open-url', url: route('pdf.print-finance-invoice', $invoice));
+                            // Redirect to open PDF in new tab
+                            $this->js('window.open("' . route('pdf.print-finance-invoice', $invoice) . '", "_blank")');
                         } catch (\Exception $e) {
                             Notification::make()
                                 ->title('Error')
