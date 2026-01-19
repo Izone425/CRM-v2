@@ -143,8 +143,26 @@
          selectedView: 'overview',
          selectView(view) {
              this.selectedView = view;
+             // Re-initialize chart when switching to overview
+             if (view === 'overview' && typeof initializeProductChart === 'function') {
+                 setTimeout(() => {
+                     console.log('View switched to overview, re-initializing chart...');
+                     initializeProductChart();
+                 }, 100);
+             }
          }
-     }">
+     }"
+     x-init="
+         // Initialize chart when Alpine is ready
+         $nextTick(() => {
+             setTimeout(() => {
+                 if (typeof initializeProductChart === 'function') {
+                     console.log('Alpine x-init: Initializing chart...');
+                     initializeProductChart();
+                 }
+             }, 200);
+         });
+     ">
 
     <div class="dashboard-layout">
         <!-- Left Sidebar with Category Cards -->
@@ -444,43 +462,213 @@
 @push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Top Products Donut Chart
-        const productOptions = {
-            series: @js($topProductsData['values']),
-            chart: {
-                type: 'donut',
-                height: 280,
-                fontFamily: 'Inter, sans-serif',
-            },
-            labels: @js($topProductsData['labels']),
-            colors: @js($topProductsData['colors']),
-            plotOptions: {
-                pie: {
-                    donut: {
-                        size: '65%',
-                        labels: {
-                            show: true,
-                            total: {
+    // Global chart variable
+    let productChart = null;
+
+    function initializeProductChart() {
+        try {
+            // Check if ApexCharts is loaded
+            if (typeof ApexCharts === 'undefined') {
+                console.error('ApexCharts library not loaded');
+                return;
+            }
+
+            // Get the chart container
+            const chartElement = document.querySelector("#topProductsChart");
+
+            if (!chartElement) {
+                console.error('Chart container #topProductsChart not found');
+                return;
+            }
+
+            // Check if element is visible
+            const isVisible = chartElement.offsetParent !== null;
+            console.log('Chart container visible:', isVisible);
+            console.log('Chart container dimensions:', chartElement.offsetWidth, 'x', chartElement.offsetHeight);
+
+            // Destroy existing chart if any
+            if (productChart) {
+                productChart.destroy();
+            }
+
+            // Chart data from backend
+            const productData = @js($topProductsData['values']);
+            const productLabels = @js($topProductsData['labels']);
+            const productColors = @js($topProductsData['colors']);
+
+            console.log('Initializing chart with data:', {
+                data: productData,
+                labels: productLabels,
+                colors: productColors
+            });
+
+            // Validate data
+            if (!productData || productData.length === 0) {
+                console.error('No product data available');
+                return;
+            }
+
+            const productOptions = {
+                series: productData,
+                chart: {
+                    type: 'donut',
+                    height: 300,
+                    width: '100%',
+                    fontFamily: 'Inter, sans-serif',
+                    animations: {
+                        enabled: true,
+                        easing: 'easeinout',
+                        speed: 800,
+                        animateGradually: {
+                            enabled: true,
+                            delay: 150
+                        }
+                    }
+                },
+                labels: productLabels,
+                colors: productColors,
+                plotOptions: {
+                    pie: {
+                        donut: {
+                            size: '65%',
+                            labels: {
                                 show: true,
-                                label: 'Total',
-                                fontSize: '14px',
-                                color: '#6b7280',
-                                formatter: function(w) {
-                                    return w.globals.seriesTotals.reduce((a, b) => a + b, 0)
+                                name: {
+                                    show: true,
+                                    fontSize: '14px',
+                                    fontWeight: 600,
+                                    color: '#374151'
+                                },
+                                value: {
+                                    show: true,
+                                    fontSize: '20px',
+                                    fontWeight: 700,
+                                    color: '#111827',
+                                    formatter: function(val) {
+                                        return val
+                                    }
+                                },
+                                total: {
+                                    show: true,
+                                    label: 'Total',
+                                    fontSize: '12px',
+                                    fontWeight: 600,
+                                    color: '#6b7280',
+                                    formatter: function(w) {
+                                        const total = w.globals.seriesTotals.reduce((a, b) => a + b, 0);
+                                        return total;
+                                    }
                                 }
                             }
                         }
                     }
-                }
-            },
-            dataLabels: { enabled: false },
-            legend: { show: false },
-            stroke: { width: 2, colors: ['#ffffff'] }
-        };
+                },
+                dataLabels: {
+                    enabled: true,
+                    formatter: function(val, opts) {
+                        return Math.round(val) + '%'
+                    },
+                    style: {
+                        fontSize: '11px',
+                        fontWeight: 600,
+                        colors: ['#fff']
+                    },
+                    dropShadow: {
+                        enabled: true,
+                        top: 1,
+                        left: 1,
+                        blur: 1,
+                        color: '#000',
+                        opacity: 0.45
+                    }
+                },
+                legend: {
+                    show: false
+                },
+                stroke: {
+                    width: 2,
+                    colors: ['#ffffff']
+                },
+                tooltip: {
+                    enabled: true,
+                    theme: 'light',
+                    y: {
+                        formatter: function(val, opts) {
+                            const total = opts.globals.seriesTotals.reduce((a, b) => a + b, 0);
+                            const percentage = ((val / total) * 100).toFixed(1);
+                            return val + ' (' + percentage + '%)';
+                        }
+                    }
+                },
+                states: {
+                    hover: {
+                        filter: {
+                            type: 'lighten',
+                            value: 0.15
+                        }
+                    },
+                    active: {
+                        filter: {
+                            type: 'darken',
+                            value: 0.15
+                        }
+                    }
+                },
+                responsive: [{
+                    breakpoint: 480,
+                    options: {
+                        chart: {
+                            height: 250
+                        }
+                    }
+                }]
+            };
 
-        const productChart = new ApexCharts(document.querySelector("#topProductsChart"), productOptions);
-        productChart.render();
+            // Initialize the chart
+            productChart = new ApexCharts(chartElement, productOptions);
+
+            productChart.render().then(() => {
+                console.log('Chart rendered successfully');
+            }).catch((error) => {
+                console.error('Chart rendering error:', error);
+            });
+
+        } catch (error) {
+            console.error('Error initializing chart:', error);
+        }
+    }
+
+    // Initialize on DOM ready
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('DOM Content Loaded');
+
+        // Wait for Alpine.js to show the element (delay for x-show to process)
+        setTimeout(() => {
+            console.log('Attempting to initialize chart...');
+            initializeProductChart();
+        }, 500);
+    });
+
+    // Also try on window load as backup
+    window.addEventListener('load', function() {
+        if (!productChart) {
+            console.log('Window loaded, retrying chart initialization...');
+            setTimeout(initializeProductChart, 300);
+        }
+    });
+
+    // Refresh chart on Livewire updates
+    if (typeof Livewire !== 'undefined') {
+        Livewire.on('refresh-hr-dashboard', () => {
+            console.log('Livewire refresh triggered');
+            setTimeout(initializeProductChart, 200);
+        });
+    }
+
+    // Listen for Alpine.js view changes
+    document.addEventListener('alpine:initialized', () => {
+        console.log('Alpine initialized');
+        setTimeout(initializeProductChart, 300);
     });
 </script>
 @endpush
