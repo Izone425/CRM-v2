@@ -98,7 +98,7 @@
     /* Category container */
     .category-container {
         display: grid;
-        grid-template-columns: repeat(5, 1fr);
+        grid-template-columns: repeat(6, 1fr);
         gap: 10px;
         border-right: 1px solid #e5e7eb;
         padding-right: 10px;
@@ -284,8 +284,10 @@
         $newCount = \App\Models\ResellerHandover::where('status', 'new')->count();
         $pendingInvoiceCount = \App\Models\ResellerHandover::where('status', 'pending_timetec_invoice')->count();
         $pendingLicenseCount = \App\Models\ResellerHandover::where('status', 'pending_timetec_license')->count();
-        $allCount = $newCount + $pendingInvoiceCount + $pendingLicenseCount;
+        $pendingResellerPaymentCount = \App\Models\ResellerHandover::where('status', 'pending_reseller_payment')->count();
         $completedCount = \App\Models\ResellerHandover::where('status', 'completed')->count();
+        $allCount = \App\Models\ResellerHandover::count();
+        $resellerPortalHandoverCount = $newCount + $pendingInvoiceCount + $pendingLicenseCount;
 
         // Finance Invoice counts
         $resellerPortalCount = \App\Models\FinanceInvoice::where('portal_type', 'reseller')->count();
@@ -293,9 +295,9 @@
         $totalInvoiceCount = $resellerPortalCount + $adminPortalCount;
 
         // Admin Portal Finance Invoice counts
-        $adminPortalNewCount = \App\Models\FinanceInvoice::where('portal_type', 'admin')->where('status', 'new')->count();
+        $adminPortalNewCount = \App\Models\CrmInvoiceDetail::pendingInvoices()->get()->count();
         $adminPortalCompletedCount = \App\Models\FinanceInvoice::where('portal_type', 'admin')->where('status', 'completed')->count();
-        $adminPortalAllCount = $adminPortalNewCount + $adminPortalCompletedCount;
+        $adminPortalAllCount = $adminPortalNewCount;
     @endphp
 
     <div id="admin-reseller-container" class="hardware-handover-container"
@@ -306,7 +308,9 @@
             newCount: {{ $newCount }},
             pendingInvoiceCount: {{ $pendingInvoiceCount }},
             pendingLicenseCount: {{ $pendingLicenseCount }},
+            pendingResellerPaymentCount: {{ $pendingResellerPaymentCount }},
             completedCount: {{ $completedCount }},
+            resellerPortalHandoverCount: {{ $resellerPortalHandoverCount }},
             totalInvoiceCount: {{ $totalInvoiceCount }},
             resellerPortalCount: {{ $resellerPortalCount }},
             adminPortalCount: {{ $adminPortalCount }},
@@ -347,11 +351,13 @@
             fetch('{{ route('admin.reseller-handover.counts') }}')
                 .then(response => response.json())
                 .then(data => {
-                    allCount = data.new + data.pending_timetec_invoice + data.pending_timetec_license;
                     newCount = data.new;
                     pendingInvoiceCount = data.pending_timetec_invoice;
                     pendingLicenseCount = data.pending_timetec_license;
+                    pendingResellerPaymentCount = data.pending_reseller_payment || 0;
                     completedCount = data.completed;
+                    resellerPortalHandoverCount = newCount + pendingInvoiceCount + pendingLicenseCount;
+                    allCount = data.all || 0;
                 })
                 .catch(error => console.error('Error fetching counts:', error));
         ">
@@ -363,8 +369,8 @@
                     <div class="group-box group-reseller"
                             :class="{'selected': selectedGroup === 'reseller-handover'}"
                             @click="setSelectedGroup('reseller-handover')">
-                        <div class="group-title">Reseller Handover</div>
-                        <div class="group-count" x-text="allCount"></div>
+                        <div class="group-title">Reseller Portal</div>
+                        <div class="group-count" x-text="resellerPortalHandoverCount"></div>
                     </div>
 
                     <div class="group-box group-reseller"
@@ -421,6 +427,15 @@
                             <div class="stat-label">Pending TimeTec License</div>
                         </div>
                         <div class="stat-count" x-text="pendingLicenseCount"></div>
+                    </div>
+
+                    <div class="stat-box reseller-pending-invoice"
+                            :class="{'selected': selectedStat === 'reseller-pending-payment'}"
+                            @click="setSelectedStat('reseller-pending-payment')">
+                        <div class="stat-info">
+                            <div class="stat-label">Pending Reseller Payment</div>
+                        </div>
+                        <div class="stat-count" x-text="pendingResellerPaymentCount"></div>
                     </div>
 
                     <div class="stat-box reseller-completed"
@@ -501,6 +516,11 @@
                     <!-- Pending License -->
                     <div x-show="selectedStat === 'reseller-pending-license'" x-transition>
                         <livewire:reseller-handover-pending-timetec-license />
+                    </div>
+
+                    <!-- Pending Reseller Payment -->
+                    <div x-show="selectedStat === 'reseller-pending-payment'" x-transition>
+                        <livewire:admin-reseller-handover-pending-payment />
                     </div>
 
                     <!-- Completed -->

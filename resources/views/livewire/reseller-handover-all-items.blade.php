@@ -138,7 +138,13 @@
             border: 1px solid #f87171;
         }
 
-        .status-pending-timetec {
+        .status-pending-timetec-license {
+            background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
+            color: #3730a3;
+            border: 1px solid #a5b4fc;
+        }
+
+        .status-pending-timetec-invoice {
             background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
             color: #3730a3;
             border: 1px solid #a5b4fc;
@@ -172,8 +178,7 @@
         <input
             type="text"
             wire:model.live="search"
-            class="search-input"
-            placeholder="Search by FB ID or Subscriber Name...">
+            class="search-input">
     </div>
 
     <!-- Table -->
@@ -183,7 +188,7 @@
                 <tr>
                     <th>
                         <button wire:click="sortBy('id')">
-                            FB ID
+                            ID
                             <svg class="sort-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 @if($sortField === 'id')
                                     @if($sortDirection === 'desc')
@@ -214,10 +219,10 @@
                         </button>
                     </th>
                     <th>
-                        <button wire:click="sortBy('created_at')">
-                            Created At
+                        <button wire:click="sortBy('updated_at')">
+                            Last Modified
                             <svg class="sort-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                @if($sortField === 'created_at')
+                                @if($sortField === 'updated_at')
                                     @if($sortDirection === 'desc')
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                                     @else
@@ -246,12 +251,15 @@
                             {{ $handover->subscriber_name }}
                         </td>
                         <td class="date-cell">
-                            {{ $handover->created_at->format('d M Y, H:i') }}
+                            {{ $handover->updated_at->format('d M Y, H:i') }}
                         </td>
                         <td>
                             @php
                                 $statusClass = 'status-' . str_replace('_', '-', $handover->status);
                                 $statusLabel = str_replace('Timetec', 'TimeTec', ucwords(str_replace('_', ' ', $handover->status)));
+                                if ($handover->status === 'inactive') {
+                                    $statusLabel = 'InActive';
+                                }
                             @endphp
                             <span class="status-badge {{ $statusClass }}">
                                 {{ $statusLabel }}

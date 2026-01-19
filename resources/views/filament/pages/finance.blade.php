@@ -389,7 +389,7 @@
                 <div class="group-box group-reseller"
                      :class="{'selected': selectedGroup === 'reseller'}"
                      @click="setSelectedGroup('reseller')">
-                    <div class="group-title">Reseller Handover</div>
+                    <div class="group-title">Reseller Portal</div>
                     <div class="group-count">{{ $resellerCompletedCount }}</div>
                 </div>
             </div>

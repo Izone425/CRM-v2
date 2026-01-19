@@ -132,10 +132,46 @@
             letter-spacing: 0.025em;
         }
 
-        .status-pending {
-            background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
+        .status-new {
+            background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+            color: #065f46;
+            border: 1px solid #6ee7b7;
+        }
+
+        .status-pending-confirmation {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            color: #92400e;
+            border: 1px solid #fcd34d;
+        }
+
+        .status-pending-invoice {
+            background: linear-gradient(135deg, #fed7aa 0%, #fdba74 100%);
             color: #9a3412;
-            border: 1px solid #fdba74;
+            border: 1px solid #fb923c;
+        }
+
+        .status-pending-reseller-payment {
+            background: linear-gradient(135deg, #fecaca 0%, #fca5a5 100%);
+            color: #991b1b;
+            border: 1px solid #f87171;
+        }
+
+        .status-pending-timetec-license {
+            background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
+            color: #3730a3;
+            border: 1px solid #a5b4fc;
+        }
+
+        .status-pending-timetec-invoice {
+            background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
+            color: #3730a3;
+            border: 1px solid #a5b4fc;
+        }
+
+        .status-completed {
+            background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+            color: #065f46;
+            border: 1px solid #6ee7b7;
         }
 
         .pdf-button {
@@ -360,7 +396,7 @@
                 <tr>
                     <th>
                         <button wire:click="sortBy('id')">
-                            FB ID
+                            ID
                             <svg class="sort-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 @if($sortField === 'id')
                                     @if($sortDirection === 'desc')
@@ -409,8 +445,12 @@
                             {{ $handover->subscriber_name }}
                         </td>
                         <td>
-                            <span class="status-badge status-pending">
-                                Pending Confirmation
+                            @php
+                                $statusClass = 'status-' . str_replace('_', '-', $handover->status);
+                                $statusLabel = str_replace('Timetec', 'TimeTec', ucwords(str_replace('_', ' ', $handover->status)));
+                            @endphp
+                            <span class="status-badge {{ $statusClass }}">
+                                {{ $statusLabel }}
                             </span>
                         </td>
                         <td class="date-cell">

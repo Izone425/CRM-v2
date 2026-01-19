@@ -96,12 +96,9 @@ class ResellerHandoverPendingPayment extends Component
         $this->paymentSlip = null;
     }
 
-    public function removePaymentSlipFile($index)
+    public function removePaymentSlipFile()
     {
-        if (is_array($this->paymentSlip)) {
-            unset($this->paymentSlip[$index]);
-            $this->paymentSlip = array_values($this->paymentSlip);
-        }
+        $this->paymentSlip = null;
     }
 
     public function completeTask()
@@ -112,21 +109,18 @@ class ResellerHandoverPendingPayment extends Component
         }
 
         $this->validate([
-            'paymentSlip.*' => 'required|file|mimes:pdf,jpg,jpeg,png|max:10240',
+            'paymentSlip' => 'required|mimes:pdf,jpg,jpeg,png|max:10240',
         ], [
-            'paymentSlip.*.required' => 'Payment slip is required.',
+            'paymentSlip.required' => 'Payment slip is required.',
+            'paymentSlip.mimes' => 'The file must be a PDF, JPG, JPEG, or PNG.',
+            'paymentSlip.max' => 'The file size must not exceed 10MB.',
         ]);
 
-        // Store multiple payment slip files
-        $paymentSlipPaths = [];
-        if (is_array($this->paymentSlip)) {
-            foreach ($this->paymentSlip as $file) {
-                $paymentSlipPaths[] = $file->store('reseller-handover/payment-slips', 'public');
-            }
-        }
+        // Store single payment slip file
+        $paymentSlipPath = $this->paymentSlip->store('reseller-handover/payment-slips', 'public');
 
         $this->selectedHandover->update([
-            'reseller_payment_slip' => json_encode($paymentSlipPaths),
+            'reseller_payment_slip' => $paymentSlipPath,
             'status' => 'completed',
             'completed_at' => now(),
         ]);

@@ -25,6 +25,8 @@ class ResellerHandoverPendingTimetecLicense extends Component implements HasForm
     public $showFilesModal = false;
     public $selectedHandover = null;
     public $handoverFiles = [];
+    public $showRemarkModal = false;
+    public $showAdminRemarkModal = false;
 
     public function mount()
     {
@@ -75,7 +77,6 @@ class ResellerHandoverPendingTimetecLicense extends Component implements HasForm
             ->columns([
                 TextColumn::make('fb_id')
                     ->label('FB ID')
-                    ->searchable()
                     ->sortable()
                     ->action(
                         Action::make('view_files')
@@ -84,7 +85,7 @@ class ResellerHandoverPendingTimetecLicense extends Component implements HasForm
                     )
                     ->color('primary')
                     ->weight('bold'),
-                TextColumn::make('reseller_name')
+                TextColumn::make('reseller_company_name')
                     ->label('Reseller Name')
                     ->searchable()
                     ->sortable(),
@@ -92,21 +93,20 @@ class ResellerHandoverPendingTimetecLicense extends Component implements HasForm
                     ->label('Subscriber Name')
                     ->searchable()
                     ->sortable(),
-                TextColumn::make('completed_at')
-                    ->label('Completed At')
+                TextColumn::make('updated_at')
+                    ->label('Last Modified')
                     ->dateTime('d M Y, H:i')
                     ->sortable(),
                 BadgeColumn::make('status')
                     ->label('Status')
                     ->colors([
                         'primary' => 'new',
-                        'warning' => 'pending_confirmation',
-                        'info' => 'pending_timetec_license',
-                        'success' => 'completed',
-                        'danger' => 'rejected',
-                        'secondary' => 'inactive',
+                        'info' => 'pending_timetec_invoice',
+                        'success' => 'pending_timetec_license',
+                        'warning' => 'completed',
+                        'gray' => 'inactive',
                     ])
-                    ->formatStateUsing(fn (string $state): string => ucwords(str_replace('_', ' ', $state))),
+                    ->formatStateUsing(fn (string $state): string => $state === 'inactive' ? 'InActive' : str_replace('Timetec', 'TimeTec', ucwords(str_replace('_', ' ', $state)))),
             ])
             ->actions([
                 Action::make('complete_task')
@@ -149,8 +149,8 @@ class ResellerHandoverPendingTimetecLicense extends Component implements HasForm
                                     'record' => $record,
                                     'officialReceiptNumber' => $data['official_receipt_number']
                                 ], function ($message) use ($record) {
-                                    $message->to('zilih.ng@timeteccloud.com')
-                                        ->subject('Reseller Handover Completed - FB ID: ' . $record->fb_id);
+                                    $message->to(['auni1@timeteccloud.com', 'faiz@timeteccloud.com'])
+                                        ->subject('RESELLER PORTAL | ' . $record->fb_id . ' | COMPLETED');
                                 });
                             } catch (\Exception $e) {
                                 \Illuminate\Support\Facades\Log::error('Failed to send reseller handover completion email', [
@@ -161,7 +161,7 @@ class ResellerHandoverPendingTimetecLicense extends Component implements HasForm
                         }
 
                         $statusMessage = $newStatus === 'completed'
-                            ? 'Task completed successfully. Email notification sent to zi lih.ng@timeteccloud.com'
+                            ? 'Task completed successfully. Email notification sent to auni@timeteccloud.com and faiz@timeteccloud.com'
                             : 'Task completed successfully. Status changed to pending reseller payment';
 
                         Notification::make()

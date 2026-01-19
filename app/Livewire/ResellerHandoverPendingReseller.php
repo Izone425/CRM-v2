@@ -100,20 +100,14 @@ class ResellerHandoverPendingReseller extends Component
         $this->handoverFiles = [];
     }
 
-    public function removeInvoiceFile($index)
+    public function removeInvoiceFile()
     {
-        if (is_array($this->resellerNormalInvoice)) {
-            unset($this->resellerNormalInvoice[$index]);
-            $this->resellerNormalInvoice = array_values($this->resellerNormalInvoice);
-        }
+        $this->resellerNormalInvoice = null;
     }
 
-    public function removePaymentSlipFile($index)
+    public function removePaymentSlipFile()
     {
-        if (is_array($this->paymentSlip)) {
-            unset($this->paymentSlip[$index]);
-            $this->paymentSlip = array_values($this->paymentSlip);
-        }
+        $this->paymentSlip = null;
     }
 
     public function completeTask()
@@ -125,42 +119,33 @@ class ResellerHandoverPendingReseller extends Component
 
         // Build validation rules based on reseller option
         $rules = [
-            'resellerNormalInvoice' => 'required|array|min:1',
-            'resellerNormalInvoice.*' => 'required|file|mimes:pdf,jpg,jpeg,png|max:10240',
+            'resellerNormalInvoice' => 'required|file|mimes:pdf,jpg,jpeg,png|max:10240',
         ];
 
         $messages = [
             'resellerNormalInvoice.required' => 'Reseller normal invoice is required.',
-            'resellerNormalInvoice.min' => 'Please upload at least one reseller normal invoice.',
-            'resellerNormalInvoice.*.required' => 'Each file is required.',
-            'resellerNormalInvoice.*.file' => 'Each upload must be a valid file.',
+            'resellerNormalInvoice.file' => 'The upload must be a valid file.',
+            'resellerNormalInvoice.mimes' => 'The file must be a PDF, JPG, JPEG, or PNG.',
+            'resellerNormalInvoice.max' => 'The file size must not exceed 10MB.',
         ];
 
         // Only require payment slip if the option includes it
         if ($this->selectedHandover->reseller_option === 'reseller_normal_invoice_with_payment_slip') {
-            $rules['paymentSlip'] = 'required|array|min:1';
-            $rules['paymentSlip.*'] = 'required|file|mimes:pdf,jpg,jpeg,png|max:10240';
+            $rules['paymentSlip'] = 'required|file|mimes:pdf,jpg,jpeg,png|max:10240';
             $messages['paymentSlip.required'] = 'Payment slip is required.';
-            $messages['paymentSlip.min'] = 'Please upload at least one payment slip.';
-            $messages['paymentSlip.*.required'] = 'Each file is required.';
-            $messages['paymentSlip.*.file'] = 'Each upload must be a valid file.';
+            $messages['paymentSlip.file'] = 'The upload must be a valid file.';
+            $messages['paymentSlip.mimes'] = 'The file must be a PDF, JPG, JPEG, or PNG.';
+            $messages['paymentSlip.max'] = 'The file size must not exceed 10MB.';
         }
 
         $this->validate($rules, $messages);
 
-        // Store multiple files
-        $resellerInvoicePaths = [];
-        if (is_array($this->resellerNormalInvoice)) {
-            foreach ($this->resellerNormalInvoice as $file) {
-                $resellerInvoicePaths[] = $file->store('reseller-handover/reseller-invoices', 'public');
-            }
-        }
+        // Store single file
+        $resellerInvoicePath = $this->resellerNormalInvoice->store('reseller-handover/reseller-invoices', 'public');
 
-        $paymentSlipPaths = [];
-        if (is_array($this->paymentSlip)) {
-            foreach ($this->paymentSlip as $file) {
-                $paymentSlipPaths[] = $file->store('reseller-handover/payment-slips', 'public');
-            }
+        $paymentSlipPath = null;
+        if ($this->paymentSlip) {
+            $paymentSlipPath = $this->paymentSlip->store('reseller-handover/payment-slips', 'public');
         }
 
         // Determine next status based on reseller option
@@ -169,15 +154,15 @@ class ResellerHandoverPendingReseller extends Component
             : 'pending_reseller_payment';
 
         $updateData = [
-            'reseller_normal_invoice' => json_encode($resellerInvoicePaths),
+            'reseller_normal_invoice' => $resellerInvoicePath,
             'rni_submitted_at' => now(),
-            'status' => $nextStatus,
+            'status' => 'pending_timetec_license',
             'completed_at' => now(),
         ];
 
         // Only add payment slip if it exists
-        if (!empty($paymentSlipPaths)) {
-            $updateData['reseller_payment_slip'] = json_encode($paymentSlipPaths);
+        if ($paymentSlipPath) {
+            $updateData['reseller_payment_slip'] = $paymentSlipPath;
         }
 
         $this->selectedHandover->update($updateData);

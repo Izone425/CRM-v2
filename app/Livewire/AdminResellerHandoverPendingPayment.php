@@ -16,7 +16,7 @@ use Filament\Notifications\Notification;
 use Livewire\Attributes\On;
 use Filament\Tables\Filters\SelectFilter;
 
-class AdminResellerHandoverAll extends Component implements HasForms, HasTable
+class AdminResellerHandoverPendingPayment extends Component implements HasForms, HasTable
 {
     use InteractsWithTable;
     use InteractsWithForms;
@@ -54,10 +54,11 @@ class AdminResellerHandoverAll extends Component implements HasForms, HasTable
     public function table(Table $table): Table
     {
         return $table
-            ->query(ResellerHandover::query()->orderBy('created_at', 'desc'))
+            ->query(ResellerHandover::query()->where('status', 'pending_reseller_payment')->orderBy('created_at', 'desc'))
             ->columns([
                 TextColumn::make('fb_id')
                     ->label('FB ID')
+                    ->searchable()
                     ->sortable()
                     ->action(
                         Action::make('view_files')
@@ -65,11 +66,8 @@ class AdminResellerHandoverAll extends Component implements HasForms, HasTable
                             ->action(fn (ResellerHandover $record) => $this->openFilesModal($record->id))
                     )
                     ->color('primary')
-                    ->weight('bold'),
-                TextColumn::make('autocount_invoice_number')
-                    ->label('Invoice')
-                    ->searchable()
-                    ->sortable(),
+                    ->weight('bold')
+                    ,
                 TextColumn::make('reseller_company_name')
                     ->label('Reseller Name')
                     ->searchable()
@@ -81,34 +79,17 @@ class AdminResellerHandoverAll extends Component implements HasForms, HasTable
                 BadgeColumn::make('status')
                     ->label('Status')
                     ->colors([
-                        'primary' => 'new',
-                        'info' => 'pending_timetec_invoice',
-                        'success' => 'pending_timetec_license',
-                        'warning' => 'completed',
-                        'gray' => 'inactive',
+                        'warning' => 'pending_reseller_payment',
                     ])
-                    ->formatStateUsing(fn (string $state): string => $state === 'inactive' ? 'InActive' : str_replace('Timetec', 'TimeTec', ucwords(str_replace('_', ' ', $state)))),
+                    ->formatStateUsing(fn (string $state): string => ucwords(str_replace('_', ' ', $state))),
                 TextColumn::make('created_at')
                     ->label('Created At')
                     ->dateTime('d M Y, H:i')
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->sortable(),
                 TextColumn::make('updated_at')
                     ->label('Updated At')
                     ->dateTime('d M Y, H:i')
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-            ])
-            ->filters([
-                SelectFilter::make('status')
-                    ->options([
-                        'new' => 'New',
-                        'pending_timetec_invoice' => 'Pending TimeTec Invoice',
-                        'pending_timetec_license' => 'Pending TimeTec License',
-                        'completed' => 'Completed',
-                        'inactive' => 'InActive',
-                    ])
-                    ->default(null),
+                    ->sortable(),
             ])
             ->defaultSort('created_at', 'desc')
             ->paginated([10, 25, 50, 100]);
@@ -134,6 +115,6 @@ class AdminResellerHandoverAll extends Component implements HasForms, HasTable
 
     public function render()
     {
-        return view('livewire.admin-reseller-handover-all');
+        return view('livewire.admin-reseller-handover-pending-payment');
     }
 }

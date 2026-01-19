@@ -14,6 +14,7 @@ class FinanceInvoice extends Model
         'fc_number',
         'reseller_handover_id',
         'autocount_invoice_number',
+        'timetec_invoice_number',
         'reseller_name',
         'subscriber_name',
         'reseller_commission_amount',
@@ -27,6 +28,30 @@ class FinanceInvoice extends Model
     ];
 
     protected $appends = ['formatted_id'];
+
+    /**
+     * Set the reseller name to uppercase
+     */
+    public function setResellerNameAttribute($value)
+    {
+        $this->attributes['reseller_name'] = strtoupper($value);
+    }
+
+    /**
+     * Set the subscriber name to uppercase
+     */
+    public function setSubscriberNameAttribute($value)
+    {
+        $this->attributes['subscriber_name'] = strtoupper($value);
+    }
+
+    /**
+     * Set the TimeTec invoice number to uppercase
+     */
+    public function setTimetecInvoiceNumberAttribute($value)
+    {
+        $this->attributes['timetec_invoice_number'] = strtoupper($value);
+    }
 
     public function getFormattedIdAttribute()
     {

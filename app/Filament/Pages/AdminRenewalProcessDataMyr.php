@@ -828,12 +828,10 @@ class AdminRenewalProcessDataMyr extends Page implements HasTable
                     $baseQuery->where('f_name', 'NOT LIKE', '%'.$excludedProduct.'%');
                 }
 
-                // ✅ Get excluded company IDs once and cache
-                $excludedCompanyIds = Cache::remember('excluded_renewal_company_ids', 300, function () {
-                    return Renewal::whereIn('renewal_progress', ['terminated', 'completed_renewal'])
-                        ->pluck('f_company_id')
-                        ->toArray();
-                });
+                // Get excluded company IDs without caching to ensure real-time data accuracy
+                $excludedCompanyIds = Renewal::whereIn('renewal_progress', ['terminated', 'completed_renewal'])
+                    ->pluck('f_company_id')
+                    ->toArray();
 
                 if (!empty($excludedCompanyIds)) {
                     $baseQuery->whereNotIn('f_company_id', $excludedCompanyIds);

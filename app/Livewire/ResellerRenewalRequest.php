@@ -18,6 +18,7 @@ class ResellerRenewalRequest extends Component
     public $claim = 0;
     public $payroll = 0;
     public $resellerRemark = '';
+    public $headcountError = '';
 
     public function updatedResellerRemark($value)
     {
@@ -46,6 +47,7 @@ class ResellerRenewalRequest extends Component
         $this->claim = 0;
         $this->payroll = 0;
         $this->resellerRemark = '';
+        $this->headcountError = '';
     }
 
     public function selectSubscriber($fId, $companyName)
@@ -97,6 +99,8 @@ class ResellerRenewalRequest extends Component
 
     public function submitRequest()
     {
+        $this->headcountError = '';
+        
         $this->validate([
             'selectedSubscriber' => 'required',
             'attendance' => 'required|integer|min:0',
@@ -105,6 +109,12 @@ class ResellerRenewalRequest extends Component
             'payroll' => 'required|integer|min:0',
             'resellerRemark' => 'nullable|string|max:1000',
         ]);
+
+        // Check if at least one product has a quantity of 1 or more
+        if ($this->attendance == 0 && $this->leave == 0 && $this->claim == 0 && $this->payroll == 0) {
+            $this->headcountError = 'Please enter at least 1 headcount for any product (Attendance, Leave, Claim, or Payroll).';
+            return;
+        }
 
         $reseller = Auth::guard('reseller')->user();
 

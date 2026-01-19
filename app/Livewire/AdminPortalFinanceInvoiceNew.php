@@ -66,6 +66,49 @@ class AdminPortalFinanceInvoiceNew extends Component implements HasForms, HasTab
         return $table
             ->query(CrmInvoiceDetail::query()->pendingInvoices())
             ->defaultSort('f_created_time', 'desc')
+            ->filters([
+                \Filament\Tables\Filters\SelectFilter::make('f_currency')
+                    ->label('Currency')
+                    ->options([
+                        'MYR' => 'MYR',
+                        'USD' => 'USD',
+                    ]),
+                \Filament\Tables\Filters\SelectFilter::make('f_payment_method')
+                    ->label('Payment Method')
+                    ->options([
+                        'pp' => 'PayPal',
+                        'bt' => 'Bank Transfer',
+                        'cs' => 'Cash',
+                        'cq' => 'Cheque',
+                        'pt' => 'Point',
+                        'cc' => 'Credit Card',
+                        'rz' => 'RazerPay',
+                    ]),
+                \Filament\Tables\Filters\Filter::make('subscriber_availability')
+                    ->label('Subscriber Name')
+                    ->form([
+                        \Filament\Forms\Components\Select::make('availability')
+                            ->options([
+                                'available' => 'Available',
+                                'not_available' => 'Not Available',
+                            ])
+                            ->placeholder('All'),
+                    ])
+                    ->query(function ($query, array $data) {
+                        if (isset($data['availability'])) {
+                            if ($data['availability'] === 'available') {
+                                return $query->whereNotNull('company.f_company_name')
+                                    ->where('company.f_company_name', '!=', '');
+                            } elseif ($data['availability'] === 'not_available') {
+                                return $query->where(function($q) {
+                                    $q->whereNull('company.f_company_name')
+                                      ->orWhere('company.f_company_name', '=', '');
+                                });
+                            }
+                        }
+                        return $query;
+                    }),
+            ])
             ->columns([
                 TextColumn::make('row_number')
                     ->label('No')
@@ -178,18 +221,60 @@ class AdminPortalFinanceInvoiceNew extends Component implements HasForms, HasTab
                     ->label('Update')
                     ->icon('heroicon-o-pencil-square')
                     ->color('primary')
+                    ->fillForm(function ($record) {
+                        // Try to find matching finance invoice
+                        $matchingInvoice = FinanceInvoice::where('portal_type', 'admin')
+                            ->where('status', 'new')
+                            ->where('reseller_name', strtoupper($record->subscriber_name ?? ''))
+                            ->where('subscriber_name', strtoupper($record->company_name ?? ''))
+                            ->first();
+
+                        if ($matchingInvoice) {
+                            return [
+                                'finance_invoice' => $matchingInvoice->id,
+                                'autocount_invoice' => $matchingInvoice->autocount_invoice_number,
+                            ];
+                        }
+
+                        return [];
+                    })
                     ->form([
                         Select::make('finance_invoice')
-                            ->label('Select Finance Invoice')
+                            ->label('Sample Reseller Invoice')
                             ->options(function () {
                                 return FinanceInvoice::where('portal_type', 'admin')
                                     ->where('status', 'new')
-                                    ->pluck('fc_number', 'id');
+                                    ->select('id', 'autocount_invoice_number', 'reseller_name', 'subscriber_name', 'created_at')
+                                    ->get()
+                                    ->mapWithKeys(function ($invoice) {
+                                        return [$invoice->id => "{$invoice->formatted_id} - {$invoice->autocount_invoice_number} - {$invoice->reseller_name}"];
+                                    });
                             })
                             ->searchable()
-                            ->required(),
+                            ->required()
+                            ->reactive()
+                            ->afterStateUpdated(function ($state, $set) {
+                                if ($state) {
+                                    $invoice = FinanceInvoice::find($state);
+                                    if ($invoice) {
+                                        $set('autocount_invoice', $invoice->autocount_invoice_number);
+                                    }
+                                }
+                            }),
                         TextInput::make('autocount_invoice')
                             ->label('Autocount Invoice Number')
+                            ->maxLength(13)
+                            ->minLength(13)
+                            ->extraAlpineAttributes([
+                                'x-on:input' => '
+                                    const start = $el.selectionStart;
+                                    const end = $el.selectionEnd;
+                                    const value = $el.value;
+                                    $el.value = value.toUpperCase();
+                                    $el.setSelectionRange(start, end);
+                                '
+                            ])
+                            ->dehydrateStateUsing(fn ($state) => strtoupper($state))
                             ->required(),
                     ])
                     ->action(function (array $data, $record) {
@@ -204,9 +289,9 @@ class AdminPortalFinanceInvoiceNew extends Component implements HasForms, HasTab
                             // Get finance invoice details
                             $financeInvoice = FinanceInvoice::with('resellerHandover')->find($data['finance_invoice']);
 
-                            // Get reseller and subscriber names
-                            $resellerName = $financeInvoice?->resellerHandover?->reseller_name ?? '-';
-                            $subscriberName = $financeInvoice?->resellerHandover?->subscriber_name ?? '-';
+                            // Get reseller and subscriber names directly from finance invoice
+                            $resellerName = $financeInvoice?->reseller_name ?? '-';
+                            $subscriberName = $financeInvoice?->subscriber_name ?? '-';
 
                             // Create AdminPortalInvoice record
                             AdminPortalInvoice::create([
@@ -216,6 +301,24 @@ class AdminPortalFinanceInvoiceNew extends Component implements HasForms, HasTab
                                 'tt_invoice' => $record->f_invoice_no,
                                 'autocount_invoice' => $data['autocount_invoice'],
                             ]);
+
+                            // Send email notification
+                            try {
+                                \Illuminate\Support\Facades\Mail::send('emails.admin-portal-finance-completed', [
+                                    'financeInvoice' => $financeInvoice,
+                                    'resellerName' => $resellerName,
+                                    'subscriberName' => $subscriberName,
+                                    'autocountInvoice' => $data['autocount_invoice']
+                                ], function ($message) use ($financeInvoice) {
+                                    $message->to(['auni1@timeteccloud.com', 'faiz@timeteccloud.com'])
+                                        ->subject('ADMIN PORTAL | ' . $financeInvoice->formatted_id . ' | COMPLETED');
+                                });
+                            } catch (\Exception $e) {
+                                \Illuminate\Support\Facades\Log::error('Failed to send admin portal finance completion email', [
+                                    'error' => $e->getMessage(),
+                                    'finance_invoice_id' => $data['finance_invoice']
+                                ]);
+                            }
 
                             Notification::make()
                                 ->title('Autocount invoice updated successfully')

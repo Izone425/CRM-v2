@@ -51,8 +51,8 @@
 
 /* Modal Header */
 .handover-modal-header {
-    padding: 1.5rem;
-    background: linear-gradient(to right, #2563eb, #4f46e5);
+    padding: 1rem 1.5rem;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }
 
 .handover-modal-header-content {
@@ -415,18 +415,8 @@
 
 /* Empty State */
 .handover-empty-state {
-    padding: 2rem 0;
+    padding: 1rem 0;
     text-align: center;
-    border: 1px solid #e5e7eb;
-    border-radius: 0.5rem;
-    background-color: #f9fafb;
-}
-
-.handover-empty-state i {
-    margin-bottom: 0.75rem;
-    font-size: 3rem;
-    color: #9ca3af;
-    display: block;
 }
 
 .handover-empty-state p {

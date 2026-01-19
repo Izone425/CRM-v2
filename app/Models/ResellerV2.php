@@ -37,6 +37,7 @@ class ResellerV2 extends Authenticatable
         'tax_identification_number',
         'sst_category',
         'reseller_id',
+        'debtor_code',
     ];
 
     protected $hidden = [

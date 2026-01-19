@@ -26,6 +26,8 @@ class ResellerHandoverNew extends Component implements HasForms, HasTable
     public $showFilesModal = false;
     public $selectedHandover = null;
     public $handoverFiles = [];
+    public $showRemarkModal = false;
+    public $showAdminRemarkModal = false;
 
     public function mount()
     {
@@ -76,7 +78,6 @@ class ResellerHandoverNew extends Component implements HasForms, HasTable
             ->columns([
                 TextColumn::make('fb_id')
                     ->label('FB ID')
-                    ->searchable()
                     ->sortable()
                     ->action(
                         Action::make('view_files')
@@ -85,7 +86,7 @@ class ResellerHandoverNew extends Component implements HasForms, HasTable
                     )
                     ->color('primary')
                     ->weight('bold'),
-                TextColumn::make('reseller_name')
+                TextColumn::make('reseller_company_name')
                     ->label('Reseller Name')
                     ->searchable()
                     ->sortable(),
@@ -114,6 +115,7 @@ class ResellerHandoverNew extends Component implements HasForms, HasTable
                         TextInput::make('timetec_proforma_invoice')
                             ->label('TimeTec Proforma Invoice Number')
                             ->required()
+                            ->minLength(12)
                             ->maxLength(12)
                             ->alphanum()
                             ->extraAlpineAttributes([
@@ -126,9 +128,39 @@ class ResellerHandoverNew extends Component implements HasForms, HasTable
                                 '
                             ])
                             ->dehydrateStateUsing(fn ($state) => strtoupper($state)),
+                            // ->rule(function ($record) {
+                            //     return function (string $attribute, $value, \Closure $fail) use ($record) {
+                            //         if (!$value) {
+                            //             return;
+                            //         }
+
+                            //         // Check if invoice exists in crm_invoice_details
+                            //         $invoice = \DB::connection('frontenddb')
+                            //             ->table('crm_invoice_details')
+                            //             ->where('f_invoice_no', strtoupper($value))
+                            //             ->first();
+
+                            //         if (!$invoice) {
+                            //             $fail('The invoice number does not exist in the system.');
+                            //             return;
+                            //         }
+
+                            //         // Validate f_payer_id matches reseller_id
+                            //         if ($invoice->f_payer_id != $record->reseller_id) {
+                            //             $fail('The invoice payer ID does not match the reseller ID.');
+                            //             return;
+                            //         }
+
+                            //         // Validate f_company_id matches subscriber_id
+                            //         if ($invoice->f_company_id != $record->subscriber_id) {
+                            //             $fail('The invoice company ID does not match the subscriber ID.');
+                            //             return;
+                            //         }
+                            //     };
+                            // }),
                         Textarea::make('admin_reseller_remark')
                             ->label('Admin Reseller Remark')
-                            ->rows(4)
+                            ->rows(2)
                             ->maxLength(1000)
                             ->extraAlpineAttributes([
                                 'x-on:input' => '
@@ -142,6 +174,23 @@ class ResellerHandoverNew extends Component implements HasForms, HasTable
                             ->dehydrateStateUsing(fn ($state) => strtoupper($state)),
                     ])
                     ->action(function (ResellerHandover $record, array $data) {
+                        // // Verify invoice one more time before saving
+                        // $invoice = \DB::connection('frontenddb')
+                        //     ->table('crm_invoice_details')
+                        //     ->where('f_invoice_no', strtoupper($data['timetec_proforma_invoice']))
+                        //     ->where('f_payer_id', $record->reseller_id)
+                        //     ->where('f_company_id', $record->subscriber_id)
+                        //     ->first();
+
+                        // if (!$invoice) {
+                        //     Notification::make()
+                        //         ->title('Invalid Invoice')
+                        //         ->danger()
+                        //         ->body('The invoice number is invalid or does not match the reseller and subscriber.')
+                        //         ->send();
+                        //     return;
+                        // }
+
                         $record->update([
                             'status' => 'pending_confirmation',
                             'timetec_proforma_invoice' => $data['timetec_proforma_invoice'] ?? null,
@@ -157,7 +206,7 @@ class ResellerHandoverNew extends Component implements HasForms, HasTable
 
                         $this->resetTable();
                     })
-                    ->modalHeading('Complete Handover Task')
+                    ->modalHeading(false)
                     ->modalSubmitActionLabel('Complete'),
             ])
             ->defaultSort('created_at', 'desc');

@@ -46,5 +46,7 @@
         :showFilesModal="$showFilesModal"
         :selectedHandover="$selectedHandover"
         :handoverFiles="$handoverFiles"
+        :showRemarkModal="$showRemarkModal"
+        :showAdminRemarkModal="$showAdminRemarkModal"
     />
 </div>
