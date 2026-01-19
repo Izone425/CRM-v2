@@ -23,6 +23,21 @@ class PaymentSettingResource extends Resource
 
     protected static ?int $navigationSort = 50;
 
+    /**
+     * Check if the current user can access this resource
+     */
+    public static function canAccess(): bool
+    {
+        $user = auth()->user();
+
+        if (!$user || !($user instanceof \App\Models\User)) {
+            return false;
+        }
+
+        // Allow access if user has access to users index (admin/manager permissions)
+        return $user->hasRouteAccess('filament.admin.resources.users.index');
+    }
+
     public static function form(Form $form): Form
     {
         return $form
