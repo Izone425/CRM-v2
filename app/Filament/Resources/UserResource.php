@@ -465,7 +465,8 @@ class UserResource extends Resource
                                             ->maxLength(255),
                                         Forms\Components\TextInput::make('code')
                                             ->label('Code')
-                                            ->maxLength(2),
+                                            ->required()
+                                            ->maxLength(3),
                                         Forms\Components\TextInput::make('api_user_id')
                                             ->label('Staff ID'),
                                     ])->columnspan(2),
