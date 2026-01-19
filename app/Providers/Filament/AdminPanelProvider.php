@@ -122,6 +122,7 @@ use App\Filament\Resources\InstallerResource;
 use App\Filament\Resources\InvalidLeadReasonResource;
 use App\Filament\Resources\LeadResource;
 use App\Filament\Resources\LeadSourceResource;
+use App\Filament\Resources\PaymentSettingResource;
 use App\Filament\Resources\PhoneExtensionResource;
 use App\Filament\Resources\PolicyCategoryResource;
 use App\Filament\Resources\PolicyResource;
@@ -299,6 +300,7 @@ class AdminPanelProvider extends PanelProvider
                 ShippingDeviceModelResource::class,
                 SalesPricingResource::class,
                 ProjectTaskResource::class,
+                PaymentSettingResource::class,
             ])
             // ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->pages([
