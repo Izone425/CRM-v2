@@ -34,8 +34,8 @@ class PaymentSettingResource extends Resource
             return false;
         }
 
-        // Allow access if user has access to users index (admin/manager permissions)
-        return $user->hasRouteAccess('filament.admin.resources.users.index');
+        // Allow access for Master Admin (role_id = 3) OR users with access to users index
+        return $user->role_id == 3 || $user->hasRouteAccess('filament.admin.resources.users.index');
     }
 
     public static function form(Form $form): Form
