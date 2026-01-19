@@ -1768,11 +1768,11 @@
                         </div>
 
                         <div class="submenu" id="hr-admin-submenu">
+                            <a href="{{ route('filament.admin.pages.hr-product-dashboard') }}" class="submenu-item">
+                                <span class="module-font">Dashboard</span>
+                            </a>
                             <a href="{{ route('filament.admin.pages.admin-portal-hr-v2') }}" class="submenu-item">
                                 <span class="module-font">Raw Data</span>
-                            </a>
-                            <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
-                                <span class="module-font">Dashboard</span>
                             </a>
                         </div>
                     </div>

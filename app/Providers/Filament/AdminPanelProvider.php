@@ -36,6 +36,7 @@ use App\Filament\Pages\HeadcountHandoverList;
 use App\Filament\Pages\HrdfClaimTracker;
 use App\Filament\Pages\HrdfHandoverList;
 use App\Filament\Pages\HrdfInvoiceList;
+use App\Filament\Pages\HrProductDashboard;
 use App\Filament\Pages\HrdfInvoiceListV2;
 use App\Filament\Pages\ImplementationSession;
 use App\Filament\Pages\ImplementerAuditList;
@@ -373,6 +374,7 @@ class AdminPanelProvider extends PanelProvider
                 CustomerPortalRawData::class,
                 HrdfClaimTracker::class,
                 AdminPortalHrV2::class,
+                HrProductDashboard::class,
                 TicketList::class,
                 TicketDashboard::class,
                 SubmitHrdfAttendanceLog::class,

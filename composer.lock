@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "6b259c91d4ddc9e6731611af58b96854",
+    "content-hash": "b79cc67fbb6afe5fa3b0dff63ee6ec65",
     "packages": [
         {
             "name": "alexjustesen/filament-spatie-laravel-activitylog",
@@ -3623,6 +3623,50 @@
                 "source": "https://github.com/LaravelDaily/laravel-invoices/tree/3.3.1"
             },
             "time": "2024-01-07T17:00:05+00:00"
+        },
+        {
+            "name": "larawire-garage/larapex-livewire",
+            "version": "v2.0.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/LarawireGarage/larapex-livewire.git",
+                "reference": "64fab7e3824fb80b67d16f1b3b122ed5b6d1c77d"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/LarawireGarage/larapex-livewire/zipball/64fab7e3824fb80b67d16f1b3b122ed5b6d1c77d",
+                "reference": "64fab7e3824fb80b67d16f1b3b122ed5b6d1c77d",
+                "shasum": ""
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "LarawireGarage\\LarapexLivewire\\LarapexLivewireServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "LarawireGarage\\LarapexLivewire\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Nirmal Pradeepa",
+                    "email": "88931913+LarawireGarage@users.noreply.github.com"
+                }
+            ],
+            "description": "Laravel wrapper for ApexCharts javascript plugin advanced features with livewire",
+            "support": {
+                "issues": "https://github.com/LarawireGarage/larapex-livewire/issues",
+                "source": "https://github.com/LarawireGarage/larapex-livewire/tree/v2.0.0"
+            },
+            "time": "2025-01-05T22:42:43+00:00"
         },
         {
             "name": "league/commonmark",
@@ -13512,12 +13556,12 @@
     ],
     "aliases": [],
     "minimum-stability": "stable",
-    "stability-flags": [],
+    "stability-flags": {},
     "prefer-stable": true,
     "prefer-lowest": false,
     "platform": {
         "php": "^8.1"
     },
-    "platform-dev": [],
+    "platform-dev": {},
     "plugin-api-version": "2.6.0"
 }
