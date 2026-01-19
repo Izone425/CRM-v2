@@ -723,6 +723,13 @@
                         </div>
                         <span class="icon-tooltip">TimeTec HR - External</span>
                     </div>
+
+                    <div class="icon-link" data-section="hr-admin">
+                        <div class="icon-wrapper">
+                            <i class="bi bi-person-badge icon"></i>
+                        </div>
+                        <span class="icon-tooltip">Timetec Hr-Admin Portal</span>
+                    </div>
                 @endif
 
                 <!-- Settings Icon -->
@@ -1744,6 +1751,28 @@
                         <div class="submenu" id="external-submenu">
                             <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
                                 <span class="module-font">Knowledge Base</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Hr-Admin Portal Section -->
+                <div id="hr-admin-section" class="section-content">
+                    <div class="menu-block">
+                        <div class="menu-item nested-dropdown-trigger" data-submenu="hr-admin-submenu">
+                            <div class="menu-icon-wrapper">
+                                <i class="bi bi-person-badge"></i>
+                            </div>
+                            <span class="menu-text">Timetec Hr-Admin Portal</span>
+                            <i class="bi bi-chevron-down menu-arrow"></i>
+                        </div>
+
+                        <div class="submenu" id="hr-admin-submenu">
+                            <a href="{{ route('filament.admin.pages.admin-portal-hr-v2') }}" class="submenu-item">
+                                <span class="module-font">Raw Data</span>
+                            </a>
+                            <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
+                                <span class="module-font">Dashboard</span>
                             </a>
                         </div>
                     </div>
