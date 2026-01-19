@@ -23,6 +23,9 @@ class PaymentSettingResource extends Resource
 
     protected static ?int $navigationSort = 50;
 
+    // Hide from Filament navigation (shown in custom sidebar only)
+    protected static bool $shouldRegisterNavigation = false;
+
     /**
      * Check if the current user can access this resource
      */
@@ -367,74 +370,8 @@ class PaymentSettingResource extends Resource
 
     public static function table(Table $table): Table
     {
-        return $table
-            ->columns([
-                Tables\Columns\TextColumn::make('company_name')
-                    ->label('Company')
-                    ->searchable()
-                    ->sortable(),
-
-                Tables\Columns\TextColumn::make('payment_gateway')
-                    ->label('Payment Gateway')
-                    ->formatStateUsing(fn ($state) => match($state) {
-                        'stripe' => 'Stripe',
-                        'paypal' => 'PayPal',
-                        'billplz' => 'Billplz',
-                        'ipay88' => 'iPay88',
-                        'senangpay' => 'SenangPay',
-                        'molpay' => 'MOLPay',
-                        'manual' => 'Manual Payment',
-                        default => 'Unknown',
-                    })
-                    ->badge()
-                    ->color(fn ($state) => $state === 'manual' ? 'gray' : 'success'),
-
-                Tables\Columns\TextColumn::make('invoice_currency')
-                    ->label('Currency')
-                    ->badge(),
-
-                Tables\Columns\TextColumn::make('commission_rate')
-                    ->label('Default Commission')
-                    ->suffix('%')
-                    ->numeric(2),
-
-                Tables\Columns\IconColumn::make('gateway_test_mode')
-                    ->label('Test Mode')
-                    ->boolean(),
-
-                Tables\Columns\TextColumn::make('created_at')
-                    ->label('Created')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-
-                Tables\Columns\TextColumn::make('updated_at')
-                    ->label('Updated')
-                    ->dateTime()
-                    ->sortable(),
-            ])
-            ->filters([
-                Tables\Filters\SelectFilter::make('payment_gateway')
-                    ->label('Payment Gateway')
-                    ->options([
-                        'manual' => 'Manual Payment',
-                        'stripe' => 'Stripe',
-                        'paypal' => 'PayPal',
-                        'billplz' => 'Billplz',
-                        'ipay88' => 'iPay88',
-                        'senangpay' => 'SenangPay',
-                        'molpay' => 'MOLPay',
-                    ]),
-            ])
-            ->actions([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
-            ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
-                ]),
-            ]);
+        // No table needed - single settings page
+        return $table->columns([]);
     }
 
     public static function getRelations(): array
@@ -447,8 +384,7 @@ class PaymentSettingResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListPaymentSettings::route('/'),
-            'create' => Pages\CreatePaymentSetting::route('/create'),
+            'index' => Pages\ManagePaymentSetting::route('/'),
             'edit' => Pages\EditPaymentSetting::route('/{record}/edit'),
         ];
     }

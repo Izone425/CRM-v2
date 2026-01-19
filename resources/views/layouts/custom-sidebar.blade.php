@@ -2069,6 +2069,18 @@
                             </div>
                         </div>
                         @endif
+
+                        <!-- Payment Setting Section (Independent) -->
+                        @if(auth()->user()->role_id == 3 || auth()->user()->hasRouteAccess('filament.admin.resources.users.index'))
+                        <div class="menu-block">
+                            <a href="{{ route('filament.admin.resources.payment-settings.index') }}" class="menu-item">
+                                <div class="menu-icon-wrapper">
+                                    <i class="bi bi-credit-card"></i>
+                                </div>
+                                <span class="menu-text">Payment Setting</span>
+                            </a>
+                        </div>
+                        @endif
                     @endif
                 </div>
             </div>

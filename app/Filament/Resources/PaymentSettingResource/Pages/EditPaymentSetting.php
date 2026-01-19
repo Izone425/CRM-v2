@@ -13,7 +13,13 @@ class EditPaymentSetting extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\DeleteAction::make(),
+            // No delete action - single settings record only
         ];
+    }
+
+    protected function getRedirectUrl(): ?string
+    {
+        // Stay on the same page after saving
+        return null;
     }
 }
