@@ -5,6 +5,8 @@ namespace App\Filament\Resources\PaymentSettingResource\Pages;
 use App\Filament\Resources\PaymentSettingResource;
 use Filament\Actions;
 use Filament\Resources\Pages\EditRecord;
+use Filament\Support\Facades\FilamentAsset;
+use Filament\Support\Assets\Css;
 
 class EditPaymentSetting extends EditRecord
 {
@@ -21,5 +23,25 @@ class EditPaymentSetting extends EditRecord
     {
         // Stay on the same page after saving
         return null;
+    }
+
+    public function getTitle(): string
+    {
+        return 'Payment Settings';
+    }
+
+    public function getHeading(): string
+    {
+        return 'Payment Settings';
+    }
+
+    public function getSubheading(): ?string
+    {
+        return 'Configure payment gateways, invoices, and commission settings';
+    }
+
+    public function getBreadcrumbs(): array
+    {
+        return [];
     }
 }

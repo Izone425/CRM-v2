@@ -51,170 +51,45 @@ class PaymentSettingResource extends Resource
                         Tabs\Tab::make('Website Information')
                             ->icon('heroicon-o-globe-alt')
                             ->schema([
-                                Forms\Components\Section::make('Company Details')
-                                    ->description('Configure your company information that will appear on invoices and customer communications')
+                                Forms\Components\Section::make('Website Information Details')
+                                    ->description('Configure your website information and settings')
                                     ->schema([
-                                        Forms\Components\TextInput::make('company_name')
-                                            ->label('Company Name')
-                                            ->required()
-                                            ->maxLength(255)
-                                            ->placeholder('e.g., TimeTec Cloud Sdn Bhd'),
+                                        Forms\Components\Grid::make(2)
+                                            ->schema([
+                                                Forms\Components\TextInput::make('website_name')
+                                                    ->label('Website Name')
+                                                    ->required()
+                                                    ->maxLength(255)
+                                                    ->placeholder('TimeTec'),
 
-                                        Forms\Components\TextInput::make('website_url')
-                                            ->label('Website URL')
-                                            ->url()
-                                            ->prefix('https://')
-                                            ->maxLength(255)
-                                            ->placeholder('www.timeteccloud.com'),
+                                                Forms\Components\TextInput::make('website_url')
+                                                    ->label('Website URL')
+                                                    ->url()
+                                                    ->prefix('https://')
+                                                    ->maxLength(255)
+                                                    ->placeholder('www.timeteccloud.com'),
+                                            ]),
 
                                         Forms\Components\Grid::make(2)
                                             ->schema([
-                                                Forms\Components\TextInput::make('support_email')
-                                                    ->label('Support Email')
+                                                Forms\Components\TextInput::make('admin_email')
+                                                    ->label('Admin Email')
                                                     ->email()
                                                     ->required()
                                                     ->maxLength(255)
                                                     ->placeholder('support@timeteccloud.com'),
 
-                                                Forms\Components\TextInput::make('support_phone')
-                                                    ->label('Support Phone')
-                                                    ->tel()
-                                                    ->maxLength(255)
-                                                    ->placeholder('+60 3-8023 8080'),
+                                                Forms\Components\TextInput::make('disallow_public_email')
+                                                    ->label('Disallow Public Email')
+                                                    ->maxLength(500)
+                                                    ->placeholder('ymail.com, @me.com, msn.com, facebook.com, mailinator.com')
+                                                    ->helperText('Comma-separated list of email domains or addresses to block'),
                                             ]),
-
-                                        Forms\Components\Textarea::make('company_address')
-                                            ->label('Company Address')
-                                            ->rows(3)
-                                            ->maxLength(500)
-                                            ->placeholder('123 Business Street, 50450 Kuala Lumpur, Malaysia'),
-
-                                        Forms\Components\FileUpload::make('company_logo')
-                                            ->label('Company Logo')
-                                            ->image()
-                                            ->directory('company-logos')
-                                            ->imageEditor()
-                                            ->maxSize(2048)
-                                            ->helperText('Upload your company logo (Max: 2MB, Recommended: 300x100px)'),
-                                    ])
-                                    ->columns(1),
-                            ]),
-
-                        // Tab 2: Payment Gateway
-                        Tabs\Tab::make('Payment Gateway')
-                            ->icon('heroicon-o-credit-card')
-                            ->schema([
-                                Forms\Components\Section::make('Payment Gateway Configuration')
-                                    ->description('Configure your preferred payment gateway for processing online payments')
-                                    ->schema([
-                                        Forms\Components\Select::make('payment_gateway')
-                                            ->label('Payment Gateway')
-                                            ->required()
-                                            ->options([
-                                                'manual' => 'Manual Payment (Bank Transfer)',
-                                                'stripe' => 'Stripe',
-                                                'paypal' => 'PayPal',
-                                                'billplz' => 'Billplz (Malaysia)',
-                                                'ipay88' => 'iPay88 (Malaysia)',
-                                                'senangpay' => 'SenangPay (Malaysia)',
-                                                'molpay' => 'MOLPay (Malaysia)',
-                                            ])
-                                            ->default('manual')
-                                            ->live()
-                                            ->helperText('Select the payment gateway you want to use'),
 
                                         Forms\Components\Grid::make(2)
                                             ->schema([
-                                                Forms\Components\TextInput::make('gateway_api_key')
-                                                    ->label('API Key')
-                                                    ->password()
-                                                    ->revealable()
-                                                    ->maxLength(255)
-                                                    ->hidden(fn (Forms\Get $get) => $get('payment_gateway') === 'manual')
-                                                    ->helperText('Your payment gateway API key'),
-
-                                                Forms\Components\TextInput::make('gateway_secret_key')
-                                                    ->label('Secret Key')
-                                                    ->password()
-                                                    ->revealable()
-                                                    ->maxLength(255)
-                                                    ->hidden(fn (Forms\Get $get) => $get('payment_gateway') === 'manual')
-                                                    ->helperText('Your payment gateway secret key'),
-                                            ]),
-
-                                        Forms\Components\TextInput::make('gateway_merchant_id')
-                                            ->label('Merchant ID')
-                                            ->maxLength(255)
-                                            ->hidden(fn (Forms\Get $get) => $get('payment_gateway') === 'manual')
-                                            ->helperText('Your merchant ID (if required by gateway)'),
-
-                                        Forms\Components\Toggle::make('gateway_test_mode')
-                                            ->label('Test Mode')
-                                            ->default(true)
-                                            ->hidden(fn (Forms\Get $get) => $get('payment_gateway') === 'manual')
-                                            ->helperText('Enable test mode for development/testing'),
-
-                                        Forms\Components\TextInput::make('gateway_webhook_url')
-                                            ->label('Webhook URL')
-                                            ->url()
-                                            ->maxLength(255)
-                                            ->hidden(fn (Forms\Get $get) => $get('payment_gateway') === 'manual')
-                                            ->helperText('Webhook URL for payment notifications')
-                                            ->placeholder(url('/webhooks/payment')),
-
-                                        Forms\Components\KeyValue::make('gateway_settings')
-                                            ->label('Additional Gateway Settings')
-                                            ->hidden(fn (Forms\Get $get) => $get('payment_gateway') === 'manual')
-                                            ->helperText('Any additional configuration required by your payment gateway'),
-                                    ])
-                                    ->columns(1),
-                            ]),
-
-                        // Tab 3: Invoice Information
-                        Tabs\Tab::make('Invoice Information')
-                            ->icon('heroicon-o-document-text')
-                            ->schema([
-                                Forms\Components\Section::make('Invoice Settings')
-                                    ->description('Configure invoice numbering, terms, and display settings')
-                                    ->schema([
-                                        Forms\Components\Grid::make(3)
-                                            ->schema([
-                                                Forms\Components\TextInput::make('invoice_prefix')
-                                                    ->label('Invoice Prefix')
-                                                    ->required()
-                                                    ->default('INV')
-                                                    ->maxLength(10)
-                                                    ->placeholder('INV'),
-
-                                                Forms\Components\TextInput::make('invoice_next_number')
-                                                    ->label('Next Invoice Number')
-                                                    ->required()
-                                                    ->numeric()
-                                                    ->default(1)
-                                                    ->minValue(1)
-                                                    ->helperText('The next invoice number to be generated'),
-
-                                                Forms\Components\TextInput::make('invoice_due_days')
-                                                    ->label('Payment Due Days')
-                                                    ->required()
-                                                    ->numeric()
-                                                    ->default(30)
-                                                    ->suffix('days')
-                                                    ->helperText('Default payment due days'),
-                                            ]),
-
-                                        Forms\Components\TextInput::make('invoice_number_format')
-                                            ->label('Invoice Number Format')
-                                            ->required()
-                                            ->default('INV-{YEAR}-{MONTH}-{NUMBER}')
-                                            ->maxLength(100)
-                                            ->helperText('Available placeholders: {PREFIX}, {YEAR}, {MONTH}, {NUMBER}')
-                                            ->placeholder('INV-{YEAR}-{MONTH}-{NUMBER}'),
-
-                                        Forms\Components\Grid::make(3)
-                                            ->schema([
-                                                Forms\Components\Select::make('invoice_currency')
-                                                    ->label('Currency')
+                                                Forms\Components\Select::make('currency_order_page')
+                                                    ->label('Currency Used for Order Page')
                                                     ->required()
                                                     ->options([
                                                         'MYR' => 'Malaysian Ringgit (MYR)',
@@ -226,40 +101,191 @@ class PaymentSettingResource extends Resource
                                                         'THB' => 'Thai Baht (THB)',
                                                         'IDR' => 'Indonesian Rupiah (IDR)',
                                                     ])
-                                                    ->default('MYR')
+                                                    ->default('USD')
                                                     ->searchable(),
 
-                                                Forms\Components\TextInput::make('invoice_tax_rate')
-                                                    ->label('Tax Rate')
-                                                    ->numeric()
-                                                    ->default(0.00)
-                                                    ->suffix('%')
-                                                    ->minValue(0)
-                                                    ->maxValue(100)
-                                                    ->step(0.01)
-                                                    ->helperText('Default tax percentage'),
+                                                Forms\Components\Radio::make('disallow_same_ip_signup')
+                                                    ->label('Disallow Same IP Address Signup')
+                                                    ->options([
+                                                        1 => 'Yes',
+                                                        0 => 'No',
+                                                    ])
+                                                    ->default(0)
+                                                    ->inline()
+                                                    ->required(),
+                                            ]),
+                                    ])
+                                    ->columns(1),
+                            ]),
 
-                                                Forms\Components\TextInput::make('invoice_tax_label')
-                                                    ->label('Tax Label')
-                                                    ->default('SST')
-                                                    ->maxLength(50)
-                                                    ->placeholder('SST, GST, VAT, etc.')
-                                                    ->helperText('Tax label for invoices'),
+                        // Tab 2: Payment Gateway
+                        Tabs\Tab::make('Payment Gateway')
+                            ->icon('heroicon-o-credit-card')
+                            ->schema([
+                                Forms\Components\Section::make('Payment Gateway Configuration')
+                                    ->description('Configure PayPal payment gateway settings')
+                                    ->schema([
+                                        Forms\Components\Grid::make(2)
+                                            ->schema([
+                                                Forms\Components\TextInput::make('paypal_url')
+                                                    ->label('PayPal URL')
+                                                    ->url()
+                                                    ->maxLength(255)
+                                                    ->placeholder('https://www.paypal.com/cgi-bin/webscr')
+                                                    ->helperText('PayPal payment processing URL'),
+
+                                                Forms\Components\TextInput::make('paypal_email')
+                                                    ->label('PayPal Email Address')
+                                                    ->email()
+                                                    ->maxLength(255)
+                                                    ->placeholder('admin@epicamera.com')
+                                                    ->helperText('Your PayPal account email address'),
                                             ]),
 
-                                        Forms\Components\Textarea::make('invoice_terms')
-                                            ->label('Invoice Terms & Conditions')
-                                            ->rows(4)
-                                            ->maxLength(1000)
-                                            ->placeholder('Payment is due within 30 days from invoice date...')
-                                            ->helperText('Terms and conditions that appear on invoices'),
+                                        Forms\Components\Grid::make(1)
+                                            ->schema([
+                                                Forms\Components\Group::make()
+                                                    ->schema([
+                                                        Forms\Components\Radio::make('paypal_enable')
+                                                            ->label(new \Illuminate\Support\HtmlString('
+                                                                Enable
+                                                                <svg class="inline-block w-4 h-4 ml-1 text-gray-400 cursor-help" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" title="Make sure your enable the account to allow payment to be made directly to your account.">
+                                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z" />
+                                                                </svg>
+                                                            '))
+                                                            ->options([
+                                                                1 => 'Yes',
+                                                                0 => 'No',
+                                                            ])
+                                                            ->default(1)
+                                                            ->inline()
+                                                            ->required(),
+                                                    ]),
+                                            ]),
+                                    ])
+                                    ->columns(1),
+                            ]),
 
-                                        Forms\Components\Textarea::make('invoice_footer')
-                                            ->label('Invoice Footer')
-                                            ->rows(2)
+                        // Tab 3: Invoice Information
+                        Tabs\Tab::make('Invoice Information')
+                            ->icon('heroicon-o-document-text')
+                            ->schema([
+                                Forms\Components\Section::make('Invoice Company Details')
+                                    ->description('Configure company information that appears on invoices')
+                                    ->schema([
+                                        Forms\Components\TextInput::make('invoice_title')
+                                            ->label('Invoice Title')
+                                            ->maxLength(255)
+                                            ->placeholder('TimeTec License Purchase'),
+
+                                        Forms\Components\TextInput::make('invoice_company_name')
+                                            ->label('Company Name')
+                                            ->maxLength(255)
+                                            ->placeholder('TimeTec Computing Sdn Bhd'),
+
+                                        Forms\Components\Grid::make(3)
+                                            ->schema([
+                                                Forms\Components\TextInput::make('invoice_company_tel')
+                                                    ->label('Company Tel')
+                                                    ->tel()
+                                                    ->maxLength(50)
+                                                    ->placeholder('603 8070 9933'),
+
+                                                Forms\Components\TextInput::make('invoice_fax_no')
+                                                    ->label('Fax No')
+                                                    ->tel()
+                                                    ->maxLength(50)
+                                                    ->placeholder('603 8070 9988'),
+
+                                                Forms\Components\TextInput::make('invoice_company_email')
+                                                    ->label('Company Email')
+                                                    ->email()
+                                                    ->maxLength(255)
+                                                    ->placeholder('info@timeteccloud.com'),
+                                            ]),
+
+                                        Forms\Components\Textarea::make('invoice_company_address')
+                                            ->label('Company Address')
+                                            ->rows(3)
                                             ->maxLength(500)
-                                            ->placeholder('Thank you for your business!')
-                                            ->helperText('Footer text that appears at the bottom of invoices'),
+                                            ->placeholder('No. 6, 8 & 10, Jalan BK 3/2, Bandar Kinrara,'),
+
+                                        Forms\Components\Grid::make(4)
+                                            ->schema([
+                                                Forms\Components\TextInput::make('invoice_postcode')
+                                                    ->label('Postcode')
+                                                    ->maxLength(20)
+                                                    ->placeholder('47180'),
+
+                                                Forms\Components\TextInput::make('invoice_city')
+                                                    ->label('City')
+                                                    ->maxLength(100)
+                                                    ->placeholder('Puchong'),
+
+                                                Forms\Components\TextInput::make('invoice_state')
+                                                    ->label('State')
+                                                    ->maxLength(100)
+                                                    ->placeholder('Selangor'),
+
+                                                Forms\Components\Select::make('invoice_country')
+                                                    ->label('Country')
+                                                    ->options([
+                                                        'Malaysia' => 'Malaysia',
+                                                        'Singapore' => 'Singapore',
+                                                        'Indonesia' => 'Indonesia',
+                                                        'Thailand' => 'Thailand',
+                                                        'Philippines' => 'Philippines',
+                                                        'Vietnam' => 'Vietnam',
+                                                        'Other' => 'Other',
+                                                    ])
+                                                    ->default('Malaysia')
+                                                    ->searchable(),
+                                            ]),
+
+                                        Forms\Components\FileUpload::make('invoice_company_logo')
+                                            ->label('Company Logo')
+                                            ->image()
+                                            ->directory('invoice-logos')
+                                            ->imageEditor()
+                                            ->maxSize(5120)
+                                            ->helperText('Recommended logo size 5mb'),
+
+                                        Forms\Components\Radio::make('include_bank_details')
+                                            ->label('Include Bank Details in Invoice')
+                                            ->options([
+                                                1 => 'Yes',
+                                                0 => 'No',
+                                            ])
+                                            ->default(1)
+                                            ->inline()
+                                            ->live()
+                                            ->required(),
+
+                                        Forms\Components\Grid::make(2)
+                                            ->schema([
+                                                Forms\Components\TextInput::make('bank_name')
+                                                    ->label('Bank Name')
+                                                    ->maxLength(255)
+                                                    ->hidden(fn (Forms\Get $get) => !$get('include_bank_details')),
+
+                                                Forms\Components\TextInput::make('bank_account_no')
+                                                    ->label('Account No')
+                                                    ->maxLength(100)
+                                                    ->hidden(fn (Forms\Get $get) => !$get('include_bank_details')),
+                                            ]),
+
+                                        Forms\Components\Grid::make(2)
+                                            ->schema([
+                                                Forms\Components\TextInput::make('bank_beneficiary_name')
+                                                    ->label('Beneficiary\'s Name')
+                                                    ->maxLength(255)
+                                                    ->hidden(fn (Forms\Get $get) => !$get('include_bank_details')),
+
+                                                Forms\Components\TextInput::make('bank_swift_code')
+                                                    ->label('Swift Code')
+                                                    ->maxLength(50)
+                                                    ->hidden(fn (Forms\Get $get) => !$get('include_bank_details')),
+                                            ]),
                                     ])
                                     ->columns(1),
                             ]),
@@ -269,89 +295,24 @@ class PaymentSettingResource extends Resource
                             ->icon('heroicon-o-banknotes')
                             ->schema([
                                 Forms\Components\Section::make('Commission Configuration')
-                                    ->description('Configure commission rates and payout settings for resellers, distributors, and referrals')
+                                    ->description('Configure commission percentage rates')
                                     ->schema([
                                         Forms\Components\Grid::make(2)
                                             ->schema([
-                                                Forms\Components\Select::make('commission_type')
-                                                    ->label('Commission Type')
+                                                Forms\Components\Select::make('distributor_commission_rate')
+                                                    ->label('DISTRIBUTOR')
+                                                    ->options(array_combine(range(0, 100), range(0, 100)))
+                                                    ->default(40)
                                                     ->required()
-                                                    ->options([
-                                                        'percentage' => 'Percentage (%)',
-                                                        'fixed' => 'Fixed Amount',
-                                                    ])
-                                                    ->default('percentage')
-                                                    ->live()
-                                                    ->helperText('How commission is calculated'),
+                                                    ->suffix('%'),
 
-                                                Forms\Components\Select::make('commission_calculation')
-                                                    ->label('Calculate Commission On')
+                                                Forms\Components\Select::make('dealer_commission_rate')
+                                                    ->label('Dealer')
+                                                    ->options(array_combine(range(0, 100), range(0, 100)))
+                                                    ->default(20)
                                                     ->required()
-                                                    ->options([
-                                                        'net' => 'Net Amount (after tax)',
-                                                        'gross' => 'Gross Amount (before tax)',
-                                                    ])
-                                                    ->default('net')
-                                                    ->helperText('Basis for commission calculation'),
+                                                    ->suffix('%'),
                                             ]),
-
-                                        Forms\Components\Grid::make(2)
-                                            ->schema([
-                                                Forms\Components\TextInput::make('commission_rate')
-                                                    ->label('Default Commission Rate')
-                                                    ->numeric()
-                                                    ->default(0.00)
-                                                    ->suffix(fn (Forms\Get $get) => $get('commission_type') === 'percentage' ? '%' : '')
-                                                    ->minValue(0)
-                                                    ->step(0.01)
-                                                    ->helperText('Default commission rate for all sales'),
-
-                                                Forms\Components\TextInput::make('commission_payout_days')
-                                                    ->label('Commission Payout Days')
-                                                    ->required()
-                                                    ->numeric()
-                                                    ->default(30)
-                                                    ->suffix('days')
-                                                    ->minValue(0)
-                                                    ->helperText('Days after invoice payment to pay commission'),
-                                            ]),
-
-                                        Forms\Components\Fieldset::make('Commission Rates by Type')
-                                            ->schema([
-                                                Forms\Components\Grid::make(3)
-                                                    ->schema([
-                                                        Forms\Components\TextInput::make('reseller_commission_rate')
-                                                            ->label('Reseller Commission')
-                                                            ->numeric()
-                                                            ->default(0.00)
-                                                            ->suffix(fn (Forms\Get $get) => $get('commission_type') === 'percentage' ? '%' : '')
-                                                            ->minValue(0)
-                                                            ->step(0.01),
-
-                                                        Forms\Components\TextInput::make('distributor_commission_rate')
-                                                            ->label('Distributor Commission')
-                                                            ->numeric()
-                                                            ->default(0.00)
-                                                            ->suffix(fn (Forms\Get $get) => $get('commission_type') === 'percentage' ? '%' : '')
-                                                            ->minValue(0)
-                                                            ->step(0.01),
-
-                                                        Forms\Components\TextInput::make('referral_commission_rate')
-                                                            ->label('Referral Commission')
-                                                            ->numeric()
-                                                            ->default(0.00)
-                                                            ->suffix(fn (Forms\Get $get) => $get('commission_type') === 'percentage' ? '%' : '')
-                                                            ->minValue(0)
-                                                            ->step(0.01),
-                                                    ]),
-                                            ]),
-
-                                        Forms\Components\KeyValue::make('tier_based_commission')
-                                            ->label('Tier-Based Commission Structure')
-                                            ->keyLabel('Sales Tier (e.g., 0-10000)')
-                                            ->valueLabel('Commission Rate')
-                                            ->helperText('Define commission rates based on sales tiers (optional)')
-                                            ->addActionLabel('Add Tier'),
                                     ])
                                     ->columns(1),
                             ]),

@@ -12,42 +12,39 @@ class PaymentSetting extends Model
 
     protected $fillable = [
         // Website Information
-        'company_name',
+        'website_name',
         'website_url',
-        'support_email',
-        'support_phone',
-        'company_address',
-        'company_logo',
+        'admin_email',
+        'disallow_public_email',
+        'currency_order_page',
+        'disallow_same_ip_signup',
 
         // Payment Gateway
-        'payment_gateway',
-        'gateway_api_key',
-        'gateway_secret_key',
-        'gateway_merchant_id',
-        'gateway_test_mode',
-        'gateway_webhook_url',
-        'gateway_settings',
+        'paypal_url',
+        'paypal_email',
+        'paypal_enable',
 
         // Invoice Information
-        'invoice_prefix',
-        'invoice_next_number',
-        'invoice_number_format',
-        'invoice_due_days',
-        'invoice_terms',
-        'invoice_footer',
-        'invoice_currency',
-        'invoice_tax_rate',
-        'invoice_tax_label',
+        'invoice_title',
+        'invoice_company_name',
+        'invoice_company_tel',
+        'invoice_fax_no',
+        'invoice_company_email',
+        'invoice_company_address',
+        'invoice_postcode',
+        'invoice_city',
+        'invoice_state',
+        'invoice_country',
+        'invoice_company_logo',
+        'include_bank_details',
+        'bank_name',
+        'bank_account_no',
+        'bank_beneficiary_name',
+        'bank_swift_code',
 
         // Commission Settings
-        'commission_type',
-        'commission_rate',
-        'reseller_commission_rate',
         'distributor_commission_rate',
-        'referral_commission_rate',
-        'commission_calculation',
-        'commission_payout_days',
-        'tier_based_commission',
+        'dealer_commission_rate',
 
         // Audit fields
         'created_by',
@@ -55,14 +52,11 @@ class PaymentSetting extends Model
     ];
 
     protected $casts = [
-        'gateway_test_mode' => 'boolean',
-        'gateway_settings' => 'array',
-        'tier_based_commission' => 'array',
-        'invoice_tax_rate' => 'decimal:2',
-        'commission_rate' => 'decimal:2',
-        'reseller_commission_rate' => 'decimal:2',
-        'distributor_commission_rate' => 'decimal:2',
-        'referral_commission_rate' => 'decimal:2',
+        'disallow_same_ip_signup' => 'boolean',
+        'paypal_enable' => 'boolean',
+        'include_bank_details' => 'boolean',
+        'distributor_commission_rate' => 'integer',
+        'dealer_commission_rate' => 'integer',
     ];
 
     /**
@@ -82,39 +76,18 @@ class PaymentSetting extends Model
     }
 
     /**
-     * Generate next invoice number
+     * Check if PayPal is enabled
      */
-    public function generateInvoiceNumber(): string
+    public function isPayPalEnabled(): bool
     {
-        $format = $this->invoice_number_format ?? 'INV-{YEAR}-{MONTH}-{NUMBER}';
-        $number = str_pad($this->invoice_next_number, 5, '0', STR_PAD_LEFT);
-
-        $invoiceNumber = str_replace(
-            ['{YEAR}', '{MONTH}', '{NUMBER}', '{PREFIX}'],
-            [date('Y'), date('m'), $number, $this->invoice_prefix],
-            $format
-        );
-
-        // Increment the next number
-        $this->increment('invoice_next_number');
-
-        return $invoiceNumber;
+        return (bool) $this->paypal_enable;
     }
 
     /**
-     * Get payment gateway display name
+     * Check if bank details should be included in invoice
      */
-    public function getGatewayNameAttribute(): string
+    public function shouldIncludeBankDetails(): bool
     {
-        return match($this->payment_gateway) {
-            'stripe' => 'Stripe',
-            'paypal' => 'PayPal',
-            'billplz' => 'Billplz',
-            'ipay88' => 'iPay88',
-            'senangpay' => 'SenangPay',
-            'molpay' => 'MOLPay',
-            'manual' => 'Manual Payment',
-            default => 'Unknown',
-        };
+        return (bool) $this->include_bank_details;
     }
 }
