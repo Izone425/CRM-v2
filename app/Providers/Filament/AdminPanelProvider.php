@@ -33,6 +33,8 @@ use App\Filament\Pages\FutureEnhancement as PagesFutureEnhancement;
 use App\Filament\Pages\HardwareDashboardAll;
 use App\Filament\Pages\HardwareDashboardPendingStock;
 use App\Filament\Pages\HeadcountHandoverList;
+use App\Filament\Pages\HrAccountManagement;
+use App\Filament\Pages\HrLicense;
 use App\Filament\Pages\HrdfClaimTracker;
 use App\Filament\Pages\HrdfHandoverList;
 use App\Filament\Pages\HrdfInvoiceList;
@@ -377,6 +379,8 @@ class AdminPanelProvider extends PanelProvider
                 HrdfClaimTracker::class,
                 AdminPortalHrV2::class,
                 HrProductDashboard::class,
+                HrAccountManagement::class,
+                HrLicense::class,
                 TicketList::class,
                 TicketDashboard::class,
                 SubmitHrdfAttendanceLog::class,

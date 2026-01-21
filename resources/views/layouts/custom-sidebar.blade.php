@@ -1771,6 +1771,12 @@
                             <a href="{{ route('filament.admin.pages.hr-product-dashboard') }}" class="submenu-item">
                                 <span class="module-font">Dashboard</span>
                             </a>
+                            <a href="{{ route('filament.admin.pages.hr-account-management') }}" class="submenu-item">
+                                <span class="module-font">Account Management</span>
+                            </a>
+                            <a href="{{ route('filament.admin.pages.hr-license') }}" class="submenu-item">
+                                <span class="module-font">License</span>
+                            </a>
                             <a href="{{ route('filament.admin.pages.admin-portal-hr-v2') }}" class="submenu-item">
                                 <span class="module-font">Raw Data</span>
                             </a>
