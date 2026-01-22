@@ -12,7 +12,8 @@ class HrLicense extends Model
     protected $table = 'hr_licenses';
 
     protected $fillable = [
-        'license_id',
+        'software_handover_id',
+        'handover_id',
         'type',
         'invoice_no',
         'auto_count_invoice_no',
@@ -38,4 +39,12 @@ class HrLicense extends Model
         'total_login' => 'integer',
         'month' => 'integer',
     ];
+
+    /**
+     * Get the software handover associated with this license.
+     */
+    public function softwareHandover()
+    {
+        return $this->belongsTo(SoftwareHandover::class);
+    }
 }

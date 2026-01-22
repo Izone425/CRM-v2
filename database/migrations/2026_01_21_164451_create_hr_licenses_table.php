@@ -14,7 +14,7 @@ return new class extends Migration
     {
         Schema::create('hr_licenses', function (Blueprint $table) {
             $table->id();
-            $table->integer('license_id')->unique();
+            $table->string('handover_id')->unique(); // SW_YYXXXX format
             $table->string('type'); // PAID, TRIAL
             $table->string('invoice_no')->nullable();
             $table->string('auto_count_invoice_no')->nullable();
@@ -32,10 +32,10 @@ return new class extends Migration
             $table->timestamps();
         });
 
-        // Insert dummy data
+        // Insert dummy data with SW_YYXXXX handover IDs
         DB::table('hr_licenses')->insert([
             [
-                'license_id' => 1703644,
+                'handover_id' => 'SW_260044',
                 'type' => 'PAID',
                 'invoice_no' => 'TT2601000307',
                 'auto_count_invoice_no' => 'EPIN2601-0160',
@@ -54,7 +54,7 @@ return new class extends Migration
                 'updated_at' => now(),
             ],
             [
-                'license_id' => 1703643,
+                'handover_id' => 'SW_260043',
                 'type' => 'PAID',
                 'invoice_no' => 'TT2601000306',
                 'auto_count_invoice_no' => 'EPIN2601-0159',
@@ -73,7 +73,7 @@ return new class extends Migration
                 'updated_at' => now(),
             ],
             [
-                'license_id' => 1703642,
+                'handover_id' => 'SW_260042',
                 'type' => 'TRIAL',
                 'invoice_no' => '-',
                 'auto_count_invoice_no' => '-',
@@ -92,7 +92,7 @@ return new class extends Migration
                 'updated_at' => now(),
             ],
             [
-                'license_id' => 1703641,
+                'handover_id' => 'SW_260041',
                 'type' => 'PAID',
                 'invoice_no' => 'TT2601000305',
                 'auto_count_invoice_no' => 'EHIN2601-0088',
@@ -111,7 +111,7 @@ return new class extends Migration
                 'updated_at' => now(),
             ],
             [
-                'license_id' => 1703640,
+                'handover_id' => 'SW_260040',
                 'type' => 'PAID',
                 'invoice_no' => 'TT2601000304',
                 'auto_count_invoice_no' => 'EPIN2601-0158',
@@ -130,7 +130,7 @@ return new class extends Migration
                 'updated_at' => now(),
             ],
             [
-                'license_id' => 1703639,
+                'handover_id' => 'SW_250039',
                 'type' => 'PAID',
                 'invoice_no' => 'TT2601000303',
                 'auto_count_invoice_no' => 'EPIN2601-0157',
@@ -149,7 +149,7 @@ return new class extends Migration
                 'updated_at' => now(),
             ],
             [
-                'license_id' => 1703638,
+                'handover_id' => 'SW_260038',
                 'type' => 'TRIAL',
                 'invoice_no' => '-',
                 'auto_count_invoice_no' => '-',
@@ -168,7 +168,7 @@ return new class extends Migration
                 'updated_at' => now(),
             ],
             [
-                'license_id' => 1703637,
+                'handover_id' => 'SW_250037',
                 'type' => 'PAID',
                 'invoice_no' => 'TT2601000302',
                 'auto_count_invoice_no' => 'EHIN2601-0087',
@@ -187,7 +187,7 @@ return new class extends Migration
                 'updated_at' => now(),
             ],
             [
-                'license_id' => 1703636,
+                'handover_id' => 'SW_250036',
                 'type' => 'PAID',
                 'invoice_no' => 'TT2601000301',
                 'auto_count_invoice_no' => 'EPIN2601-0156',
@@ -206,7 +206,7 @@ return new class extends Migration
                 'updated_at' => now(),
             ],
             [
-                'license_id' => 1703635,
+                'handover_id' => 'SW_250035',
                 'type' => 'PAID',
                 'invoice_no' => 'TT2601000300',
                 'auto_count_invoice_no' => 'EPIN2601-0155',

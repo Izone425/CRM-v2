@@ -34,6 +34,7 @@ use App\Filament\Pages\HardwareDashboardAll;
 use App\Filament\Pages\HardwareDashboardPendingStock;
 use App\Filament\Pages\HeadcountHandoverList;
 use App\Filament\Pages\HrAccountManagement;
+use App\Filament\Pages\HrCompanyLicenseDetails;
 use App\Filament\Pages\HrLicense;
 use App\Filament\Pages\HrdfClaimTracker;
 use App\Filament\Pages\HrdfHandoverList;
@@ -381,6 +382,7 @@ class AdminPanelProvider extends PanelProvider
                 HrProductDashboard::class,
                 HrAccountManagement::class,
                 HrLicense::class,
+                HrCompanyLicenseDetails::class,
                 TicketList::class,
                 TicketDashboard::class,
                 SubmitHrdfAttendanceLog::class,

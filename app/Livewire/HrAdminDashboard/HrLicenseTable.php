@@ -16,9 +16,11 @@ use Filament\Notifications\Notification;
 use Illuminate\Support\HtmlString;
 use Illuminate\Support\Collection;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\View\View;
 use Livewire\Component;
 use Livewire\Attributes\On;
 use App\Models\HrLicense;
+use App\Models\SoftwareHandover;
 
 class HrLicenseTable extends Component implements HasForms, HasTable
 {
@@ -102,13 +104,40 @@ class HrLicenseTable extends Component implements HasForms, HasTable
             ])
             ->columns([
                 // Visible by default (3 columns)
-                TextColumn::make('license_id')
-                    ->label('License ID')
+                TextColumn::make('handover_id')
+                    ->label('Handover ID')
                     ->sortable()
                     ->searchable()
                     ->weight('bold')
                     ->color('primary')
-                    ->toggleable(),
+                    ->toggleable()
+                    ->action(
+                        Action::make('viewHandoverDetails')
+                            ->modalHeading(false)
+                            ->modalWidth('4xl')
+                            ->modalSubmitAction(false)
+                            ->modalCancelAction(false)
+                            ->modalContent(function (HrLicense $record): View {
+                                $softwareHandover = $record->softwareHandover;
+
+                                if (!$softwareHandover) {
+                                    // Try to find by parsing the handover_id
+                                    $handoverId = $record->handover_id;
+                                    if ($handoverId) {
+                                        // Extract numeric ID from SW_YYXXXX format
+                                        $numericId = (int) substr($handoverId, -4);
+                                        $softwareHandover = SoftwareHandover::find($numericId);
+                                    }
+                                }
+
+                                if (!$softwareHandover) {
+                                    return view('components.no-handover-found');
+                                }
+
+                                return view('components.software-handover')
+                                    ->with('extraAttributes', ['record' => $softwareHandover]);
+                            })
+                    ),
 
                 TextColumn::make('company_name')
                     ->label('Company Name')
@@ -118,7 +147,11 @@ class HrLicenseTable extends Component implements HasForms, HasTable
                     ->limit(40)
                     ->tooltip(fn ($record) => $record->company_name)
                     ->color('primary')
-                    ->toggleable(),
+                    ->toggleable()
+                    ->url(fn (HrLicense $record) => url("/admin/hr-company-license-details?" . http_build_query([
+                        'handoverId' => $record->handover_id,
+                        'softwareHandoverId' => $record->software_handover_id,
+                    ]))),
 
                 TextColumn::make('status')
                     ->label('Status')
@@ -222,10 +255,33 @@ class HrLicenseTable extends Component implements HasForms, HasTable
                     ->label('View')
                     ->icon('heroicon-o-eye')
                     ->color('gray')
-                    ->url(fn () => '#'),
+                    ->modalHeading(false)
+                    ->modalWidth('4xl')
+                    ->modalSubmitAction(false)
+                    ->modalCancelAction(false)
+                    ->modalContent(function (HrLicense $record): View {
+                        $softwareHandover = $record->softwareHandover;
+
+                        if (!$softwareHandover) {
+                            // Try to find by parsing the handover_id
+                            $handoverId = $record->handover_id;
+                            if ($handoverId) {
+                                // Extract numeric ID from SW_YYXXXX format
+                                $numericId = (int) substr($handoverId, -4);
+                                $softwareHandover = SoftwareHandover::find($numericId);
+                            }
+                        }
+
+                        if (!$softwareHandover) {
+                            return view('components.no-handover-found');
+                        }
+
+                        return view('components.software-handover')
+                            ->with('extraAttributes', ['record' => $softwareHandover]);
+                    }),
             ])
             ->striped()
-            ->defaultSort('license_id', 'desc');
+            ->defaultSort('handover_id', 'desc');
     }
 
     public function render()
