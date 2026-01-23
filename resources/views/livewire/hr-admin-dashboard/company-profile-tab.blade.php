@@ -9,9 +9,12 @@
                 Account Information
             </h4>
             <div class="space-y-3">
-                <div class="flex justify-between">
+                <div class="flex justify-between items-center">
                     <span class="text-sm text-gray-600">Branch Info</span>
-                    <span class="text-sm font-medium text-gray-900">{{ $profileData['account_info']['branch'] }}</span>
+                    <select wire:model="selectedBranch" class="text-sm font-medium text-gray-900 border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        <option value="Timetec Cloud Sdn Bhd">Timetec Cloud Sdn Bhd</option>
+                        <option value="Timetec Penang Sdn Bhd">Timetec Penang Sdn Bhd</option>
+                    </select>
                 </div>
                 <div class="flex justify-between">
                     <span class="text-sm text-gray-600">Register Date</span>

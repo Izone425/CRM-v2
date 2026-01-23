@@ -5,6 +5,7 @@ namespace App\Livewire\HrAdminDashboard;
 use App\Models\SoftwareHandover;
 use App\Models\CompanyDetail;
 use App\Models\LicenseCertificate;
+use Carbon\Carbon;
 use Livewire\Component;
 
 class CompanyProfileTab extends Component
@@ -12,6 +13,7 @@ class CompanyProfileTab extends Component
     public ?int $softwareHandoverId = null;
     public array $companyData = [];
     public array $profileData = [];
+    public string $selectedBranch = 'Timetec Cloud Sdn Bhd';
 
     public function mount(?int $softwareHandoverId = null, array $companyData = [])
     {
@@ -34,7 +36,7 @@ class CompanyProfileTab extends Component
         $this->profileData = [
             'account_info' => [
                 'branch' => $softwareHandover?->company_name ?? $this->companyData['company_name'] ?? '-',
-                'register_date' => $softwareHandover?->completed_at?->format('Y-m-d H:i:s') ?? '-',
+                'register_date' => $softwareHandover?->completed_at ? Carbon::parse($softwareHandover->completed_at)->format('Y-m-d H:i:s') : '-',
                 'last_login_date' => '-', // From HR Backend API
             ],
             'backend_info' => [
