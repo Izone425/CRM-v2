@@ -100,11 +100,11 @@
                         </td>
                         <td class="px-4 py-3 text-sm whitespace-nowrap">
                             <div class="flex items-center gap-2">
-                                <a href="#" class="inline-flex items-center px-3 py-1 text-sm font-medium text-white bg-blue-600 rounded hover:bg-blue-700">
+                                <a href="#" class="inline-flex items-center px-3 py-1 text-sm font-medium text-black bg-blue-600 rounded hover:bg-blue-700">
                                     Login as User
                                 </a>
                                 @if(($user['status'] ?? '') === 'Inactive')
-                                    <button class="inline-flex items-center px-3 py-1 text-sm font-medium text-white bg-green-600 rounded hover:bg-green-700">
+                                    <button class="inline-flex items-center px-3 py-1 text-sm font-medium text-black bg-green-600 rounded hover:bg-green-700">
                                         Enable
                                     </button>
                                 @endif
