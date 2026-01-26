@@ -11,52 +11,23 @@
                 margin-bottom: 20px;
             }
 
-            .summary-grid {
-                display: grid;
-                grid-template-columns: repeat(4, 1fr);
-                gap: 16px;
-                width: 100%;
-            }
-
-            .stat-card {
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                justify-content: center;
-                padding: 20px;
-                border-radius: 10px;
-                text-align: center;
-                background: #F9FAFB;
-                cursor: pointer;
-                transition: transform 0.2s, box-shadow 0.2s;
-            }
-
-            .stat-card:hover {
-                transform: scale(1.02);
-                box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.15);
-            }
-
-            .stat-icon {
-                padding: 12px;
-                border-radius: 10px;
-                margin-bottom: 10px;
-            }
-
-            .stat-number {
-                font-size: 2rem;
-                font-weight: bold;
-                color: #1F2937;
-            }
-
-            .stat-label {
-                font-size: 0.875rem;
-                color: #6B7280;
-            }
-
             .chart-grid {
                 display: grid;
                 grid-template-columns: 1fr 1fr;
                 gap: 20px;
+            }
+
+            .chart-grid .full-width-chart {
+                grid-column: span 2;
+            }
+
+            @media (max-width: 768px) {
+                .chart-grid {
+                    grid-template-columns: 1fr;
+                }
+                .chart-grid .full-width-chart {
+                    grid-column: span 1;
+                }
             }
 
             .chart-container {
@@ -80,20 +51,26 @@
             .donut-chart-wrapper {
                 display: flex;
                 align-items: center;
-                justify-content: center;
-                gap: 30px;
+                justify-content: space-between;
+                gap: 20px;
+                width: 100%;
+                padding: 10px;
             }
 
             .donut-chart {
                 position: relative;
                 width: 180px;
                 height: 180px;
+                flex-shrink: 0;
             }
 
             .donut-legend {
                 display: flex;
                 flex-direction: column;
                 gap: 8px;
+                flex: 1;
+                max-height: 220px;
+                overflow-y: auto;
             }
 
             .legend-item {
@@ -119,6 +96,13 @@
             .legend-text {
                 font-size: 0.875rem;
                 color: #374151;
+                flex: 1;
+            }
+
+            .legend-count {
+                font-weight: 600;
+                color: #1F2937;
+                margin-left: auto;
             }
 
             .legend-count {
@@ -324,60 +308,6 @@
         </div>
     </div>
 
-    <!-- Summary Stats -->
-    <div class="wrapper-container">
-        <div class="flex items-center space-x-2 mb-4">
-            <i class="fa fa-chart-line text-lg text-gray-500"></i>
-            <h2 class="text-lg font-bold text-gray-800">Summary</h2>
-        </div>
-
-        <div class="summary-grid">
-            <!-- Total Tickets -->
-            <div class="stat-card">
-                <div class="stat-icon" style="background-color: #DBEAFE;">
-                    <svg class="w-8 h-8 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z"/>
-                    </svg>
-                </div>
-                <p class="stat-number">{{ number_format($totalTickets) }}</p>
-                <p class="stat-label">Total Tickets</p>
-            </div>
-
-            <!-- Open Tickets -->
-            <div class="stat-card" wire:click="openStatusSlideOver('open')">
-                <div class="stat-icon" style="background-color: #FEF3C7;">
-                    <svg class="w-8 h-8 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                </div>
-                <p class="stat-number">{{ number_format($openTickets) }}</p>
-                <p class="stat-label">Open Tickets</p>
-            </div>
-
-            <!-- Closed Tickets -->
-            <div class="stat-card" wire:click="openStatusSlideOver('completed')">
-                <div class="stat-icon" style="background-color: #D1FAE5;">
-                    <svg class="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                </div>
-                <p class="stat-number">{{ number_format($completedTickets) }}</p>
-                <p class="stat-label">Closed</p>
-            </div>
-
-            <!-- Avg Resolution -->
-            <div class="stat-card">
-                <div class="stat-icon" style="background-color: #EDE9FE;">
-                    <svg class="w-8 h-8 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                </div>
-                <p class="stat-number text-xl">{{ $avgResolutionDays }}</p>
-                <p class="stat-label">Avg. Resolution (DD:HH:MM)</p>
-            </div>
-        </div>
-    </div>
-
     <!-- Charts Grid -->
     <div class="chart-grid">
         <!-- Priority Distribution (Donut Chart) -->
@@ -417,7 +347,9 @@
                                     transform="rotate(-90 18 18)"
                                     class="cursor-pointer hover:opacity-80"
                                     wire:click="openPrioritySlideOver({{ $item['id'] }})"
-                                ></circle>
+                                >
+                                    <title>{{ $item['name'] }}: {{ $item['count'] }} ({{ number_format($percentage, 1) }}%)</title>
+                                </circle>
                                 @php $offset += $dashArray; @endphp
                             @endforeach
                         </svg>
@@ -429,8 +361,11 @@
                     <!-- Legend -->
                     <div class="donut-legend">
                         @foreach($priorityData as $index => $item)
-                            @php $color = $colors[$index % count($colors)]; @endphp
-                            <div class="legend-item" wire:click="openPrioritySlideOver({{ $item['id'] }})">
+                            @php
+                                $color = $colors[$index % count($colors)];
+                                $legendPercentage = $total > 0 ? ($item['count'] / $total) * 100 : 0;
+                            @endphp
+                            <div class="legend-item" wire:click="openPrioritySlideOver({{ $item['id'] }})" title="{{ $item['name'] }}: {{ $item['count'] }} ({{ number_format($legendPercentage, 1) }}%)">
                                 <span class="legend-color" style="background-color: {{ $color }};"></span>
                                 <span class="legend-text">{{ \Illuminate\Support\Str::limit($item['name'], 20) }}</span>
                                 <span class="legend-count">{{ $item['count'] }}</span>
@@ -445,16 +380,86 @@
             @endif
         </div>
 
-        <!-- Module Distribution (Bar Chart) -->
+        <!-- Module Distribution (Donut Chart) -->
         <div class="chart-container">
             <div class="chart-title">
-                <i class="fa fa-th-large text-gray-500"></i>
-                <span>By Module (Top 10)</span>
+                <i class="fa fa-chart-pie text-gray-500"></i>
+                <span>By Module</span>
             </div>
 
             @if(count($moduleData) > 0)
+                <div class="donut-chart-wrapper">
+                    <!-- SVG Donut Chart -->
+                    <div class="donut-chart">
+                        <svg viewBox="0 0 36 36" width="180" height="180">
+                            @php
+                                $moduleColors = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#6366F1', '#14B8A6', '#F97316', '#06B6D4'];
+                                $moduleOffset = 0;
+                                $moduleTotal = collect($moduleData)->sum('count');
+                            @endphp
+
+                            <!-- Background circle -->
+                            <circle cx="18" cy="18" r="14" fill="none" stroke="#E5E7EB" stroke-width="5"></circle>
+
+                            @foreach($moduleData as $index => $item)
+                                @php
+                                    $modulePercentage = $moduleTotal > 0 ? ($item['count'] / $moduleTotal) * 100 : 0;
+                                    $moduleDashArray = ($modulePercentage * 88) / 100;
+                                    $moduleColor = $moduleColors[$index % count($moduleColors)];
+                                @endphp
+                                <circle
+                                    cx="18" cy="18" r="14"
+                                    fill="none"
+                                    stroke="{{ $moduleColor }}"
+                                    stroke-width="5"
+                                    stroke-dasharray="{{ $moduleDashArray }} {{ 88 - $moduleDashArray }}"
+                                    stroke-dashoffset="{{ -$moduleOffset }}"
+                                    transform="rotate(-90 18 18)"
+                                    class="cursor-pointer hover:opacity-80"
+                                    wire:click="openModuleSlideOver({{ $item['id'] }})"
+                                >
+                                    <title>{{ $item['name'] }}: {{ $item['count'] }} ({{ number_format($modulePercentage, 1) }}%)</title>
+                                </circle>
+                                @php $moduleOffset += $moduleDashArray; @endphp
+                            @endforeach
+                        </svg>
+                        <div class="absolute inset-0 flex items-center justify-center">
+                            <span class="text-xl font-bold text-gray-700">{{ $moduleTotal }}</span>
+                        </div>
+                    </div>
+
+                    <!-- Legend -->
+                    <div class="donut-legend">
+                        @foreach($moduleData as $index => $item)
+                            @php
+                                $moduleColor = $moduleColors[$index % count($moduleColors)];
+                                $moduleLegendPercentage = $moduleTotal > 0 ? ($item['count'] / $moduleTotal) * 100 : 0;
+                            @endphp
+                            <div class="legend-item" wire:click="openModuleSlideOver({{ $item['id'] }})" title="{{ $item['name'] }}: {{ $item['count'] }} ({{ number_format($moduleLegendPercentage, 1) }}%)">
+                                <span class="legend-color" style="background-color: {{ $moduleColor }};"></span>
+                                <span class="legend-text">{{ \Illuminate\Support\Str::limit($item['name'], 18) }}</span>
+                                <span class="legend-count">{{ $item['count'] }}</span>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+            @else
+                <div class="flex items-center justify-center h-48 text-gray-500">
+                    No module data available
+                </div>
+            @endif
+        </div>
+
+        <!-- Priority Distribution (Bar Chart with Module Breakdown) -->
+        <div class="chart-container">
+            <div class="chart-title">
+                <i class="fa fa-chart-bar text-gray-500"></i>
+                <span>By Priority</span>
+            </div>
+
+            @if(count($priorityModuleData) > 0)
                 <div class="bar-chart">
-                    @foreach($moduleData as $index => $item)
+                    @foreach($priorityModuleData as $index => $item)
                         <div class="bar-item-stacked" x-data="{ showBreakdown: false }">
                             <div class="bar-label cursor-pointer" @click="showBreakdown = !showBreakdown">
                                 <span class="flex items-center gap-2">
@@ -468,25 +473,25 @@
                             <!-- Stacked Bar -->
                             <div class="bar-wrapper stacked-bar">
                                 @if(!empty($item['breakdown']))
-                                    @foreach($item['breakdown'] as $priority)
+                                    @foreach($item['breakdown'] as $module)
                                         <div class="bar-segment"
-                                             wire:click="openModuleSlideOver({{ $item['id'] }}, {{ $priority['priority_id'] }})"
-                                             style="width: {{ ($priority['count'] / $item['count']) * $item['percentage'] }}%; background-color: {{ $priority['color'] }};"
-                                             title="{{ $priority['name'] }}: {{ $priority['count'] }} ({{ $priority['percentage'] }}%)">
+                                             wire:click="openPriorityBarSlideOver({{ $item['id'] }}, {{ $module['module_id'] }})"
+                                             style="width: {{ ($module['count'] / $item['count']) * $item['percentage'] }}%; background-color: {{ $module['color'] }};"
+                                             title="{{ $module['name'] }}: {{ $module['count'] }} ({{ $module['percentage'] }}%)">
                                         </div>
                                     @endforeach
                                 @else
-                                    <div class="bar-fill" wire:click="openModuleSlideOver({{ $item['id'] }})" style="width: {{ $item['percentage'] }}%; background-color: #6B7280;"></div>
+                                    <div class="bar-fill" wire:click="openPriorityBarSlideOver({{ $item['id'] }})" style="width: {{ $item['percentage'] }}%; background-color: #6B7280;"></div>
                                 @endif
                             </div>
-                            <!-- Priority Breakdown Details (expandable) -->
+                            <!-- Module Breakdown Details (expandable) -->
                             <div x-show="showBreakdown" x-collapse class="priority-breakdown">
                                 @if(!empty($item['breakdown']))
-                                    @foreach($item['breakdown'] as $priority)
+                                    @foreach($item['breakdown'] as $module)
                                         <div class="breakdown-item">
-                                            <span class="breakdown-color" style="background-color: {{ $priority['color'] }};"></span>
-                                            <span class="breakdown-name">{{ $priority['name'] }}</span>
-                                            <span class="breakdown-count">{{ $priority['count'] }} ({{ $priority['percentage'] }}%)</span>
+                                            <span class="breakdown-color" style="background-color: {{ $module['color'] }};"></span>
+                                            <span class="breakdown-name">{{ $module['name'] }}</span>
+                                            <span class="breakdown-count">{{ $module['count'] }} ({{ $module['percentage'] }}%)</span>
                                         </div>
                                     @endforeach
                                 @endif
@@ -495,39 +500,14 @@
                     @endforeach
                 </div>
 
-                <!-- Priority Legend -->
-                <div class="priority-legend mt-4 pt-4 border-t">
-                    <div class="text-xs text-gray-500 mb-2">Priority Legend:</div>
-                    <div class="flex flex-wrap gap-3">
-                        <div class="flex items-center gap-1">
-                            <span class="w-3 h-3 rounded" style="background-color: #EF4444;"></span>
-                            <span class="text-xs">Software Bugs</span>
-                        </div>
-                        <div class="flex items-center gap-1">
-                            <span class="w-3 h-3 rounded" style="background-color: #F59E0B;"></span>
-                            <span class="text-xs">Back End Assistance</span>
-                        </div>
-                        <div class="flex items-center gap-1">
-                            <span class="w-3 h-3 rounded" style="background-color: #8B5CF6;"></span>
-                            <span class="text-xs">Critical Enhancement</span>
-                        </div>
-                        <div class="flex items-center gap-1">
-                            <span class="w-3 h-3 rounded" style="background-color: #10B981;"></span>
-                            <span class="text-xs">Non-Critical Enhancement</span>
-                        </div>
-                        <div class="flex items-center gap-1">
-                            <span class="w-3 h-3 rounded" style="background-color: #3B82F6;"></span>
-                            <span class="text-xs">Paid Customization</span>
-                        </div>
-                    </div>
-                </div>
             @else
                 <div class="flex items-center justify-center h-48 text-gray-500">
-                    No module data available
+                    No priority data available
                 </div>
             @endif
         </div>
 
+        {{-- Resolution Time Trend - HIDDEN
         <!-- Resolution Time Trend (Line Chart) - Full Width -->
         <div class="chart-container full-width-chart">
             <div class="chart-title flex items-center justify-between">
@@ -626,7 +606,147 @@
                 </div>
             @endif
         </div>
+        --}}
     </div>
+
+    {{-- Frontend Tickets Section - HIDDEN
+    <!-- Frontend Tickets Section -->
+    <div class="wrapper-container mt-6">
+        <div class="flex items-center space-x-2 mb-4">
+            <i class="fa fa-globe text-lg text-blue-500"></i>
+            <h2 class="text-lg font-bold text-gray-800">Frontend Submitted Tickets</h2>
+            <span class="bg-blue-100 text-blue-800 text-sm font-medium px-3 py-1 rounded-full">
+                {{ number_format($frontendTotalTickets) }} total
+            </span>
+        </div>
+
+        @if($frontendTotalTickets > 0)
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Left: By User -->
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <h3 class="font-semibold text-gray-700 mb-4 flex items-center gap-2">
+                        <i class="fa fa-user text-gray-400"></i>
+                        By User (Top 10)
+                    </h3>
+                    <div class="space-y-3">
+                        @foreach($frontendUserData as $user)
+                            @php
+                                $percentage = $frontendTotalTickets > 0 ? ($user['count'] / $frontendTotalTickets) * 100 : 0;
+                                $isSelected = $selectedFrontendUserId === $user['id'];
+                            @endphp
+                            <div class="cursor-pointer rounded p-2 transition-colors {{ $isSelected ? 'bg-indigo-100 ring-2 ring-indigo-400' : 'hover:bg-white' }}" wire:click="selectFrontendUser({{ $user['id'] }})">
+                                <div class="flex justify-between text-sm mb-1">
+                                    <span class="{{ $isSelected ? 'text-indigo-700 font-semibold' : 'text-gray-600' }}">{{ \Illuminate\Support\Str::limit($user['name'], 20) }}</span>
+                                    <span class="font-semibold">{{ $user['count'] }} ({{ round($percentage, 1) }}%)</span>
+                                </div>
+                                <div class="h-2 bg-gray-200 rounded-full overflow-hidden">
+                                    <div class="h-full bg-indigo-500 rounded-full" style="width: {{ $percentage }}%;"></div>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+
+                <!-- Right: Selected User's Module Chart -->
+                <div class="bg-gray-50 rounded-lg p-4">
+                    @if($selectedFrontendUserId && count($selectedFrontendUserModuleData) > 0)
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="font-semibold text-gray-700 flex items-center gap-2">
+                                <i class="fa fa-chart-bar text-gray-400"></i>
+                                {{ $selectedFrontendUserName }} - By Module
+                                <span class="bg-indigo-100 text-indigo-800 text-xs font-medium px-2 py-0.5 rounded-full">
+                                    {{ array_sum(array_column($selectedFrontendUserModuleData, 'count')) }}
+                                </span>
+                            </h3>
+                            <button wire:click="clearFrontendUserChart" class="text-gray-400 hover:text-gray-600 transition-colors">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                </svg>
+                            </button>
+                        </div>
+
+                        <div class="bar-chart">
+                            @foreach($selectedFrontendUserModuleData as $index => $item)
+                                <div class="bar-item-stacked" x-data="{ showBreakdown: false }">
+                                    <div class="bar-label cursor-pointer" @click="showBreakdown = !showBreakdown">
+                                        <span class="flex items-center gap-2">
+                                            <svg class="w-4 h-4 transition-transform" :class="showBreakdown ? 'rotate-90' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                                            </svg>
+                                            {{ \Illuminate\Support\Str::limit($item['name'], 25) }}
+                                        </span>
+                                        <span class="font-semibold">{{ $item['count'] }}</span>
+                                    </div>
+                                    <!-- Stacked Bar -->
+                                    <div class="bar-wrapper stacked-bar">
+                                        @if(!empty($item['breakdown']))
+                                            @foreach($item['breakdown'] as $priority)
+                                                <div class="bar-segment"
+                                                     wire:click="openFrontendUserModuleSlideOver({{ $item['id'] }})"
+                                                     style="width: {{ ($priority['count'] / $item['count']) * $item['percentage'] }}%; background-color: {{ $priority['color'] }};"
+                                                     title="{{ $priority['name'] }}: {{ $priority['count'] }} ({{ $priority['percentage'] }}%)">
+                                                </div>
+                                            @endforeach
+                                        @else
+                                            <div class="bar-fill" wire:click="openFrontendUserModuleSlideOver({{ $item['id'] }})" style="width: {{ $item['percentage'] }}%; background-color: #6B7280;"></div>
+                                        @endif
+                                    </div>
+                                    <!-- Priority Breakdown Details (expandable) -->
+                                    <div x-show="showBreakdown" x-collapse class="priority-breakdown">
+                                        @if(!empty($item['breakdown']))
+                                            @foreach($item['breakdown'] as $priority)
+                                                <div class="breakdown-item">
+                                                    <span class="breakdown-color" style="background-color: {{ $priority['color'] }};"></span>
+                                                    <span class="breakdown-name">{{ $priority['name'] }}</span>
+                                                    <span class="breakdown-count">{{ $priority['count'] }} ({{ $priority['percentage'] }}%)</span>
+                                                </div>
+                                            @endforeach
+                                        @endif
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+
+                        <!-- Priority Legend -->
+                        <div class="priority-legend mt-3 pt-3 border-t">
+                            <div class="flex flex-wrap gap-2">
+                                <div class="flex items-center gap-1">
+                                    <span class="w-2 h-2 rounded" style="background-color: #EF4444;"></span>
+                                    <span class="text-xs text-gray-500">Bugs</span>
+                                </div>
+                                <div class="flex items-center gap-1">
+                                    <span class="w-2 h-2 rounded" style="background-color: #F59E0B;"></span>
+                                    <span class="text-xs text-gray-500">Backend</span>
+                                </div>
+                                <div class="flex items-center gap-1">
+                                    <span class="w-2 h-2 rounded" style="background-color: #8B5CF6;"></span>
+                                    <span class="text-xs text-gray-500">Critical</span>
+                                </div>
+                                <div class="flex items-center gap-1">
+                                    <span class="w-2 h-2 rounded" style="background-color: #10B981;"></span>
+                                    <span class="text-xs text-gray-500">Non-Critical</span>
+                                </div>
+                                <div class="flex items-center gap-1">
+                                    <span class="w-2 h-2 rounded" style="background-color: #3B82F6;"></span>
+                                    <span class="text-xs text-gray-500">Paid</span>
+                                </div>
+                            </div>
+                        </div>
+                    @else
+                        <div class="flex flex-col items-center justify-center h-full min-h-[200px] text-gray-400">
+                            <i class="fa fa-hand-pointer text-4xl mb-3"></i>
+                            <p class="text-sm">Select a user to view their ticket breakdown</p>
+                        </div>
+                    @endif
+                </div>
+            </div>
+        @else
+            <div class="text-center text-gray-500 py-8">
+                No frontend tickets found for the selected period
+            </div>
+        @endif
+    </div>
+    --}}
 
     <!-- Slide Over Modal -->
     <div
