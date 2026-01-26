@@ -163,6 +163,75 @@
                 transition: width 0.5s ease-in-out;
             }
 
+            /* Stacked Bar Styles */
+            .bar-item-stacked {
+                margin-bottom: 12px;
+            }
+
+            .stacked-bar {
+                display: flex;
+                cursor: pointer;
+            }
+
+            .bar-segment {
+                height: 100%;
+                transition: all 0.3s ease;
+            }
+
+            .bar-segment:first-child {
+                border-radius: 6px 0 0 6px;
+            }
+
+            .bar-segment:last-child {
+                border-radius: 0 6px 6px 0;
+            }
+
+            .bar-segment:only-child {
+                border-radius: 6px;
+            }
+
+            .bar-segment:hover {
+                opacity: 0.8;
+                transform: scaleY(1.1);
+            }
+
+            .priority-breakdown {
+                margin-top: 8px;
+                margin-left: 24px;
+                padding: 8px 12px;
+                background: #F9FAFB;
+                border-radius: 6px;
+                font-size: 0.8rem;
+            }
+
+            .breakdown-item {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                padding: 4px 0;
+            }
+
+            .breakdown-color {
+                width: 12px;
+                height: 12px;
+                border-radius: 3px;
+                flex-shrink: 0;
+            }
+
+            .breakdown-name {
+                flex: 1;
+                color: #374151;
+            }
+
+            .breakdown-count {
+                font-weight: 600;
+                color: #1F2937;
+            }
+
+            .priority-legend {
+                font-size: 0.75rem;
+            }
+
             /* Line Chart Styles */
             .line-chart-container {
                 width: 100%;
@@ -231,19 +300,24 @@
         <h1 class="text-2xl font-bold tracking-tight text-gray-950 dark:text-white sm:text-3xl">Ticket Analysis</h1>
 
         <div class="flex items-center gap-4 mt-4 md:mt-0">
+            <!-- All Tickets Toggle -->
+            <label class="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" wire:model="showAllTickets" wire:change="applyFilters" class="rounded border-gray-300 text-blue-600 shadow-sm focus:ring-blue-500">
+                <span class="text-sm text-gray-600">All Tickets</span>
+            </label>
+
             <!-- Date Range Filters -->
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-2 {{ $showAllTickets ? 'opacity-50 pointer-events-none' : '' }}">
                 <label class="text-sm text-gray-600">From:</label>
-                <input type="date" wire:model.live="startDate" class="border-gray-300 rounded-md shadow-sm text-sm">
+                <input type="date" wire:model="startDate" wire:change="applyFilters" class="border-gray-300 rounded-md shadow-sm text-sm" {{ $showAllTickets ? 'disabled' : '' }}>
             </div>
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-2 {{ $showAllTickets ? 'opacity-50 pointer-events-none' : '' }}">
                 <label class="text-sm text-gray-600">To:</label>
-                <input type="date" wire:model.live="endDate" class="border-gray-300 rounded-md shadow-sm text-sm">
+                <input type="date" wire:model="endDate" wire:change="applyFilters" class="border-gray-300 rounded-md shadow-sm text-sm" {{ $showAllTickets ? 'disabled' : '' }}>
             </div>
 
             <!-- Product Filter -->
-            <select wire:model.live="selectedProduct" class="border-gray-300 rounded-md shadow-sm text-sm">
-                <option value="all">All Products</option>
+            <select wire:model="selectedProduct" wire:change="applyFilters" class="border-gray-300 rounded-md shadow-sm text-sm">
                 <option value="v1">Version 1</option>
                 <option value="v2">Version 2</option>
             </select>
@@ -380,22 +454,72 @@
 
             @if(count($moduleData) > 0)
                 <div class="bar-chart">
-                    @php
-                        $barColors = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#6366F1', '#14B8A6', '#F97316', '#84CC16'];
-                    @endphp
-
                     @foreach($moduleData as $index => $item)
-                        @php $color = $barColors[$index % count($barColors)]; @endphp
-                        <div class="bar-item" wire:click="openModuleSlideOver({{ $item['id'] }})">
-                            <div class="bar-label">
-                                <span>{{ \Illuminate\Support\Str::limit($item['name'], 25) }}</span>
+                        <div class="bar-item-stacked" x-data="{ showBreakdown: false }">
+                            <div class="bar-label cursor-pointer" @click="showBreakdown = !showBreakdown">
+                                <span class="flex items-center gap-2">
+                                    <svg class="w-4 h-4 transition-transform" :class="showBreakdown ? 'rotate-90' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                                    </svg>
+                                    {{ \Illuminate\Support\Str::limit($item['name'], 25) }}
+                                </span>
                                 <span class="font-semibold">{{ $item['count'] }}</span>
                             </div>
-                            <div class="bar-wrapper">
-                                <div class="bar-fill" style="width: {{ $item['percentage'] }}%; background-color: {{ $color }};"></div>
+                            <!-- Stacked Bar -->
+                            <div class="bar-wrapper stacked-bar">
+                                @if(!empty($item['breakdown']))
+                                    @foreach($item['breakdown'] as $priority)
+                                        <div class="bar-segment"
+                                             wire:click="openModuleSlideOver({{ $item['id'] }}, {{ $priority['priority_id'] }})"
+                                             style="width: {{ ($priority['count'] / $item['count']) * $item['percentage'] }}%; background-color: {{ $priority['color'] }};"
+                                             title="{{ $priority['name'] }}: {{ $priority['count'] }} ({{ $priority['percentage'] }}%)">
+                                        </div>
+                                    @endforeach
+                                @else
+                                    <div class="bar-fill" wire:click="openModuleSlideOver({{ $item['id'] }})" style="width: {{ $item['percentage'] }}%; background-color: #6B7280;"></div>
+                                @endif
+                            </div>
+                            <!-- Priority Breakdown Details (expandable) -->
+                            <div x-show="showBreakdown" x-collapse class="priority-breakdown">
+                                @if(!empty($item['breakdown']))
+                                    @foreach($item['breakdown'] as $priority)
+                                        <div class="breakdown-item">
+                                            <span class="breakdown-color" style="background-color: {{ $priority['color'] }};"></span>
+                                            <span class="breakdown-name">{{ $priority['name'] }}</span>
+                                            <span class="breakdown-count">{{ $priority['count'] }} ({{ $priority['percentage'] }}%)</span>
+                                        </div>
+                                    @endforeach
+                                @endif
                             </div>
                         </div>
                     @endforeach
+                </div>
+
+                <!-- Priority Legend -->
+                <div class="priority-legend mt-4 pt-4 border-t">
+                    <div class="text-xs text-gray-500 mb-2">Priority Legend:</div>
+                    <div class="flex flex-wrap gap-3">
+                        <div class="flex items-center gap-1">
+                            <span class="w-3 h-3 rounded" style="background-color: #EF4444;"></span>
+                            <span class="text-xs">Software Bugs</span>
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <span class="w-3 h-3 rounded" style="background-color: #F59E0B;"></span>
+                            <span class="text-xs">Back End Assistance</span>
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <span class="w-3 h-3 rounded" style="background-color: #8B5CF6;"></span>
+                            <span class="text-xs">Critical Enhancement</span>
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <span class="w-3 h-3 rounded" style="background-color: #10B981;"></span>
+                            <span class="text-xs">Non-Critical Enhancement</span>
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <span class="w-3 h-3 rounded" style="background-color: #3B82F6;"></span>
+                            <span class="text-xs">Paid Customization</span>
+                        </div>
+                    </div>
                 </div>
             @else
                 <div class="flex items-center justify-center h-48 text-gray-500">
@@ -481,7 +605,7 @@
         x-data="{ open: @entangle('showSlideOver') }"
         x-show="open"
         @keydown.window.escape="open = false"
-        class="fixed inset-0 z-[200] flex justify-end bg-black/40 backdrop-blur-sm transition-opacity duration-200"
+        class="fixed top-0 right-0 bottom-0 left-0 z-[9999] flex justify-end bg-black/40 backdrop-blur-sm transition-opacity duration-200"
         x-transition:enter="transition ease-out duration-200"
         x-transition:enter-start="opacity-0"
         x-transition:enter-end="opacity-100"
@@ -491,7 +615,8 @@
         style="display: none;"
     >
         <div
-            class="w-full h-full max-w-md overflow-y-auto bg-white shadow-xl"
+            class="w-full max-w-md bg-white shadow-xl flex flex-col"
+            style="margin-top: 64px; height: calc(100vh - 64px);"
             @click.away="open = false"
             x-transition:enter="transition ease-out duration-300"
             x-transition:enter-start="translate-x-full"
@@ -501,7 +626,7 @@
             x-transition:leave-end="translate-x-full"
         >
             <!-- Header -->
-            <div class="sticky top-0 bg-white border-b p-4 z-10">
+            <div class="bg-white border-b p-4 flex-shrink-0">
                 <div class="flex items-center justify-between">
                     <h2 class="text-lg font-bold text-gray-800">{{ $slideOverTitle }}</h2>
                     <button @click="open = false" wire:click="closeSlideOver" class="text-2xl text-gray-500 hover:text-gray-700">&times;</button>
@@ -510,24 +635,82 @@
             </div>
 
             <!-- Content -->
-            <div class="p-4">
-                @forelse ($ticketList as $ticket)
-                    <a
-                        href="{{ url('admin/ticket-list') }}?ticket={{ $ticket->id }}"
-                        target="_blank"
-                        class="slide-over-item"
-                    >
-                        <div class="ticket-id">#{{ $ticket->ticket_id }}</div>
-                        <div class="ticket-title">{{ \Illuminate\Support\Str::limit($ticket->title ?? 'No Title', 60) }}</div>
-                        <div class="ticket-meta">
-                            {{ $ticket->company_name ?? 'N/A' }} &bull;
-                            {{ $ticket->status ?? 'N/A' }} &bull;
-                            {{ $ticket->created_date ? $ticket->created_date->format('d M Y') : 'N/A' }}
+            <div class="p-4 overflow-y-auto flex-1" id="slide-over-content">
+                @if(count($ticketsByPriority) > 0)
+                    {{-- Grouped by Priority --}}
+                    @foreach($ticketsByPriority as $index => $priorityGroup)
+                        @php
+                            // Auto-expand only if this is the focused priority, or expand all if no focus
+                            $isFocused = $focusPriorityId && $priorityGroup['id'] == $focusPriorityId;
+                            $shouldExpand = $focusPriorityId ? $isFocused : true;
+                        @endphp
+                        <div
+                            class="mb-4 priority-group {{ $isFocused ? 'focused-priority' : '' }}"
+                            id="priority-group-{{ $priorityGroup['id'] }}"
+                            x-data="{ expanded: {{ $shouldExpand ? 'true' : 'false' }} }"
+                            @if($isFocused)
+                            x-init="$nextTick(() => { $el.scrollIntoView({ behavior: 'smooth', block: 'start' }) })"
+                            @endif
+                        >
+                            {{-- Priority Header (collapsible) --}}
+                            <div
+                                class="flex items-center justify-between p-3 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors {{ $isFocused ? 'bg-blue-50 ring-2 ring-blue-300' : 'bg-gray-50' }}"
+                                @click="expanded = !expanded"
+                            >
+                                <div class="flex items-center gap-3">
+                                    <span class="w-4 h-4 rounded" style="background-color: {{ $priorityGroup['color'] }};"></span>
+                                    <span class="font-semibold text-gray-800">{{ $priorityGroup['name'] }}</span>
+                                    <span class="text-sm text-gray-500 bg-white px-2 py-0.5 rounded-full border">{{ $priorityGroup['count'] }}</span>
+                                </div>
+                                <svg
+                                    class="w-5 h-5 text-gray-500 transition-transform duration-200"
+                                    :class="expanded ? 'rotate-180' : ''"
+                                    fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                >
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                </svg>
+                            </div>
+
+                            {{-- Tickets in this priority group --}}
+                            <div x-show="expanded" x-collapse class="mt-2 ml-2 border-l-2 pl-3" style="border-color: {{ $priorityGroup['color'] }};">
+                                @foreach($priorityGroup['tickets'] as $ticket)
+                                    <a
+                                        href="{{ url('admin/ticket-list') }}?ticket={{ $ticket['id'] }}"
+                                        target="_blank"
+                                        class="slide-over-item"
+                                    >
+                                        <div class="ticket-id">#{{ $ticket['ticket_id'] }}</div>
+                                        <div class="ticket-title">{{ \Illuminate\Support\Str::limit($ticket['title'] ?? 'No Title', 60) }}</div>
+                                        <div class="ticket-meta">
+                                            {{ $ticket['company_name'] ?? 'N/A' }} &bull;
+                                            {{ $ticket['status'] ?? 'N/A' }} &bull;
+                                            {{ isset($ticket['created_date']) ? \Carbon\Carbon::parse($ticket['created_date'])->format('d M Y') : 'N/A' }}
+                                        </div>
+                                    </a>
+                                @endforeach
+                            </div>
                         </div>
-                    </a>
-                @empty
+                    @endforeach
+                @elseif(count($ticketList) > 0)
+                    {{-- Flat list fallback (for priority or status slide-overs) --}}
+                    @foreach($ticketList as $ticket)
+                        <a
+                            href="{{ url('admin/ticket-list') }}?ticket={{ $ticket['id'] }}"
+                            target="_blank"
+                            class="slide-over-item"
+                        >
+                            <div class="ticket-id">#{{ $ticket['ticket_id'] }}</div>
+                            <div class="ticket-title">{{ \Illuminate\Support\Str::limit($ticket['title'] ?? 'No Title', 60) }}</div>
+                            <div class="ticket-meta">
+                                {{ $ticket['company_name'] ?? 'N/A' }} &bull;
+                                {{ $ticket['status'] ?? 'N/A' }} &bull;
+                                {{ $ticket['created_date'] ? \Carbon\Carbon::parse($ticket['created_date'])->format('d M Y') : 'N/A' }}
+                            </div>
+                        </a>
+                    @endforeach
+                @else
                     <div class="text-center text-gray-500 py-8">No tickets found</div>
-                @endforelse
+                @endif
             </div>
         </div>
     </div>

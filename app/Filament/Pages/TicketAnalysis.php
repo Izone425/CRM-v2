@@ -22,7 +22,8 @@ class TicketAnalysis extends Page
     // Filter properties
     public $startDate;
     public $endDate;
-    public $selectedProduct = 'all';
+    public $selectedProduct = 'v1';
+    public $showAllTickets = false;
 
     // Summary stats
     public $totalTickets = 0;
@@ -38,7 +39,9 @@ class TicketAnalysis extends Page
     // Slide-over modal
     public $showSlideOver = false;
     public $ticketList = [];
+    public $ticketsByPriority = [];
     public $slideOverTitle = 'Tickets';
+    public $focusPriorityId = null;
 
     public static function canAccess(): bool
     {
@@ -60,17 +63,26 @@ class TicketAnalysis extends Page
         $this->loadData();
     }
 
-    public function updatedStartDate()
+    public function updatedStartDate($value)
     {
+        $this->startDate = $value;
         $this->loadData();
     }
 
-    public function updatedEndDate()
+    public function updatedEndDate($value)
     {
+        $this->endDate = $value;
         $this->loadData();
     }
 
-    public function updatedSelectedProduct()
+    public function updatedSelectedProduct($value)
+    {
+        $this->selectedProduct = $value;
+        $this->loadData();
+    }
+
+    // Generic filter method for wire:change
+    public function applyFilters()
     {
         $this->loadData();
     }
@@ -79,21 +91,21 @@ class TicketAnalysis extends Page
     {
         $query = Ticket::query();
 
-        // Product filter
-        if ($this->selectedProduct === 'v1') {
-            $query->where('product_id', 1);
-        } elseif ($this->selectedProduct === 'v2') {
+        // Product filter - V1 or V2 only (no merge)
+        if ($this->selectedProduct === 'v2') {
             $query->where('product_id', 2);
         } else {
-            $query->whereIn('product_id', [1, 2]);
+            $query->where('product_id', 1);
         }
 
-        // Date range filter
-        if ($this->startDate) {
-            $query->where('created_date', '>=', $this->startDate);
-        }
-        if ($this->endDate) {
-            $query->where('created_date', '<=', $this->endDate);
+        // Date range filter based on created_at timestamp (skip if showAllTickets is enabled)
+        if (!$this->showAllTickets) {
+            if ($this->startDate) {
+                $query->whereDate('created_at', '>=', $this->startDate);
+            }
+            if ($this->endDate) {
+                $query->whereDate('created_at', '<=', $this->endDate);
+            }
         }
 
         return $query;
@@ -124,8 +136,8 @@ class TicketAnalysis extends Page
         // Average resolution time (only for completed tickets with completion_date)
         $avgDays = (clone $query)
             ->whereNotNull('completion_date')
-            ->whereNotNull('created_date')
-            ->selectRaw('AVG(DATEDIFF(completion_date, created_date)) as avg_days')
+            ->whereNotNull('created_at')
+            ->selectRaw('AVG(DATEDIFF(completion_date, DATE(created_at))) as avg_days')
             ->value('avg_days');
 
         $this->avgResolutionDays = round($avgDays ?? 0, 1);
@@ -159,26 +171,66 @@ class TicketAnalysis extends Page
     {
         $query = $this->getBaseQuery();
 
+        // Get top 10 modules by count
         $moduleCounts = (clone $query)
             ->select('module_id', DB::raw('COUNT(*) as count'))
             ->whereNotNull('module_id')
             ->groupBy('module_id')
             ->orderByDesc('count')
-            ->limit(10) // Top 10 modules
+            ->limit(10)
             ->get();
 
+        $moduleIds = $moduleCounts->pluck('module_id')->toArray();
+
         // Get module names
-        $modules = TicketModule::whereIn('id', $moduleCounts->pluck('module_id'))->get()->keyBy('id');
+        $modules = TicketModule::whereIn('id', $moduleIds)->get()->keyBy('id');
+
+        // Get all priorities for color mapping
+        $priorities = TicketPriority::all()->keyBy('id');
+
+        // Get breakdown by module and priority
+        $moduleBreakdown = (clone $query)
+            ->select('module_id', 'priority_id', DB::raw('COUNT(*) as count'))
+            ->whereIn('module_id', $moduleIds)
+            ->whereNotNull('priority_id')
+            ->groupBy('module_id', 'priority_id')
+            ->get()
+            ->groupBy('module_id');
 
         $maxCount = $moduleCounts->max('count') ?? 1;
 
-        $this->moduleData = $moduleCounts->map(function ($item) use ($modules, $maxCount) {
+        // Priority colors mapping
+        $priorityColors = [
+            'Software Bugs' => '#EF4444',
+            'Back End Assistance' => '#F59E0B',
+            'Critical Enhancement' => '#8B5CF6',
+            'Non-Critical Enhancement' => '#10B981',
+            'Paid Customization' => '#3B82F6',
+        ];
+
+        $this->moduleData = $moduleCounts->map(function ($item) use ($modules, $maxCount, $moduleBreakdown, $priorities, $priorityColors) {
             $module = $modules->get($item->module_id);
+            $breakdown = $moduleBreakdown->get($item->module_id, collect());
+
+            // Build priority breakdown for this module
+            $priorityBreakdown = $breakdown->map(function ($b) use ($priorities, $priorityColors, $item) {
+                $priority = $priorities->get($b->priority_id);
+                $name = $priority ? $priority->name : 'Unknown';
+                return [
+                    'priority_id' => $b->priority_id,
+                    'name' => $name,
+                    'count' => $b->count,
+                    'percentage' => $item->count > 0 ? round(($b->count / $item->count) * 100, 1) : 0,
+                    'color' => $priorityColors[$name] ?? '#6B7280',
+                ];
+            })->sortByDesc('count')->values()->toArray();
+
             return [
                 'id' => $item->module_id,
                 'name' => $module ? $module->name : 'Unknown',
                 'count' => $item->count,
                 'percentage' => round(($item->count / $maxCount) * 100, 1),
+                'breakdown' => $priorityBreakdown,
             ];
         })->values()->toArray();
     }
@@ -189,9 +241,9 @@ class TicketAnalysis extends Page
 
         $this->durationData = (clone $query)
             ->whereNotNull('completion_date')
-            ->whereNotNull('created_date')
+            ->whereNotNull('created_at')
             ->selectRaw('DATE_FORMAT(completion_date, "%Y-%m") as month')
-            ->selectRaw('AVG(DATEDIFF(completion_date, created_date)) as avg_days')
+            ->selectRaw('AVG(DATEDIFF(completion_date, DATE(created_at))) as avg_days')
             ->selectRaw('COUNT(*) as count')
             ->groupBy('month')
             ->orderBy('month')
@@ -213,28 +265,92 @@ class TicketAnalysis extends Page
         $query = $this->getBaseQuery();
         $priority = TicketPriority::find($priorityId);
 
-        $this->ticketList = (clone $query)
+        $tickets = (clone $query)
             ->where('priority_id', $priorityId)
+            ->select('id', 'ticket_id', 'title', 'company_name', 'status', 'created_date')
             ->orderByDesc('created_date')
             ->limit(100)
             ->get();
+
+        $this->ticketList = $tickets->map(function ($ticket) {
+            return [
+                'id' => $ticket->id,
+                'ticket_id' => $ticket->ticket_id,
+                'title' => $ticket->title,
+                'company_name' => $ticket->company_name,
+                'status' => $ticket->status,
+                'created_date' => $ticket->created_date ? $ticket->created_date->format('Y-m-d') : null,
+            ];
+        })->toArray();
 
         $this->slideOverTitle = ($priority ? $priority->name : 'Priority') . ' Tickets';
         $this->showSlideOver = true;
     }
 
-    public function openModuleSlideOver($moduleId)
+    public function openModuleSlideOver($moduleId, $priorityId = null)
     {
         $query = $this->getBaseQuery();
         $module = TicketModule::find($moduleId);
 
-        $this->ticketList = (clone $query)
+        // Get tickets with priority relationship - only select needed fields
+        $tickets = (clone $query)
             ->where('module_id', $moduleId)
-            ->orderByDesc('created_date')
+            ->with('priority:id,name')
+            ->select('id', 'ticket_id', 'title', 'company_name', 'status', 'created_date', 'priority_id')
+            ->orderByDesc('created_at')
             ->limit(100)
             ->get();
 
-        $this->slideOverTitle = ($module ? $module->name : 'Module') . ' Tickets';
+        // Store minimal ticket data for flat list fallback
+        $this->ticketList = $tickets->map(function ($ticket) {
+            return [
+                'id' => $ticket->id,
+                'ticket_id' => $ticket->ticket_id,
+                'title' => $ticket->title,
+                'company_name' => $ticket->company_name,
+                'status' => $ticket->status,
+                'created_date' => $ticket->created_date ? $ticket->created_date->format('Y-m-d') : null,
+            ];
+        })->toArray();
+
+        // Group tickets by priority
+        $priorityColors = [
+            'Software Bugs' => '#EF4444',
+            'Back End Assistance' => '#F59E0B',
+            'Critical Enhancement' => '#8B5CF6',
+            'Non-Critical Enhancement' => '#10B981',
+            'Paid Customization' => '#3B82F6',
+        ];
+
+        $grouped = $tickets->groupBy(function ($ticket) {
+            return $ticket->priority ? $ticket->priority->id : 0;
+        });
+
+        $this->ticketsByPriority = $grouped->map(function ($ticketGroup, $priorityIdKey) use ($priorityColors) {
+            $firstTicket = $ticketGroup->first();
+            $priorityName = $firstTicket && $firstTicket->priority ? $firstTicket->priority->name : 'Unknown';
+            return [
+                'id' => $priorityIdKey,
+                'name' => $priorityName,
+                'color' => $priorityColors[$priorityName] ?? '#6B7280',
+                'count' => $ticketGroup->count(),
+                'tickets' => $ticketGroup->map(function ($ticket) {
+                    return [
+                        'id' => $ticket->id,
+                        'ticket_id' => $ticket->ticket_id,
+                        'title' => $ticket->title,
+                        'company_name' => $ticket->company_name,
+                        'status' => $ticket->status,
+                        'created_date' => $ticket->created_date ? $ticket->created_date->format('Y-m-d') : null,
+                    ];
+                })->values()->toArray(),
+            ];
+        })->sortByDesc('count')->values()->toArray();
+
+        // Set focus priority for auto-scroll/expand
+        $this->focusPriorityId = $priorityId;
+
+        $this->slideOverTitle = ($module ? $module->name : 'Module');
         $this->showSlideOver = true;
     }
 
@@ -243,20 +359,33 @@ class TicketAnalysis extends Page
         $query = $this->getBaseQuery();
 
         if ($status === 'open') {
-            $this->ticketList = (clone $query)
+            $tickets = (clone $query)
                 ->whereNotIn('status', ['Closed', 'Resolved'])
+                ->select('id', 'ticket_id', 'title', 'company_name', 'status', 'created_date')
                 ->orderByDesc('created_date')
                 ->limit(100)
                 ->get();
             $this->slideOverTitle = 'Open Tickets';
         } else {
-            $this->ticketList = (clone $query)
+            $tickets = (clone $query)
                 ->whereIn('status', ['Closed', 'Resolved'])
+                ->select('id', 'ticket_id', 'title', 'company_name', 'status', 'created_date')
                 ->orderByDesc('created_date')
                 ->limit(100)
                 ->get();
             $this->slideOverTitle = 'Completed Tickets';
         }
+
+        $this->ticketList = $tickets->map(function ($ticket) {
+            return [
+                'id' => $ticket->id,
+                'ticket_id' => $ticket->ticket_id,
+                'title' => $ticket->title,
+                'company_name' => $ticket->company_name,
+                'status' => $ticket->status,
+                'created_date' => $ticket->created_date ? $ticket->created_date->format('Y-m-d') : null,
+            ];
+        })->toArray();
 
         $this->showSlideOver = true;
     }
@@ -265,5 +394,7 @@ class TicketAnalysis extends Page
     {
         $this->showSlideOver = false;
         $this->ticketList = [];
+        $this->ticketsByPriority = [];
+        $this->focusPriorityId = null;
     }
 }
