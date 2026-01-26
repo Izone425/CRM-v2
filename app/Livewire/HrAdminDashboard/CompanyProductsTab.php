@@ -475,11 +475,21 @@ class CompanyProductsTab extends Component
         }
     }
 
-    public function getSelectedLicenseNames(): array
+    public function getSelectedLicenseDetails(): array
     {
         return collect($this->licenseRecords)
             ->whereIn('no', $this->selectedLicenseNos)
-            ->pluck('license_type')
+            ->map(function ($record) {
+                $name = $record['license_type'];
+                if (!empty($record['invoice_no'])) {
+                    $name .= ' (' . $record['invoice_no'] . ')';
+                }
+                return [
+                    'name' => $name,
+                    'start_date' => $record['start_date'],
+                    'end_date' => $record['end_date'],
+                ];
+            })
             ->toArray();
     }
 

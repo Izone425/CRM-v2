@@ -241,7 +241,11 @@
                                     </span>
                                 </td>
                                 <td class="px-3 py-3 text-sm text-center">
-                                    <button type="button" wire:click="openEditModal({{ $product['no'] }})" class="text-blue-600 hover:text-blue-800 hover:underline">Edit</button>
+                                    @if($isSelectionMode)
+                                        <span class="text-gray-400 cursor-not-allowed">Edit</span>
+                                    @else
+                                        <button type="button" wire:click="openEditModal({{ $product['no'] }})" class="text-blue-600 hover:text-blue-800 hover:underline">Edit</button>
+                                    @endif
                                 </td>
                             </tr>
                         @endforeach
@@ -338,7 +342,11 @@
                                     </span>
                                 </td>
                                 <td class="px-3 py-3 text-sm text-center">
-                                    <button type="button" wire:click="openEditModal({{ $product['no'] }})" @click.stop class="text-blue-600 hover:text-blue-800 hover:underline">Edit</button>
+                                    @if($isSelectionMode)
+                                        <span class="text-gray-400 cursor-not-allowed">Edit</span>
+                                    @else
+                                        <button type="button" wire:click="openEditModal({{ $product['no'] }})" @click.stop class="text-blue-600 hover:text-blue-800 hover:underline">Edit</button>
+                                    @endif
                                 </td>
                             </tr>
                         @endforeach
@@ -483,19 +491,34 @@
                                     <svg class="w-5 h-5 text-blue-500 mt-0.5 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                     </svg>
-                                    <div class="text-sm text-blue-700">
+                                    <div class="text-sm text-blue-700 flex-1">
                                         <p class="font-medium">Editing {{ count($selectedLicenseNos) }} selected license(s):</p>
-                                        <ul class="mt-1 list-disc list-inside text-xs max-h-24 overflow-y-auto">
-                                            @foreach($this->getSelectedLicenseNames() as $name)
-                                                <li>{{ $name }}</li>
-                                            @endforeach
-                                        </ul>
-                                        <p class="mt-1 text-xs text-blue-600">Only checked fields below will be modified.</p>
+                                        <div class="mt-2 max-h-32 overflow-y-auto">
+                                            <table class="w-full text-xs">
+                                                <thead>
+                                                    <tr class="text-left text-blue-800">
+                                                        <th class="pb-1 pr-3">License</th>
+                                                        <th class="pb-1 pr-3 whitespace-nowrap" style="width: 80px;">Start Date</th>
+                                                        <th class="pb-1 whitespace-nowrap" style="width: 80px;">End Date</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    @foreach($this->getSelectedLicenseDetails() as $license)
+                                                        <tr>
+                                                            <td class="py-0.5 pr-3">{{ $license['name'] }}</td>
+                                                            <td class="py-0.5 pr-3 whitespace-nowrap">{{ $license['start_date'] }}</td>
+                                                            <td class="py-0.5 whitespace-nowrap">{{ $license['end_date'] }}</td>
+                                                        </tr>
+                                                    @endforeach
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        <p class="mt-2 text-xs text-blue-600">Only checked fields below will be modified.</p>
                                     </div>
                                 </div>
 
                                 {{-- Total User --}}
-                                <div class="flex items-start space-x-3">
+                                <div class="flex items-start gap-4">
                                     <div class="flex items-center h-9 mt-6">
                                         <input type="checkbox" id="bulk_enable_total_user" wire:model.live="bulkEditEnabled.total_user"
                                             class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
@@ -511,7 +534,7 @@
                                 </div>
 
                                 {{-- Start Date --}}
-                                <div class="flex items-start space-x-3">
+                                <div class="flex items-start gap-4">
                                     <div class="flex items-center h-9 mt-6">
                                         <input type="checkbox" id="bulk_enable_start_date" wire:model.live="bulkEditEnabled.start_date"
                                             class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
@@ -526,7 +549,7 @@
                                 </div>
 
                                 {{-- End Date --}}
-                                <div class="flex items-start space-x-3">
+                                <div class="flex items-start gap-4">
                                     <div class="flex items-center h-9 mt-6">
                                         <input type="checkbox" id="bulk_enable_end_date" wire:model.live="bulkEditEnabled.end_date"
                                             class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
@@ -541,7 +564,7 @@
                                 </div>
 
                                 {{-- Status --}}
-                                <div class="flex items-start space-x-3">
+                                <div class="flex items-start gap-4">
                                     <div class="flex items-center h-9 mt-6">
                                         <input type="checkbox" id="bulk_enable_status" wire:model.live="bulkEditEnabled.status"
                                             class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
