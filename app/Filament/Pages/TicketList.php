@@ -51,6 +51,12 @@ class TicketList extends Page implements HasTable, HasActions, HasForms
     public function mount(): void
     {
         $this->form->fill();
+
+        // Check if a ticket ID is passed in the URL and auto-open it
+        $ticketId = request()->query('ticket');
+        if ($ticketId) {
+            $this->viewTicket($ticketId);
+        }
     }
 
     public function getFormStatePath(): ?string
