@@ -530,66 +530,94 @@
 
         <!-- Resolution Time Trend (Line Chart) - Full Width -->
         <div class="chart-container full-width-chart">
-            <div class="chart-title">
-                <i class="fa fa-chart-line text-gray-500"></i>
-                <span>Average Resolution Time (Days) - Monthly Trend</span>
+            <div class="chart-title flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <i class="fa fa-chart-line text-gray-500"></i>
+                    <span>Average Resolution Time (Days) - Daily Trend</span>
+                </div>
+                <div class="flex items-center gap-2 text-sm">
+                    <label class="text-gray-600">From:</label>
+                    <input type="date" wire:model="trendStartDate" wire:change="loadData" class="border-gray-300 rounded-md shadow-sm text-sm px-2 py-1">
+                    <label class="text-gray-600">To:</label>
+                    <input type="date" wire:model="trendEndDate" wire:change="loadData" class="border-gray-300 rounded-md shadow-sm text-sm px-2 py-1">
+                </div>
             </div>
 
             @if(count($durationData) > 0)
-                <div class="line-chart-container">
+                <div class="line-chart-container" style="width: 100%; overflow-x: auto;">
                     @php
                         $maxDays = max(array_column($durationData, 'avg_days')) ?: 1;
                         $dataCount = count($durationData);
-                        $chartWidth = 100;
-                        $chartHeight = 200;
-                        $padding = 40;
-                        $graphWidth = $chartWidth - ($padding * 2);
-                        $graphHeight = $chartHeight - ($padding * 2);
+                        $chartWidth = 1200; // Fixed wide width
+                        $chartHeight = 300;
+                        $paddingLeft = 50;
+                        $paddingRight = 30;
+                        $paddingTop = 40;
+                        $paddingBottom = 70;
+                        $graphWidth = $chartWidth - $paddingLeft - $paddingRight;
+                        $graphHeight = $chartHeight - $paddingTop - $paddingBottom;
                     @endphp
 
-                    <svg class="line-chart-svg" viewBox="0 0 {{ $chartWidth }} {{ $chartHeight }}" preserveAspectRatio="xMidYMid meet">
+                    <svg width="100%" height="{{ $chartHeight }}" viewBox="0 0 {{ $chartWidth }} {{ $chartHeight }}" preserveAspectRatio="none" style="width: 100%;">
+                        <!-- Background -->
+                        <rect x="0" y="0" width="{{ $chartWidth }}" height="{{ $chartHeight }}" fill="#FAFAFA"/>
+
                         <!-- Grid lines -->
                         @for($i = 0; $i <= 4; $i++)
-                            @php $y = $padding + ($graphHeight * $i / 4); @endphp
-                            <line x1="{{ $padding }}" y1="{{ $y }}" x2="{{ $chartWidth - $padding }}" y2="{{ $y }}" stroke="#E5E7EB" stroke-width="0.2"/>
-                            <text x="{{ $padding - 2 }}" y="{{ $y + 1 }}" fill="#9CA3AF" font-size="3" text-anchor="end">{{ round($maxDays * (4 - $i) / 4, 0) }}</text>
+                            @php $y = $paddingTop + ($graphHeight * $i / 4); @endphp
+                            <line x1="{{ $paddingLeft }}" y1="{{ $y }}" x2="{{ $chartWidth - $paddingRight }}" y2="{{ $y }}" stroke="#E5E7EB" stroke-width="1"/>
+                            <text x="{{ $paddingLeft - 8 }}" y="{{ $y + 4 }}" fill="#6B7280" font-size="11" text-anchor="end">{{ round($maxDays * (4 - $i) / 4, 1) }}</text>
                         @endfor
 
                         <!-- Line path -->
                         @php
                             $points = [];
                             foreach ($durationData as $index => $item) {
-                                $x = $padding + ($graphWidth * $index / max($dataCount - 1, 1));
-                                $y = $padding + $graphHeight - ($graphHeight * ($item['avg_days'] / max($maxDays, 1)));
+                                $x = $paddingLeft + ($graphWidth * $index / max($dataCount - 1, 1));
+                                $y = $paddingTop + $graphHeight - ($graphHeight * ($item['avg_days'] / max($maxDays, 0.1)));
                                 $points[] = "$x,$y";
                             }
                             $pathD = 'M ' . implode(' L ', $points);
                         @endphp
 
                         <!-- Area fill -->
-                        <path d="{{ $pathD }} L {{ $padding + $graphWidth }},{{ $padding + $graphHeight }} L {{ $padding }},{{ $padding + $graphHeight }} Z" fill="url(#areaGradient)" opacity="0.3"/>
-
-                        <!-- Gradient definition -->
                         <defs>
-                            <linearGradient id="areaGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                                <stop offset="0%" stop-color="#3B82F6"/>
-                                <stop offset="100%" stop-color="#3B82F6" stop-opacity="0"/>
+                            <linearGradient id="areaGradientNew" x1="0%" y1="0%" x2="0%" y2="100%">
+                                <stop offset="0%" stop-color="#818CF8" stop-opacity="0.4"/>
+                                <stop offset="100%" stop-color="#818CF8" stop-opacity="0.05"/>
                             </linearGradient>
                         </defs>
+                        <path d="{{ $pathD }} L {{ $paddingLeft + $graphWidth }},{{ $paddingTop + $graphHeight }} L {{ $paddingLeft }},{{ $paddingTop + $graphHeight }} Z" fill="url(#areaGradientNew)"/>
 
                         <!-- Line -->
-                        <path d="{{ $pathD }}" fill="none" stroke="#3B82F6" stroke-width="0.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="{{ $pathD }}" fill="none" stroke="#6366F1" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
 
                         <!-- Data points and labels -->
                         @foreach($durationData as $index => $item)
                             @php
-                                $x = $padding + ($graphWidth * $index / max($dataCount - 1, 1));
-                                $y = $padding + $graphHeight - ($graphHeight * ($item['avg_days'] / max($maxDays, 1)));
+                                $x = $paddingLeft + ($graphWidth * $index / max($dataCount - 1, 1));
+                                $y = $paddingTop + $graphHeight - ($graphHeight * ($item['avg_days'] / max($maxDays, 0.1)));
                             @endphp
-                            <circle cx="{{ $x }}" cy="{{ $y }}" r="1" fill="#3B82F6"/>
-                            <text x="{{ $x }}" y="{{ $padding + $graphHeight + 5 }}" fill="#6B7280" font-size="2.5" text-anchor="middle">{{ $item['month'] }}</text>
-                            <text x="{{ $x }}" y="{{ $y - 3 }}" fill="#374151" font-size="2.5" text-anchor="middle" font-weight="bold">{{ $item['avg_days'] }}d</text>
+                            <!-- Data point circle -->
+                            <circle cx="{{ $x }}" cy="{{ $y }}" r="5" fill="#6366F1" stroke="#fff" stroke-width="2"/>
+
+                            <!-- X-axis label (date) - rotated -->
+                            <text x="{{ $x }}" y="{{ $paddingTop + $graphHeight + 15 }}" fill="#6B7280" font-size="10" text-anchor="end" transform="rotate(-45, {{ $x }}, {{ $paddingTop + $graphHeight + 15 }})">{{ $item['month'] }}</text>
+
+                            <!-- Value label above point -->
+                            @if($item['avg_days'] > 0)
+                                <text x="{{ $x }}" y="{{ $y - 10 }}" fill="#374151" font-size="10" text-anchor="middle" font-weight="600">{{ $item['avg_days'] }}d</text>
+                            @endif
                         @endforeach
+
+                        <!-- X-axis line -->
+                        <line x1="{{ $paddingLeft }}" y1="{{ $paddingTop + $graphHeight }}" x2="{{ $chartWidth - $paddingRight }}" y2="{{ $paddingTop + $graphHeight }}" stroke="#9CA3AF" stroke-width="1"/>
+
+                        <!-- Y-axis line -->
+                        <line x1="{{ $paddingLeft }}" y1="{{ $paddingTop }}" x2="{{ $paddingLeft }}" y2="{{ $paddingTop + $graphHeight }}" stroke="#9CA3AF" stroke-width="1"/>
+
+                        <!-- Y-axis label -->
+                        <text x="15" y="{{ $paddingTop + $graphHeight / 2 }}" fill="#6B7280" font-size="11" text-anchor="middle" transform="rotate(-90, 15, {{ $paddingTop + $graphHeight / 2 }})">Days</text>
                     </svg>
                 </div>
             @else

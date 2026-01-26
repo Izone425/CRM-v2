@@ -27,6 +27,10 @@ class TicketAnalysis extends Page
     public $selectedProduct = 'v1';
     public $showAllTickets = false;
 
+    // Trend chart filter
+    public $trendStartDate;
+    public $trendEndDate;
+
     // Summary stats
     public $totalTickets = 0;
     public $openTickets = 0;
@@ -61,6 +65,10 @@ class TicketAnalysis extends Page
         // Default date range: last 6 months
         $this->endDate = Carbon::now()->format('Y-m-d');
         $this->startDate = Carbon::now()->subMonths(6)->format('Y-m-d');
+
+        // Default trend chart date range: last 3 months
+        $this->trendEndDate = Carbon::now()->format('Y-m-d');
+        $this->trendStartDate = Carbon::now()->subMonths(3)->format('Y-m-d');
 
         $this->loadData();
     }
@@ -271,22 +279,56 @@ class TicketAnalysis extends Page
 
     private function fetchDurationData()
     {
-        $query = $this->getBaseQuery();
+        // Build query for closed tickets based on selected product
+        $ticketQuery = Ticket::query();
 
-        $this->durationData = (clone $query)
-            ->whereNotNull('completion_date')
-            ->whereNotNull('created_at')
-            ->selectRaw('DATE_FORMAT(completion_date, "%Y-%m") as month')
-            ->selectRaw('AVG(DATEDIFF(completion_date, DATE(created_at))) as avg_days')
+        if ($this->selectedProduct === 'v2') {
+            $ticketQuery->where('product_id', 2);
+        } else {
+            $ticketQuery->where('product_id', 1);
+        }
+
+        // Get closed ticket IDs
+        $closedTicketIds = (clone $ticketQuery)
+            ->where('status', 'Closed')
+            ->pluck('id');
+
+        if ($closedTicketIds->isEmpty()) {
+            $this->durationData = [];
+            return;
+        }
+
+        // Build query with trend date range filter
+        $logQuery = DB::connection('ticketingsystem_live')
+            ->table('ticket_logs as tl')
+            ->join('tickets as t', 't.id', '=', 'tl.ticket_id')
+            ->whereIn('tl.ticket_id', $closedTicketIds)
+            ->where('tl.field_name', 'status')
+            ->where('tl.new_value', 'Closed')
+            ->where('tl.old_value', '!=', 'Closed')
+            ->whereNotNull('t.created_at');
+
+        // Apply trend date range filter
+        if ($this->trendStartDate) {
+            $logQuery->whereDate('tl.created_at', '>=', $this->trendStartDate);
+        }
+        if ($this->trendEndDate) {
+            $logQuery->whereDate('tl.created_at', '<=', $this->trendEndDate);
+        }
+
+        // Get resolution data from Status Log - group by the date when ticket was closed
+        $this->durationData = $logQuery
+            ->selectRaw('DATE_FORMAT(tl.created_at, "%Y-%m-%d") as close_date')
+            ->selectRaw('AVG(TIMESTAMPDIFF(HOUR, t.created_at, tl.created_at)) as avg_hours')
             ->selectRaw('COUNT(*) as count')
-            ->groupBy('month')
-            ->orderBy('month')
-            ->limit(12) // Last 12 months with data
+            ->groupBy('close_date')
+            ->orderBy('close_date')
             ->get()
             ->map(function ($item) {
+                $avgDays = round($item->avg_hours / 24, 1);
                 return [
-                    'month' => Carbon::parse($item->month . '-01')->format('M Y'),
-                    'avg_days' => round($item->avg_days, 1),
+                    'month' => Carbon::parse($item->close_date)->format('d M'),
+                    'avg_days' => $avgDays,
                     'count' => $item->count,
                 ];
             })
