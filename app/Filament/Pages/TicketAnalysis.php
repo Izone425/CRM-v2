@@ -5,9 +5,11 @@ namespace App\Filament\Pages;
 use App\Models\Ticket;
 use App\Models\TicketPriority;
 use App\Models\TicketModule;
+use App\Exports\TicketAnalysisExport;
 use Filament\Pages\Page;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Maatwebsite\Excel\Facades\Excel;
 
 class TicketAnalysis extends Page
 {
@@ -396,5 +398,19 @@ class TicketAnalysis extends Page
         $this->ticketList = [];
         $this->ticketsByPriority = [];
         $this->focusPriorityId = null;
+    }
+
+    public function exportToExcel()
+    {
+        if (empty($this->ticketsByPriority)) {
+            return;
+        }
+
+        $filename = str_replace(' ', '_', $this->slideOverTitle) . '_' . now()->format('Y-m-d_His') . '.xlsx';
+
+        return Excel::download(
+            new TicketAnalysisExport($this->ticketsByPriority, $this->slideOverTitle),
+            $filename
+        );
     }
 }
