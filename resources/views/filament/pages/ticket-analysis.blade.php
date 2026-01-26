@@ -354,7 +354,7 @@
                 <p class="stat-label">Open Tickets</p>
             </div>
 
-            <!-- Completed Tickets -->
+            <!-- Closed Tickets -->
             <div class="stat-card" wire:click="openStatusSlideOver('completed')">
                 <div class="stat-icon" style="background-color: #D1FAE5;">
                     <svg class="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -362,18 +362,18 @@
                     </svg>
                 </div>
                 <p class="stat-number">{{ number_format($completedTickets) }}</p>
-                <p class="stat-label">Completed</p>
+                <p class="stat-label">Closed</p>
             </div>
 
             <!-- Avg Resolution -->
             <div class="stat-card">
                 <div class="stat-icon" style="background-color: #EDE9FE;">
                     <svg class="w-8 h-8 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
                     </svg>
                 </div>
-                <p class="stat-number">{{ $avgResolutionDays }}</p>
-                <p class="stat-label">Avg. Days to Resolve</p>
+                <p class="stat-number text-xl">{{ $avgResolutionDays }}</p>
+                <p class="stat-label">Avg. Resolution (DD:HH:MM)</p>
             </div>
         </div>
     </div>

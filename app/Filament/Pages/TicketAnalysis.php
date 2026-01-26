@@ -135,14 +135,46 @@ class TicketAnalysis extends Page
             ->whereIn('status', ['Closed', 'Resolved'])
             ->count();
 
-        // Average resolution time (only for completed tickets with completion_date)
-        $avgDays = (clone $query)
-            ->whereNotNull('completion_date')
-            ->whereNotNull('created_at')
-            ->selectRaw('AVG(DATEDIFF(completion_date, DATE(created_at))) as avg_days')
-            ->value('avg_days');
+        // Average resolution time in minutes - based on Status Log
+        // Find when each ticket was first marked as "Closed" from logs
+        $closedTicketIds = (clone $query)
+            ->where('status', 'Closed')
+            ->pluck('id');
 
-        $this->avgResolutionDays = round($avgDays ?? 0, 1);
+        if ($closedTicketIds->isNotEmpty()) {
+            // Get first "Closed" log entry for each ticket and calculate duration
+            $avgMinutes = DB::connection('ticketingsystem_live')
+                ->table('ticket_logs as tl')
+                ->join('tickets as t', 't.id', '=', 'tl.ticket_id')
+                ->whereIn('tl.ticket_id', $closedTicketIds)
+                ->where('tl.field_name', 'status')
+                ->where('tl.new_value', 'Closed')
+                ->where('tl.old_value', '!=', 'Closed')
+                ->whereNotNull('t.created_at')
+                ->selectRaw('AVG(TIMESTAMPDIFF(MINUTE, t.created_at, tl.created_at)) as avg_minutes')
+                ->value('avg_minutes');
+
+            $this->avgResolutionDays = $this->formatDuration($avgMinutes ?? 0);
+        } else {
+            $this->avgResolutionDays = '00:00:00';
+        }
+    }
+
+    /**
+     * Format duration from minutes to DD:HH:MM format
+     */
+    private function formatDuration($totalMinutes): string
+    {
+        if ($totalMinutes <= 0) {
+            return '00:00:00';
+        }
+
+        $totalMinutes = round($totalMinutes);
+        $days = floor($totalMinutes / (60 * 24));
+        $hours = floor(($totalMinutes % (60 * 24)) / 60);
+        $minutes = $totalMinutes % 60;
+
+        return sprintf('%02d:%02d:%02d', $days, $hours, $minutes);
     }
 
     private function fetchPriorityData()
