@@ -216,6 +216,49 @@
                 font-size: 0.75rem;
             }
 
+            /* Priority List Styles (By Priority section) */
+            .priority-list {
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+            }
+
+            .priority-item {
+                border: 1px solid #E5E7EB;
+                border-radius: 8px;
+                overflow: hidden;
+            }
+
+            .priority-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 12px 16px;
+                background: #F9FAFB;
+                transition: background-color 0.2s;
+            }
+
+            .priority-header:hover {
+                background: #F3F4F6;
+            }
+
+            .module-breakdown {
+                border-top: 1px solid #E5E7EB;
+                background: white;
+            }
+
+            .module-item {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 10px 16px 10px 40px;
+                border-bottom: 1px solid #F3F4F6;
+            }
+
+            .module-item:last-child {
+                border-bottom: none;
+            }
+
             /* Line Chart Styles */
             .line-chart-container {
                 width: 100%;
@@ -450,48 +493,44 @@
             @endif
         </div>
 
-        <!-- Priority Distribution (Bar Chart with Module Breakdown) -->
+        <!-- Priority Distribution with Module Breakdown -->
         <div class="chart-container">
             <div class="chart-title">
-                <i class="fa fa-chart-bar text-gray-500"></i>
+                <i class="fa fa-list-alt text-gray-500"></i>
                 <span>By Priority</span>
             </div>
 
             @if(count($priorityModuleData) > 0)
-                <div class="bar-chart">
+                @php
+                    $priorityColors = ['#EF4444', '#F59E0B', '#3B82F6', '#10B981', '#8B5CF6', '#EC4899', '#6366F1', '#14B8A6'];
+                @endphp
+                <div class="priority-list">
                     @foreach($priorityModuleData as $index => $item)
-                        <div class="bar-item-stacked" x-data="{ showBreakdown: false }">
-                            <div class="bar-label cursor-pointer" @click="showBreakdown = !showBreakdown">
+                        @php $priorityColor = $priorityColors[$index % count($priorityColors)]; @endphp
+                        <div class="priority-item" x-data="{ showBreakdown: false }" style="border-left: 4px solid {{ $priorityColor }};">
+                            <div class="priority-header cursor-pointer" @click="showBreakdown = !showBreakdown">
                                 <span class="flex items-center gap-2">
-                                    <svg class="w-4 h-4 transition-transform" :class="showBreakdown ? 'rotate-90' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg class="w-4 h-4 transition-transform text-gray-400" :class="showBreakdown ? 'rotate-90' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
                                     </svg>
-                                    {{ \Illuminate\Support\Str::limit($item['name'], 25) }}
+                                    <span class="font-medium text-gray-700">{{ $item['name'] }}</span>
                                 </span>
-                                <span class="font-semibold">{{ $item['count'] }}</span>
-                            </div>
-                            <!-- Stacked Bar -->
-                            <div class="bar-wrapper stacked-bar">
-                                @if(!empty($item['breakdown']))
-                                    @foreach($item['breakdown'] as $module)
-                                        <div class="bar-segment"
-                                             wire:click="openPriorityBarSlideOver({{ $item['id'] }}, {{ $module['module_id'] }})"
-                                             style="width: {{ ($module['count'] / $item['count']) * $item['percentage'] }}%; background-color: {{ $module['color'] }};"
-                                             title="{{ $module['name'] }}: {{ $module['count'] }} ({{ $module['percentage'] }}%)">
-                                        </div>
-                                    @endforeach
-                                @else
-                                    <div class="bar-fill" wire:click="openPriorityBarSlideOver({{ $item['id'] }})" style="width: {{ $item['percentage'] }}%; background-color: #6B7280;"></div>
-                                @endif
+                                <span class="font-semibold text-gray-900">{{ $item['count'] }}</span>
                             </div>
                             <!-- Module Breakdown Details (expandable) -->
-                            <div x-show="showBreakdown" x-collapse class="priority-breakdown">
+                            <div x-show="showBreakdown" x-collapse class="module-breakdown">
                                 @if(!empty($item['breakdown']))
                                     @foreach($item['breakdown'] as $module)
-                                        <div class="breakdown-item">
-                                            <span class="breakdown-color" style="background-color: {{ $module['color'] }};"></span>
-                                            <span class="breakdown-name">{{ $module['name'] }}</span>
-                                            <span class="breakdown-count">{{ $module['count'] }} ({{ $module['percentage'] }}%)</span>
+                                        <div class="module-item cursor-pointer hover:bg-gray-100 transition-colors"
+                                             wire:click="openPriorityBarSlideOver({{ $item['id'] }}, {{ $module['module_id'] }})">
+                                            <span class="flex items-center gap-2">
+                                                <span class="w-3 h-3 rounded-sm flex-shrink-0" style="background-color: {{ $module['color'] }};"></span>
+                                                <span class="text-gray-600">{{ $module['name'] }}</span>
+                                            </span>
+                                            <span class="flex items-center gap-2">
+                                                <span class="font-semibold text-gray-800">{{ $module['count'] }}</span>
+                                                <span class="text-gray-500 text-sm">({{ $module['percentage'] }}%)</span>
+                                            </span>
                                         </div>
                                     @endforeach
                                 @endif
