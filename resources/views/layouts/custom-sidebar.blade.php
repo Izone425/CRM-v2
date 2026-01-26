@@ -1802,7 +1802,7 @@
                             <a href="{{ route('filament.admin.pages.ticket-list') }}" class="submenu-item">
                                 <span class="module-font">Ticket List</span>
                             </a>
-                            <a href="{{ route('filament.admin.pages.future-enhancement') }}" class="submenu-item">
+                            <a href="{{ url('admin/ticket-analysis') }}" class="submenu-item">
                                 <span class="module-font">Analysis</span>
                             </a>
                         </div>
