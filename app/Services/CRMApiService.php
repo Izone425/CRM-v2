@@ -282,4 +282,33 @@ class CRMApiService
 
         return $this->makeRequest('GET', $endpoint);
     }
+
+    /**
+     * Get Proforma Invoice details from TimeTec Backend
+     * GET /api/crm/account/{accountId}/company/{companyId}/proforma-invoice/{invoiceNo}
+     *
+     * @param int $accountId - hr_account_id from SoftwareHandover
+     * @param int $companyId - hr_company_id from SoftwareHandover
+     * @param string $invoiceNo - Invoice number (e.g., TT2512000122)
+     * @return array
+     */
+    public function getProformaInvoiceDetails(int $accountId, int $companyId, string $invoiceNo): array
+    {
+        $endpoint = "/api/crm/account/{$accountId}/company/{$companyId}/proforma-invoice/{$invoiceNo}";
+        return $this->makeRequest('GET', $endpoint);
+    }
+
+    /**
+     * Get company licenses from TimeTec Backend
+     * GET /api/crm/account/{accountId}/company/{companyId}/licenses
+     *
+     * @param int $accountId - hr_account_id from SoftwareHandover
+     * @param int $companyId - hr_company_id from SoftwareHandover
+     * @return array
+     */
+    public function getCompanyLicenses(int $accountId, int $companyId): array
+    {
+        $endpoint = "/api/crm/account/{$accountId}/company/{$companyId}/licenses";
+        return $this->makeRequest('GET', $endpoint);
+    }
 }

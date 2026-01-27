@@ -289,7 +289,12 @@
                                 </span>
                             </td>
                             <td class="px-3 py-2 text-xs text-gray-600">
-                                <span class="font-medium text-gray-700">{{ $group['invoice_no'] }}</span>
+                                <a href="{{ route('pdf.license-proforma-invoice', ['softwareHandover' => $softwareHandoverId, 'invoiceNo' => $group['invoice_no']]) }}"
+                                   target="_blank"
+                                   @click.stop
+                                   class="font-semibold text-blue-600 underline hover:text-blue-800 cursor-pointer">
+                                    {{ $group['invoice_no'] }}
+                                </a>
                                 <span class="ml-2 text-gray-400">({{ count($group['products']) }} items)</span>
                             </td>
                             <td class="px-3 py-2 text-xs text-center font-semibold text-gray-700">{{ $groupTotalUser }}</td>
@@ -595,6 +600,312 @@
                             </button>
                         </div>
                     </form>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    {{-- Proforma Invoice Modal --}}
+    @if($showPiModal)
+        <div class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="pi-modal-title" role="dialog" aria-modal="true">
+            <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+                {{-- Background overlay --}}
+                <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" wire:click="closePiModal"></div>
+
+                {{-- Modal panel --}}
+                <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full">
+                    {{-- Modal Header --}}
+                    <div class="bg-gradient-to-r from-cyan-600 to-blue-600 px-6 py-4">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-4">
+                                <img src="{{ asset('img/logo-ttc.png') }}" alt="TimeTec" class="h-10 w-auto">
+                                <div>
+                                    <h3 class="text-xl font-bold text-white" id="pi-modal-title">
+                                        PROFORMA INVOICE
+                                    </h3>
+                                </div>
+                            </div>
+                            <button type="button" wire:click="closePiModal" class="text-white hover:text-cyan-200">
+                                <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    {{-- Modal Body --}}
+                    <div class="bg-white px-6 py-6 max-h-[75vh] overflow-y-auto">
+                        {{-- Loading State --}}
+                        @if($piLoading)
+                            <div class="flex items-center justify-center py-12">
+                                <div class="text-center">
+                                    <svg class="animate-spin h-10 w-10 text-cyan-600 mx-auto mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    <p class="text-gray-500">Loading proforma invoice...</p>
+                                </div>
+                            </div>
+                        @elseif($piError)
+                            {{-- Error State --}}
+                            <div class="text-center py-8">
+                                <div class="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
+                                    <svg class="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                                    </svg>
+                                </div>
+                                <h4 class="text-lg font-medium text-gray-800 mb-2">Error Loading Invoice</h4>
+                                <p class="text-gray-500 text-sm">{{ $piError }}</p>
+                            </div>
+                        @elseif(!empty($apiPiData))
+                            {{-- API-based PI Display (TimeTec Backend Format) --}}
+                            @php
+                                $pi = $apiPiData;
+                                $billTo = $pi['bill_to'] ?? [];
+                                $items = $pi['items'] ?? [];
+                                $currency = $pi['currency'] ?? 'MYR';
+                                $subtotal = $pi['subtotal'] ?? 0;
+                                $discount = $pi['discount'] ?? 0;
+                                $sst = $pi['sst'] ?? 0;
+                                $sstRate = $pi['sst_rate'] ?? 8;
+                                $totalAmount = $pi['total_amount'] ?? $pi['amount_due'] ?? 0;
+                                $status = $pi['status'] ?? 'Pending';
+                            @endphp
+
+                            {{-- Bill To & Invoice Info Section --}}
+                            <div class="grid grid-cols-2 gap-8 mb-6">
+                                {{-- Bill To --}}
+                                <div class="border border-gray-200 rounded-lg p-4">
+                                    <h4 class="text-sm font-semibold text-gray-700 mb-2">Bill To:</h4>
+                                    <p class="font-semibold text-gray-900">{{ $billTo['company_name'] ?? ($companyData['company_name'] ?? '-') }}</p>
+                                    <p class="text-sm text-gray-600">{{ $billTo['email'] ?? '-' }}</p>
+                                    <p class="text-sm text-gray-600">{{ $billTo['registration_no'] ?? '-' }}</p>
+                                    <p class="text-sm text-gray-600">{{ $billTo['address'] ?? '-' }}</p>
+                                </div>
+
+                                {{-- Invoice Info --}}
+                                <div class="border border-cyan-200 rounded-lg p-4 bg-cyan-50">
+                                    <div class="space-y-2 text-sm">
+                                        <div class="flex justify-between">
+                                            <span class="text-gray-600">P. Invoice No:</span>
+                                            <span class="font-semibold text-cyan-700">{{ $selectedInvoiceNo }}</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span class="text-gray-600">Date:</span>
+                                            <span class="font-medium">{{ $pi['date'] ?? $pi['invoice_date'] ?? '-' }}</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span class="text-gray-600">Status:</span>
+                                            <span class="font-semibold {{ $status === 'PAID' ? 'text-green-600' : ($status === 'Cancel' ? 'text-red-600' : 'text-yellow-600') }}">
+                                                {{ $status }}
+                                            </span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span class="text-gray-600">TRX Rate (RM):</span>
+                                            <span class="font-medium">{{ $pi['trx_rate'] ?? '1' }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="mt-4 pt-3 border-t border-cyan-300">
+                                        <div class="flex justify-between items-center">
+                                            <span class="font-semibold text-cyan-800">Amount Due:</span>
+                                            <span class="text-lg font-bold text-cyan-700">{{ $currency }} {{ number_format($totalAmount, 2) }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {{-- Items Table --}}
+                            <div class="border border-gray-200 rounded-lg overflow-hidden mb-6">
+                                <table class="min-w-full divide-y divide-gray-200">
+                                    <thead class="bg-gray-100">
+                                        <tr>
+                                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase w-12">No.</th>
+                                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Description</th>
+                                            <th class="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase w-16">Qty</th>
+                                            <th class="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase w-20">Price</th>
+                                            <th class="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase w-24">Billing Cycle</th>
+                                            <th class="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase w-20">Discount</th>
+                                            <th class="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase w-24">Amount</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="bg-white divide-y divide-gray-200">
+                                        @forelse($items as $index => $item)
+                                            <tr class="{{ $index % 2 === 0 ? 'bg-white' : 'bg-gray-50' }}">
+                                                <td class="px-4 py-3 text-sm text-gray-700">{{ $index + 1 }}.</td>
+                                                <td class="px-4 py-3 text-sm text-gray-900">
+                                                    {{ $item['description'] ?? '-' }}
+                                                    @if(!empty($item['period']))
+                                                        <br><span class="text-xs text-gray-500">[{{ $item['period'] }}]</span>
+                                                    @endif
+                                                </td>
+                                                <td class="px-4 py-3 text-sm text-center text-gray-700">{{ $item['qty'] ?? $item['quantity'] ?? 0 }}</td>
+                                                <td class="px-4 py-3 text-sm text-right text-gray-700">{{ number_format($item['price'] ?? $item['unit_price'] ?? 0, 2) }}</td>
+                                                <td class="px-4 py-3 text-sm text-center text-gray-700">{{ $item['billing_cycle'] ?? $item['month'] ?? '-' }}</td>
+                                                <td class="px-4 py-3 text-sm text-center text-gray-700">{{ $item['discount'] ?? '0%' }}</td>
+                                                <td class="px-4 py-3 text-sm text-right font-medium text-gray-900">{{ number_format($item['amount'] ?? 0, 2) }}</td>
+                                            </tr>
+                                        @empty
+                                            <tr>
+                                                <td colspan="7" class="px-4 py-6 text-center text-gray-500 text-sm">No items found</td>
+                                            </tr>
+                                        @endforelse
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            {{-- Totals Section --}}
+                            <div class="flex justify-end mb-6">
+                                <div class="w-72 border border-gray-200 rounded-lg overflow-hidden">
+                                    <table class="w-full">
+                                        <tbody class="divide-y divide-gray-200">
+                                            <tr class="bg-gray-50">
+                                                <td class="px-4 py-2 text-sm text-gray-600 text-right">Discount:</td>
+                                                <td class="px-4 py-2 text-sm font-medium text-right w-28">-{{ number_format($discount, 2) }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="px-4 py-2 text-sm text-gray-600 text-right">Subtotal:</td>
+                                                <td class="px-4 py-2 text-sm font-medium text-right">{{ number_format($subtotal, 2) }}</td>
+                                            </tr>
+                                            <tr class="bg-gray-50">
+                                                <td class="px-4 py-2 text-sm text-gray-600 text-right">SST ({{ $sstRate }}%):</td>
+                                                <td class="px-4 py-2 text-sm font-medium text-right">{{ number_format($sst, 2) }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="px-4 py-2 text-sm text-gray-600 text-right">Total sales incl SST:</td>
+                                                <td class="px-4 py-2 text-sm font-medium text-right">{{ number_format($subtotal + $sst, 2) }}</td>
+                                            </tr>
+                                            <tr class="bg-cyan-50">
+                                                <td class="px-4 py-3 text-sm font-semibold text-cyan-800 text-right">Amount Due ({{ $currency }}):</td>
+                                                <td class="px-4 py-3 text-base font-bold text-cyan-700 text-right">{{ number_format($totalAmount, 2) }}</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            {{-- Terms & Conditions --}}
+                            <div class="border-t border-gray-200 pt-4">
+                                <h5 class="text-sm font-semibold text-gray-700 mb-2">Terms & Conditions:</h5>
+                                <ol class="text-xs text-gray-500 space-y-1 list-decimal list-inside">
+                                    <li>Please keep this Invoice for your future reference and correspondence with TimeTec Cloud Sdn Bhd (832542-W)</li>
+                                    <li>All purchases with TimeTec Cloud Sdn Bhd are bound by the Terms & Conditions.</li>
+                                    <li>Questions about your invoice, email us at info@timeteccloud.com.</li>
+                                    <li>Bank Account Details (for TT payment): TimeTec Cloud Sdn Bhd (832542-W), United Overseas Bank (M) Bhd, Puchong branch</li>
+                                </ol>
+                            </div>
+
+                            {{-- View Full Page Button --}}
+                            @if($softwareHandoverId)
+                                <div class="mt-6 pt-4 border-t border-gray-200 flex justify-center">
+                                    <a href="{{ route('pdf.license-proforma-invoice', ['softwareHandover' => $softwareHandoverId, 'invoiceNo' => $selectedInvoiceNo]) }}"
+                                       target="_blank"
+                                       class="inline-flex items-center px-6 py-2.5 text-sm font-medium text-white bg-cyan-600 rounded-lg hover:bg-cyan-700 transition-colors shadow-sm">
+                                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                        </svg>
+                                        View Full Page
+                                    </a>
+                                </div>
+                            @endif
+                        @elseif(count($piData) > 0)
+                            {{-- Local Quotation-based PI Display (Fallback) --}}
+                            @foreach($piData as $index => $pi)
+                                <div class="mb-6 {{ $index > 0 ? 'pt-6 border-t border-gray-200' : '' }}">
+                                    {{-- PI Header --}}
+                                    <div class="flex items-center justify-between mb-4">
+                                        <div>
+                                            <h4 class="text-md font-semibold text-gray-900">{{ $pi['pi_reference_no'] }}</h4>
+                                            <p class="text-sm text-gray-500">{{ $pi['company_name'] }}</p>
+                                        </div>
+                                        <a href="{{ url('/generate-proforma-invoice-pdf/' . $pi['id']) }}"
+                                           target="_blank"
+                                           class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-cyan-600 bg-cyan-50 rounded-md hover:bg-cyan-100 transition-colors">
+                                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                            </svg>
+                                            View PDF
+                                        </a>
+                                    </div>
+
+                                    {{-- PI Info Grid --}}
+                                    <div class="grid grid-cols-2 gap-4 mb-4 text-sm">
+                                        <div>
+                                            <span class="text-gray-500">Date:</span>
+                                            <span class="ml-2 font-medium text-gray-900">{{ $pi['quotation_date'] }}</span>
+                                        </div>
+                                        <div>
+                                            <span class="text-gray-500">Currency:</span>
+                                            <span class="ml-2 font-medium text-gray-900">{{ $pi['currency'] }}</span>
+                                        </div>
+                                        <div>
+                                            <span class="text-gray-500">Salesperson:</span>
+                                            <span class="ml-2 font-medium text-gray-900">{{ $pi['salesperson'] }}</span>
+                                        </div>
+                                        <div>
+                                            <span class="text-gray-500">Total:</span>
+                                            <span class="ml-2 font-medium text-green-600">{{ $pi['currency'] }} {{ number_format($pi['total_amount'], 2) }}</span>
+                                        </div>
+                                    </div>
+
+                                    {{-- PI Items Table --}}
+                                    @if(count($pi['items']) > 0)
+                                        <div class="border border-gray-200 rounded-lg overflow-hidden">
+                                            <table class="min-w-full divide-y divide-gray-200">
+                                                <thead class="bg-gray-50">
+                                                    <tr>
+                                                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
+                                                        <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Qty</th>
+                                                        <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Unit Price</th>
+                                                        <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Amount</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody class="bg-white divide-y divide-gray-200">
+                                                    @foreach($pi['items'] as $item)
+                                                        <tr>
+                                                            <td class="px-4 py-2 text-sm text-gray-900">{{ $item['description'] }}</td>
+                                                            <td class="px-4 py-2 text-sm text-center text-gray-900">{{ $item['quantity'] }}</td>
+                                                            <td class="px-4 py-2 text-sm text-right text-gray-900">{{ number_format($item['unit_price'], 2) }}</td>
+                                                            <td class="px-4 py-2 text-sm text-right text-gray-900">{{ number_format($item['amount'], 2) }}</td>
+                                                        </tr>
+                                                    @endforeach
+                                                </tbody>
+                                                <tfoot class="bg-gray-50">
+                                                    <tr>
+                                                        <td colspan="3" class="px-4 py-2 text-sm font-semibold text-gray-900 text-right">Total:</td>
+                                                        <td class="px-4 py-2 text-sm font-semibold text-green-600 text-right">{{ $pi['currency'] }} {{ number_format($pi['total_amount'], 2) }}</td>
+                                                    </tr>
+                                                </tfoot>
+                                            </table>
+                                        </div>
+                                    @else
+                                        <p class="text-sm text-gray-500 italic">No items found in this PI.</p>
+                                    @endif
+                                </div>
+                            @endforeach
+                        @else
+                            {{-- No Data Found --}}
+                            <div class="text-center py-8">
+                                <div class="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
+                                    <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                    </svg>
+                                </div>
+                                <h4 class="text-lg font-medium text-gray-800 mb-2">No Proforma Invoice Found</h4>
+                                <p class="text-gray-500 text-sm">The proforma invoice for this transaction is not available.</p>
+                            </div>
+                        @endif
+                    </div>
+
+                    {{-- Modal Footer --}}
+                    <div class="bg-gray-50 px-6 py-4 flex justify-between items-center border-t border-gray-200">
+                        <div class="text-xs text-gray-500">
+                            Invoice No: {{ $selectedInvoiceNo }}
+                        </div>
+                        <button type="button" wire:click="closePiModal"
+                            class="inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-6 py-2 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-500">
+                            Close
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>

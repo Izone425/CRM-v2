@@ -48,7 +48,9 @@ class GenerateProformaInvoicePdfController extends Controller
          * save a copy of quotation in public storage
          */
         //$quotationFilename = Str::slug($quotation->company->name) . '_proforma_invoice_' . quotation_reference_no($quotation->id) . '_' . Str::lower($quotation->sales_person->code) . '.pdf';
-        $quotationFilename = 'PI_PROFORMA_INVOICE_' . $quotation->sales_person->code . '_' . quotation_reference_no($quotation->id) . '_' . Str::replace('-','_',Str::slug($quotation->lead->companyDetail->company_name));
+        $salesPersonCode = $quotation->sales_person?->code ?? 'UNKNOWN';
+        $companyName = $quotation->lead?->companyDetail?->company_name ?? 'COMPANY';
+        $quotationFilename = 'PI_PROFORMA_INVOICE_' . $salesPersonCode . '_' . quotation_reference_no($quotation->id) . '_' . Str::replace('-','_',Str::slug($companyName));
         $quotationFilename = Str::upper($quotationFilename) . '.pdf';
         $pdf->save(public_path('/storage/proforma-invoices/'.$quotationFilename));
 
