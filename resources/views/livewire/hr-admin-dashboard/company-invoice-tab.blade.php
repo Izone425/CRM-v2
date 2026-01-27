@@ -6,6 +6,15 @@
         </p>
     </div>
 
+    {{-- Local Data Banner --}}
+    @if($isLocalData && !$hasError)
+        <div class="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <p class="text-sm text-yellow-800">
+                <span class="font-medium">Note:</span> Showing local invoice records. Backend sync data is not available for this company.
+            </p>
+        </div>
+    @endif
+
     {{-- Search and Controls Section --}}
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
         {{-- Search Box --}}
@@ -95,25 +104,25 @@
     @else
         {{-- Invoice Table --}}
         <div class="overflow-x-auto border border-gray-200 rounded-lg">
-            <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-cyan-600">
+            <table class="min-w-full divide-y divide-gray-200 table-fixed">
+                <thead class="bg-gray-500">
                     <tr>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider">
+                        <th scope="col" class="w-[15%] px-3 py-2.5 text-center text-xs font-medium text-black tracking-wider">
                             Invoice No
                         </th>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider">
+                        <th scope="col" class="w-[12%] px-3 py-2.5 text-center text-xs font-medium text-black tracking-wider">
                             Invoice Date
                         </th>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider">
+                        <th scope="col" class="w-[12%] px-3 py-2.5 text-center text-xs font-medium text-black tracking-wider">
                             Due Date
                         </th>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider">
+                        <th scope="col" class="w-[31%] px-3 py-2.5 text-center text-xs font-medium text-black tracking-wider">
                             Description
                         </th>
-                        <th scope="col" class="px-6 py-3 text-right text-xs font-semibold text-white uppercase tracking-wider">
+                        <th scope="col" class="w-[15%] px-3 py-2.5 text-center text-xs font-medium text-black tracking-wider">
                             Total
                         </th>
-                        <th scope="col" class="px-6 py-3 text-center text-xs font-semibold text-white uppercase tracking-wider">
+                        <th scope="col" class="w-[15%] px-3 py-2.5 text-center text-xs font-medium text-black tracking-wider">
                             Status
                         </th>
                     </tr>
@@ -121,40 +130,37 @@
                 <tbody class="bg-white divide-y divide-gray-200">
                     @forelse($invoices as $index => $invoice)
                         <tr class="{{ $index % 2 === 0 ? 'bg-white' : 'bg-gray-50' }} hover:bg-gray-100">
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <a
-                                    href="#"
-                                    class="text-cyan-600 hover:text-cyan-800 font-medium hover:underline"
-                                    title="View Invoice Details"
-                                >
+                            <td class="px-3 py-2.5 whitespace-nowrap text-center">
+                                <span class="text-sm text-gray-900 font-medium">
                                     {{ $invoice['invoice_no'] ?? '-' }}
-                                </a>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                {{ isset($invoice['invoice_date']) ? \Carbon\Carbon::parse($invoice['invoice_date'])->format('Y-m-d') : '-' }}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                {{ isset($invoice['due_date']) ? \Carbon\Carbon::parse($invoice['due_date'])->format('Y-m-d') : '-' }}
-                            </td>
-                            <td class="px-6 py-4 text-sm text-gray-900">
-                                <span class="truncate block max-w-xs" title="{{ $invoice['description'] ?? 'TimeTec License Purchase' }}">
-                                    {{ $invoice['description'] ?? 'TimeTec License Purchase' }}
                                 </span>
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
-                                {{ $this->formatCurrency($invoice['total'] ?? 0, $invoice['currency'] ?? 'MYR') }}
+                            <td class="px-3 py-2.5 whitespace-nowrap text-sm text-gray-700 text-center">
+                                {{ isset($invoice['invoice_date']) ? \Carbon\Carbon::parse($invoice['invoice_date'])->format('Y-m-d') : '-' }}
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-center">
-                                <span class="text-sm font-semibold {{ $this->getStatusColor($invoice['status'] ?? 'Pending') }}">
-                                    {{ $invoice['status'] ?? 'Pending' }}
+                            <td class="px-3 py-2.5 whitespace-nowrap text-sm text-gray-700 text-center">
+                                {{ isset($invoice['due_date']) && $invoice['due_date'] ? \Carbon\Carbon::parse($invoice['due_date'])->format('Y-m-d') : '-' }}
+                            </td>
+                            <td class="px-3 py-2.5 text-sm text-gray-700 text-center truncate" title="{{ $invoice['description'] ?? 'TimeTec License' }}">
+                                {{ $invoice['description'] ?? 'TimeTec License' }}
+                            </td>
+                            <td class="px-3 py-2.5 whitespace-nowrap text-sm text-blue-600 text-center font-semibold">
+                                {{ number_format($invoice['total'] ?? 0, 2) }} {{ $invoice['currency'] ?? 'MYR' }}
+                            </td>
+                            <td class="px-3 py-2.5 whitespace-nowrap text-center">
+                                @php
+                                    $status = strtolower($invoice['status'] ?? 'pending');
+                                @endphp
+                                <span class="text-sm font-semibold {{ $status === 'paid' ? 'text-green-600' : ($status === 'unpaid' ? 'text-red-600' : 'text-yellow-600') }}">
+                                    {{ ucfirst($invoice['status'] ?? 'Pending') }}
                                 </span>
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" class="px-6 py-12 text-center">
+                            <td colspan="6" class="px-3 py-8 text-center">
                                 <div class="flex flex-col items-center">
-                                    <svg class="w-12 h-12 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg class="w-10 h-10 text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                                     </svg>
                                     <p class="text-gray-500 text-sm">No invoices found</p>
