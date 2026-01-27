@@ -47,17 +47,18 @@ class CompanyLicenseDetailsContainer extends Component
             'software_handover' => $softwareHandover,
             'hr_license' => $hrLicense,
             'company_detail' => $companyDetail,
-            'company_name' => $softwareHandover?->company_name ?? $hrLicense?->company_name ?? 'Unknown Company',
+            'company_name' => $hrLicense?->company_name ?? $softwareHandover?->company_name ?? 'Unknown Company',
             'handover_id' => $this->handoverId ?? $hrLicense?->handover_id,
             'hr_account_id' => $softwareHandover?->hr_account_id,
             'hr_company_id' => $softwareHandover?->hr_company_id,
             'hr_user_id' => $softwareHandover?->hr_user_id,
+            'license_category' => $hrLicense?->license_category ?? 'Subscriber',
         ];
     }
 
     public function switchToTab(string $tab): void
     {
-        $validTabs = ['users', 'profile', 'products', 'invoice', 'account_setting'];
+        $validTabs = ['users', 'profile', 'products', 'customer', 'commission', 'invoice', 'account_setting'];
         if (in_array($tab, $validTabs)) {
             $this->activeTab = $tab;
         }

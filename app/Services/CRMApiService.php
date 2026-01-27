@@ -261,4 +261,25 @@ class CRMApiService
         $endpoint = "/api/crm/account/{$accountId}/company/{$companyId}/licenses/paid-app/{$periodId}";
         return $this->makeRequest('PUT', $endpoint, $licenseData);
     }
+
+    /**
+     * Get company invoices from TimeTec Backend
+     * GET /api/crm/account/{accountId}/company/{companyId}/invoices
+     *
+     * @param int $accountId - hr_account_id from SoftwareHandover
+     * @param int $companyId - hr_company_id from SoftwareHandover
+     * @param array $params - Optional query parameters (search, page, limit)
+     * @return array
+     */
+    public function getCompanyInvoices(int $accountId, int $companyId, array $params = []): array
+    {
+        $endpoint = "/api/crm/account/{$accountId}/company/{$companyId}/invoices";
+
+        if (!empty($params)) {
+            $queryString = http_build_query($params);
+            $endpoint .= "?{$queryString}";
+        }
+
+        return $this->makeRequest('GET', $endpoint);
+    }
 }

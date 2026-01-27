@@ -82,6 +82,15 @@ class HrLicenseTable extends Component implements HasForms, HasTable
                     ])
                     ->placeholder('All Status'),
 
+                SelectFilter::make('license_category')
+                    ->label('Category')
+                    ->options([
+                        'Subscriber' => 'Subscriber',
+                        'Reseller' => 'Reseller',
+                        'Distributor' => 'Distributor',
+                    ])
+                    ->placeholder('All Categories'),
+
                 Filter::make('date_range')
                     ->form([
                         DatePicker::make('start_date')
@@ -152,6 +161,18 @@ class HrLicenseTable extends Component implements HasForms, HasTable
                         'handoverId' => $record->handover_id,
                         'softwareHandoverId' => $record->software_handover_id,
                     ]))),
+
+                TextColumn::make('license_category')
+                    ->label('Category')
+                    ->sortable()
+                    ->badge()
+                    ->color(fn (string $state): string => match ($state) {
+                        'Subscriber' => 'gray',
+                        'Reseller' => 'info',
+                        'Distributor' => 'purple',
+                        default => 'gray',
+                    })
+                    ->toggleable(),
 
                 TextColumn::make('status')
                     ->label('Status')

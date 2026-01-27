@@ -2,112 +2,149 @@
 
 namespace App\Livewire\HrAdminDashboard;
 
-use App\Models\CrmHrdfInvoice;
-use App\Models\Invoice;
-use Filament\Forms\Contracts\HasForms;
-use Filament\Tables\Contracts\HasTable;
-use Filament\Forms\Concerns\InteractsWithForms;
-use Filament\Tables\Concerns\InteractsWithTable;
-use Filament\Tables\Table;
-use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Actions\Action;
-use Filament\Tables\Filters\SelectFilter;
-use Illuminate\Database\Eloquent\Builder;
+use App\Services\CRMApiService;
+use Illuminate\Support\Facades\Log;
 use Livewire\Component;
 
-class CompanyInvoiceTab extends Component implements HasForms, HasTable
+class CompanyInvoiceTab extends Component
 {
-    use InteractsWithTable;
-    use InteractsWithForms;
-
     public ?int $softwareHandoverId = null;
     public array $companyData = [];
+
+    // State properties
+    public bool $isLoading = true;
+    public bool $hasError = false;
+    public string $errorMessage = '';
+
+    // Data properties
+    public array $invoices = [];
+    public int $totalRecords = 0;
+
+    // Search & Pagination
+    public string $search = '';
+    public int $perPage = 10;
+    public int $currentPage = 1;
+
+    public array $perPageOptions = [10, 25, 50];
 
     public function mount(?int $softwareHandoverId = null, array $companyData = [])
     {
         $this->softwareHandoverId = $softwareHandoverId;
         $this->companyData = $companyData;
+        $this->loadInvoices();
     }
 
-    public function table(Table $table): Table
+    public function loadInvoices(): void
     {
-        $companyName = $this->companyData['company_name'] ?? '';
+        $this->isLoading = true;
+        $this->hasError = false;
+        $this->errorMessage = '';
 
-        return $table
-            ->query(
-                CrmHrdfInvoice::query()
-                    ->when($this->softwareHandoverId, function (Builder $query) {
-                        $query->where('handover_id', $this->softwareHandoverId)
-                            ->where('handover_type', 'SW');
-                    })
-                    ->when($companyName, function (Builder $query) use ($companyName) {
-                        $query->orWhere('company_name', 'like', "%{$companyName}%");
-                    })
-            )
-            ->emptyState(fn () => view('components.empty-state-question'))
-            ->defaultPaginationPageOption(10)
-            ->paginated([10, 25, 50])
-            ->defaultSort('invoice_date', 'desc')
-            ->filters([
-                SelectFilter::make('status')
-                    ->label('Status')
-                    ->options([
-                        'Paid' => 'Paid',
-                        'Pending' => 'Pending',
-                        'Cancel' => 'Cancel',
-                    ])
-                    ->placeholder('All Status'),
-            ])
-            ->columns([
-                TextColumn::make('invoice_no')
-                    ->label('Invoice No')
-                    ->sortable()
-                    ->searchable()
-                    ->weight('bold')
-                    ->color('primary'),
+        try {
+            $accountId = $this->companyData['hr_account_id'] ?? null;
+            $companyId = $this->companyData['hr_company_id'] ?? null;
 
-                TextColumn::make('invoice_date')
-                    ->label('Invoice Date')
-                    ->date('Y-m-d')
-                    ->sortable(),
+            if (!$accountId || !$companyId) {
+                $this->hasError = true;
+                $this->errorMessage = 'Company backend IDs not available. Please ensure the handover is completed.';
+                $this->isLoading = false;
+                return;
+            }
 
-                TextColumn::make('due_date')
-                    ->label('Due Date')
-                    ->date('Y-m-d')
-                    ->sortable()
-                    ->default('-'),
+            $crmService = app(CRMApiService::class);
 
-                TextColumn::make('description')
-                    ->label('Description')
-                    ->default('TimeTec License Purchase')
-                    ->limit(30)
-                    ->tooltip(fn ($state) => $state),
+            $params = [
+                'page' => $this->currentPage,
+                'limit' => $this->perPage,
+            ];
 
-                TextColumn::make('total_amount')
-                    ->label('Total')
-                    ->money('MYR')
-                    ->sortable(),
+            if (!empty($this->search)) {
+                $params['search'] = $this->search;
+            }
 
-                TextColumn::make('status')
-                    ->label('Status')
-                    ->badge()
-                    ->color(fn (string $state): string => match ($state) {
-                        'Paid' => 'success',
-                        'Pending' => 'warning',
-                        'Cancel' => 'danger',
-                        default => 'gray',
-                    })
-                    ->default('Pending'),
-            ])
-            ->actions([
-                Action::make('print')
-                    ->label('Print')
-                    ->icon('heroicon-o-printer')
-                    ->color('gray')
-                    ->url(fn ($record) => '#')
-                    ->openUrlInNewTab(),
-            ])
-            ->striped();
+            $response = $crmService->getCompanyInvoices($accountId, $companyId, $params);
+
+            if ($response['success']) {
+                $this->invoices = $response['data']['invoices'] ?? [];
+                $this->totalRecords = $response['data']['total_records'] ?? count($this->invoices);
+            } else {
+                $this->hasError = true;
+                $this->errorMessage = $response['error'] ?? 'Failed to fetch invoices from backend.';
+                Log::error('CRM API: Failed to fetch invoices', [
+                    'account_id' => $accountId,
+                    'company_id' => $companyId,
+                    'error' => $response['error'] ?? 'Unknown error'
+                ]);
+            }
+        } catch (\Exception $e) {
+            $this->hasError = true;
+            $this->errorMessage = 'An error occurred while fetching invoices: ' . $e->getMessage();
+            Log::error('CRM API Exception: Failed to fetch invoices', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+        } finally {
+            $this->isLoading = false;
+        }
+    }
+
+    public function searchInvoices(): void
+    {
+        $this->currentPage = 1;
+        $this->loadInvoices();
+    }
+
+    public function updatedPerPage(): void
+    {
+        $this->currentPage = 1;
+        $this->loadInvoices();
+    }
+
+    public function goToPage(int $page): void
+    {
+        $this->currentPage = $page;
+        $this->loadInvoices();
+    }
+
+    public function previousPage(): void
+    {
+        if ($this->currentPage > 1) {
+            $this->currentPage--;
+            $this->loadInvoices();
+        }
+    }
+
+    public function nextPage(): void
+    {
+        if ($this->currentPage < $this->totalPages()) {
+            $this->currentPage++;
+            $this->loadInvoices();
+        }
+    }
+
+    public function totalPages(): int
+    {
+        return max(1, ceil($this->totalRecords / $this->perPage));
+    }
+
+    public function refreshInvoices(): void
+    {
+        $this->loadInvoices();
+    }
+
+    public function getStatusColor(string $status): string
+    {
+        return match (strtolower($status)) {
+            'paid' => 'text-green-600',
+            'cancel', 'cancelled' => 'text-red-600',
+            'pending' => 'text-yellow-600',
+            default => 'text-gray-600',
+        };
+    }
+
+    public function formatCurrency(float $amount, string $currency = 'MYR'): string
+    {
+        return number_format($amount, 2) . ' ' . $currency;
     }
 
     public function render()

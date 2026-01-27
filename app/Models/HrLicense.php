@@ -18,6 +18,7 @@ class HrLicense extends Model
         'invoice_no',
         'auto_count_invoice_no',
         'company_name',
+        'license_category',
         'license_type',
         'unit',
         'user_limit',
