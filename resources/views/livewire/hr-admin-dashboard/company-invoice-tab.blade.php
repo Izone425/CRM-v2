@@ -104,7 +104,7 @@
     @else
         {{-- Invoice Table --}}
         <div class="overflow-x-auto border border-gray-200 rounded-lg">
-            <table class="min-w-full divide-y divide-gray-200 table-fixed">
+            <table class="w-full divide-y divide-gray-200 table-fixed">
                 <thead class="bg-gray-500">
                     <tr>
                         <th scope="col" class="w-[15%] px-3 py-2.5 text-center text-xs font-medium text-black tracking-wider">
@@ -151,9 +151,13 @@
                                 @php
                                     $status = strtolower($invoice['status'] ?? 'pending');
                                 @endphp
-                                <span class="text-sm font-semibold {{ $status === 'paid' ? 'text-green-600' : ($status === 'unpaid' ? 'text-red-600' : 'text-yellow-600') }}">
-                                    {{ ucfirst($invoice['status'] ?? 'Pending') }}
-                                </span>
+                                @if($status === 'paid')
+                                    <span class="text-sm font-semibold text-green-600">Paid</span>
+                                @elseif($status === 'unpaid')
+                                    <span class="text-sm font-semibold text-red-600">Unpaid</span>
+                                @else
+                                    <span class="text-sm font-semibold text-yellow-600">{{ ucfirst($invoice['status'] ?? 'Pending') }}</span>
+                                @endif
                             </td>
                         </tr>
                     @empty
