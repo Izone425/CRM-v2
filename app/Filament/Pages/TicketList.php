@@ -75,6 +75,11 @@ class TicketList extends Page implements HasTable, HasActions, HasForms
         $this->activeTab = 'v2';
     }
 
+    public function switchToZoho(): void
+    {
+        $this->activeTab = 'zoho';
+    }
+
     public function table(Table $table): Table
     {
         return $table

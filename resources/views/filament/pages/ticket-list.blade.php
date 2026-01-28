@@ -47,6 +47,18 @@
             box-shadow: 0 20px 25px -5px rgba(59, 130, 246, 0.5), 0 10px 10px -5px rgba(59, 130, 246, 0.1);
         }
 
+        .tab-button.active-zoho {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            border-color: #d97706;
+            color: white;
+            box-shadow: 0 10px 15px -3px rgba(245, 158, 11, 0.4), 0 4px 6px -2px rgba(245, 158, 11, 0.05);
+        }
+
+        .tab-button.active-zoho:hover {
+            background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+            box-shadow: 0 20px 25px -5px rgba(245, 158, 11, 0.5), 0 10px 10px -5px rgba(245, 158, 11, 0.1);
+        }
+
         .tab-button.inactive {
             background: white;
             border-color: #d1d5db;
@@ -112,6 +124,17 @@
             pointer-events: none;
         }
 
+        .tab-button.active-zoho::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0.1) 50%, transparent 100%);
+            pointer-events: none;
+        }
+
         /* Button ripple effect */
         .tab-button:active {
             transform: scale(0.98);
@@ -129,6 +152,10 @@
 
         .tab-button.active-v2:focus {
             outline-color: #3b82f6;
+        }
+
+        .tab-button.active-zoho:focus {
+            outline-color: #f59e0b;
         }
 
         /* Responsive design */
@@ -187,6 +214,18 @@
             </svg>
             Version 2 Tickets
         </button>
+
+        <button
+            wire:click="switchToZoho"
+            class="tab-button {{ $activeTab === 'zoho' ? 'active-zoho' : 'inactive' }}"
+        >
+            <svg class="tab-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01">
+                </path>
+            </svg>
+            Zoho Status
+        </button>
     </div>
 
     {{-- Content Area --}}
@@ -203,6 +242,14 @@
             <div class="ticket-container">
                 <div class="content-area">
                     <livewire:ticket-list-v2 />
+                </div>
+            </div>
+        @endif
+
+        @if($activeTab === 'zoho')
+            <div class="ticket-container">
+                <div class="content-area">
+                    <livewire:ticket-list-zoho />
                 </div>
             </div>
         @endif

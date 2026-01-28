@@ -141,7 +141,7 @@
             @php
                 $category = $companyData['license_category'] ?? 'Subscriber';
                 $categoryColors = [
-                    'Subscriber' => 'bg-gray-100 text-gray-800',
+                    'Subscriber' => 'bg-gray-100 text-black',
                     'Reseller' => 'bg-blue-100 text-blue-800',
                     'Distributor' => 'bg-purple-100 text-purple-800',
                 ];

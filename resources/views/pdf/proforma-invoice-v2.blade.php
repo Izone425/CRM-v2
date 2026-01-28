@@ -80,7 +80,7 @@
                                     // Use the correct company details based on whether a subsidiary is selected
                                     $companyDetails = $quotation->subsidiary_id
                                         ? $quotation->subsidiary
-                                        : $quotation->lead->companyDetail;
+                                        : $quotation->lead?->companyDetail;
                                 @endphp
 
                                 @if ($companyDetails)
@@ -116,31 +116,31 @@
                                     <span>
                                         <span style="font-weight:bold;">Attention: </span>
                                         {{ $quotation->subsidiary_id
-                                            ? ($quotation->subsidiary->name ?? $quotation->lead->name)
-                                            : ($companyDetails->name ?? $quotation->lead->name) }}
+                                            ? ($quotation->subsidiary?->name ?? $quotation->lead?->name ?? '-')
+                                            : ($companyDetails->name ?? $quotation->lead?->name ?? '-') }}
                                     </span><br />
 
                                     <span>
                                         <span style="font-weight:bold;">Tel: </span>
                                         {{ $quotation->subsidiary_id
-                                            ? ($quotation->subsidiary->contact_number ?? $quotation->lead->phone)
-                                            : ($companyDetails->contact_no ?? $quotation->lead->phone) }}
+                                            ? ($quotation->subsidiary?->contact_number ?? $quotation->lead?->phone ?? '-')
+                                            : ($companyDetails->contact_no ?? $quotation->lead?->phone ?? '-') }}
                                     </span><br />
 
                                     <span>
                                         <span style="font-weight:bold;">Email: </span>
                                         {{ $quotation->subsidiary_id
-                                            ? ($quotation->subsidiary->email ?? $quotation->lead->email)
-                                            : ($companyDetails->email ?? $quotation->lead->email) }}
+                                            ? ($quotation->subsidiary?->email ?? $quotation->lead?->email ?? '-')
+                                            : ($companyDetails->email ?? $quotation->lead?->email ?? '-') }}
                                     </span><br />
                                 @endif
                             </div>
                             <div class="col-4 pull-right">
                                 <span><span class="fw-bold">Ref No: </span>{{ $quotation->pi_reference_no }}</span><br />
-                                <span><span class="fw-bold">Date: </span>{{ $quotation->quotation_date->format('j M Y')}}</span><br />
-                                <span><span class="fw-bold">Prepared By: </span>{{ $quotation->sales_person->name }}</span><br />
-                                <span><span class="fw-bold">Email: </span>{{ $quotation->sales_person->email }}</span><br />
-                                <span><span class="fw-bold">H/P No: </span>{{ $quotation->sales_person->mobile_number }}</span><br /><br />
+                                <span><span class="fw-bold">Date: </span>{{ $quotation->quotation_date?->format('j M Y') ?? '-' }}</span><br />
+                                <span><span class="fw-bold">Prepared By: </span>{{ $quotation->sales_person?->name ?? '-' }}</span><br />
+                                <span><span class="fw-bold">Email: </span>{{ $quotation->sales_person?->email ?? '-' }}</span><br />
+                                <span><span class="fw-bold">H/P No: </span>{{ $quotation->sales_person?->mobile_number ?? '-' }}</span><br /><br />
                                 <span><span class="fw-bold">P.Invoice No: </span>{{ $quotation->pi_reference_no }}</span><br />
                                 <span><span class="fw-bold">Status </span>{!! $quotation->payment_status ? '<strong style="color: green">PAID</strong>' : '<strong style="color:red;">UNPAID</strong>' !!}</span>
                             </div>
@@ -164,7 +164,7 @@
                 $totalBeforeTax = 0;
                 $totalAfterTax = 0;
                 $totalTax = 0;
-                $sortedItems = $quotation->items->sortBy('sort_order')->filter(function($item) {
+                $sortedItems = ($quotation->items ?? collect())->sortBy('sort_order')->filter(function($item) {
                     return $item->convert_pi == true;
                 });
             @endphp

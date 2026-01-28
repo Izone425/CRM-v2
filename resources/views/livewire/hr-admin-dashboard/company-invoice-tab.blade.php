@@ -1,20 +1,4 @@
 <div class="p-6">
-    {{-- Header Section --}}
-    <div class="mb-4 p-4 bg-cyan-50 border border-cyan-200 rounded-lg">
-        <p class="text-sm text-cyan-800">
-            <span class="font-medium">Note:</span> Invoices shown here are only those billed under the name of the distributor/dealer. It excludes invoices issued directly to the subscriber.
-        </p>
-    </div>
-
-    {{-- Local Data Banner --}}
-    @if($isLocalData && !$hasError)
-        <div class="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-            <p class="text-sm text-yellow-800">
-                <span class="font-medium">Note:</span> Showing local invoice records. Backend sync data is not available for this company.
-            </p>
-        </div>
-    @endif
-
     {{-- Search and Controls Section --}}
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
         {{-- Search Box --}}
