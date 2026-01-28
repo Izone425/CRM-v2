@@ -28,6 +28,7 @@ class CompanyAccountSettingTab extends Component implements HasForms
     public ?int $dealerId = null;
     public ?int $referralId = null;
     public ?string $billingMethod = null;
+    public ?int $salesPersonId = null;
 
     public function mount(?int $softwareHandoverId = null, array $companyData = [])
     {
@@ -103,6 +104,25 @@ class CompanyAccountSettingTab extends Component implements HasForms
     public function getDealerOptions(): array
     {
         return Reseller::pluck('company_name', 'id')->toArray();
+    }
+
+    public function getSalesPersonOptions(): array
+    {
+        // Get sales persons from users table (role_id = 2 is for salesperson)
+        return \App\Models\User::where('is_active', true)
+            ->where('role_id', 2)
+            ->orderBy('name')
+            ->pluck('name', 'id')
+            ->toArray();
+    }
+
+    public function assignSalesPerson(): void
+    {
+        // TODO: Implement sales person assignment logic
+        Notification::make()
+            ->title('Sales Person assigned')
+            ->success()
+            ->send();
     }
 
     public function render()

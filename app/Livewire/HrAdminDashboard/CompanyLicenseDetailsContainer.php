@@ -31,7 +31,11 @@ class CompanyLicenseDetailsContainer extends Component
 
         // Load SoftwareHandover
         if ($this->softwareHandoverId) {
-            $softwareHandover = SoftwareHandover::with(['lead.companyDetail'])->find($this->softwareHandoverId);
+            $softwareHandover = SoftwareHandover::with([
+                'lead.companyDetail',
+                'lead.bankDetail',
+                'lead.subsidiaries',
+            ])->find($this->softwareHandoverId);
             $companyDetail = $softwareHandover?->lead?->companyDetail;
         }
 
@@ -47,6 +51,9 @@ class CompanyLicenseDetailsContainer extends Component
             'software_handover' => $softwareHandover,
             'hr_license' => $hrLicense,
             'company_detail' => $companyDetail,
+            'lead' => $softwareHandover?->lead,
+            'bank_detail' => $softwareHandover?->lead?->bankDetail,
+            'subsidiary' => $softwareHandover?->lead?->subsidiaries?->first(),
             'company_name' => $hrLicense?->company_name ?? $softwareHandover?->company_name ?? 'Unknown Company',
             'handover_id' => $this->handoverId ?? $hrLicense?->handover_id,
             'hr_account_id' => $softwareHandover?->hr_account_id,
