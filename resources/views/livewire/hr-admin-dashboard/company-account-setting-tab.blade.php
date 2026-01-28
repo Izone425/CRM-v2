@@ -97,24 +97,16 @@
             </select>
         </div>
         <div class="flex gap-2">
-            <button wire:click="assignDealer" class="px-4 py-2 text-sm font-medium text-black bg-blue-600 rounded hover:bg-blue-700">
+            <button wire:click="assignDealer" class="px-4 py-2 text-sm font-medium text-black bg-gray-200 rounded hover:bg-blue-700">
                 Assign Dealer
             </button>
             <button wire:click="unlinkDealer" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded hover:bg-gray-300">
                 Unlink Dealer
             </button>
         </div>
-    </div>
 
-    {{-- Billing Information --}}
-    <div class="p-4 bg-white rounded-lg border border-gray-200 shadow-sm">
-        <h4 class="mb-4 text-sm font-semibold text-gray-900 uppercase tracking-wider flex items-center">
-            <svg class="w-5 h-5 mr-2 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path>
-            </svg>
-            Billing Information
-        </h4>
-        <div class="mb-4">
+        {{-- Billing Method (merged from Billing Information) --}}
+        <div class="mt-4">
             <label class="block text-sm font-medium text-gray-700 mb-1">Billing Method</label>
             <select wire:model="billingMethod" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
                 <option value="">Select Billing Method</option>
