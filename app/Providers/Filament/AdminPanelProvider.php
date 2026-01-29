@@ -33,6 +33,7 @@ use App\Filament\Pages\FutureEnhancement as PagesFutureEnhancement;
 use App\Filament\Pages\HardwareDashboardAll;
 use App\Filament\Pages\HardwareDashboardPendingStock;
 use App\Filament\Pages\HeadcountHandoverList;
+use App\Filament\Pages\AddSalesInvoice;
 use App\Filament\Pages\HrAccountManagement;
 use App\Filament\Pages\HrCompanyLicenseDetails;
 use App\Filament\Pages\HrLicense;
@@ -384,6 +385,7 @@ class AdminPanelProvider extends PanelProvider
                 HrAccountManagement::class,
                 HrLicense::class,
                 HrCompanyLicenseDetails::class,
+                AddSalesInvoice::class,
                 TicketList::class,
                 TicketDashboard::class,
                 TicketAnalysis::class,
