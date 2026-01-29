@@ -68,4 +68,9 @@ class ResellerV2 extends Authenticatable
     {
         return $this->belongsTo(Reseller::class, 'reseller_id');
     }
+
+    public function commission()
+    {
+        return $this->hasOne(ResellerV2Commission::class, 'reseller_v2_id');
+    }
 }

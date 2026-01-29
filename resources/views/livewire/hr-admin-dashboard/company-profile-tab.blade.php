@@ -639,6 +639,13 @@
                         <p class="text-sm font-medium text-gray-900 mt-1">{{ $paypalEmail ?? '-' }}</p>
                         <p class="text-xs text-red-600">Commission or credit transfer will pay to dealer via PayPal.</p>
                     </div>
+                    @if($this->isResellerOrDistributor())
+                        <div>
+                            <span class="text-sm text-gray-600">Commission Rate</span>
+                            <p class="text-sm font-medium text-gray-900 mt-1">{{ $commissionRate !== null ? $commissionRate . '%' : '-' }}</p>
+                            <p class="text-xs text-gray-500">This is the Commission Rate for this dealer. Eg: 30, 40, 50.</p>
+                        </div>
+                    @endif
                 </div>
                 <div class="space-y-3">
                     <div class="flex justify-between">
@@ -670,6 +677,20 @@
                         <input type="email" wire:model="paypalEmail" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" placeholder="-">
                         <p class="mt-1 text-xs text-red-600">Commission or credit transfer will pay to dealer via PayPal.</p>
                     </div>
+                    @if($this->isResellerOrDistributor())
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                                <span class="text-red-500">*</span> Commission Rate:
+                            </label>
+                            <select wire:model="commissionRate" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                                <option value="">Select Commission Rate</option>
+                                @for($i = 0; $i <= 100; $i++)
+                                    <option value="{{ $i }}">{{ $i }}</option>
+                                @endfor
+                            </select>
+                            <p class="mt-1 text-xs text-gray-500">This is the Commission Rate for this dealer. Eg: 30, 40, 50.</p>
+                        </div>
+                    @endif
                 </div>
 
                 {{-- Right Column --}}

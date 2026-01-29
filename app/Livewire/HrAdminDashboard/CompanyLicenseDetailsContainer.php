@@ -5,6 +5,7 @@ namespace App\Livewire\HrAdminDashboard;
 use App\Models\HrLicense;
 use App\Models\SoftwareHandover;
 use App\Models\CompanyDetail;
+use App\Models\ResellerV2;
 use Livewire\Component;
 
 class CompanyLicenseDetailsContainer extends Component
@@ -46,6 +47,14 @@ class CompanyLicenseDetailsContainer extends Component
             $hrLicense = HrLicense::where('software_handover_id', $this->softwareHandoverId)->first();
         }
 
+        // Lookup ResellerV2 via the shared reseller_id
+        $resellerV2 = null;
+        if ($softwareHandover && $softwareHandover->reseller_id) {
+            $resellerV2 = ResellerV2::with('commission')
+                ->where('reseller_id', $softwareHandover->reseller_id)
+                ->first();
+        }
+
         // Build company data context
         $this->companyData = [
             'software_handover' => $softwareHandover,
@@ -60,6 +69,7 @@ class CompanyLicenseDetailsContainer extends Component
             'hr_company_id' => $softwareHandover?->hr_company_id,
             'hr_user_id' => $softwareHandover?->hr_user_id,
             'license_category' => $hrLicense?->license_category ?? 'Subscriber',
+            'reseller_v2' => $resellerV2,
         ];
     }
 

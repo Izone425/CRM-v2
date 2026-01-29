@@ -6,6 +6,7 @@ use App\Models\SoftwareHandover;
 use App\Models\CompanyDetail;
 use App\Models\BankDetail;
 use App\Models\LicenseCertificate;
+use App\Models\ResellerV2Commission;
 use Carbon\Carbon;
 use Filament\Notifications\Notification;
 use Livewire\Component;
@@ -66,6 +67,9 @@ class CompanyProfileTab extends Component
     public ?string $nameOnBankAccount = null;
     public ?string $customerAccountCode = null;
     public ?string $paypalEmail = null;
+
+    // Commission Rate (for Reseller/Distributor only)
+    public ?int $commissionRate = null;
 
     public function mount(?int $softwareHandoverId = null, array $companyData = [])
     {
@@ -300,6 +304,32 @@ class CompanyProfileTab extends Component
         $this->bankName = $bankDetail?->bank_name ?? null;
         $this->nameOnBankAccount = $bankDetail?->beneficiary_name ?? null;
         $this->customerAccountCode = $softwareHandover?->autocount_debtor_code ?? null;
+
+        $this->loadCommissionRate();
+    }
+
+    protected function loadCommissionRate(): void
+    {
+        $licenseCategory = $this->companyData['license_category'] ?? 'Subscriber';
+
+        if (!in_array($licenseCategory, ['Reseller', 'Distributor'])) {
+            $this->commissionRate = null;
+            return;
+        }
+
+        $resellerV2 = $this->companyData['reseller_v2'] ?? null;
+
+        if ($resellerV2 && $resellerV2->commission) {
+            $this->commissionRate = (int) $resellerV2->commission->commission_rate;
+        } else {
+            $this->commissionRate = null;
+        }
+    }
+
+    public function isResellerOrDistributor(): bool
+    {
+        $licenseCategory = $this->companyData['license_category'] ?? 'Subscriber';
+        return in_array($licenseCategory, ['Reseller', 'Distributor']);
     }
 
     public function saveBusinessInfo(): void
@@ -368,12 +398,42 @@ class CompanyProfileTab extends Component
             ]);
         }
 
+        // Save commission rate for Reseller/Distributor
+        $this->saveCommissionRate();
+
         $this->editingPaymentInfo = false;
 
         Notification::make()
             ->title('Payment Information saved successfully')
             ->success()
             ->send();
+    }
+
+    protected function saveCommissionRate(): void
+    {
+        $licenseCategory = $this->companyData['license_category'] ?? 'Subscriber';
+
+        if (!in_array($licenseCategory, ['Reseller', 'Distributor'])) {
+            return;
+        }
+
+        $resellerV2 = $this->companyData['reseller_v2'] ?? null;
+
+        if (!$resellerV2) {
+            Notification::make()
+                ->title('Warning: No dealer/reseller account linked')
+                ->body('Commission rate cannot be saved because no ResellerV2 account is associated with this company.')
+                ->warning()
+                ->send();
+            return;
+        }
+
+        if ($this->commissionRate !== null) {
+            ResellerV2Commission::updateOrCreate(
+                ['reseller_v2_id' => $resellerV2->id],
+                ['commission_rate' => $this->commissionRate]
+            );
+        }
     }
 
     public function render()

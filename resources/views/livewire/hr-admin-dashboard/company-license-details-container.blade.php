@@ -203,7 +203,7 @@
             Products
         </button>
 
-        @if(($companyData['license_category'] ?? '') === 'Reseller')
+        @if(in_array($companyData['license_category'] ?? '', ['Reseller', 'Distributor']))
         <button
             wire:click="switchToTab('customer')"
             class="company-tab-button {{ $activeTab === 'customer' ? 'active' : 'inactive' }}"
