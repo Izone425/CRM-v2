@@ -17,11 +17,18 @@ class CompanyLicenseDetailsContainer extends Component
 
     protected $listeners = ['switchTab'];
 
-    public function mount(?string $handoverId = null, ?int $softwareHandoverId = null)
+    public function mount(?string $handoverId = null, ?int $softwareHandoverId = null, ?string $tab = null)
     {
         $this->handoverId = $handoverId;
         $this->softwareHandoverId = $softwareHandoverId;
         $this->loadCompanyData();
+
+        if ($tab) {
+            $validTabs = ['users', 'profile', 'products', 'customer', 'commission', 'invoice', 'account_setting'];
+            if (in_array($tab, $validTabs)) {
+                $this->activeTab = $tab;
+            }
+        }
     }
 
     protected function loadCompanyData(): void

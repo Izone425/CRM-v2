@@ -3,6 +3,7 @@
         <livewire:hr-admin-dashboard.company-license-details-container
             :handover-id="$handoverId"
             :software-handover-id="$softwareHandoverId"
+            :tab="$tab"
         />
     @else
         <div class="p-6 text-center bg-white rounded-lg shadow">

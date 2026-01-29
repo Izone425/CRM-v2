@@ -264,7 +264,7 @@ class AddSalesInvoiceForm extends Component
     public function goBack(): void
     {
         $this->redirect(
-            url('/admin/hr-company-license-details?softwareHandoverId=' . $this->softwareHandoverId),
+            url('/admin/hr-company-license-details?softwareHandoverId=' . $this->softwareHandoverId . '&tab=products'),
             navigate: false
         );
     }

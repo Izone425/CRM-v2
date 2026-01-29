@@ -16,12 +16,14 @@ class HrCompanyLicenseDetails extends Page
     public ?string $handoverId = null;
     public ?int $softwareHandoverId = null;
     public ?string $companyName = null;
+    public ?string $tab = null;
 
     public function mount(): void
     {
         // Get parameters from query string
         $this->handoverId = Request::query('handoverId');
         $this->softwareHandoverId = Request::query('softwareHandoverId') ? (int) Request::query('softwareHandoverId') : null;
+        $this->tab = Request::query('tab');
 
         // Get company name from HrLicense or SoftwareHandover
         if ($this->handoverId) {
