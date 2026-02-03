@@ -2,7 +2,7 @@
 
 > **Project**: TimeTec CRM PDT - Admin Portal V2
 > **Maintained by**: Admin Portal Team
-> **Last Updated**: 2026-01-29
+> **Last Updated**: 2026-02-03
 
 This changelog tracks all code changes, new features, and modifications. Each entry links to a detailed file showing **BEFORE and AFTER code** for developer handoff.
 
@@ -25,6 +25,7 @@ This changelog tracks all code changes, new features, and modifications. Each en
 | 001 | New Feature + Database | Add Commission Rate field for Reseller/Distributor companies | Yes (migration) | [View Details](.changelog/001-add-commission-rate.md) | Completed |
 | 002 | Fix/Change | Show Customer & Commission tabs for Distributor companies | No | [View Details](.changelog/002-distributor-tab-visibility.md) | Completed |
 | 003 | New Feature | Build Company Customer Tab with Resellers & Subscribers tables | No | [View Details](.changelog/003-company-customer-tab.md) | Completed |
+| 004 | New Feature | Add "By Module" collapsible list with priority breakdown to Ticket Analysis | No | [View Details](.changelog/004-ticket-analysis-by-module.md) | Completed |
 
 ---
 
@@ -44,6 +45,7 @@ This changelog tracks all code changes, new features, and modifications. Each en
 | 001 | Added Commission Rate dropdown to Payment Information for Reseller/Distributor companies | `ResellerV2Commission.php`, `CompanyProfileTab.php`, migration | Yes (new table) |
 | 002 | Distributor companies now see Customer & Commission tabs (previously only Resellers) | `company-license-details-container.blade.php` | No |
 | 003 | Built Customer Tab showing sub-resellers and subscribers under a Reseller/Distributor | `CompanyCustomerTab.php`, `company-customer-tab.blade.php` | No |
+| 004 | Added "By Module" collapsible list to Ticket Analysis with priority breakdown | `TicketAnalysis.php`, `ticket-analysis.blade.php` | No |
 
 ---
 

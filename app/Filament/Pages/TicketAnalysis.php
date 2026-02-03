@@ -788,6 +788,82 @@ class TicketAnalysis extends Page
         $this->showSlideOver = true;
     }
 
+    public function openModuleBarSlideOver($moduleId, $priorityId = null)
+    {
+        $query = $this->getBaseQuery();
+        $module = TicketModule::find($moduleId);
+
+        // Build query for this module
+        $ticketQuery = (clone $query)->where('module_id', $moduleId);
+
+        // If priority specified, filter by priority too
+        if ($priorityId) {
+            $ticketQuery->where('priority_id', $priorityId);
+        }
+
+        // Get tickets with priority relationship
+        $tickets = $ticketQuery
+            ->with('priority:id,name')
+            ->select('id', 'ticket_id', 'title', 'company_name', 'status', 'created_date', 'priority_id')
+            ->orderByDesc('created_at')
+            ->limit(100)
+            ->get();
+
+        // Store minimal ticket data for flat list fallback
+        $this->ticketList = $tickets->map(function ($ticket) {
+            return [
+                'id' => $ticket->id,
+                'ticket_id' => $ticket->ticket_id,
+                'title' => $ticket->title,
+                'company_name' => $ticket->company_name,
+                'status' => $ticket->status,
+                'created_date' => $ticket->created_date ? $ticket->created_date->format('Y-m-d') : null,
+            ];
+        })->toArray();
+
+        // Priority colors mapping
+        $priorityColors = [
+            'Software Bugs' => '#EF4444',
+            'Back End Assistance' => '#F59E0B',
+            'Critical Enhancement' => '#8B5CF6',
+            'Non-Critical Enhancement' => '#10B981',
+            'Paid Customization' => '#3B82F6',
+        ];
+
+        // Group tickets by priority
+        $grouped = $tickets->groupBy(function ($ticket) {
+            return $ticket->priority ? $ticket->priority->id : 0;
+        });
+
+        $this->ticketsByPriority = $grouped->map(function ($ticketGroup, $priorityIdKey) use ($priorityColors) {
+            $firstTicket = $ticketGroup->first();
+            $priorityName = $firstTicket && $firstTicket->priority ? $firstTicket->priority->name : 'Unknown';
+            $color = $priorityColors[$priorityName] ?? '#6B7280';
+            return [
+                'id' => $priorityIdKey,
+                'name' => $priorityName,
+                'color' => $color,
+                'count' => $ticketGroup->count(),
+                'tickets' => $ticketGroup->map(function ($ticket) {
+                    return [
+                        'id' => $ticket->id,
+                        'ticket_id' => $ticket->ticket_id,
+                        'title' => $ticket->title,
+                        'company_name' => $ticket->company_name,
+                        'status' => $ticket->status,
+                        'created_date' => $ticket->created_date ? $ticket->created_date->format('Y-m-d') : null,
+                    ];
+                })->values()->toArray(),
+            ];
+        })->sortByDesc('count')->values()->toArray();
+
+        // Set focus for auto-scroll/expand
+        $this->focusPriorityId = $priorityId;
+
+        $this->slideOverTitle = ($module ? $module->name : 'Module');
+        $this->showSlideOver = true;
+    }
+
     public function openStatusSlideOver($status)
     {
         $query = $this->getBaseQuery();

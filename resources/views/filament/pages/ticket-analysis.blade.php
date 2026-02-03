@@ -546,6 +546,58 @@
             @endif
         </div>
 
+        <!-- Module Distribution with Priority Breakdown (List) -->
+        <div class="chart-container">
+            <div class="chart-title">
+                <i class="fa fa-list-alt text-gray-500"></i>
+                <span>By Module</span>
+            </div>
+
+            @if(count($moduleData) > 0)
+                @php
+                    $moduleColors = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#6366F1', '#14B8A6', '#F97316', '#06B6D4'];
+                @endphp
+                <div class="priority-list">
+                    @foreach($moduleData as $index => $item)
+                        @php $moduleColor = $moduleColors[$index % count($moduleColors)]; @endphp
+                        <div class="priority-item" x-data="{ showBreakdown: false }" style="border-left: 4px solid {{ $moduleColor }};">
+                            <div class="priority-header cursor-pointer" @click="showBreakdown = !showBreakdown">
+                                <span class="flex items-center gap-2">
+                                    <svg class="w-4 h-4 transition-transform text-gray-400" :class="showBreakdown ? 'rotate-90' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                                    </svg>
+                                    <span class="font-medium text-gray-700">{{ $item['name'] }}</span>
+                                </span>
+                                <span class="font-semibold text-gray-900">{{ $item['count'] }}</span>
+                            </div>
+                            <!-- Priority Breakdown Details (expandable) -->
+                            <div x-show="showBreakdown" x-collapse class="module-breakdown">
+                                @if(!empty($item['breakdown']))
+                                    @foreach($item['breakdown'] as $priority)
+                                        <div class="module-item cursor-pointer hover:bg-gray-100 transition-colors"
+                                             wire:click="openModuleBarSlideOver({{ $item['id'] }}, {{ $priority['priority_id'] }})">
+                                            <span class="flex items-center gap-2">
+                                                <span class="w-3 h-3 rounded-sm flex-shrink-0" style="background-color: {{ $priority['color'] }};"></span>
+                                                <span class="text-gray-600">{{ $priority['name'] }}</span>
+                                            </span>
+                                            <span class="flex items-center gap-2">
+                                                <span class="font-semibold text-gray-800">{{ $priority['count'] }}</span>
+                                                <span class="text-gray-500 text-sm">({{ $priority['percentage'] }}%)</span>
+                                            </span>
+                                        </div>
+                                    @endforeach
+                                @endif
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            @else
+                <div class="flex items-center justify-center h-48 text-gray-500">
+                    No module data available
+                </div>
+            @endif
+        </div>
+
         {{-- Resolution Time Trend - HIDDEN
         <!-- Resolution Time Trend (Line Chart) - Full Width -->
         <div class="chart-container full-width-chart">
