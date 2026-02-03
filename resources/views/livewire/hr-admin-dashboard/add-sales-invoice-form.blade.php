@@ -52,11 +52,6 @@
                                     class="form-radio h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500" />
                                 <span class="ml-2 text-sm text-gray-700">Normal</span>
                             </label>
-                            <label class="inline-flex items-center cursor-pointer">
-                                <input type="radio" wire:model="invoiceType" value="free_device_campaign"
-                                    class="form-radio h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500" />
-                                <span class="ml-2 text-sm text-gray-700">Free Device Campaign</span>
-                            </label>
                         </div>
                         @error('invoiceType') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
                     </div>
@@ -113,17 +108,22 @@
                             <tr class="bg-gray-50 border-b border-gray-200">
                                 <th style="width: 24%;" class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Item Name</th>
                                 <th style="width: 8%;" class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Unit(s)</th>
-                                <th style="width: 14%;" class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Unit Price
-                                    <select wire:model="orderItems.0.currency" class="ml-1 text-xs border-gray-300 rounded py-0 px-1 inline-block" style="font-size: 10px;">
-                                        <option value="MYR">MYR</option>
-                                        <option value="USD">USD</option>
-                                    </select>
+                                <th style="width: 10%;" class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <div class="flex items-center justify-center gap-1">
+                                        <span>Unit Price</span>
+                                        <select wire:model="currency" class="text-xs border border-gray-300 rounded py-0.5 pl-2 pr-6 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 appearance-none bg-no-repeat" style="font-size: 11px; background-image: url('data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 fill=%27none%27 viewBox=%270 0 20 20%27%3E%3Cpath stroke=%27%236b7280%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27 stroke-width=%271.5%27 d=%27M6 8l4 4 4-4%27/%3E%3C/svg%3E'); background-position: right 0.25rem center; background-size: 1.25em 1.25em;">
+                                            <option value="MYR">MYR</option>
+                                            <option value="USD">USD</option>
+                                            <option value="SGD">SGD</option>
+                                            <option value="EUR">EUR</option>
+                                            <option value="GBP">GBP</option>
+                                        </select>
+                                    </div>
                                 </th>
                                 <th style="width: 14%;" class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">License Start Date</th>
                                 <th style="width: 14%;" class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">License End Date</th>
                                 <th style="width: 12%;" class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Billing Cycle</th>
-                                <th style="width: 7%;" class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Discount</th>
+                                <th style="width: 11%;" class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Discount</th>
                                 <th style="width: 10%;" class="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Total Price</th>
                             </tr>
                         </thead>
@@ -139,7 +139,7 @@
                                     <td class="px-3 py-2">
                                         <input type="number"
                                             wire:model.live.debounce.500ms="orderItems.{{ $index }}.units"
-                                            class="w-full px-2 py-1 text-center text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                                            class="w-full px-2 py-1 text-center text-sm border border-gray-200 rounded-md bg-white hover:border-gray-300 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
                                             min="0" />
                                     </td>
 
@@ -147,32 +147,35 @@
                                     <td class="px-3 py-2">
                                         <input type="number" step="0.01"
                                             wire:model.live.debounce.500ms="orderItems.{{ $index }}.unit_price"
-                                            class="w-full px-2 py-1 text-center text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                                            class="w-full px-2 py-1 text-center text-sm border border-gray-200 rounded-md bg-white hover:border-gray-300 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
                                             min="0" />
                                     </td>
 
                                     {{-- License Start Date --}}
                                     <td class="px-3 py-2">
                                         <input type="date"
-                                            wire:model="orderItems.{{ $index }}.license_start_date"
-                                            class="w-full px-2 py-1 text-center text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500" />
+                                            wire:model.live="orderItems.{{ $index }}.license_start_date"
+                                            class="w-full px-2 py-1 text-center text-sm border border-gray-200 rounded-md bg-white hover:border-gray-300 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors" />
                                     </td>
 
                                     {{-- License End Date --}}
                                     <td class="px-3 py-2">
                                         <input type="date"
                                             wire:model="orderItems.{{ $index }}.license_end_date"
-                                            class="w-full px-2 py-1 text-center text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500" />
+                                            class="w-full px-2 py-1 text-center text-sm border border-gray-200 rounded-md bg-gray-50 text-gray-500 cursor-not-allowed" readonly />
                                     </td>
 
                                     {{-- Billing Cycle --}}
                                     <td class="px-3 py-2">
                                         <select wire:model.live="orderItems.{{ $index }}.billing_cycle"
-                                            class="w-full px-2 py-1 text-center text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500">
+                                            class="w-full px-2 py-1 text-center text-sm border border-gray-200 rounded-md bg-white hover:border-gray-300 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors cursor-pointer">
                                             <option value="1">1 Month</option>
                                             <option value="3">3 Months</option>
                                             <option value="6">6 Months</option>
                                             <option value="12">12 Months</option>
+                                            <option value="24">24 Months</option>
+                                            <option value="36">36 Months</option>
+                                            <option value="48">48 Months</option>
                                         </select>
                                     </td>
 
@@ -180,10 +183,11 @@
                                     <td class="px-3 py-2">
                                         <div class="flex items-center">
                                             <input type="number" step="0.01"
-                                                wire:model.live.debounce.500ms="orderItems.{{ $index }}.discount"
-                                                class="w-full px-2 py-1 text-center text-sm border border-gray-300 rounded-l focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                                                min="0" max="100" />
-                                            <span class="px-2 py-1 bg-gray-100 border border-l-0 border-gray-300 rounded-r text-sm text-gray-500">%</span>
+                                                wire:model.blur="orderItems.{{ $index }}.discount"
+                                                class="w-full px-2 py-1 text-center text-sm border border-gray-200 rounded-l-md bg-white hover:border-gray-300 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+                                                min="0" max="100"
+                                                placeholder="0.00" />
+                                            <span class="px-2 py-1 bg-gray-100 border border-l-0 border-gray-200 rounded-r-md text-sm text-gray-500">%</span>
                                         </div>
                                     </td>
 
@@ -207,7 +211,7 @@
         <div class="bg-white rounded-lg shadow mb-6">
             <div class="px-6 py-5">
                 <div class="flex justify-end">
-                    <div style="width: 400px;">
+                    <div style="width: 600px;">
                         <table class="w-full">
                             {{-- Discount --}}
                             <tr>
@@ -215,10 +219,11 @@
                                     DISCOUNT
                                     <div class="inline-flex items-center ml-2">
                                         <input type="number" step="0.01"
-                                            wire:model.live.debounce.500ms="discountPercent"
-                                            class="w-16 px-2 py-1 text-center text-sm border border-gray-300 rounded-l focus:outline-none focus:ring-1 focus:ring-blue-500"
-                                            min="0" max="100" />
-                                        <span class="px-2 py-1 bg-gray-100 border border-l-0 border-gray-300 rounded-r text-sm text-gray-500">%</span>
+                                            wire:model.blur="discountPercent"
+                                            class="w-16 px-2 py-1 text-center text-sm border border-gray-200 rounded-l-md bg-white hover:border-gray-300 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+                                            min="0" max="100"
+                                            placeholder="0.00" />
+                                        <span class="px-2 py-1 bg-gray-100 border border-l-0 border-gray-200 rounded-r-md text-sm text-gray-500">%</span>
                                     </div>
                                 </td>
                                 <td class="py-2 text-right text-sm text-gray-900 font-medium">
@@ -241,9 +246,9 @@
                                     <div class="inline-flex items-center ml-2">
                                         <input type="number" step="0.01"
                                             wire:model.live.debounce.500ms="taxPercent"
-                                            class="w-16 px-2 py-1 text-center text-sm border border-gray-300 rounded-l focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                            class="w-16 px-2 py-1 text-center text-sm border border-gray-200 rounded-l-md bg-white hover:border-gray-300 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
                                             min="0" max="100" />
-                                        <span class="px-2 py-1 bg-gray-100 border border-l-0 border-gray-300 rounded-r text-sm text-gray-500">%</span>
+                                        <span class="px-2 py-1 bg-gray-100 border border-l-0 border-gray-200 rounded-r-md text-sm text-gray-500">%</span>
                                     </div>
                                 </td>
                                 <td class="py-2 text-right text-sm text-gray-900 font-medium">

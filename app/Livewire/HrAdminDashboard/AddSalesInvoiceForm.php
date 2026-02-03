@@ -35,6 +35,9 @@ class AddSalesInvoiceForm extends Component
     public $discountPercent = 0;
     public $taxPercent = 8;
 
+    // Currency
+    public string $currency = 'MYR';
+
     public function mount(?int $softwareHandoverId = null): void
     {
         $this->softwareHandoverId = $softwareHandoverId;
@@ -99,8 +102,12 @@ class AddSalesInvoiceForm extends Component
             ['name' => 'TimeTec Claim (1 User License)', 'unit_price' => 5.00],
             ['name' => 'TimeTec Payroll (1 Payroll License)', 'unit_price' => 5.00],
             ['name' => 'TimeTec Appraisal (1 User License)', 'unit_price' => 5.00],
-            ['name' => 'TimeTec Profile (1 User License)', 'unit_price' => 5.00],
         ];
+
+        $today = Carbon::today();
+        $todayFormatted = $today->format('Y-m-d');
+        // Default end date: start date + 1 month - 1 day (for default billing cycle of 1 month)
+        $endDateFormatted = $today->copy()->addMonth()->subDay()->format('Y-m-d');
 
         $this->orderItems = [];
         foreach ($products as $product) {
@@ -109,8 +116,8 @@ class AddSalesInvoiceForm extends Component
                 'units' => 0,
                 'unit_price' => $product['unit_price'],
                 'currency' => 'MYR',
-                'license_start_date' => '',
-                'license_end_date' => '',
+                'license_start_date' => $todayFormatted,
+                'license_end_date' => $endDateFormatted,
                 'billing_cycle' => '1',
                 'discount' => 0,
                 'total_price' => 0.00,
@@ -121,6 +128,7 @@ class AddSalesInvoiceForm extends Component
     public function updatedOrderItems(): void
     {
         $this->recalculateItemTotals();
+        $this->recalculateEndDates();
     }
 
     public function recalculateItemTotals(): void
@@ -129,12 +137,40 @@ class AddSalesInvoiceForm extends Component
             $units = (float) ($item['units'] ?? 0);
             $unitPrice = (float) ($item['unit_price'] ?? 0);
             $billingCycleMonths = (int) ($item['billing_cycle'] ?? 1);
+
+            // Sanitize discount: clamp between 0-100, round to 2 decimal places
             $discount = (float) ($item['discount'] ?? 0);
+            $discount = max(0, min(100, $discount));
+            $discount = round($discount, 2);
+            $this->orderItems[$index]['discount'] = $discount;
 
             $subtotal = $units * $unitPrice * $billingCycleMonths;
             $discountAmount = $subtotal * ($discount / 100);
             $this->orderItems[$index]['total_price'] = round($subtotal - $discountAmount, 2);
         }
+    }
+
+    public function recalculateEndDates(): void
+    {
+        foreach ($this->orderItems as $index => $item) {
+            $startDate = $item['license_start_date'] ?? '';
+            $billingCycleMonths = (int) ($item['billing_cycle'] ?? 1);
+
+            if (!empty($startDate)) {
+                try {
+                    $endDate = Carbon::parse($startDate)->addMonths($billingCycleMonths)->subDay()->format('Y-m-d');
+                    $this->orderItems[$index]['license_end_date'] = $endDate;
+                } catch (\Exception $e) {
+                    $this->orderItems[$index]['license_end_date'] = '';
+                }
+            }
+        }
+    }
+
+    public function updatedDiscountPercent($value): void
+    {
+        // Sanitize discount: clamp between 0-100, round to 2 decimal places
+        $this->discountPercent = max(0, min(100, round((float) $value, 2)));
     }
 
     #[Computed]

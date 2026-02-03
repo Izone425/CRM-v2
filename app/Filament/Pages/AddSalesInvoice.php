@@ -27,10 +27,6 @@ class AddSalesInvoice extends Page
 
     public function getBreadcrumbs(): array
     {
-        return [
-            url('/admin/hr-license') => 'All Licenses',
-            url('/admin/hr-company-license-details?softwareHandoverId=' . $this->softwareHandoverId) => 'Company Details',
-            '#' => 'Add Sales Invoice',
-        ];
+        return [];
     }
 }
