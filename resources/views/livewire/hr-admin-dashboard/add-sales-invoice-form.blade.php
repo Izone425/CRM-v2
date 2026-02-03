@@ -3,7 +3,7 @@
         {{-- ======================================== --}}
         {{-- CUSTOMER INFORMATION SECTION --}}
         {{-- ======================================== --}}
-        <div class="bg-white rounded-lg shadow mb-6">
+        <div class="bg-white rounded-lg shadow mb-16">
             <div class="bg-gray-100 px-6 py-3 rounded-t-lg border-b border-gray-200">
                 <h3 class="text-base font-semibold text-gray-800">Customer Information</h3>
             </div>
@@ -94,10 +94,13 @@
             </div>
         </div>
 
+        {{-- Section Spacer --}}
+        <div class="h-4"></div>
+
         {{-- ======================================== --}}
         {{-- ORDER SECTION --}}
         {{-- ======================================== --}}
-        <div class="bg-white rounded-lg shadow mb-6">
+        <div class="bg-white rounded-lg shadow mb-12">
             <div class="bg-gray-100 px-6 py-3 rounded-t-lg border-b border-gray-200">
                 <h3 class="text-base font-semibold text-gray-800">Order</h3>
             </div>
@@ -277,16 +280,19 @@
             </div>
         </div>
 
+        {{-- Section Spacer --}}
+        <div class="h-4"></div>
+
         {{-- ======================================== --}}
         {{-- ACTION BUTTONS --}}
         {{-- ======================================== --}}
         <div class="flex justify-end gap-3">
             <button type="button" wire:click="goBack"
-                class="inline-flex items-center px-6 py-2.5 text-sm font-medium text-black bg-blue-600 border border-solid rounded-md shadow-sm hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors">
+                class="inline-flex items-center px-6 py-2.5 text-sm font-medium text-gray-700 bg-sky-100 border border-sky-200 rounded-md shadow-sm hover:bg-red-500 hover:text-white hover:border-red-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors">
                 Back
             </button>
             <button type="submit"
-                class="inline-flex items-center px-6 py-2.5 text-sm font-medium text-black bg-blue-600 border border-solid rounded-md shadow-sm hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors">
+                class="inline-flex items-center px-6 py-2.5 text-sm font-medium text-gray-700 bg-sky-100 border border-sky-200 rounded-md shadow-sm hover:bg-green-500 hover:text-white hover:border-green-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors">
                 Create Invoice
             </button>
         </div>
