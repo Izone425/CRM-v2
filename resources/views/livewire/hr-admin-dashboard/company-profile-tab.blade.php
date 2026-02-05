@@ -593,6 +593,28 @@
         @endif
     </div>
 
+    {{-- Upline Information (only for companies under a parent reseller/distributor) --}}
+    @if(!empty($companyData['upline_info']))
+        <div class="mt-6 p-4 bg-black rounded-lg border border-gray-200 shadow-sm">
+            <h4 class="text-sm font-semibold text-gray-900 uppercase tracking-wider flex items-center mb-4">
+                <svg class="w-5 h-5 mr-2 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                </svg>
+                Upline Information
+            </h4>
+            <div class="flex items-center">
+                <span class="text-sm text-gray-600">Dealer:</span>
+                <a href="{{ url('/admin/hr-company-license-details?' . http_build_query(['softwareHandoverId' => $companyData['upline_info']['software_handover_id']])) }}"
+                   class="text-sm text-blue-600 hover:text-blue-800 hover:underline font-medium ml-6">
+                    {{ $companyData['upline_info']['name'] }}
+                </a>
+                @if($companyData['upline_info']['commission_rate'] !== null)
+                    <span class="text-sm text-gray-700 ml-1">({{ number_format($companyData['upline_info']['commission_rate'], 2) }})</span>
+                @endif
+            </div>
+        </div>
+    @endif
+
     {{-- Payment Information Section --}}
     <div class="mt-6 p-4 bg-white rounded-lg border border-gray-200 shadow-sm">
         <div class="flex justify-between items-center mb-4">

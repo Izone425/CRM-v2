@@ -3,6 +3,7 @@
 namespace App\Livewire\HrAdminDashboard;
 
 use App\Models\HrLicense;
+use App\Models\SoftwareHandover;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 use Livewire\Component;
@@ -153,17 +154,17 @@ class CompanyCustomerTab extends Component
 
     protected function appendDummyRecords(): void
     {
+        // Fetch real SoftwareHandover records for clickable navigation
+        $realSwRecords = SoftwareHandover::where('id', '!=', $this->softwareHandoverId ?? 0)
+            ->select('id', 'hr_account_id')
+            ->take(4)
+            ->get();
+
+        // ABC Technology is now a real DB record (loaded via loadCustomers), so only add other dummy records
         $dummyResellers = [
             [
-                'id' => 'RS-001',
-                'software_handover_id' => null,
-                'name' => 'ABC Technology Sdn Bhd',
-                'joined_date' => '15-01-2025',
-                'status' => 'Active',
-            ],
-            [
-                'id' => 'RS-002',
-                'software_handover_id' => null,
+                'id' => $realSwRecords[0]->hr_account_id ?? 'RS-002',
+                'software_handover_id' => $realSwRecords[0]->id ?? null,
                 'name' => 'XYZ Solutions Pte Ltd',
                 'joined_date' => '20-06-2024',
                 'status' => 'Inactive',
@@ -172,22 +173,22 @@ class CompanyCustomerTab extends Component
 
         $dummySubscribers = [
             [
-                'id' => 'CU-001',
-                'software_handover_id' => null,
+                'id' => $realSwRecords[1]->hr_account_id ?? 'CU-001',
+                'software_handover_id' => $realSwRecords[1]->id ?? null,
                 'name' => 'Global Manufacturing Sdn Bhd',
                 'joined_date' => '10-03-2025',
                 'status' => 'Active',
             ],
             [
-                'id' => 'CU-002',
-                'software_handover_id' => null,
+                'id' => $realSwRecords[2]->hr_account_id ?? 'CU-002',
+                'software_handover_id' => $realSwRecords[2]->id ?? null,
                 'name' => 'Metro Services Pte Ltd',
                 'joined_date' => '05-08-2024',
                 'status' => 'Active',
             ],
             [
-                'id' => 'CU-003',
-                'software_handover_id' => null,
+                'id' => $realSwRecords[3]->hr_account_id ?? 'CU-003',
+                'software_handover_id' => $realSwRecords[3]->id ?? null,
                 'name' => 'Pinnacle Trading Co.',
                 'joined_date' => '22-11-2024',
                 'status' => 'Inactive',
@@ -198,7 +199,6 @@ class CompanyCustomerTab extends Component
         $this->subscribers = array_merge($this->subscribers, $dummySubscribers);
 
         // Update badge counts to include dummy records
-        $this->resellerActiveCount += 1;
         $this->resellerInactiveCount += 1;
         $this->subscriberActiveCount += 2;
         $this->subscriberInactiveCount += 1;

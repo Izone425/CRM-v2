@@ -3,6 +3,7 @@
 namespace App\Livewire\HrAdminDashboard;
 
 use App\Models\HrLicense;
+use App\Models\Reseller;
 use App\Models\SoftwareHandover;
 use App\Models\CompanyDetail;
 use App\Models\ResellerV2;
@@ -62,6 +63,31 @@ class CompanyLicenseDetailsContainer extends Component
                 ->first();
         }
 
+        // Build upline info for Reseller/Subscriber companies
+        $uplineInfo = null;
+        if ($softwareHandover && $softwareHandover->reseller_id) {
+            $parentReseller = Reseller::find($softwareHandover->reseller_id);
+            if ($parentReseller) {
+                // Find the parent Distributor's HrLicense via reseller_id relationship
+                $parentLicense = HrLicense::where('license_category', 'Distributor')
+                    ->whereHas('softwareHandover', function ($q) use ($softwareHandover) {
+                        $q->where('reseller_id', $softwareHandover->reseller_id);
+                    })
+                    ->where('software_handover_id', '!=', $this->softwareHandoverId)
+                    ->first();
+                $parentSwId = $parentLicense?->software_handover_id;
+
+                // Only show upline if parent is a different company
+                if ($parentSwId) {
+                    $uplineInfo = [
+                        'name' => $parentReseller->company_name,
+                        'software_handover_id' => $parentSwId,
+                        'commission_rate' => $resellerV2?->commission_rate,
+                    ];
+                }
+            }
+        }
+
         // Build company data context
         $this->companyData = [
             'software_handover' => $softwareHandover,
@@ -77,6 +103,7 @@ class CompanyLicenseDetailsContainer extends Component
             'hr_user_id' => $softwareHandover?->hr_user_id,
             'license_category' => $hrLicense?->license_category ?? 'Subscriber',
             'reseller_v2' => $resellerV2,
+            'upline_info' => $uplineInfo,
         ];
     }
 
