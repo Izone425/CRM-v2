@@ -1,5 +1,22 @@
 <div>
     <form wire:submit="createInvoice">
+        {{-- Validation Errors Summary --}}
+        @if ($errors->any())
+            <div class="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                <div class="flex items-center mb-2">
+                    <svg class="w-5 h-5 text-red-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <span class="text-sm font-medium text-red-800">Please fix the following errors:</span>
+                </div>
+                <ul class="list-disc list-inside text-sm text-red-700">
+                    @foreach ($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
+
         {{-- ======================================== --}}
         {{-- CUSTOMER INFORMATION SECTION --}}
         {{-- ======================================== --}}
@@ -292,8 +309,17 @@
                 Back
             </button>
             <button type="submit"
+                wire:loading.attr="disabled"
+                wire:loading.class="opacity-50 cursor-wait"
                 class="inline-flex items-center px-6 py-2.5 text-sm font-medium text-gray-700 bg-sky-100 border border-sky-200 rounded-md shadow-sm hover:bg-green-500 hover:text-white hover:border-green-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors">
-                Create Invoice
+                <span wire:loading.remove wire:target="createInvoice">Create Invoice</span>
+                <span wire:loading wire:target="createInvoice" class="inline-flex items-center">
+                    <svg class="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Creating...
+                </span>
             </button>
         </div>
     </form>

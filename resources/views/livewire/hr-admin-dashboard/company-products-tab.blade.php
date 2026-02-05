@@ -296,8 +296,7 @@
                                 </span>
                             </td>
                             <td class="px-3 py-2 text-xs text-gray-600">
-                                <a href="{{ route('pdf.license-proforma-invoice', ['softwareHandover' => $softwareHandoverId, 'invoiceNo' => $group['invoice_no']]) }}"
-                                   target="_blank"
+                                <a href="{{ url('/admin/view-sales-invoice?invoiceNo=' . $group['invoice_no'] . '&softwareHandoverId=' . $softwareHandoverId) }}"
                                    @click.stop
                                    class="font-semibold text-blue-600 underline hover:text-blue-800 cursor-pointer">
                                     {{ $group['invoice_no'] }}

@@ -51,21 +51,21 @@
             <span class="text-sm text-green-600 font-medium">Active: {{ $resellerActiveCount }}</span>
             <span class="text-sm text-gray-500">| Inactive: {{ $resellerInactiveCount }}</span>
         </div>
-
+<div class="h-4"></div>
         <div class="overflow-x-auto border border-gray-200 rounded-lg">
-            <table class="w-full divide-y divide-gray-200">
+            <table class="w-full divide-y divide-gray-200 table-fixed">
                 <thead class="bg-gray-100">
                     <tr>
-                        <th class="px-4 py-2.5 text-left text-xs font-semibold text-gray-700 tracking-wider">
+                        <th style="width: 15%;" class="px-4 py-2.5 text-left text-xs font-semibold text-gray-700 tracking-wider">
                             Reseller Id
                         </th>
-                        <th class="px-4 py-2.5 text-left text-xs font-semibold text-gray-700 tracking-wider">
+                        <th style="width: 40%;" class="px-4 py-2.5 text-left text-xs font-semibold text-gray-700 tracking-wider">
                             Reseller Name
                         </th>
-                        <th class="px-4 py-2.5 text-center text-xs font-semibold text-gray-700 tracking-wider">
+                        <th style="width: 25%;" class="px-4 py-2.5 text-center text-xs font-semibold text-gray-700 tracking-wider">
                             Joined Date
                         </th>
-                        <th class="px-4 py-2.5 text-center text-xs font-semibold text-gray-700 tracking-wider">
+                        <th style="width: 20%;" class="px-4 py-2.5 text-center text-xs font-semibold text-gray-700 tracking-wider">
                             Status
                         </th>
                     </tr>
@@ -108,7 +108,7 @@
             </table>
         </div>
     </div>
-
+<div class="h-4"></div>
     {{-- Customers (Subscriber) Section --}}
     <div>
         <div class="flex items-center gap-3 mb-3">
@@ -116,25 +116,26 @@
             <span class="text-sm text-green-600 font-medium">Active: {{ $subscriberActiveCount }}</span>
             <span class="text-sm text-gray-500">| Inactive: {{ $subscriberInactiveCount }}</span>
         </div>
-
+<div class="h-4"></div>
         <div class="overflow-x-auto border border-gray-200 rounded-lg">
-            <table class="w-full divide-y divide-gray-200">
+            <table class="w-full divide-y divide-gray-200 table-fixed">
                 <thead class="bg-gray-100">
                     <tr>
-                        <th class="px-4 py-2.5 text-left text-xs font-semibold text-gray-700 tracking-wider">
+                        <th style="width: 15%;" class="px-4 py-2.5 text-left text-xs font-semibold text-gray-700 tracking-wider">
                             Customer Id
                         </th>
-                        <th class="px-4 py-2.5 text-left text-xs font-semibold text-gray-700 tracking-wider">
+                        <th style="width: 40%;" class="px-4 py-2.5 text-left text-xs font-semibold text-gray-700 tracking-wider">
                             Customer Name
                         </th>
-                        <th class="px-4 py-2.5 text-center text-xs font-semibold text-gray-700 tracking-wider">
+                        <th style="width: 25%;" class="px-4 py-2.5 text-center text-xs font-semibold text-gray-700 tracking-wider">
                             Joined Date
                         </th>
-                        <th class="px-4 py-2.5 text-center text-xs font-semibold text-gray-700 tracking-wider">
+                        <th style="width: 20%;" class="px-4 py-2.5 text-center text-xs font-semibold text-gray-700 tracking-wider">
                             Status
                         </th>
                     </tr>
                 </thead>
+                
                 <tbody class="bg-white divide-y divide-gray-200">
                     @forelse($subscribers as $index => $subscriber)
                         <tr class="{{ $index % 2 === 0 ? 'bg-white' : 'bg-gray-50' }} hover:bg-gray-100">

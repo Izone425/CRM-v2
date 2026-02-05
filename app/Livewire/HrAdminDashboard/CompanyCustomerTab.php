@@ -42,6 +42,7 @@ class CompanyCustomerTab extends Component
         if (!$softwareHandover || !$softwareHandover->reseller_id) {
             $this->resellers = [];
             $this->subscribers = [];
+            $this->appendDummyRecords();
             return;
         }
 
@@ -122,6 +123,8 @@ class CompanyCustomerTab extends Component
             $this->resellers = [];
             $this->subscribers = [];
         }
+
+        $this->appendDummyRecords();
     }
 
     protected function computeCounts(int $resellerId, int $currentSwId): void
@@ -146,6 +149,59 @@ class CompanyCustomerTab extends Component
         $this->resellerInactiveCount = (int) ($resellerCounts->inactive_count ?? 0);
         $this->subscriberActiveCount = (int) ($subscriberCounts->active_count ?? 0);
         $this->subscriberInactiveCount = (int) ($subscriberCounts->inactive_count ?? 0);
+    }
+
+    protected function appendDummyRecords(): void
+    {
+        $dummyResellers = [
+            [
+                'id' => 'RS-001',
+                'software_handover_id' => null,
+                'name' => 'ABC Technology Sdn Bhd',
+                'joined_date' => '15-01-2025',
+                'status' => 'Active',
+            ],
+            [
+                'id' => 'RS-002',
+                'software_handover_id' => null,
+                'name' => 'XYZ Solutions Pte Ltd',
+                'joined_date' => '20-06-2024',
+                'status' => 'Inactive',
+            ],
+        ];
+
+        $dummySubscribers = [
+            [
+                'id' => 'CU-001',
+                'software_handover_id' => null,
+                'name' => 'Global Manufacturing Sdn Bhd',
+                'joined_date' => '10-03-2025',
+                'status' => 'Active',
+            ],
+            [
+                'id' => 'CU-002',
+                'software_handover_id' => null,
+                'name' => 'Metro Services Pte Ltd',
+                'joined_date' => '05-08-2024',
+                'status' => 'Active',
+            ],
+            [
+                'id' => 'CU-003',
+                'software_handover_id' => null,
+                'name' => 'Pinnacle Trading Co.',
+                'joined_date' => '22-11-2024',
+                'status' => 'Inactive',
+            ],
+        ];
+
+        $this->resellers = array_merge($this->resellers, $dummyResellers);
+        $this->subscribers = array_merge($this->subscribers, $dummySubscribers);
+
+        // Update badge counts to include dummy records
+        $this->resellerActiveCount += 1;
+        $this->resellerInactiveCount += 1;
+        $this->subscriberActiveCount += 2;
+        $this->subscriberInactiveCount += 1;
     }
 
     public function searchCustomers(): void

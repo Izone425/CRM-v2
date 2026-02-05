@@ -216,8 +216,17 @@ class AddSalesInvoiceForm extends Component
             'invoiceDate' => 'required|date',
             'invoiceTitle' => 'required|string|max:255',
             'invoiceType' => 'required|in:normal,free_device_campaign',
+            'companyAddress' => 'required|string',
             'mobilePhone' => 'required|string',
             'billingInformation' => 'required|string',
+        ], [
+            'selectedCustomer.required' => 'Please select a customer.',
+            'invoiceDate.required' => 'Invoice date is required.',
+            'invoiceTitle.required' => 'Invoice title is required.',
+            'invoiceType.required' => 'Please select an invoice type.',
+            'companyAddress.required' => 'Company address is required.',
+            'mobilePhone.required' => 'Mobile phone is required.',
+            'billingInformation.required' => 'Please select billing information.',
         ]);
 
         // Ensure at least one item has units > 0
@@ -278,14 +287,14 @@ class AddSalesInvoiceForm extends Component
                 ]);
             }
 
-            // Redirect back to company license details with success message
+            // Redirect to view the created invoice
             session()->flash('notify', [
                 'type' => 'success',
                 'message' => 'Sales invoice created successfully.',
             ]);
 
             $this->redirect(
-                url('/admin/hr-company-license-details?softwareHandoverId=' . $this->softwareHandoverId),
+                url('/admin/view-sales-invoice?quotationId=' . $quotation->id . '&softwareHandoverId=' . $this->softwareHandoverId),
                 navigate: false
             );
         } catch (\Exception $e) {

@@ -91,23 +91,26 @@
             <table class="w-full divide-y divide-gray-200 table-fixed">
                 <thead class="bg-gray-500">
                     <tr>
-                        <th scope="col" class="w-[15%] px-3 py-2.5 text-center text-xs font-medium text-black tracking-wider">
+                        <th scope="col" class="w-[14%] px-3 py-2.5 text-center text-xs font-medium text-black tracking-wider">
                             Invoice No
                         </th>
-                        <th scope="col" class="w-[12%] px-3 py-2.5 text-center text-xs font-medium text-black tracking-wider">
+                        <th scope="col" class="w-[11%] px-3 py-2.5 text-center text-xs font-medium text-black tracking-wider">
                             Invoice Date
                         </th>
-                        <th scope="col" class="w-[12%] px-3 py-2.5 text-center text-xs font-medium text-black tracking-wider">
+                        <th scope="col" class="w-[11%] px-3 py-2.5 text-center text-xs font-medium text-black tracking-wider">
                             Due Date
                         </th>
-                        <th scope="col" class="w-[31%] px-3 py-2.5 text-center text-xs font-medium text-black tracking-wider">
+                        <th scope="col" class="w-[26%] px-3 py-2.5 text-center text-xs font-medium text-black tracking-wider">
                             Description
                         </th>
-                        <th scope="col" class="w-[15%] px-3 py-2.5 text-center text-xs font-medium text-black tracking-wider">
+                        <th scope="col" class="w-[13%] px-3 py-2.5 text-center text-xs font-medium text-black tracking-wider">
                             Total
                         </th>
-                        <th scope="col" class="w-[15%] px-3 py-2.5 text-center text-xs font-medium text-black tracking-wider">
+                        <th scope="col" class="w-[12%] px-3 py-2.5 text-center text-xs font-medium text-black tracking-wider">
                             Status
+                        </th>
+                        <th scope="col" class="w-[13%] px-3 py-2.5 text-center text-xs font-medium text-black tracking-wider">
+                            Action
                         </th>
                     </tr>
                 </thead>
@@ -143,10 +146,26 @@
                                     <span class="text-sm font-semibold text-yellow-600">{{ ucfirst($invoice['status'] ?? 'Pending') }}</span>
                                 @endif
                             </td>
+                            <td class="px-3 py-2.5 whitespace-nowrap text-center">
+                                @if(!empty($invoice['quotation_id']))
+                                    <button
+                                        wire:click="viewInvoice({{ $invoice['quotation_id'] }})"
+                                        class="inline-flex items-center px-3 py-1 text-xs font-medium text-white bg-blue-500 rounded hover:bg-blue-600 transition-colors"
+                                    >
+                                        <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                        </svg>
+                                        View
+                                    </button>
+                                @else
+                                    <span class="text-gray-400 text-xs">-</span>
+                                @endif
+                            </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" class="px-3 py-8 text-center">
+                            <td colspan="7" class="px-3 py-8 text-center">
                                 <div class="flex flex-col items-center">
                                     <svg class="w-10 h-10 text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>

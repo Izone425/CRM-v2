@@ -4,6 +4,8 @@ namespace App\Livewire\HrAdminDashboard;
 
 use App\Models\CrmHrdfInvoice;
 use App\Models\HrLicense;
+use App\Models\Quotation;
+use App\Models\SoftwareHandover;
 use App\Services\CRMApiService;
 use Illuminate\Support\Facades\Log;
 use Livewire\Component;
@@ -154,7 +156,13 @@ class CompanyInvoiceTab extends Component
         $this->isLocalData = true;
 
         try {
-            // First try CrmHrdfInvoice table
+            $allInvoices = [];
+
+            // First, load quotations (sales invoices created from AddSalesInvoiceForm)
+            $quotationInvoices = $this->getQuotationInvoices();
+            $allInvoices = array_merge($allInvoices, $quotationInvoices);
+
+            // Then try CrmHrdfInvoice table
             $query = CrmHrdfInvoice::where('handover_id', $this->softwareHandoverId)
                 ->where('handover_type', 'SW');
 
@@ -166,18 +174,13 @@ class CompanyInvoiceTab extends Component
                 });
             }
 
-            // Get total count
-            $this->totalRecords = $query->count();
+            $crmHrdfCount = $query->count();
 
-            if ($this->totalRecords > 0) {
-                // Paginate from CrmHrdfInvoice
-                $localInvoices = $query->orderBy('invoice_date', 'desc')
-                    ->skip(($this->currentPage - 1) * $this->perPage)
-                    ->take($this->perPage)
-                    ->get();
+            if ($crmHrdfCount > 0) {
+                $localInvoices = $query->orderBy('invoice_date', 'desc')->get();
 
                 // Map to expected format
-                $this->invoices = $localInvoices->map(function ($invoice) {
+                $crmInvoices = $localInvoices->map(function ($invoice) {
                     return [
                         'invoice_no' => $invoice->invoice_no,
                         'invoice_date' => $invoice->invoice_date?->format('Y-m-d'),
@@ -186,15 +189,41 @@ class CompanyInvoiceTab extends Component
                         'total' => (float) ($invoice->total_amount ?? 0),
                         'currency' => 'MYR',
                         'status' => 'Paid',
+                        'quotation_id' => null,
                     ];
                 })->toArray();
-            } else {
-                // Fallback to HrLicense table - group by invoice_no
-                $this->loadInvoicesFromHrLicense();
+
+                $allInvoices = array_merge($allInvoices, $crmInvoices);
             }
 
+            // If still no invoices, try HrLicense table
+            if (empty($allInvoices)) {
+                $hrLicenseInvoices = $this->getHrLicenseInvoices();
+                $allInvoices = array_merge($allInvoices, $hrLicenseInvoices);
+            }
+
+            // Apply search filter to quotation invoices if needed
+            if (!empty($this->search)) {
+                $searchLower = strtolower($this->search);
+                $allInvoices = array_filter($allInvoices, function ($invoice) use ($searchLower) {
+                    return str_contains(strtolower($invoice['invoice_no'] ?? ''), $searchLower)
+                        || str_contains(strtolower($invoice['description'] ?? ''), $searchLower);
+                });
+                $allInvoices = array_values($allInvoices);
+            }
+
+            // Sort by invoice_date descending
+            usort($allInvoices, function ($a, $b) {
+                return strtotime($b['invoice_date'] ?? '1970-01-01') - strtotime($a['invoice_date'] ?? '1970-01-01');
+            });
+
+            $this->totalRecords = count($allInvoices);
+
+            // Apply pagination
+            $offset = ($this->currentPage - 1) * $this->perPage;
+            $this->invoices = array_slice($allInvoices, $offset, $this->perPage);
+
             if (empty($this->invoices)) {
-                // No local records found either
                 $this->hasError = true;
                 $this->errorMessage = 'No invoice records found for this company.';
             }
@@ -210,31 +239,57 @@ class CompanyInvoiceTab extends Component
         }
     }
 
-    protected function loadInvoicesFromHrLicense(): void
+    protected function getQuotationInvoices(): array
     {
+        $invoices = [];
+
+        if (!$this->softwareHandoverId) {
+            return $invoices;
+        }
+
+        // Get lead_id from SoftwareHandover
+        $sw = SoftwareHandover::find($this->softwareHandoverId);
+        if (!$sw || !$sw->lead_id) {
+            return $invoices;
+        }
+
+        // Get quotations for this lead
+        $quotations = Quotation::with('items')
+            ->where('lead_id', $sw->lead_id)
+            ->orderBy('quotation_date', 'desc')
+            ->get();
+
+        foreach ($quotations as $quotation) {
+            $descriptions = $quotation->items->pluck('description')->filter()->unique()->implode(', ');
+            $totalAfterTax = $quotation->items->sum('total_after_tax');
+
+            $invoices[] = [
+                'invoice_no' => $quotation->quotation_reference_no ?? 'INV-' . str_pad($quotation->id, 6, '0', STR_PAD_LEFT),
+                'invoice_date' => $quotation->quotation_date?->format('Y-m-d'),
+                'due_date' => null,
+                'description' => $descriptions ?: 'TimeTec License Purchase',
+                'total' => round((float) $totalAfterTax, 2),
+                'currency' => $quotation->currency ?? 'MYR',
+                'status' => ucfirst($quotation->status?->value ?? 'new'),
+                'quotation_id' => $quotation->id,
+            ];
+        }
+
+        return $invoices;
+    }
+
+    protected function getHrLicenseInvoices(): array
+    {
+        $allInvoices = [];
+
         // Get all licenses with invoice_no for this handover
         $query = HrLicense::where('software_handover_id', $this->softwareHandoverId)
             ->whereNotNull('invoice_no')
             ->where('invoice_no', '!=', '');
 
-        // Apply search filter if provided
-        if (!empty($this->search)) {
-            $query->where(function ($q) {
-                $q->where('invoice_no', 'like', '%' . $this->search . '%')
-                  ->orWhere('license_type', 'like', '%' . $this->search . '%');
-            });
-        }
-
-        // Group by invoice_no and calculate totals
         $licenses = $query->get();
-
-        // Group licenses by invoice_no
         $grouped = $licenses->groupBy('invoice_no');
 
-        $this->totalRecords = $grouped->count();
-
-        // Build invoice data from grouped licenses
-        $allInvoices = [];
         foreach ($grouped as $invoiceNo => $licenseGroup) {
             $firstLicense = $licenseGroup->first();
             $totalAmount = 0;
@@ -260,17 +315,19 @@ class CompanyInvoiceTab extends Component
                 'total' => round($totalWithSst, 2),
                 'currency' => 'MYR',
                 'status' => 'Paid',
+                'quotation_id' => null,
             ];
         }
 
-        // Sort by invoice_date descending
-        usort($allInvoices, function ($a, $b) {
-            return strtotime($b['invoice_date'] ?? '1970-01-01') - strtotime($a['invoice_date'] ?? '1970-01-01');
-        });
+        return $allInvoices;
+    }
 
-        // Apply pagination
-        $offset = ($this->currentPage - 1) * $this->perPage;
-        $this->invoices = array_slice($allInvoices, $offset, $this->perPage);
+    public function viewInvoice(int $quotationId): void
+    {
+        $this->redirect(
+            url('/admin/view-sales-invoice?quotationId=' . $quotationId . '&softwareHandoverId=' . $this->softwareHandoverId),
+            navigate: false
+        );
     }
 
     protected function getLicensePrice(string $licenseType): float
