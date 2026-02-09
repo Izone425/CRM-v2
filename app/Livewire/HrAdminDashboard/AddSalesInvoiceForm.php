@@ -30,6 +30,7 @@ class AddSalesInvoiceForm extends Component
 
     // Order Items
     public array $orderItems = [];
+    public array $availableProducts = [];
 
     // Totals
     public $discountPercent = 0;
@@ -104,6 +105,8 @@ class AddSalesInvoiceForm extends Component
             ['name' => 'TimeTec Appraisal (1 User License)', 'unit_price' => 5.00],
         ];
 
+        $this->availableProducts = $products;
+
         $today = Carbon::today();
         $todayFormatted = $today->format('Y-m-d');
         // Default end date: start date + 1 month - 1 day (for default billing cycle of 1 month)
@@ -122,6 +125,45 @@ class AddSalesInvoiceForm extends Component
                 'discount' => 0,
                 'total_price' => 0.00,
             ];
+        }
+    }
+
+    public function addItemRow(): void
+    {
+        // Use dates from the first existing item so new rows match the form's configured dates
+        $firstItem = $this->orderItems[0] ?? null;
+        $startDate = $firstItem['license_start_date'] ?? Carbon::today()->format('Y-m-d');
+        $billingCycle = $firstItem['billing_cycle'] ?? '1';
+        $endDate = Carbon::parse($startDate)->addMonths((int) $billingCycle)->subDay()->format('Y-m-d');
+
+        $this->orderItems[] = [
+            'item_name' => '',
+            'units' => 0,
+            'unit_price' => 5.00,
+            'currency' => $firstItem['currency'] ?? 'MYR',
+            'license_start_date' => $startDate,
+            'license_end_date' => $endDate,
+            'billing_cycle' => $billingCycle,
+            'discount' => 0,
+            'total_price' => 0.00,
+        ];
+    }
+
+    public function updateItemProduct(int $index, string $productName): void
+    {
+        $product = collect($this->availableProducts)->firstWhere('name', $productName);
+        if ($product) {
+            $this->orderItems[$index]['unit_price'] = $product['unit_price'];
+        }
+        $this->recalculateItemTotals();
+    }
+
+    public function removeItemRow(int $index): void
+    {
+        if (count($this->orderItems) > 5) {
+            array_splice($this->orderItems, $index, 1);
+            $this->orderItems = array_values($this->orderItems);
+            $this->recalculateItemTotals();
         }
     }
 
@@ -216,16 +258,14 @@ class AddSalesInvoiceForm extends Component
             'invoiceDate' => 'required|date',
             'invoiceTitle' => 'required|string|max:255',
             'invoiceType' => 'required|in:normal,free_device_campaign',
-            'companyAddress' => 'required|string',
-            'mobilePhone' => 'required|string',
+            'companyAddress' => 'nullable|string',
+            'mobilePhone' => 'nullable|string',
             'billingInformation' => 'required|string',
         ], [
             'selectedCustomer.required' => 'Please select a customer.',
             'invoiceDate.required' => 'Invoice date is required.',
             'invoiceTitle.required' => 'Invoice title is required.',
             'invoiceType.required' => 'Please select an invoice type.',
-            'companyAddress.required' => 'Company address is required.',
-            'mobilePhone.required' => 'Mobile phone is required.',
             'billingInformation.required' => 'Please select billing information.',
         ]);
 
@@ -278,6 +318,8 @@ class AddSalesInvoiceForm extends Component
                     'description' => $item['item_name'],
                     'quantity' => $units,
                     'subscription_period' => $billingCycleMonths,
+                    'license_start_date' => $item['license_start_date'] ?? null,
+                    'license_end_date' => $item['license_end_date'] ?? null,
                     'unit_price' => $unitPrice,
                     'discount' => $discount,
                     'taxation' => $taxAmount,

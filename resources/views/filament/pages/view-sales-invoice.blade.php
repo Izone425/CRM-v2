@@ -4,6 +4,11 @@
             :quotation-id="$quotationId"
             :software-handover-id="$softwareHandoverId"
             :invoice-no="$invoiceNo"
+            :total="$total"
+            :currency="$currency"
+            :status="$status"
+            :invoice-date="$invoiceDate"
+            :due-date="$dueDate"
         />
     @else
         <div class="p-6 text-center bg-white rounded-lg shadow">

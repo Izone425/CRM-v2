@@ -76,7 +76,7 @@
                     {{-- Row 3: Company Address & Mobile Phone --}}
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">
-                            Company Address <span class="text-red-500">*</span>
+                            Company Address
                         </label>
                         <input type="text" wire:model="companyAddress"
                             class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
@@ -85,7 +85,7 @@
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">
-                            Mobile Phone <span class="text-red-500">*</span>
+                            Mobile Phone
                         </label>
                         <input type="text" wire:model="mobilePhone"
                             class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
@@ -126,7 +126,7 @@
                     <table class="w-full table-fixed border-collapse">
                         <thead>
                             <tr class="bg-gray-50 border-b border-gray-200">
-                                <th style="width: 24%;" class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Item Name</th>
+                                <th style="width: 21%;" class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Item Name</th>
                                 <th style="width: 8%;" class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Unit(s)</th>
                                 <th style="width: 10%;" class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     <div class="flex items-center justify-center gap-1">
@@ -145,6 +145,7 @@
                                 <th style="width: 12%;" class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Billing Cycle</th>
                                 <th style="width: 11%;" class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Discount</th>
                                 <th style="width: 10%;" class="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Total Price</th>
+                                <th style="width: 3%;" class="px-1 py-3"></th>
                             </tr>
                         </thead>
                         <tbody class="bg-white divide-y divide-gray-100">
@@ -152,7 +153,18 @@
                                 <tr class="hover:bg-gray-50">
                                     {{-- Item Name --}}
                                     <td class="px-3 py-2">
-                                        <span class="text-sm text-gray-900">{{ $item['item_name'] }}</span>
+                                        @if($index < 5)
+                                            <span class="text-sm text-gray-900">{{ $item['item_name'] }}</span>
+                                        @else
+                                            <select wire:model.live="orderItems.{{ $index }}.item_name"
+                                                wire:change="updateItemProduct({{ $index }}, $event.target.value)"
+                                                class="w-full px-2 py-1 text-sm border border-gray-200 rounded-md bg-white hover:border-gray-300 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors">
+                                                <option value="">-- Select Product --</option>
+                                                @foreach($availableProducts as $product)
+                                                    <option value="{{ $product['name'] }}">{{ $product['name'] }}</option>
+                                                @endforeach
+                                            </select>
+                                        @endif
                                     </td>
 
                                     {{-- Units --}}
@@ -217,10 +229,30 @@
                                             {{ number_format($item['total_price'], 2) }}
                                         </span>
                                     </td>
+
+                                    {{-- Action --}}
+                                    <td class="px-1 py-2 text-center">
+                                        @if($index >= 5)
+                                            <button type="button" wire:click="removeItemRow({{ $index }})"
+                                                class="w-6 h-6 rounded-full bg-red-100 text-red-600 hover:bg-red-200 text-sm font-bold leading-none"
+                                                title="Remove row">
+                                                &minus;
+                                            </button>
+                                        @endif
+                                    </td>
                                 </tr>
                             @endforeach
                         </tbody>
                     </table>
+                </div>
+                <div class="mt-3 flex justify-end">
+                    <button type="button" wire:click="addItemRow"
+                        class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 transition-colors">
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                        </svg>
+                        Add Item
+                    </button>
                 </div>
             </div>
         </div>

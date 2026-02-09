@@ -38,6 +38,24 @@
                 class="px-4 py-2 text-sm font-medium text-black bg-cyan-500 rounded hover:bg-cyan-600 transition-colors">
                 Print
             </button>
+            @if(strtolower($invoice['status'] ?? '') === 'pending')
+                <button class="px-4 py-2 text-sm font-medium text-black bg-green-600 rounded hover:bg-green-700 transition-colors">
+                    Add Payment
+                </button>
+                <button class="px-4 py-2 text-sm font-medium text-black bg-blue-600 rounded hover:bg-blue-700 transition-colors">
+                    Edit Invoice
+                </button>
+                <button class="px-4 py-2 text-sm font-medium text-black bg-red-600 rounded hover:bg-red-700 transition-colors">
+                    Cancel Invoice
+                </button>
+                <button class="px-4 py-2 text-sm font-medium text-black bg-gray-600 rounded hover:bg-gray-700 transition-colors">
+                    Copy Payment Link
+                </button>
+            @elseif(in_array(strtolower($invoice['status'] ?? ''), ['cancel', 'cancelled']))
+                <button class="px-4 py-2 text-sm font-medium text-black bg-green-600 rounded hover:bg-green-700 transition-colors">
+                    Reactive Invoice
+                </button>
+            @endif
         </div>
 
         {{-- Invoice Document --}}

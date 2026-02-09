@@ -13,6 +13,13 @@ class ViewSalesInvoice extends Component
     public ?int $softwareHandoverId = null;
     public ?string $invoiceNo = null;
 
+    // Extra params for dummy invoices
+    public ?float $paramTotal = null;
+    public ?string $paramCurrency = null;
+    public ?string $paramStatus = null;
+    public ?string $paramInvoiceDate = null;
+    public ?string $paramDueDate = null;
+
     // Invoice data
     public array $invoice = [];
     public array $items = [];
@@ -20,11 +27,24 @@ class ViewSalesInvoice extends Component
     public bool $hasError = false;
     public string $errorMessage = '';
 
-    public function mount(?int $quotationId = null, ?int $softwareHandoverId = null, ?string $invoiceNo = null): void
-    {
+    public function mount(
+        ?int $quotationId = null,
+        ?int $softwareHandoverId = null,
+        ?string $invoiceNo = null,
+        ?float $total = null,
+        ?string $currency = null,
+        ?string $status = null,
+        ?string $invoiceDate = null,
+        ?string $dueDate = null,
+    ): void {
         $this->quotationId = $quotationId;
         $this->softwareHandoverId = $softwareHandoverId;
         $this->invoiceNo = $invoiceNo;
+        $this->paramTotal = $total;
+        $this->paramCurrency = $currency;
+        $this->paramStatus = $status;
+        $this->paramInvoiceDate = $invoiceDate;
+        $this->paramDueDate = $dueDate;
 
         if ($this->quotationId) {
             $this->loadInvoice();
@@ -97,6 +117,11 @@ class ViewSalesInvoice extends Component
             $subtotal = 0;
 
             foreach ($quotation->items as $item) {
+                $period = null;
+                if ($item->license_start_date && $item->license_end_date) {
+                    $period = date('d/m/Y', strtotime($item->license_start_date)) . ' - ' . date('d/m/Y', strtotime($item->license_end_date));
+                }
+
                 $itemData = [
                     'description' => $item->description,
                     'quantity' => $item->quantity ?? 0,
@@ -106,6 +131,7 @@ class ViewSalesInvoice extends Component
                     'total_before_tax' => (float) ($item->total_before_tax ?? 0),
                     'taxation' => (float) ($item->taxation ?? 0),
                     'total_after_tax' => (float) ($item->total_after_tax ?? 0),
+                    'period' => $period,
                 ];
                 $this->items[] = $itemData;
                 $subtotal += $itemData['total_before_tax'];
@@ -131,7 +157,7 @@ class ViewSalesInvoice extends Component
     {
         if ($this->softwareHandoverId) {
             $this->redirect(
-                url('/admin/hr-company-license-details?softwareHandoverId=' . $this->softwareHandoverId . '&tab=products'),
+                url('/admin/hr-company-license-details?softwareHandoverId=' . $this->softwareHandoverId . '&tab=invoice'),
                 navigate: false
             );
         } else {
@@ -166,6 +192,12 @@ class ViewSalesInvoice extends Component
             $licenseRecords = $this->getLicenseRecordsForInvoice($this->invoiceNo);
 
             if (empty($licenseRecords)) {
+                // If we have params from the invoice tab, build a simple invoice view
+                if ($this->paramTotal !== null) {
+                    $this->buildInvoiceFromParams($companyName, $companyAddress, $email);
+                    return;
+                }
+
                 $this->hasError = true;
                 $this->errorMessage = 'No license records found for invoice: ' . $this->invoiceNo;
                 $this->isLoading = false;
@@ -367,6 +399,49 @@ class ViewSalesInvoice extends Component
         }
 
         return 20.00;
+    }
+
+    protected function buildInvoiceFromParams(string $companyName, string $companyAddress, string $email): void
+    {
+        $total = $this->paramTotal ?? 0;
+        $currency = $this->paramCurrency ?? 'MYR';
+        $status = strtolower($this->paramStatus ?? 'pending');
+        $invoiceDate = $this->paramInvoiceDate ?? date('Y-m-d');
+
+        $this->items = [
+            [
+                'description' => 'TimeTec License Purchase',
+                'period' => $invoiceDate
+                    ? date('d/m/Y', strtotime($invoiceDate)) . ' - ' . ($this->paramDueDate ? date('d/m/Y', strtotime($this->paramDueDate)) : date('d/m/Y', strtotime($invoiceDate . ' +1 year')))
+                    : '',
+                'quantity' => 1,
+                'unit_price' => $total,
+                'subscription_period' => 1,
+                'discount' => 0,
+                'total_before_tax' => $total,
+            ],
+        ];
+
+        $this->invoice = [
+            'id' => null,
+            'reference_no' => $this->invoiceNo,
+            'date' => date('d-m-Y', strtotime($invoiceDate)),
+            'type' => 'product',
+            'status' => $status === 'paid' ? 'paid' : ($status === 'cancel' ? 'cancelled' : 'pending'),
+            'currency' => $currency,
+            'tax_rate' => 0,
+            'trx_rate' => $currency === 'USD' ? '4.1765' : '1.0000',
+            'customer' => $companyName,
+            'address' => $companyAddress,
+            'email' => $email,
+            'subtotal' => round($total, 2),
+            'discount' => 0,
+            'taxable_amount' => round($total, 2),
+            'tax_amount' => 0,
+            'grand_total' => round($total, 2),
+        ];
+
+        $this->isLoading = false;
     }
 
     public function render()

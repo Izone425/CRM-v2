@@ -22,6 +22,8 @@ class QuotationDetail extends Model
         'total_before_tax',
         'total_after_tax',
         'sort_order',
+        'license_start_date',
+        'license_end_date',
         'tax_code',
         'convert_pi',
         'year',
