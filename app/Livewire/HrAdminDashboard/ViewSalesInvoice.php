@@ -27,6 +27,18 @@ class ViewSalesInvoice extends Component
     public bool $hasError = false;
     public string $errorMessage = '';
 
+    // Payment modal
+    public bool $showPaymentModal = false;
+    public array $paymentForm = [
+        'company' => '',
+        'currency' => 'MYR',
+        'amount' => 0,
+        'bill_title' => '',
+        'payment_method' => 'Bank Transfer',
+        'ref_no' => '',
+        'remark' => '',
+    ];
+
     public function mount(
         ?int $quotationId = null,
         ?int $softwareHandoverId = null,
@@ -442,6 +454,54 @@ class ViewSalesInvoice extends Component
         ];
 
         $this->isLoading = false;
+    }
+
+    public function openPaymentModal(): void
+    {
+        // Build company display string
+        $companyDisplay = $this->invoice['customer'] ?? 'Unknown Company';
+        if ($this->softwareHandoverId) {
+            $hrLicense = HrLicense::where('software_handover_id', $this->softwareHandoverId)->first();
+            $hrAccountId = $hrLicense?->softwareHandover?->hr_account_id ?? '';
+            if ($hrAccountId) {
+                $companyDisplay = $hrAccountId . '-' . ($this->invoice['customer'] ?? 'Unknown Company');
+            }
+        }
+
+        $this->paymentForm = [
+            'company' => $companyDisplay,
+            'currency' => $this->invoice['currency'] ?? 'MYR',
+            'amount' => $this->invoice['grand_total'] ?? 0,
+            'bill_title' => 'Payment for Invoice ' . ($this->invoice['reference_no'] ?? ''),
+            'payment_method' => 'Bank Transfer',
+            'ref_no' => '',
+            'remark' => '',
+        ];
+
+        $this->showPaymentModal = true;
+    }
+
+    public function closePaymentModal(): void
+    {
+        $this->showPaymentModal = false;
+    }
+
+    public function submitPayment(): void
+    {
+        $this->validate([
+            'paymentForm.company' => 'required',
+            'paymentForm.currency' => 'required',
+            'paymentForm.amount' => 'required|numeric|min:0.01',
+            'paymentForm.payment_method' => 'required',
+        ], [
+            'paymentForm.amount.required' => 'Total amount is required.',
+            'paymentForm.amount.min' => 'Total amount must be greater than 0.',
+            'paymentForm.payment_method.required' => 'Payment method is required.',
+        ]);
+
+        // For now, just show success notification (no database persistence yet)
+        $this->showPaymentModal = false;
+        session()->flash('success', 'Payment receipt created successfully.');
     }
 
     public function render()

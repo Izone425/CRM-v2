@@ -16,7 +16,9 @@
             </svg>
             <h3 class="mt-4 text-lg font-medium text-gray-900">Error Loading Invoice</h3>
             <p class="mt-2 text-sm text-gray-500">{{ $errorMessage }}</p>
-            <button wire:click="goBack" class="inline-flex items-center mt-4 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700">
+            <button wire:click="goBack"
+                style="background-color: #2563eb; color: #fff;"
+                class="inline-flex items-center mt-4 px-4 py-2 text-sm font-medium rounded-md hover:bg-blue-700">
                 Go Back
             </button>
         </div>
@@ -31,33 +33,45 @@
         {{-- Action Buttons --}}
         <div class="flex gap-2 mb-6">
             <button wire:click="goBack"
-                class="px-4 py-2 text-sm font-medium text-black bg-cyan-500 rounded hover:bg-cyan-600 transition-colors">
+                style="background-color: #06b6d4; color: #000;"
+                class="px-4 py-2 text-sm font-medium rounded hover:bg-cyan-600 transition-colors">
                 Back
             </button>
             <button onclick="window.print()"
-                class="px-4 py-2 text-sm font-medium text-black bg-cyan-500 rounded hover:bg-cyan-600 transition-colors">
+                style="background-color: #06b6d4; color: #000;"
+                class="px-4 py-2 text-sm font-medium rounded hover:bg-cyan-600 transition-colors">
                 Print
             </button>
             @if(strtolower($invoice['status'] ?? '') === 'pending')
-                <button class="px-4 py-2 text-sm font-medium text-black bg-green-600 rounded hover:bg-green-700 transition-colors">
+                <button wire:click="openPaymentModal"
+                    style="background-color: #16a34a; color: #000;"
+                    class="px-4 py-2 text-sm font-medium rounded hover:bg-green-700 transition-colors">
                     Add Payment
                 </button>
-                <button class="px-4 py-2 text-sm font-medium text-black bg-blue-600 rounded hover:bg-blue-700 transition-colors">
+                <button
+                    style="background-color: #2563eb; color: #000;"
+                    class="px-4 py-2 text-sm font-medium rounded hover:bg-blue-700 transition-colors">
                     Edit Invoice
                 </button>
-                <button class="px-4 py-2 text-sm font-medium text-black bg-red-600 rounded hover:bg-red-700 transition-colors">
+                <button
+                    style="background-color: #dc2626; color: #000;"
+                    class="px-4 py-2 text-sm font-medium rounded hover:bg-red-700 transition-colors">
                     Cancel Invoice
                 </button>
-                <button class="px-4 py-2 text-sm font-medium text-black bg-gray-600 rounded hover:bg-gray-700 transition-colors">
+                <button
+                    style="background-color: #4b5563; color: #000;"
+                    class="px-4 py-2 text-sm font-medium rounded hover:bg-gray-700 transition-colors">
                     Copy Payment Link
                 </button>
             @elseif(in_array(strtolower($invoice['status'] ?? ''), ['cancel', 'cancelled']))
-                <button class="px-4 py-2 text-sm font-medium text-black bg-green-600 rounded hover:bg-green-700 transition-colors">
+                <button
+                    style="background-color: #16a34a; color: #000;"
+                    class="px-4 py-2 text-sm font-medium rounded hover:bg-green-700 transition-colors">
                     Reactive Invoice
                 </button>
             @endif
         </div>
-
+<div class="h-4"></div>
         {{-- Invoice Document --}}
         <div class="flex justify-center px-4">
             <div class="bg-white shadow-lg border border-gray-200 rounded-lg max-w-4xl w-full" id="invoice-document">
@@ -218,6 +232,174 @@
                             </li>
                         </ol>
                     </div>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    {{-- Success Notification --}}
+    @if(session()->has('success'))
+        <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 4000)"
+            class="fixed top-4 right-4 z-[60] bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-2">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+            </svg>
+            {{ session('success') }}
+        </div>
+    @endif
+
+    {{-- Add Official Receipt Modal --}}
+    @if($showPaymentModal)
+        {{-- Lock body scroll when modal is open --}}
+        <style>body { overflow: hidden !important; }</style>
+
+        <div class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="payment-modal-title" role="dialog" aria-modal="true">
+            <div class="flex items-center justify-center min-h-screen px-4 py-6">
+                {{-- Background overlay --}}
+                <div class="fixed inset-0 transition-opacity" style="background-color: rgba(0, 0, 0, 0.5);" wire:click="closePaymentModal"></div>
+
+                {{-- Modal panel --}}
+                <div class="relative bg-white rounded-xl shadow-2xl w-full max-w-2xl mx-auto" style="z-index: 51;">
+                    <form wire:submit="submitPayment">
+                        {{-- Modal Header --}}
+                        <div class="px-6 pt-6 pb-4">
+                            <div class="flex items-start justify-between">
+                                <div>
+                                    <h3 class="text-xl font-bold text-gray-900" id="payment-modal-title">
+                                        Add Official Receipt
+                                    </h3>
+                                    <div class="mt-1 h-0.5 w-full" style="background-color: #06b6d4;"></div>
+                                    <p class="mt-2 text-sm" style="color: #06b6d4;">This is created when receive payment from customer for topup credit or payment for invoice.</p>
+                                </div>
+                                <button type="button" wire:click="closePaymentModal" class="ml-4 p-1 rounded-full hover:bg-gray-100 transition-colors" style="background-color: transparent;">
+                                    <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+
+                        {{-- Modal Body --}}
+                        <div class="px-6 py-4">
+                            <table class="w-full" style="border-collapse: separate; border-spacing: 0 16px;">
+                                {{-- Company --}}
+                                <tr>
+                                    <td class="pr-4 align-top" style="width: 140px; padding-top: 10px;">
+                                        <label class="text-sm font-medium text-gray-700 whitespace-nowrap">
+                                            Company <span class="text-red-500">*</span>:
+                                        </label>
+                                    </td>
+                                    <td>
+                                        <select disabled
+                                            style="background-color: #f9fafb; border: 1px solid #d1d5db; color: #374151; padding: 8px 12px; border-radius: 6px; width: 100%; font-size: 14px; appearance: auto;">
+                                            <option>{{ $paymentForm['company'] }}</option>
+                                        </select>
+                                    </td>
+                                </tr>
+
+                                {{-- Total Amount --}}
+                                <tr>
+                                    <td class="pr-4 align-top" style="padding-top: 10px;">
+                                        <label class="text-sm font-medium text-gray-700 whitespace-nowrap">
+                                            Total Amount <span class="text-red-500">*</span>:
+                                        </label>
+                                    </td>
+                                    <td>
+                                        <div class="flex gap-2">
+                                            <select wire:model="paymentForm.currency"
+                                                style="border: 1px solid #d1d5db; padding: 8px 8px; border-radius: 6px; font-size: 14px; width: 80px; appearance: auto; background-color: #fff;">
+                                                <option value="MYR">MYR</option>
+                                                <option value="USD">USD</option>
+                                            </select>
+                                            <input type="number" wire:model="paymentForm.amount" step="0.01" min="0"
+                                                style="border: 1px solid #d1d5db; padding: 8px 12px; border-radius: 6px; font-size: 14px; flex: 1; background-color: #fff;">
+                                        </div>
+                                        @error('paymentForm.amount')
+                                            <p class="mt-1 text-xs text-red-500">{{ $message }}</p>
+                                        @enderror
+                                    </td>
+                                </tr>
+
+                                {{-- Bill Title --}}
+                                <tr>
+                                    <td class="pr-4 align-top" style="padding-top: 10px;">
+                                        <label class="text-sm font-medium text-gray-700 whitespace-nowrap">
+                                            Bill Title:
+                                        </label>
+                                    </td>
+                                    <td>
+                                        <input type="text" wire:model="paymentForm.bill_title"
+                                            placeholder="Payment for Invoice {{ $invoice['reference_no'] ?? '' }}"
+                                            style="border: 1px solid #d1d5db; padding: 8px 12px; border-radius: 6px; font-size: 14px; width: 100%; background-color: #fff;">
+                                        <p class="mt-1 text-xs text-gray-400">E.g. Top Up Credit</p>
+                                    </td>
+                                </tr>
+
+                                {{-- Payment Method --}}
+                                <tr>
+                                    <td class="pr-4 align-top" style="padding-top: 10px;">
+                                        <label class="text-sm font-medium text-gray-700 whitespace-nowrap">
+                                            Payment Method <span class="text-red-500">*</span>:
+                                        </label>
+                                    </td>
+                                    <td>
+                                        <select wire:model="paymentForm.payment_method"
+                                            style="border: 1px solid #d1d5db; padding: 8px 12px; border-radius: 6px; font-size: 14px; background-color: #fff; appearance: auto;">
+                                            <option value="Cash">Cash</option>
+                                            <option value="Credit Card">Credit Card</option>
+                                            <option value="Cheque">Cheque</option>
+                                            <option value="Bank Transfer">Bank Transfer</option>
+                                            <option value="PayPal">PayPal</option>
+                                            <option value="Store Credit">Store Credit</option>
+                                            <option value="Pending Payment">Pending Payment</option>
+                                        </select>
+                                        @error('paymentForm.payment_method')
+                                            <p class="mt-1 text-xs text-red-500">{{ $message }}</p>
+                                        @enderror
+                                    </td>
+                                </tr>
+
+                                {{-- Ref No. --}}
+                                <tr>
+                                    <td class="pr-4 align-top" style="padding-top: 10px;">
+                                        <label class="text-sm font-medium text-gray-700 whitespace-nowrap">
+                                            Ref No.:
+                                        </label>
+                                    </td>
+                                    <td>
+                                        <input type="text" wire:model="paymentForm.ref_no"
+                                            style="border: 1px solid #d1d5db; padding: 8px 12px; border-radius: 6px; font-size: 14px; width: 100%; background-color: #fff;">
+                                        <p class="mt-1 text-xs text-gray-400">E.g. PBB 12345678</p>
+                                    </td>
+                                </tr>
+
+                                {{-- Remark --}}
+                                <tr>
+                                    <td class="pr-4 align-top" style="padding-top: 10px;">
+                                        <label class="text-sm font-medium text-gray-700 whitespace-nowrap">
+                                            Remark:
+                                        </label>
+                                    </td>
+                                    <td>
+                                        <textarea wire:model="paymentForm.remark" rows="4"
+                                            style="border: 1px solid #d1d5db; padding: 8px 12px; border-radius: 6px; font-size: 14px; width: 100%; resize: vertical; background-color: #fff;"></textarea>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+
+                        {{-- Modal Footer --}}
+                        <div class="px-6 py-5 flex gap-3">
+                            <button type="submit"
+                                style="background-color: #38bdf8; color: #fff; padding: 8px 28px; border-radius: 6px; font-size: 14px; font-weight: 500;">
+                                Continue
+                            </button>
+                            <button type="button" wire:click="closePaymentModal"
+                                style="background-color: #38bdf8; color: #fff; padding: 8px 28px; border-radius: 6px; font-size: 14px; font-weight: 500;">
+                                Back
+                            </button>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>
