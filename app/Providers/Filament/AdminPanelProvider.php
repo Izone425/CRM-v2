@@ -34,6 +34,7 @@ use App\Filament\Pages\HardwareDashboardAll;
 use App\Filament\Pages\HardwareDashboardPendingStock;
 use App\Filament\Pages\HeadcountHandoverList;
 use App\Filament\Pages\AddSalesInvoice;
+use App\Filament\Pages\EditSalesInvoice;
 use App\Filament\Pages\ViewSalesInvoice;
 use App\Filament\Pages\HrAccountManagement;
 use App\Filament\Pages\HrCompanyLicenseDetails;
@@ -387,6 +388,7 @@ class AdminPanelProvider extends PanelProvider
                 HrLicense::class,
                 HrCompanyLicenseDetails::class,
                 AddSalesInvoice::class,
+                EditSalesInvoice::class,
                 ViewSalesInvoice::class,
                 TicketList::class,
                 TicketDashboard::class,

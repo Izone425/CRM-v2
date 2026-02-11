@@ -48,17 +48,17 @@
                     class="px-4 py-2 text-sm font-medium rounded hover:bg-green-700 transition-colors">
                     Add Payment
                 </button>
-                <button
+                <button wire:click="editInvoice"
                     style="background-color: #2563eb; color: #000;"
                     class="px-4 py-2 text-sm font-medium rounded hover:bg-blue-700 transition-colors">
                     Edit Invoice
                 </button>
-                <button
+                <button wire:click="openCancelModal"
                     style="background-color: #dc2626; color: #000;"
                     class="px-4 py-2 text-sm font-medium rounded hover:bg-red-700 transition-colors">
                     Cancel Invoice
                 </button>
-                <button
+                <button wire:click="copyPaymentLink"
                     style="background-color: #4b5563; color: #000;"
                     class="px-4 py-2 text-sm font-medium rounded hover:bg-gray-700 transition-colors">
                     Copy Payment Link
@@ -164,7 +164,7 @@
                                     <tr class="border-b border-gray-200">
                                         <td class="border border-gray-200 px-3 py-2 text-center text-blue-600">{{ $index + 1 }}.</td>
                                         <td class="border border-gray-200 px-3 py-2">
-                                            <span class="text-blue-600">TimeTec Suite - {{ $item['description'] }}</span>
+                                            <span class="text-blue-600">TimeTec Suite- {{ $item['description'] }}</span>
                                             <br>
                                             <span class="text-gray-500 text-xs">[{{ $item['period'] ?? (date('d/m/Y') . ' - ' . date('d/m/Y', strtotime('+' . ($item['subscription_period'] ?? 1) . ' months'))) }}]</span>
                                         </td>
@@ -232,6 +232,18 @@
                             </li>
                         </ol>
                     </div>
+
+                    {{-- Payment Buttons --}}
+                    <div class="mt-8 flex justify-center gap-6 pb-4">
+                        <button type="button"
+                            style="background-color: #93c5fd; color: #1e40af; padding: 10px 40px; border-radius: 6px; font-size: 14px; font-weight: 600; border: none; cursor: pointer;">
+                            Paypal
+                        </button>
+                        <button type="button"
+                            style="background-color: #93c5fd; color: #1e40af; padding: 10px 40px; border-radius: 6px; font-size: 14px; font-weight: 600; border: none; cursor: pointer;">
+                            Razer
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -291,7 +303,7 @@
                                     </td>
                                     <td>
                                         <select disabled
-                                            style="background-color: #f9fafb; border: 1px solid #d1d5db; color: #374151; padding: 8px 12px; border-radius: 6px; width: 100%; font-size: 14px; appearance: auto;">
+                                            style="background-color: #f9fafb; border: 1px solid #d1d5db; color: #374151; padding: 8px 12px; border-radius: 6px; width: 100%; font-size: 14px;">
                                             <option>{{ $paymentForm['company'] }}</option>
                                         </select>
                                     </td>
@@ -307,7 +319,7 @@
                                     <td>
                                         <div class="flex gap-2">
                                             <select wire:model="paymentForm.currency"
-                                                style="border: 1px solid #d1d5db; padding: 8px 8px; border-radius: 6px; font-size: 14px; width: 80px; appearance: auto; background-color: #fff;">
+                                                style="border: 1px solid #d1d5db; padding: 8px 8px; border-radius: 6px; font-size: 14px; width: 80px; background-color: #fff;">
                                                 <option value="MYR">MYR</option>
                                                 <option value="USD">USD</option>
                                             </select>
@@ -344,7 +356,7 @@
                                     </td>
                                     <td>
                                         <select wire:model="paymentForm.payment_method"
-                                            style="border: 1px solid #d1d5db; padding: 8px 12px; border-radius: 6px; font-size: 14px; background-color: #fff; appearance: auto;">
+                                            style="border: 1px solid #d1d5db; padding: 8px 12px; border-radius: 6px; font-size: 14px; background-color: #fff;">
                                             <option value="Cash">Cash</option>
                                             <option value="Credit Card">Credit Card</option>
                                             <option value="Cheque">Cheque</option>
@@ -405,6 +417,116 @@
         </div>
     @endif
 
+    {{-- Cancel Invoice Modal --}}
+    @if($showCancelModal)
+        {{-- Lock body scroll when modal is open --}}
+        <style>body { overflow: hidden !important; }</style>
+
+        <div class="fixed inset-0 z-50 flex items-center justify-center" aria-labelledby="cancel-modal-title" role="dialog" aria-modal="true">
+            {{-- Background overlay --}}
+            <div class="fixed inset-0 transition-opacity" style="background-color: rgba(0, 0, 0, 0.5);" wire:click="closeCancelModal"></div>
+
+            {{-- Modal panel --}}
+            <div class="relative bg-white rounded-xl shadow-2xl w-full max-w-lg mx-auto" style="z-index: 51;">
+                <form wire:submit="submitCancelInvoice">
+                    {{-- Modal Header --}}
+                    <div class="px-4 pt-4 pb-2">
+                        <div class="flex items-start justify-between">
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                                    </svg>
+                                    <h3 class="text-lg font-bold text-gray-900" id="cancel-modal-title">Cancel Invoice</h3>
+                                </div>
+                                <p class="mt-1 text-sm" style="color: #dc2626;">Please fill up the reason to cancel this invoice. Thank you.</p>
+                            </div>
+                            <button type="button" wire:click="closeCancelModal" class="ml-4 p-1 rounded-full hover:bg-gray-100 transition-colors" style="background-color: transparent;">
+                                <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    {{-- Modal Body --}}
+                    <div class="px-4 py-3">
+                        <table class="w-full" style="border-collapse: separate; border-spacing: 0 10px;">
+                            {{-- Doc No (readonly) --}}
+                            <tr>
+                                <td class="pr-3 align-middle" style="width: 100px;">
+                                    <label class="text-sm font-medium text-gray-700 whitespace-nowrap">Doc No:</label>
+                                </td>
+                                <td>
+                                    <input type="text" value="{{ $cancelForm['doc_no'] }}" readonly
+                                        style="background-color: #f3f4f6; border: 1px solid #d1d5db; color: #374151; padding: 6px 10px; border-radius: 6px; width: 100%; font-size: 13px; cursor: not-allowed;">
+                                </td>
+                            </tr>
+
+                            {{-- Status --}}
+                            <tr>
+                                <td class="pr-3 align-middle">
+                                    <label class="text-sm font-medium text-gray-700 whitespace-nowrap">Status <span class="text-red-500">*</span>:</label>
+                                </td>
+                                <td>
+                                    <select wire:model="cancelForm.status"
+                                        style="border: 1px solid #d1d5db; padding: 6px 10px; border-radius: 6px; font-size: 13px; width: 100%; background-color: #fff;">
+                                        <option value="cancelled">Cancelled</option>
+                                        <option value="pending">Pending</option>
+                                    </select>
+                                    @error('cancelForm.status')
+                                        <p class="mt-1 text-xs text-red-500">{{ $message }}</p>
+                                    @enderror
+                                </td>
+                            </tr>
+
+                            {{-- Remark --}}
+                            <tr>
+                                <td class="pr-3 align-top" style="padding-top: 8px;">
+                                    <label class="text-sm font-medium text-gray-700 whitespace-nowrap">Remark <span class="text-red-500">*</span>:</label>
+                                </td>
+                                <td>
+                                    <textarea wire:model="cancelForm.remark" rows="3"
+                                        placeholder="Enter reason for cancellation..."
+                                        style="border: 1px solid #d1d5db; padding: 6px 10px; border-radius: 6px; font-size: 13px; width: 100%; resize: vertical; background-color: #fff;"></textarea>
+                                    @error('cancelForm.remark')
+                                        <p class="mt-1 text-xs text-red-500">{{ $message }}</p>
+                                    @enderror
+                                </td>
+                            </tr>
+                        </table>
+
+                        {{-- Submit Button --}}
+                        <div class="mt-2 flex justify-end">
+                            <button type="submit"
+                                style="background-color: #38bdf8; color: #fff; padding: 6px 24px; border-radius: 6px; font-size: 13px; font-weight: 500;">
+                                Submit
+                            </button>
+                        </div>
+                    </div>
+
+                    {{-- Remarks History Section --}}
+                    <div class="px-4 py-3 border-t border-gray-200">
+                        <h4 class="text-sm font-semibold text-gray-700 mb-1">Remarks</h4>
+                        @if(count($cancelRemarks) > 0)
+                            <div class="space-y-1">
+                                @foreach($cancelRemarks as $remarkEntry)
+                                    <div class="text-sm text-gray-600 border-b border-gray-100 pb-1">
+                                        <span class="font-medium">{{ $remarkEntry['user'] ?? 'System' }}</span>
+                                        <span class="text-gray-400 text-xs ml-2">{{ $remarkEntry['date'] ?? '' }}</span>
+                                        <p class="mt-0.5">{{ $remarkEntry['remark'] ?? '' }}</p>
+                                    </div>
+                                @endforeach
+                            </div>
+                        @else
+                            <p class="text-sm text-gray-400 italic">No record yet.</p>
+                        @endif
+                    </div>
+                </form>
+            </div>
+        </div>
+    @endif
+
     {{-- Print Styles --}}
     <style>
         @media print {
@@ -423,4 +545,20 @@
             }
         }
     </style>
+
+    <script>
+        document.addEventListener('livewire:init', () => {
+            Livewire.on('payment-link-copied', (event) => {
+                if (event.error) {
+                    alert(event.error);
+                    return;
+                }
+                navigator.clipboard.writeText(event.url).then(() => {
+                    alert('Payment Link was Copied: ' + event.url);
+                }).catch(() => {
+                    alert('Payment Link was Copied: ' + event.url);
+                });
+            });
+        });
+    </script>
 </div>

@@ -39,6 +39,15 @@ class ViewSalesInvoice extends Component
         'remark' => '',
     ];
 
+    // Cancel invoice modal
+    public bool $showCancelModal = false;
+    public array $cancelForm = [
+        'doc_no' => '',
+        'status' => 'cancelled',
+        'remark' => '',
+    ];
+    public array $cancelRemarks = [];
+
     public function mount(
         ?int $quotationId = null,
         ?int $softwareHandoverId = null,
@@ -422,7 +431,7 @@ class ViewSalesInvoice extends Component
 
         $this->items = [
             [
-                'description' => 'TimeTec License Purchase',
+                'description' => 'TimeTec Attendance (1 User License)',
                 'period' => $invoiceDate
                     ? date('d/m/Y', strtotime($invoiceDate)) . ' - ' . ($this->paramDueDate ? date('d/m/Y', strtotime($this->paramDueDate)) : date('d/m/Y', strtotime($invoiceDate . ' +1 year')))
                     : '',
@@ -502,6 +511,124 @@ class ViewSalesInvoice extends Component
         // For now, just show success notification (no database persistence yet)
         $this->showPaymentModal = false;
         session()->flash('success', 'Payment receipt created successfully.');
+    }
+
+    public function openCancelModal(): void
+    {
+        $this->cancelForm = [
+            'doc_no' => $this->invoice['reference_no'] ?? $this->invoiceNo ?? '',
+            'status' => 'cancelled',
+            'remark' => '',
+        ];
+        $this->cancelRemarks = [];
+        $this->showCancelModal = true;
+    }
+
+    public function closeCancelModal(): void
+    {
+        $this->showCancelModal = false;
+    }
+
+    public function submitCancelInvoice(): void
+    {
+        $this->validate([
+            'cancelForm.status' => 'required',
+            'cancelForm.remark' => 'required|min:3',
+        ], [
+            'cancelForm.status.required' => 'Status is required.',
+            'cancelForm.remark.required' => 'Please provide a reason for cancellation.',
+            'cancelForm.remark.min' => 'Remark must be at least 3 characters.',
+        ]);
+
+        // For now, just show success notification (no database persistence yet)
+        $this->showCancelModal = false;
+        session()->flash('success', 'Invoice ' . ($this->cancelForm['doc_no'] ?? '') . ' has been cancelled successfully.');
+    }
+
+    public function copyPaymentLink(): void
+    {
+        $invoiceNo = $this->invoice['reference_no'] ?? $this->invoiceNo ?? '';
+
+        if (empty($invoiceNo)) {
+            return;
+        }
+
+        $aesKey = 'Epicamera@99';
+
+        try {
+            $invoiceDetail = \App\Models\CrmInvoiceDetail::where('f_invoice_no', $invoiceNo)->first();
+
+            if ($invoiceDetail && $invoiceDetail->f_id) {
+                $encrypted = openssl_encrypt($invoiceDetail->f_id, 'AES-128-ECB', $aesKey);
+            } else {
+                // Fallback for dummy invoices: encrypt the invoice reference number
+                $encrypted = openssl_encrypt($invoiceNo, 'AES-128-ECB', $aesKey);
+            }
+
+            $encryptedBase64 = base64_encode($encrypted);
+            $url = 'https://www.timeteccloud.com/paypal_reseller_invoice?iIn=' . $encryptedBase64;
+
+            $this->dispatch('payment-link-copied', url: $url);
+        } catch (\Exception $e) {
+            $this->dispatch('payment-link-copied', url: '', error: 'Failed to generate payment link.');
+        }
+    }
+
+    public function editInvoice(): void
+    {
+        // Param-based (dummy) invoice: pass viewed data as prefill params
+        if (!$this->quotationId && $this->paramTotal !== null) {
+            $params = [
+                'softwareHandoverId' => $this->softwareHandoverId,
+                'prefillInvoiceNo' => $this->invoice['reference_no'] ?? $this->invoiceNo,
+                'prefillTotal' => $this->invoice['grand_total'] ?? $this->paramTotal,
+                'prefillCurrency' => $this->invoice['currency'] ?? $this->paramCurrency ?? 'MYR',
+                'prefillInvoiceDate' => $this->paramInvoiceDate ?? date('Y-m-d'),
+                'prefillTaxRate' => $this->invoice['tax_rate'] ?? 0,
+                'prefillDescription' => $this->items[0]['description'] ?? 'TimeTec License Purchase',
+            ];
+
+            $this->redirect(
+                url('/admin/add-sales-invoice?' . http_build_query($params)),
+                navigate: false
+            );
+            return;
+        }
+
+        // Try to resolve quotationId if not set (e.g. when loaded via invoiceNo from Invoice tab)
+        if (!$this->quotationId && $this->softwareHandoverId) {
+            $sw = SoftwareHandover::find($this->softwareHandoverId);
+            if ($sw) {
+                $query = Quotation::where('quotation_type', 'product');
+
+                if ($sw->lead_id) {
+                    $query->where('lead_id', $sw->lead_id);
+                } else {
+                    $query->whereNull('lead_id');
+                }
+
+                $quotation = $query->latest()->first();
+                if ($quotation) {
+                    $this->quotationId = $quotation->id;
+                }
+            }
+        }
+
+        // If still no quotation found, redirect to Add Sales Invoice (create new)
+        if (!$this->quotationId) {
+            $this->redirect(
+                url('/admin/add-sales-invoice?softwareHandoverId=' . $this->softwareHandoverId),
+                navigate: false
+            );
+            return;
+        }
+
+        $url = '/admin/edit-sales-invoice?quotationId=' . $this->quotationId;
+        if ($this->softwareHandoverId) {
+            $url .= '&softwareHandoverId=' . $this->softwareHandoverId;
+        }
+
+        $this->redirect(url($url), navigate: false);
     }
 
     public function render()

@@ -7,6 +7,7 @@ use App\Models\Quotation;
 use App\Models\QuotationDetail;
 use App\Models\SoftwareHandover;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
@@ -14,6 +15,9 @@ use Livewire\Component;
 class AddSalesInvoiceForm extends Component
 {
     public ?int $softwareHandoverId = null;
+    public ?int $quotationId = null;
+    public ?string $invoiceNo = null;
+    public string $mode = 'create'; // 'create' or 'edit'
 
     // Customer Section
     public string $selectedCustomer = '';
@@ -39,13 +43,45 @@ class AddSalesInvoiceForm extends Component
     // Currency
     public string $currency = 'MYR';
 
-    public function mount(?int $softwareHandoverId = null): void
-    {
+    public function mount(
+        ?int $softwareHandoverId = null,
+        ?int $quotationId = null,
+        ?string $prefillInvoiceNo = null,
+        ?float $prefillTotal = null,
+        ?string $prefillCurrency = null,
+        ?string $prefillInvoiceDate = null,
+        ?float $prefillTaxRate = null,
+        ?string $prefillDescription = null,
+    ): void {
         $this->softwareHandoverId = $softwareHandoverId;
-        $this->invoiceDate = Carbon::today()->format('Y-m-d');
+        $this->quotationId = $quotationId;
 
-        $this->loadCompanyData();
-        $this->initializeOrderItems();
+        if ($this->quotationId) {
+            $this->mode = 'edit';
+            $this->loadExistingInvoice();
+        } else {
+            $this->mode = 'create';
+            $this->loadCompanyData();
+
+            // Pre-fill from dummy invoice data (when editing a dummy invoice)
+            if ($prefillInvoiceNo !== null) {
+                $this->invoiceNo = $prefillInvoiceNo;
+                $this->invoiceDate = $prefillInvoiceDate
+                    ? Carbon::parse($prefillInvoiceDate)->format('Y-m-d')
+                    : Carbon::today()->format('Y-m-d');
+                $this->currency = $prefillCurrency ?? 'MYR';
+                $this->taxPercent = $prefillTaxRate ?? 0;
+
+                $this->initializeOrderItems();
+                $this->prefillFirstItem(
+                    $prefillDescription ?? 'TimeTec License Purchase',
+                    $prefillTotal ?? 0,
+                );
+            } else {
+                $this->invoiceDate = Carbon::today()->format('Y-m-d');
+                $this->initializeOrderItems();
+            }
+        }
     }
 
     protected function loadCompanyData(): void
@@ -95,6 +131,82 @@ class AddSalesInvoiceForm extends Component
         ];
     }
 
+    protected function loadExistingInvoice(): void
+    {
+        $quotation = Quotation::with(['items'])->find($this->quotationId);
+        if (!$quotation) {
+            return;
+        }
+
+        $this->invoiceNo = $quotation->quotation_reference_no;
+
+        // Derive softwareHandoverId from lead if not provided
+        if (!$this->softwareHandoverId && $quotation->lead_id) {
+            $sw = SoftwareHandover::where('lead_id', $quotation->lead_id)->first();
+            $this->softwareHandoverId = $sw?->id;
+        }
+
+        // Load company data for customer/billing dropdowns
+        $this->loadCompanyData();
+
+        // Populate header fields from quotation
+        $this->invoiceDate = $quotation->quotation_date
+            ? Carbon::parse($quotation->quotation_date)->format('Y-m-d')
+            : Carbon::today()->format('Y-m-d');
+        $this->currency = $quotation->currency ?? 'MYR';
+        $this->taxPercent = $quotation->tax_rate ?? 8;
+
+        // Initialize 5 default empty product rows
+        $this->initializeOrderItems();
+
+        // Map saved QuotationDetail items back into orderItems
+        foreach ($quotation->items->sortBy('sort_order') as $detail) {
+            $itemData = [
+                'item_name' => $detail->description,
+                'units' => $detail->quantity ?? 0,
+                'unit_price' => (float) ($detail->unit_price ?? 5.00),
+                'currency' => $this->currency,
+                'license_start_date' => $detail->license_start_date
+                    ? Carbon::parse($detail->license_start_date)->format('Y-m-d') : '',
+                'license_end_date' => $detail->license_end_date
+                    ? Carbon::parse($detail->license_end_date)->format('Y-m-d') : '',
+                'billing_cycle' => (string) ($detail->subscription_period ?? 1),
+                'discount' => (float) ($detail->discount ?? 0),
+                'total_price' => (float) ($detail->total_before_tax ?? 0),
+            ];
+
+            // Try to match to one of the 5 standard product slots by name
+            $matchedIndex = null;
+            foreach ($this->orderItems as $i => $row) {
+                if ($row['item_name'] === $detail->description && (int) $row['units'] === 0) {
+                    $matchedIndex = $i;
+                    break;
+                }
+            }
+
+            if ($matchedIndex !== null) {
+                $this->orderItems[$matchedIndex] = $itemData;
+            } else {
+                // No name match — use first empty slot (units === 0)
+                $emptyIndex = null;
+                foreach ($this->orderItems as $i => $row) {
+                    if ((int) ($row['units'] ?? 0) === 0) {
+                        $emptyIndex = $i;
+                        break;
+                    }
+                }
+
+                if ($emptyIndex !== null) {
+                    $this->orderItems[$emptyIndex] = $itemData;
+                } else {
+                    $this->orderItems[] = $itemData;
+                }
+            }
+        }
+
+        $this->recalculateItemTotals();
+    }
+
     protected function initializeOrderItems(): void
     {
         $products = [
@@ -126,6 +238,21 @@ class AddSalesInvoiceForm extends Component
                 'total_price' => 0.00,
             ];
         }
+    }
+
+    protected function prefillFirstItem(string $description, float $total): void
+    {
+        if (empty($this->orderItems)) {
+            return;
+        }
+
+        $this->orderItems[0]['item_name'] = $description;
+        $this->orderItems[0]['units'] = 1;
+        $this->orderItems[0]['unit_price'] = $total;
+        $this->orderItems[0]['currency'] = $this->currency;
+        $this->orderItems[0]['billing_cycle'] = '1';
+        $this->orderItems[0]['discount'] = 0;
+        $this->orderItems[0]['total_price'] = $total;
     }
 
     public function addItemRow(): void
@@ -348,12 +475,119 @@ class AddSalesInvoiceForm extends Component
         }
     }
 
+    public function submitInvoice(): void
+    {
+        if ($this->mode === 'edit') {
+            $this->updateInvoice();
+        } else {
+            $this->createInvoice();
+        }
+    }
+
+    public function updateInvoice(): void
+    {
+        $this->validate([
+            'selectedCustomer' => 'required|string',
+            'invoiceDate' => 'required|date',
+            'invoiceTitle' => 'required|string|max:255',
+            'invoiceType' => 'required|in:normal,free_device_campaign',
+            'companyAddress' => 'nullable|string',
+            'mobilePhone' => 'nullable|string',
+            'billingInformation' => 'required|string',
+        ], [
+            'selectedCustomer.required' => 'Please select a customer.',
+            'invoiceDate.required' => 'Invoice date is required.',
+            'invoiceTitle.required' => 'Invoice title is required.',
+            'invoiceType.required' => 'Please select an invoice type.',
+            'billingInformation.required' => 'Please select billing information.',
+        ]);
+
+        $hasItems = collect($this->orderItems)->contains(fn($item) => ($item['units'] ?? 0) > 0);
+        if (!$hasItems) {
+            $this->dispatch('notify', type: 'error', message: 'Please add at least one item with units greater than 0.');
+            return;
+        }
+
+        try {
+            DB::transaction(function () {
+                $quotation = Quotation::findOrFail($this->quotationId);
+
+                // Update the Quotation record
+                $quotation->update([
+                    'quotation_date' => $this->invoiceDate,
+                    'currency' => $this->orderItems[0]['currency'] ?? 'MYR',
+                    'tax_rate' => (int) $this->taxPercent,
+                    'headcount' => collect($this->orderItems)->sum('units'),
+                ]);
+
+                // Delete all existing detail rows, then re-create
+                $quotation->items()->delete();
+
+                $sortOrder = 1;
+                foreach ($this->orderItems as $item) {
+                    $units = (int) ($item['units'] ?? 0);
+                    if ($units <= 0) {
+                        continue;
+                    }
+
+                    $unitPrice = (float) ($item['unit_price'] ?? 0);
+                    $billingCycleMonths = (int) ($item['billing_cycle'] ?? 1);
+                    $discount = (float) ($item['discount'] ?? 0);
+
+                    $totalBeforeTax = $units * $unitPrice * $billingCycleMonths;
+                    $discountAmount = $totalBeforeTax * ($discount / 100);
+                    $totalBeforeTax = $totalBeforeTax - $discountAmount;
+                    $taxAmount = $totalBeforeTax * ((float) $this->taxPercent / 100);
+                    $totalAfterTax = $totalBeforeTax + $taxAmount;
+
+                    QuotationDetail::create([
+                        'quotation_id' => $quotation->id,
+                        'description' => $item['item_name'],
+                        'quantity' => $units,
+                        'subscription_period' => $billingCycleMonths,
+                        'license_start_date' => $item['license_start_date'] ?? null,
+                        'license_end_date' => $item['license_end_date'] ?? null,
+                        'unit_price' => $unitPrice,
+                        'discount' => $discount,
+                        'taxation' => $taxAmount,
+                        'total_before_tax' => $totalBeforeTax,
+                        'total_after_tax' => $totalAfterTax,
+                        'sort_order' => $sortOrder++,
+                    ]);
+                }
+            });
+
+            session()->flash('notify', [
+                'type' => 'success',
+                'message' => 'Sales invoice updated successfully.',
+            ]);
+
+            $this->redirect(
+                url('/admin/view-sales-invoice?quotationId=' . $this->quotationId . '&softwareHandoverId=' . $this->softwareHandoverId),
+                navigate: false
+            );
+        } catch (\Exception $e) {
+            Log::error('Failed to update sales invoice: ' . $e->getMessage(), [
+                'quotationId' => $this->quotationId,
+                'trace' => $e->getTraceAsString(),
+            ]);
+            $this->dispatch('notify', type: 'error', message: 'Failed to update invoice. Please try again.');
+        }
+    }
+
     public function goBack(): void
     {
-        $this->redirect(
-            url('/admin/hr-company-license-details?softwareHandoverId=' . $this->softwareHandoverId . '&tab=products'),
-            navigate: false
-        );
+        if ($this->mode === 'edit' && $this->quotationId) {
+            $this->redirect(
+                url('/admin/view-sales-invoice?quotationId=' . $this->quotationId . '&softwareHandoverId=' . $this->softwareHandoverId),
+                navigate: false
+            );
+        } else {
+            $this->redirect(
+                url('/admin/hr-company-license-details?softwareHandoverId=' . $this->softwareHandoverId . '&tab=products'),
+                navigate: false
+            );
+        }
     }
 
     public function render()
