@@ -145,8 +145,24 @@
                 $totalAfterTax = 0;
                 $totalTax = 0;
             @endphp
-            @forelse($items as $index => $item)
             @php
+                $groupedByYear = collect($items)->groupBy(function($item) {
+                    if (isset($item['year'])) return $item['year'];
+                    if (!empty($item['period'])) return substr($item['period'], 6, 4);
+                    return 'Other';
+                });
+                $itemCounter = 0;
+            @endphp
+            @forelse($groupedByYear as $yearLabel => $yearItems)
+            {{-- Year Header Row --}}
+            <tr style="background: #e8f0fe; border:1px solid #989898;">
+                <td colspan="7" style="border:1px solid #989898; font-weight:bold; padding:6px 8px; color:#005baa; font-size:12px;">
+                    Year {{ $yearLabel }}
+                </td>
+            </tr>
+            @foreach($yearItems as $item)
+            @php
+                $itemCounter++;
                 $qty = $item['qty'] ?? $item['quantity'] ?? 0;
                 $unitPrice = $item['price'] ?? $item['unit_price'] ?? 0;
                 $billingCycle = $item['billing_cycle'] ?? $item['month'] ?? 12;
@@ -227,7 +243,7 @@
                 }
             @endphp
             <tr style="border:1px solid #989898; border-bottom:1px solid #989898;">
-                <td class="text-center" style="border:1px solid #989898;width:20px;">{{ $index + 1 }}</td>
+                <td class="text-center" style="border:1px solid #989898;width:20px;">{{ $itemCounter }}</td>
                 <td style="border:1px solid #989898; line-height:1.2;">{!! $description !!}</td>
                 <td class="text-center" style="border:1px solid #989898;">{{ $qty }}</td>
                 <td class="text-right" style="border:1px solid #989898;">{{ number_format($unitPrice, 2) }}</td>
@@ -235,6 +251,7 @@
                 <td class="text-right" style="border:1px solid #989898;">{{ number_format($itemSst, 2) }}</td>
                 <td class="text-right" style="border:1px solid #989898; border-bottom: 1px solid #989898;">{{ number_format($itemTotal, 2) }}</td>
             </tr>
+            @endforeach
             @empty
             <tr style="border:1px solid #989898; border-bottom:1px solid #989898;">
                 <td colspan="7" class="text-center" style="border:1px solid #989898; padding: 20px;">No items found</td>

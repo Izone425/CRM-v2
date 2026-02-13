@@ -328,7 +328,7 @@ class CompanyInvoiceTab extends Component
     public function viewInvoice(int $quotationId): void
     {
         $this->redirect(
-            url('/admin/view-sales-invoice?quotationId=' . $quotationId . '&softwareHandoverId=' . $this->softwareHandoverId),
+            url('/admin/view-sales-invoice?quotationId=' . $quotationId . '&softwareHandoverId=' . $this->softwareHandoverId . '&from=invoice'),
             navigate: false
         );
     }
@@ -344,6 +344,7 @@ class CompanyInvoiceTab extends Component
                 'status' => $status,
                 'invoiceDate' => $invoiceDate,
                 'dueDate' => $dueDate,
+                'from' => 'invoice',
             ])),
             navigate: false
         );

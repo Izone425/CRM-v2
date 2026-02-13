@@ -43,6 +43,14 @@ class AddSalesInvoiceForm extends Component
     // Currency
     public string $currency = 'MYR';
 
+    // Bulk Configuration
+    public array $bulkProducts = [];
+    public int $bulkUnits = 0;
+    public float $bulkUnitPrice = 5.00;
+    public string $bulkStartDate = '';
+    public string $bulkBillingCycle = '12';
+    public int $bulkYears = 1;
+
     public function mount(
         ?int $softwareHandoverId = null,
         ?int $quotationId = null,
@@ -210,11 +218,11 @@ class AddSalesInvoiceForm extends Component
     protected function initializeOrderItems(): void
     {
         $products = [
-            ['name' => 'TimeTec Attendance (1 User License)', 'unit_price' => 5.00],
-            ['name' => 'TimeTec Leave (1 User License)', 'unit_price' => 5.00],
-            ['name' => 'TimeTec Claim (1 User License)', 'unit_price' => 5.00],
-            ['name' => 'TimeTec Payroll (1 Payroll License)', 'unit_price' => 5.00],
-            ['name' => 'TimeTec Appraisal (1 User License)', 'unit_price' => 5.00],
+            ['name' => 'TimeTec Attendance', 'unit_price' => 5.00],
+            ['name' => 'TimeTec Leave', 'unit_price' => 5.00],
+            ['name' => 'TimeTec Claim', 'unit_price' => 5.00],
+            ['name' => 'TimeTec Payroll', 'unit_price' => 5.00],
+            ['name' => 'TimeTec Appraisal', 'unit_price' => 5.00],
         ];
 
         $this->availableProducts = $products;
@@ -287,7 +295,7 @@ class AddSalesInvoiceForm extends Component
 
     public function removeItemRow(int $index): void
     {
-        if (count($this->orderItems) > 5) {
+        if (count($this->orderItems) > 1) {
             array_splice($this->orderItems, $index, 1);
             $this->orderItems = array_values($this->orderItems);
             $this->recalculateItemTotals();
@@ -376,6 +384,45 @@ class AddSalesInvoiceForm extends Component
     public function grandTotal(): float
     {
         return $this->totalInclTax;
+    }
+
+    public function applyBulkConfig(): void
+    {
+        if (empty($this->bulkProducts) || empty($this->bulkStartDate) || $this->bulkUnits <= 0) {
+            return;
+        }
+
+        $newItems = [];
+        $billingCycleMonths = (int) $this->bulkBillingCycle;
+
+        for ($year = 0; $year < $this->bulkYears; $year++) {
+            $yearStartDate = Carbon::parse($this->bulkStartDate)->addYears($year);
+            $yearEndDate = $yearStartDate->copy()->addMonths($billingCycleMonths)->subDay();
+
+            foreach ($this->bulkProducts as $productIndex) {
+                $product = $this->availableProducts[$productIndex] ?? null;
+                if (!$product) {
+                    continue;
+                }
+
+                $subtotal = $this->bulkUnits * $this->bulkUnitPrice * $billingCycleMonths;
+
+                $newItems[] = [
+                    'item_name' => $product['name'],
+                    'units' => $this->bulkUnits,
+                    'unit_price' => $this->bulkUnitPrice,
+                    'currency' => $this->currency,
+                    'license_start_date' => $yearStartDate->format('Y-m-d'),
+                    'license_end_date' => $yearEndDate->format('Y-m-d'),
+                    'billing_cycle' => (string) $billingCycleMonths,
+                    'discount' => 0,
+                    'total_price' => round($subtotal, 2),
+                ];
+            }
+        }
+
+        $this->orderItems = $newItems;
+        $this->recalculateItemTotals();
     }
 
     public function createInvoice(): void

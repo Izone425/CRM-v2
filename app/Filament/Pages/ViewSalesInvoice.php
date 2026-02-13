@@ -21,6 +21,7 @@ class ViewSalesInvoice extends Page
     public ?string $status = null;
     public ?string $invoiceDate = null;
     public ?string $dueDate = null;
+    public ?string $from = null;
 
     public function mount(): void
     {
@@ -32,6 +33,7 @@ class ViewSalesInvoice extends Page
         $this->status = Request::query('status') ? (string) Request::query('status') : null;
         $this->invoiceDate = Request::query('invoiceDate') ? (string) Request::query('invoiceDate') : null;
         $this->dueDate = Request::query('dueDate') ? (string) Request::query('dueDate') : null;
+        $this->from = Request::query('from') ? (string) Request::query('from') : null;
     }
 
     public function getTitle(): string
@@ -46,7 +48,8 @@ class ViewSalesInvoice extends Page
         ];
 
         if ($this->softwareHandoverId) {
-            $breadcrumbs[url('/admin/hr-company-license-details?softwareHandoverId=' . $this->softwareHandoverId . '&tab=invoice')] = 'Company Details';
+            $tab = $this->from === 'products' ? 'products' : 'invoice';
+            $breadcrumbs[url('/admin/hr-company-license-details?softwareHandoverId=' . $this->softwareHandoverId . '&tab=' . $tab)] = 'Company Details';
         }
 
         $breadcrumbs['#'] = 'Sales Invoice';

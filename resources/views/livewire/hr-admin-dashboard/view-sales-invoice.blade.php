@@ -160,20 +160,38 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @forelse($items as $index => $item)
-                                    <tr class="border-b border-gray-200">
-                                        <td class="border border-gray-200 px-3 py-2 text-center text-blue-600">{{ $index + 1 }}.</td>
-                                        <td class="border border-gray-200 px-3 py-2">
-                                            <span class="text-blue-600">TimeTec Suite- {{ $item['description'] }}</span>
-                                            <br>
-                                            <span class="text-gray-500 text-xs">[{{ $item['period'] ?? (date('d/m/Y') . ' - ' . date('d/m/Y', strtotime('+' . ($item['subscription_period'] ?? 1) . ' months'))) }}]</span>
+                                @php
+                                    $groupedByYear = collect($items)->groupBy(function($item) {
+                                        if (isset($item['year'])) return $item['year'];
+                                        if (!empty($item['period'])) return substr($item['period'], 6, 4);
+                                        return 'Other';
+                                    });
+                                    $itemCounter = 0;
+                                @endphp
+                                @forelse($groupedByYear as $yearLabel => $yearItems)
+                                    {{-- Year Header Row --}}
+                                    <tr style="background-color: #eff6ff;">
+                                        <td colspan="7" class="px-4 py-2 text-sm font-semibold text-blue-800 border border-gray-200">
+                                            Year {{ $yearLabel }}
                                         </td>
-                                        <td class="border border-gray-200 px-3 py-2 text-center text-blue-600">{{ $item['quantity'] }}</td>
-                                        <td class="border border-gray-200 px-3 py-2 text-right text-blue-600">{{ number_format($item['unit_price'], 2) }}</td>
-                                        <td class="border border-gray-200 px-3 py-2 text-center text-blue-600">{{ $item['subscription_period'] }}</td>
-                                        <td class="border border-gray-200 px-3 py-2 text-center text-blue-600">{{ number_format($item['discount'] ?? 0, 0) }}%</td>
-                                        <td class="border border-gray-200 px-3 py-2 text-right text-blue-600">{{ number_format($item['total_before_tax'], 2) }}</td>
                                     </tr>
+                                    @php $yearCounter = 0; @endphp
+                                    @foreach($yearItems as $item)
+                                        @php $yearCounter++; @endphp
+                                        <tr class="border-b border-gray-200">
+                                            <td class="border border-gray-200 px-3 py-2 text-center text-blue-600">{{ $yearCounter }}.</td>
+                                            <td class="border border-gray-200 px-3 py-2">
+                                                <span class="text-blue-600">TimeTec Suite- {{ $item['description'] }}</span>
+                                                <br>
+                                                <span class="text-gray-500 text-xs">[{{ $item['period'] ?? (date('d/m/Y') . ' - ' . date('d/m/Y', strtotime('+' . ($item['subscription_period'] ?? 1) . ' months'))) }}]</span>
+                                            </td>
+                                            <td class="border border-gray-200 px-3 py-2 text-center text-blue-600">{{ $item['quantity'] }}</td>
+                                            <td class="border border-gray-200 px-3 py-2 text-right text-blue-600">{{ number_format($item['unit_price'], 2) }}</td>
+                                            <td class="border border-gray-200 px-3 py-2 text-center text-blue-600">{{ $item['subscription_period'] }}</td>
+                                            <td class="border border-gray-200 px-3 py-2 text-center text-blue-600">{{ number_format($item['discount'] ?? 0, 0) }}%</td>
+                                            <td class="border border-gray-200 px-3 py-2 text-right text-blue-600">{{ number_format($item['total_before_tax'], 2) }}</td>
+                                        </tr>
+                                    @endforeach
                                 @empty
                                     <tr>
                                         <td colspan="7" class="border border-gray-200 px-3 py-6 text-center text-gray-500">No items found</td>

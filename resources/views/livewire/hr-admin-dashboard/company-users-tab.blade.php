@@ -5,15 +5,16 @@
     </div>
 
     <div class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-gray-200">
+        <table class="w-full divide-y divide-gray-200" style="table-layout: fixed;">
             <thead class="bg-gray-50">
                 <tr>
-                    <th class="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">No</th>
-                    <th class="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">Backend User Id</th>
-                    <th class="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">Full Name</th>
+                    <th class="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase" style="width: 50px;">No</th>
+                    <th class="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase" style="width: 120px;">Backend User Id</th>
+                    <th class="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase" style="width: 160px;">Full Name</th>
                     <th class="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">Login Id</th>
-                    <th class="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">Role</th>
-                    <th class="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">Status</th>
+                    <th class="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase" style="width: 100px;">Role</th>
+                    <th class="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase" style="width: 100px;">Status</th>
+                    {{-- Hidden for now: product subscription columns
                     <th class="px-4 py-3 text-xs font-medium tracking-wider text-center text-gray-500 uppercase"><span class="cursor-help border-b border-dashed border-gray-400" title="TimeTec Attendance">TA</span></th>
                     <th class="px-4 py-3 text-xs font-medium tracking-wider text-center text-gray-500 uppercase"><span class="cursor-help border-b border-dashed border-gray-400" title="TimeTec Leave">TL</span></th>
                     <th class="px-4 py-3 text-xs font-medium tracking-wider text-center text-gray-500 uppercase"><span class="cursor-help border-b border-dashed border-gray-400" title="TimeTec Claim">TC</span></th>
@@ -22,7 +23,8 @@
                     <th class="px-4 py-3 text-xs font-medium tracking-wider text-center text-gray-500 uppercase"><span class="cursor-help border-b border-dashed border-gray-400" title="TimeTec Recruitment">TR</span></th>
                     <th class="px-4 py-3 text-xs font-medium tracking-wider text-center text-gray-500 uppercase"><span class="cursor-help border-b border-dashed border-gray-400" title="TimeTec Appraisal">TAP</span></th>
                     <th class="px-4 py-3 text-xs font-medium tracking-wider text-center text-gray-500 uppercase"><span class="cursor-help border-b border-dashed border-gray-400" title="TimeTec Training">TT</span></th>
-                    <th class="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">Action</th>
+                    --}}
+                    <th class="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase" style="width: 200px;">Action</th>
                 </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
@@ -42,6 +44,7 @@
                                 {{ $user['status'] }}
                             </span>
                         </td>
+                        {{-- Hidden for now: product subscription cells
                         <td class="px-4 py-3 text-center whitespace-nowrap">
                             @if(($user['role'] ?? '') === 'OWNER' || ($user['ta'] ?? false))
                                 <i class="bi bi-check-circle-fill" style="font-size: 1.2rem; color:green;"></i>
@@ -98,6 +101,7 @@
                                 <i class="bi bi-x-circle-fill" style="font-size: 1.2rem; color:red;"></i>
                             @endif
                         </td>
+                        --}}
                         <td class="px-4 py-3 text-sm whitespace-nowrap">
                             <div class="flex items-center gap-2">
                                 <a href="#" class="inline-flex items-center px-3 py-1 text-sm font-medium text-black bg-blue-600 rounded hover:bg-blue-700">
@@ -113,7 +117,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="15" class="px-4 py-8 text-center text-gray-500">
+                        <td colspan="7" class="px-4 py-8 text-center text-gray-500">
                             <svg class="w-12 h-12 mx-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
                             </svg>

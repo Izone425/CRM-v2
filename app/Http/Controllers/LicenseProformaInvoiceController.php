@@ -24,19 +24,22 @@ class LicenseProformaInvoiceController extends Controller
         $accountId = $softwareHandover->hr_account_id;
         $companyId = $softwareHandover->hr_company_id;
 
-        $piData = null;
-
-        // First check if PI data is stored in session (from modal)
+        // Primary: Check session data (from modal, includes all years)
         $sessionKey = 'pi_data_' . $softwareHandoverId . '_' . $invoiceNo;
         $sessionData = session()->get($sessionKey);
+        $piData = null;
 
         if (!empty($sessionData) && !empty($sessionData['items'])) {
             $piData = $sessionData;
-            // Don't clear session data so user can refresh the page
         }
 
-        // If no session data, try to fetch PI data from TimeTec Backend API
-        if (!$piData && $accountId && $companyId) {
+        // Fallback 1: Build from license records in database (includes all years)
+        if (!$piData || empty($piData['items'])) {
+            $piData = $this->buildPiFromLicenseData($softwareHandover, $invoiceNo);
+        }
+
+        // Fallback 2: Try API if no local data
+        if ((!$piData || empty($piData['items'])) && $accountId && $companyId) {
             try {
                 $apiService = app(CRMApiService::class);
                 $response = $apiService->getProformaInvoiceDetails($accountId, $companyId, $invoiceNo);
@@ -47,11 +50,6 @@ class LicenseProformaInvoiceController extends Controller
             } catch (\Exception $e) {
                 Log::warning('Failed to fetch PI from API: ' . $e->getMessage());
             }
-        }
-
-        // If still no data, build from license records in database
-        if (!$piData || empty($piData['items'])) {
-            $piData = $this->buildPiFromLicenseData($softwareHandover, $invoiceNo);
         }
 
         // Get company details
@@ -113,6 +111,7 @@ class LicenseProformaInvoiceController extends Controller
             }
 
             $items[] = [
+                'year' => (int) date('Y', strtotime($startDate)),
                 'description' => $licenseType,
                 'license_type' => $licenseType,
                 'period' => $period,

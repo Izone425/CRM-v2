@@ -20,6 +20,9 @@ class ViewSalesInvoice extends Component
     public ?string $paramInvoiceDate = null;
     public ?string $paramDueDate = null;
 
+    // Navigation context
+    public ?string $from = null;
+
     // Invoice data
     public array $invoice = [];
     public array $items = [];
@@ -57,6 +60,7 @@ class ViewSalesInvoice extends Component
         ?string $status = null,
         ?string $invoiceDate = null,
         ?string $dueDate = null,
+        ?string $from = null,
     ): void {
         $this->quotationId = $quotationId;
         $this->softwareHandoverId = $softwareHandoverId;
@@ -66,6 +70,7 @@ class ViewSalesInvoice extends Component
         $this->paramStatus = $status;
         $this->paramInvoiceDate = $invoiceDate;
         $this->paramDueDate = $dueDate;
+        $this->from = $from;
 
         if ($this->quotationId) {
             $this->loadInvoice();
@@ -177,8 +182,9 @@ class ViewSalesInvoice extends Component
     public function goBack(): void
     {
         if ($this->softwareHandoverId) {
+            $tab = $this->from === 'products' ? 'products' : 'invoice';
             $this->redirect(
-                url('/admin/hr-company-license-details?softwareHandoverId=' . $this->softwareHandoverId . '&tab=invoice'),
+                url('/admin/hr-company-license-details?softwareHandoverId=' . $this->softwareHandoverId . '&tab=' . $tab),
                 navigate: false
             );
         } else {
@@ -248,6 +254,7 @@ class ViewSalesInvoice extends Component
                 $description = ($license['license_type'] ?? 'TimeTec License') . ' (' . $userCount . ' User License)';
 
                 $this->items[] = [
+                    'year' => (int) date('Y', strtotime($startDate)),
                     'description' => $description,
                     'period' => $period,
                     'quantity' => $qty,
@@ -298,8 +305,9 @@ class ViewSalesInvoice extends Component
 
     protected function getLicenseRecordsForInvoice(string $invoiceNo): array
     {
-        // Mock license records - same data as CompanyProductsTab
+        // Mock license records - same data as CompanyProductsTab (3 years x 4 products)
         $allRecords = [
+            // Year 2025
             [
                 'no' => 5,
                 'type' => 'PAID',
@@ -348,10 +356,11 @@ class ViewSalesInvoice extends Component
                 'start_date' => '2025-01-24',
                 'end_date' => '2026-01-23',
             ],
+            // Year 2026
             [
                 'no' => 9,
                 'type' => 'PAID',
-                'invoice_no' => 'TT2601000335',
+                'invoice_no' => 'TT2412000246',
                 'license_type' => 'TimeTec TA',
                 'unit' => 28,
                 'user_limit' => 10,
@@ -363,7 +372,7 @@ class ViewSalesInvoice extends Component
             [
                 'no' => 10,
                 'type' => 'PAID',
-                'invoice_no' => 'TT2601000335',
+                'invoice_no' => 'TT2412000246',
                 'license_type' => 'TimeTec Leave',
                 'unit' => 28,
                 'user_limit' => 10,
@@ -375,7 +384,7 @@ class ViewSalesInvoice extends Component
             [
                 'no' => 11,
                 'type' => 'PAID',
-                'invoice_no' => 'TT2601000335',
+                'invoice_no' => 'TT2412000246',
                 'license_type' => 'TimeTec Claim',
                 'unit' => 28,
                 'user_limit' => 10,
@@ -387,7 +396,7 @@ class ViewSalesInvoice extends Component
             [
                 'no' => 12,
                 'type' => 'PAID',
-                'invoice_no' => 'TT2601000335',
+                'invoice_no' => 'TT2412000246',
                 'license_type' => 'TimeTec Payroll',
                 'unit' => 28,
                 'user_limit' => 10,
@@ -395,6 +404,55 @@ class ViewSalesInvoice extends Component
                 'month' => 12,
                 'start_date' => '2026-01-24',
                 'end_date' => '2027-01-23',
+            ],
+            // Year 2027
+            [
+                'no' => 13,
+                'type' => 'PAID',
+                'invoice_no' => 'TT2412000246',
+                'license_type' => 'TimeTec TA',
+                'unit' => 28,
+                'user_limit' => 10,
+                'total_user' => 28,
+                'month' => 12,
+                'start_date' => '2027-01-24',
+                'end_date' => '2028-01-23',
+            ],
+            [
+                'no' => 14,
+                'type' => 'PAID',
+                'invoice_no' => 'TT2412000246',
+                'license_type' => 'TimeTec Leave',
+                'unit' => 28,
+                'user_limit' => 10,
+                'total_user' => 28,
+                'month' => 12,
+                'start_date' => '2027-01-24',
+                'end_date' => '2028-01-23',
+            ],
+            [
+                'no' => 15,
+                'type' => 'PAID',
+                'invoice_no' => 'TT2412000246',
+                'license_type' => 'TimeTec Claim',
+                'unit' => 28,
+                'user_limit' => 10,
+                'total_user' => 28,
+                'month' => 12,
+                'start_date' => '2027-01-24',
+                'end_date' => '2028-01-23',
+            ],
+            [
+                'no' => 16,
+                'type' => 'PAID',
+                'invoice_no' => 'TT2412000246',
+                'license_type' => 'TimeTec Payroll',
+                'unit' => 28,
+                'user_limit' => 10,
+                'total_user' => 28,
+                'month' => 12,
+                'start_date' => '2027-01-24',
+                'end_date' => '2028-01-23',
             ],
         ];
 

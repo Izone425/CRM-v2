@@ -123,6 +123,95 @@
         <div class="h-4"></div>
 
         {{-- ======================================== --}}
+        {{-- BULK CONFIGURATION SECTION --}}
+        {{-- ======================================== --}}
+        <div x-data="{ bulkOpen: false }" class="bg-white rounded-lg shadow mb-6">
+            <button type="button" @click="bulkOpen = !bulkOpen"
+                class="w-full bg-gray-100 px-6 py-3 rounded-t-lg border-b border-gray-200 flex items-center justify-between cursor-pointer hover:bg-gray-200 transition-colors">
+                <h3 class="text-base font-semibold text-gray-800">Bulk Configuration</h3>
+                <svg :class="bulkOpen ? 'rotate-180' : ''" class="w-5 h-5 text-gray-500 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
+            </button>
+            <div x-show="bulkOpen" x-collapse class="px-6 py-5">
+                {{-- Product Checkboxes --}}
+                <div class="mb-5">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Select Products</label>
+                    <div class="flex flex-wrap gap-4">
+                        @foreach($availableProducts as $pIndex => $product)
+                            <label class="inline-flex items-center cursor-pointer">
+                                <input type="checkbox" value="{{ $pIndex }}" wire:model="bulkProducts"
+                                    class="form-checkbox h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" />
+                                <span class="ml-2 text-sm text-gray-700">{{ $product['name'] }}</span>
+                            </label>
+                        @endforeach
+                    </div>
+                </div>
+
+                {{-- Bulk Fields --}}
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px;" class="mb-5">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Units per Item</label>
+                        <input type="number" wire:model="bulkUnits" min="0"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
+                            placeholder="e.g. 30" />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Unit Price</label>
+                        <input type="number" step="0.01" wire:model="bulkUnitPrice" min="0"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
+                            placeholder="e.g. 5.00" />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">License Start Date</label>
+                        <input type="date" wire:model="bulkStartDate"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm" />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Billing Cycle</label>
+                        <select wire:model="bulkBillingCycle"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm">
+                            <option value="1">1 Month</option>
+                            <option value="3">3 Months</option>
+                            <option value="6">6 Months</option>
+                            <option value="12">12 Months</option>
+                            <option value="24">24 Months</option>
+                            <option value="36">36 Months</option>
+                            <option value="48">48 Months</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Years of Subscription</label>
+                        <select wire:model="bulkYears"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm">
+                            <option value="1">1 Year</option>
+                            <option value="2">2 Years</option>
+                            <option value="3">3 Years</option>
+                            <option value="4">4 Years</option>
+                            <option value="5">5 Years</option>
+                        </select>
+                    </div>
+                </div>
+
+                {{-- Apply Button --}}
+                <div class="flex justify-end">
+                    <button type="button" wire:click="applyBulkConfig"
+                        wire:loading.attr="disabled"
+                        wire:loading.class="opacity-50 cursor-wait"
+                        class="inline-flex items-center px-5 py-2 text-sm font-medium text-black bg-blue-600 border border-blue-600 rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors">
+                        <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                        </svg>
+                        Apply Bulk Configuration
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        {{-- Section Spacer --}}
+        <div class="h-4"></div>
+
+        {{-- ======================================== --}}
         {{-- ORDER SECTION --}}
         {{-- ======================================== --}}
         <div class="bg-white rounded-lg shadow mb-12">
@@ -240,13 +329,13 @@
 
                                     {{-- Action --}}
                                     <td class="px-1 py-2 text-center">
-                                        @if($index >= 5)
-                                            <button type="button" wire:click="removeItemRow({{ $index }})"
-                                                class="w-6 h-6 rounded-full bg-red-100 text-red-600 hover:bg-red-200 text-sm font-bold leading-none"
-                                                title="Remove row">
-                                                &minus;
-                                            </button>
-                                        @endif
+                                        <button type="button" wire:click="removeItemRow({{ $index }})"
+                                            class="w-6 h-6 inline-flex items-center justify-center rounded text-red-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                                            title="Delete row">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                            </svg>
+                                        </button>
                                     </td>
                                 </tr>
                             @endforeach

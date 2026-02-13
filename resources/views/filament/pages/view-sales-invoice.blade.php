@@ -9,6 +9,7 @@
             :status="$status"
             :invoice-date="$invoiceDate"
             :due-date="$dueDate"
+            :from="$from"
         />
     @else
         <div class="p-6 text-center bg-white rounded-lg shadow">

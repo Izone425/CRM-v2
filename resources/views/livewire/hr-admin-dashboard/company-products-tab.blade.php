@@ -55,28 +55,18 @@
         <table class="w-full table-fixed divide-y divide-gray-200 border border-gray-200 rounded-lg">
             <thead class="bg-gray-50">
                 <tr>
-                    <th style="width: 11.11%;" class="px-2 py-3 text-xs font-medium tracking-wider text-center text-gray-500 uppercase">User Account</th>
-                    <th style="width: 11.11%;" class="px-2 py-3 text-xs font-medium tracking-wider text-center text-gray-500 uppercase">Attendance User</th>
-                    <th style="width: 11.11%;" class="px-2 py-3 text-xs font-medium tracking-wider text-center text-gray-500 uppercase">Leave User</th>
-                    <th style="width: 11.11%;" class="px-2 py-3 text-xs font-medium tracking-wider text-center text-gray-500 uppercase">Claim User</th>
-                    <th style="width: 11.11%;" class="px-2 py-3 text-xs font-medium tracking-wider text-center text-gray-500 uppercase">Payroll User</th>
-                    <th style="width: 11.11%;" class="px-2 py-3 text-xs font-medium tracking-wider text-center text-gray-500 uppercase">Onboarding & Offboarding</th>
-                    <th style="width: 11.11%;" class="px-2 py-3 text-xs font-medium tracking-wider text-center text-gray-500 uppercase">Recruitment</th>
-                    <th style="width: 11.11%;" class="px-2 py-3 text-xs font-medium tracking-wider text-center text-gray-500 uppercase">Appraisal</th>
-                    <th style="width: 11.11%;" class="px-2 py-3 text-xs font-medium tracking-wider text-center text-gray-500 uppercase">Training</th>
+                    <th style="width: 12.5%;" class="px-2 py-3 text-xs font-medium tracking-wider text-center text-gray-500 uppercase">Attendance User</th>
+                    <th style="width: 12.5%;" class="px-2 py-3 text-xs font-medium tracking-wider text-center text-gray-500 uppercase">Leave User</th>
+                    <th style="width: 12.5%;" class="px-2 py-3 text-xs font-medium tracking-wider text-center text-gray-500 uppercase">Claim User</th>
+                    <th style="width: 12.5%;" class="px-2 py-3 text-xs font-medium tracking-wider text-center text-gray-500 uppercase">Payroll User</th>
+                    <th style="width: 12.5%;" class="px-2 py-3 text-xs font-medium tracking-wider text-center text-gray-500 uppercase">Onboarding</th>
+                    <th style="width: 12.5%;" class="px-2 py-3 text-xs font-medium tracking-wider text-center text-gray-500 uppercase">Recruitment</th>
+                    <th style="width: 12.5%;" class="px-2 py-3 text-xs font-medium tracking-wider text-center text-gray-500 uppercase">Appraisal</th>
+                    <th style="width: 12.5%;" class="px-2 py-3 text-xs font-medium tracking-wider text-center text-gray-500 uppercase">Training</th>
                 </tr>
             </thead>
             <tbody class="bg-white">
                 <tr>
-                    <td class="px-2 py-4 text-center">
-                        <div class="license-tooltip">
-                            <span class="text-2xl font-bold text-blue-600 cursor-help border-b border-dashed border-blue-400">{{ $productData['user_account']['total'] }}</span>
-                            <div class="tooltip-content">
-                                <div class="tooltip-active">Active: {{ $productData['user_account']['active'] }}</div>
-                                <div class="tooltip-inactive">Inactive: {{ $productData['user_account']['inactive'] }}</div>
-                            </div>
-                        </div>
-                    </td>
                     <td class="px-2 py-4 text-center">
                         <div class="license-tooltip">
                             <span class="text-2xl font-bold text-blue-600 cursor-help border-b border-dashed border-blue-400">{{ $productData['attendance_user']['total'] }}</span>
@@ -203,65 +193,20 @@
                     @endif
                     <th style="width: {{ $isSelectionMode ? '4%' : '5%' }};" class="px-3 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">No</th>
                     <th style="width: {{ $isSelectionMode ? '20%' : '22%' }};" class="px-3 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">License Type</th>
-                    <th style="width: 9%;" class="px-3 py-3 text-xs font-medium tracking-wider text-center text-gray-500 uppercase">Total User</th>
-                    <th style="width: 9%;" class="px-3 py-3 text-xs font-medium tracking-wider text-center text-gray-500 uppercase">Total Login</th>
-                    <th style="width: 7%;" class="px-3 py-3 text-xs font-medium tracking-wider text-center text-gray-500 uppercase">Month</th>
+                    <th style="width: 10%;" class="px-3 py-3 text-xs font-medium tracking-wider text-center text-gray-500 uppercase">Total User</th>
+                    <th style="width: 8%;" class="px-3 py-3 text-xs font-medium tracking-wider text-center text-gray-500 uppercase">Month</th>
                     <th style="width: 12%;" class="px-3 py-3 text-xs font-medium tracking-wider text-center text-gray-500 uppercase">Start Date</th>
                     <th style="width: 12%;" class="px-3 py-3 text-xs font-medium tracking-wider text-center text-gray-500 uppercase">End Date</th>
                     <th style="width: 8%;" class="px-3 py-3 text-xs font-medium tracking-wider text-center text-gray-500 uppercase">Status</th>
                     <th style="width: {{ $isSelectionMode ? '15%' : '16%' }};" class="px-3 py-3 text-xs font-medium tracking-wider text-center text-gray-500 uppercase">Action</th>
                 </tr>
             </thead>
-            <tbody class="bg-white">
+            <tbody class="bg-white" x-data="{ paid: {}, year: {} }">
                 @forelse($groupedLicenseRecords as $groupIndex => $group)
                     @if($group['type'] === 'TRIAL')
-                        {{-- TRIAL: Direct rows without header --}}
-                        @foreach($group['products'] as $product)
-                            @php
-                                $today = now()->startOfDay();
-                                $startDate = \Carbon\Carbon::parse($product['start_date'])->startOfDay();
-                                $endDate = \Carbon\Carbon::parse($product['end_date'])->endOfDay();
-                                $isActive = $today->between($startDate, $endDate);
-                            @endphp
-                            <tr class="hover:bg-gray-50 border-b border-gray-100 {{ $isSelectionMode && in_array($product['no'], $selectedLicenseNos) ? 'bg-blue-50' : '' }}">
-                                @if($isSelectionMode)
-                                    <td class="px-3 py-3 text-center">
-                                        <input type="checkbox"
-                                            wire:click="toggleLicenseSelection({{ $product['no'] }})"
-                                            @checked(in_array($product['no'], $selectedLicenseNos))
-                                            class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer">
-                                    </td>
-                                @endif
-                                <td class="px-3 py-3 text-sm text-gray-900">{{ $product['no'] }}</td>
-                                <td class="px-3 py-3 text-sm text-gray-900">
-                                    <span class="inline-flex px-2 py-0.5 mr-2 text-xs font-semibold rounded bg-amber-100 text-amber-800">TRIAL</span>
-                                    {{ $product['license_type'] }}
-                                </td>
-                                <td class="px-3 py-3 text-sm text-center text-gray-900">{{ $product['total_user'] }}</td>
-                                <td class="px-3 py-3 text-sm text-center text-gray-900">{{ $product['total_login'] }}</td>
-                                <td class="px-3 py-3 text-sm text-center text-gray-900">{{ $product['month'] }}</td>
-                                <td class="px-3 py-3 text-sm text-center text-gray-900">{{ $product['start_date'] }}</td>
-                                <td class="px-3 py-3 text-sm text-center text-gray-900">{{ $product['end_date'] }}</td>
-                                <td class="px-3 py-3 text-sm text-center">
-                                    <span class="inline-flex items-center justify-center" title="{{ $isActive ? 'Active' : 'Inactive' }}">
-                                        <span style="width: 12px; height: 12px; border-radius: 50%; display: inline-block; background-color: {{ $isActive ? '#22c55e' : '#ef4444' }};"></span>
-                                    </span>
-                                </td>
-                                <td class="px-3 py-3 text-sm text-center">
-                                    @if($isSelectionMode)
-                                        <span class="text-gray-400 cursor-not-allowed">Edit</span>
-                                    @else
-                                        <button type="button" wire:click="openEditModal({{ $product['no'] }})" class="text-blue-600 hover:text-blue-800 hover:underline">Edit</button>
-                                    @endif
-                                </td>
-                            </tr>
-                        @endforeach
-                    @else
-                        {{-- PAID: Collapsible group with header --}}
+                        {{-- TRIAL: Collapsible group with header --}}
                         @php
-                            // Calculate totals for this PAID group
                             $groupTotalUser = collect($group['products'])->sum('total_user');
-                            $groupTotalLogin = collect($group['products'])->sum('total_login');
                             $groupStartDate = collect($group['products'])->min('start_date');
                             $groupEndDate = collect($group['products'])->max('end_date');
                             $today = now()->startOfDay();
@@ -276,7 +221,7 @@
                         @endphp
                         <tr class="bg-gray-100 border-t border-gray-300 cursor-pointer hover:bg-gray-200"
                             x-data="{ expanded: true }"
-                            @click="expanded = !expanded; $dispatch('toggle-paid-{{ $groupIndex }}', { expanded: expanded })">
+                            @click="expanded = !expanded; $dispatch('toggle-trial-{{ $groupIndex }}', { expanded: expanded })">
                             @if($isSelectionMode)
                                 <td class="px-3 py-2 text-center" @click.stop>
                                     <input type="checkbox"
@@ -287,31 +232,24 @@
                             @endif
                             <td class="px-3 py-2 text-xs">
                                 <span class="inline-flex items-center">
-                                    <svg class="w-4 h-4 mr-1 text-gray-500 transition-transform duration-200" :class="{ 'rotate-90': expanded }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg class="w-4 h-4 mr-1 text-gray-500 transition-transform duration-200" :style="expanded ? 'transform: rotate(90deg)' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
                                     </svg>
-                                    <span class="inline-flex px-2 py-0.5 font-semibold rounded bg-green-100 text-green-800">
-                                        PAID
+                                    <span class="inline-flex px-2 py-0.5 font-semibold rounded bg-amber-100 text-amber-800">
+                                        TRIAL
                                     </span>
                                 </span>
                             </td>
                             <td class="px-3 py-2 text-xs text-gray-600">
-                                <a href="{{ url('/admin/view-sales-invoice?invoiceNo=' . $group['invoice_no'] . '&softwareHandoverId=' . $softwareHandoverId) }}"
-                                   @click.stop
-                                   class="font-semibold text-blue-600 underline hover:text-blue-800 cursor-pointer">
-                                    {{ $group['invoice_no'] }}
-                                </a>
+                                <span class="font-semibold text-gray-700">{{ $group['invoice_no'] }}</span>
                                 <span class="ml-2 text-gray-400">({{ count($group['products']) }} items)</span>
                             </td>
                             <td class="px-3 py-2 text-xs text-center font-semibold text-gray-700">{{ $groupTotalUser }}</td>
-                            <td class="px-3 py-2 text-xs text-center font-semibold text-gray-700">{{ $groupTotalLogin }}</td>
                             <td class="px-3 py-2 text-xs text-center text-gray-500">-</td>
-                            <td class="px-3 py-2 text-xs text-center font-medium text-gray-600">{{ $groupStartDate }}</td>
-                            <td class="px-3 py-2 text-xs text-center font-medium text-gray-600">{{ $groupEndDate }}</td>
+                            <td class="px-3 py-2 text-xs text-center font-medium text-gray-600">{{ \Carbon\Carbon::parse($groupStartDate)->format('d/m/Y') }}</td>
+                            <td class="px-3 py-2 text-xs text-center font-medium text-gray-600">{{ \Carbon\Carbon::parse($groupEndDate)->format('d/m/Y') }}</td>
                             <td class="px-3 py-2 text-xs text-center">
-                                @php
-                                    $groupIsActive = $groupActiveCount >= $groupInactiveCount;
-                                @endphp
+                                @php $groupIsActive = $groupActiveCount >= $groupInactiveCount; @endphp
                                 <span class="inline-flex items-center justify-center" title="{{ $groupActiveCount }} Active, {{ $groupInactiveCount }} Inactive">
                                     <span style="width: 12px; height: 12px; border-radius: 50%; display: inline-block; background-color: {{ $groupIsActive ? '#22c55e' : '#ef4444' }};"></span>
                                 </span>
@@ -319,7 +257,7 @@
                             <td class="px-3 py-2 text-xs text-center"></td>
                         </tr>
 
-                        {{-- PAID Product Detail Rows --}}
+                        {{-- TRIAL Product Detail Rows --}}
                         @foreach($group['products'] as $product)
                             @php
                                 $today = now()->startOfDay();
@@ -330,7 +268,7 @@
                             <tr class="hover:bg-gray-50 border-b border-gray-100 {{ $isSelectionMode && in_array($product['no'], $selectedLicenseNos) ? 'bg-blue-50' : '' }}"
                                 x-data="{ show: true }"
                                 x-show="show"
-                                @toggle-paid-{{ $groupIndex }}.window="show = $event.detail.expanded"
+                                @toggle-trial-{{ $groupIndex }}.window="show = $event.detail.expanded"
                                 x-transition>
                                 @if($isSelectionMode)
                                     <td class="px-3 py-3 text-center">
@@ -340,13 +278,12 @@
                                             class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer">
                                     </td>
                                 @endif
-                                <td class="px-3 py-3 {{ $isSelectionMode ? '' : 'pl-6' }} text-sm text-gray-900">{{ $product['no'] }}</td>
+                                <td class="px-3 py-3 {{ $isSelectionMode ? '' : 'pl-6' }} text-sm text-gray-900"></td>
                                 <td class="px-3 py-3 text-sm text-gray-900">{{ $product['license_type'] }}</td>
                                 <td class="px-3 py-3 text-sm text-center text-gray-900">{{ $product['total_user'] }}</td>
-                                <td class="px-3 py-3 text-sm text-center text-gray-900">{{ $product['total_login'] }}</td>
                                 <td class="px-3 py-3 text-sm text-center text-gray-900">{{ $product['month'] }}</td>
-                                <td class="px-3 py-3 text-sm text-center text-gray-900">{{ $product['start_date'] }}</td>
-                                <td class="px-3 py-3 text-sm text-center text-gray-900">{{ $product['end_date'] }}</td>
+                                <td class="px-3 py-3 text-sm text-center text-gray-900">{{ \Carbon\Carbon::parse($product['start_date'])->format('d/m/Y') }}</td>
+                                <td class="px-3 py-3 text-sm text-center text-gray-900">{{ \Carbon\Carbon::parse($product['end_date'])->format('d/m/Y') }}</td>
                                 <td class="px-3 py-3 text-sm text-center">
                                     <span class="inline-flex items-center justify-center" title="{{ $isActive ? 'Active' : 'Inactive' }}">
                                         <span style="width: 12px; height: 12px; border-radius: 50%; display: inline-block; background-color: {{ $isActive ? '#22c55e' : '#ef4444' }};"></span>
@@ -360,6 +297,154 @@
                                     @endif
                                 </td>
                             </tr>
+                        @endforeach
+                    @else
+                        {{-- PAID: 3-Tier Collapsible (Invoice → Year → Products) --}}
+                        @php
+                            // Calculate totals for this PAID group (across all years)
+                            $groupTotalUser = collect($group['products'])->sum('total_user');
+                            $yearKeys = array_keys($group['years'] ?? []);
+                            $firstYearProducts = $group['years'][reset($yearKeys)] ?? [];
+                            $lastYearProducts = $group['years'][end($yearKeys)] ?? [];
+                            $groupStartDate = collect($firstYearProducts)->min('start_date');
+                            $groupEndDate = collect($lastYearProducts)->max('end_date');
+                            $today = now()->startOfDay();
+                            $groupActiveCount = collect($group['products'])->filter(function($p) use ($today) {
+                                $start = \Carbon\Carbon::parse($p['start_date'])->startOfDay();
+                                $end = \Carbon\Carbon::parse($p['end_date'])->endOfDay();
+                                return $today->between($start, $end);
+                            })->count();
+                            $groupInactiveCount = count($group['products']) - $groupActiveCount;
+                            $groupNos = collect($group['products'])->pluck('no')->toArray();
+                            $allGroupSelected = count(array_intersect($selectedLicenseNos, $groupNos)) === count($groupNos) && count($groupNos) > 0;
+                        @endphp
+
+                        {{-- Tier 1: Invoice Header --}}
+                        <tr class="bg-gray-100 border-t border-gray-300 cursor-pointer hover:bg-gray-200"
+                            @click="paid[{{ $groupIndex }}] = paid[{{ $groupIndex }}] === false">
+                            @if($isSelectionMode)
+                                <td class="px-3 py-2 text-center" @click.stop>
+                                    <input type="checkbox"
+                                        wire:click="toggleGroupSelection('{{ $group['invoice_no'] }}')"
+                                        @checked($allGroupSelected)
+                                        class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer">
+                                </td>
+                            @endif
+                            <td class="px-3 py-2 text-xs">
+                                <span class="inline-flex items-center">
+                                    <svg class="w-4 h-4 mr-1 text-gray-500 transition-transform duration-200" :style="paid[{{ $groupIndex }}] !== false ? 'transform: rotate(90deg)' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                                    </svg>
+                                    <span class="inline-flex px-2 py-0.5 font-semibold rounded bg-green-100 text-green-800">
+                                        PAID
+                                    </span>
+                                </span>
+                            </td>
+                            <td class="px-3 py-2 text-xs text-gray-600">
+                                <a href="{{ url('/admin/view-sales-invoice?invoiceNo=' . $group['invoice_no'] . '&softwareHandoverId=' . $softwareHandoverId . '&from=products') }}"
+                                   @click.stop
+                                   class="font-semibold text-blue-600 underline hover:text-blue-800 cursor-pointer">
+                                    {{ $group['invoice_no'] }}
+                                </a>
+                                <span class="ml-2 text-gray-400">({{ count($group['products']) }} items)</span>
+                            </td>
+                            <td class="px-3 py-2 text-xs text-center font-semibold text-gray-700">{{ $groupTotalUser }}</td>
+                            <td class="px-3 py-2 text-xs text-center text-gray-500">-</td>
+                            <td class="px-3 py-2 text-xs text-center font-medium text-gray-600">{{ \Carbon\Carbon::parse($groupStartDate)->format('d/m/Y') }}</td>
+                            <td class="px-3 py-2 text-xs text-center font-medium text-gray-600">{{ \Carbon\Carbon::parse($groupEndDate)->format('d/m/Y') }}</td>
+                            <td class="px-3 py-2 text-xs text-center">
+                                @php $groupIsActive = $groupActiveCount >= $groupInactiveCount; @endphp
+                                <span class="inline-flex items-center justify-center" title="{{ $groupActiveCount }} Active, {{ $groupInactiveCount }} Inactive">
+                                    <span style="width: 12px; height: 12px; border-radius: 50%; display: inline-block; background-color: {{ $groupIsActive ? '#22c55e' : '#ef4444' }};"></span>
+                                </span>
+                            </td>
+                            <td class="px-3 py-2 text-xs text-center"></td>
+                        </tr>
+
+                        {{-- Tier 2 & 3: Year Headers + Product Rows --}}
+                        @foreach($group['years'] ?? [] as $year => $yearProducts)
+                            @php
+                                $yearTotalUser = collect($yearProducts)->sum('total_user');
+                                $yearStartDate = collect($yearProducts)->min('start_date');
+                                $yearEndDate = collect($yearProducts)->max('end_date');
+                                $yearActiveCount = collect($yearProducts)->filter(function($p) use ($today) {
+                                    $start = \Carbon\Carbon::parse($p['start_date'])->startOfDay();
+                                    $end = \Carbon\Carbon::parse($p['end_date'])->endOfDay();
+                                    return $today->between($start, $end);
+                                })->count();
+                                $yearInactiveCount = count($yearProducts) - $yearActiveCount;
+                                $yearIsActive = $yearActiveCount >= $yearInactiveCount;
+                            @endphp
+
+                            {{-- Tier 2: Year Header --}}
+                            <tr class="bg-gray-50 border-t border-gray-200 cursor-pointer hover:bg-gray-100"
+                                x-show="paid[{{ $groupIndex }}] !== false"
+                                @click="year['{{ $groupIndex }}_{{ $year }}'] = !year['{{ $groupIndex }}_{{ $year }}']"
+                                x-transition>
+                                @if($isSelectionMode)
+                                    <td class="px-3 py-2 text-center" @click.stop></td>
+                                @endif
+                                <td class="px-3 py-2 text-xs pl-8">
+                                    <span class="inline-flex items-center">
+                                        <svg class="w-3 h-3 mr-1 text-gray-400 transition-transform duration-200" :style="year['{{ $groupIndex }}_{{ $year }}'] ? 'transform: rotate(90deg)' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                                        </svg>
+                                    </span>
+                                </td>
+                                <td class="px-3 py-2 text-xs text-gray-600">
+                                    <span class="font-semibold text-gray-700">{{ $year }}</span>
+                                    <span class="ml-2 text-gray-400">({{ count($yearProducts) }} items)</span>
+                                </td>
+                                <td class="px-3 py-2 text-xs text-center font-semibold text-gray-600">{{ $yearTotalUser }}</td>
+                                <td class="px-3 py-2 text-xs text-center text-gray-500">-</td>
+                                <td class="px-3 py-2 text-xs text-center text-gray-500">{{ \Carbon\Carbon::parse($yearStartDate)->format('d/m/Y') }}</td>
+                                <td class="px-3 py-2 text-xs text-center text-gray-500">{{ \Carbon\Carbon::parse($yearEndDate)->format('d/m/Y') }}</td>
+                                <td class="px-3 py-2 text-xs text-center">
+                                    <span class="inline-flex items-center justify-center" title="{{ $yearActiveCount }} Active, {{ $yearInactiveCount }} Inactive">
+                                        <span style="width: 12px; height: 12px; border-radius: 50%; display: inline-block; background-color: {{ $yearIsActive ? '#22c55e' : '#ef4444' }};"></span>
+                                    </span>
+                                </td>
+                                <td class="px-3 py-2 text-xs text-center"></td>
+                            </tr>
+
+                            {{-- Tier 3: Product Detail Rows --}}
+                            @foreach($yearProducts as $product)
+                                @php
+                                    $startDate = \Carbon\Carbon::parse($product['start_date'])->startOfDay();
+                                    $endDate = \Carbon\Carbon::parse($product['end_date'])->endOfDay();
+                                    $isActive = $today->between($startDate, $endDate);
+                                @endphp
+                                <tr class="hover:bg-gray-50 border-b border-gray-100 {{ $isSelectionMode && in_array($product['no'], $selectedLicenseNos) ? 'bg-blue-50' : '' }}"
+                                    x-show="paid[{{ $groupIndex }}] !== false && year['{{ $groupIndex }}_{{ $year }}']"
+                                    x-transition>
+                                    @if($isSelectionMode)
+                                        <td class="px-3 py-3 text-center">
+                                            <input type="checkbox"
+                                                wire:click="toggleLicenseSelection({{ $product['no'] }})"
+                                                @checked(in_array($product['no'], $selectedLicenseNos))
+                                                class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer">
+                                        </td>
+                                    @endif
+                                    <td class="px-3 py-3 {{ $isSelectionMode ? '' : 'pl-10' }} text-sm text-gray-900"></td>
+                                    <td class="px-3 py-3 text-sm text-gray-900">{{ $product['license_type'] }}</td>
+                                    <td class="px-3 py-3 text-sm text-center text-gray-900">{{ $product['total_user'] }}</td>
+                                    <td class="px-3 py-3 text-sm text-center text-gray-900">{{ $product['month'] }}</td>
+                                    <td class="px-3 py-3 text-sm text-center text-gray-900">{{ \Carbon\Carbon::parse($product['start_date'])->format('d/m/Y') }}</td>
+                                    <td class="px-3 py-3 text-sm text-center text-gray-900">{{ \Carbon\Carbon::parse($product['end_date'])->format('d/m/Y') }}</td>
+                                    <td class="px-3 py-3 text-sm text-center">
+                                        <span class="inline-flex items-center justify-center" title="{{ $isActive ? 'Active' : 'Inactive' }}">
+                                            <span style="width: 12px; height: 12px; border-radius: 50%; display: inline-block; background-color: {{ $isActive ? '#22c55e' : '#ef4444' }};"></span>
+                                        </span>
+                                    </td>
+                                    <td class="px-3 py-3 text-sm text-center">
+                                        @if($isSelectionMode)
+                                            <span class="text-gray-400 cursor-not-allowed">Edit</span>
+                                        @else
+                                            <button type="button" wire:click="openEditModal({{ $product['no'] }})" @click.stop class="text-blue-600 hover:text-blue-800 hover:underline">Edit</button>
+                                        @endif
+                                    </td>
+                                </tr>
+                            @endforeach
                         @endforeach
                     @endif
                 @empty
@@ -735,21 +820,41 @@
                                         </tr>
                                     </thead>
                                     <tbody class="bg-white divide-y divide-gray-200">
-                                        @forelse($items as $index => $item)
-                                            <tr class="{{ $index % 2 === 0 ? 'bg-white' : 'bg-gray-50' }}">
-                                                <td class="px-4 py-3 text-sm text-gray-700">{{ $index + 1 }}.</td>
-                                                <td class="px-4 py-3 text-sm text-gray-900">
-                                                    {{ $item['description'] ?? '-' }}
-                                                    @if(!empty($item['period']))
-                                                        <br><span class="text-xs text-gray-500">[{{ $item['period'] }}]</span>
-                                                    @endif
+                                        @php
+                                            $groupedByYear = collect($items)->groupBy(function($item) {
+                                                if (isset($item['year'])) return $item['year'];
+                                                if (!empty($item['period'])) {
+                                                    return substr($item['period'], 6, 4);
+                                                }
+                                                return 'Other';
+                                            });
+                                            $itemCounter = 0;
+                                        @endphp
+                                        @forelse($groupedByYear as $yearLabel => $yearItems)
+                                            {{-- Year Header Row --}}
+                                            <tr class="bg-blue-50">
+                                                <td colspan="7" class="px-4 py-2 text-sm font-semibold text-blue-800">
+                                                    Year {{ $yearLabel }}
                                                 </td>
-                                                <td class="px-4 py-3 text-sm text-center text-gray-700">{{ $item['qty'] ?? $item['quantity'] ?? 0 }}</td>
-                                                <td class="px-4 py-3 text-sm text-right text-gray-700">{{ number_format($item['price'] ?? $item['unit_price'] ?? 0, 2) }}</td>
-                                                <td class="px-4 py-3 text-sm text-center text-gray-700">{{ $item['billing_cycle'] ?? $item['month'] ?? '-' }}</td>
-                                                <td class="px-4 py-3 text-sm text-center text-gray-700">{{ $item['discount'] ?? '0%' }}</td>
-                                                <td class="px-4 py-3 text-sm text-right font-medium text-gray-900">{{ number_format($item['amount'] ?? 0, 2) }}</td>
                                             </tr>
+                                            {{-- Items for this year --}}
+                                            @foreach($yearItems as $item)
+                                                @php $itemCounter++; @endphp
+                                                <tr class="{{ $itemCounter % 2 === 0 ? 'bg-gray-50' : 'bg-white' }}">
+                                                    <td class="px-4 py-3 text-sm text-gray-700">{{ $itemCounter }}.</td>
+                                                    <td class="px-4 py-3 text-sm text-gray-900">
+                                                        {{ $item['description'] ?? '-' }}
+                                                        @if(!empty($item['period']))
+                                                            <br><span class="text-xs text-gray-500">[{{ $item['period'] }}]</span>
+                                                        @endif
+                                                    </td>
+                                                    <td class="px-4 py-3 text-sm text-center text-gray-700">{{ $item['qty'] ?? $item['quantity'] ?? 0 }}</td>
+                                                    <td class="px-4 py-3 text-sm text-right text-gray-700">{{ number_format($item['price'] ?? $item['unit_price'] ?? 0, 2) }}</td>
+                                                    <td class="px-4 py-3 text-sm text-center text-gray-700">{{ $item['billing_cycle'] ?? $item['month'] ?? '-' }}</td>
+                                                    <td class="px-4 py-3 text-sm text-center text-gray-700">{{ $item['discount'] ?? '0%' }}</td>
+                                                    <td class="px-4 py-3 text-sm text-right font-medium text-gray-900">{{ number_format($item['amount'] ?? 0, 2) }}</td>
+                                                </tr>
+                                            @endforeach
                                         @empty
                                             <tr>
                                                 <td colspan="7" class="px-4 py-6 text-center text-gray-500 text-sm">No items found</td>

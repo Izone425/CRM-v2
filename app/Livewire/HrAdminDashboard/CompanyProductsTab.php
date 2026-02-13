@@ -130,23 +130,7 @@ class CompanyProductsTab extends Component
             [
                 'no' => 1,
                 'type' => 'TRIAL',
-                'invoice_no' => '',
-                'license_type' => 'TimeTec Profile',
-                'unit' => 3,
-                'user_limit' => 10,
-                'total_user' => 28,
-                'total_login' => 0,
-                'total_terminal' => 0,
-                'month' => 1,
-                'start_date' => '2025-01-24',
-                'end_date' => '2027-01-23',
-                'status' => 'active',
-                'renewed' => '-',
-            ],
-            [
-                'no' => 2,
-                'type' => 'TRIAL',
-                'invoice_no' => '',
+                'invoice_no' => 'Trial231224001',
                 'license_type' => 'TimeTec TA',
                 'unit' => 3,
                 'user_limit' => 10,
@@ -160,9 +144,9 @@ class CompanyProductsTab extends Component
                 'renewed' => '-',
             ],
             [
-                'no' => 3,
+                'no' => 2,
                 'type' => 'TRIAL',
-                'invoice_no' => '',
+                'invoice_no' => 'Trial231224001',
                 'license_type' => 'TimeTec Leave',
                 'unit' => 3,
                 'user_limit' => 10,
@@ -176,9 +160,9 @@ class CompanyProductsTab extends Component
                 'renewed' => '-',
             ],
             [
-                'no' => 4,
+                'no' => 3,
                 'type' => 'TRIAL',
-                'invoice_no' => '',
+                'invoice_no' => 'Trial231224001',
                 'license_type' => 'TimeTec Claim',
                 'unit' => 3,
                 'user_limit' => 10,
@@ -191,8 +175,9 @@ class CompanyProductsTab extends Component
                 'status' => 'expired',
                 'renewed' => '-',
             ],
+            // 2025: 4 products
             [
-                'no' => 5,
+                'no' => 4,
                 'type' => 'PAID',
                 'invoice_no' => 'TT2412000246',
                 'license_type' => 'TimeTec TA',
@@ -208,10 +193,26 @@ class CompanyProductsTab extends Component
                 'renewed' => '-',
             ],
             [
-                'no' => 6,
+                'no' => 5,
                 'type' => 'PAID',
                 'invoice_no' => 'TT2412000246',
                 'license_type' => 'TimeTec Leave',
+                'unit' => 28,
+                'user_limit' => 1,
+                'total_user' => 28,
+                'total_login' => 0,
+                'total_terminal' => 0,
+                'month' => 12,
+                'start_date' => '2025-01-24',
+                'end_date' => '2026-01-23',
+                'status' => 'active',
+                'renewed' => '-',
+            ],
+            [
+                'no' => 6,
+                'type' => 'PAID',
+                'invoice_no' => 'TT2412000246',
+                'license_type' => 'TimeTec Claim',
                 'unit' => 28,
                 'user_limit' => 1,
                 'total_user' => 28,
@@ -227,22 +228,6 @@ class CompanyProductsTab extends Component
                 'no' => 7,
                 'type' => 'PAID',
                 'invoice_no' => 'TT2412000246',
-                'license_type' => 'TimeTec Claim',
-                'unit' => 28,
-                'user_limit' => 1,
-                'total_user' => 28,
-                'total_login' => 0,
-                'total_terminal' => 0,
-                'month' => 12,
-                'start_date' => '2025-01-24',
-                'end_date' => '2026-01-23',
-                'status' => 'active',
-                'renewed' => '-',
-            ],
-            [
-                'no' => 8,
-                'type' => 'PAID',
-                'invoice_no' => 'TT2412000246',
                 'license_type' => 'TimeTec Payroll',
                 'unit' => 28,
                 'user_limit' => 1,
@@ -255,10 +240,11 @@ class CompanyProductsTab extends Component
                 'status' => 'active',
                 'renewed' => '-',
             ],
+            // 2026: 4 products
             [
-                'no' => 9,
+                'no' => 8,
                 'type' => 'PAID',
-                'invoice_no' => 'TT2601000335',
+                'invoice_no' => 'TT2412000246',
                 'license_type' => 'TimeTec TA',
                 'unit' => 28,
                 'user_limit' => 1,
@@ -272,10 +258,26 @@ class CompanyProductsTab extends Component
                 'renewed' => '-',
             ],
             [
+                'no' => 9,
+                'type' => 'PAID',
+                'invoice_no' => 'TT2412000246',
+                'license_type' => 'TimeTec Leave',
+                'unit' => 28,
+                'user_limit' => 1,
+                'total_user' => 28,
+                'total_login' => 0,
+                'total_terminal' => 0,
+                'month' => 12,
+                'start_date' => '2026-01-24',
+                'end_date' => '2027-01-23',
+                'status' => 'active',
+                'renewed' => '-',
+            ],
+            [
                 'no' => 10,
                 'type' => 'PAID',
-                'invoice_no' => 'TT2601000335',
-                'license_type' => 'TimeTec Leave',
+                'invoice_no' => 'TT2412000246',
+                'license_type' => 'TimeTec Claim',
                 'unit' => 28,
                 'user_limit' => 1,
                 'total_user' => 28,
@@ -290,23 +292,7 @@ class CompanyProductsTab extends Component
             [
                 'no' => 11,
                 'type' => 'PAID',
-                'invoice_no' => 'TT2601000335',
-                'license_type' => 'TimeTec Claim',
-                'unit' => 28,
-                'user_limit' => 1,
-                'total_user' => 28,
-                'total_login' => 0,
-                'total_terminal' => 0,
-                'month' => 12,
-                'start_date' => '2026-01-24',
-                'end_date' => '2027-01-23',
-                'status' => 'active',
-                'renewed' => '-',
-            ],
-            [
-                'no' => 12,
-                'type' => 'PAID',
-                'invoice_no' => 'TT2601000335',
+                'invoice_no' => 'TT2412000246',
                 'license_type' => 'TimeTec Payroll',
                 'unit' => 28,
                 'user_limit' => 1,
@@ -319,6 +305,71 @@ class CompanyProductsTab extends Component
                 'status' => 'active',
                 'renewed' => '-',
             ],
+            // 2027: 4 products
+            [
+                'no' => 12,
+                'type' => 'PAID',
+                'invoice_no' => 'TT2412000246',
+                'license_type' => 'TimeTec TA',
+                'unit' => 28,
+                'user_limit' => 1,
+                'total_user' => 28,
+                'total_login' => 28,
+                'total_terminal' => 140,
+                'month' => 12,
+                'start_date' => '2027-01-24',
+                'end_date' => '2028-01-23',
+                'status' => 'active',
+                'renewed' => '-',
+            ],
+            [
+                'no' => 13,
+                'type' => 'PAID',
+                'invoice_no' => 'TT2412000246',
+                'license_type' => 'TimeTec Leave',
+                'unit' => 28,
+                'user_limit' => 1,
+                'total_user' => 28,
+                'total_login' => 0,
+                'total_terminal' => 0,
+                'month' => 12,
+                'start_date' => '2027-01-24',
+                'end_date' => '2028-01-23',
+                'status' => 'active',
+                'renewed' => '-',
+            ],
+            [
+                'no' => 14,
+                'type' => 'PAID',
+                'invoice_no' => 'TT2412000246',
+                'license_type' => 'TimeTec Claim',
+                'unit' => 28,
+                'user_limit' => 1,
+                'total_user' => 28,
+                'total_login' => 0,
+                'total_terminal' => 0,
+                'month' => 12,
+                'start_date' => '2027-01-24',
+                'end_date' => '2028-01-23',
+                'status' => 'active',
+                'renewed' => '-',
+            ],
+            [
+                'no' => 15,
+                'type' => 'PAID',
+                'invoice_no' => 'TT2412000246',
+                'license_type' => 'TimeTec Payroll',
+                'unit' => 28,
+                'user_limit' => 1,
+                'total_user' => 28,
+                'total_login' => 0,
+                'total_terminal' => 0,
+                'month' => 12,
+                'start_date' => '2027-01-24',
+                'end_date' => '2028-01-23',
+                'status' => 'active',
+                'renewed' => '-',
+            ],
         ];
     }
 
@@ -327,13 +378,8 @@ class CompanyProductsTab extends Component
         $grouped = [];
 
         foreach ($this->licenseRecords as $record) {
-            // Group by invoice_no for PAID only; TRIAL licenses are individual (no grouping)
-            if ($record['invoice_no']) {
-                $key = $record['invoice_no'];
-            } else {
-                // Each TRIAL license gets its own row (no grouping)
-                $key = 'TRIAL_' . $record['no'];
-            }
+            // Group by invoice_no for both TRIAL and PAID
+            $key = $record['invoice_no'];
 
             if (!isset($grouped[$key])) {
                 $grouped[$key] = [
@@ -357,6 +403,22 @@ class CompanyProductsTab extends Component
                 'start_date' => $record['start_date'],
                 'end_date' => $record['end_date'],
             ];
+        }
+
+        // For PAID groups, add year sub-grouping based on start_date year
+        foreach ($grouped as &$group) {
+            if ($group['type'] === 'PAID') {
+                $years = [];
+                foreach ($group['products'] as $product) {
+                    $year = (int) date('Y', strtotime($product['start_date']));
+                    if (!isset($years[$year])) {
+                        $years[$year] = [];
+                    }
+                    $years[$year][] = $product;
+                }
+                ksort($years);
+                $group['years'] = $years;
+            }
         }
 
         return array_values($grouped);
@@ -631,35 +693,38 @@ class CompanyProductsTab extends Component
         $accountId = $softwareHandover->hr_account_id ?? null;
         $companyId = $softwareHandover->hr_company_id ?? null;
 
-        // Try to fetch PI data from TimeTec Backend API
-        if ($accountId && $companyId) {
-            try {
-                $apiService = app(CRMApiService::class);
-                $response = $apiService->getProformaInvoiceDetails($accountId, $companyId, $invoiceNo);
+        // Primary: Build PI from license records (includes all years)
+        $this->buildPiFromLicenseRecords($invoiceNo);
 
-                if ($response['success'] && !empty($response['data'])) {
-                    // API data found - use it directly
-                    $this->apiPiData = $response['data'];
+        // Fallback: If no local license records matched, try API
+        if (empty($this->apiPiData)) {
+            if ($accountId && $companyId) {
+                try {
+                    $apiService = app(CRMApiService::class);
+                    $response = $apiService->getProformaInvoiceDetails($accountId, $companyId, $invoiceNo);
 
-                    // Store PI data in session for the full page view
-                    $sessionKey = 'pi_data_' . $this->softwareHandoverId . '_' . $invoiceNo;
-                    session()->put($sessionKey, $this->apiPiData);
+                    if ($response['success'] && !empty($response['data'])) {
+                        $this->apiPiData = $response['data'];
 
-                    $this->piLoading = false;
-                    return;
+                        // Store PI data in session for the full page view
+                        $sessionKey = 'pi_data_' . $this->softwareHandoverId . '_' . $invoiceNo;
+                        session()->put($sessionKey, $this->apiPiData);
+                    }
+                } catch (\Exception $e) {
+                    \Log::warning('Failed to fetch PI from API: ' . $e->getMessage());
                 }
-            } catch (\Exception $e) {
-                // Log error but continue to fallback
-                \Log::warning('Failed to fetch PI from API: ' . $e->getMessage());
             }
         }
 
-        // Fallback 1: Search local quotations
-        $this->loadLocalQuotations($softwareHandover, $invoiceNo);
-
-        // Fallback 2: If still no data, build PI from license records
+        // Fallback 2: Local quotations
         if (empty($this->piData) && empty($this->apiPiData)) {
-            $this->buildPiFromLicenseRecords($invoiceNo);
+            $this->loadLocalQuotations($softwareHandover, $invoiceNo);
+        }
+
+        // Store PI data in session for the full page view
+        if (!empty($this->apiPiData)) {
+            $sessionKey = 'pi_data_' . $this->softwareHandoverId . '_' . $invoiceNo;
+            session()->put($sessionKey, $this->apiPiData);
         }
 
         $this->piLoading = false;
@@ -704,6 +769,7 @@ class CompanyProductsTab extends Component
             }
 
             $items[] = [
+                'year' => (int) date('Y', strtotime($startDate)),
                 'description' => ($license['license_type'] ?? 'TimeTec License') . ' (1 User License)',
                 'period' => $period,
                 'qty' => $qty,
