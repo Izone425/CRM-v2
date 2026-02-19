@@ -374,19 +374,19 @@ class CompanyInvoiceTab extends Component
     protected function appendDummyRecords(): array
     {
         return [
-            ['invoice_no' => 'TT2408000355', 'invoice_date' => '2024-08-29', 'due_date' => '2024-09-05', 'description' => 'TimeTec License Purchase', 'total' => 110.00, 'currency' => 'USD', 'status' => 'Paid', 'quotation_id' => null],
-            ['invoice_no' => 'TT2409000134', 'invoice_date' => '2024-09-13', 'due_date' => '2024-09-20', 'description' => 'TimeTec License Purchase', 'total' => 50.00, 'currency' => 'USD', 'status' => 'Cancel', 'quotation_id' => null],
-            ['invoice_no' => 'TT2409000198', 'invoice_date' => '2024-09-19', 'due_date' => '2024-09-26', 'description' => 'TimeTec License Purchase', 'total' => 60.00, 'currency' => 'USD', 'status' => 'Cancel', 'quotation_id' => null],
-            ['invoice_no' => 'TT2410000012', 'invoice_date' => '2024-10-01', 'due_date' => '2024-10-08', 'description' => 'TimeTec License Purchase', 'total' => 0.01, 'currency' => 'MYR', 'status' => 'Paid', 'quotation_id' => null],
-            ['invoice_no' => 'TT2410000078', 'invoice_date' => '2024-10-08', 'due_date' => '2024-10-15', 'description' => 'TimeTec License Purchase', 'total' => 240.00, 'currency' => 'USD', 'status' => 'Paid', 'quotation_id' => null],
-            ['invoice_no' => 'TT2410000096', 'invoice_date' => '2024-10-09', 'due_date' => '2024-10-16', 'description' => 'TimeTec License Purchase', 'total' => 120.00, 'currency' => 'USD', 'status' => 'Cancel', 'quotation_id' => null],
-            ['invoice_no' => 'TT2410000153', 'invoice_date' => '2024-10-16', 'due_date' => '2024-10-23', 'description' => 'TimeTec License Purchase', 'total' => 0.04, 'currency' => 'MYR', 'status' => 'Cancel', 'quotation_id' => null],
-            ['invoice_no' => 'TT2502000209', 'invoice_date' => '2025-02-17', 'due_date' => '2025-02-24', 'description' => 'TimeTec License Purchase', 'total' => 129.60, 'currency' => 'MYR', 'status' => 'Cancel', 'quotation_id' => null],
-            ['invoice_no' => 'TT2502000211', 'invoice_date' => '2025-02-17', 'due_date' => '2025-02-24', 'description' => 'TimeTec License Purchase', 'total' => 24.00, 'currency' => 'USD', 'status' => 'Paid', 'quotation_id' => null],
-            ['invoice_no' => 'TT2509000087', 'invoice_date' => '2025-09-08', 'due_date' => '2025-09-15', 'description' => 'TimeTec License Purchase', 'total' => 500.00, 'currency' => 'USD', 'status' => 'Cancel', 'quotation_id' => null],
-            ['invoice_no' => 'TT2509000168', 'invoice_date' => '2025-09-14', 'due_date' => '2025-09-21', 'description' => 'TimeTec License Purchase', 'total' => 100.00, 'currency' => 'USD', 'status' => 'Cancel', 'quotation_id' => null],
-            ['invoice_no' => 'TT2510000141', 'invoice_date' => '2025-10-11', 'due_date' => '2025-10-18', 'description' => 'TimeTec License Purchase', 'total' => 0.04, 'currency' => 'MYR', 'status' => 'Cancel', 'quotation_id' => null],
-            ['invoice_no' => 'TT2602000032', 'invoice_date' => '2026-02-03', 'due_date' => '2026-02-10', 'description' => 'TimeTec License Purchase', 'total' => 1.08, 'currency' => 'MYR', 'status' => 'Pending', 'quotation_id' => null],
+            ['invoice_no' => 'TTC2408000355', 'invoice_date' => '2024-08-29', 'due_date' => '2024-09-05', 'description' => 'TimeTec License Purchase', 'total' => 110.00, 'currency' => 'USD', 'status' => 'Paid', 'quotation_id' => null],
+            ['invoice_no' => 'TTC2409000134', 'invoice_date' => '2024-09-13', 'due_date' => '2024-09-20', 'description' => 'TimeTec License Purchase', 'total' => 50.00, 'currency' => 'USD', 'status' => 'Cancel', 'quotation_id' => null],
+            ['invoice_no' => 'TTC2409000198', 'invoice_date' => '2024-09-19', 'due_date' => '2024-09-26', 'description' => 'TimeTec License Purchase', 'total' => 60.00, 'currency' => 'USD', 'status' => 'Cancel', 'quotation_id' => null],
+            ['invoice_no' => 'TTC2410000012', 'invoice_date' => '2024-10-01', 'due_date' => '2024-10-08', 'description' => 'TimeTec License Purchase', 'total' => 0.01, 'currency' => 'MYR', 'status' => 'Paid', 'quotation_id' => null],
+            ['invoice_no' => 'TTC2410000078', 'invoice_date' => '2024-10-08', 'due_date' => '2024-10-15', 'description' => 'TimeTec License Purchase', 'total' => 240.00, 'currency' => 'USD', 'status' => 'Paid', 'quotation_id' => null],
+            ['invoice_no' => 'TTC2410000096', 'invoice_date' => '2024-10-09', 'due_date' => '2024-10-16', 'description' => 'TimeTec License Purchase', 'total' => 120.00, 'currency' => 'USD', 'status' => 'Cancel', 'quotation_id' => null],
+            ['invoice_no' => 'TTC2410000153', 'invoice_date' => '2024-10-16', 'due_date' => '2024-10-23', 'description' => 'TimeTec License Purchase', 'total' => 0.04, 'currency' => 'MYR', 'status' => 'Cancel', 'quotation_id' => null],
+            ['invoice_no' => 'TTC2502000209', 'invoice_date' => '2025-02-17', 'due_date' => '2025-02-24', 'description' => 'TimeTec License Purchase', 'total' => 129.60, 'currency' => 'MYR', 'status' => 'Cancel', 'quotation_id' => null],
+            ['invoice_no' => 'TTC2502000211', 'invoice_date' => '2025-02-17', 'due_date' => '2025-02-24', 'description' => 'TimeTec License Purchase', 'total' => 24.00, 'currency' => 'USD', 'status' => 'Paid', 'quotation_id' => null],
+            ['invoice_no' => 'TTC2509000087', 'invoice_date' => '2025-09-08', 'due_date' => '2025-09-15', 'description' => 'TimeTec License Purchase', 'total' => 500.00, 'currency' => 'USD', 'status' => 'Cancel', 'quotation_id' => null],
+            ['invoice_no' => 'TTC2509000168', 'invoice_date' => '2025-09-14', 'due_date' => '2025-09-21', 'description' => 'TimeTec License Purchase', 'total' => 100.00, 'currency' => 'USD', 'status' => 'Cancel', 'quotation_id' => null],
+            ['invoice_no' => 'TTC2510000141', 'invoice_date' => '2025-10-11', 'due_date' => '2025-10-18', 'description' => 'TimeTec License Purchase', 'total' => 0.04, 'currency' => 'MYR', 'status' => 'Cancel', 'quotation_id' => null],
+            ['invoice_no' => 'TTC2602000032', 'invoice_date' => '2026-02-03', 'due_date' => '2026-02-10', 'description' => 'TimeTec License Purchase', 'total' => 1.08, 'currency' => 'MYR', 'status' => 'Pending', 'quotation_id' => null],
         ];
     }
 

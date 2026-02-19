@@ -50,38 +50,13 @@
         </div>
     </div>
 
-    {{-- Trial Period Management --}}
-    <div class="p-4 bg-white rounded-lg border border-gray-200 shadow-sm">
-        <h4 class="mb-4 text-sm font-semibold text-gray-900 uppercase tracking-wider flex items-center">
-            <svg class="w-5 h-5 mr-2 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-            </svg>
-            Trial Period Management
-        </h4>
-        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
-                <input type="date" wire:model="trialStartDate" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">End Date</label>
-                <input type="date" wire:model="trialEndDate" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
-            </div>
-        </div>
-        <div class="mt-4">
-            <button wire:click="updateTrialPeriod" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded hover:bg-blue-700">
-                Update Trial Period
-            </button>
-        </div>
-    </div>
-
-    {{-- Assign Customer to Dealer/Distributor --}}
+    {{-- Assign to Reseller --}}
     <div class="p-4 bg-white rounded-lg border border-gray-200 shadow-sm">
         <h4 class="mb-4 text-sm font-semibold text-gray-900 uppercase tracking-wider flex items-center">
             <svg class="w-5 h-5 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
             </svg>
-            Assign Customer to Dealer/Distributor
+            Assign to Reseller
         </h4>
         <div class="mb-4">
             <label class="block text-sm font-medium text-gray-700 mb-1">Customer</label>

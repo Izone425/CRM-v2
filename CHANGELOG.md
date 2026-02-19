@@ -37,6 +37,14 @@ This changelog tracks all code changes, new features, and modifications. Each en
 | 013 | New Feature + UI | License filter bar on Product tab (date, type, status, product) | No | [View Details](.changelog/013-license-filter-bar.md) | Completed |
 | 014 | Fix/Change + UI | Hide Commission tab from navigation | No | [View Details](.changelog/014-hide-commission-tab.md) | Completed |
 | 015 | New Feature + UI | Add 60 Months and Consolidate billing cycle options with dynamic month calculation | No | [View Details](.changelog/015-billing-cycle-60months-consolidate.md) | Completed |
+| 016 | Fix/Change + UI | Consolidate billing in Bulk Config + column width fix + label shortening | No | [View Details](.changelog/016-consolidate-bulk-config.md) | Completed |
+| 017 | Fix/Change + UI | Rename Invoice tab to "Proforma Invoice" | No | [View Details](.changelog/017-rename-invoice-tab-proforma.md) | Completed |
+| 018 | Fix/Change | Invoice number prefix TT -> TTC across all dummy records | No | [View Details](.changelog/018-invoice-number-prefix-ttc.md) | Completed |
+| 019 | Fix/Change + UI | Simplify Official Receipt modal to 4 fields (Company, Total, License No, Autocount Invoice) | No | [View Details](.changelog/019-simplify-official-receipt-modal.md) | Completed |
+| 020 | Fix/Change + UI | Edit Invoice: "Update Invoice" button + returnUrl Back navigation | No | [View Details](.changelog/020-edit-invoice-back-button-update.md) | Completed |
+| 021 | New Feature + UI | Conditional "Pay By" field (Subscriber/Reseller) for accounts under a dealer | No | [View Details](.changelog/021-conditional-pay-by-field.md) | Completed |
+| 022 | Fix/Change + UI | Account Setting: remove Trial Period, rename Assign to Reseller | No | [View Details](.changelog/022-account-setting-cleanup.md) | Completed |
+| 023 | Fix/Change + UI | Profile tab: simplify Billing Info, remove 4 sections, remove Backend fields | No | [View Details](.changelog/023-profile-tab-simplification.md) | Completed |
 
 ---
 
@@ -68,6 +76,14 @@ This changelog tracks all code changes, new features, and modifications. Each en
 | 013 | License filter bar: date range, type, status, product filters with search/reset | `CompanyProductsTab.php`, `company-products-tab.blade.php` | No |
 | 014 | Hidden Commission tab from company navigation | `company-license-details-container.blade.php` | No |
 | 015 | 60 Months + Consolidate billing cycle with dynamic month calc and URL param passing | `AddSalesInvoiceForm.php`, `CompanyProductsTab.php`, `AddSalesInvoice.php`, blade templates | No |
+| 016 | Consolidate in Bulk Config, column width fix, label shortening to (XXM) | `AddSalesInvoiceForm.php`, `add-sales-invoice-form.blade.php` | No |
+| 017 | Renamed Invoice tab to "Proforma Invoice" | `company-license-details-container.blade.php` | No |
+| 018 | All dummy invoice number prefixes changed from TT to TTC | `CompanyInvoiceTab.php`, `CompanyProductsTab.php`, `ViewSalesInvoice.php` | No |
+| 019 | Official Receipt modal: only Company, Total, License Number, Autocount Invoice | `ViewSalesInvoice.php`, `view-sales-invoice.blade.php` | No |
+| 020 | Edit Invoice: Update button + returnUrl chain for Back navigation | `AddSalesInvoice.php`, `AddSalesInvoiceForm.php`, `ViewSalesInvoice.php`, blade templates | No |
+| 021 | Pay By field appears when account is under Reseller/Distributor | `AddSalesInvoiceForm.php`, `add-sales-invoice-form.blade.php` | No |
+| 022 | Removed Trial Period Management, renamed Assign section to "Assign to Reseller" | `company-account-setting-tab.blade.php` | No |
+| 023 | Profile simplified: only Account Info, Backend Info, Billing Info remain | `CompanyProfileTab.php`, `company-profile-tab.blade.php` | No |
 
 ---
 

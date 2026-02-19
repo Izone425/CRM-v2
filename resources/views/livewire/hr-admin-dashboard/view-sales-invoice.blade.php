@@ -288,7 +288,6 @@
                                         Add Official Receipt
                                     </h3>
                                     <div class="mt-1 h-0.5 w-full" style="background-color: #06b6d4;"></div>
-                                    <p class="mt-2 text-sm" style="color: #06b6d4;">This is created when receive payment from customer for topup credit or payment for invoice.</p>
                                 </div>
                                 <button type="button" wire:click="closePaymentModal" class="ml-4 p-1 rounded-full hover:bg-gray-100 transition-colors" style="background-color: transparent;">
                                     <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -339,69 +338,38 @@
                                     </td>
                                 </tr>
 
-                                {{-- Bill Title --}}
+                                {{-- License Number --}}
                                 <tr>
                                     <td class="pr-4 align-top" style="padding-top: 10px;">
                                         <label class="text-sm font-medium text-gray-700 whitespace-nowrap">
-                                            Bill Title:
+                                            License Number <span class="text-red-500">*</span>:
                                         </label>
                                     </td>
                                     <td>
-                                        <input type="text" wire:model="paymentForm.bill_title"
-                                            placeholder="Payment for Invoice {{ $invoice['reference_no'] ?? '' }}"
+                                        <input type="text" wire:model="paymentForm.license_number"
                                             style="border: 1px solid #d1d5db; padding: 8px 12px; border-radius: 6px; font-size: 14px; width: 100%; background-color: #fff;">
-                                        <p class="mt-1 text-xs text-gray-400">E.g. Top Up Credit</p>
-                                    </td>
-                                </tr>
-
-                                {{-- Payment Method --}}
-                                <tr>
-                                    <td class="pr-4 align-top" style="padding-top: 10px;">
-                                        <label class="text-sm font-medium text-gray-700 whitespace-nowrap">
-                                            Payment Method <span class="text-red-500">*</span>:
-                                        </label>
-                                    </td>
-                                    <td>
-                                        <select wire:model="paymentForm.payment_method"
-                                            style="border: 1px solid #d1d5db; padding: 8px 12px; border-radius: 6px; font-size: 14px; background-color: #fff;">
-                                            <option value="Cash">Cash</option>
-                                            <option value="Credit Card">Credit Card</option>
-                                            <option value="Cheque">Cheque</option>
-                                            <option value="Bank Transfer">Bank Transfer</option>
-                                            <option value="PayPal">PayPal</option>
-                                            <option value="Store Credit">Store Credit</option>
-                                            <option value="Pending Payment">Pending Payment</option>
-                                        </select>
-                                        @error('paymentForm.payment_method')
+                                        @error('paymentForm.license_number')
                                             <p class="mt-1 text-xs text-red-500">{{ $message }}</p>
                                         @enderror
                                     </td>
                                 </tr>
 
-                                {{-- Ref No. --}}
+                                {{-- Autocount Invoice --}}
                                 <tr>
                                     <td class="pr-4 align-top" style="padding-top: 10px;">
                                         <label class="text-sm font-medium text-gray-700 whitespace-nowrap">
-                                            Ref No.:
+                                            Autocount Invoice <span class="text-red-500">*</span>:
                                         </label>
                                     </td>
                                     <td>
-                                        <input type="text" wire:model="paymentForm.ref_no"
-                                            style="border: 1px solid #d1d5db; padding: 8px 12px; border-radius: 6px; font-size: 14px; width: 100%; background-color: #fff;">
-                                        <p class="mt-1 text-xs text-gray-400">E.g. PBB 12345678</p>
-                                    </td>
-                                </tr>
-
-                                {{-- Remark --}}
-                                <tr>
-                                    <td class="pr-4 align-top" style="padding-top: 10px;">
-                                        <label class="text-sm font-medium text-gray-700 whitespace-nowrap">
-                                            Remark:
-                                        </label>
-                                    </td>
-                                    <td>
-                                        <textarea wire:model="paymentForm.remark" rows="4"
-                                            style="border: 1px solid #d1d5db; padding: 8px 12px; border-radius: 6px; font-size: 14px; width: 100%; resize: vertical; background-color: #fff;"></textarea>
+                                        <input type="text" wire:model="paymentForm.autocount_invoice"
+                                            maxlength="13"
+                                            x-on:input="$el.value = $el.value.toUpperCase()"
+                                            style="border: 1px solid #d1d5db; padding: 8px 12px; border-radius: 6px; font-size: 14px; width: 100%; background-color: #fff; text-transform: uppercase;">
+                                        <p class="mt-1 text-xs text-gray-400">Max 13 characters, uppercase</p>
+                                        @error('paymentForm.autocount_invoice')
+                                            <p class="mt-1 text-xs text-red-500">{{ $message }}</p>
+                                        @enderror
                                     </td>
                                 </tr>
                             </table>

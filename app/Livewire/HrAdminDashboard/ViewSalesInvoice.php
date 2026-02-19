@@ -36,10 +36,8 @@ class ViewSalesInvoice extends Component
         'company' => '',
         'currency' => 'MYR',
         'amount' => 0,
-        'bill_title' => '',
-        'payment_method' => 'Bank Transfer',
-        'ref_no' => '',
-        'remark' => '',
+        'license_number' => '',
+        'autocount_invoice' => '',
     ];
 
     // Cancel invoice modal
@@ -311,7 +309,7 @@ class ViewSalesInvoice extends Component
             [
                 'no' => 5,
                 'type' => 'PAID',
-                'invoice_no' => 'TT2412000246',
+                'invoice_no' => 'TTC2412000246',
                 'license_type' => 'TimeTec TA',
                 'unit' => 28,
                 'user_limit' => 10,
@@ -323,7 +321,7 @@ class ViewSalesInvoice extends Component
             [
                 'no' => 6,
                 'type' => 'PAID',
-                'invoice_no' => 'TT2412000246',
+                'invoice_no' => 'TTC2412000246',
                 'license_type' => 'TimeTec Leave',
                 'unit' => 28,
                 'user_limit' => 10,
@@ -335,7 +333,7 @@ class ViewSalesInvoice extends Component
             [
                 'no' => 7,
                 'type' => 'PAID',
-                'invoice_no' => 'TT2412000246',
+                'invoice_no' => 'TTC2412000246',
                 'license_type' => 'TimeTec Claim',
                 'unit' => 28,
                 'user_limit' => 10,
@@ -347,7 +345,7 @@ class ViewSalesInvoice extends Component
             [
                 'no' => 8,
                 'type' => 'PAID',
-                'invoice_no' => 'TT2412000246',
+                'invoice_no' => 'TTC2412000246',
                 'license_type' => 'TimeTec Payroll',
                 'unit' => 28,
                 'user_limit' => 10,
@@ -360,7 +358,7 @@ class ViewSalesInvoice extends Component
             [
                 'no' => 9,
                 'type' => 'PAID',
-                'invoice_no' => 'TT2412000246',
+                'invoice_no' => 'TTC2412000246',
                 'license_type' => 'TimeTec TA',
                 'unit' => 28,
                 'user_limit' => 10,
@@ -372,7 +370,7 @@ class ViewSalesInvoice extends Component
             [
                 'no' => 10,
                 'type' => 'PAID',
-                'invoice_no' => 'TT2412000246',
+                'invoice_no' => 'TTC2412000246',
                 'license_type' => 'TimeTec Leave',
                 'unit' => 28,
                 'user_limit' => 10,
@@ -384,7 +382,7 @@ class ViewSalesInvoice extends Component
             [
                 'no' => 11,
                 'type' => 'PAID',
-                'invoice_no' => 'TT2412000246',
+                'invoice_no' => 'TTC2412000246',
                 'license_type' => 'TimeTec Claim',
                 'unit' => 28,
                 'user_limit' => 10,
@@ -396,7 +394,7 @@ class ViewSalesInvoice extends Component
             [
                 'no' => 12,
                 'type' => 'PAID',
-                'invoice_no' => 'TT2412000246',
+                'invoice_no' => 'TTC2412000246',
                 'license_type' => 'TimeTec Payroll',
                 'unit' => 28,
                 'user_limit' => 10,
@@ -409,7 +407,7 @@ class ViewSalesInvoice extends Component
             [
                 'no' => 13,
                 'type' => 'PAID',
-                'invoice_no' => 'TT2412000246',
+                'invoice_no' => 'TTC2412000246',
                 'license_type' => 'TimeTec TA',
                 'unit' => 28,
                 'user_limit' => 10,
@@ -421,7 +419,7 @@ class ViewSalesInvoice extends Component
             [
                 'no' => 14,
                 'type' => 'PAID',
-                'invoice_no' => 'TT2412000246',
+                'invoice_no' => 'TTC2412000246',
                 'license_type' => 'TimeTec Leave',
                 'unit' => 28,
                 'user_limit' => 10,
@@ -433,7 +431,7 @@ class ViewSalesInvoice extends Component
             [
                 'no' => 15,
                 'type' => 'PAID',
-                'invoice_no' => 'TT2412000246',
+                'invoice_no' => 'TTC2412000246',
                 'license_type' => 'TimeTec Claim',
                 'unit' => 28,
                 'user_limit' => 10,
@@ -445,7 +443,7 @@ class ViewSalesInvoice extends Component
             [
                 'no' => 16,
                 'type' => 'PAID',
-                'invoice_no' => 'TT2412000246',
+                'invoice_no' => 'TTC2412000246',
                 'license_type' => 'TimeTec Payroll',
                 'unit' => 28,
                 'user_limit' => 10,
@@ -539,10 +537,8 @@ class ViewSalesInvoice extends Component
             'company' => $companyDisplay,
             'currency' => $this->invoice['currency'] ?? 'MYR',
             'amount' => $this->invoice['grand_total'] ?? 0,
-            'bill_title' => 'Payment for Invoice ' . ($this->invoice['reference_no'] ?? ''),
-            'payment_method' => 'Bank Transfer',
-            'ref_no' => '',
-            'remark' => '',
+            'license_number' => $this->invoice['reference_no'] ?? '',
+            'autocount_invoice' => '',
         ];
 
         $this->showPaymentModal = true;
@@ -559,11 +555,14 @@ class ViewSalesInvoice extends Component
             'paymentForm.company' => 'required',
             'paymentForm.currency' => 'required',
             'paymentForm.amount' => 'required|numeric|min:0.01',
-            'paymentForm.payment_method' => 'required',
+            'paymentForm.license_number' => 'required',
+            'paymentForm.autocount_invoice' => 'required|max:13',
         ], [
             'paymentForm.amount.required' => 'Total amount is required.',
             'paymentForm.amount.min' => 'Total amount must be greater than 0.',
-            'paymentForm.payment_method.required' => 'Payment method is required.',
+            'paymentForm.license_number.required' => 'License number is required.',
+            'paymentForm.autocount_invoice.required' => 'Autocount invoice is required.',
+            'paymentForm.autocount_invoice.max' => 'Autocount invoice must not exceed 13 characters.',
         ]);
 
         // For now, just show success notification (no database persistence yet)
@@ -636,6 +635,18 @@ class ViewSalesInvoice extends Component
     {
         // Param-based (dummy) invoice: pass viewed data as prefill params
         if (!$this->quotationId && $this->paramTotal !== null) {
+            // Build return URL so the Back button can navigate back here
+            $returnParams = array_filter([
+                'invoiceNo' => $this->invoiceNo,
+                'softwareHandoverId' => $this->softwareHandoverId,
+                'total' => $this->paramTotal,
+                'currency' => $this->paramCurrency,
+                'status' => $this->paramStatus,
+                'invoiceDate' => $this->paramInvoiceDate,
+                'dueDate' => $this->paramDueDate,
+                'from' => $this->from,
+            ]);
+
             $params = [
                 'softwareHandoverId' => $this->softwareHandoverId,
                 'prefillInvoiceNo' => $this->invoice['reference_no'] ?? $this->invoiceNo,
@@ -644,6 +655,7 @@ class ViewSalesInvoice extends Component
                 'prefillInvoiceDate' => $this->paramInvoiceDate ?? date('Y-m-d'),
                 'prefillTaxRate' => $this->invoice['tax_rate'] ?? 0,
                 'prefillDescription' => $this->items[0]['description'] ?? 'TimeTec License Purchase',
+                'returnUrl' => url('/admin/view-sales-invoice?' . http_build_query($returnParams)),
             ];
 
             $this->redirect(

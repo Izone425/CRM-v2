@@ -54,6 +54,12 @@ class AddSalesInvoiceForm extends Component
     public string $bulkBillingCycle = '12';
     public int $bulkYears = 1;
 
+    // Pay By (visible only when account is under a Reseller/Distributor)
+    public string $payBy = 'Subscriber';
+    public bool $isUnderDealer = false;
+
+    public ?string $returnUrl = null;
+
     public function mount(
         ?int $softwareHandoverId = null,
         ?int $quotationId = null,
@@ -64,7 +70,9 @@ class AddSalesInvoiceForm extends Component
         ?string $prefillInvoiceDate = null,
         ?float $prefillTaxRate = null,
         ?string $prefillDescription = null,
+        ?string $returnUrl = null,
     ): void {
+        $this->returnUrl = $returnUrl;
         $this->softwareHandoverId = $softwareHandoverId;
         $this->quotationId = $quotationId;
 
@@ -82,6 +90,7 @@ class AddSalesInvoiceForm extends Component
 
             // Pre-fill from dummy invoice data (when editing a dummy invoice)
             if ($prefillInvoiceNo !== null) {
+                $this->mode = 'edit';
                 $this->invoiceNo = $prefillInvoiceNo;
                 $this->invoiceDate = $prefillInvoiceDate
                     ? Carbon::parse($prefillInvoiceDate)->format('Y-m-d')
@@ -111,6 +120,9 @@ class AddSalesInvoiceForm extends Component
         if (!$sw) {
             return;
         }
+
+        // Check if this account is under a Reseller or Distributor
+        $this->isUnderDealer = !empty($sw->reseller_id);
 
         $hrLicense = HrLicense::where('software_handover_id', $this->softwareHandoverId)->first();
 
@@ -445,6 +457,13 @@ class AddSalesInvoiceForm extends Component
         return $this->totalInclTax;
     }
 
+    #[Computed]
+    public function bulkConsolidateMonths(): int
+    {
+        $startDate = $this->bulkStartDate ?? now()->format('Y-m-d');
+        return $this->calculateConsolidateMonths($startDate);
+    }
+
     public function applyBulkConfig(): void
     {
         if (empty($this->bulkProducts) || empty($this->bulkStartDate) || $this->bulkUnits <= 0) {
@@ -452,11 +471,20 @@ class AddSalesInvoiceForm extends Component
         }
 
         $newItems = [];
-        $billingCycleMonths = (int) $this->bulkBillingCycle;
+        $isConsolidate = $this->bulkBillingCycle === 'consolidate';
+        $billingCycleMonths = $isConsolidate
+            ? $this->calculateConsolidateMonths($this->bulkStartDate)
+            : (int) $this->bulkBillingCycle;
 
         for ($year = 0; $year < $this->bulkYears; $year++) {
             $yearStartDate = Carbon::parse($this->bulkStartDate)->addYears($year);
-            $yearEndDate = $yearStartDate->copy()->addMonths($billingCycleMonths)->subDay();
+
+            if ($isConsolidate && $this->activeLicenseEndDate) {
+                $yearEndDate = Carbon::parse($this->activeLicenseEndDate);
+                $billingCycleMonths = $this->calculateConsolidateMonths($yearStartDate->format('Y-m-d'));
+            } else {
+                $yearEndDate = $yearStartDate->copy()->addMonths($billingCycleMonths)->subDay();
+            }
 
             foreach ($this->bulkProducts as $productIndex) {
                 $product = $this->availableProducts[$productIndex] ?? null;
@@ -473,7 +501,7 @@ class AddSalesInvoiceForm extends Component
                     'currency' => $this->currency,
                     'license_start_date' => $yearStartDate->format('Y-m-d'),
                     'license_end_date' => $yearEndDate->format('Y-m-d'),
-                    'billing_cycle' => (string) $billingCycleMonths,
+                    'billing_cycle' => $isConsolidate ? 'consolidate' : (string) $billingCycleMonths,
                     'discount' => 0,
                     'total_price' => round($subtotal, 2),
                 ];
@@ -683,7 +711,9 @@ class AddSalesInvoiceForm extends Component
 
     public function goBack(): void
     {
-        if ($this->mode === 'edit' && $this->quotationId) {
+        if ($this->returnUrl) {
+            $this->redirect($this->returnUrl, navigate: false);
+        } elseif ($this->mode === 'edit' && $this->quotationId) {
             $this->redirect(
                 url('/admin/view-sales-invoice?quotationId=' . $this->quotationId . '&softwareHandoverId=' . $this->softwareHandoverId),
                 navigate: false

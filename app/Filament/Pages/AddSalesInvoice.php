@@ -26,6 +26,9 @@ class AddSalesInvoice extends Page
     public ?float $prefillTaxRate = null;
     public ?string $prefillDescription = null;
 
+    // Return URL for Back button (when editing from view-sales-invoice)
+    public ?string $returnUrl = null;
+
     public function mount(): void
     {
         $this->softwareHandoverId = Request::query('softwareHandoverId') ? (int) Request::query('softwareHandoverId') : null;
@@ -38,6 +41,7 @@ class AddSalesInvoice extends Page
         $this->prefillInvoiceDate = Request::query('prefillInvoiceDate') ? (string) Request::query('prefillInvoiceDate') : null;
         $this->prefillTaxRate = Request::query('prefillTaxRate') !== null ? (float) Request::query('prefillTaxRate') : null;
         $this->prefillDescription = Request::query('prefillDescription') ? (string) Request::query('prefillDescription') : null;
+        $this->returnUrl = Request::query('returnUrl') ? (string) Request::query('returnUrl') : null;
     }
 
     public function getTitle(): string

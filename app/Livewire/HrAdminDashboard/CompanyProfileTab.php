@@ -27,9 +27,9 @@ class CompanyProfileTab extends Component
 
     // Billing Information Properties
     public ?string $billingCompanyName = null;
-    public ?string $billingAddress = null;
+    public ?string $billingPicName = null;
+    public ?string $billingPhone = null;
     public ?string $billingEmail = null;
-    public bool $billingIsDefault = true;
 
     // Contact Person Properties
     public ?string $contactName = null;
@@ -142,7 +142,8 @@ class CompanyProfileTab extends Component
         $companyDetail = $this->companyData['company_detail'] ?? null;
 
         $this->billingCompanyName = $companyDetail?->company_name ?? $this->companyData['company_name'] ?? null;
-        $this->billingAddress = $this->formatAddress($companyDetail);
+        $this->billingPicName = $companyDetail?->name ?? null;
+        $this->billingPhone = $companyDetail?->contact_no ?? null;
         $this->billingEmail = $companyDetail?->email ?? null;
     }
 
@@ -197,6 +198,8 @@ class CompanyProfileTab extends Component
         if ($companyDetail) {
             $companyDetail->update([
                 'company_name' => $this->billingCompanyName,
+                'name' => $this->billingPicName,
+                'contact_no' => $this->billingPhone,
                 'email' => $this->billingEmail,
             ]);
         }

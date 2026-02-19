@@ -1,12 +1,4 @@
 <div>
-    @if($mode === 'edit' && $invoiceNo)
-        <div class="mb-4">
-            <h1 class="text-xl font-semibold text-gray-800">
-                Edit Invoice <span class="text-gray-400">&raquo;</span> {{ $invoiceNo }}
-            </h1>
-        </div>
-    @endif
-
     <form wire:submit="submitInvoice">
         {{-- Validation Errors Summary --}}
         @if ($errors->any())
@@ -33,89 +25,143 @@
                 <h3 class="text-base font-semibold text-gray-800">Customer Information</h3>
             </div>
             <div class="px-6 py-5">
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-                    {{-- Row 1: Customer & Invoice Date --}}
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">
-                            Customer <span class="text-red-500">*</span>
-                        </label>
-                        <select wire:model="selectedCustomer"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm">
-                            <option value="">Select Customer</option>
-                            @foreach($customerOptions as $value => $label)
-                                <option value="{{ $value }}">{{ $label }}</option>
-                            @endforeach
-                        </select>
-                        @error('selectedCustomer') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">
-                            Invoice Date <span class="text-red-500">*</span>
-                        </label>
-                        <input type="date" wire:model="invoiceDate"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm" />
-                        @error('invoiceDate') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
-                    </div>
-
-                    {{-- Row 2: Invoice Title & Invoice Type --}}
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">
-                            Invoice Title <span class="text-red-500">*</span>
-                        </label>
-                        <input type="text" wire:model="invoiceTitle"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
-                            placeholder="TimeTec License Purchase" />
-                        @error('invoiceTitle') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">
-                            Invoice Type <span class="text-red-500">*</span>
-                        </label>
-                        <div class="flex items-center gap-6 mt-2">
-                            <label class="inline-flex items-center cursor-pointer">
-                                <input type="radio" wire:model="invoiceType" value="normal"
-                                    class="form-radio h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500" />
-                                <span class="ml-2 text-sm text-gray-700">Normal</span>
+                @if($mode === 'edit')
+                    {{-- Edit mode: simplified single-line layout --}}
+                    <div style="display: grid; grid-template-columns: {{ $isUnderDealer ? '1fr 1fr 1fr' : '1fr 1fr' }}; gap: 20px;">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                                Customer <span class="text-red-500">*</span>
                             </label>
+                            <select wire:model="selectedCustomer"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm">
+                                <option value="">Select Customer</option>
+                                @foreach($customerOptions as $value => $label)
+                                    <option value="{{ $value }}">{{ $label }}</option>
+                                @endforeach
+                            </select>
+                            @error('selectedCustomer') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
                         </div>
-                        @error('invoiceType') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                                Invoice Date <span class="text-red-500">*</span>
+                            </label>
+                            <input type="date" wire:model="invoiceDate"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm" />
+                            @error('invoiceDate') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
+                        </div>
+                        @if($isUnderDealer)
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">
+                                    Pay By <span class="text-red-500">*</span>
+                                </label>
+                                <select wire:model="payBy"
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm">
+                                    <option value="Subscriber">Subscriber</option>
+                                    <option value="Reseller">Reseller</option>
+                                </select>
+                            </div>
+                        @endif
                     </div>
+                @else
+                    {{-- Create mode: full layout --}}
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                        {{-- Row 1: Customer, Invoice Date & Pay By (if under dealer) --}}
+                        <div style="{{ $isUnderDealer ? 'grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px;' : 'display: contents;' }}">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">
+                                    Customer <span class="text-red-500">*</span>
+                                </label>
+                                <select wire:model="selectedCustomer"
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm">
+                                    <option value="">Select Customer</option>
+                                    @foreach($customerOptions as $value => $label)
+                                        <option value="{{ $value }}">{{ $label }}</option>
+                                    @endforeach
+                                </select>
+                                @error('selectedCustomer') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">
+                                    Invoice Date <span class="text-red-500">*</span>
+                                </label>
+                                <input type="date" wire:model="invoiceDate"
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm" />
+                                @error('invoiceDate') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
+                            </div>
+                            @if($isUnderDealer)
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                                        Pay By <span class="text-red-500">*</span>
+                                    </label>
+                                    <select wire:model="payBy"
+                                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm">
+                                        <option value="Subscriber">Subscriber</option>
+                                        <option value="Reseller">Reseller</option>
+                                    </select>
+                                </div>
+                            @endif
+                        </div>
 
-                    {{-- Row 3: Company Address & Mobile Phone --}}
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">
-                            Company Address
-                        </label>
-                        <input type="text" wire:model="companyAddress"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
-                            placeholder="Company address" />
-                        @error('companyAddress') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">
-                            Mobile Phone
-                        </label>
-                        <input type="text" wire:model="mobilePhone"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
-                            placeholder="e.g. 01843521123" />
-                        @error('mobilePhone') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
-                    </div>
+                        {{-- Row 2: Invoice Title & Invoice Type --}}
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                                Invoice Title <span class="text-red-500">*</span>
+                            </label>
+                            <input type="text" wire:model="invoiceTitle"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
+                                placeholder="TimeTec License Purchase" />
+                            @error('invoiceTitle') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                                Invoice Type <span class="text-red-500">*</span>
+                            </label>
+                            <div class="flex items-center gap-6 mt-2">
+                                <label class="inline-flex items-center cursor-pointer">
+                                    <input type="radio" wire:model="invoiceType" value="normal"
+                                        class="form-radio h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500" />
+                                    <span class="ml-2 text-sm text-gray-700">Normal</span>
+                                </label>
+                            </div>
+                            @error('invoiceType') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
+                        </div>
 
-                    {{-- Row 4: Billing Information (full width) --}}
-                    <div style="grid-column: 1 / -1;">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">
-                            Billing Information <span class="text-red-500">*</span>
-                        </label>
-                        <select wire:model="billingInformation"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm">
-                            <option value="">Select Billing Information</option>
-                            @foreach($billingOptions as $value => $label)
-                                <option value="{{ $value }}">{{ $label }}</option>
-                            @endforeach
-                        </select>
-                        @error('billingInformation') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
+                        {{-- Row 3: Company Address & Mobile Phone --}}
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                                Company Address
+                            </label>
+                            <input type="text" wire:model="companyAddress"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
+                                placeholder="Company address" />
+                            @error('companyAddress') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                                Mobile Phone
+                            </label>
+                            <input type="text" wire:model="mobilePhone"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
+                                placeholder="e.g. 01843521123" />
+                            @error('mobilePhone') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
+                        </div>
+
+                        {{-- Row 4: Billing Information (full width) --}}
+                        <div style="grid-column: 1 / -1;">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                                Billing Information <span class="text-red-500">*</span>
+                            </label>
+                            <select wire:model="billingInformation"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm">
+                                <option value="">Select Billing Information</option>
+                                @foreach($billingOptions as $value => $label)
+                                    <option value="{{ $value }}">{{ $label }}</option>
+                                @endforeach
+                            </select>
+                            @error('billingInformation') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
+                        </div>
                     </div>
-                </div>
+                @endif
             </div>
         </div>
 
@@ -149,7 +195,7 @@
                 </div>
 
                 {{-- Bulk Fields --}}
-                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px;" class="mb-5">
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr 1fr; gap: 16px;" class="mb-5">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Units per Item</label>
                         <input type="number" wire:model="bulkUnits" min="0"
@@ -180,7 +226,7 @@
                             <option value="48">48 Months</option>
                             <option value="60">60 Months</option>
                             @if($activeLicenseEndDate)
-                                <option value="consolidate">Consolidate</option>
+                                <option value="consolidate">Consolidate ({{ $this->bulkConsolidateMonths }}M)</option>
                             @endif
                         </select>
                     </div>
@@ -227,7 +273,7 @@
                     <table class="w-full table-fixed border-collapse">
                         <thead>
                             <tr class="bg-gray-50 border-b border-gray-200">
-                                <th style="width: 21%;" class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Item Name</th>
+                                <th style="width: 19%;" class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Item Name</th>
                                 <th style="width: 8%;" class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Unit(s)</th>
                                 <th style="width: 10%;" class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     <div class="flex items-center justify-center gap-1">
@@ -243,7 +289,7 @@
                                 </th>
                                 <th style="width: 14%;" class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">License Start Date</th>
                                 <th style="width: 14%;" class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">License End Date</th>
-                                <th style="width: 12%;" class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Billing Cycle</th>
+                                <th style="width: 14%;" class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Billing Cycle</th>
                                 <th style="width: 11%;" class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Discount</th>
                                 <th style="width: 10%;" class="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Total Price</th>
                                 <th style="width: 3%;" class="px-1 py-3"></th>
@@ -311,7 +357,7 @@
                                             <option value="48">48 Months</option>
                                             <option value="60">60 Months</option>
                                             @if($activeLicenseEndDate)
-                                                <option value="consolidate">Consolidate ({{ $item['consolidate_months'] ?? 0 }} Months)</option>
+                                                <option value="consolidate">Consolidate ({{ $item['consolidate_months'] ?? 0 }}M)</option>
                                             @endif
                                         </select>
                                     </td>

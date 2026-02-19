@@ -9,6 +9,7 @@
             :prefill-invoice-date="$prefillInvoiceDate"
             :prefill-tax-rate="$prefillTaxRate"
             :prefill-description="$prefillDescription"
+            :return-url="$returnUrl"
         />
     @else
         <div class="p-6 text-center bg-white rounded-lg shadow">
