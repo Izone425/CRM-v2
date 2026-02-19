@@ -251,17 +251,6 @@
                         </ol>
                     </div>
 
-                    {{-- Payment Buttons --}}
-                    <div class="mt-8 flex justify-center gap-6 pb-4">
-                        <button type="button"
-                            style="background-color: #93c5fd; color: #1e40af; padding: 10px 40px; border-radius: 6px; font-size: 14px; font-weight: 600; border: none; cursor: pointer;">
-                            Paypal
-                        </button>
-                        <button type="button"
-                            style="background-color: #93c5fd; color: #1e40af; padding: 10px 40px; border-radius: 6px; font-size: 14px; font-weight: 600; border: none; cursor: pointer;">
-                            Razer
-                        </button>
-                    </div>
                 </div>
             </div>
         </div>

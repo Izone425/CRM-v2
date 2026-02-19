@@ -2,6 +2,7 @@
     @if($softwareHandoverId)
         <livewire:hr-admin-dashboard.add-sales-invoice-form
             :software-handover-id="$softwareHandoverId"
+            :active-license-end-date="$activeLicenseEndDate"
             :prefill-invoice-no="$prefillInvoiceNo"
             :prefill-total="$prefillTotal"
             :prefill-currency="$prefillCurrency"

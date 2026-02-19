@@ -15,6 +15,7 @@ class CompanyProductsTab extends Component
     public array $productData = [];
     public array $licenseRecords = [];
     public array $groupedLicenseRecords = [];
+    public ?string $maxPaidEndDate = null;
 
     // Edit modal properties
     public bool $showEditModal = false;
@@ -47,6 +48,13 @@ class CompanyProductsTab extends Component
     public bool $isSelectionMode = false;
     public array $selectedLicenseNos = [];
 
+    // Filter properties
+    public string $filterType = 'all';
+    public string $filterStatus = 'all';
+    public string $filterProduct = 'all';
+    public ?string $filterStartDate = null;
+    public ?string $filterEndDate = null;
+
     // PI Modal properties
     public bool $showPiModal = false;
     public ?string $selectedInvoiceNo = null;
@@ -62,6 +70,11 @@ class CompanyProductsTab extends Component
         $this->loadProductData();
         $this->loadLicenseRecords();
         $this->groupedLicenseRecords = $this->getGroupedLicenseRecords();
+
+        // Compute max end date from PAID license records for consolidate billing
+        $this->maxPaidEndDate = collect($this->licenseRecords)
+            ->where('type', 'PAID')
+            ->max('end_date');
     }
 
     protected function loadProductData(): void
@@ -375,9 +388,14 @@ class CompanyProductsTab extends Component
 
     protected function getGroupedLicenseRecords(): array
     {
+        return $this->getGroupedLicenseRecordsFrom($this->licenseRecords);
+    }
+
+    protected function getGroupedLicenseRecordsFrom(array $records): array
+    {
         $grouped = [];
 
-        foreach ($this->licenseRecords as $record) {
+        foreach ($records as $record) {
             // Group by invoice_no for both TRIAL and PAID
             $key = $record['invoice_no'];
 
@@ -422,6 +440,51 @@ class CompanyProductsTab extends Component
         }
 
         return array_values($grouped);
+    }
+
+    public function applyFilters(): void
+    {
+        $filtered = collect($this->licenseRecords);
+
+        if ($this->filterType !== 'all') {
+            $filtered = $filtered->where('type', $this->filterType);
+        }
+
+        if ($this->filterStatus !== 'all') {
+            $today = now()->startOfDay();
+            $filtered = $filtered->filter(function ($record) use ($today) {
+                $start = \Carbon\Carbon::parse($record['start_date'])->startOfDay();
+                $end = \Carbon\Carbon::parse($record['end_date'])->endOfDay();
+                $isActive = $today->between($start, $end);
+
+                return $this->filterStatus === 'active' ? $isActive : !$isActive;
+            });
+        }
+
+        if ($this->filterProduct !== 'all') {
+            $filtered = $filtered->where('license_type', $this->filterProduct);
+        }
+
+        if ($this->filterStartDate) {
+            $filtered = $filtered->filter(fn ($record) => $record['start_date'] >= $this->filterStartDate);
+        }
+
+        if ($this->filterEndDate) {
+            $filtered = $filtered->filter(fn ($record) => $record['end_date'] <= $this->filterEndDate);
+        }
+
+        $this->groupedLicenseRecords = $this->getGroupedLicenseRecordsFrom($filtered->values()->toArray());
+    }
+
+    public function resetLicenseFilters(): void
+    {
+        $this->filterType = 'all';
+        $this->filterStatus = 'all';
+        $this->filterProduct = 'all';
+        $this->filterStartDate = null;
+        $this->filterEndDate = null;
+
+        $this->groupedLicenseRecords = $this->getGroupedLicenseRecords();
     }
 
     public function openEditModal(int $licenseNo): void

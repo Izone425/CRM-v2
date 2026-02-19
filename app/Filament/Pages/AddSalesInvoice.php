@@ -15,6 +15,9 @@ class AddSalesInvoice extends Page
 
     public ?int $softwareHandoverId = null;
 
+    // Active license end date for consolidate billing
+    public ?string $activeLicenseEndDate = null;
+
     // Prefill params for dummy invoice editing
     public ?string $prefillInvoiceNo = null;
     public ?float $prefillTotal = null;
@@ -26,6 +29,7 @@ class AddSalesInvoice extends Page
     public function mount(): void
     {
         $this->softwareHandoverId = Request::query('softwareHandoverId') ? (int) Request::query('softwareHandoverId') : null;
+        $this->activeLicenseEndDate = Request::query('activeLicenseEndDate') ? (string) Request::query('activeLicenseEndDate') : null;
 
         // Extract prefill params (passed when editing a dummy invoice)
         $this->prefillInvoiceNo = Request::query('prefillInvoiceNo') ? (string) Request::query('prefillInvoiceNo') : null;

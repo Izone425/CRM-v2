@@ -43,6 +43,9 @@ class AddSalesInvoiceForm extends Component
     // Currency
     public string $currency = 'MYR';
 
+    // Active license end date (for consolidate billing cycle)
+    public ?string $activeLicenseEndDate = null;
+
     // Bulk Configuration
     public array $bulkProducts = [];
     public int $bulkUnits = 0;
@@ -54,6 +57,7 @@ class AddSalesInvoiceForm extends Component
     public function mount(
         ?int $softwareHandoverId = null,
         ?int $quotationId = null,
+        ?string $activeLicenseEndDate = null,
         ?string $prefillInvoiceNo = null,
         ?float $prefillTotal = null,
         ?string $prefillCurrency = null,
@@ -70,6 +74,11 @@ class AddSalesInvoiceForm extends Component
         } else {
             $this->mode = 'create';
             $this->loadCompanyData();
+
+            // Use URL-provided active license end date if available (overrides DB value)
+            if ($activeLicenseEndDate) {
+                $this->activeLicenseEndDate = $activeLicenseEndDate;
+            }
 
             // Pre-fill from dummy invoice data (when editing a dummy invoice)
             if ($prefillInvoiceNo !== null) {
@@ -104,6 +113,11 @@ class AddSalesInvoiceForm extends Component
         }
 
         $hrLicense = HrLicense::where('software_handover_id', $this->softwareHandoverId)->first();
+
+        // Store active license end date for consolidate billing cycle
+        $this->activeLicenseEndDate = $hrLicense?->end_date
+            ? Carbon::parse($hrLicense->end_date)->format('Y-m-d')
+            : null;
 
         $companyName = $hrLicense?->company_name ?? $sw->company_name ?? 'Unknown Company';
         $hrAccountId = $sw->hr_account_id ?? '';
@@ -302,6 +316,36 @@ class AddSalesInvoiceForm extends Component
         }
     }
 
+    protected function calculateConsolidateMonths(string $startDate): int
+    {
+        if (!$this->activeLicenseEndDate) {
+            return 1;
+        }
+
+        $start = Carbon::parse($startDate)->startOfDay();
+        $end = Carbon::parse($this->activeLicenseEndDate)->startOfDay();
+
+        if ($end->lte($start)) {
+            return 0;
+        }
+
+        // Count full months
+        $months = 0;
+        while ($start->copy()->addMonths($months + 1)->lte($end)) {
+            $months++;
+        }
+
+        // Check remaining days after full months
+        $afterFullMonths = $start->copy()->addMonths($months);
+        $remainingDays = $afterFullMonths->diffInDays($end);
+
+        if ($remainingDays >= 15) {
+            $months++;
+        }
+
+        return $months;
+    }
+
     public function updatedOrderItems(): void
     {
         $this->recalculateItemTotals();
@@ -313,7 +357,12 @@ class AddSalesInvoiceForm extends Component
         foreach ($this->orderItems as $index => $item) {
             $units = (float) ($item['units'] ?? 0);
             $unitPrice = (float) ($item['unit_price'] ?? 0);
-            $billingCycleMonths = (int) ($item['billing_cycle'] ?? 1);
+            $billingCycle = $item['billing_cycle'] ?? '1';
+
+            // For consolidate, calculate months dynamically
+            $billingCycleMonths = $billingCycle === 'consolidate'
+                ? $this->calculateConsolidateMonths($item['license_start_date'] ?? '')
+                : (int) $billingCycle;
 
             // Sanitize discount: clamp between 0-100, round to 2 decimal places
             $discount = (float) ($item['discount'] ?? 0);
@@ -331,12 +380,22 @@ class AddSalesInvoiceForm extends Component
     {
         foreach ($this->orderItems as $index => $item) {
             $startDate = $item['license_start_date'] ?? '';
-            $billingCycleMonths = (int) ($item['billing_cycle'] ?? 1);
+            $billingCycle = $item['billing_cycle'] ?? '1';
 
             if (!empty($startDate)) {
                 try {
-                    $endDate = Carbon::parse($startDate)->addMonths($billingCycleMonths)->subDay()->format('Y-m-d');
-                    $this->orderItems[$index]['license_end_date'] = $endDate;
+                    // Always compute consolidate months so the dropdown label stays up-to-date
+                    if ($this->activeLicenseEndDate) {
+                        $this->orderItems[$index]['consolidate_months'] = $this->calculateConsolidateMonths($startDate);
+                    }
+
+                    if ($billingCycle === 'consolidate' && $this->activeLicenseEndDate) {
+                        $this->orderItems[$index]['license_end_date'] = $this->activeLicenseEndDate;
+                    } else {
+                        $billingCycleMonths = (int) $billingCycle;
+                        $endDate = Carbon::parse($startDate)->addMonths($billingCycleMonths)->subDay()->format('Y-m-d');
+                        $this->orderItems[$index]['license_end_date'] = $endDate;
+                    }
                 } catch (\Exception $e) {
                     $this->orderItems[$index]['license_end_date'] = '';
                 }

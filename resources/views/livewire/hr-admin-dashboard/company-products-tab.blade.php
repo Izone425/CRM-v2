@@ -162,7 +162,7 @@
                     Edit Selected ({{ count($selectedLicenseNos) }})
                 </button>
             @else
-                <a href="{{ url('/admin/add-sales-invoice?softwareHandoverId=' . $softwareHandoverId) }}"
+                <a href="{{ url('/admin/add-sales-invoice?softwareHandoverId=' . $softwareHandoverId . ($maxPaidEndDate ? '&activeLicenseEndDate=' . $maxPaidEndDate : '')) }}"
                     class="inline-flex items-center px-4 py-2 text-sm font-medium text-black bg-green-200 border border-transparent rounded-md shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors">
                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
@@ -179,6 +179,64 @@
             @endif
         </div>
     </div>
+
+    {{-- License Filter Bar --}}
+    <table style="width: 100%; border-spacing: 8px; border-collapse: separate;" class="mb-4">
+        <tr>
+            <td style="width: 18%;">
+                <input type="date"
+                       wire:model.defer="filterStartDate"
+                       style="width: 100%; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; outline: none;"
+                       placeholder="Start Date" />
+            </td>
+            <td style="width: 18%;">
+                <input type="date"
+                       wire:model.defer="filterEndDate"
+                       style="width: 100%; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; outline: none;"
+                       placeholder="End Date" />
+            </td>
+            <td style="width: 15%;">
+                <select wire:model.defer="filterType"
+                        style="width: 100%; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; outline: none; background: white;">
+                    <option value="all">All Types</option>
+                    <option value="PAID">Paid</option>
+                    <option value="TRIAL">Trial</option>
+                </select>
+            </td>
+            <td style="width: 15%;">
+                <select wire:model.defer="filterStatus"
+                        style="width: 100%; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; outline: none; background: white;">
+                    <option value="all">All Status</option>
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                </select>
+            </td>
+            <td style="width: 15%;">
+                <select wire:model.defer="filterProduct"
+                        style="width: 100%; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; outline: none; background: white;">
+                    <option value="all">All Products</option>
+                    <option value="TimeTec TA">TimeTec TA</option>
+                    <option value="TimeTec Leave">TimeTec Leave</option>
+                    <option value="TimeTec Claim">TimeTec Claim</option>
+                    <option value="TimeTec Payroll">TimeTec Payroll</option>
+                </select>
+            </td>
+            <td style="width: 9%;">
+                <button wire:click="applyFilters"
+                        wire:loading.attr="disabled"
+                        style="width: 100%; padding: 8px 16px; background: #3b82f6; color: white; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; white-space: nowrap;">
+                    Search
+                </button>
+            </td>
+            <td style="width: 9%;">
+                <button wire:click="resetLicenseFilters"
+                        style="width: 100%; padding: 8px 16px; background: #3b82f6; color: white; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; white-space: nowrap;">
+                    Reset
+                </button>
+            </td>
+        </tr>
+    </table>
+
     <div class="overflow-x-auto">
         <table class="w-full table-fixed divide-y divide-gray-200 border border-gray-200 rounded-lg">
             <thead class="bg-gray-50">
@@ -391,7 +449,7 @@
                                         </svg>
                                     </span>
                                 </td>
-                                <td class="px-3 py-2 text-xs text-gray-600">
+                                <td class="px-3 py-2 text-xs text-gray-600 pl-6">
                                     <span class="font-semibold text-gray-700">{{ $year }}</span>
                                     <span class="ml-2 text-gray-400">({{ count($yearProducts) }} items)</span>
                                 </td>
@@ -426,7 +484,7 @@
                                         </td>
                                     @endif
                                     <td class="px-3 py-3 {{ $isSelectionMode ? '' : 'pl-10' }} text-sm text-gray-900"></td>
-                                    <td class="px-3 py-3 text-sm text-gray-900">{{ $product['license_type'] }}</td>
+                                    <td class="px-3 py-3 text-sm text-gray-900 pl-12">{{ $product['license_type'] }}</td>
                                     <td class="px-3 py-3 text-sm text-center text-gray-900">{{ $product['total_user'] }}</td>
                                     <td class="px-3 py-3 text-sm text-center text-gray-900">{{ $product['month'] }}</td>
                                     <td class="px-3 py-3 text-sm text-center text-gray-900">{{ \Carbon\Carbon::parse($product['start_date'])->format('d/m/Y') }}</td>

@@ -178,6 +178,10 @@
                             <option value="24">24 Months</option>
                             <option value="36">36 Months</option>
                             <option value="48">48 Months</option>
+                            <option value="60">60 Months</option>
+                            @if($activeLicenseEndDate)
+                                <option value="consolidate">Consolidate</option>
+                            @endif
                         </select>
                     </div>
                     <div>
@@ -305,6 +309,10 @@
                                             <option value="24">24 Months</option>
                                             <option value="36">36 Months</option>
                                             <option value="48">48 Months</option>
+                                            <option value="60">60 Months</option>
+                                            @if($activeLicenseEndDate)
+                                                <option value="consolidate">Consolidate ({{ $item['consolidate_months'] ?? 0 }} Months)</option>
+                                            @endif
                                         </select>
                                     </td>
 

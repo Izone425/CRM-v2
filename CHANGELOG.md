@@ -2,7 +2,7 @@
 
 > **Project**: TimeTec CRM PDT - Admin Portal V2
 > **Maintained by**: Admin Portal Team
-> **Last Updated**: 2026-02-13
+> **Last Updated**: 2026-02-19
 
 This changelog tracks all code changes, new features, and modifications. Each entry links to a detailed file showing **BEFORE and AFTER code** for developer handoff.
 
@@ -32,6 +32,11 @@ This changelog tracks all code changes, new features, and modifications. Each en
 | 008 | Fix/Change + UI | Context-aware Back button returns to originating tab (Products or Invoice) | No | [View Details](.changelog/008-context-aware-back-button.md) | Completed |
 | 009 | New Feature + UI | Bulk Configuration section for Add Sales Invoice (products x years auto-populate) | No | [View Details](.changelog/009-bulk-configuration-add-invoice.md) | Completed |
 | 010 | Fix/Change + UI | Order table: trash delete icon for all rows, clean product names | No | [View Details](.changelog/010-order-table-improvements.md) | Completed |
+| 011 | Fix/Change + UI | Remove PayPal & Razer buttons from admin Sales Invoice page | No | [View Details](.changelog/011-remove-paypal-razer-buttons.md) | Completed |
+| 012 | Fix/Change + UI | Stair-step indentation for Product tab license tiers (Year, Product) | No | [View Details](.changelog/012-product-tier-indentation.md) | Completed |
+| 013 | New Feature + UI | License filter bar on Product tab (date, type, status, product) | No | [View Details](.changelog/013-license-filter-bar.md) | Completed |
+| 014 | Fix/Change + UI | Hide Commission tab from navigation | No | [View Details](.changelog/014-hide-commission-tab.md) | Completed |
+| 015 | New Feature + UI | Add 60 Months and Consolidate billing cycle options with dynamic month calculation | No | [View Details](.changelog/015-billing-cycle-60months-consolidate.md) | Completed |
 
 ---
 
@@ -58,6 +63,11 @@ This changelog tracks all code changes, new features, and modifications. Each en
 | 008 | Back button returns to Products or Invoice tab based on navigation origin | `ViewSalesInvoice.php` (Filament + Livewire), `CompanyInvoiceTab.php`, `company-products-tab.blade.php` | No |
 | 009 | Bulk Configuration: select products, set params, auto-generate order rows | `AddSalesInvoiceForm.php`, `add-sales-invoice-form.blade.php` | No |
 | 010 | Trash icon for all rows, removed bracket text from product names | `AddSalesInvoiceForm.php`, `add-sales-invoice-form.blade.php` | No |
+| 011 | Removed PayPal/Razer buttons from admin invoice page (payment via external link) | `view-sales-invoice.blade.php` | No |
+| 012 | Added stair-step indentation (pl-6, pl-12) to Year and Product tier rows | `company-products-tab.blade.php` | No |
+| 013 | License filter bar: date range, type, status, product filters with search/reset | `CompanyProductsTab.php`, `company-products-tab.blade.php` | No |
+| 014 | Hidden Commission tab from company navigation | `company-license-details-container.blade.php` | No |
+| 015 | 60 Months + Consolidate billing cycle with dynamic month calc and URL param passing | `AddSalesInvoiceForm.php`, `CompanyProductsTab.php`, `AddSalesInvoice.php`, blade templates | No |
 
 ---
 
