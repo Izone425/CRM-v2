@@ -38,6 +38,15 @@ use App\Filament\Pages\EditSalesInvoice;
 use App\Filament\Pages\ViewSalesInvoice;
 use App\Filament\Pages\HrAccountManagement;
 use App\Filament\Pages\HrCompanyLicenseDetails;
+use App\Filament\Pages\HrBilling;
+use App\Filament\Pages\HrBillingAutoRenewal;
+use App\Filament\Pages\HrBillingCommission;
+use App\Filament\Pages\HrBillingCreditNotes;
+use App\Filament\Pages\HrBillingExpiringInvoices;
+use App\Filament\Pages\HrBillingOfficialReceipt;
+use App\Filament\Pages\HrBillingPayment;
+use App\Filament\Pages\HrBillingSalesInvoice;
+use App\Filament\Pages\HrDevices;
 use App\Filament\Pages\HrLicense;
 use App\Filament\Pages\HrdfClaimTracker;
 use App\Filament\Pages\HrdfHandoverList;
@@ -386,6 +395,15 @@ class AdminPanelProvider extends PanelProvider
                 HrProductDashboard::class,
                 HrAccountManagement::class,
                 HrLicense::class,
+                HrDevices::class,
+                HrBilling::class,
+                HrBillingSalesInvoice::class,
+                HrBillingExpiringInvoices::class,
+                HrBillingOfficialReceipt::class,
+                HrBillingCommission::class,
+                HrBillingPayment::class,
+                HrBillingAutoRenewal::class,
+                HrBillingCreditNotes::class,
                 HrCompanyLicenseDetails::class,
                 AddSalesInvoice::class,
                 EditSalesInvoice::class,

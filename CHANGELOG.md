@@ -2,7 +2,7 @@
 
 > **Project**: TimeTec CRM PDT - Admin Portal V2
 > **Maintained by**: Admin Portal Team
-> **Last Updated**: 2026-02-19
+> **Last Updated**: 2026-02-20
 
 This changelog tracks all code changes, new features, and modifications. Each entry links to a detailed file showing **BEFORE and AFTER code** for developer handoff.
 
@@ -45,6 +45,12 @@ This changelog tracks all code changes, new features, and modifications. Each en
 | 021 | New Feature + UI | Conditional "Pay By" field (Subscriber/Reseller) for accounts under a dealer | No | [View Details](.changelog/021-conditional-pay-by-field.md) | Completed |
 | 022 | Fix/Change + UI | Account Setting: remove Trial Period, rename Assign to Reseller | No | [View Details](.changelog/022-account-setting-cleanup.md) | Completed |
 | 023 | Fix/Change + UI | Profile tab: simplify Billing Info, remove 4 sections, remove Backend fields | No | [View Details](.changelog/023-profile-tab-simplification.md) | Completed |
+| 024 | New Feature + UI | Customer Credential section in Profile tab (read-only) | No | [View Details](.changelog/024-customer-credential-section.md) | Completed |
+| 025 | Fix/Change | License table search by email via CompanyDetail relationship | No | [View Details](.changelog/025-license-search-by-email.md) | Completed |
+| 026 | New Feature + Database + UI | Devices sub-navigation and Terminal Devices page | Yes (migration) | [View Details](.changelog/026-devices-sub-navigation.md) | Completed |
+| 027 | New Feature + Database + UI | Billing navigation with 7 sub-items and Sales Invoice page | Yes (migration) | [View Details](.changelog/027-billing-navigation-sales-invoice.md) | Completed |
+| 028 | Fix/Change | Consolidate all invoices into hr_sales_invoices table (single source of truth) | No | [View Details](.changelog/028-consolidate-invoices-to-sales-table.md) | Completed |
+| 029 | Fix/Change + UI | Context-aware breadcrumbs and back navigation for ViewSalesInvoice | No | [View Details](.changelog/029-context-aware-breadcrumbs-invoice.md) | Completed |
 
 ---
 
@@ -84,6 +90,12 @@ This changelog tracks all code changes, new features, and modifications. Each en
 | 021 | Pay By field appears when account is under Reseller/Distributor | `AddSalesInvoiceForm.php`, `add-sales-invoice-form.blade.php` | No |
 | 022 | Removed Trial Period Management, renamed Assign section to "Assign to Reseller" | `company-account-setting-tab.blade.php` | No |
 | 023 | Profile simplified: only Account Info, Backend Info, Billing Info remain | `CompanyProfileTab.php`, `company-profile-tab.blade.php` | No |
+| 024 | Customer Credential section in Profile tab | `CompanyProfileTab.php`, `company-profile-tab.blade.php` | No |
+| 025 | License table search by email | `HrLicenseTable.php` | No |
+| 026 | Devices sub-nav + Terminal Devices page | `HrDevices.php`, `HrTerminalDeviceTable.php`, `HrTerminalDevice.php`, migrations, sidebar | Yes (migration) |
+| 027 | Billing nav (7 sub-items) + Sales Invoice page | `HrBilling*.php`, `HrSalesInvoiceTable.php`, `HrSalesInvoice.php`, migrations, sidebar | Yes (migration) |
+| 028 | Consolidate invoices into hr_sales_invoices | `HrSalesInvoiceSeeder.php`, `CompanyInvoiceTab.php` | No |
+| 029 | Context-aware breadcrumbs for ViewSalesInvoice | `ViewSalesInvoice.php` (Filament + Livewire) | No |
 
 ---
 

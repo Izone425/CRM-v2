@@ -4,6 +4,7 @@ namespace App\Livewire\HrAdminDashboard;
 
 use App\Models\CrmHrdfInvoice;
 use App\Models\HrLicense;
+use App\Models\HrSalesInvoice;
 use App\Models\Quotation;
 use App\Models\SoftwareHandover;
 use App\Services\CRMApiService;
@@ -162,6 +163,10 @@ class CompanyInvoiceTab extends Component
             $quotationInvoices = $this->getQuotationInvoices();
             $allInvoices = array_merge($allInvoices, $quotationInvoices);
 
+            // Load sales invoices from hr_sales_invoices table
+            $hrSalesInvoices = $this->getHrSalesInvoices();
+            $allInvoices = array_merge($allInvoices, $hrSalesInvoices);
+
             // Then try CrmHrdfInvoice table
             $query = CrmHrdfInvoice::where('handover_id', $this->softwareHandoverId)
                 ->where('handover_type', 'SW');
@@ -201,9 +206,6 @@ class CompanyInvoiceTab extends Component
                 $hrLicenseInvoices = $this->getHrLicenseInvoices();
                 $allInvoices = array_merge($allInvoices, $hrLicenseInvoices);
             }
-
-            // Append dummy records
-            $allInvoices = array_merge($allInvoices, $this->appendDummyRecords());
 
             // Apply search filter to quotation invoices if needed
             if (!empty($this->search)) {
@@ -279,6 +281,30 @@ class CompanyInvoiceTab extends Component
         }
 
         return $invoices;
+    }
+
+    protected function getHrSalesInvoices(): array
+    {
+        if (!$this->softwareHandoverId) {
+            return [];
+        }
+
+        $records = HrSalesInvoice::where('software_handover_id', $this->softwareHandoverId)
+            ->orderBy('invoice_date', 'desc')
+            ->get();
+
+        return $records->map(function ($record) {
+            return [
+                'invoice_no' => $record->invoice_no,
+                'invoice_date' => $record->invoice_date?->format('Y-m-d'),
+                'due_date' => null,
+                'description' => 'TimeTec License Purchase',
+                'total' => (float) ($record->invoice_amount ?? $record->sales_amount ?? 0),
+                'currency' => $record->currency ?? 'MYR',
+                'status' => ucfirst(strtolower($record->status)),
+                'quotation_id' => null,
+            ];
+        })->toArray();
     }
 
     protected function getHrLicenseInvoices(): array
@@ -369,25 +395,6 @@ class CompanyInvoiceTab extends Component
         }
 
         return 1.00;
-    }
-
-    protected function appendDummyRecords(): array
-    {
-        return [
-            ['invoice_no' => 'TTC2408000355', 'invoice_date' => '2024-08-29', 'due_date' => '2024-09-05', 'description' => 'TimeTec License Purchase', 'total' => 110.00, 'currency' => 'USD', 'status' => 'Paid', 'quotation_id' => null],
-            ['invoice_no' => 'TTC2409000134', 'invoice_date' => '2024-09-13', 'due_date' => '2024-09-20', 'description' => 'TimeTec License Purchase', 'total' => 50.00, 'currency' => 'USD', 'status' => 'Cancel', 'quotation_id' => null],
-            ['invoice_no' => 'TTC2409000198', 'invoice_date' => '2024-09-19', 'due_date' => '2024-09-26', 'description' => 'TimeTec License Purchase', 'total' => 60.00, 'currency' => 'USD', 'status' => 'Cancel', 'quotation_id' => null],
-            ['invoice_no' => 'TTC2410000012', 'invoice_date' => '2024-10-01', 'due_date' => '2024-10-08', 'description' => 'TimeTec License Purchase', 'total' => 0.01, 'currency' => 'MYR', 'status' => 'Paid', 'quotation_id' => null],
-            ['invoice_no' => 'TTC2410000078', 'invoice_date' => '2024-10-08', 'due_date' => '2024-10-15', 'description' => 'TimeTec License Purchase', 'total' => 240.00, 'currency' => 'USD', 'status' => 'Paid', 'quotation_id' => null],
-            ['invoice_no' => 'TTC2410000096', 'invoice_date' => '2024-10-09', 'due_date' => '2024-10-16', 'description' => 'TimeTec License Purchase', 'total' => 120.00, 'currency' => 'USD', 'status' => 'Cancel', 'quotation_id' => null],
-            ['invoice_no' => 'TTC2410000153', 'invoice_date' => '2024-10-16', 'due_date' => '2024-10-23', 'description' => 'TimeTec License Purchase', 'total' => 0.04, 'currency' => 'MYR', 'status' => 'Cancel', 'quotation_id' => null],
-            ['invoice_no' => 'TTC2502000209', 'invoice_date' => '2025-02-17', 'due_date' => '2025-02-24', 'description' => 'TimeTec License Purchase', 'total' => 129.60, 'currency' => 'MYR', 'status' => 'Cancel', 'quotation_id' => null],
-            ['invoice_no' => 'TTC2502000211', 'invoice_date' => '2025-02-17', 'due_date' => '2025-02-24', 'description' => 'TimeTec License Purchase', 'total' => 24.00, 'currency' => 'USD', 'status' => 'Paid', 'quotation_id' => null],
-            ['invoice_no' => 'TTC2509000087', 'invoice_date' => '2025-09-08', 'due_date' => '2025-09-15', 'description' => 'TimeTec License Purchase', 'total' => 500.00, 'currency' => 'USD', 'status' => 'Cancel', 'quotation_id' => null],
-            ['invoice_no' => 'TTC2509000168', 'invoice_date' => '2025-09-14', 'due_date' => '2025-09-21', 'description' => 'TimeTec License Purchase', 'total' => 100.00, 'currency' => 'USD', 'status' => 'Cancel', 'quotation_id' => null],
-            ['invoice_no' => 'TTC2510000141', 'invoice_date' => '2025-10-11', 'due_date' => '2025-10-18', 'description' => 'TimeTec License Purchase', 'total' => 0.04, 'currency' => 'MYR', 'status' => 'Cancel', 'quotation_id' => null],
-            ['invoice_no' => 'TTC2602000032', 'invoice_date' => '2026-02-03', 'due_date' => '2026-02-10', 'description' => 'TimeTec License Purchase', 'total' => 1.08, 'currency' => 'MYR', 'status' => 'Pending', 'quotation_id' => null],
-        ];
     }
 
     public function render()

@@ -3,6 +3,7 @@
 namespace App\Livewire\HrAdminDashboard;
 
 use App\Models\HrLicense;
+use App\Models\HrSalesInvoice;
 use App\Models\Quotation;
 use App\Models\SoftwareHandover;
 use Livewire\Component;
@@ -179,7 +180,9 @@ class ViewSalesInvoice extends Component
 
     public function goBack(): void
     {
-        if ($this->softwareHandoverId) {
+        if ($this->from === 'billing') {
+            $this->redirect(url('/admin/hr-billing-sales-invoice'), navigate: false);
+        } elseif ($this->softwareHandoverId) {
             $tab = $this->from === 'products' ? 'products' : 'invoice';
             $this->redirect(
                 url('/admin/hr-company-license-details?softwareHandoverId=' . $this->softwareHandoverId . '&tab=' . $tab),
@@ -217,6 +220,13 @@ class ViewSalesInvoice extends Component
             $licenseRecords = $this->getLicenseRecordsForInvoice($this->invoiceNo);
 
             if (empty($licenseRecords)) {
+                // Try loading from hr_sales_invoices table
+                $salesInvoice = HrSalesInvoice::where('invoice_no', $this->invoiceNo)->first();
+                if ($salesInvoice) {
+                    $this->buildInvoiceFromSalesRecord($salesInvoice, $companyName, $companyAddress, $email);
+                    return;
+                }
+
                 // If we have params from the invoice tab, build a simple invoice view
                 if ($this->paramTotal !== null) {
                     $this->buildInvoiceFromParams($companyName, $companyAddress, $email);
@@ -476,6 +486,47 @@ class ViewSalesInvoice extends Component
         }
 
         return 20.00;
+    }
+
+    protected function buildInvoiceFromSalesRecord(HrSalesInvoice $record, string $companyName, string $companyAddress, string $email): void
+    {
+        $total = (float) ($record->invoice_amount ?? $record->sales_amount ?? 0);
+        $currency = $record->currency ?? 'MYR';
+        $status = strtolower($record->status ?? 'pending');
+        $invoiceDate = $record->invoice_date?->format('Y-m-d') ?? date('Y-m-d');
+
+        $this->items = [
+            [
+                'description' => 'TimeTec License Purchase',
+                'period' => date('d/m/Y', strtotime($invoiceDate)) . ' - ' . date('d/m/Y', strtotime($invoiceDate . ' +1 year')),
+                'quantity' => 1,
+                'unit_price' => $total,
+                'subscription_period' => 1,
+                'discount' => 0,
+                'total_before_tax' => $total,
+            ],
+        ];
+
+        $this->invoice = [
+            'id' => $record->id,
+            'reference_no' => $record->invoice_no,
+            'date' => date('d-m-Y', strtotime($invoiceDate)),
+            'type' => 'product',
+            'status' => $status === 'paid' ? 'paid' : ($status === 'cancel' ? 'cancelled' : 'pending'),
+            'currency' => $currency,
+            'tax_rate' => 0,
+            'trx_rate' => $currency === 'USD' ? '4.1765' : '1.0000',
+            'customer' => $record->company_name ?? $companyName,
+            'address' => $companyAddress,
+            'email' => $email,
+            'subtotal' => round($total, 2),
+            'discount' => 0,
+            'taxable_amount' => round($total, 2),
+            'tax_amount' => 0,
+            'grand_total' => round($total, 2),
+        ];
+
+        $this->isLoading = false;
     }
 
     protected function buildInvoiceFromParams(string $companyName, string $companyAddress, string $email): void

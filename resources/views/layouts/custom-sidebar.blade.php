@@ -537,6 +537,25 @@
             font-size: 0.85rem;
         }
 
+        /* Sub-item (second tier) styling */
+        .submenu-item.submenu-item-sub {
+            padding-left: 3.25rem !important;
+        }
+        .submenu-item.submenu-item-sub::before {
+            left: 2rem !important;
+            content: "◦" !important;
+            font-size: 0.75rem;
+        }
+
+        /* Submenu parent toggle (expandable submenu item) */
+        .submenu-parent-toggle {
+            display: flex;
+            align-items: center;
+        }
+        .submenu-parent-toggle:hover {
+            background-color: #F3F4F6;
+        }
+
         /* Make the submenu background slightly different for better contrast */
         .submenu {
             border-radius: 0.375rem;
@@ -1774,9 +1793,45 @@
                             <a href="{{ route('filament.admin.pages.hr-account-management') }}" class="submenu-item">
                                 <span class="module-font">Account Management</span>
                             </a>
-                            <a href="{{ route('filament.admin.pages.hr-license') }}" class="submenu-item">
+                            <div class="submenu-item submenu-parent-toggle" data-submenu="license-sub-submenu" style="cursor: pointer;">
                                 <span class="module-font">License</span>
-                            </a>
+                                <i class="bi bi-chevron-down submenu-parent-arrow" style="font-size: 0.55rem; margin-left: auto; transition: transform 0.3s;"></i>
+                            </div>
+                            <div class="sub-submenu" id="license-sub-submenu" style="overflow: hidden; max-height: 0; transition: max-height 0.3s ease;">
+                                <a href="{{ route('filament.admin.pages.hr-license') }}" class="submenu-item submenu-item-sub">
+                                    <span class="module-font">All Licenses</span>
+                                </a>
+                                <a href="{{ route('filament.admin.pages.hr-devices') }}" class="submenu-item submenu-item-sub">
+                                    <span class="module-font">Devices</span>
+                                </a>
+                            </div>
+                            <div class="submenu-item submenu-parent-toggle" data-submenu="billing-sub-submenu" style="cursor: pointer;">
+                                <span class="module-font">Billing</span>
+                                <i class="bi bi-chevron-down submenu-parent-arrow" style="font-size: 0.55rem; margin-left: auto; transition: transform 0.3s;"></i>
+                            </div>
+                            <div class="sub-submenu" id="billing-sub-submenu" style="overflow: hidden; max-height: 0; transition: max-height 0.3s ease;">
+                                <a href="{{ route('filament.admin.pages.hr-billing-sales-invoice') }}" class="submenu-item submenu-item-sub">
+                                    <span class="module-font">Sales Invoice</span>
+                                </a>
+                                <a href="{{ route('filament.admin.pages.hr-billing-expiring-invoices') }}" class="submenu-item submenu-item-sub">
+                                    <span class="module-font">Expiring Invoices</span>
+                                </a>
+                                <a href="{{ route('filament.admin.pages.hr-billing-official-receipt') }}" class="submenu-item submenu-item-sub">
+                                    <span class="module-font">Official Receipt</span>
+                                </a>
+                                <a href="{{ route('filament.admin.pages.hr-billing-commission') }}" class="submenu-item submenu-item-sub">
+                                    <span class="module-font">Commission</span>
+                                </a>
+                                <a href="{{ route('filament.admin.pages.hr-billing-payment') }}" class="submenu-item submenu-item-sub">
+                                    <span class="module-font">Payment</span>
+                                </a>
+                                <a href="{{ route('filament.admin.pages.hr-billing-auto-renewal') }}" class="submenu-item submenu-item-sub">
+                                    <span class="module-font">Auto Renewal</span>
+                                </a>
+                                <a href="{{ route('filament.admin.pages.hr-billing-credit-notes') }}" class="submenu-item submenu-item-sub">
+                                    <span class="module-font">Credit Notes</span>
+                                </a>
+                            </div>
                             <a href="{{ route('filament.admin.pages.admin-portal-hr-v2') }}" class="submenu-item">
                                 <span class="module-font">Raw Data</span>
                             </a>
@@ -2232,6 +2287,55 @@
                             }
                         }
                     };
+                }
+            });
+
+            // Sub-submenu toggle (e.g., License -> Devices)
+            document.querySelectorAll('.submenu-parent-toggle').forEach(trigger => {
+                const submenuId = trigger.getAttribute('data-submenu');
+                const submenu = document.getElementById(submenuId);
+                if (submenu) {
+                    // Find the parent .submenu container to recalculate its height
+                    const parentSubmenu = trigger.closest('.submenu');
+
+                    trigger.onclick = function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const arrow = this.querySelector('.submenu-parent-arrow');
+                        if (submenu.style.maxHeight && submenu.style.maxHeight !== '0px') {
+                            submenu.style.maxHeight = '0px';
+                            if (arrow) arrow.style.transform = '';
+                            // Shrink parent submenu
+                            if (parentSubmenu && parentSubmenu.style.maxHeight) {
+                                parentSubmenu.style.maxHeight = parentSubmenu.scrollHeight + 'px';
+                                setTimeout(() => {
+                                    parentSubmenu.style.maxHeight = parentSubmenu.scrollHeight + 'px';
+                                }, 310);
+                            }
+                        } else {
+                            submenu.style.maxHeight = submenu.scrollHeight + 'px';
+                            if (arrow) arrow.style.transform = 'rotate(180deg)';
+                            // Grow parent submenu to fit expanded child
+                            if (parentSubmenu && parentSubmenu.style.maxHeight) {
+                                parentSubmenu.style.maxHeight = (parentSubmenu.scrollHeight + submenu.scrollHeight) + 'px';
+                            }
+                        }
+                    };
+
+                    // Auto-expand if a child link is the current page
+                    const currentPath = window.location.pathname;
+                    const childLinks = submenu.querySelectorAll('a');
+                    childLinks.forEach(link => {
+                        if (link.getAttribute('href') === currentPath) {
+                            submenu.style.maxHeight = submenu.scrollHeight + 'px';
+                            const arrow = trigger.querySelector('.submenu-parent-arrow');
+                            if (arrow) arrow.style.transform = 'rotate(180deg)';
+                            // Also grow parent submenu
+                            if (parentSubmenu && parentSubmenu.style.maxHeight) {
+                                parentSubmenu.style.maxHeight = (parentSubmenu.scrollHeight + submenu.scrollHeight) + 'px';
+                            }
+                        }
+                    });
                 }
             });
 

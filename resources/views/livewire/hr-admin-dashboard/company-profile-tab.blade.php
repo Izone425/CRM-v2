@@ -191,6 +191,44 @@
             @endif
         </div>
 
+        {{-- Customer Credential (Read-only) --}}
+        <div class="p-4 bg-gray-50 rounded-lg border border-gray-200">
+            <h4 class="mb-4 text-sm font-semibold text-gray-900 uppercase tracking-wider flex items-center">
+                <svg class="w-5 h-5 mr-2 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path>
+                </svg>
+                Customer Credential
+            </h4>
+            <div class="space-y-3">
+                <div class="flex justify-between">
+                    <span class="text-sm text-gray-600">Date & Time Creation</span>
+                    <span class="text-sm font-medium text-gray-900">{{ $credentialCreatedAt ?? '-' }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-sm text-gray-600">Sales Person</span>
+                    <span class="text-sm font-medium text-gray-900">{{ $credentialSalesPerson ?? '-' }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-sm text-gray-600">Master Email</span>
+                    <span class="text-sm font-medium text-gray-900">{{ $credentialMasterEmail ?? '-' }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-sm text-gray-600">Password</span>
+                    <span class="text-sm font-medium text-gray-900">{{ $credentialPassword ?? '-' }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-sm text-gray-600">Status</span>
+                    @if($credentialStatus)
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ in_array(strtolower($credentialStatus), ['valid', 'active']) ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800' }}">
+                            {{ $credentialStatus }}
+                        </span>
+                    @else
+                        <span class="text-sm font-medium text-gray-900">-</span>
+                    @endif
+                </div>
+            </div>
+        </div>
+
     </div>
 
 </div>

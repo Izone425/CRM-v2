@@ -151,7 +151,13 @@ class HrLicenseTable extends Component implements HasForms, HasTable
                 TextColumn::make('company_name')
                     ->label('Company Name')
                     ->sortable()
-                    ->searchable()
+                    ->searchable(query: function (Builder $query, string $search): Builder {
+                        return $query
+                            ->where('company_name', 'like', "%{$search}%")
+                            ->orWhereHas('softwareHandover.lead.companyDetail', function (Builder $q) use ($search) {
+                                $q->where('email', 'like', "%{$search}%");
+                            });
+                    })
                     ->wrap()
                     ->limit(40)
                     ->tooltip(fn ($record) => $record->company_name)

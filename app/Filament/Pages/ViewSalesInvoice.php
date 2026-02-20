@@ -43,6 +43,13 @@ class ViewSalesInvoice extends Page
 
     public function getBreadcrumbs(): array
     {
+        if ($this->from === 'billing') {
+            return [
+                url('/admin/hr-billing-sales-invoice') => 'Sales of Invoice',
+                '#' => 'Sales Invoice',
+            ];
+        }
+
         $breadcrumbs = [
             url('/admin/hr-license') => 'All Licenses',
         ];

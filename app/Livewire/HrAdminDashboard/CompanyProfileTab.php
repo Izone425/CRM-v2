@@ -6,6 +6,7 @@ use App\Models\SoftwareHandover;
 use App\Models\CompanyDetail;
 use App\Models\BankDetail;
 use App\Models\LicenseCertificate;
+use App\Models\Customer;
 use App\Models\ResellerV2Commission;
 use Carbon\Carbon;
 use Filament\Notifications\Notification;
@@ -71,6 +72,13 @@ class CompanyProfileTab extends Component
     // Commission Rate (for Reseller/Distributor only)
     public ?int $commissionRate = null;
 
+    // Customer Credential Properties
+    public ?string $credentialCreatedAt = null;
+    public ?string $credentialSalesPerson = null;
+    public ?string $credentialMasterEmail = null;
+    public ?string $credentialPassword = null;
+    public ?string $credentialStatus = null;
+
     public function mount(?int $softwareHandoverId = null, array $companyData = [])
     {
         $this->softwareHandoverId = $softwareHandoverId;
@@ -80,6 +88,7 @@ class CompanyProfileTab extends Component
         $this->loadContactPerson();
         $this->loadBusinessInfo();
         $this->loadPaymentInfo();
+        $this->loadCustomerCredential();
     }
 
     protected function loadProfileData(): void
@@ -144,7 +153,7 @@ class CompanyProfileTab extends Component
         $this->billingCompanyName = $companyDetail?->company_name ?? $this->companyData['company_name'] ?? null;
         $this->billingPicName = $companyDetail?->name ?? null;
         $this->billingPhone = $companyDetail?->contact_no ?? null;
-        $this->billingEmail = $companyDetail?->email ?? null;
+        $this->billingEmail = $companyDetail?->email ?? 'billing@abctechnology.com';
     }
 
     protected function loadContactPerson(): void
@@ -437,6 +446,26 @@ class CompanyProfileTab extends Component
                 ['commission_rate' => $this->commissionRate]
             );
         }
+    }
+
+    protected function loadCustomerCredential(): void
+    {
+        $softwareHandover = $this->companyData['software_handover'] ?? null;
+
+        if (!$softwareHandover) {
+            return;
+        }
+
+        $this->credentialCreatedAt = $softwareHandover->completed_at
+            ? Carbon::parse($softwareHandover->completed_at)->format('Y-m-d H:i:s')
+            : null;
+        $this->credentialSalesPerson = $softwareHandover->salesperson;
+
+        $customer = Customer::where('sw_id', $softwareHandover->id)->first();
+
+        $this->credentialMasterEmail = $customer?->email ?? "sw{$softwareHandover->id}@timeteccloud.com";
+        $this->credentialPassword = $customer?->plain_password ?? 'N/A';
+        $this->credentialStatus = $customer?->status ?? null;
     }
 
     public function render()
