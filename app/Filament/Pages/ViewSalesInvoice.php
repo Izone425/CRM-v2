@@ -57,6 +57,13 @@ class ViewSalesInvoice extends Page
             ];
         }
 
+        if ($this->from === 'official-receipt') {
+            return [
+                url('/admin/hr-billing-official-receipt') => 'Official Receipt',
+                '#' => 'Sales Invoice',
+            ];
+        }
+
         $breadcrumbs = [
             url('/admin/hr-license') => 'All Licenses',
         ];

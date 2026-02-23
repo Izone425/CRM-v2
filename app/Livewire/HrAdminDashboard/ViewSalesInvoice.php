@@ -182,6 +182,8 @@ class ViewSalesInvoice extends Component
     {
         if ($this->from === 'expiring-invoices') {
             $this->redirect(url('/admin/hr-billing-expiring-invoices'), navigate: false);
+        } elseif ($this->from === 'official-receipt') {
+            $this->redirect(url('/admin/hr-billing-official-receipt'), navigate: false);
         } elseif ($this->from === 'billing') {
             $this->redirect(url('/admin/hr-billing-sales-invoice'), navigate: false);
         } elseif ($this->softwareHandoverId) {

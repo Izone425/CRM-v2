@@ -54,6 +54,9 @@ This changelog tracks all code changes, new features, and modifications. Each en
 | 030 | New Feature + Database | Line items JSON column and Edit Invoice prefill with per-product breakdown | Yes (migration) | [View Details](.changelog/030-line-items-edit-invoice-prefill.md) | Completed |
 | 031 | New Feature + Database + UI | Expiring Invoices page with Filament Table Builder, filters, and CSV export | Yes (migration) | [View Details](.changelog/031-expiring-invoices-page.md) | Completed |
 | 032 | Fix/Change + UI | Expiring Invoices back navigation (from=expiring-invoices) | No | [View Details](.changelog/032-expiring-invoices-back-navigation.md) | Completed |
+| 033 | Fix/Change + UI | Expiring Invoices Payer Name clickable link to Company Details | No | [View Details](.changelog/033-expiring-invoices-payer-name-link.md) | Completed |
+| 034 | New Feature + Database + UI | Official Receipt list page with Filament Table Builder, filters, and CSV export | Yes (migration) | [View Details](.changelog/034-official-receipt-list-page.md) | Completed |
+| 035 | New Feature + Database + UI | View Official Receipt page with receipt document, payment method, and print support | Yes (migration) | [View Details](.changelog/035-view-official-receipt-page.md) | Completed |
 
 ---
 
@@ -102,6 +105,9 @@ This changelog tracks all code changes, new features, and modifications. Each en
 | 030 | Line items JSON + Edit Invoice prefill with per-product breakdown | `HrSalesInvoice.php`, `AddSalesInvoiceForm.php`, `ViewSalesInvoice.php`, `HrSalesInvoiceSeeder.php`, migration | Yes (migration) |
 | 031 | Expiring Invoices page with Filament Table Builder | `ExpiringInvoicesTable.php`, `HrSalesInvoiceItem.php`, migration, blade templates | Yes (migration) |
 | 032 | Expiring Invoices back navigation | `ExpiringInvoicesTable.php`, `ViewSalesInvoice.php` (Filament + Livewire) | No |
+| 033 | Payer Name clickable link on Expiring Invoices | `ExpiringInvoicesTable.php` | No |
+| 034 | Official Receipt list page | `HrOfficialReceiptTable.php`, `HrOfficialReceipt.php`, migration, seeder, blade templates | Yes (migration) |
+| 035 | View Official Receipt page | `ViewOfficialReceipt.php` (Filament + Livewire), blade templates, migration | Yes (migration) |
 
 ---
 

@@ -128,7 +128,14 @@ class ExpiringInvoicesTable extends Component implements HasForms, HasTable
                     ->sortable(query: fn (Builder $query, string $direction) => $query->orderBy('company_name', $direction))
                     ->searchable(query: fn (Builder $query, string $search) => $query->orWhere('company_name', 'like', "%{$search}%"))
                     ->wrap()
+                    ->color('primary')
                     ->size('sm')
+                    ->url(fn (HrSalesInvoiceItem $record) => $record->handover_id
+                        ? url('/admin/hr-company-license-details?' . http_build_query([
+                            'handoverId' => $record->handover_id,
+                            'softwareHandoverId' => $record->software_handover_id,
+                        ]))
+                        : null)
                     ->placeholder('-'),
 
                 TextColumn::make('license_type')
