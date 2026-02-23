@@ -3,6 +3,7 @@
 namespace App\Livewire\HrAdminDashboard;
 
 use App\Models\HrLicense;
+use App\Models\HrSalesInvoice;
 use App\Models\Quotation;
 use App\Models\QuotationDetail;
 use App\Models\SoftwareHandover;
@@ -99,10 +100,15 @@ class AddSalesInvoiceForm extends Component
                 $this->taxPercent = $prefillTaxRate ?? 0;
 
                 $this->initializeOrderItems();
-                $this->prefillFirstItem(
-                    $prefillDescription ?? 'TimeTec License Purchase',
-                    $prefillTotal ?? 0,
-                );
+
+                // Try to load all line items from the HrSalesInvoice record
+                if (!$this->loadFromSalesInvoice($prefillInvoiceNo)) {
+                    // Fallback: single-item prefill (legacy behavior)
+                    $this->prefillFirstItem(
+                        $prefillDescription ?? 'TimeTec License Purchase',
+                        $prefillTotal ?? 0,
+                    );
+                }
             } else {
                 $this->invoiceDate = Carbon::today()->format('Y-m-d');
                 $this->initializeOrderItems();
@@ -287,6 +293,70 @@ class AddSalesInvoiceForm extends Component
         $this->orderItems[0]['billing_cycle'] = '1';
         $this->orderItems[0]['discount'] = 0;
         $this->orderItems[0]['total_price'] = $total;
+    }
+
+    /**
+     * Load order items from an HrSalesInvoice record's line_items JSON.
+     * Returns true if line items were found and loaded, false otherwise.
+     */
+    protected function loadFromSalesInvoice(string $invoiceNo): bool
+    {
+        $salesInvoice = HrSalesInvoice::where('invoice_no', $invoiceNo)->first();
+
+        if (!$salesInvoice || empty($salesInvoice->line_items)) {
+            return false;
+        }
+
+        // Map line_items license_type to orderItems item_name
+        $nameMap = [
+            'TimeTec TA' => 'TimeTec Attendance',
+            'TimeTec Attendance' => 'TimeTec Attendance',
+            'TimeTec Leave' => 'TimeTec Leave',
+            'TimeTec Claim' => 'TimeTec Claim',
+            'TimeTec Payroll' => 'TimeTec Payroll',
+            'TimeTec Appraisal' => 'TimeTec Appraisal',
+        ];
+
+        foreach ($salesInvoice->line_items as $lineItem) {
+            $licenseType = $lineItem['license_type'] ?? '';
+            $itemName = $nameMap[$licenseType] ?? $licenseType;
+
+            $units = (int) ($lineItem['total_user'] ?? 0);
+            $unitPrice = (float) ($lineItem['unit_price'] ?? 5.00);
+            $billingCycle = (string) ($lineItem['month'] ?? 1);
+            $startDate = $lineItem['start_date'] ?? Carbon::today()->format('Y-m-d');
+            $endDate = $lineItem['end_date'] ?? Carbon::parse($startDate)->addMonths((int) $billingCycle)->subDay()->format('Y-m-d');
+
+            $itemData = [
+                'item_name' => $itemName,
+                'units' => $units,
+                'unit_price' => $unitPrice,
+                'currency' => $this->currency,
+                'license_start_date' => $startDate,
+                'license_end_date' => $endDate,
+                'billing_cycle' => $billingCycle,
+                'discount' => 0,
+                'total_price' => round($units * $unitPrice * (int) $billingCycle, 2),
+            ];
+
+            // Try to match to an existing default row by item_name (with units === 0)
+            $matchedIndex = null;
+            foreach ($this->orderItems as $i => $row) {
+                if ($row['item_name'] === $itemName && (int) $row['units'] === 0) {
+                    $matchedIndex = $i;
+                    break;
+                }
+            }
+
+            if ($matchedIndex !== null) {
+                $this->orderItems[$matchedIndex] = $itemData;
+            } else {
+                $this->orderItems[] = $itemData;
+            }
+        }
+
+        $this->recalculateItemTotals();
+        return true;
     }
 
     public function addItemRow(): void

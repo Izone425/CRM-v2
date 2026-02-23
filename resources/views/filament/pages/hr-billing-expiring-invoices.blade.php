@@ -1,7 +1,5 @@
 <x-filament-panels::page>
     <div class="space-y-4">
-        <div class="text-center py-12">
-            <p class="mt-1 text-sm text-gray-500">Expiring Invoices content coming soon.</p>
-        </div>
+        @livewire('hr-admin-dashboard.expiring-invoices-table')
     </div>
 </x-filament-panels::page>

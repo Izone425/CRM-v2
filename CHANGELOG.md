@@ -2,7 +2,7 @@
 
 > **Project**: TimeTec CRM PDT - Admin Portal V2
 > **Maintained by**: Admin Portal Team
-> **Last Updated**: 2026-02-20
+> **Last Updated**: 2026-02-23
 
 This changelog tracks all code changes, new features, and modifications. Each entry links to a detailed file showing **BEFORE and AFTER code** for developer handoff.
 
@@ -51,6 +51,9 @@ This changelog tracks all code changes, new features, and modifications. Each en
 | 027 | New Feature + Database + UI | Billing navigation with 7 sub-items and Sales Invoice page | Yes (migration) | [View Details](.changelog/027-billing-navigation-sales-invoice.md) | Completed |
 | 028 | Fix/Change | Consolidate all invoices into hr_sales_invoices table (single source of truth) | No | [View Details](.changelog/028-consolidate-invoices-to-sales-table.md) | Completed |
 | 029 | Fix/Change + UI | Context-aware breadcrumbs and back navigation for ViewSalesInvoice | No | [View Details](.changelog/029-context-aware-breadcrumbs-invoice.md) | Completed |
+| 030 | New Feature + Database | Line items JSON column and Edit Invoice prefill with per-product breakdown | Yes (migration) | [View Details](.changelog/030-line-items-edit-invoice-prefill.md) | Completed |
+| 031 | New Feature + Database + UI | Expiring Invoices page with Filament Table Builder, filters, and CSV export | Yes (migration) | [View Details](.changelog/031-expiring-invoices-page.md) | Completed |
+| 032 | Fix/Change + UI | Expiring Invoices back navigation (from=expiring-invoices) | No | [View Details](.changelog/032-expiring-invoices-back-navigation.md) | Completed |
 
 ---
 
@@ -96,6 +99,9 @@ This changelog tracks all code changes, new features, and modifications. Each en
 | 027 | Billing nav (7 sub-items) + Sales Invoice page | `HrBilling*.php`, `HrSalesInvoiceTable.php`, `HrSalesInvoice.php`, migrations, sidebar | Yes (migration) |
 | 028 | Consolidate invoices into hr_sales_invoices | `HrSalesInvoiceSeeder.php`, `CompanyInvoiceTab.php` | No |
 | 029 | Context-aware breadcrumbs for ViewSalesInvoice | `ViewSalesInvoice.php` (Filament + Livewire) | No |
+| 030 | Line items JSON + Edit Invoice prefill with per-product breakdown | `HrSalesInvoice.php`, `AddSalesInvoiceForm.php`, `ViewSalesInvoice.php`, `HrSalesInvoiceSeeder.php`, migration | Yes (migration) |
+| 031 | Expiring Invoices page with Filament Table Builder | `ExpiringInvoicesTable.php`, `HrSalesInvoiceItem.php`, migration, blade templates | Yes (migration) |
+| 032 | Expiring Invoices back navigation | `ExpiringInvoicesTable.php`, `ViewSalesInvoice.php` (Filament + Livewire) | No |
 
 ---
 

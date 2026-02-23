@@ -180,7 +180,9 @@ class ViewSalesInvoice extends Component
 
     public function goBack(): void
     {
-        if ($this->from === 'billing') {
+        if ($this->from === 'expiring-invoices') {
+            $this->redirect(url('/admin/hr-billing-expiring-invoices'), navigate: false);
+        } elseif ($this->from === 'billing') {
             $this->redirect(url('/admin/hr-billing-sales-invoice'), navigate: false);
         } elseif ($this->softwareHandoverId) {
             $tab = $this->from === 'products' ? 'products' : 'invoice';
@@ -495,17 +497,51 @@ class ViewSalesInvoice extends Component
         $status = strtolower($record->status ?? 'pending');
         $invoiceDate = $record->invoice_date?->format('Y-m-d') ?? date('Y-m-d');
 
-        $this->items = [
-            [
-                'description' => 'TimeTec License Purchase',
-                'period' => date('d/m/Y', strtotime($invoiceDate)) . ' - ' . date('d/m/Y', strtotime($invoiceDate . ' +1 year')),
-                'quantity' => 1,
-                'unit_price' => $total,
-                'subscription_period' => 1,
-                'discount' => 0,
-                'total_before_tax' => $total,
-            ],
-        ];
+        $lineItems = $record->line_items;
+
+        if (!empty($lineItems)) {
+            // Build items from stored line_items JSON
+            $this->items = [];
+            $subtotal = 0;
+
+            foreach ($lineItems as $item) {
+                $qty = $item['total_user'] ?? 1;
+                $month = $item['month'] ?? 12;
+                $unitPrice = $item['unit_price'] ?? $this->getLicensePrice($item['license_type'] ?? '');
+                $amount = $qty * $unitPrice * $month;
+                $subtotal += $amount;
+                $userLimit = $item['user_limit'] ?? 1;
+                $startDate = $item['start_date'] ?? $invoiceDate;
+                $endDate = $item['end_date'] ?? date('Y-m-d', strtotime($startDate . ' +1 year'));
+                $period = date('d/m/Y', strtotime($startDate)) . ' - ' . date('d/m/Y', strtotime($endDate));
+
+                $this->items[] = [
+                    'year' => (int) date('Y', strtotime($startDate)),
+                    'description' => ($item['license_type'] ?? 'TimeTec License') . ' (' . $userLimit . ' User License)',
+                    'period' => $period,
+                    'quantity' => $qty,
+                    'unit_price' => $unitPrice,
+                    'subscription_period' => $month,
+                    'discount' => 0,
+                    'total_before_tax' => $amount,
+                ];
+            }
+
+            $total = $subtotal;
+        } else {
+            // Fallback: single generic item
+            $this->items = [
+                [
+                    'description' => 'TimeTec License Purchase',
+                    'period' => date('d/m/Y', strtotime($invoiceDate)) . ' - ' . date('d/m/Y', strtotime($invoiceDate . ' +1 year')),
+                    'quantity' => 1,
+                    'unit_price' => $total,
+                    'subscription_period' => 1,
+                    'discount' => 0,
+                    'total_before_tax' => $total,
+                ],
+            ];
+        }
 
         $this->invoice = [
             'id' => $record->id,
@@ -704,6 +740,34 @@ class ViewSalesInvoice extends Component
                 'prefillTotal' => $this->invoice['grand_total'] ?? $this->paramTotal,
                 'prefillCurrency' => $this->invoice['currency'] ?? $this->paramCurrency ?? 'MYR',
                 'prefillInvoiceDate' => $this->paramInvoiceDate ?? date('Y-m-d'),
+                'prefillTaxRate' => $this->invoice['tax_rate'] ?? 0,
+                'prefillDescription' => $this->items[0]['description'] ?? 'TimeTec License Purchase',
+                'returnUrl' => url('/admin/view-sales-invoice?' . http_build_query($returnParams)),
+            ];
+
+            $this->redirect(
+                url('/admin/add-sales-invoice?' . http_build_query($params)),
+                navigate: false
+            );
+            return;
+        }
+
+        // Invoice loaded from hr_sales_invoices (via buildInvoiceFromSalesRecord)
+        if (!$this->quotationId && !empty($this->invoice['grand_total'])) {
+            $returnParams = array_filter([
+                'invoiceNo' => $this->invoiceNo,
+                'softwareHandoverId' => $this->softwareHandoverId,
+                'from' => $this->from,
+            ]);
+
+            $params = [
+                'softwareHandoverId' => $this->softwareHandoverId,
+                'prefillInvoiceNo' => $this->invoice['reference_no'] ?? $this->invoiceNo,
+                'prefillTotal' => $this->invoice['grand_total'],
+                'prefillCurrency' => $this->invoice['currency'] ?? 'MYR',
+                'prefillInvoiceDate' => $this->invoice['date']
+                    ? date('Y-m-d', strtotime($this->invoice['date']))
+                    : date('Y-m-d'),
                 'prefillTaxRate' => $this->invoice['tax_rate'] ?? 0,
                 'prefillDescription' => $this->items[0]['description'] ?? 'TimeTec License Purchase',
                 'returnUrl' => url('/admin/view-sales-invoice?' . http_build_query($returnParams)),

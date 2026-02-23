@@ -26,6 +26,7 @@ class HrSalesInvoice extends Model
         'commission',
         'pi_no',
         'invoice_amount',
+        'line_items',
         'payment_method',
         'auto_renewal',
         'created_by_name',
@@ -37,5 +38,6 @@ class HrSalesInvoice extends Model
         'sales_amount' => 'decimal:2',
         'commission' => 'decimal:2',
         'invoice_amount' => 'decimal:2',
+        'line_items' => 'array',
     ];
 }

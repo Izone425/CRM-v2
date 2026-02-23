@@ -50,6 +50,13 @@ class ViewSalesInvoice extends Page
             ];
         }
 
+        if ($this->from === 'expiring-invoices') {
+            return [
+                url('/admin/hr-billing-expiring-invoices') => 'Expiring Invoices',
+                '#' => 'Sales Invoice',
+            ];
+        }
+
         $breadcrumbs = [
             url('/admin/hr-license') => 'All Licenses',
         ];
