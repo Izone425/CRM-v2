@@ -405,6 +405,20 @@
                                     {{ $group['invoice_no'] }}
                                 </a>
                                 <span class="ml-2 text-gray-400">({{ count($group['products']) }} items)</span>
+                                @if(!empty($group['sales_type']))
+                                    @php
+                                        $salesTypeBadgeColors = [
+                                            'NEW SALES' => 'bg-blue-100 text-blue-800',
+                                            'ADD ON NEW SALES' => 'bg-indigo-100 text-indigo-800',
+                                            'RENEWAL SALES' => 'bg-emerald-100 text-emerald-800',
+                                            'ADD ON RENEWAL SALES' => 'bg-teal-100 text-teal-800',
+                                        ];
+                                        $badgeClass = $salesTypeBadgeColors[$group['sales_type']] ?? 'bg-gray-100 text-gray-800';
+                                    @endphp
+                                    <span class="ml-2 inline-flex px-2 py-0.5 text-xs font-semibold rounded {{ $badgeClass }}">
+                                        {{ $group['sales_type'] }}
+                                    </span>
+                                @endif
                             </td>
                             <td class="px-3 py-2 text-xs text-center font-semibold text-gray-700">{{ $groupTotalUser }}</td>
                             <td class="px-3 py-2 text-xs text-center text-gray-500">-</td>

@@ -86,7 +86,11 @@ class ViewOfficialReceipt extends Component
 
     public function goBack(): void
     {
-        $this->redirect(url('/admin/hr-billing-official-receipt'), navigate: false);
+        if ($this->from === 'payment') {
+            $this->redirect(url('/admin/hr-billing-payment'), navigate: false);
+        } else {
+            $this->redirect(url('/admin/hr-billing-official-receipt'), navigate: false);
+        }
     }
 
     public function render()

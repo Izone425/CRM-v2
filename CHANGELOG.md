@@ -2,7 +2,7 @@
 
 > **Project**: TimeTec CRM PDT - Admin Portal V2
 > **Maintained by**: Admin Portal Team
-> **Last Updated**: 2026-02-23
+> **Last Updated**: 2026-02-24
 
 This changelog tracks all code changes, new features, and modifications. Each entry links to a detailed file showing **BEFORE and AFTER code** for developer handoff.
 
@@ -57,6 +57,10 @@ This changelog tracks all code changes, new features, and modifications. Each en
 | 033 | Fix/Change + UI | Expiring Invoices Payer Name clickable link to Company Details | No | [View Details](.changelog/033-expiring-invoices-payer-name-link.md) | Completed |
 | 034 | New Feature + Database + UI | Official Receipt list page with Filament Table Builder, filters, and CSV export | Yes (migration) | [View Details](.changelog/034-official-receipt-list-page.md) | Completed |
 | 035 | New Feature + Database + UI | View Official Receipt page with receipt document, payment method, and print support | Yes (migration) | [View Details](.changelog/035-view-official-receipt-page.md) | Completed |
+| 036 | New Feature + Database + UI | Sales Type labels on Product tab and Sales Type dropdown in Add/Edit Invoice | Yes (migration) | [View Details](.changelog/036-sales-type-labels.md) | Completed |
+| 037 | New Feature + Database + UI | Payment page (List of Payment Received) with inline AutoCount Invoice No. edit | Yes (migration) | [View Details](.changelog/037-payment-received-page.md) | Completed |
+| 038 | Fix/Change + UI | Official Receipt table column width fix to prevent horizontal scrolling | No | [View Details](.changelog/038-official-receipt-column-fix.md) | Completed |
+| 039 | New Feature + Database + UI | Auto Renewal page with toggle switch for enable/disable | Yes (migration) | [View Details](.changelog/039-auto-renewal-page.md) | Completed |
 
 ---
 
@@ -108,6 +112,10 @@ This changelog tracks all code changes, new features, and modifications. Each en
 | 033 | Payer Name clickable link on Expiring Invoices | `ExpiringInvoicesTable.php` | No |
 | 034 | Official Receipt list page | `HrOfficialReceiptTable.php`, `HrOfficialReceipt.php`, migration, seeder, blade templates | Yes (migration) |
 | 035 | View Official Receipt page | `ViewOfficialReceipt.php` (Filament + Livewire), blade templates, migration | Yes (migration) |
+| 036 | Sales Type labels + dropdown on Product tab and Add/Edit Invoice | `AddSalesInvoiceForm.php`, `CompanyProductsTab.php`, blade templates, migration | Yes (migration) |
+| 037 | Payment page with inline AutoCount edit | `HrPaymentReceivedTable.php`, `HrOfficialReceipt.php`, migration, seeder, blade templates | Yes (migration) |
+| 038 | Official Receipt table column width fix | `hr-official-receipt-table.blade.php` | No |
+| 039 | Auto Renewal page with toggle switch | `HrAutoRenewalTable.php`, `HrAutoRenewal.php`, migration, seeder, blade templates | Yes (migration) |
 
 ---
 

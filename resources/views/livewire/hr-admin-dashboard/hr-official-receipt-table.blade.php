@@ -20,6 +20,23 @@
             font-size: 0.65rem !important;
             padding: 0.15rem 0.4rem !important;
         }
+        /* Column widths: O/R No, Date, Company, Description, Currency, Amount, Status, Created By */
+        .sales-invoice-compact .fi-ta-header-cell:nth-child(1),
+        .sales-invoice-compact .fi-ta-cell:nth-child(1) { width: 12%; }
+        .sales-invoice-compact .fi-ta-header-cell:nth-child(2),
+        .sales-invoice-compact .fi-ta-cell:nth-child(2) { width: 9%; }
+        .sales-invoice-compact .fi-ta-header-cell:nth-child(3),
+        .sales-invoice-compact .fi-ta-cell:nth-child(3) { width: 18%; }
+        .sales-invoice-compact .fi-ta-header-cell:nth-child(4),
+        .sales-invoice-compact .fi-ta-cell:nth-child(4) { width: 20%; }
+        .sales-invoice-compact .fi-ta-header-cell:nth-child(5),
+        .sales-invoice-compact .fi-ta-cell:nth-child(5) { width: 6%; }
+        .sales-invoice-compact .fi-ta-header-cell:nth-child(6),
+        .sales-invoice-compact .fi-ta-cell:nth-child(6) { width: 10%; }
+        .sales-invoice-compact .fi-ta-header-cell:nth-child(7),
+        .sales-invoice-compact .fi-ta-cell:nth-child(7) { width: 7%; }
+        .sales-invoice-compact .fi-ta-header-cell:nth-child(8),
+        .sales-invoice-compact .fi-ta-cell:nth-child(8) { width: 18%; word-break: break-all; }
     </style>
     <p class="mb-3 text-sm text-gray-500">Official Receipt is created when receive payment from customer for topup credit or payment for invoice.</p>
     <div class="flex items-center justify-between mb-4">

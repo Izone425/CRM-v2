@@ -12,6 +12,7 @@ class HrOfficialReceipt extends Model
         'or_no',
         'receipt_date',
         'company_name',
+        'subscriber_name',
         'description',
         'currency',
         'amount',
@@ -19,6 +20,8 @@ class HrOfficialReceipt extends Model
         'created_by',
         'invoice_no',
         'payment_method',
+        'ref_no',
+        'autocount_invoice_no',
         'software_handover_id',
         'handover_id',
     ];

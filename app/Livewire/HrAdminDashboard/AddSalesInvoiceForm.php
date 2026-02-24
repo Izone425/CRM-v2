@@ -25,6 +25,7 @@ class AddSalesInvoiceForm extends Component
     public string $invoiceDate = '';
     public string $invoiceTitle = 'TimeTec License Purchase';
     public string $invoiceType = 'normal';
+    public string $salesType = 'NEW SALES';
     public string $companyAddress = '';
     public string $mobilePhone = '';
     public string $billingInformation = '';
@@ -194,6 +195,7 @@ class AddSalesInvoiceForm extends Component
             ? Carbon::parse($quotation->quotation_date)->format('Y-m-d')
             : Carbon::today()->format('Y-m-d');
         $this->currency = $quotation->currency ?? 'MYR';
+        $this->salesType = $quotation->sales_type ?? 'NEW SALES';
         $this->taxPercent = $quotation->tax_rate ?? 8;
 
         // Initialize 5 default empty product rows
@@ -589,6 +591,7 @@ class AddSalesInvoiceForm extends Component
             'invoiceDate' => 'required|date',
             'invoiceTitle' => 'required|string|max:255',
             'invoiceType' => 'required|in:normal,free_device_campaign',
+            'salesType' => 'required|in:NEW SALES,ADD ON NEW SALES,RENEWAL SALES,ADD ON RENEWAL SALES',
             'companyAddress' => 'nullable|string',
             'mobilePhone' => 'nullable|string',
             'billingInformation' => 'required|string',
@@ -618,7 +621,7 @@ class AddSalesInvoiceForm extends Component
                 'quotation_date' => $this->invoiceDate,
                 'quotation_type' => 'product',
                 'currency' => $this->orderItems[0]['currency'] ?? 'MYR',
-                'sales_type' => 'NEW SALES',
+                'sales_type' => $this->salesType,
                 'hrdf_status' => 'NON HRDF',
                 'subscription_period' => 12,
                 'status' => 'new',
@@ -695,6 +698,7 @@ class AddSalesInvoiceForm extends Component
             'invoiceDate' => 'required|date',
             'invoiceTitle' => 'required|string|max:255',
             'invoiceType' => 'required|in:normal,free_device_campaign',
+            'salesType' => 'required|in:NEW SALES,ADD ON NEW SALES,RENEWAL SALES,ADD ON RENEWAL SALES',
             'companyAddress' => 'nullable|string',
             'mobilePhone' => 'nullable|string',
             'billingInformation' => 'required|string',
@@ -720,6 +724,7 @@ class AddSalesInvoiceForm extends Component
                 $quotation->update([
                     'quotation_date' => $this->invoiceDate,
                     'currency' => $this->orderItems[0]['currency'] ?? 'MYR',
+                    'sales_type' => $this->salesType,
                     'tax_rate' => (int) $this->taxPercent,
                     'headcount' => collect($this->orderItems)->sum('units'),
                 ]);

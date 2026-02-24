@@ -26,8 +26,8 @@
             </div>
             <div class="px-6 py-5">
                 @if($mode === 'edit')
-                    {{-- Edit mode: simplified single-line layout --}}
-                    <div style="display: grid; grid-template-columns: {{ $isUnderDealer ? '1fr 1fr 1fr' : '1fr 1fr' }}; gap: 20px;">
+                    {{-- Edit mode: simplified layout --}}
+                    <div style="display: grid; grid-template-columns: {{ $isUnderDealer ? '1fr 1fr 1fr 1fr' : '1fr 1fr 1fr' }}; gap: 20px;">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">
                                 Customer <span class="text-red-500">*</span>
@@ -48,6 +48,19 @@
                             <input type="date" wire:model="invoiceDate"
                                 class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm" />
                             @error('invoiceDate') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                                Sales Type <span class="text-red-500">*</span>
+                            </label>
+                            <select wire:model="salesType"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm">
+                                <option value="NEW SALES">NEW SALES</option>
+                                <option value="ADD ON NEW SALES">ADD ON NEW SALES</option>
+                                <option value="RENEWAL SALES">RENEWAL SALES</option>
+                                <option value="ADD ON RENEWAL SALES">ADD ON RENEWAL SALES</option>
+                            </select>
+                            @error('salesType') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
                         </div>
                         @if($isUnderDealer)
                             <div>
@@ -102,7 +115,7 @@
                             @endif
                         </div>
 
-                        {{-- Row 2: Invoice Title & Invoice Type --}}
+                        {{-- Row 2: Invoice Title, Sales Type & Invoice Type --}}
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">
                                 Invoice Title <span class="text-red-500">*</span>
@@ -114,16 +127,16 @@
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">
-                                Invoice Type <span class="text-red-500">*</span>
+                                Sales Type <span class="text-red-500">*</span>
                             </label>
-                            <div class="flex items-center gap-6 mt-2">
-                                <label class="inline-flex items-center cursor-pointer">
-                                    <input type="radio" wire:model="invoiceType" value="normal"
-                                        class="form-radio h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500" />
-                                    <span class="ml-2 text-sm text-gray-700">Normal</span>
-                                </label>
-                            </div>
-                            @error('invoiceType') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
+                            <select wire:model="salesType"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm">
+                                <option value="NEW SALES">NEW SALES</option>
+                                <option value="ADD ON NEW SALES">ADD ON NEW SALES</option>
+                                <option value="RENEWAL SALES">RENEWAL SALES</option>
+                                <option value="ADD ON RENEWAL SALES">ADD ON RENEWAL SALES</option>
+                            </select>
+                            @error('salesType') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
                         </div>
 
                         {{-- Row 3: Company Address & Mobile Phone --}}
