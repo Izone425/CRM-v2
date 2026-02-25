@@ -9,11 +9,12 @@ use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Style\Border;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
 class InvoiceDataExportController extends Controller
 {
-    public function exportInvoiceData($softwareHandoverId)
+    public function exportInvoiceData(Request $request, $softwareHandoverId)
     {
         try {
             Log::info('Starting Invoice Data export for Software Handover ID: ' . $softwareHandoverId);
@@ -196,15 +197,18 @@ class InvoiceDataExportController extends Controller
             $firstQuotation = $quotations->first();
             Log::info('Using first quotation for reference: ID ' . $firstQuotation->id);
 
-            // ✅ DebtorCode - Make it empty as requested
-            $debtorCode = '';
+            // ✅ DebtorCode - from drawer input or empty
+            $debtorCode = $request->query('debtor_code', '');
 
-            // ✅ DocNo based on training type from software handover
-            $docNo = match($softwareHandover->training_type) {
+            // ✅ DocNo - from drawer input or based on training type
+            $docNo = $request->query('doc_no') ?: match($softwareHandover->training_type) {
                 'online_webinar_training' => 'EPIN',
                 'online_hrdf_training' => 'EHIN',
                 default => 'EGIN'
             };
+
+            // ✅ UDF_IV_LicenseNumber - from drawer input or empty
+            $licenseNumber = $request->query('license_number', '');
             Log::info('DocNo determined: ' . $docNo . ' (training type: ' . ($softwareHandover->training_type ?? 'null') . ')');
 
             // ✅ DocDate is today's date in j/n/Y format
@@ -327,11 +331,11 @@ class InvoiceDataExportController extends Controller
                     $docNo,                                             // DocNo
                     $docDate,                                           // DocDate
                     $this->getCompanyName($quotation, $softwareHandover), // CompanyName (from subsidiary or software handover)
-                    $debtorCode,                                        // DebtorCode (empty)
+                    $debtorCode,                                        // DebtorCode
                     $salesAgent,                                        // SalesAgent
                     $currencyCode,                                      // CurrencyCode
                     $currencyRate,                                      // CurrencyRate
-                    '',
+                    $licenseNumber,                                     // UDF_IV_LicenseNumber
                     $salesAdmin,                                        // UDF_IV_SalesAdmin
                     $udfSupport,                                        // UDF_IV_Support (FATIMAH if user ID = 5, else YAT)
                     $billingType,                                       // UDF_IV_BillingType
@@ -385,12 +389,18 @@ class InvoiceDataExportController extends Controller
                     ]
                 ];
 
-                // Apply yellow color to DocNo (A2), DebtorCode (D2), and UDF_IV_LicenseNumber (H2)
-                $sheet->getStyle('A2')->applyFromArray($yellowStyle);
-                $sheet->getStyle('D2')->applyFromArray($yellowStyle);
-                $sheet->getStyle('H2')->applyFromArray($yellowStyle);
+                // Apply yellow color only to cells that were NOT pre-filled from drawer
+                if (empty($request->query('doc_no'))) {
+                    $sheet->getStyle('A2')->applyFromArray($yellowStyle);
+                }
+                if (empty($request->query('debtor_code'))) {
+                    $sheet->getStyle('D2')->applyFromArray($yellowStyle);
+                }
+                if (empty($request->query('license_number'))) {
+                    $sheet->getStyle('H2')->applyFromArray($yellowStyle);
+                }
 
-                Log::info('Applied yellow highlighting to DocNo, DebtorCode, and UDF_IV_LicenseNumber in row 2');
+                Log::info('Applied conditional yellow highlighting to unfilled cells in row 2');
             }
 
             // Auto-size columns

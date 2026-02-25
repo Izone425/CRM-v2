@@ -27,7 +27,7 @@
             : $record->proforma_invoice_product;
 
         if (is_array($productPiIds)) {
-            $productPIs = App\Models\Quotation::whereIn('id', $productPiIds)->get();
+            $productPIs = App\Models\Quotation::whereIn('id', $productPiIds)->with(['items.product'])->get();
         }
     }
 
@@ -38,7 +38,7 @@
             : $record->software_hardware_pi;
 
         if (is_array($swHardwarePiIds)) {
-            $softwareHardwarePIs = App\Models\Quotation::whereIn('id', $swHardwarePiIds)->get();
+            $softwareHardwarePIs = App\Models\Quotation::whereIn('id', $swHardwarePiIds)->with(['items.product'])->get();
         }
     }
 
@@ -49,7 +49,7 @@
             : $record->non_hrdf_pi;
 
         if (is_array($nonHrdfPiIds)) {
-            $nonHrdfPIs = App\Models\Quotation::whereIn('id', $nonHrdfPiIds)->get();
+            $nonHrdfPIs = App\Models\Quotation::whereIn('id', $nonHrdfPiIds)->with(['items.product'])->get();
         }
     }
 
@@ -60,7 +60,7 @@
             : $record->proforma_invoice_hrdf;
 
         if (is_array($hrdfPiIds)) {
-            $hrdfPIs = App\Models\Quotation::whereIn('id', $hrdfPiIds)->get();
+            $hrdfPIs = App\Models\Quotation::whereIn('id', $hrdfPiIds)->with(['items.product'])->get();
         }
     }
 
@@ -784,7 +784,372 @@
 
                 <hr class="my-6 border-t border-gray-300">
 
+                @php
+                    // Determine Type 1 PI collection based on training type
+                    $type1PIs = ($record->training_type === 'online_webinar_training')
+                        ? $productPIs
+                        : (($record->training_type === 'online_hrdf_training') ? $softwareHardwarePIs : $productPIs);
+                @endphp
+
                 <div class="sw-export-container">
+                    {{-- Create Database button + drawer --}}
+                    @php
+                        $confirmDbUrl = '/software-handover/confirm-db/' . \App\Classes\Encryptor::encrypt($record->id);
+                        $existingDbDate = $record->db_creation ? $record->db_creation->format('Y-m-d') : null;
+
+                        // Available products for dropdown (exclude ONBOARD)
+                        $dbProducts = \App\Models\Product::where('code', 'LIKE', 'TIMETEC-%')
+                            ->where('code', 'NOT LIKE', '%ONBOARD%')
+                            ->orderBy('code')
+                            ->get(['id', 'code', 'description']);
+
+                        // Build initial rows from PI items (excluding ONBOARD)
+                        $dbInitialRows = [];
+                        if (is_countable($type1PIs) && count($type1PIs) > 0) {
+                            foreach ($type1PIs as $pi) {
+                                foreach ($pi->items as $item) {
+                                    if ($item->product && str_contains(strtoupper($item->product->code ?? ''), 'ONBOARD')) continue;
+                                    $dbInitialRows[] = [
+                                        'product_code' => $item->product->code ?? '',
+                                        'description' => $item->product->description ?? $item->description ?? '',
+                                        'qty' => $item->quantity ?? 0,
+                                    ];
+                                }
+                            }
+                        }
+
+                        // If saved data exists, use that instead
+                        $savedBufferMonth = 1;
+                        if (!empty($record->type_1_pi_invoice_data)) {
+                            $savedData = $record->type_1_pi_invoice_data;
+                            if (isset($savedData['items'])) {
+                                $dbInitialRows = $savedData['items'];
+                                $savedBufferMonth = $savedData['buffer_month'] ?? 1;
+                            } else {
+                                // Backward compat: old format was flat array of items
+                                $dbInitialRows = $savedData;
+                            }
+                        }
+                    @endphp
+                    <div x-data="{
+                        showDatabaseDrawer: false,
+                        confirming: false,
+                        confirmed: {{ $existingDbDate ? 'true' : 'false' }},
+                        dbDate: '{{ $existingDbDate ?? now()->format('Y-m-d') }}',
+                        bufferMonth: {{ $savedBufferMonth }},
+                        rows: {{ Js::from($dbInitialRows) }},
+                        products: {{ Js::from($dbProducts) }},
+                        updateDescription(index) {
+                            const p = this.products.find(p => p.code === this.rows[index].product_code);
+                            this.rows[index].description = p ? p.description : '-';
+                        },
+                        get trialStartDate() {
+                            if (!this.dbDate) return '-';
+                            const d = new Date(this.dbDate);
+                            return d.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
+                        },
+                        get trialEndDate() {
+                            if (!this.dbDate) return '-';
+                            const d = new Date(this.dbDate);
+                            d.setMonth(d.getMonth() + parseInt(this.bufferMonth));
+                            d.setDate(d.getDate() - 1);
+                            return d.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
+                        }
+                    }">
+                        <button
+                            x-on:click.stop.prevent="showDatabaseDrawer = true"
+                            class="sw-export-btn"
+                            style="background-color: #16a34a; color: white; border-color: #16a34a; cursor: pointer;">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="sw-export-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
+                            </svg>
+                            Create DB + Trial License
+                        </button>
+
+                        <div x-show="showDatabaseDrawer" x-cloak x-on:click.stop style="position: fixed; inset: 0; z-index: 9999;">
+                            <div x-on:click.self="showDatabaseDrawer = false" style="position: absolute; inset: 0; background-color: rgba(0,0,0,0.4);"></div>
+                            <div x-on:click.stop style="position: absolute; top: 0; right: 0; bottom: 0; width: 500px; background: white; box-shadow: -4px 0 15px rgba(0,0,0,0.1); display: flex; flex-direction: column;">
+                                <div style="padding: 16px 20px; border-bottom: 1px solid #e5e7eb; display: flex; align-items: center; justify-content: space-between;">
+                                    <h3 style="margin: 0; font-size: 1.1rem; font-weight: 600; color: #111827;">Create DB + Trial License</h3>
+                                    <button x-on:click.stop="showDatabaseDrawer = false" style="background: none; border: none; cursor: pointer; padding: 4px; color: #6b7280;">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                                    </button>
+                                </div>
+                                <div style="padding: 20px; flex: 1; overflow-y: auto;">
+                                    <p style="margin: 0 0 12px; font-size: 0.85rem; color: #6b7280;">SW+HW Proforma Invoice items</p>
+
+                                    {{-- PI reference info --}}
+                                    @if(is_countable($type1PIs) && count($type1PIs) > 0)
+                                        @foreach($type1PIs as $piIndex => $pi)
+                                            <div style="font-size: 0.8rem; font-weight: 600; color: #374151; margin-bottom: 6px;">
+                                                PI #{{ $piIndex + 1 }}
+                                                @if($pi->pi_reference_no) — {{ $pi->pi_reference_no }} @endif
+                                            </div>
+                                        @endforeach
+                                    @endif
+
+                                    {{-- Editable items table --}}
+                                    <template x-if="rows.length > 0">
+                                        <table style="width: 100%; border-collapse: collapse; font-size: 0.75rem;">
+                                            <thead>
+                                                <tr style="background: #f3f4f6;">
+                                                    <th style="padding: 6px 8px; text-align: left; border: 1px solid #e5e7eb; font-weight: 600;">Product Code</th>
+                                                    <th style="padding: 6px 8px; text-align: left; border: 1px solid #e5e7eb; font-weight: 600;">Description</th>
+                                                    <th style="padding: 6px 8px; text-align: center; border: 1px solid #e5e7eb; font-weight: 600; width: 70px;">Qty</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <template x-for="(row, index) in rows" :key="index">
+                                                    <tr>
+                                                        <td style="padding: 4px 6px; border: 1px solid #e5e7eb;">
+                                                            <select x-model="row.product_code" x-on:change="updateDescription(index)" x-bind:disabled="confirmed" style="width: 100%; padding: 4px 6px; font-size: 0.75rem; border: 1px solid #d1d5db; border-radius: 4px; background: white;">
+                                                                <template x-for="product in products" :key="product.code">
+                                                                    <option :value="product.code" x-text="product.code" :selected="product.code === row.product_code"></option>
+                                                                </template>
+                                                            </select>
+                                                        </td>
+                                                        <td style="padding: 5px 8px; border: 1px solid #e5e7eb; color: #6b7280;" x-text="row.description"></td>
+                                                        <td style="padding: 4px 6px; border: 1px solid #e5e7eb; text-align: center;">
+                                                            <input type="number" x-model.number="row.qty" min="1" x-bind:disabled="confirmed" style="width: 100%; padding: 4px 6px; font-size: 0.75rem; border: 1px solid #d1d5db; border-radius: 4px; text-align: center;" />
+                                                        </td>
+                                                    </tr>
+                                                </template>
+                                            </tbody>
+                                        </table>
+                                    </template>
+                                    <template x-if="rows.length === 0">
+                                        <div style="padding: 20px; text-align: center; color: #9ca3af; font-size: 0.85rem;">No SW+HW Proforma Invoice data available</div>
+                                    </template>
+
+                                    {{-- Buffer Month dropdown --}}
+                                    <div style="margin-top: 16px;">
+                                        <label style="display: block; font-size: 0.8rem; font-weight: 600; color: #374151; margin-bottom: 4px;">Buffer Month</label>
+                                        <select x-model="bufferMonth" x-bind:disabled="confirmed" style="width: 100%; padding: 8px 12px; font-size: 0.85rem; border: 1px solid #d1d5db; border-radius: 6px; background: white; color: #374151; box-sizing: border-box;">
+                                            <option value="1">1 Month</option>
+                                            <option value="2">2 Months</option>
+                                            <option value="3">3 Months</option>
+                                            <option value="4">4 Months</option>
+                                            <option value="5">5 Months</option>
+                                            <option value="6">6 Months</option>
+                                        </select>
+                                    </div>
+
+                                    {{-- Create DB date field (editable) --}}
+                                    <div style="margin-top: 16px;">
+                                        <label style="display: block; font-size: 0.8rem; font-weight: 600; color: #374151; margin-bottom: 4px;">Create DB Date</label>
+                                        <input type="date" x-model="dbDate" x-bind:disabled="confirmed" style="width: 100%; padding: 8px 12px; font-size: 0.85rem; border: 1px solid #d1d5db; border-radius: 6px; background: white; color: #374151; box-sizing: border-box;" />
+                                    </div>
+
+                                    {{-- Trial period summary --}}
+                                    <p style="margin: 16px 0 0; font-size: 0.85rem; color: #374151;">Trial License Period : <span x-text="trialStartDate" style="font-weight: 600;"></span> to <span x-text="trialEndDate" style="font-weight: 600;"></span></p>
+                                </div>
+                                <div style="padding: 16px 20px; border-top: 1px solid #e5e7eb; display: flex; gap: 10px; justify-content: flex-end;">
+                                    <button x-on:click.stop="showDatabaseDrawer = false" style="padding: 8px 16px; font-size: 0.85rem; font-weight: 500; color: #374151; background: #f3f4f6; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer;">Cancel</button>
+                                    <button
+                                        x-on:click.stop="
+                                            if (confirmed) return;
+                                            confirming = true;
+                                            fetch('{{ $confirmDbUrl }}', {
+                                                method: 'POST',
+                                                headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                                                body: JSON.stringify({ items: rows, db_date: dbDate, buffer_month: bufferMonth })
+                                            })
+                                            .then(r => r.json())
+                                            .then(() => { confirmed = true; confirming = false; })
+                                            .catch(() => { confirming = false; });
+                                        "
+                                        x-bind:disabled="confirming || confirmed"
+                                        x-bind:style="'padding: 8px 16px; font-size: 0.85rem; font-weight: 500; color: white; border: none; border-radius: 6px; cursor: ' + (confirmed ? 'default' : 'pointer') + '; background-color: ' + (confirmed ? '#9ca3af' : '#16a34a') + ';'"
+                                    >
+                                        <template x-if="!confirming && !confirmed"><span>Confirm Create DB</span></template>
+                                        <template x-if="confirming"><span>Saving...</span></template>
+                                        <template x-if="confirmed"><span>Confirmed</span></template>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- Create Pending License button + drawer --}}
+                    @php
+                        $confirmPendingUrl = '/software-handover/confirm-pending-license/' . \App\Classes\Encryptor::encrypt($record->id);
+
+                        // Build initial rows from PI items (same source as Create DB)
+                        $pendingInitialRows = [];
+                        if (is_countable($type1PIs) && count($type1PIs) > 0) {
+                            foreach ($type1PIs as $pi) {
+                                foreach ($pi->items as $item) {
+                                    if ($item->product && str_contains(strtoupper($item->product->code ?? ''), 'ONBOARD')) continue;
+                                    $pendingInitialRows[] = [
+                                        'product_code' => $item->product->code ?? '',
+                                        'description' => $item->product->description ?? $item->description ?? '',
+                                        'qty' => $item->quantity ?? 0,
+                                    ];
+                                }
+                            }
+                        }
+
+                        // Default pending date = day after trial license end (db_creation + buffer months)
+                        $defaultPendingDate = null;
+                        if ($record->db_creation) {
+                            $bufferMonths = $record->type_1_pi_invoice_data['buffer_month'] ?? 1;
+                            $defaultPendingDate = $record->db_creation->copy()->addMonths($bufferMonths)->format('Y-m-d');
+                        }
+
+                        // If saved data exists, use that instead
+                        $savedPendingBufferMonth = 1;
+                        $existingPendingDate = null;
+                        if (!empty($record->type_2_pi_invoice_data)) {
+                            $savedPendingData = $record->type_2_pi_invoice_data;
+                            if (isset($savedPendingData['items'])) {
+                                $pendingInitialRows = $savedPendingData['items'];
+                                $savedPendingBufferMonth = $savedPendingData['buffer_month'] ?? 1;
+                                $savedPendingBillingCycle = $savedPendingData['billing_cycle'] ?? 12;
+                                $existingPendingDate = $savedPendingData['pending_date'] ?? null;
+                            } else {
+                                $pendingInitialRows = $savedPendingData;
+                            }
+                        }
+                    @endphp
+                    <div style="display: contents;" x-data="{
+                        showPendingDrawer: false,
+                        plConfirming: false,
+                        plConfirmed: {{ $existingPendingDate ? 'true' : 'false' }},
+                        plDate: '{{ $existingPendingDate ?? $defaultPendingDate ?? now()->format('Y-m-d') }}',
+                        plBufferMonth: {{ $savedPendingBufferMonth }},
+                        plBillingCycle: {{ $savedPendingBillingCycle ?? 12 }},
+                        plRows: {{ Js::from($pendingInitialRows) }},
+                        plProducts: {{ Js::from($dbProducts) }},
+                        plUpdateDescription(index) {
+                            const p = this.plProducts.find(p => p.code === this.plRows[index].product_code);
+                            this.plRows[index].description = p ? p.description : '-';
+                        },
+                        get plStartDate() {
+                            if (!this.plDate) return '-';
+                            const d = new Date(this.plDate);
+                            return d.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
+                        },
+                        get plEndDate() {
+                            if (!this.plDate) return '-';
+                            const d = new Date(this.plDate);
+                            d.setMonth(d.getMonth() + parseInt(this.plBillingCycle));
+                            d.setDate(d.getDate() - 1);
+                            return d.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
+                        }
+                    }">
+                        <button
+                            x-on:click.stop.prevent="showPendingDrawer = true"
+                            class="sw-export-btn"
+                            style="background-color: #16a34a; color: white; border-color: #16a34a; cursor: pointer;">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="sw-export-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                            </svg>
+                            Create Pending License
+                        </button>
+
+                        <div x-show="showPendingDrawer" x-cloak x-on:click.stop style="position: fixed; inset: 0; z-index: 9999;">
+                            <div x-on:click.self="showPendingDrawer = false" style="position: absolute; inset: 0; background-color: rgba(0,0,0,0.4);"></div>
+                            <div x-on:click.stop style="position: absolute; top: 0; right: 0; bottom: 0; width: 500px; background: white; box-shadow: -4px 0 15px rgba(0,0,0,0.1); display: flex; flex-direction: column;">
+                                <div style="padding: 16px 20px; border-bottom: 1px solid #e5e7eb; display: flex; align-items: center; justify-content: space-between;">
+                                    <h3 style="margin: 0; font-size: 1.1rem; font-weight: 600; color: #111827;">Create Pending License</h3>
+                                    <button x-on:click.stop="showPendingDrawer = false" style="background: none; border: none; cursor: pointer; padding: 4px; color: #6b7280;">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                                    </button>
+                                </div>
+                                <div style="padding: 20px; flex: 1; overflow-y: auto;">
+                                    <p style="margin: 0 0 12px; font-size: 0.85rem; color: #6b7280;">SW+HW Proforma Invoice items</p>
+
+                                    {{-- PI reference info --}}
+                                    @if(is_countable($type1PIs) && count($type1PIs) > 0)
+                                        @foreach($type1PIs as $piIndex => $pi)
+                                            <div style="font-size: 0.8rem; font-weight: 600; color: #374151; margin-bottom: 6px;">
+                                                PI #{{ $piIndex + 1 }}
+                                                @if($pi->pi_reference_no) — {{ $pi->pi_reference_no }} @endif
+                                            </div>
+                                        @endforeach
+                                    @endif
+
+                                    {{-- Editable items table --}}
+                                    <template x-if="plRows.length > 0">
+                                        <table style="width: 100%; border-collapse: collapse; font-size: 0.75rem;">
+                                            <thead>
+                                                <tr style="background: #f3f4f6;">
+                                                    <th style="padding: 6px 8px; text-align: left; border: 1px solid #e5e7eb; font-weight: 600;">Product Code</th>
+                                                    <th style="padding: 6px 8px; text-align: left; border: 1px solid #e5e7eb; font-weight: 600;">Description</th>
+                                                    <th style="padding: 6px 8px; text-align: center; border: 1px solid #e5e7eb; font-weight: 600; width: 70px;">Qty</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <template x-for="(row, index) in plRows" :key="index">
+                                                    <tr>
+                                                        <td style="padding: 4px 6px; border: 1px solid #e5e7eb;">
+                                                            <select x-model="row.product_code" x-on:change="plUpdateDescription(index)" x-bind:disabled="plConfirmed" style="width: 100%; padding: 4px 6px; font-size: 0.75rem; border: 1px solid #d1d5db; border-radius: 4px; background: white;">
+                                                                <template x-for="product in plProducts" :key="product.code">
+                                                                    <option :value="product.code" x-text="product.code" :selected="product.code === row.product_code"></option>
+                                                                </template>
+                                                            </select>
+                                                        </td>
+                                                        <td style="padding: 5px 8px; border: 1px solid #e5e7eb; color: #6b7280;" x-text="row.description"></td>
+                                                        <td style="padding: 4px 6px; border: 1px solid #e5e7eb; text-align: center;">
+                                                            <input type="number" x-model.number="row.qty" min="1" x-bind:disabled="plConfirmed" style="width: 100%; padding: 4px 6px; font-size: 0.75rem; border: 1px solid #d1d5db; border-radius: 4px; text-align: center;" />
+                                                        </td>
+                                                    </tr>
+                                                </template>
+                                            </tbody>
+                                        </table>
+                                    </template>
+                                    <template x-if="plRows.length === 0">
+                                        <div style="padding: 20px; text-align: center; color: #9ca3af; font-size: 0.85rem;">No SW+HW Proforma Invoice data available</div>
+                                    </template>
+
+                                    {{-- Billing Cycle dropdown --}}
+                                    <div style="margin-top: 16px;">
+                                        <label style="display: block; font-size: 0.8rem; font-weight: 600; color: #374151; margin-bottom: 4px;">Billing Cycle</label>
+                                        <select x-model="plBillingCycle" x-bind:disabled="plConfirmed" style="width: 100%; padding: 8px 12px; font-size: 0.85rem; border: 1px solid #d1d5db; border-radius: 6px; background: white; color: #374151; box-sizing: border-box;">
+                                            <option value="12">12 Months</option>
+                                            <option value="24">24 Months</option>
+                                            <option value="36">36 Months</option>
+                                            <option value="48">48 Months</option>
+                                            <option value="60">60 Months</option>
+                                        </select>
+                                    </div>
+
+                                    {{-- Pending License date field (editable) --}}
+                                    <div style="margin-top: 16px;">
+                                        <label style="display: block; font-size: 0.8rem; font-weight: 600; color: #374151; margin-bottom: 4px;">Pending License Date</label>
+                                        <input type="date" x-model="plDate" x-bind:disabled="plConfirmed" style="width: 100%; padding: 8px 12px; font-size: 0.85rem; border: 1px solid #d1d5db; border-radius: 6px; background: white; color: #374151; box-sizing: border-box;" />
+                                    </div>
+
+                                    {{-- Pending license period summary --}}
+                                    <p style="margin: 16px 0 0; font-size: 0.85rem; color: #374151;">Pending License Period : <span x-text="plStartDate" style="font-weight: 600;"></span> to <span x-text="plEndDate" style="font-weight: 600;"></span></p>
+                                </div>
+                                <div style="padding: 16px 20px; border-top: 1px solid #e5e7eb; display: flex; gap: 10px; justify-content: flex-end;">
+                                    <button x-on:click.stop="showPendingDrawer = false" style="padding: 8px 16px; font-size: 0.85rem; font-weight: 500; color: #374151; background: #f3f4f6; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer;">Cancel</button>
+                                    <button
+                                        x-on:click.stop="
+                                            if (plConfirmed) return;
+                                            plConfirming = true;
+                                            fetch('{{ $confirmPendingUrl }}', {
+                                                method: 'POST',
+                                                headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                                                body: JSON.stringify({ items: plRows, pending_date: plDate, buffer_month: plBufferMonth, billing_cycle: plBillingCycle })
+                                            })
+                                            .then(r => r.json())
+                                            .then(() => { plConfirmed = true; plConfirming = false; })
+                                            .catch(() => { plConfirming = false; });
+                                        "
+                                        x-bind:disabled="plConfirming || plConfirmed"
+                                        x-bind:style="'padding: 8px 16px; font-size: 0.85rem; font-weight: 500; color: white; border: none; border-radius: 6px; cursor: ' + (plConfirmed ? 'default' : 'pointer') + '; background-color: ' + (plConfirmed ? '#9ca3af' : '#16a34a') + ';'"
+                                    >
+                                        <template x-if="!plConfirming && !plConfirmed"><span>Confirm Pending License</span></template>
+                                        <template x-if="plConfirming"><span>Saving...</span></template>
+                                        <template x-if="plConfirmed"><span>Confirmed</span></template>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <a href="{{ route('software-handover.export-customer', ['lead' => \App\Classes\Encryptor::encrypt($record->lead_id)]) }}"
                        target="_blank"
                        class="sw-export-btn">
@@ -794,15 +1159,66 @@
                         </svg>
                         Export AutoCount Debtor
                     </a>
-                    <a href="{{ route('invoice-data.export', ['softwareHandover' => \App\Classes\Encryptor::encrypt($record->id)]) }}"
-                        target="_blank"
-                        class="sw-export-btn"
-                        style="background-color: #2563eb; color: white;">
+                    @php
+                        $docNoPrefix = match($record->training_type) {
+                            'online_webinar_training' => 'EPIN',
+                            'online_hrdf_training' => 'EHIN',
+                            default => 'EGIN',
+                        };
+                        $exportBaseUrl = route('invoice-data.export', ['softwareHandover' => \App\Classes\Encryptor::encrypt($record->id)]);
+                    @endphp
+                    <div x-data="{ showInvoiceDrawer: false, docNo: '{{ $docNoPrefix }}', debtorCode: '', licenseNumber: '' }">
+                        <button
+                            x-on:click.stop.prevent="showInvoiceDrawer = true"
+                            class="sw-export-btn"
+                            style="background-color: #2563eb; color: white; border-color: #2563eb; cursor: pointer;">
                             <svg xmlns="http://www.w3.org/2000/svg" class="sw-export-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                             </svg>
                             Export AutoCount Invoice
-                    </a>
+                        </button>
+
+                        {{-- Drawer overlay --}}
+                        <div x-show="showInvoiceDrawer" x-cloak x-on:click.stop style="position: fixed; inset: 0; z-index: 9999;">
+                            {{-- Backdrop --}}
+                            <div x-on:click.self="showInvoiceDrawer = false" style="position: absolute; inset: 0; background-color: rgba(0,0,0,0.4);"></div>
+                            {{-- Drawer panel --}}
+                            <div x-on:click.stop style="position: absolute; top: 0; right: 0; bottom: 0; width: 400px; background: white; box-shadow: -4px 0 15px rgba(0,0,0,0.1); display: flex; flex-direction: column;">
+                                {{-- Header --}}
+                                <div style="padding: 16px 20px; border-bottom: 1px solid #e5e7eb; display: flex; align-items: center; justify-content: space-between;">
+                                    <h3 style="margin: 0; font-size: 1.1rem; font-weight: 600; color: #111827;">Export AutoCount Invoice</h3>
+                                    <button x-on:click.stop="showInvoiceDrawer = false" style="background: none; border: none; cursor: pointer; padding: 4px; color: #6b7280;">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                                    </button>
+                                </div>
+                                {{-- Body --}}
+                                <div style="padding: 20px; flex: 1; overflow-y: auto;">
+                                    <p style="margin: 0 0 16px; font-size: 0.85rem; color: #6b7280;">Enter the following details before generating the Excel file.</p>
+                                    <div style="margin-bottom: 16px;">
+                                        <label style="display: block; font-size: 0.8rem; font-weight: 600; color: #374151; margin-bottom: 4px;">DocNo</label>
+                                        <input type="text" x-model="docNo" style="width: 100%; padding: 8px 12px; font-size: 0.85rem; border: 1px solid #d1d5db; border-radius: 6px; outline: none; box-sizing: border-box;" placeholder="e.g. EPIN001" />
+                                    </div>
+                                    <div style="margin-bottom: 16px;">
+                                        <label style="display: block; font-size: 0.8rem; font-weight: 600; color: #374151; margin-bottom: 4px;">DebtorCode</label>
+                                        <input type="text" x-model="debtorCode" style="width: 100%; padding: 8px 12px; font-size: 0.85rem; border: 1px solid #d1d5db; border-radius: 6px; outline: none; box-sizing: border-box;" placeholder="Enter debtor code" />
+                                    </div>
+                                    <div style="margin-bottom: 16px;">
+                                        <label style="display: block; font-size: 0.8rem; font-weight: 600; color: #374151; margin-bottom: 4px;">UDF_IV_LicenseNumber</label>
+                                        <input type="text" x-model="licenseNumber" style="width: 100%; padding: 8px 12px; font-size: 0.85rem; border: 1px solid #d1d5db; border-radius: 6px; outline: none; box-sizing: border-box;" placeholder="Enter license number" />
+                                    </div>
+                                </div>
+                                {{-- Footer --}}
+                                <div style="padding: 16px 20px; border-top: 1px solid #e5e7eb; display: flex; gap: 10px; justify-content: flex-end;">
+                                    <button x-on:click.stop="showInvoiceDrawer = false" style="padding: 8px 16px; font-size: 0.85rem; font-weight: 500; color: #374151; background: #f3f4f6; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer;">Cancel</button>
+                                    <button x-on:click.stop="
+                                        let url = '{{ $exportBaseUrl }}' + '?doc_no=' + encodeURIComponent(docNo) + '&debtor_code=' + encodeURIComponent(debtorCode) + '&license_number=' + encodeURIComponent(licenseNumber);
+                                        window.open(url, '_blank');
+                                        showInvoiceDrawer = false;
+                                    " style="padding: 8px 16px; font-size: 0.85rem; font-weight: 500; color: white; background-color: #2563eb; border: none; border-radius: 6px; cursor: pointer;">Generate Excel</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

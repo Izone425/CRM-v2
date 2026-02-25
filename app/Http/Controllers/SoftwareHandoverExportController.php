@@ -512,4 +512,46 @@ class SoftwareHandoverExportController extends Controller
         $normalizedState = strtoupper(trim($state));
         return $stateMapping[$normalizedState] ?? '';
     }
+
+    public function confirmCreateDb(\Illuminate\Http\Request $request, $softwareHandoverId)
+    {
+        $decryptedId = Encryptor::decrypt($softwareHandoverId);
+        $handover = SoftwareHandover::findOrFail($decryptedId);
+
+        $dbDate = $request->input('db_date', now()->format('Y-m-d'));
+        $items = $request->input('items', []);
+        $bufferMonth = $request->input('buffer_month', 1);
+
+        $handover->update([
+            'db_creation' => $dbDate,
+            'type_1_pi_invoice_data' => [
+                'items' => $items,
+                'buffer_month' => $bufferMonth,
+            ],
+        ]);
+
+        return response()->json(['success' => true, 'date' => $dbDate]);
+    }
+
+    public function confirmCreatePendingLicense(\Illuminate\Http\Request $request, $softwareHandoverId)
+    {
+        $decryptedId = Encryptor::decrypt($softwareHandoverId);
+        $handover = SoftwareHandover::findOrFail($decryptedId);
+
+        $pendingDate = $request->input('pending_date', now()->format('Y-m-d'));
+        $items = $request->input('items', []);
+        $bufferMonth = $request->input('buffer_month', 1);
+        $billingCycle = $request->input('billing_cycle', 12);
+
+        $handover->update([
+            'type_2_pi_invoice_data' => [
+                'items' => $items,
+                'buffer_month' => $bufferMonth,
+                'billing_cycle' => $billingCycle,
+                'pending_date' => $pendingDate,
+            ],
+        ]);
+
+        return response()->json(['success' => true, 'date' => $pendingDate]);
+    }
 }

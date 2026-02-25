@@ -79,6 +79,14 @@ Route::get('/invoice-data/export/{softwareHandover}', [App\Http\Controllers\Invo
     ->name('invoice-data.export')
     ->middleware(['auth']);
 
+Route::post('/software-handover/confirm-db/{softwareHandover}', [App\Http\Controllers\SoftwareHandoverExportController::class, 'confirmCreateDb'])
+    ->name('software-handover.confirm-db')
+    ->middleware(['auth']);
+
+Route::post('/software-handover/confirm-pending-license/{softwareHandover}', [App\Http\Controllers\SoftwareHandoverExportController::class, 'confirmCreatePendingLicense'])
+    ->name('software-handover.confirm-pending-license')
+    ->middleware(['auth']);
+
 Route::get('/headcount-invoice-data/export/{headcountHandover}', [App\Http\Controllers\HeadcountInvoiceDataExportController::class, 'exportInvoiceData'])
     ->name('headcount-invoice-data.export')
     ->middleware(['auth']);

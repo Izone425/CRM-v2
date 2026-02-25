@@ -61,6 +61,13 @@ This changelog tracks all code changes, new features, and modifications. Each en
 | 037 | New Feature + Database + UI | Payment page (List of Payment Received) with inline AutoCount Invoice No. edit | Yes (migration) | [View Details](.changelog/037-payment-received-page.md) | Completed |
 | 038 | Fix/Change + UI | Official Receipt table column width fix to prevent horizontal scrolling | No | [View Details](.changelog/038-official-receipt-column-fix.md) | Completed |
 | 039 | New Feature + Database + UI | Auto Renewal page with toggle switch for enable/disable | Yes (migration) | [View Details](.changelog/039-auto-renewal-page.md) | Completed |
+| 040 | Fix/Change + UI | Export AutoCount Invoice drawer with DocNo, DebtorCode, LicenseNumber pre-fill | No | [View Details](.changelog/040-export-autocount-invoice-drawer.md) | Completed |
+| 041 | New Feature + UI | Create Database button with PI items drawer in Software Handover Details | No | [View Details](.changelog/041-create-database-button.md) | Completed |
+| 042 | Database | Dummy Software Handover New Task records with full PI data chain | No | [View Details](.changelog/042-software-handover-dummy-seeder.md) | Completed |
+| 043 | Fix/Change + UI | Create Database drawer: remove columns, add date field, Confirm Create DB button | No | [View Details](.changelog/043-create-database-drawer-enhancements.md) | Completed |
+| 044 | Fix/Change + UI | Create DB drawer: editable Product Code dropdown, Qty input, and date picker | No | [View Details](.changelog/044-create-db-drawer-editable-fields.md) | Completed |
+| 045 | Fix/Change + UI | Create DB drawer: Buffer Month dropdown (1-6 months, default 1) | No | [View Details](.changelog/045-create-db-buffer-month.md) | Completed |
+| 046 | New Feature + UI | Create Pending License button with editable drawer (same pattern as Create DB) | No | [View Details](.changelog/046-create-pending-license-button.md) | Completed |
 
 ---
 
@@ -116,6 +123,13 @@ This changelog tracks all code changes, new features, and modifications. Each en
 | 037 | Payment page with inline AutoCount edit | `HrPaymentReceivedTable.php`, `HrOfficialReceipt.php`, migration, seeder, blade templates | Yes (migration) |
 | 038 | Official Receipt table column width fix | `hr-official-receipt-table.blade.php` | No |
 | 039 | Auto Renewal page with toggle switch | `HrAutoRenewalTable.php`, `HrAutoRenewal.php`, migration, seeder, blade templates | Yes (migration) |
+| 040 | Export AutoCount Invoice drawer with pre-fill fields | `software-handover.blade.php`, `InvoiceDataExportController.php` | No |
+| 041 | Create Database button with PI items drawer | `software-handover.blade.php` | No |
+| 042 | Dummy SW Handover New Task records (8) with PI data | `SoftwareHandoverDummySeeder.php` | No |
+| 043 | Create Database drawer: remove columns, add date & confirm button | `software-handover.blade.php`, `SoftwareHandoverExportController.php`, `web.php` | No |
+| 044 | Create DB drawer: editable Product Code, Qty, date | `software-handover.blade.php`, `SoftwareHandoverExportController.php` | No |
+| 045 | Create DB drawer: Buffer Month dropdown (1-6) | `software-handover.blade.php`, `SoftwareHandoverExportController.php` | No |
+| 046 | Create Pending License button + drawer | `software-handover.blade.php`, `SoftwareHandoverExportController.php`, `web.php` | No |
 
 ---
 
