@@ -292,7 +292,17 @@ class ImplementerLicense extends Component implements HasForms, HasTable
                                         '12' => '12 months',
                                     ])
                                     ->required()
-                                    ->default('1')
+                                    ->default(function (SoftwareHandover $record = null) {
+                                        if ($record && !empty($record->type_1_pi_invoice_data)) {
+                                            $data = $record->type_1_pi_invoice_data;
+                                            if (isset($data['buffer_month'])) {
+                                                return (string) $data['buffer_month'];
+                                            }
+                                        }
+                                        return '1';
+                                    })
+                                    ->disabled()
+                                    ->dehydrated(true)
                                     ->columnSpan(1),
 
                                 \Filament\Forms\Components\Select::make('paid_license_years')
@@ -311,7 +321,17 @@ class ImplementerLicense extends Component implements HasForms, HasTable
                                         '10' => '10 years',
                                     ])
                                     ->required()
-                                    ->default('1')
+                                    ->default(function (SoftwareHandover $record = null) {
+                                        if ($record && !empty($record->type_2_pi_invoice_data)) {
+                                            $data = $record->type_2_pi_invoice_data;
+                                            if (isset($data['billing_cycle'])) {
+                                                return (string) floor((int) $data['billing_cycle'] / 12);
+                                            }
+                                        }
+                                        return '1';
+                                    })
+                                    ->disabled()
+                                    ->dehydrated(true)
                                     ->columnSpan(1),
 
                                 \Filament\Forms\Components\Select::make('paid_license_months')
@@ -331,7 +351,17 @@ class ImplementerLicense extends Component implements HasForms, HasTable
                                         '11' => '11 months',
                                     ])
                                     ->required()
-                                    ->default('0')
+                                    ->default(function (SoftwareHandover $record = null) {
+                                        if ($record && !empty($record->type_2_pi_invoice_data)) {
+                                            $data = $record->type_2_pi_invoice_data;
+                                            if (isset($data['billing_cycle'])) {
+                                                return (string) ((int) $data['billing_cycle'] % 12);
+                                            }
+                                        }
+                                        return '0';
+                                    })
+                                    ->disabled()
+                                    ->dehydrated(true)
                                     ->columnSpan(1),
                             ]),
                             \Filament\Forms\Components\Section::make('Implementer Reference')

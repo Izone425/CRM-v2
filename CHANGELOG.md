@@ -2,7 +2,7 @@
 
 > **Project**: TimeTec CRM PDT - Admin Portal V2
 > **Maintained by**: Admin Portal Team
-> **Last Updated**: 2026-02-24
+> **Last Updated**: 2026-02-25
 
 This changelog tracks all code changes, new features, and modifications. Each entry links to a detailed file showing **BEFORE and AFTER code** for developer handoff.
 
@@ -68,6 +68,7 @@ This changelog tracks all code changes, new features, and modifications. Each en
 | 044 | Fix/Change + UI | Create DB drawer: editable Product Code dropdown, Qty input, and date picker | No | [View Details](.changelog/044-create-db-drawer-editable-fields.md) | Completed |
 | 045 | Fix/Change + UI | Create DB drawer: Buffer Month dropdown (1-6 months, default 1) | No | [View Details](.changelog/045-create-db-buffer-month.md) | Completed |
 | 046 | New Feature + UI | Create Pending License button with editable drawer (same pattern as Create DB) | No | [View Details](.changelog/046-create-pending-license-button.md) | Completed |
+| 047 | Fix/Change + UI | Create License Duration: read-only Buffer Duration, Paid License Years & Months (auto-populated from Trial/Pending License) | No | [View Details](.changelog/047-license-duration-readonly-fields.md) | Completed |
 
 ---
 
@@ -130,6 +131,7 @@ This changelog tracks all code changes, new features, and modifications. Each en
 | 044 | Create DB drawer: editable Product Code, Qty, date | `software-handover.blade.php`, `SoftwareHandoverExportController.php` | No |
 | 045 | Create DB drawer: Buffer Month dropdown (1-6) | `software-handover.blade.php`, `SoftwareHandoverExportController.php` | No |
 | 046 | Create Pending License button + drawer | `software-handover.blade.php`, `SoftwareHandoverExportController.php`, `web.php` | No |
+| 047 | Create License Duration: read-only fields from Trial/Pending License | `ImplementerLicense.php` | No |
 
 ---
 
