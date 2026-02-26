@@ -2,7 +2,7 @@
 
 > **Project**: TimeTec CRM PDT - Admin Portal V2
 > **Maintained by**: Admin Portal Team
-> **Last Updated**: 2026-02-25
+> **Last Updated**: 2026-02-26
 
 This changelog tracks all code changes, new features, and modifications. Each entry links to a detailed file showing **BEFORE and AFTER code** for developer handoff.
 
@@ -69,6 +69,10 @@ This changelog tracks all code changes, new features, and modifications. Each en
 | 045 | Fix/Change + UI | Create DB drawer: Buffer Month dropdown (1-6 months, default 1) | No | [View Details](.changelog/045-create-db-buffer-month.md) | Completed |
 | 046 | New Feature + UI | Create Pending License button with editable drawer (same pattern as Create DB) | No | [View Details](.changelog/046-create-pending-license-button.md) | Completed |
 | 047 | Fix/Change + UI | Create License Duration: read-only Buffer Duration, Paid License Years & Months (auto-populated from Trial/Pending License) | No | [View Details](.changelog/047-license-duration-readonly-fields.md) | Completed |
+| 048 | Fix/Change + UI | Quotation Items: Year badges on headers, per-year unit prices, fix software solution check (`str_starts_with`) | No | [View Details](.changelog/048-quotation-year-badges-unit-price.md) | Completed |
+| 049 | Fix/Change + UI | Quotation Items: Hide Subscription Period & Year fields from UI (still functional internally) | No | [View Details](.changelog/049-quotation-hide-subscription-year-fields.md) | Completed |
+| 050 | Fix/Change + UI | Quotation Items: Bold **[YEAR-X SUBSCRIPTION]** label prepended to description for multi-year products | No | [View Details](.changelog/050-quotation-year-description-label.md) | Completed |
+| 051 | Fix/Change + UI | Quotation Items: Rename quantity label to "Quantity/Headcount" | No | [View Details](.changelog/051-quotation-quantity-label-rename.md) | Completed |
 
 ---
 
