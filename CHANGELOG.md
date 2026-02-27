@@ -2,7 +2,7 @@
 
 > **Project**: TimeTec CRM PDT - Admin Portal V2
 > **Maintained by**: Admin Portal Team
-> **Last Updated**: 2026-02-26
+> **Last Updated**: 2026-02-27
 
 This changelog tracks all code changes, new features, and modifications. Each entry links to a detailed file showing **BEFORE and AFTER code** for developer handoff.
 
@@ -73,6 +73,11 @@ This changelog tracks all code changes, new features, and modifications. Each en
 | 049 | Fix/Change + UI | Quotation Items: Hide Subscription Period & Year fields from UI (still functional internally) | No | [View Details](.changelog/049-quotation-hide-subscription-year-fields.md) | Completed |
 | 050 | Fix/Change + UI | Quotation Items: Bold **[YEAR-X SUBSCRIPTION]** label prepended to description for multi-year products | No | [View Details](.changelog/050-quotation-year-description-label.md) | Completed |
 | 051 | Fix/Change + UI | Quotation Items: Rename quantity label to "Quantity/Headcount" | No | [View Details](.changelog/051-quotation-quantity-label-rename.md) | Completed |
+| 052 | Fix/Change + UI | Quotation: Restore Subscription Period (editable 1-12 months) & Year (read-only) fields for software products | No | [View Details](.changelog/052-quotation-restore-subscription-year-fields.md) | Completed |
+| 053 | New Feature + UI | Create DB+Trial License: software-only filter, simplified descriptions, CRM API integration (auto-create account + buffer licenses + local HrLicense record) | No | [View Details](.changelog/053-create-db-trial-license-crm-integration.md) | Completed |
+| 054 | Fix/Change | Company License Details Products tab: real trial data from PI invoice data, trial invoice format TRYYMMDD+seq | No | [View Details](.changelog/054-company-products-real-trial-data.md) | Completed |
+| 055 | Fix/Change + UI | Create Pending License: software-only filter, simplified descriptions, year sub-headers grouping, auto-calculated billing cycle | No | [View Details](.changelog/055-pending-license-year-subheaders.md) | Completed |
+| 056 | Fix/Change + UI | Quotation & Proforma Invoice PDF: year-grouped items with ordinal sub-headers ("1st Year Subscription") | No | [View Details](.changelog/056-pdf-year-grouped-items.md) | Completed |
 
 ---
 
@@ -136,6 +141,11 @@ This changelog tracks all code changes, new features, and modifications. Each en
 | 045 | Create DB drawer: Buffer Month dropdown (1-6) | `software-handover.blade.php`, `SoftwareHandoverExportController.php` | No |
 | 046 | Create Pending License button + drawer | `software-handover.blade.php`, `SoftwareHandoverExportController.php`, `web.php` | No |
 | 047 | Create License Duration: read-only fields from Trial/Pending License | `ImplementerLicense.php` | No |
+| 052 | Quotation: visible Subscription Period (1-12) & Year fields for software products | `QuotationResource.php` | No |
+| 053 | Create DB+Trial: CRM API auto-create account + buffer licenses + local HrLicense | `software-handover.blade.php`, `SoftwareHandoverExportController.php`, `CRMApiService.php` | No |
+| 054 | Products tab: real trial data from PI invoice, TRYYMMDD invoice format | `CompanyProductsTab.php` | No |
+| 055 | Pending License: year sub-headers, software filter, auto billing cycle | `software-handover.blade.php` | No |
+| 056 | Quotation & PI PDF: year-grouped items with ordinal sub-headers | `quotation-v2.blade.php`, `proforma-invoice-v2.blade.php` | No |
 
 ---
 

@@ -409,9 +409,7 @@ class QuotationResource extends Resource
                                                 'unit_price' => $product->unit_price,
                                                 'subscription_period' => $isSoftware ? 12 : null,
                                                 'subscription_manually_edited' => false,
-                                                'description' => ($isSoftware && $yearCount > 1)
-                                                    ? "<p><strong>[YEAR-{$year} SUBSCRIPTION]</strong></p>" . $product->description
-                                                    : $product->description,
+                                                'description' => $product->description,
                                                 'year' => ($isSoftware && $yearCount > 1) ? "Year {$year}" : null,
                                                 'sort_order' => $product->sort_order,
                                             ]);
@@ -916,9 +914,12 @@ class QuotationResource extends Resource
                                         self::recalculateAllRows($get, $set, 'quantity', $state); // ✅ Pass field name
                                     }),
                                 TextInput::make('subscription_period')
-                                    ->hidden()
+                                    ->label('Subscription Period')
                                     ->numeric()
                                     ->default(12)
+                                    ->maxValue(12)
+                                    ->minValue(1)
+                                    ->suffix('months')
                                     ->dehydrated(true)
                                     ->live(onBlur: true)
                                     ->afterStateUpdated(function(?string $state, Forms\Get $get, Forms\Set $set) {
@@ -927,8 +928,16 @@ class QuotationResource extends Resource
                                             $value = (int)$state;
                                             if ($value > 12) {
                                                 $set('subscription_period', 12);
+                                                Notification::make()
+                                                    ->warning()
+                                                    ->title('Maximum subscription period is 12 months')
+                                                    ->send();
                                             } elseif ($value < 1) {
                                                 $set('subscription_period', 1);
+                                                Notification::make()
+                                                    ->warning()
+                                                    ->title('Minimum subscription period is 1 month')
+                                                    ->send();
                                             }
                                         } else {
                                             $set('subscription_period', 12);
@@ -938,10 +947,35 @@ class QuotationResource extends Resource
                                         usleep(100000);
 
                                         self::recalculateAllRows($get, $set, 'subscription_period', $state);
+                                    })
+                                    ->visible(function(Forms\Get $get) {
+                                        $productId = $get('product_id');
+                                        if ($productId != null) {
+                                            $product = Product::find($productId);
+                                            if ($product && $get('../../quotation_type') == 'product' && str_starts_with($product->solution, 'software')) {
+                                                return true;
+                                            }
+                                        }
+                                        return false;
                                     }),
                                 TextInput::make('year')
-                                    ->hidden()
+                                    ->label('Year')
+                                    ->columnSpan([
+                                        'md' => 1,
+                                    ])
+                                    ->readOnly()
                                     ->dehydrated(true)
+                                    ->helperText('Auto-calculated based on duplicate products')
+                                    ->visible(function(Forms\Get $get) {
+                                        $productId = $get('product_id');
+                                        if ($productId != null) {
+                                            $product = Product::find($productId);
+                                            if ($product && $get('../../quotation_type') == 'product' && str_starts_with($product->solution, 'software')) {
+                                                return true;
+                                            }
+                                        }
+                                        return false;
+                                    })
                                     ->afterStateHydrated(function (Forms\Get $get, Forms\Set $set) {
                                         // Calculate year based on position in items array
                                         $currentProductId = $get('product_id');
@@ -2411,13 +2445,7 @@ class QuotationResource extends Resource
 
             // Only set product description when current description is empty/blank
             if (blank($currentDescription) && $product) {
-                $desc = $product->description;
-                $yearNum = $itemYearNums[$index] ?? null;
-                $yearCount = self::getPackageYearCount($get('package_group'));
-                if ($yearNum && $yearCount > 1 && str_starts_with($product->solution, 'software')) {
-                    $desc = "<p><strong>[YEAR-{$yearNum} SUBSCRIPTION]</strong></p>" . $desc;
-                }
-                $set("items.{$index}.description", $desc);
+                $set("items.{$index}.description", $product->description);
             }
 
             // Calculate total after tax

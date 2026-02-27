@@ -228,11 +228,34 @@ class CRMApiService
 
     /**
      * Add buffer license
+     * - applications: array of module names (e.g., ['Attendance', 'Leave'])
+     * - seatLimits: optional array of seat limits per module
      */
     public function addBufferLicense(int $accountId, int $companyId, array $licenseData): array
     {
         $endpoint = "/api/crm/account/{$accountId}/company/{$companyId}/licenses/buffer";
-        return $this->makeRequest('POST', $endpoint, $licenseData);
+
+        $payload = [
+            'startDate' => $licenseData['startDate'],
+            'endDate' => $licenseData['endDate'],
+            'notes' => $licenseData['notes'] ?? null,
+        ];
+
+        if (isset($licenseData['applications']) && !empty($licenseData['applications'])) {
+            $payload['applications'] = $licenseData['applications'];
+        }
+
+        if (isset($licenseData['seatLimits']) && !empty($licenseData['seatLimits'])) {
+            $payload['seatLimits'] = $licenseData['seatLimits'];
+        }
+
+        Log::info("Adding buffer license", [
+            'account_id' => $accountId,
+            'company_id' => $companyId,
+            'payload' => $payload,
+        ]);
+
+        return $this->makeRequest('POST', $endpoint, $payload);
     }
 
     /**
