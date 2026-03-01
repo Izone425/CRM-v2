@@ -6,6 +6,7 @@ use App\Models\HrLicense;
 use App\Models\Quotation;
 use App\Models\SoftwareHandover;
 use App\Services\CRMApiService;
+use Carbon\Carbon;
 use Livewire\Component;
 
 class CompanyProductsTab extends Component
@@ -67,8 +68,8 @@ class CompanyProductsTab extends Component
     {
         $this->softwareHandoverId = $softwareHandoverId;
         $this->companyData = $companyData;
-        $this->loadProductData();
         $this->loadLicenseRecords();
+        $this->loadProductData();
         $this->groupedLicenseRecords = $this->getGroupedLicenseRecords();
 
         // Compute max end date from PAID license records for consolidate billing
@@ -79,14 +80,44 @@ class CompanyProductsTab extends Component
 
     protected function loadProductData(): void
     {
-        $hrLicense = $this->companyData['hr_license'] ?? null;
-        $softwareHandover = $this->companyData['software_handover'] ?? null;
+        // Derive counts from active license records
+        $counts = [
+            'attendance_user' => 0,
+            'leave_user' => 0,
+            'claim_user' => 0,
+            'payroll_user' => 0,
+            'onboarding' => 0,
+            'recruitment' => 0,
+            'appraisal' => 0,
+            'training' => 0,
+        ];
 
-        // Get actual usage counts (from API later, use available data for now)
-        $totalUsers = $hrLicense?->total_user ?? 0;
+        foreach ($this->licenseRecords as $record) {
+            if (($record['status'] ?? '') === 'expired') continue;
+            $type = strtolower($record['license_type'] ?? '');
+            $users = (int) ($record['total_user'] ?? 0);
 
-        // Build product data with active/inactive breakdown
-        // Note: Actual active/inactive requires HR Backend API - using placeholders for now
+            if (str_contains($type, ' ta') || str_contains($type, 'attendance')) {
+                $counts['attendance_user'] += $users;
+            }
+            if (str_contains($type, 'leave')) {
+                $counts['leave_user'] += $users;
+            }
+            if (str_contains($type, 'claim')) {
+                $counts['claim_user'] += $users;
+            }
+            if (str_contains($type, 'payroll')) {
+                $counts['payroll_user'] += $users;
+            }
+        }
+
+        $totalUsers = max(
+            $counts['attendance_user'],
+            $counts['leave_user'],
+            $counts['claim_user'],
+            $counts['payroll_user']
+        );
+
         $this->productData = [
             'user_account' => [
                 'total' => $totalUsers,
@@ -94,43 +125,43 @@ class CompanyProductsTab extends Component
                 'inactive' => 0,
             ],
             'attendance_user' => [
-                'total' => ($softwareHandover?->ta ?? false) ? $totalUsers : 0,
-                'active' => ($softwareHandover?->ta ?? false) ? $totalUsers : 0,
+                'total' => $counts['attendance_user'],
+                'active' => $counts['attendance_user'],
                 'inactive' => 0,
             ],
             'leave_user' => [
-                'total' => ($softwareHandover?->tl ?? false) ? $totalUsers : 0,
-                'active' => ($softwareHandover?->tl ?? false) ? $totalUsers : 0,
+                'total' => $counts['leave_user'],
+                'active' => $counts['leave_user'],
                 'inactive' => 0,
             ],
             'claim_user' => [
-                'total' => ($softwareHandover?->tc ?? false) ? $totalUsers : 0,
-                'active' => ($softwareHandover?->tc ?? false) ? $totalUsers : 0,
+                'total' => $counts['claim_user'],
+                'active' => $counts['claim_user'],
                 'inactive' => 0,
             ],
             'payroll_user' => [
-                'total' => ($softwareHandover?->tp ?? false) ? $totalUsers : 0,
-                'active' => ($softwareHandover?->tp ?? false) ? $totalUsers : 0,
+                'total' => $counts['payroll_user'],
+                'active' => $counts['payroll_user'],
                 'inactive' => 0,
             ],
             'onboarding_offboarding' => [
-                'total' => ($softwareHandover?->thire ?? false) ? $totalUsers : 0,
-                'active' => ($softwareHandover?->thire ?? false) ? $totalUsers : 0,
+                'total' => $counts['onboarding'],
+                'active' => $counts['onboarding'],
                 'inactive' => 0,
             ],
             'recruitment' => [
-                'total' => ($softwareHandover?->thire ?? false) ? $totalUsers : 0,
-                'active' => ($softwareHandover?->thire ?? false) ? $totalUsers : 0,
+                'total' => $counts['recruitment'],
+                'active' => $counts['recruitment'],
                 'inactive' => 0,
             ],
             'appraisal' => [
-                'total' => ($softwareHandover?->tapp ?? false) ? $totalUsers : 0,
-                'active' => ($softwareHandover?->tapp ?? false) ? $totalUsers : 0,
+                'total' => $counts['appraisal'],
+                'active' => $counts['appraisal'],
                 'inactive' => 0,
             ],
             'training' => [
-                'total' => 0,
-                'active' => 0,
+                'total' => $counts['training'],
+                'active' => $counts['training'],
                 'inactive' => 0,
             ],
         ];
@@ -138,264 +169,142 @@ class CompanyProductsTab extends Component
 
     protected function loadLicenseRecords(): void
     {
-        // Mock data matching "Koperasi Perbadanan Putrajaya Berhad" screenshot
-        $this->licenseRecords = [
-            [
-                'no' => 1,
-                'type' => 'TRIAL',
-                'invoice_no' => 'Trial231224001',
-                'license_type' => 'TimeTec TA',
-                'unit' => 3,
-                'user_limit' => 10,
-                'total_user' => 28,
-                'total_login' => 30,
-                'total_terminal' => 150,
-                'month' => 1,
-                'start_date' => '2024-12-23',
-                'end_date' => '2025-01-23',
-                'status' => 'expired',
-                'renewed' => '-',
-            ],
-            [
-                'no' => 2,
-                'type' => 'TRIAL',
-                'invoice_no' => 'Trial231224001',
-                'license_type' => 'TimeTec Leave',
-                'unit' => 3,
-                'user_limit' => 10,
-                'total_user' => 28,
-                'total_login' => 0,
-                'total_terminal' => 0,
-                'month' => 1,
-                'start_date' => '2024-12-23',
-                'end_date' => '2025-01-23',
-                'status' => 'expired',
-                'renewed' => '-',
-            ],
-            [
-                'no' => 3,
-                'type' => 'TRIAL',
-                'invoice_no' => 'Trial231224001',
-                'license_type' => 'TimeTec Claim',
-                'unit' => 3,
-                'user_limit' => 10,
-                'total_user' => 28,
-                'total_login' => 0,
-                'total_terminal' => 0,
-                'month' => 1,
-                'start_date' => '2024-12-23',
-                'end_date' => '2025-01-23',
-                'status' => 'expired',
-                'renewed' => '-',
-            ],
-            // 2025: 4 products
-            [
-                'no' => 4,
-                'type' => 'PAID',
-                'invoice_no' => 'TTC2412000246',
-                'sales_type' => 'NEW SALES',
-                'license_type' => 'TimeTec TA',
-                'unit' => 28,
-                'user_limit' => 1,
-                'total_user' => 28,
-                'total_login' => 28,
-                'total_terminal' => 140,
-                'month' => 12,
-                'start_date' => '2025-01-24',
-                'end_date' => '2026-01-23',
-                'status' => 'active',
-                'renewed' => '-',
-            ],
-            [
-                'no' => 5,
-                'type' => 'PAID',
-                'invoice_no' => 'TTC2412000246',
-                'sales_type' => 'NEW SALES',
-                'license_type' => 'TimeTec Leave',
-                'unit' => 28,
-                'user_limit' => 1,
-                'total_user' => 28,
-                'total_login' => 0,
-                'total_terminal' => 0,
-                'month' => 12,
-                'start_date' => '2025-01-24',
-                'end_date' => '2026-01-23',
-                'status' => 'active',
-                'renewed' => '-',
-            ],
-            [
-                'no' => 6,
-                'type' => 'PAID',
-                'invoice_no' => 'TTC2412000246',
-                'sales_type' => 'NEW SALES',
-                'license_type' => 'TimeTec Claim',
-                'unit' => 28,
-                'user_limit' => 1,
-                'total_user' => 28,
-                'total_login' => 0,
-                'total_terminal' => 0,
-                'month' => 12,
-                'start_date' => '2025-01-24',
-                'end_date' => '2026-01-23',
-                'status' => 'active',
-                'renewed' => '-',
-            ],
-            [
-                'no' => 7,
-                'type' => 'PAID',
-                'invoice_no' => 'TTC2412000246',
-                'sales_type' => 'NEW SALES',
-                'license_type' => 'TimeTec Payroll',
-                'unit' => 28,
-                'user_limit' => 1,
-                'total_user' => 28,
-                'total_login' => 0,
-                'total_terminal' => 0,
-                'month' => 12,
-                'start_date' => '2025-01-24',
-                'end_date' => '2026-01-23',
-                'status' => 'active',
-                'renewed' => '-',
-            ],
-            // 2026: 4 products
-            [
-                'no' => 8,
-                'type' => 'PAID',
-                'invoice_no' => 'TTC2412000246',
-                'sales_type' => 'NEW SALES',
-                'license_type' => 'TimeTec TA',
-                'unit' => 28,
-                'user_limit' => 1,
-                'total_user' => 28,
-                'total_login' => 28,
-                'total_terminal' => 140,
-                'month' => 12,
-                'start_date' => '2026-01-24',
-                'end_date' => '2027-01-23',
-                'status' => 'active',
-                'renewed' => '-',
-            ],
-            [
-                'no' => 9,
-                'type' => 'PAID',
-                'invoice_no' => 'TTC2412000246',
-                'sales_type' => 'NEW SALES',
-                'license_type' => 'TimeTec Leave',
-                'unit' => 28,
-                'user_limit' => 1,
-                'total_user' => 28,
-                'total_login' => 0,
-                'total_terminal' => 0,
-                'month' => 12,
-                'start_date' => '2026-01-24',
-                'end_date' => '2027-01-23',
-                'status' => 'active',
-                'renewed' => '-',
-            ],
-            [
-                'no' => 10,
-                'type' => 'PAID',
-                'invoice_no' => 'TTC2412000246',
-                'sales_type' => 'NEW SALES',
-                'license_type' => 'TimeTec Claim',
-                'unit' => 28,
-                'user_limit' => 1,
-                'total_user' => 28,
-                'total_login' => 0,
-                'total_terminal' => 0,
-                'month' => 12,
-                'start_date' => '2026-01-24',
-                'end_date' => '2027-01-23',
-                'status' => 'active',
-                'renewed' => '-',
-            ],
-            [
-                'no' => 11,
-                'type' => 'PAID',
-                'invoice_no' => 'TTC2412000246',
-                'sales_type' => 'NEW SALES',
-                'license_type' => 'TimeTec Payroll',
-                'unit' => 28,
-                'user_limit' => 1,
-                'total_user' => 28,
-                'total_login' => 0,
-                'total_terminal' => 0,
-                'month' => 12,
-                'start_date' => '2026-01-24',
-                'end_date' => '2027-01-23',
-                'status' => 'active',
-                'renewed' => '-',
-            ],
-            // 2027: 4 products
-            [
-                'no' => 12,
-                'type' => 'PAID',
-                'invoice_no' => 'TTC2412000246',
-                'sales_type' => 'NEW SALES',
-                'license_type' => 'TimeTec TA',
-                'unit' => 28,
-                'user_limit' => 1,
-                'total_user' => 28,
-                'total_login' => 28,
-                'total_terminal' => 140,
-                'month' => 12,
-                'start_date' => '2027-01-24',
-                'end_date' => '2028-01-23',
-                'status' => 'active',
-                'renewed' => '-',
-            ],
-            [
-                'no' => 13,
-                'type' => 'PAID',
-                'invoice_no' => 'TTC2412000246',
-                'sales_type' => 'NEW SALES',
-                'license_type' => 'TimeTec Leave',
-                'unit' => 28,
-                'user_limit' => 1,
-                'total_user' => 28,
-                'total_login' => 0,
-                'total_terminal' => 0,
-                'month' => 12,
-                'start_date' => '2027-01-24',
-                'end_date' => '2028-01-23',
-                'status' => 'active',
-                'renewed' => '-',
-            ],
-            [
-                'no' => 14,
-                'type' => 'PAID',
-                'invoice_no' => 'TTC2412000246',
-                'sales_type' => 'NEW SALES',
-                'license_type' => 'TimeTec Claim',
-                'unit' => 28,
-                'user_limit' => 1,
-                'total_user' => 28,
-                'total_login' => 0,
-                'total_terminal' => 0,
-                'month' => 12,
-                'start_date' => '2027-01-24',
-                'end_date' => '2028-01-23',
-                'status' => 'active',
-                'renewed' => '-',
-            ],
-            [
-                'no' => 15,
-                'type' => 'PAID',
-                'invoice_no' => 'TTC2412000246',
-                'sales_type' => 'NEW SALES',
-                'license_type' => 'TimeTec Payroll',
-                'unit' => 28,
-                'user_limit' => 1,
-                'total_user' => 28,
-                'total_login' => 0,
-                'total_terminal' => 0,
-                'month' => 12,
-                'start_date' => '2027-01-24',
-                'end_date' => '2028-01-23',
-                'status' => 'active',
-                'renewed' => '-',
-            ],
-        ];
+        $softwareHandover = $this->companyData['software_handover'] ?? null;
+        $this->licenseRecords = [];
+
+        if (!$softwareHandover) return;
+
+        $no = 1;
+
+        // Build TRIAL records from type_1_pi_invoice_data (Create DB + Trial License data)
+        if ($softwareHandover->crm_buffer_license_id && $softwareHandover->type_1_pi_invoice_data) {
+            $piData = is_string($softwareHandover->type_1_pi_invoice_data)
+                ? json_decode($softwareHandover->type_1_pi_invoice_data, true)
+                : $softwareHandover->type_1_pi_invoice_data;
+
+            $items = $piData['items'] ?? [];
+            $bufferMonth = (int) ($piData['buffer_month'] ?? 1);
+            $startDate = $softwareHandover->db_creation
+                ? Carbon::parse($softwareHandover->db_creation)->format('Y-m-d')
+                : null;
+            $endDate = $startDate
+                ? Carbon::parse($startDate)->addMonths($bufferMonth)->subDay()->format('Y-m-d')
+                : null;
+
+            $codeToName = [
+                'TCL_TA' => 'TimeTec TA',
+                'TCL_LEAVE' => 'TimeTec Leave',
+                'TCL_CLAIM' => 'TimeTec Claim',
+                'TCL_PAYROLL' => 'TimeTec Payroll',
+            ];
+
+            $trialInvoiceNo = 'TR' . Carbon::parse($softwareHandover->db_creation)->format('ymd') . $softwareHandover->crm_buffer_license_id;
+
+            foreach ($items as $item) {
+                $code = $item['product_code'] ?? '';
+                $licenseName = $item['description'] ?? $code;
+                foreach ($codeToName as $prefix => $name) {
+                    if (str_starts_with($code, $prefix)) {
+                        $licenseName = $name;
+                        break;
+                    }
+                }
+
+                $qty = (int) ($item['qty'] ?? 0);
+                $isExpired = $endDate && Carbon::parse($endDate)->isPast();
+
+                $this->licenseRecords[] = [
+                    'no' => $no++,
+                    'type' => 'TRIAL',
+                    'invoice_no' => $trialInvoiceNo,
+                    'license_type' => $licenseName,
+                    'unit' => $qty,
+                    'user_limit' => $qty,
+                    'total_user' => $qty,
+                    'total_login' => 0,
+                    'total_terminal' => 0,
+                    'month' => $bufferMonth,
+                    'start_date' => $startDate,
+                    'end_date' => $endDate,
+                    'status' => $isExpired ? 'expired' : 'active',
+                    'renewed' => '-',
+                ];
+            }
+        }
+
+        // Build PAID records from type_2_pi_invoice_data (Create Pending License data)
+        if ($softwareHandover->type_2_pi_invoice_data) {
+            $piData2 = is_string($softwareHandover->type_2_pi_invoice_data)
+                ? json_decode($softwareHandover->type_2_pi_invoice_data, true)
+                : $softwareHandover->type_2_pi_invoice_data;
+
+            $paidItems = $piData2['items'] ?? [];
+            $billingCycle = (int) ($piData2['billing_cycle'] ?? 12);
+            $pendingDate = $piData2['pending_date'] ?? null;
+
+            if ($pendingDate && !empty($paidItems)) {
+                $pendingStart = Carbon::parse($pendingDate);
+                $numberOfYears = max((int) ($billingCycle / 12), 1);
+
+                // Build date ranges for each year
+                $yearDateRanges = [];
+                for ($y = 1; $y <= $numberOfYears; $y++) {
+                    $yearLabel = "Year {$y}";
+                    $yearStart = $pendingStart->copy()->addMonths(($y - 1) * 12);
+                    $yearEnd = $pendingStart->copy()->addMonths($y * 12)->subDay();
+                    $yearDateRanges[$yearLabel] = [
+                        'start_date' => $yearStart->format('Y-m-d'),
+                        'end_date'   => $yearEnd->format('Y-m-d'),
+                    ];
+                }
+
+                $codeToName = [
+                    'TCL_TA'      => 'TimeTec TA',
+                    'TCL_LEAVE'   => 'TimeTec Leave',
+                    'TCL_CLAIM'   => 'TimeTec Claim',
+                    'TCL_PAYROLL' => 'TimeTec Payroll',
+                ];
+
+                $salesInvoice = \App\Models\HrSalesInvoice::where('software_handover_id', $softwareHandover->id)->first();
+                $paidInvoiceNo = $salesInvoice?->invoice_no ?? ('TTPI' . Carbon::parse($pendingDate)->format('ymd') . $softwareHandover->id);
+
+                foreach ($paidItems as $item) {
+                    $code = $item['product_code'] ?? '';
+                    $yearLabel = $item['year'] ?? 'Year 1';
+                    $licenseName = $item['description'] ?? $code;
+                    foreach ($codeToName as $prefix => $name) {
+                        if (str_starts_with($code, $prefix)) {
+                            $licenseName = $name;
+                            break;
+                        }
+                    }
+
+                    $qty = (int) ($item['qty'] ?? 0);
+                    $dateRange = $yearDateRanges[$yearLabel] ?? $yearDateRanges['Year 1'];
+                    $startDate = $dateRange['start_date'];
+                    $endDate = $dateRange['end_date'];
+                    $isExpired = Carbon::parse($endDate)->isPast();
+
+                    $this->licenseRecords[] = [
+                        'no'             => $no++,
+                        'type'           => $softwareHandover->license_certification_id ? 'PAID' : 'PENDING_ACTIVATION',
+                        'invoice_no'     => $paidInvoiceNo,
+                        'sales_type'     => 'NEW SALES',
+                        'license_type'   => $licenseName,
+                        'unit'           => $qty,
+                        'user_limit'     => $qty,
+                        'total_user'     => $qty,
+                        'total_login'    => 0,
+                        'total_terminal' => 0,
+                        'month'          => 12,
+                        'start_date'     => $startDate,
+                        'end_date'       => $endDate,
+                        'status'         => $isExpired ? 'expired' : 'active',
+                        'renewed'        => '-',
+                    ];
+                }
+            }
+        }
     }
 
     protected function getGroupedLicenseRecords(): array
@@ -438,7 +347,7 @@ class CompanyProductsTab extends Component
 
         // For PAID groups, add year sub-grouping based on start_date year
         foreach ($grouped as &$group) {
-            if ($group['type'] === 'PAID') {
+            if (in_array($group['type'], ['PAID', 'PENDING_ACTIVATION'])) {
                 $years = [];
                 foreach ($group['products'] as $product) {
                     $year = (int) date('Y', strtotime($product['start_date']));

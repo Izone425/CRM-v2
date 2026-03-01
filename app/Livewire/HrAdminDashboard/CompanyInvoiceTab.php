@@ -72,22 +72,26 @@ class CompanyInvoiceTab extends Component
             if ($response['success']) {
                 $this->invoices = $response['data']['invoices'] ?? [];
                 $this->totalRecords = $response['data']['total_records'] ?? count($this->invoices);
+
+                // Also include local HrSalesInvoice records (e.g. from Create Pending License)
+                $localHrInvoices = $this->getHrSalesInvoices();
+                if (!empty($localHrInvoices)) {
+                    $this->invoices = array_merge($this->invoices, $localHrInvoices);
+                    $this->totalRecords = count($this->invoices);
+                }
             } else {
-                $this->hasError = true;
-                $this->errorMessage = $response['error'] ?? 'Failed to fetch invoices from backend.';
-                Log::error('CRM API: Failed to fetch invoices', [
+                Log::warning('CRM API: Failed to fetch invoices, falling back to local data', [
                     'account_id' => $accountId,
                     'company_id' => $companyId,
                     'error' => $response['error'] ?? 'Unknown error'
                 ]);
+                $this->loadInvoicesFromLocalData();
             }
         } catch (\Exception $e) {
-            $this->hasError = true;
-            $this->errorMessage = 'An error occurred while fetching invoices: ' . $e->getMessage();
-            Log::error('CRM API Exception: Failed to fetch invoices', [
+            Log::warning('CRM API Exception: Falling back to local data', [
                 'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
             ]);
+            $this->loadInvoicesFromLocalData();
         } finally {
             $this->isLoading = false;
         }
@@ -158,10 +162,6 @@ class CompanyInvoiceTab extends Component
 
         try {
             $allInvoices = [];
-
-            // First, load quotations (sales invoices created from AddSalesInvoiceForm)
-            $quotationInvoices = $this->getQuotationInvoices();
-            $allInvoices = array_merge($allInvoices, $quotationInvoices);
 
             // Load sales invoices from hr_sales_invoices table
             $hrSalesInvoices = $this->getHrSalesInvoices();

@@ -393,9 +393,11 @@
                                     <svg class="w-4 h-4 mr-1 text-gray-500 transition-transform duration-200" :style="paid[{{ $groupIndex }}] !== false ? 'transform: rotate(90deg)' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
                                     </svg>
-                                    <span class="inline-flex px-2 py-0.5 font-semibold rounded bg-green-100 text-green-800">
-                                        PAID
-                                    </span>
+                                    @if($group['type'] === 'PENDING_ACTIVATION')
+                                        <span class="inline-flex px-2 py-0.5 font-semibold rounded bg-orange-100 text-orange-800">Pending Activation</span>
+                                    @else
+                                        <span class="inline-flex px-2 py-0.5 font-semibold rounded bg-green-100 text-green-800">PAID</span>
+                                    @endif
                                 </span>
                             </td>
                             <td class="px-3 py-2 text-xs text-gray-600">

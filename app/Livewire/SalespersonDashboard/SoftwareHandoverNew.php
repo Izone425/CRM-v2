@@ -319,6 +319,43 @@ class SoftwareHandoverNew extends Component implements HasForms, HasTable
                                 ->with('extraAttributes', ['record' => $record]);
                         }),
 
+                    Action::make('create_db_trial')
+                        ->label('Create DB+Trial License')
+                        ->icon('heroicon-o-server-stack')
+                        ->color('success')
+                        ->modalHeading(false)
+                        ->modalWidth('4xl')
+                        ->modalSubmitAction(false)
+                        ->modalCancelAction(false)
+                        ->visible(fn(SoftwareHandover $record): bool =>
+                            $record->status === 'New' &&
+                            empty($record->type_1_pi_invoice_data) &&
+                            auth()->user()->role_id !== 2
+                        )
+                        ->modalContent(function (SoftwareHandover $record): View {
+                            return view('components.software-handover')
+                                ->with('extraAttributes', ['record' => $record]);
+                        }),
+
+                    Action::make('create_pending_license')
+                        ->label('Create Pending License')
+                        ->icon('heroicon-o-document-plus')
+                        ->color('warning')
+                        ->modalHeading(false)
+                        ->modalWidth('4xl')
+                        ->modalSubmitAction(false)
+                        ->modalCancelAction(false)
+                        ->visible(fn(SoftwareHandover $record): bool =>
+                            $record->status === 'New' &&
+                            !empty($record->type_1_pi_invoice_data) &&
+                            empty($record->type_2_pi_invoice_data) &&
+                            auth()->user()->role_id !== 2
+                        )
+                        ->modalContent(function (SoftwareHandover $record): View {
+                            return view('components.software-handover')
+                                ->with('extraAttributes', ['record' => $record]);
+                        }),
+
                     // Also add the view reason and convert to draft actions for completeness
                     Action::make('view_reason')
                         ->label('View Reason')
@@ -338,7 +375,7 @@ class SoftwareHandoverNew extends Component implements HasForms, HasTable
                         ->color('danger')
                         ->hidden(
                             fn(SoftwareHandover $record): bool =>
-                            $record->status !== 'New' || auth()->user()->role_id === 2
+                            $record->status !== 'New' || auth()->user()->role_id === 2 || !empty($record->type_1_pi_invoice_data)
                         )
                         ->form([
                             \Filament\Forms\Components\Textarea::make('reject_reason')
@@ -956,10 +993,13 @@ class SoftwareHandoverNew extends Component implements HasForms, HasTable
                             }
 
                             // Handle PI and Invoice tracking data
-                            if (isset($data['type_1_entries']) && !empty($data['type_1_entries'])) {
+                            // Don't overwrite type_1/type_2 if they already contain confirmed data (has 'items' key)
+                            $existingType1 = $record->type_1_pi_invoice_data;
+                            if (isset($data['type_1_entries']) && !empty($data['type_1_entries']) && !isset($existingType1['items'])) {
                                 $updateData['type_1_pi_invoice_data'] = json_encode($data['type_1_entries']);
                             }
-                            if (isset($data['type_2_entries']) && !empty($data['type_2_entries'])) {
+                            $existingType2 = $record->type_2_pi_invoice_data;
+                            if (isset($data['type_2_entries']) && !empty($data['type_2_entries']) && !isset($existingType2['items'])) {
                                 $updateData['type_2_pi_invoice_data'] = json_encode($data['type_2_entries']);
                             }
                             if (isset($data['type_3_entries']) && !empty($data['type_3_entries'])) {
@@ -1161,7 +1201,7 @@ class SoftwareHandoverNew extends Component implements HasForms, HasTable
                         ->modalHeading('Complete Software Handover')
                         ->hidden(
                             fn(SoftwareHandover $record): bool =>
-                            $record->status !== 'New' || auth()->user()->role_id === 2
+                            $record->status !== 'New' || auth()->user()->role_id === 2 || empty($record->type_2_pi_invoice_data)
                         ),
                     Action::make('convert_to_draft')
                         ->label('Convert to Draft')

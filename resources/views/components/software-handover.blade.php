@@ -797,21 +797,38 @@
                         $confirmDbUrl = '/software-handover/confirm-db/' . \App\Classes\Encryptor::encrypt($record->id);
                         $existingDbDate = $record->db_creation ? $record->db_creation->format('Y-m-d') : null;
 
-                        // Available products for dropdown (exclude ONBOARD)
-                        $dbProducts = \App\Models\Product::where('code', 'LIKE', 'TIMETEC-%')
-                            ->where('code', 'NOT LIKE', '%ONBOARD%')
-                            ->orderBy('code')
-                            ->get(['id', 'code', 'description']);
+                        // Helper to extract short name from product HTML description
+                        // e.g. "<p><strong>TIMETEC - TIME ATTENDANCE</strong></p>..." → "Timetec-Attendance"
+                        $getShortName = function($description) {
+                            if (preg_match('/<strong>(.*?)<\/strong>/i', $description ?? '', $matches)) {
+                                $name = strip_tags($matches[1]);
+                            } else {
+                                $name = strip_tags($description ?? '');
+                            }
+                            $name = trim(preg_replace('/^TIMETEC\s*-\s*/i', '', trim($name)));
+                            $name = trim(preg_replace('/^TIME\s+/i', '', $name));
+                            return 'Timetec-' . ucwords(strtolower($name));
+                        };
 
-                        // Build initial rows from PI items (excluding ONBOARD)
+                        // Available products for dropdown (software only)
+                        $dbProducts = \App\Models\Product::where('solution', 'LIKE', 'software%')
+                            ->orderBy('code')
+                            ->get(['id', 'code', 'description'])
+                            ->map(function($p) use ($getShortName) {
+                                $p->short_name = $getShortName($p->description);
+                                return $p;
+                            });
+
+                        // Build initial rows from PI items (software only, 1st year only)
                         $dbInitialRows = [];
                         if (is_countable($type1PIs) && count($type1PIs) > 0) {
                             foreach ($type1PIs as $pi) {
                                 foreach ($pi->items as $item) {
-                                    if ($item->product && str_contains(strtoupper($item->product->code ?? ''), 'ONBOARD')) continue;
+                                    if (!$item->product || !str_starts_with($item->product->solution ?? '', 'software')) continue;
+                                    if ($item->year && $item->year !== 'Year 1') continue;
                                     $dbInitialRows[] = [
                                         'product_code' => $item->product->code ?? '',
-                                        'description' => $item->product->description ?? $item->description ?? '',
+                                        'description' => $getShortName($item->product->description ?? $item->description ?? ''),
                                         'qty' => $item->quantity ?? 0,
                                     ];
                                 }
@@ -834,14 +851,14 @@
                     <div x-data="{
                         showDatabaseDrawer: false,
                         confirming: false,
-                        confirmed: {{ $existingDbDate ? 'true' : 'false' }},
+                        confirmed: {{ ($existingDbDate && $record->crm_buffer_license_id) ? 'true' : 'false' }},
                         dbDate: '{{ $existingDbDate ?? now()->format('Y-m-d') }}',
                         bufferMonth: {{ $savedBufferMonth }},
                         rows: {{ Js::from($dbInitialRows) }},
                         products: {{ Js::from($dbProducts) }},
                         updateDescription(index) {
                             const p = this.products.find(p => p.code === this.rows[index].product_code);
-                            this.rows[index].description = p ? p.description : '-';
+                            this.rows[index].description = p ? p.short_name : '-';
                         },
                         get trialStartDate() {
                             if (!this.dbDate) return '-';
@@ -954,15 +971,23 @@
                                                 headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Content-Type': 'application/json', 'Accept': 'application/json' },
                                                 body: JSON.stringify({ items: rows, db_date: dbDate, buffer_month: bufferMonth })
                                             })
-                                            .then(r => r.json())
-                                            .then(() => { confirmed = true; confirming = false; })
-                                            .catch(() => { confirming = false; });
+                                            .then(r => r.json().then(data => ({ ok: r.ok, data })))
+                                            .then(({ ok, data }) => {
+                                                if (ok && data.success) {
+                                                    confirmed = true;
+                                                    confirming = false;
+                                                } else {
+                                                    confirming = false;
+                                                    alert(data.error || 'Failed to create trial licenses. Please try again.');
+                                                }
+                                            })
+                                            .catch(() => { confirming = false; alert('Network error. Please try again.'); });
                                         "
                                         x-bind:disabled="confirming || confirmed"
                                         x-bind:style="'padding: 8px 16px; font-size: 0.85rem; font-weight: 500; color: white; border: none; border-radius: 6px; cursor: ' + (confirmed ? 'default' : 'pointer') + '; background-color: ' + (confirmed ? '#9ca3af' : '#16a34a') + ';'"
                                     >
                                         <template x-if="!confirming && !confirmed"><span>Confirm Create DB</span></template>
-                                        <template x-if="confirming"><span>Saving...</span></template>
+                                        <template x-if="confirming"><span>Creating licenses...</span></template>
                                         <template x-if="confirmed"><span>Confirmed</span></template>
                                     </button>
                                 </div>
@@ -974,20 +999,26 @@
                     @php
                         $confirmPendingUrl = '/software-handover/confirm-pending-license/' . \App\Classes\Encryptor::encrypt($record->id);
 
-                        // Build initial rows from PI items (same source as Create DB)
+                        // Build initial rows from PI items (software only, all years)
                         $pendingInitialRows = [];
                         if (is_countable($type1PIs) && count($type1PIs) > 0) {
                             foreach ($type1PIs as $pi) {
                                 foreach ($pi->items as $item) {
-                                    if ($item->product && str_contains(strtoupper($item->product->code ?? ''), 'ONBOARD')) continue;
+                                    if (!$item->product || !str_starts_with($item->product->solution ?? '', 'software')) continue;
                                     $pendingInitialRows[] = [
                                         'product_code' => $item->product->code ?? '',
-                                        'description' => $item->product->description ?? $item->description ?? '',
+                                        'description' => $getShortName($item->product->description ?? $item->description ?? ''),
                                         'qty' => $item->quantity ?? 0,
+                                        'unit_price' => (float) ($item->unit_price ?? 0),
+                                        'year' => $item->year ?? 'Year 1',
                                     ];
                                 }
                             }
                         }
+
+                        // Auto-calculate billing cycle from distinct subscription years
+                        $distinctYears = count(array_unique(array_column($pendingInitialRows, 'year')));
+                        $defaultPendingBillingCycle = max($distinctYears, 1) * 12;
 
                         // Default pending date = day after trial license end (db_creation + buffer months)
                         $defaultPendingDate = null;
@@ -1017,12 +1048,17 @@
                         plConfirmed: {{ $existingPendingDate ? 'true' : 'false' }},
                         plDate: '{{ $existingPendingDate ?? $defaultPendingDate ?? now()->format('Y-m-d') }}',
                         plBufferMonth: {{ $savedPendingBufferMonth }},
-                        plBillingCycle: {{ $savedPendingBillingCycle ?? 12 }},
+                        plBillingCycle: {{ $savedPendingBillingCycle ?? $defaultPendingBillingCycle ?? 12 }},
                         plRows: {{ Js::from($pendingInitialRows) }},
                         plProducts: {{ Js::from($dbProducts) }},
-                        plUpdateDescription(index) {
-                            const p = this.plProducts.find(p => p.code === this.plRows[index].product_code);
-                            this.plRows[index].description = p ? p.description : '-';
+                        plUpdateDescription(row) {
+                            const p = this.plProducts.find(p => p.code === row.product_code);
+                            row.description = p ? p.short_name : '-';
+                        },
+                        get plYears() {
+                            const years = [...new Set(this.plRows.map(r => r.year))];
+                            years.sort();
+                            return years;
                         },
                         get plStartDate() {
                             if (!this.plDate) return '-';
@@ -1069,34 +1105,44 @@
                                         @endforeach
                                     @endif
 
-                                    {{-- Editable items table --}}
+                                    {{-- Editable items table grouped by year --}}
                                     <template x-if="plRows.length > 0">
-                                        <table style="width: 100%; border-collapse: collapse; font-size: 0.75rem;">
-                                            <thead>
-                                                <tr style="background: #f3f4f6;">
-                                                    <th style="padding: 6px 8px; text-align: left; border: 1px solid #e5e7eb; font-weight: 600;">Product Code</th>
-                                                    <th style="padding: 6px 8px; text-align: left; border: 1px solid #e5e7eb; font-weight: 600;">Description</th>
-                                                    <th style="padding: 6px 8px; text-align: center; border: 1px solid #e5e7eb; font-weight: 600; width: 70px;">Qty</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                <template x-for="(row, index) in plRows" :key="index">
-                                                    <tr>
-                                                        <td style="padding: 4px 6px; border: 1px solid #e5e7eb;">
-                                                            <select x-model="row.product_code" x-on:change="plUpdateDescription(index)" x-bind:disabled="plConfirmed" style="width: 100%; padding: 4px 6px; font-size: 0.75rem; border: 1px solid #d1d5db; border-radius: 4px; background: white;">
-                                                                <template x-for="product in plProducts" :key="product.code">
-                                                                    <option :value="product.code" x-text="product.code" :selected="product.code === row.product_code"></option>
-                                                                </template>
-                                                            </select>
-                                                        </td>
-                                                        <td style="padding: 5px 8px; border: 1px solid #e5e7eb; color: #6b7280;" x-text="row.description"></td>
-                                                        <td style="padding: 4px 6px; border: 1px solid #e5e7eb; text-align: center;">
-                                                            <input type="number" x-model.number="row.qty" min="1" x-bind:disabled="plConfirmed" style="width: 100%; padding: 4px 6px; font-size: 0.75rem; border: 1px solid #d1d5db; border-radius: 4px; text-align: center;" />
-                                                        </td>
-                                                    </tr>
-                                                </template>
-                                            </tbody>
-                                        </table>
+                                        <div>
+                                            <template x-for="(year, yIndex) in plYears" :key="year">
+                                                <div style="margin-bottom: 12px;">
+                                                    {{-- Year sub-header (only show if more than 1 year) --}}
+                                                    <template x-if="plYears.length > 1">
+                                                        <div style="font-size: 0.8rem; font-weight: 700; color: #1f2937; margin-bottom: 6px; padding: 6px 8px; background: #e5e7eb; border-radius: 4px;" x-text="year"></div>
+                                                    </template>
+                                                    <table style="width: 100%; border-collapse: collapse; font-size: 0.75rem;">
+                                                        <thead>
+                                                            <tr style="background: #f3f4f6;">
+                                                                <th style="padding: 6px 8px; text-align: left; border: 1px solid #e5e7eb; font-weight: 600;">Product Code</th>
+                                                                <th style="padding: 6px 8px; text-align: left; border: 1px solid #e5e7eb; font-weight: 600;">Description</th>
+                                                                <th style="padding: 6px 8px; text-align: center; border: 1px solid #e5e7eb; font-weight: 600; width: 70px;">Qty</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            <template x-for="(row, index) in plRows.filter(r => r.year === year)" :key="row.product_code + '-' + year + '-' + index">
+                                                                <tr>
+                                                                    <td style="padding: 4px 6px; border: 1px solid #e5e7eb;">
+                                                                        <select x-model="row.product_code" x-on:change="plUpdateDescription(row)" x-bind:disabled="plConfirmed" style="width: 100%; padding: 4px 6px; font-size: 0.75rem; border: 1px solid #d1d5db; border-radius: 4px; background: white;">
+                                                                            <template x-for="product in plProducts" :key="product.code">
+                                                                                <option :value="product.code" x-text="product.code" :selected="product.code === row.product_code"></option>
+                                                                            </template>
+                                                                        </select>
+                                                                    </td>
+                                                                    <td style="padding: 5px 8px; border: 1px solid #e5e7eb; color: #6b7280;" x-text="row.description"></td>
+                                                                    <td style="padding: 4px 6px; border: 1px solid #e5e7eb; text-align: center;">
+                                                                        <input type="number" x-model.number="row.qty" min="1" x-bind:disabled="plConfirmed" style="width: 100%; padding: 4px 6px; font-size: 0.75rem; border: 1px solid #d1d5db; border-radius: 4px; text-align: center;" />
+                                                                    </td>
+                                                                </tr>
+                                                            </template>
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </template>
+                                        </div>
                                     </template>
                                     <template x-if="plRows.length === 0">
                                         <div style="padding: 20px; text-align: center; color: #9ca3af; font-size: 0.85rem;">No SW+HW Proforma Invoice data available</div>

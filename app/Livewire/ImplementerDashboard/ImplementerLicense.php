@@ -269,6 +269,7 @@ class ImplementerLicense extends Component implements HasForms, HasTable
                                     ->label('Confirmed Kick-off Date')
                                     ->required()
                                     ->native(false)
+                                    ->live()
                                     ->displayFormat('d M Y')
                                     ->default(function (SoftwareHandover $record = null) {
                                         return $record ? ($record->kick_off_meeting ?? now()) : now();
@@ -399,6 +400,58 @@ class ImplementerLicense extends Component implements HasForms, HasTable
 
                                         $html .= '</tbody>';
                                         $html .= '</table>';
+
+                                        return new \Illuminate\Support\HtmlString($html);
+                                    }),
+                            ]),
+                            \Filament\Forms\Components\Section::make('Amendment License Summary')
+                            ->schema([
+                                \Filament\Forms\Components\Placeholder::make('amendment_summary')
+                                    ->hiddenLabel()
+                                    ->content(function (\Filament\Forms\Get $get, SoftwareHandover $record): \Illuminate\Support\HtmlString {
+                                        $kickoffDate = $get('confirmed_kickoff_date');
+                                        $bufferMonths = (int) ($get('buffer_months') ?? 1);
+                                        $paidYears = (int) ($get('paid_license_years') ?? 0);
+                                        $paidMonths = (int) ($get('paid_license_months') ?? 0);
+
+                                        if (!$kickoffDate) {
+                                            return new \Illuminate\Support\HtmlString('<p style="color: #6b7280; text-align: center;">Please select a Confirmed Kick-off Date</p>');
+                                        }
+
+                                        $kickoff = Carbon::parse($kickoffDate);
+                                        $trialStart = $kickoff->copy();
+                                        $trialEnd = $kickoff->copy()->addMonths($bufferMonths)->subDay();
+                                        $totalPaidMonths = ($paidYears * 12) + $paidMonths;
+                                        $numberOfYears = max((int) ($totalPaidMonths / 12), 1);
+
+                                        $html = '<table style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">';
+                                        $html .= '<thead><tr style="background-color: #f3f4f6;">';
+                                        $html .= '<th class="px-4 py-2 text-left border border-gray-300 font-semibold">License Type</th>';
+                                        $html .= '<th class="px-4 py-2 text-center border border-gray-300 font-semibold">Start Date</th>';
+                                        $html .= '<th class="px-4 py-2 text-center border border-gray-300 font-semibold">End Date</th>';
+                                        $html .= '</tr></thead><tbody>';
+
+                                        // Trial row
+                                        $html .= '<tr>';
+                                        $html .= '<td class="px-4 py-2 border border-gray-300 font-medium">Trial (Buffer)</td>';
+                                        $html .= '<td class="px-4 py-2 text-center border border-gray-300">' . $trialStart->format('d/m/Y') . '</td>';
+                                        $html .= '<td class="px-4 py-2 text-center border border-gray-300">' . $trialEnd->format('d/m/Y') . '</td>';
+                                        $html .= '</tr>';
+
+                                        // Paid year rows
+                                        $pendingStart = $trialEnd->copy()->addDay();
+                                        for ($y = 1; $y <= $numberOfYears; $y++) {
+                                            $yearStart = $pendingStart->copy()->addMonths(($y - 1) * 12);
+                                            $yearEnd = $pendingStart->copy()->addMonths($y * 12)->subDay();
+                                            $ordinal = match($y) { 1 => '1st', 2 => '2nd', 3 => '3rd', default => $y . 'th' };
+                                            $html .= '<tr>';
+                                            $html .= '<td class="px-4 py-2 border border-gray-300">' . $ordinal . ' Year Subscription</td>';
+                                            $html .= '<td class="px-4 py-2 text-center border border-gray-300">' . $yearStart->format('d/m/Y') . '</td>';
+                                            $html .= '<td class="px-4 py-2 text-center border border-gray-300">' . $yearEnd->format('d/m/Y') . '</td>';
+                                            $html .= '</tr>';
+                                        }
+
+                                        $html .= '</tbody></table>';
 
                                         return new \Illuminate\Support\HtmlString($html);
                                     }),
@@ -595,7 +648,79 @@ class ImplementerLicense extends Component implements HasForms, HasTable
                             $record->update([
                                 'license_certification_id' => $certificate->id,
                                 'kick_off_meeting' => $data['confirmed_kickoff_date'] ?? $record->kick_off_meeting,
+                                'db_creation' => $kickOffDate, // Amend trial license start to kick-off date
                             ]);
+
+                            // Amend pending license dates based on new kick-off date
+                            $existingType1 = $record->type_1_pi_invoice_data;
+                            $existingType2 = $record->type_2_pi_invoice_data;
+                            $trialBufferMonth = (int) ($existingType1['buffer_month'] ?? $totalBufferMonths);
+
+                            if (is_array($existingType2) && isset($existingType2['items'])) {
+                                $newPendingDate = (clone $kickOffDate)->addMonths($trialBufferMonth)->format('Y-m-d');
+                                $existingType2['pending_date'] = $newPendingDate;
+                                $record->update(['type_2_pi_invoice_data' => $existingType2]);
+
+                                // Also update HrSalesInvoice + HrSalesInvoiceItem dates
+                                $salesInvoice = \App\Models\HrSalesInvoice::where('software_handover_id', $record->id)->first();
+                                if ($salesInvoice) {
+                                    $billingCycle = (int) ($existingType2['billing_cycle'] ?? 12);
+                                    $numberOfYears = max((int) ($billingCycle / 12), 1);
+                                    $pendingStart = Carbon::parse($newPendingDate);
+
+                                    // Build new year date ranges
+                                    $yearDateRanges = [];
+                                    for ($y = 1; $y <= $numberOfYears; $y++) {
+                                        $yearDateRanges["Year {$y}"] = [
+                                            'start_date' => $pendingStart->copy()->addMonths(($y - 1) * 12)->format('Y-m-d'),
+                                            'end_date'   => $pendingStart->copy()->addMonths($y * 12)->subDay()->format('Y-m-d'),
+                                        ];
+                                    }
+
+                                    // Update line_items JSON and recalculate totals
+                                    $lineItems = $salesInvoice->line_items ?? [];
+                                    $yearCounter = [];
+                                    foreach ($lineItems as &$li) {
+                                        // Determine which year this item belongs to based on position
+                                        $itemYear = null;
+                                        foreach ($yearDateRanges as $yLabel => $yRange) {
+                                            if (!isset($yearCounter[$yLabel])) $yearCounter[$yLabel] = 0;
+                                        }
+                                    }
+                                    // Re-assign dates sequentially by year groups
+                                    $itemIndex = 0;
+                                    $productsPerYear = count($lineItems) / $numberOfYears;
+                                    foreach ($yearDateRanges as $yLabel => $yRange) {
+                                        for ($p = 0; $p < $productsPerYear && $itemIndex < count($lineItems); $p++) {
+                                            $lineItems[$itemIndex]['start_date'] = $yRange['start_date'];
+                                            $lineItems[$itemIndex]['end_date'] = $yRange['end_date'];
+                                            $itemIndex++;
+                                        }
+                                    }
+
+                                    $salesInvoice->update([
+                                        'invoice_date' => $newPendingDate,
+                                        'line_items' => $lineItems,
+                                    ]);
+
+                                    // Update individual HrSalesInvoiceItem records
+                                    $invoiceItems = \App\Models\HrSalesInvoiceItem::where('hr_sales_invoice_id', $salesInvoice->id)
+                                        ->orderBy('id')
+                                        ->get();
+
+                                    $itemIdx = 0;
+                                    foreach ($yearDateRanges as $yLabel => $yRange) {
+                                        for ($p = 0; $p < $productsPerYear && $itemIdx < $invoiceItems->count(); $p++) {
+                                            $invoiceItems[$itemIdx]->update([
+                                                'invoice_date' => $newPendingDate,
+                                                'start_date'   => $yRange['start_date'],
+                                                'end_date'     => $yRange['end_date'],
+                                            ]);
+                                            $itemIdx++;
+                                        }
+                                    }
+                                }
+                            }
 
                             // Format the handover ID properly
                             $handoverId = $record->formatted_handover_id;

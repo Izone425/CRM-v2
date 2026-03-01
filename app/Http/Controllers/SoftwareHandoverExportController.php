@@ -543,6 +543,7 @@ class SoftwareHandoverExportController extends Controller
         $bufferMonth = $request->input('buffer_month', 1);
         $billingCycle = $request->input('billing_cycle', 12);
 
+        // 1. Save JSON locally (existing behavior)
         $handover->update([
             'type_2_pi_invoice_data' => [
                 'items' => $items,
@@ -552,6 +553,137 @@ class SoftwareHandoverExportController extends Controller
             ],
         ]);
 
-        return response()->json(['success' => true, 'date' => $pendingDate]);
+        // 2. Build handover_id base and invoice number
+        $handoverId = 'SW_' . date('y', strtotime($handover->created_at))
+            . str_pad($handover->id, 4, '0', STR_PAD_LEFT);
+
+        $invoiceNo = 'TTPI' . \Carbon\Carbon::parse($pendingDate)->format('ymd') . $handover->id;
+
+        // 3. Compute year-based date ranges
+        $pendingStart = \Carbon\Carbon::parse($pendingDate);
+        $numberOfYears = max((int) ($billingCycle / 12), 1);
+
+        $yearDateRanges = [];
+        for ($y = 1; $y <= $numberOfYears; $y++) {
+            $yearLabel = "Year {$y}";
+            $yearStart = $pendingStart->copy()->addMonths(($y - 1) * 12);
+            $yearEnd = $pendingStart->copy()->addMonths($y * 12)->subDay();
+            $yearDateRanges[$yearLabel] = [
+                'start_date' => $yearStart->format('Y-m-d'),
+                'end_date'   => $yearEnd->format('Y-m-d'),
+            ];
+        }
+
+        // 4. Product code to license name mapping
+        $codeToName = [
+            'TCL_TA'      => 'TimeTec TA',
+            'TCL_LEAVE'   => 'TimeTec Leave',
+            'TCL_CLAIM'   => 'TimeTec Claim',
+            'TCL_PAYROLL' => 'TimeTec Payroll',
+        ];
+
+        // 5. Idempotency: delete existing invoice for this handover before re-creating
+        $existingInvoice = \App\Models\HrSalesInvoice::where('software_handover_id', $handover->id)
+            ->where('invoice_no', $invoiceNo)
+            ->first();
+        if ($existingInvoice) {
+            $existingInvoice->delete(); // FK cascade deletes HrSalesInvoiceItem
+        }
+
+        // 6. Build line items for invoice (no HrLicense records — Products tab reads from type_2_pi_invoice_data)
+        $lineItems = [];
+        $totalSalesAmount = 0;
+
+        foreach ($items as $item) {
+            $code = $item['product_code'] ?? '';
+            $yearLabel = $item['year'] ?? 'Year 1';
+            $qty = (int) ($item['qty'] ?? 0);
+
+            // Resolve license name
+            $licenseName = $item['description'] ?? $code;
+            foreach ($codeToName as $prefix => $name) {
+                if (str_starts_with($code, $prefix)) {
+                    $licenseName = $name;
+                    break;
+                }
+            }
+
+            // Get date range for this year
+            $dateRange = $yearDateRanges[$yearLabel] ?? $yearDateRanges['Year 1'];
+            $startDate = $dateRange['start_date'];
+            $endDate = $dateRange['end_date'];
+
+            // Use unit price from PI item (QuotationDetail)
+            $unitPrice = (float) ($item['unit_price'] ?? 1.00);
+
+            $itemAmount = $qty * $unitPrice * 12;
+            $totalSalesAmount += $itemAmount;
+
+            $lineItems[] = [
+                'license_type' => $licenseName,
+                'user_limit'   => $qty,
+                'total_user'   => $qty,
+                'month'        => 12,
+                'unit_price'   => $unitPrice,
+                'start_date'   => $startDate,
+                'end_date'     => $endDate,
+            ];
+        }
+
+        // 7. Create HrSalesInvoice record
+        $piNo = 'AP' . \Carbon\Carbon::parse($pendingDate)->format('ym')
+            . str_pad($handover->id, 6, '0', STR_PAD_LEFT);
+
+        $salesInvoice = \App\Models\HrSalesInvoice::create([
+            'software_handover_id' => $handover->id,
+            'handover_id'          => $handoverId,
+            'invoice_no'           => $invoiceNo,
+            'invoice_date'         => $pendingDate,
+            'company_name'         => $handover->company_name,
+            'country'              => 'Malaysia',
+            'sales_amount'         => round($totalSalesAmount, 2),
+            'currency'             => 'MYR',
+            'pi_no'                => $piNo,
+            'invoice_amount'       => round($totalSalesAmount, 2),
+            'line_items'           => $lineItems,
+            'auto_renewal'         => 'No',
+            'created_by_name'      => auth()->user()?->name ?? 'System',
+            'status'               => 'PENDING',
+        ]);
+
+        // 8. Create HrSalesInvoiceItem records (denormalized)
+        foreach ($lineItems as $lineItem) {
+            \App\Models\HrSalesInvoiceItem::create([
+                'hr_sales_invoice_id'  => $salesInvoice->id,
+                'invoice_no'           => $invoiceNo,
+                'invoice_date'         => $pendingDate,
+                'company_name'         => $handover->company_name,
+                'invoice_amount'       => round($totalSalesAmount, 2),
+                'currency'             => 'MYR',
+                'software_handover_id' => $handover->id,
+                'handover_id'          => $handoverId,
+                'created_by_name'      => auth()->user()?->name ?? 'System',
+                'status'               => 'PENDING',
+                'license_type'         => $lineItem['license_type'],
+                'user_limit'           => $lineItem['user_limit'],
+                'total_user'           => $lineItem['total_user'],
+                'unit_price'           => $lineItem['unit_price'],
+                'month'                => $lineItem['month'],
+                'start_date'           => $lineItem['start_date'],
+                'end_date'             => $lineItem['end_date'],
+            ]);
+        }
+
+        Log::info('Pending license confirmed', [
+            'handover_id' => $handover->id,
+            'invoice_no'  => $invoiceNo,
+            'sales_invoice_id' => $salesInvoice->id,
+        ]);
+
+        return response()->json([
+            'success'    => true,
+            'date'       => $pendingDate,
+            'invoice_no' => $invoiceNo,
+        ]);
     }
 }

@@ -169,10 +169,14 @@
                                     $itemCounter = 0;
                                 @endphp
                                 @forelse($groupedByYear as $yearLabel => $yearItems)
+                                    @php
+                                        $yearIndex = $loop->iteration;
+                                        $ordinal = match($yearIndex) { 1 => '1st', 2 => '2nd', 3 => '3rd', default => $yearIndex . 'th' };
+                                    @endphp
                                     {{-- Year Header Row --}}
                                     <tr style="background-color: #eff6ff;">
                                         <td colspan="7" class="px-4 py-2 text-sm font-semibold text-blue-800 border border-gray-200">
-                                            Year {{ $yearLabel }}
+                                            {{ $ordinal }} Year Subscription
                                         </td>
                                     </tr>
                                     @php $yearCounter = 0; @endphp
