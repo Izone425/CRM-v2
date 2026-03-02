@@ -747,7 +747,7 @@
                         <div class="icon-wrapper">
                             <i class="bi bi-person-badge icon"></i>
                         </div>
-                        <span class="icon-tooltip">Timetec Hr-Admin Portal</span>
+                        <span class="icon-tooltip">Admin Portal v2</span>
                     </div>
                 @endif
 
@@ -1782,7 +1782,7 @@
                             <div class="menu-icon-wrapper">
                                 <i class="bi bi-person-badge"></i>
                             </div>
-                            <span class="menu-text">Timetec Hr-Admin Portal</span>
+                            <span class="menu-text">Admin Portal v2</span>
                             <i class="bi bi-chevron-down menu-arrow"></i>
                         </div>
 
@@ -1803,6 +1803,9 @@
                                 </a>
                                 <a href="{{ route('filament.admin.pages.hr-devices') }}" class="submenu-item submenu-item-sub">
                                     <span class="module-font">Devices</span>
+                                </a>
+                                <a href="{{ route('filament.admin.pages.hr-customer-credential') }}" class="submenu-item submenu-item-sub">
+                                    <span class="module-font">Customer Credential</span>
                                 </a>
                             </div>
                             <div class="submenu-item submenu-parent-toggle" data-submenu="billing-sub-submenu" style="cursor: pointer;">

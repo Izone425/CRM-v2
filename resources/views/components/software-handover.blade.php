@@ -847,15 +847,22 @@
                                 $dbInitialRows = $savedData;
                             }
                         }
+
+                        // Master Email & Password defaults
+                        $existingCustomer = \App\Models\Customer::where('sw_id', $record->id)->first();
+                        $defaultMasterEmail = $existingCustomer?->email ?? (strtolower($handoverId) . '@timeteccloud.com');
+                        $defaultMasterPassword = $existingCustomer?->plain_password ?? \Illuminate\Support\Str::random(10);
                     @endphp
                     <div x-data="{
-                        showDatabaseDrawer: false,
+                        showDatabaseDrawer: {{ ($extraAttributes['autoOpen'] ?? '') === 'db_trial' ? 'true' : 'false' }},
                         confirming: false,
                         confirmed: {{ ($existingDbDate && $record->crm_buffer_license_id) ? 'true' : 'false' }},
                         dbDate: '{{ $existingDbDate ?? now()->format('Y-m-d') }}',
                         bufferMonth: {{ $savedBufferMonth }},
                         rows: {{ Js::from($dbInitialRows) }},
                         products: {{ Js::from($dbProducts) }},
+                        masterEmail: '{{ $defaultMasterEmail }}',
+                        masterPassword: '{{ $defaultMasterPassword }}',
                         updateDescription(index) {
                             const p = this.products.find(p => p.code === this.rows[index].product_code);
                             this.rows[index].description = p ? p.short_name : '-';
@@ -959,6 +966,18 @@
 
                                     {{-- Trial period summary --}}
                                     <p style="margin: 16px 0 0; font-size: 0.85rem; color: #374151;">Trial License Period : <span x-text="trialStartDate" style="font-weight: 600;"></span> to <span x-text="trialEndDate" style="font-weight: 600;"></span></p>
+
+                                    {{-- Master Email (auto-populated) --}}
+                                    <div style="margin-top: 16px;">
+                                        <label style="display: block; font-size: 0.8rem; font-weight: 600; color: #374151; margin-bottom: 4px;">Master Email</label>
+                                        <input type="text" x-model="masterEmail" readonly style="width: 100%; padding: 8px 12px; font-size: 0.85rem; border: 1px solid #d1d5db; border-radius: 6px; background: #f3f4f6; color: #374151; box-sizing: border-box;" />
+                                    </div>
+
+                                    {{-- Password (auto-generated) --}}
+                                    <div style="margin-top: 16px;">
+                                        <label style="display: block; font-size: 0.8rem; font-weight: 600; color: #374151; margin-bottom: 4px;">Password</label>
+                                        <input type="text" x-model="masterPassword" readonly style="width: 100%; padding: 8px 12px; font-size: 0.85rem; border: 1px solid #d1d5db; border-radius: 6px; background: #f3f4f6; color: #374151; box-sizing: border-box;" />
+                                    </div>
                                 </div>
                                 <div style="padding: 16px 20px; border-top: 1px solid #e5e7eb; display: flex; gap: 10px; justify-content: flex-end;">
                                     <button x-on:click.stop="showDatabaseDrawer = false" style="padding: 8px 16px; font-size: 0.85rem; font-weight: 500; color: #374151; background: #f3f4f6; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer;">Cancel</button>
@@ -969,7 +988,7 @@
                                             fetch('{{ $confirmDbUrl }}', {
                                                 method: 'POST',
                                                 headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Content-Type': 'application/json', 'Accept': 'application/json' },
-                                                body: JSON.stringify({ items: rows, db_date: dbDate, buffer_month: bufferMonth })
+                                                body: JSON.stringify({ items: rows, db_date: dbDate, buffer_month: bufferMonth, master_email: masterEmail, master_password: masterPassword })
                                             })
                                             .then(r => r.json().then(data => ({ ok: r.ok, data })))
                                             .then(({ ok, data }) => {
@@ -1043,7 +1062,7 @@
                         }
                     @endphp
                     <div style="display: contents;" x-data="{
-                        showPendingDrawer: false,
+                        showPendingDrawer: {{ ($extraAttributes['autoOpen'] ?? '') === 'pending' ? 'true' : 'false' }},
                         plConfirming: false,
                         plConfirmed: {{ $existingPendingDate ? 'true' : 'false' }},
                         plDate: '{{ $existingPendingDate ?? $defaultPendingDate ?? now()->format('Y-m-d') }}',

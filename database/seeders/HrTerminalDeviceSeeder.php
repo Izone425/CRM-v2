@@ -13,6 +13,7 @@ class HrTerminalDeviceSeeder extends Seeder
     {
         $licenses = HrLicense::all();
         $now = Carbon::now();
+        $models = ['FaceId 5', 'FaceID 6', 'TimeTec Face', 'i-Kadex', 'k-Kadex'];
 
         foreach ($licenses as $license) {
             $deviceCount = rand(2, 4);
@@ -27,6 +28,7 @@ class HrTerminalDeviceSeeder extends Seeder
                     'handover_id' => $license->handover_id,
                     'company_name' => $license->company_name,
                     'invoice_no' => $invoiceNo,
+                    'model' => $models[array_rand($models)],
                     'serial_no' => $this->generateSerialNo(),
                     'backend_device_id' => rand(0, 3) > 0 ? (string) rand(2900, 3100) : null,
                     'status' => rand(1, 10) <= 8 ? 'Enabled' : 'Disabled',

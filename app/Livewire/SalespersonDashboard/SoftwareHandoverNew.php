@@ -334,7 +334,7 @@ class SoftwareHandoverNew extends Component implements HasForms, HasTable
                         )
                         ->modalContent(function (SoftwareHandover $record): View {
                             return view('components.software-handover')
-                                ->with('extraAttributes', ['record' => $record]);
+                                ->with('extraAttributes', ['record' => $record, 'autoOpen' => 'db_trial']);
                         }),
 
                     Action::make('create_pending_license')
@@ -353,7 +353,7 @@ class SoftwareHandoverNew extends Component implements HasForms, HasTable
                         )
                         ->modalContent(function (SoftwareHandover $record): View {
                             return view('components.software-handover')
-                                ->with('extraAttributes', ['record' => $record]);
+                                ->with('extraAttributes', ['record' => $record, 'autoOpen' => 'pending']);
                         }),
 
                     // Also add the view reason and convert to draft actions for completeness

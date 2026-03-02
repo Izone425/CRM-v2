@@ -16,6 +16,7 @@ class HrTerminalDevice extends Model
         'handover_id',
         'company_name',
         'invoice_no',
+        'model',
         'serial_no',
         'backend_device_id',
         'status',

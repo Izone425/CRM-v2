@@ -41,18 +41,54 @@ class HrTerminalDeviceTable extends Component implements HasForms, HasTable
                     ->searchable()
                     ->wrap()
                     ->limit(50)
-                    ->tooltip(fn ($record) => $record->company_name)
-                    ->color('primary')
                     ->toggleable()
-                    ->url(fn (HrTerminalDevice $record) => $record->handover_id
-                        ? url("/admin/hr-company-license-details?" . http_build_query([
-                            'handoverId' => $record->handover_id,
-                            'softwareHandoverId' => $record->software_handover_id,
-                        ]))
-                        : null),
+                    ->extraAttributes(function (HrTerminalDevice $record) {
+                        static $last = null;
+                        $isFirst = $last !== $record->company_name;
+                        $last = $record->company_name;
+                        return [
+                            'data-company' => $record->company_name,
+                            'data-company-first' => $isFirst ? '1' : '0',
+                        ];
+                    })
+                    ->formatStateUsing(function (string $state) {
+                        static $last = null;
+                        if ($last === $state) return '-';
+                        $last = $state;
+                        return $state;
+                    })
+                    ->tooltip(function ($record) {
+                        static $last = null;
+                        if ($last === $record->company_name) return null;
+                        $last = $record->company_name;
+                        return $record->company_name;
+                    })
+                    ->color(function (string $state) {
+                        static $last = null;
+                        if ($last === $state) { $last = $state; return null; }
+                        $last = $state;
+                        return 'primary';
+                    })
+                    ->url(function (HrTerminalDevice $record) {
+                        static $last = null;
+                        if ($last === $record->company_name) return null;
+                        $last = $record->company_name;
+                        return $record->handover_id
+                            ? url("/admin/hr-company-license-details?" . http_build_query([
+                                'handoverId' => $record->handover_id,
+                                'softwareHandoverId' => $record->software_handover_id,
+                            ]))
+                            : null;
+                    }),
 
                 TextColumn::make('invoice_no')
                     ->label('Invoice No')
+                    ->sortable()
+                    ->searchable()
+                    ->toggleable(),
+
+                TextColumn::make('model')
+                    ->label('Model')
                     ->sortable()
                     ->searchable()
                     ->toggleable(),
@@ -87,7 +123,7 @@ class HrTerminalDeviceTable extends Component implements HasForms, HasTable
                     ->toggleable(),
             ])
             ->striped()
-            ->defaultSort('created_at', 'desc');
+            ->defaultSort('company_name', 'asc');
     }
 
     public function render()

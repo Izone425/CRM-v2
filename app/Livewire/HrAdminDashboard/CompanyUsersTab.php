@@ -9,8 +9,11 @@ use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Table;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Actions\Action;
+use Filament\Notifications\Notification;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Hash;
 use Livewire\Component;
+use App\Models\Customer;
 
 class CompanyUsersTab extends Component implements HasForms, HasTable
 {
@@ -21,6 +24,11 @@ class CompanyUsersTab extends Component implements HasForms, HasTable
     public array $companyData = [];
     public Collection $users;
 
+    public bool $showEditDrawer = false;
+    public ?string $editLoginId = null;
+    public string $newPassword = '';
+    public string $confirmPassword = '';
+
     public function mount(?int $softwareHandoverId = null, array $companyData = [])
     {
         $this->softwareHandoverId = $softwareHandoverId;
@@ -30,57 +38,76 @@ class CompanyUsersTab extends Component implements HasForms, HasTable
 
     protected function loadUsers(): void
     {
-        // Mock data for development - will be replaced with API integration
-        $this->users = collect([
-            [
-                'id' => 1,
-                'backend_user_id' => $this->companyData['hr_user_id'] ?? '496677',
-                'full_name' => 'John Doe',
-                'login_id' => 'john.doe@company.com',
-                'role' => 'OWNER',
-                'status' => 'Active',
-                'ta' => true,
-                'tl' => true,
-                'tc' => false,
-                'tp' => true,
-                'to' => true,
-                'tr' => false,
-                'tap' => true,
-                'tt' => false,
-            ],
-            [
-                'id' => 2,
-                'backend_user_id' => '496678',
-                'full_name' => 'Jane Smith',
-                'login_id' => 'jane.smith@company.com',
-                'role' => 'USER',
-                'status' => 'Active',
-                'ta' => true,
-                'tl' => true,
-                'tc' => true,
-                'tp' => false,
-                'to' => false,
-                'tr' => true,
-                'tap' => false,
-                'tt' => true,
-            ],
-            [
-                'id' => 3,
-                'backend_user_id' => '496679',
-                'full_name' => 'Bob Johnson',
-                'login_id' => 'bob.johnson@company.com',
-                'role' => 'USER',
-                'status' => 'Inactive',
-                'ta' => true,
+        $customers = Customer::where('sw_id', $this->softwareHandoverId)->get();
+
+        $this->users = $customers->map(function ($customer, $index) {
+            return [
+                'id' => $customer->id,
+                'backend_user_id' => $this->companyData['hr_user_id'] ?? '-',
+                'full_name' => $customer->name ?? '-',
+                'login_id' => $customer->email,
+                'password' => $customer->plain_password ?? '-',
+                'role' => $index === 0 ? 'OWNER' : 'USER',
+                'status' => $customer->status ?? 'Active',
+                'ta' => false,
                 'tl' => false,
                 'tc' => false,
-                'tp' => true,
-                'to' => true,
+                'tp' => false,
+                'to' => false,
                 'tr' => false,
-                'tap' => true,
+                'tap' => false,
                 'tt' => false,
-            ],
+            ];
+        });
+    }
+
+    public function openEditDrawer(string $loginId): void
+    {
+        $this->editLoginId = $loginId;
+        $this->newPassword = '';
+        $this->confirmPassword = '';
+        $this->resetValidation();
+        $this->showEditDrawer = true;
+    }
+
+    public function closeEditDrawer(): void
+    {
+        $this->showEditDrawer = false;
+        $this->editLoginId = null;
+        $this->newPassword = '';
+        $this->confirmPassword = '';
+        $this->resetValidation();
+    }
+
+    public function updatePassword(): void
+    {
+        $this->validate([
+            'newPassword' => 'required|min:6',
+            'confirmPassword' => 'required|same:newPassword',
+        ], [
+            'confirmPassword.same' => 'The confirm password must match the new password.',
         ]);
+
+        $customer = Customer::where('sw_id', $this->softwareHandoverId)
+            ->where('email', $this->editLoginId)
+            ->first();
+
+        if (!$customer) {
+            $this->addError('newPassword', 'Customer record not found for this login ID.');
+            return;
+        }
+
+        $customer->forceFill([
+            'password' => Hash::make($this->newPassword),
+            'plain_password' => $this->newPassword,
+        ])->save();
+
+        $this->closeEditDrawer();
+
+        Notification::make()
+            ->success()
+            ->title('Password updated successfully')
+            ->send();
     }
 
     public function table(Table $table): Table

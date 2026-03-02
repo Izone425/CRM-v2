@@ -47,6 +47,7 @@ use App\Filament\Pages\HrBillingExpiringInvoices;
 use App\Filament\Pages\HrBillingOfficialReceipt;
 use App\Filament\Pages\HrBillingPayment;
 use App\Filament\Pages\HrBillingSalesInvoice;
+use App\Filament\Pages\HrCustomerCredential;
 use App\Filament\Pages\HrDevices;
 use App\Filament\Pages\HrLicense;
 use App\Filament\Pages\HrdfClaimTracker;
@@ -397,6 +398,7 @@ class AdminPanelProvider extends PanelProvider
                 HrAccountManagement::class,
                 HrLicense::class,
                 HrDevices::class,
+                HrCustomerCredential::class,
                 HrBilling::class,
                 HrBillingSalesInvoice::class,
                 HrBillingExpiringInvoices::class,

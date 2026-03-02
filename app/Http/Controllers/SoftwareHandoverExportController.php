@@ -2,9 +2,11 @@
 namespace App\Http\Controllers;
 
 use App\Classes\Encryptor;
+use App\Models\Customer;
 use App\Models\Lead;
 use App\Models\SoftwareHandover;
 use App\Models\User;
+use Illuminate\Support\Facades\Hash;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
@@ -529,6 +531,23 @@ class SoftwareHandoverExportController extends Controller
                 'buffer_month' => $bufferMonth,
             ],
         ]);
+
+        // Create or update Customer record with master credentials
+        $masterEmail = $request->input('master_email');
+        $masterPassword = $request->input('master_password');
+
+        if ($masterEmail) {
+            Customer::updateOrCreate(
+                ['sw_id' => $handover->id],
+                [
+                    'email' => $masterEmail,
+                    'password' => Hash::make($masterPassword),
+                    'plain_password' => $masterPassword,
+                    'name' => $handover->company_name ?? 'Master',
+                    'company_name' => $handover->company_name,
+                ]
+            );
+        }
 
         return response()->json(['success' => true, 'date' => $dbDate]);
     }
