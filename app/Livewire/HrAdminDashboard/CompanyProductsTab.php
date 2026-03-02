@@ -266,7 +266,7 @@ class CompanyProductsTab extends Component
                 ];
 
                 $salesInvoice = \App\Models\HrSalesInvoice::where('software_handover_id', $softwareHandover->id)->first();
-                $paidInvoiceNo = $salesInvoice?->invoice_no ?? ('TTPI' . Carbon::parse($pendingDate)->format('ymd') . $softwareHandover->id);
+                $paidInvoiceNo = $salesInvoice?->invoice_no ?? ('TTC' . Carbon::parse($pendingDate)->format('ymd') . $softwareHandover->id);
 
                 foreach ($paidItems as $item) {
                     $code = $item['product_code'] ?? '';

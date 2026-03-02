@@ -856,7 +856,7 @@
                     <div x-data="{
                         showDatabaseDrawer: {{ ($extraAttributes['autoOpen'] ?? '') === 'db_trial' ? 'true' : 'false' }},
                         confirming: false,
-                        confirmed: {{ ($existingDbDate && $record->crm_buffer_license_id) ? 'true' : 'false' }},
+                        confirmed: {{ ($existingDbDate && !empty($record->type_1_pi_invoice_data)) ? 'true' : 'false' }},
                         dbDate: '{{ $existingDbDate ?? now()->format('Y-m-d') }}',
                         bufferMonth: {{ $savedBufferMonth }},
                         rows: {{ Js::from($dbInitialRows) }},
@@ -980,8 +980,9 @@
                                     </div>
                                 </div>
                                 <div style="padding: 16px 20px; border-top: 1px solid #e5e7eb; display: flex; gap: 10px; justify-content: flex-end;">
-                                    <button x-on:click.stop="showDatabaseDrawer = false" style="padding: 8px 16px; font-size: 0.85rem; font-weight: 500; color: #374151; background: #f3f4f6; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer;">Cancel</button>
+                                    <button type="button" x-on:click.stop="showDatabaseDrawer = false" style="padding: 8px 16px; font-size: 0.85rem; font-weight: 500; color: #374151; background: #f3f4f6; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer;">Cancel</button>
                                     <button
+                                        type="button"
                                         x-on:click.stop="
                                             if (confirmed) return;
                                             confirming = true;

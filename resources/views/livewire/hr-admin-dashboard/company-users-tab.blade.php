@@ -12,7 +12,6 @@
                     <th class="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase" style="width: 120px;">Backend User Id</th>
                     <th class="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase" style="width: 160px;">Full Name</th>
                     <th class="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">Login Id</th>
-                    <th class="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase" style="width: 140px;">Password</th>
                     <th class="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase" style="width: 100px;">Role</th>
                     <th class="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase" style="width: 100px;">Status</th>
                     {{-- Hidden for now: product subscription columns
@@ -35,7 +34,6 @@
                         <td class="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{{ $user['backend_user_id'] }}</td>
                         <td class="px-4 py-3 text-sm font-medium text-gray-900 whitespace-nowrap">{{ $user['full_name'] }}</td>
                         <td class="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{{ $user['login_id'] }}</td>
-                        <td class="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">{{ $user['password'] ?? '-' }}</td>
                         <td class="px-4 py-3 text-sm whitespace-nowrap">
                             <span class="inline-flex px-2 py-1 text-xs font-medium rounded {{ $user['role'] === 'OWNER' ? 'bg-amber-100 text-amber-800' : 'bg-gray-100 text-gray-800' }}">
                                 {{ $user['role'] }}

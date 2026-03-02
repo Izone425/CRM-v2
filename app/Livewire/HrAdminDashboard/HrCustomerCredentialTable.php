@@ -12,6 +12,7 @@ use Filament\Tables\Filters\SelectFilter;
 use Livewire\Component;
 use App\Models\Customer;
 use App\Models\SoftwareHandover;
+use Illuminate\Database\Eloquent\Builder;
 
 class HrCustomerCredentialTable extends Component implements HasForms, HasTable
 {
@@ -67,7 +68,9 @@ class HrCustomerCredentialTable extends Component implements HasForms, HasTable
                 TextColumn::make('softwareHandover.company_name')
                     ->label('Company Name')
                     ->sortable()
-                    ->searchable()
+                    ->searchable(query: function (Builder $query, string $search) {
+                        $query->whereHas('softwareHandover', fn ($q) => $q->where('software_handovers.company_name', 'like', "%{$search}%"));
+                    })
                     ->wrap()
                     ->limit(50)
                     ->tooltip(fn ($record) => $record->softwareHandover?->company_name)
@@ -76,7 +79,9 @@ class HrCustomerCredentialTable extends Component implements HasForms, HasTable
                 TextColumn::make('softwareHandover.salesperson')
                     ->label('Sales Person')
                     ->sortable()
-                    ->searchable()
+                    ->searchable(query: function (Builder $query, string $search) {
+                        $query->whereHas('softwareHandover', fn ($q) => $q->where('software_handovers.salesperson', 'like', "%{$search}%"));
+                    })
                     ->toggleable(),
 
                 TextColumn::make('email')

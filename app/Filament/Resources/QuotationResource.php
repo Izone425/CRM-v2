@@ -395,10 +395,10 @@ class QuotationResource extends Resource
 
                                     // First, add top priority products once (non-R versions for Package 7-11)
                                     foreach ($topPriorityProducts as $product) {
-                                        $isSoftware = $product->solution === 'software';
+                                        $isSoftware = str_starts_with($product->solution, 'software');
                                         $mappedItems->push([
                                             'product_id' => $product->id,
-                                            'quantity' => in_array($product->solution, ['software', 'hardware'])
+                                            'quantity' => (str_starts_with($product->solution, 'software') || $product->solution === 'hardware')
                                                 ? ($product->quantity ?? 1)
                                                 : ($get('num_of_participant') ?? 1),
                                             'unit_price' => $product->unit_price,
@@ -413,10 +413,10 @@ class QuotationResource extends Resource
                                     // Second, add duplicatable products year by year
                                     for ($year = 1; $year <= $yearCount; $year++) {
                                         foreach ($duplicatableProducts as $product) {
-                                            $isSoftware = $product->solution === 'software';
+                                            $isSoftware = str_starts_with($product->solution, 'software');
                                             $mappedItems->push([
                                                 'product_id' => $product->id,
-                                                'quantity' => in_array($product->solution, ['software', 'hardware'])
+                                                'quantity' => (str_starts_with($product->solution, 'software') || $product->solution === 'hardware')
                                                     ? ($product->quantity ?? 1)
                                                     : ($get('num_of_participant') ?? 1),
                                                 'unit_price' => $product->unit_price,
@@ -431,10 +431,10 @@ class QuotationResource extends Resource
 
                                     // Finally, add all other non-duplicatable products once at the bottom
                                     foreach ($nonDuplicatableProducts as $product) {
-                                        $isSoftware = $product->solution === 'software';
+                                        $isSoftware = str_starts_with($product->solution, 'software');
                                         $mappedItems->push([
                                             'product_id' => $product->id,
-                                            'quantity' => in_array($product->solution, ['software', 'hardware'])
+                                            'quantity' => (str_starts_with($product->solution, 'software') || $product->solution === 'hardware')
                                                 ? ($product->quantity ?? 1)
                                                 : ($get('num_of_participant') ?? 1),
                                             'unit_price' => $product->unit_price,
@@ -451,6 +451,19 @@ class QuotationResource extends Resource
                                     ])->toArray();
 
                                     $set('items', $finalItems);
+
+                                    // Explicitly set year for each item (Filament loses year during repeater hydration)
+                                    foreach ($finalItems as $uuid => $itemData) {
+                                        if (!empty($itemData['year'])) {
+                                            $set("items.{$uuid}.year", $itemData['year']);
+                                        }
+                                    }
+
+                                    // Reset all per-year unit price fields when package changes
+                                    for ($i = 1; $i <= 5; $i++) {
+                                        $set("unit_price_year_{$i}", null);
+                                    }
+
                                     QuotationResource::recalculateAllRowsFromParent($get, $set);
                                 }
                             }),
@@ -529,38 +542,160 @@ class QuotationResource extends Resource
                             })
                             ->visible(fn(Forms\Get $get) => in_array($get('quotation_type'), ['hrdf', 'product'])),
 
-                        TextInput::make('unit_price')
-                            ->label('Unit Price')
+                        TextInput::make('unit_price_year_1')
+                            ->label(function (Forms\Get $get) {
+                                $yearCount = QuotationResource::getPackageYearCount($get('package_group'));
+                                return $yearCount > 1 ? 'Unit Price (Year 1)' : 'Unit Price';
+                            })
                             ->numeric()
                             ->live(debounce: 1000)
+                            ->dehydrated(false)
                             ->afterStateUpdated(function(?string $state, Forms\Get $get, Forms\Set $set) {
                                 if (!$state) return;
 
-                                $set('unit_price', $state);
-
-                                // Bulk fetch product IDs to reduce queries
+                                $yearCount = QuotationResource::getPackageYearCount($get('package_group'));
                                 $items = $get('items') ?? [];
                                 $productIds = collect($items)->pluck('product_id')->filter()->unique()->toArray();
                                 $products = \App\Models\Product::whereIn('id', $productIds)->get()->keyBy('id');
+                                $itemYearNums = QuotationResource::computeItemYearNumbers($items, $products);
 
                                 foreach ($items as $index => $item) {
-                                    // Only update unit price for software products
                                     if (!empty($item['product_id']) && isset($products[$item['product_id']])) {
                                         $product = $products[$item['product_id']];
-                                        if ($product->solution === 'software') {
-                                            // Force update unit price
+                                        if (str_starts_with($product->solution, 'software')) {
+                                            if ($yearCount <= 1) {
+                                                $set("items.{$index}.unit_price", $state);
+                                            } elseif (($itemYearNums[$index] ?? null) === 1) {
+                                                $set("items.{$index}.unit_price", $state);
+                                            }
+                                        }
+                                    }
+                                }
+
+                                usleep(50000);
+                                QuotationResource::recalculateAllRowsFromParent($get, $set);
+                            })
+                            ->visible(fn(Forms\Get $get) => in_array($get('quotation_type'), ['hrdf', 'product'])),
+
+                        TextInput::make('unit_price_year_2')
+                            ->label('Unit Price (Year 2)')
+                            ->numeric()
+                            ->live(debounce: 1000)
+                            ->dehydrated(false)
+                            ->afterStateUpdated(function(?string $state, Forms\Get $get, Forms\Set $set) {
+                                if (!$state) return;
+
+                                $items = $get('items') ?? [];
+                                $productIds = collect($items)->pluck('product_id')->filter()->unique()->toArray();
+                                $products = \App\Models\Product::whereIn('id', $productIds)->get()->keyBy('id');
+                                $itemYearNums = QuotationResource::computeItemYearNumbers($items, $products);
+
+                                foreach ($items as $index => $item) {
+                                    if (!empty($item['product_id']) && isset($products[$item['product_id']])) {
+                                        $product = $products[$item['product_id']];
+                                        if (str_starts_with($product->solution, 'software') && ($itemYearNums[$index] ?? null) === 2) {
                                             $set("items.{$index}.unit_price", $state);
                                         }
                                     }
                                 }
 
-                                // Small delay to ensure state is updated
-                                usleep(50000); // 0.05 seconds
-
-                                // Recalculate everything
+                                usleep(50000);
                                 QuotationResource::recalculateAllRowsFromParent($get, $set);
                             })
-                            ->visible(fn(Forms\Get $get) => in_array($get('quotation_type'), ['hrdf', 'product'])),
+                            ->visible(function (Forms\Get $get) {
+                                if (!in_array($get('quotation_type'), ['hrdf', 'product'])) return false;
+                                return QuotationResource::getPackageYearCount($get('package_group')) >= 2;
+                            }),
+
+                        TextInput::make('unit_price_year_3')
+                            ->label('Unit Price (Year 3)')
+                            ->numeric()
+                            ->live(debounce: 1000)
+                            ->dehydrated(false)
+                            ->afterStateUpdated(function(?string $state, Forms\Get $get, Forms\Set $set) {
+                                if (!$state) return;
+
+                                $items = $get('items') ?? [];
+                                $productIds = collect($items)->pluck('product_id')->filter()->unique()->toArray();
+                                $products = \App\Models\Product::whereIn('id', $productIds)->get()->keyBy('id');
+                                $itemYearNums = QuotationResource::computeItemYearNumbers($items, $products);
+
+                                foreach ($items as $index => $item) {
+                                    if (!empty($item['product_id']) && isset($products[$item['product_id']])) {
+                                        $product = $products[$item['product_id']];
+                                        if (str_starts_with($product->solution, 'software') && ($itemYearNums[$index] ?? null) === 3) {
+                                            $set("items.{$index}.unit_price", $state);
+                                        }
+                                    }
+                                }
+
+                                usleep(50000);
+                                QuotationResource::recalculateAllRowsFromParent($get, $set);
+                            })
+                            ->visible(function (Forms\Get $get) {
+                                if (!in_array($get('quotation_type'), ['hrdf', 'product'])) return false;
+                                return QuotationResource::getPackageYearCount($get('package_group')) >= 3;
+                            }),
+
+                        TextInput::make('unit_price_year_4')
+                            ->label('Unit Price (Year 4)')
+                            ->numeric()
+                            ->live(debounce: 1000)
+                            ->dehydrated(false)
+                            ->afterStateUpdated(function(?string $state, Forms\Get $get, Forms\Set $set) {
+                                if (!$state) return;
+
+                                $items = $get('items') ?? [];
+                                $productIds = collect($items)->pluck('product_id')->filter()->unique()->toArray();
+                                $products = \App\Models\Product::whereIn('id', $productIds)->get()->keyBy('id');
+                                $itemYearNums = QuotationResource::computeItemYearNumbers($items, $products);
+
+                                foreach ($items as $index => $item) {
+                                    if (!empty($item['product_id']) && isset($products[$item['product_id']])) {
+                                        $product = $products[$item['product_id']];
+                                        if (str_starts_with($product->solution, 'software') && ($itemYearNums[$index] ?? null) === 4) {
+                                            $set("items.{$index}.unit_price", $state);
+                                        }
+                                    }
+                                }
+
+                                usleep(50000);
+                                QuotationResource::recalculateAllRowsFromParent($get, $set);
+                            })
+                            ->visible(function (Forms\Get $get) {
+                                if (!in_array($get('quotation_type'), ['hrdf', 'product'])) return false;
+                                return QuotationResource::getPackageYearCount($get('package_group')) >= 4;
+                            }),
+
+                        TextInput::make('unit_price_year_5')
+                            ->label('Unit Price (Year 5)')
+                            ->numeric()
+                            ->live(debounce: 1000)
+                            ->dehydrated(false)
+                            ->afterStateUpdated(function(?string $state, Forms\Get $get, Forms\Set $set) {
+                                if (!$state) return;
+
+                                $items = $get('items') ?? [];
+                                $productIds = collect($items)->pluck('product_id')->filter()->unique()->toArray();
+                                $products = \App\Models\Product::whereIn('id', $productIds)->get()->keyBy('id');
+                                $itemYearNums = QuotationResource::computeItemYearNumbers($items, $products);
+
+                                foreach ($items as $index => $item) {
+                                    if (!empty($item['product_id']) && isset($products[$item['product_id']])) {
+                                        $product = $products[$item['product_id']];
+                                        if (str_starts_with($product->solution, 'software') && ($itemYearNums[$index] ?? null) === 5) {
+                                            $set("items.{$index}.unit_price", $state);
+                                        }
+                                    }
+                                }
+
+                                usleep(50000);
+                                QuotationResource::recalculateAllRowsFromParent($get, $set);
+                            })
+                            ->visible(function (Forms\Get $get) {
+                                if (!in_array($get('quotation_type'), ['hrdf', 'product'])) return false;
+                                return QuotationResource::getPackageYearCount($get('package_group')) >= 5;
+                            }),
                     ])
                     ->columnSpan(3)
                     ->columns(2),
@@ -832,7 +967,7 @@ class QuotationResource extends Resource
                                         $productId = $get('product_id');
                                         if ($productId != null) {
                                             $product = Product::find($productId);
-                                            if ($product && $get('../../quotation_type') == 'product' && $product->solution == 'software') {
+                                            if ($product && $get('../../quotation_type') == 'product' && str_starts_with($product->solution, 'software')) {
                                                 return true;
                                             }
                                         }
@@ -846,16 +981,6 @@ class QuotationResource extends Resource
                                     ->readOnly()
                                     ->dehydrated(true)
                                     ->helperText('Auto-calculated based on duplicate products')
-                                    ->visible(function(Forms\Get $get) {
-                                        $productId = $get('product_id');
-                                        if ($productId != null) {
-                                            $product = Product::find($productId);
-                                            if ($product && $get('../../quotation_type') == 'product' && $product->solution == 'software') {
-                                                return true;
-                                            }
-                                        }
-                                        return false;
-                                    })
                                     ->afterStateHydrated(function (Forms\Get $get, Forms\Set $set) {
                                         // Calculate year based on position in items array
                                         $currentProductId = $get('product_id');
@@ -864,7 +989,7 @@ class QuotationResource extends Resource
                                         }
 
                                         $product = Product::find($currentProductId);
-                                        if (!$product || $product->solution !== 'software') {
+                                        if (!$product || !str_starts_with($product->solution, 'software')) {
                                             return;
                                         }
 
@@ -1035,15 +1160,63 @@ class QuotationResource extends Resource
                             ->collapsible()
                             ->reorderable(false)
                             ->itemLabel(
-                                function(?array $state): ?string {
-                                    if ($state != null && isset($state['product_id'])) {
-                                        $product = Product::find($state['product_id']);
-                                        if ($product) {
-                                            return 'Product Code: ' . $product->code;
-                                        }
+                                function(?array $state, \Filament\Forms\Components\Repeater $component, string $uuid): \Illuminate\Support\HtmlString|string|null {
+                                    if ($state == null || !isset($state['product_id'])) {
                                         return null;
                                     }
-                                    return null;
+
+                                    $product = Product::find($state['product_id']);
+                                    if (!$product) {
+                                        return null;
+                                    }
+
+                                    $label = 'Product Code: ' . e($product->code);
+
+                                    if (str_starts_with($product->solution, 'software')) {
+                                        try {
+                                            $allItems = data_get($component->getLivewire(), $component->getStatePath()) ?? [];
+                                            $totalOccurrences = 0;
+                                            foreach ($allItems as $itemData) {
+                                                if (($itemData['product_id'] ?? null) == $state['product_id']) {
+                                                    $totalOccurrences++;
+                                                }
+                                            }
+
+                                            if ($totalOccurrences > 1) {
+                                                $occurrence = 0;
+                                                foreach ($allItems as $itemUuid => $itemData) {
+                                                    if (($itemData['product_id'] ?? null) == $state['product_id']) {
+                                                        $occurrence++;
+                                                        if ((string) $itemUuid === (string) $uuid) {
+                                                            break;
+                                                        }
+                                                    }
+                                                }
+
+                                                $ordinal = match($occurrence) {
+                                                    1 => '1st', 2 => '2nd', 3 => '3rd',
+                                                    default => $occurrence . 'th',
+                                                };
+                                                $badgeColors = [
+                                                    1 => 'background:linear-gradient(135deg,#3b82f6,#60a5fa)',
+                                                    2 => 'background:linear-gradient(135deg,#8b5cf6,#a78bfa)',
+                                                    3 => 'background:linear-gradient(135deg,#f59e0b,#fbbf24)',
+                                                    4 => 'background:linear-gradient(135deg,#10b981,#34d399)',
+                                                    5 => 'background:linear-gradient(135deg,#ef4444,#f87171)',
+                                                ];
+                                                $bg = $badgeColors[$occurrence] ?? 'background:#6b7280';
+
+                                                $label .= ' <span style="display:inline-block;padding:2px 14px;border-radius:999px;'
+                                                    . $bg . ';color:#fff;'
+                                                    . 'font-size:13px;font-weight:600;margin-left:12px;">'
+                                                    . $ordinal . ' Year</span>';
+                                            }
+                                        } catch (\Throwable $e) {
+                                            // Silently handle errors
+                                        }
+                                    }
+
+                                    return new \Illuminate\Support\HtmlString($label);
                                 }
                             )
                             ->cloneable()
@@ -2023,7 +2196,7 @@ class QuotationResource extends Resource
                 $productId = $state;
                 $product = Product::find($productId);
                 $set('quantity',1);
-                if ($product->solution == 'software') {
+                if (str_starts_with($product->solution, 'software')) {
                     //$set('quantity',$get('../../headcount'));
                     $set('subscription_period',$get('../../base_subscription'));
                 }
@@ -2064,7 +2237,7 @@ class QuotationResource extends Resource
              * if product is a software, we include subscription period in the calculation
              * of total value before tax
              */
-            if ($product->solution == 'software') {
+            if (str_starts_with($product->solution, 'software')) {
 
                 $totalBeforeTax = $quantity * $unitPrice * $subscription;
             } else {
@@ -2148,6 +2321,9 @@ class QuotationResource extends Resource
         $productIds = collect($items)->pluck('product_id')->filter()->unique()->toArray();
         $products = Product::whereIn('id', $productIds)->get()->keyBy('id');
 
+        // Pre-compute year for each item based on position (bypasses unreliable year field state)
+        $itemYearNums = self::computeItemYearNumbers($items, $products);
+
         foreach ($items as $index => $item) {
             $product = null;
 
@@ -2167,7 +2343,7 @@ class QuotationResource extends Resource
             $parentNumParticipants = $get("num_of_participant");
 
             // If parent has num_of_participant set, use it ONLY for software and hrdf products
-            if ($parentNumParticipants && ($product?->solution == 'hrdf' || $product?->solution == 'software')) {
+            if ($parentNumParticipants && ($product?->solution == 'hrdf' || str_starts_with($product?->solution ?? '', 'software'))) {
                 $currentQuantity = $parentNumParticipants;
                 $set("items.{$index}.quantity", $parentNumParticipants);
             } elseif (!$currentQuantity || $currentQuantity == 0) {
@@ -2178,7 +2354,7 @@ class QuotationResource extends Resource
                         $set("items.{$index}.quantity", $numParticipants);
                         $currentQuantity = $numParticipants;
                     }
-                } elseif ($product?->solution == 'software') {
+                } elseif (str_starts_with($product?->solution ?? '', 'software')) {
                     // For software, use num_of_participant if available, otherwise default quantity
                     $numParticipants = $get("num_of_participant");
                     if ($numParticipants) {
@@ -2200,12 +2376,25 @@ class QuotationResource extends Resource
             $quantity = $currentQuantity ?: 1;
             $subscription_period = $get("items.{$index}.subscription_period") ?: 12;
 
-            // Handle unit price - check parent form first for software products
+            // Handle unit price - check per-year parent fields for software products
             $unit_price = 0;
-            $parentUnitPrice = $get("unit_price");
+            $parentUnitPrice = null;
+            $yearCount = self::getPackageYearCount($get('package_group'));
 
-            if ($parentUnitPrice && $product && $product->solution === 'software') {
-                // Use parent unit price for software products
+            if ($product && str_starts_with($product->solution, 'software')) {
+                if ($yearCount > 1) {
+                    // Multi-year: get unit price for this item's specific year (computed from position)
+                    $yearNum = $itemYearNums[$index] ?? null;
+                    if ($yearNum !== null && $yearNum >= 1 && $yearNum <= 5) {
+                        $parentUnitPrice = $get("unit_price_year_{$yearNum}");
+                    }
+                } else {
+                    // Single year or no package: use year 1 price for all software items
+                    $parentUnitPrice = $get("unit_price_year_1");
+                }
+            }
+
+            if ($parentUnitPrice && $product && str_starts_with($product->solution, 'software')) {
                 $unit_price = $parentUnitPrice;
             } elseif (array_key_exists('unit_price', $item)) {
                 $unit_price = $item['unit_price'];
@@ -2218,7 +2407,7 @@ class QuotationResource extends Resource
 
             // Calculate total before tax
             $total_before_tax = (int) $quantity * (float) $unit_price;
-            if ($product && $product->solution == 'software') {
+            if ($product && str_starts_with($product->solution, 'software')) {
                 $total_before_tax = (int) $quantity * (int) $subscription_period * (float) $unit_price;
             }
 
@@ -2328,7 +2517,7 @@ class QuotationResource extends Resource
             }
 
             $product = Product::find($item['product_id']);
-            if (!$product || $product->solution !== 'software') {
+            if (!$product || !str_starts_with($product->solution, 'software')) {
                 continue;
             }
 
@@ -2356,7 +2545,7 @@ class QuotationResource extends Resource
         }
 
         $product = Product::find($currentProductId);
-        if (!$product || $product->solution !== 'software') {
+        if (!$product || !str_starts_with($product->solution, 'software')) {
             $set('year', null);
             return;
         }
@@ -2415,7 +2604,7 @@ class QuotationResource extends Resource
             }
 
             $product = Product::find($item['product_id']);
-            if (!$product || $product->solution !== 'software') {
+            if (!$product || !str_starts_with($product->solution, 'software')) {
                 $set("../../items.{$index}.year", null);
                 continue;
             }
@@ -2458,7 +2647,7 @@ class QuotationResource extends Resource
             }
 
             $product = Product::find($item['product_id']);
-            if (!$product || $product->solution !== 'software') {
+            if (!$product || !str_starts_with($product->solution, 'software')) {
                 $set("items.{$index}.year", null);
                 continue;
             }
@@ -2478,5 +2667,54 @@ class QuotationResource extends Resource
             $year = $productYearCounters[$productId];
             $set("items.{$index}.year", "Year {$year}");
         }
+    }
+
+    public static function getPackageYearCount(?string $packageGroup): int
+    {
+        return match($packageGroup) {
+            'Package 2' => 1,
+            'Package 3' => 2,
+            'Package 4' => 3,
+            'Package 5' => 4,
+            'Package 6' => 5,
+            'Package 7' => 0,
+            'Package 8' => 1,
+            'Package 9' => 2,
+            'Package 10' => 3,
+            'Package 11' => 4,
+            default => 1,
+        };
+    }
+
+    /**
+     * Compute year number for each item based on position (Nth occurrence of each software product).
+     * Returns [itemIndex => yearNumber] for software products that appear more than once.
+     */
+    public static function computeItemYearNumbers(array $items, $products = null): array
+    {
+        if ($products === null) {
+            $productIds = collect($items)->pluck('product_id')->filter()->unique()->toArray();
+            $products = Product::whereIn('id', $productIds)->get()->keyBy('id');
+        }
+
+        $productOccurrences = [];
+        foreach ($items as $item) {
+            $pid = $item['product_id'] ?? null;
+            if ($pid && isset($products[$pid]) && str_starts_with($products[$pid]->solution, 'software')) {
+                $productOccurrences[$pid] = ($productOccurrences[$pid] ?? 0) + 1;
+            }
+        }
+
+        $productCounters = [];
+        $itemYears = [];
+        foreach ($items as $index => $item) {
+            $pid = $item['product_id'] ?? null;
+            if ($pid && isset($products[$pid]) && str_starts_with($products[$pid]->solution, 'software')) {
+                $productCounters[$pid] = ($productCounters[$pid] ?? 0) + 1;
+                $itemYears[$index] = $productCounters[$pid];
+            }
+        }
+
+        return $itemYears;
     }
 }

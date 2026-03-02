@@ -359,10 +359,10 @@
                     @else
                         {{-- PAID: 3-Tier Collapsible (Invoice → Year → Products) --}}
                         @php
-                            // Calculate totals for this PAID group (across all years)
-                            $groupTotalUser = collect($group['products'])->sum('total_user');
+                            // Calculate totals for this PAID group (use first year only — multi-year doesn't increase headcount)
                             $yearKeys = array_keys($group['years'] ?? []);
                             $firstYearProducts = $group['years'][reset($yearKeys)] ?? [];
+                            $groupTotalUser = collect($firstYearProducts)->sum('total_user');
                             $lastYearProducts = $group['years'][end($yearKeys)] ?? [];
                             $groupStartDate = collect($firstYearProducts)->min('start_date');
                             $groupEndDate = collect($lastYearProducts)->max('end_date');

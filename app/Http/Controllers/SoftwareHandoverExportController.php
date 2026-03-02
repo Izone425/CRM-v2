@@ -524,6 +524,7 @@ class SoftwareHandoverExportController extends Controller
         $items = $request->input('items', []);
         $bufferMonth = $request->input('buffer_month', 1);
 
+        // Save form data locally
         $handover->update([
             'db_creation' => $dbDate,
             'type_1_pi_invoice_data' => [
@@ -533,23 +534,161 @@ class SoftwareHandoverExportController extends Controller
         ]);
 
         // Create or update Customer record with master credentials
-        $masterEmail = $request->input('master_email');
-        $masterPassword = $request->input('master_password');
+        try {
+            $masterEmail = $request->input('master_email');
+            $masterPassword = $request->input('master_password');
 
-        if ($masterEmail) {
-            Customer::updateOrCreate(
-                ['sw_id' => $handover->id],
-                [
-                    'email' => $masterEmail,
-                    'password' => Hash::make($masterPassword),
-                    'plain_password' => $masterPassword,
-                    'name' => $handover->company_name ?? 'Master',
-                    'company_name' => $handover->company_name,
-                ]
-            );
+            if ($masterEmail) {
+                Customer::updateOrCreate(
+                    ['sw_id' => $handover->id],
+                    [
+                        'email' => $masterEmail,
+                        'password' => $masterPassword,
+                        'plain_password' => $masterPassword,
+                        'name' => $handover->company_name ?? 'Master',
+                        'company_name' => $handover->company_name,
+                        'lead_id' => $handover->lead_id,
+                    ]
+                );
+            }
+        } catch (\Exception $e) {
+            Log::error("Failed to create/update customer for handover {$handover->id}: " . $e->getMessage());
         }
 
-        return response()->json(['success' => true, 'date' => $dbDate]);
+        // Auto-create CRM account if not yet created
+        if (!$handover->hr_account_id || !$handover->hr_company_id) {
+            try {
+                $this->createCRMAccountForHandover($handover);
+                $handover->refresh();
+            } catch (\Exception $e) {
+                Log::error('Failed to auto-create CRM account', [
+                    'handover_id' => $handover->id,
+                    'error' => $e->getMessage(),
+                ]);
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Failed to create CRM account: ' . $e->getMessage(),
+                ], 500);
+            }
+
+            if (!$handover->hr_account_id || !$handover->hr_company_id) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Failed to create CRM account. Please try again.',
+                ], 500);
+            }
+        }
+
+        // Map product code prefixes to API application names
+        $productCodeToApp = [
+            'TCL_TA' => 'Attendance',
+            'TCL_LEAVE' => 'Leave',
+            'TCL_CLAIM' => 'Claim',
+            'TCL_PAYROLL' => 'Payroll',
+        ];
+
+        // Determine unique applications and seat limits from the items
+        $applications = [];
+        $seatLimits = [];
+        foreach ($items as $item) {
+            $code = $item['product_code'] ?? '';
+            foreach ($productCodeToApp as $prefix => $appName) {
+                if (str_starts_with($code, $prefix)) {
+                    $applications[$appName] = true;
+                    $seatLimits[$appName] = (int) ($item['qty'] ?? 0);
+                    break;
+                }
+            }
+        }
+
+        if (empty($applications)) {
+            return response()->json([
+                'success' => false,
+                'error' => 'No valid software modules found in the items.',
+            ], 422);
+        }
+
+        // Calculate trial license dates
+        $startDate = \Carbon\Carbon::parse($dbDate)->format('Y-m-d');
+        $endDate = \Carbon\Carbon::parse($dbDate)->addMonths((int) $bufferMonth)->subDay()->format('Y-m-d');
+
+        // Create buffer/trial licenses via CRM API (single call with all applications)
+        $crmService = app(\App\Services\CRMApiService::class);
+        $appList = array_keys($applications);
+
+        try {
+            $result = $crmService->addBufferLicense(
+                $handover->hr_account_id,
+                $handover->hr_company_id,
+                [
+                    'applications' => $appList,
+                    'startDate' => $startDate,
+                    'endDate' => $endDate,
+                    'seatLimits' => $seatLimits,
+                    'notes' => 'Trial license created from CRM Software Handover',
+                ]
+            );
+
+            Log::info("Buffer license API result", [
+                'handover_id' => $handover->id,
+                'account_id' => $handover->hr_account_id,
+                'applications' => $appList,
+                'result' => $result,
+            ]);
+
+            if (!$result['success']) {
+                return response()->json([
+                    'success' => false,
+                    'error' => $result['error'] ?? 'Failed to create trial licenses. Please try again.',
+                ], 500);
+            }
+
+            // Store buffer license set ID
+            $handover->update([
+                'crm_buffer_license_id' => $result['data']['licenseSetId'] ?? null,
+            ]);
+
+            // Create local hr_license record so it appears in "All Licenses" page
+            $handoverId = 'SW_' . date('y', strtotime($handover->created_at)) . str_pad($handover->id, 4, '0', STR_PAD_LEFT);
+            $appNames = implode(', ', $appList);
+            $totalQty = array_sum(array_column($items, 'qty'));
+
+            \App\Models\HrLicense::updateOrCreate(
+                ['handover_id' => $handoverId],
+                [
+                    'software_handover_id' => $handover->id,
+                    'type' => 'TRIAL',
+                    'company_name' => $handover->company_name,
+                    'license_category' => 'Subscriber',
+                    'license_type' => "TimeTec {$appNames} (Trial)",
+                    'unit' => (int) $totalQty,
+                    'month' => (int) $bufferMonth,
+                    'start_date' => $startDate,
+                    'end_date' => $endDate,
+                    'status' => 'Enabled',
+                    'auto_renewal' => 'Disabled',
+                ]
+            );
+
+            return response()->json([
+                'success' => true,
+                'date' => $dbDate,
+                'licenses' => $result['data'] ?? [],
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error("Failed to create buffer licenses", [
+                'handover_id' => $handover->id,
+                'account_id' => $handover->hr_account_id,
+                'applications' => $appList,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to create trial licenses: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 
     public function confirmCreatePendingLicense(\Illuminate\Http\Request $request, $softwareHandoverId)
@@ -576,7 +715,7 @@ class SoftwareHandoverExportController extends Controller
         $handoverId = 'SW_' . date('y', strtotime($handover->created_at))
             . str_pad($handover->id, 4, '0', STR_PAD_LEFT);
 
-        $invoiceNo = 'TTPI' . \Carbon\Carbon::parse($pendingDate)->format('ymd') . $handover->id;
+        $invoiceNo = 'TTC' . \Carbon\Carbon::parse($pendingDate)->format('ymd') . $handover->id;
 
         // 3. Compute year-based date ranges
         $pendingStart = \Carbon\Carbon::parse($pendingDate);
@@ -703,6 +842,105 @@ class SoftwareHandoverExportController extends Controller
             'success'    => true,
             'date'       => $pendingDate,
             'invoice_no' => $invoiceNo,
+        ]);
+    }
+
+    protected function createCRMAccountForHandover(SoftwareHandover $handover): void
+    {
+        $handover->load('lead');
+        $lead = $handover->lead;
+
+        // Get or create customer credentials
+        $customer = \App\Models\Customer::where('lead_id', $handover->lead_id)->first();
+
+        if ($customer && $customer->email && $customer->plain_password) {
+            $name = $customer->name;
+            $email = $customer->email;
+            $password = $customer->plain_password;
+        } else {
+            // Generate credentials via CustomerActivationController
+            $activationController = app(\App\Http\Controllers\CustomerActivationController::class);
+            $credentials = $activationController->generateCRMAccountCredentials($handover->lead_id, (string) $handover->id);
+            $name = $credentials['name'];
+            $email = $credentials['email'];
+            $password = $credentials['password'];
+            $customer = \App\Models\Customer::where('lead_id', $handover->lead_id)->first();
+        }
+
+        // Get country data (with Malaysia fallback)
+        $countryId = 132; // Malaysia default
+        $phoneCode = '+60';
+        $timezone = 'Asia/Kuala_Lumpur';
+
+        try {
+            $countryService = app(\App\Services\CountryService::class);
+            $countries = $countryService->getCountries();
+            $leadCountry = $lead->country ?? 'Malaysia';
+            $countryData = collect($countries)->firstWhere('name', $leadCountry)
+                ?? collect($countries)->firstWhere('iso3', $leadCountry)
+                ?? collect($countries)->firstWhere('id', 132);
+
+            if ($countryData) {
+                $countryId = (int) $countryData['id'];
+                $phoneCode = $countryData['phone_code'] ?? '+60';
+                $timezone = $countryData['timezone'] ?? 'Asia/Kuala_Lumpur';
+            }
+        } catch (\Exception $e) {
+            Log::warning('CountryService failed, using Malaysia defaults', ['error' => $e->getMessage()]);
+        }
+
+        // Process phone number from implementation PICs
+        $implementationPics = is_string($handover->implementation_pics)
+            ? json_decode($handover->implementation_pics, true)
+            : $handover->implementation_pics;
+
+        $rawPhone = $implementationPics[0]['pic_phone_impl'] ?? $handover->pic_phone ?? '';
+        $cleanPhone = preg_replace('/[^0-9]/', '', $rawPhone);
+        $phoneCodeDigits = preg_replace('/[^0-9]/', '', $phoneCode);
+        if (str_starts_with($cleanPhone, $phoneCodeDigits)) {
+            $cleanPhone = substr($cleanPhone, strlen($phoneCodeDigits));
+        }
+        $cleanPhone = ltrim($cleanPhone, '0');
+
+        // Call CRM API to create account
+        $crmService = app(\App\Services\CRMApiService::class);
+        $result = $crmService->createAccount([
+            'company_name' => $handover->company_name,
+            'country_id' => $countryId,
+            'name' => $name ?: ($implementationPics[0]['pic_name_impl'] ?? $handover->pic_name ?? 'Admin'),
+            'email' => $email,
+            'password' => $password,
+            'phone_code' => $phoneCode,
+            'phone' => $cleanPhone,
+            'timezone' => $timezone,
+        ]);
+
+        if (empty($result['success']) || empty($result['data'])) {
+            throw new \Exception($result['error'] ?? 'CRM API returned no data');
+        }
+
+        // Save CRM account IDs to SoftwareHandover
+        $handover->update([
+            'hr_account_id' => $result['data']['accountId'],
+            'hr_company_id' => $result['data']['companyId'],
+            'hr_user_id' => $result['data']['userId'] ?? null,
+        ]);
+
+        // Update Customer record if exists
+        if ($customer) {
+            $customer->update([
+                'hr_account_id' => $result['data']['accountId'],
+                'hr_company_id' => $result['data']['companyId'],
+                'hr_user_id' => $result['data']['userId'] ?? null,
+                'status' => 'active',
+                'email_verified_at' => $customer->email_verified_at ?? now(),
+            ]);
+        }
+
+        Log::info('CRM account auto-created', [
+            'handover_id' => $handover->id,
+            'account_id' => $result['data']['accountId'],
+            'company_id' => $result['data']['companyId'],
         ]);
     }
 }

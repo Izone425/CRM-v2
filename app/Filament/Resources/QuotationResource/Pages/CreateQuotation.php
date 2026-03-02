@@ -69,6 +69,9 @@ class CreateQuotation extends CreateRecord
 
     protected function afterCreate(): void
     {
+        // Compute and save year values for multi-year package items
+        $this->computeAndSaveItemYears($this->record);
+
         /**
          * if quotation_reference_no is not set
          */
@@ -147,6 +150,43 @@ class CreateQuotation extends CreateRecord
     protected function getRedirectUrl(): string
     {
         return $this->getResource()::getUrl('index');
+    }
+
+    private function computeAndSaveItemYears($quotation): void
+    {
+        $items = $quotation->items()->orderBy('sort_order')->get();
+        $productCounters = [];
+
+        // First pass: count occurrences of each software product
+        foreach ($items as $item) {
+            $product = $item->product;
+            if (!$product || !str_starts_with($product->solution, 'software')) {
+                continue;
+            }
+            $pid = $product->id;
+            $productCounters[$pid] = ($productCounters[$pid] ?? 0) + 1;
+        }
+
+        // Only set year if any software product appears more than once
+        $duplicated = array_filter($productCounters, fn($count) => $count > 1);
+        if (empty($duplicated)) {
+            return;
+        }
+
+        // Second pass: assign year numbers
+        $productCounters = [];
+        foreach ($items as $item) {
+            $product = $item->product;
+            if (!$product || !str_starts_with($product->solution, 'software')) {
+                continue;
+            }
+            $pid = $product->id;
+            $productCounters[$pid] = ($productCounters[$pid] ?? 0) + 1;
+
+            if (isset($duplicated[$pid])) {
+                $item->update(['year' => "Year {$productCounters[$pid]}"]);
+            }
+        }
     }
 
     private function generateQuotationPDF($quotation): void

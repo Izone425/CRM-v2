@@ -167,15 +167,38 @@
                 $sortedItems = ($quotation->items ?? collect())->sortBy('sort_order')->filter(function($item) {
                     return $item->convert_pi == true;
                 });
+
+                // Group items by year (null year items go into 'none' group)
+                $groupedItems = $sortedItems->groupBy(function($item) {
+                    return $item->year ?? 'none';
+                });
+
+                // Check if year grouping is needed (any item has a year value)
+                $hasYearGroups = $groupedItems->keys()->filter(fn($k) => $k !== 'none')->isNotEmpty();
             @endphp
-            @foreach($sortedItems as $item)
+            @foreach($groupedItems as $yearKey => $yearItems)
+            @if($hasYearGroups && $yearKey !== 'none')
+            @php
+                $yearNum = (int) str_replace('Year ', '', $yearKey);
+                $ordinal = match($yearNum) {
+                    1 => '1st', 2 => '2nd', 3 => '3rd',
+                    default => $yearNum . 'th',
+                };
+            @endphp
+            <tr style="background: #e8f0fe; border:1px solid #989898; page-break-after: avoid;">
+                <td colspan="7" style="border:1px solid #989898; font-weight:bold; padding:6px 8px; color:#005baa; font-size:12px;">
+                    {{ $ordinal }} Year Subscription
+                </td>
+            </tr>
+            @endif
+            @foreach($yearItems as $item)
             @php
                 $totalTax += $item->taxation;
                 $totalBeforeTax += $item->total_before_tax;
                 $totalAfterTax += $item->total_after_tax;
 
                 $description = '';
-                if ($item->product && $item->product->solution == 'software') {
+                if ($item->product && str_starts_with($item->product->solution, 'software')) {
                     $description .= '(<u><strong>'. $item->quotation->currency . ' ' .$item->unit_price . ' * ' . $item->quantity . ' H/C * ' . $item->subscription_period . ' MONTHS</strong></u>)<br /><br />';
                 }
 
@@ -205,6 +228,7 @@
                 <td class="text-right" style="border:1px solid #989898;">{{ $item->taxation ?? '-' }}</td>
                 <td class="text-right" style="border:1px solid #989898; border-bottom: 1px solid #989898;">{{ $item->total_after_tax }}</td>
             </tr>
+            @endforeach
             @endforeach
             <tr style="background-color:#ffffff; border-color:#fff;">
                 <td style="border-right:1px solid #989898; border-left: 1px solid #fff; border-bottom:1px solid #fff;" colspan="4"></td>
