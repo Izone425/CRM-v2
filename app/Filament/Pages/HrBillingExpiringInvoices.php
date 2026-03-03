@@ -15,4 +15,9 @@ class HrBillingExpiringInvoices extends Page
     protected static bool $shouldRegisterNavigation = false;
 
     protected static ?string $slug = 'hr-billing-expiring-invoices';
+
+    public static function canAccess(): bool
+    {
+        return auth()->user()?->hasRouteAccess('filament.admin.pages.hr-billing-expiring-invoices') ?? false;
+    }
 }

@@ -15,4 +15,9 @@ class HrBillingOfficialReceipt extends Page
     protected static bool $shouldRegisterNavigation = false;
 
     protected static ?string $slug = 'hr-billing-official-receipt';
+
+    public static function canAccess(): bool
+    {
+        return auth()->user()?->hasRouteAccess('filament.admin.pages.hr-billing-official-receipt') ?? false;
+    }
 }

@@ -17,4 +17,9 @@ class HrLicense extends Page
     protected static bool $shouldRegisterNavigation = false;
 
     protected static ?string $slug = 'hr-license';
+
+    public static function canAccess(): bool
+    {
+        return auth()->user()?->hasRouteAccess('filament.admin.pages.hr-license') ?? false;
+    }
 }

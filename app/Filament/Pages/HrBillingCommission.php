@@ -15,4 +15,9 @@ class HrBillingCommission extends Page
     protected static bool $shouldRegisterNavigation = false;
 
     protected static ?string $slug = 'hr-billing-commission';
+
+    public static function canAccess(): bool
+    {
+        return auth()->user()?->hasRouteAccess('filament.admin.pages.hr-billing-commission') ?? false;
+    }
 }

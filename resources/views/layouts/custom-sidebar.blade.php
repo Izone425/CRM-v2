@@ -1787,57 +1787,92 @@
                         </div>
 
                         <div class="submenu" id="hr-admin-submenu">
+                            {{-- Hidden: Dashboard
                             <a href="{{ route('filament.admin.pages.hr-product-dashboard') }}" class="submenu-item">
                                 <span class="module-font">Dashboard</span>
                             </a>
+                            --}}
+                            {{-- Hidden: Account Management
                             <a href="{{ route('filament.admin.pages.hr-account-management') }}" class="submenu-item">
                                 <span class="module-font">Account Management</span>
                             </a>
+                            --}}
+                            @php
+                                $u = auth()->user();
+                                $hasLicense = $u->hasRouteAccess('filament.admin.pages.hr-license') || $u->hasRouteAccess('filament.admin.pages.hr-devices') || $u->hasRouteAccess('filament.admin.pages.hr-customer-credential');
+                                $hasBilling = $u->hasRouteAccess('filament.admin.pages.hr-billing-sales-invoice') || $u->hasRouteAccess('filament.admin.pages.hr-billing-expiring-invoices') || $u->hasRouteAccess('filament.admin.pages.hr-billing-official-receipt') || $u->hasRouteAccess('filament.admin.pages.hr-billing-commission') || $u->hasRouteAccess('filament.admin.pages.hr-billing-payment') || $u->hasRouteAccess('filament.admin.pages.hr-billing-auto-renewal') || $u->hasRouteAccess('filament.admin.pages.hr-billing-credit-notes');
+                            @endphp
+                            @if($hasLicense)
                             <div class="submenu-item submenu-parent-toggle" data-submenu="license-sub-submenu" style="cursor: pointer;">
                                 <span class="module-font">License</span>
                                 <i class="bi bi-chevron-down submenu-parent-arrow" style="font-size: 0.55rem; margin-left: auto; transition: transform 0.3s;"></i>
                             </div>
                             <div class="sub-submenu" id="license-sub-submenu" style="overflow: hidden; max-height: 0; transition: max-height 0.3s ease;">
+                                @if($u->hasRouteAccess('filament.admin.pages.hr-license'))
                                 <a href="{{ route('filament.admin.pages.hr-license') }}" class="submenu-item submenu-item-sub">
                                     <span class="module-font">All Licenses</span>
                                 </a>
+                                @endif
+                                @if($u->hasRouteAccess('filament.admin.pages.hr-devices'))
                                 <a href="{{ route('filament.admin.pages.hr-devices') }}" class="submenu-item submenu-item-sub">
                                     <span class="module-font">Devices</span>
                                 </a>
+                                @endif
+                                @if($u->hasRouteAccess('filament.admin.pages.hr-customer-credential'))
                                 <a href="{{ route('filament.admin.pages.hr-customer-credential') }}" class="submenu-item submenu-item-sub">
                                     <span class="module-font">Customer Credential</span>
                                 </a>
+                                @endif
                             </div>
+                            @endif
+                            @if($hasBilling)
                             <div class="submenu-item submenu-parent-toggle" data-submenu="billing-sub-submenu" style="cursor: pointer;">
                                 <span class="module-font">Billing</span>
                                 <i class="bi bi-chevron-down submenu-parent-arrow" style="font-size: 0.55rem; margin-left: auto; transition: transform 0.3s;"></i>
                             </div>
                             <div class="sub-submenu" id="billing-sub-submenu" style="overflow: hidden; max-height: 0; transition: max-height 0.3s ease;">
+                                @if($u->hasRouteAccess('filament.admin.pages.hr-billing-sales-invoice'))
                                 <a href="{{ route('filament.admin.pages.hr-billing-sales-invoice') }}" class="submenu-item submenu-item-sub">
                                     <span class="module-font">Sales Invoice</span>
                                 </a>
+                                @endif
+                                @if($u->hasRouteAccess('filament.admin.pages.hr-billing-expiring-invoices'))
                                 <a href="{{ route('filament.admin.pages.hr-billing-expiring-invoices') }}" class="submenu-item submenu-item-sub">
                                     <span class="module-font">Expiring Invoices</span>
                                 </a>
+                                @endif
+                                @if($u->hasRouteAccess('filament.admin.pages.hr-billing-official-receipt'))
                                 <a href="{{ route('filament.admin.pages.hr-billing-official-receipt') }}" class="submenu-item submenu-item-sub">
                                     <span class="module-font">Official Receipt</span>
                                 </a>
+                                @endif
+                                @if($u->hasRouteAccess('filament.admin.pages.hr-billing-commission'))
                                 <a href="{{ route('filament.admin.pages.hr-billing-commission') }}" class="submenu-item submenu-item-sub">
                                     <span class="module-font">Commission</span>
                                 </a>
+                                @endif
+                                @if($u->hasRouteAccess('filament.admin.pages.hr-billing-payment'))
                                 <a href="{{ route('filament.admin.pages.hr-billing-payment') }}" class="submenu-item submenu-item-sub">
                                     <span class="module-font">Payment</span>
                                 </a>
+                                @endif
+                                @if($u->hasRouteAccess('filament.admin.pages.hr-billing-auto-renewal'))
                                 <a href="{{ route('filament.admin.pages.hr-billing-auto-renewal') }}" class="submenu-item submenu-item-sub">
                                     <span class="module-font">Auto Renewal</span>
                                 </a>
+                                @endif
+                                @if($u->hasRouteAccess('filament.admin.pages.hr-billing-credit-notes'))
                                 <a href="{{ route('filament.admin.pages.hr-billing-credit-notes') }}" class="submenu-item submenu-item-sub">
                                     <span class="module-font">Credit Notes</span>
                                 </a>
+                                @endif
                             </div>
+                            @endif
+                            {{-- Hidden: Raw Data
                             <a href="{{ route('filament.admin.pages.admin-portal-hr-v2') }}" class="submenu-item">
                                 <span class="module-font">Raw Data</span>
                             </a>
+                            --}}
                         </div>
                     </div>
                 </div>

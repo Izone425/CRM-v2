@@ -15,4 +15,9 @@ class HrCustomerCredential extends Page
     protected static bool $shouldRegisterNavigation = false;
 
     protected static ?string $slug = 'hr-customer-credential';
+
+    public static function canAccess(): bool
+    {
+        return auth()->user()?->hasRouteAccess('filament.admin.pages.hr-customer-credential') ?? false;
+    }
 }

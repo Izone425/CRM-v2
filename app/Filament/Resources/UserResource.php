@@ -105,6 +105,20 @@ class UserResource extends Resource
         'installers' => 'filament.admin.resources.installers.index',
         'spare_parts' => 'filament.admin.resources.spare-parts.index',
         'users' => 'filament.admin.resources.users.index',
+
+        // Admin Portal V2 - License
+        'admin_v2_all_licenses' => 'filament.admin.pages.hr-license',
+        'admin_v2_devices' => 'filament.admin.pages.hr-devices',
+        'admin_v2_customer_credential' => 'filament.admin.pages.hr-customer-credential',
+
+        // Admin Portal V2 - Billing
+        'admin_v2_sales_invoice' => 'filament.admin.pages.hr-billing-sales-invoice',
+        'admin_v2_expiring_invoices' => 'filament.admin.pages.hr-billing-expiring-invoices',
+        'admin_v2_official_receipt' => 'filament.admin.pages.hr-billing-official-receipt',
+        'admin_v2_commission' => 'filament.admin.pages.hr-billing-commission',
+        'admin_v2_payment' => 'filament.admin.pages.hr-billing-payment',
+        'admin_v2_auto_renewal' => 'filament.admin.pages.hr-billing-auto-renewal',
+        'admin_v2_credit_notes' => 'filament.admin.pages.hr-billing-credit-notes',
     ];
 
     public static function canAccess(): bool
@@ -411,6 +425,11 @@ class UserResource extends Resource
                                                     'installers' => false,
                                                     'spare_parts' => false,
                                                     'users' => false,
+
+                                                    // Admin Portal V2 - License
+                                                    'admin_v2_all_licenses' => true,
+                                                    'admin_v2_devices' => true,
+                                                    'admin_v2_customer_credential' => true,
                                                 ],
 
                                                 // Technician Permissions (role_id = 9)
@@ -477,6 +496,19 @@ class UserResource extends Resource
                 // Only show route permissions section when editing (not creating)
                 Forms\Components\Section::make('Route Permissions')
                 ->description('Configure which parts of the system this user can access')
+                ->headerActions([
+                    Forms\Components\Actions\Action::make('tick_all')
+                        ->label('Tick All')
+                        ->size('sm')
+                        ->color('gray')
+                        ->action(function (Forms\Set $set, Forms\Get $get) {
+                            $allTicked = collect(array_keys(self::$routePermissionMap))
+                                ->every(fn ($key) => $get("permissions.{$key}"));
+                            foreach (array_keys(self::$routePermissionMap) as $key) {
+                                $set("permissions.{$key}", !$allTicked);
+                            }
+                        }),
+                ])
                 ->schema([
                     // Dashboard Section
                     Forms\Components\Fieldset::make('Dashboard')
@@ -1138,6 +1170,131 @@ class UserResource extends Resource
                                     if ($record) {
                                         $permissions = $record->route_permissions ?? [];
                                         $routeName = self::$routePermissionMap['users'];
+                                        $component->state(isset($permissions[$routeName]) ? $permissions[$routeName] : false);
+                                    }
+                                }),
+                        ])
+                        ->columns(3),
+
+                    // Admin Portal V2 Section
+                    Forms\Components\Fieldset::make('Admin Portal V2')
+                        ->schema([
+                            Forms\Components\Placeholder::make('license_header')
+                                ->label('')
+                                ->content(new \Illuminate\Support\HtmlString('<strong class="text-sm text-primary-600">License</strong>'))
+                                ->columnSpanFull(),
+
+                            Forms\Components\Checkbox::make('permissions.admin_v2_all_licenses')
+                                ->label('All Licenses')
+                                ->helperText('Access to all licenses page')
+                                ->afterStateHydrated(function ($component, $state, ?User $record) {
+                                    if ($record) {
+                                        $permissions = $record->route_permissions ?? [];
+                                        $routeName = self::$routePermissionMap['admin_v2_all_licenses'];
+                                        $component->state(isset($permissions[$routeName]) ? $permissions[$routeName] : false);
+                                    }
+                                }),
+
+                            Forms\Components\Checkbox::make('permissions.admin_v2_devices')
+                                ->label('Devices')
+                                ->helperText('Access to devices page')
+                                ->afterStateHydrated(function ($component, $state, ?User $record) {
+                                    if ($record) {
+                                        $permissions = $record->route_permissions ?? [];
+                                        $routeName = self::$routePermissionMap['admin_v2_devices'];
+                                        $component->state(isset($permissions[$routeName]) ? $permissions[$routeName] : false);
+                                    }
+                                }),
+
+                            Forms\Components\Checkbox::make('permissions.admin_v2_customer_credential')
+                                ->label('Customer Credential')
+                                ->helperText('Access to customer credential page')
+                                ->afterStateHydrated(function ($component, $state, ?User $record) {
+                                    if ($record) {
+                                        $permissions = $record->route_permissions ?? [];
+                                        $routeName = self::$routePermissionMap['admin_v2_customer_credential'];
+                                        $component->state(isset($permissions[$routeName]) ? $permissions[$routeName] : false);
+                                    }
+                                }),
+
+                            Forms\Components\Placeholder::make('billing_header')
+                                ->label('')
+                                ->content(new \Illuminate\Support\HtmlString('<strong class="text-sm text-primary-600">Billing</strong>'))
+                                ->columnSpanFull(),
+
+                            Forms\Components\Checkbox::make('permissions.admin_v2_sales_invoice')
+                                ->label('Sales Invoice')
+                                ->helperText('Access to sales invoice page')
+                                ->afterStateHydrated(function ($component, $state, ?User $record) {
+                                    if ($record) {
+                                        $permissions = $record->route_permissions ?? [];
+                                        $routeName = self::$routePermissionMap['admin_v2_sales_invoice'];
+                                        $component->state(isset($permissions[$routeName]) ? $permissions[$routeName] : false);
+                                    }
+                                }),
+
+                            Forms\Components\Checkbox::make('permissions.admin_v2_expiring_invoices')
+                                ->label('Expiring Invoices')
+                                ->helperText('Access to expiring invoices page')
+                                ->afterStateHydrated(function ($component, $state, ?User $record) {
+                                    if ($record) {
+                                        $permissions = $record->route_permissions ?? [];
+                                        $routeName = self::$routePermissionMap['admin_v2_expiring_invoices'];
+                                        $component->state(isset($permissions[$routeName]) ? $permissions[$routeName] : false);
+                                    }
+                                }),
+
+                            Forms\Components\Checkbox::make('permissions.admin_v2_official_receipt')
+                                ->label('Official Receipt')
+                                ->helperText('Access to official receipt page')
+                                ->afterStateHydrated(function ($component, $state, ?User $record) {
+                                    if ($record) {
+                                        $permissions = $record->route_permissions ?? [];
+                                        $routeName = self::$routePermissionMap['admin_v2_official_receipt'];
+                                        $component->state(isset($permissions[$routeName]) ? $permissions[$routeName] : false);
+                                    }
+                                }),
+
+                            Forms\Components\Checkbox::make('permissions.admin_v2_commission')
+                                ->label('Commission')
+                                ->helperText('Access to commission page')
+                                ->afterStateHydrated(function ($component, $state, ?User $record) {
+                                    if ($record) {
+                                        $permissions = $record->route_permissions ?? [];
+                                        $routeName = self::$routePermissionMap['admin_v2_commission'];
+                                        $component->state(isset($permissions[$routeName]) ? $permissions[$routeName] : false);
+                                    }
+                                }),
+
+                            Forms\Components\Checkbox::make('permissions.admin_v2_payment')
+                                ->label('Payment')
+                                ->helperText('Access to payment page')
+                                ->afterStateHydrated(function ($component, $state, ?User $record) {
+                                    if ($record) {
+                                        $permissions = $record->route_permissions ?? [];
+                                        $routeName = self::$routePermissionMap['admin_v2_payment'];
+                                        $component->state(isset($permissions[$routeName]) ? $permissions[$routeName] : false);
+                                    }
+                                }),
+
+                            Forms\Components\Checkbox::make('permissions.admin_v2_auto_renewal')
+                                ->label('Auto Renewal')
+                                ->helperText('Access to auto renewal page')
+                                ->afterStateHydrated(function ($component, $state, ?User $record) {
+                                    if ($record) {
+                                        $permissions = $record->route_permissions ?? [];
+                                        $routeName = self::$routePermissionMap['admin_v2_auto_renewal'];
+                                        $component->state(isset($permissions[$routeName]) ? $permissions[$routeName] : false);
+                                    }
+                                }),
+
+                            Forms\Components\Checkbox::make('permissions.admin_v2_credit_notes')
+                                ->label('Credit Notes')
+                                ->helperText('Access to credit notes page')
+                                ->afterStateHydrated(function ($component, $state, ?User $record) {
+                                    if ($record) {
+                                        $permissions = $record->route_permissions ?? [];
+                                        $routeName = self::$routePermissionMap['admin_v2_credit_notes'];
                                         $component->state(isset($permissions[$routeName]) ? $permissions[$routeName] : false);
                                     }
                                 }),
